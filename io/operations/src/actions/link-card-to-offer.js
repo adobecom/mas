@@ -45,9 +45,10 @@ async function main(params) {
         });
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
 
-        const updateFields = {
-            mnemonicIcon: [offerSelectorId],
-        };
+        const offers = await aosClient.resolveOfferSelector(offerSelectorId, undefined, { verifyIdentity: true });
+        if (!offers.length) return { statusCode: 400, body: { error: 'Offer selector did not resolve to any offers' } };
+        const offer = offers[0];
+        const updateFields = { osi: [offerSelectorId] };
 
         const fragment = await aemClient.getFragment(cardId);
         const updatedFragment = await aemClient.updateFragment(cardId, updateFields, etag || fragment.etag);
@@ -66,9 +67,6 @@ async function main(params) {
             modified: updatedFragment.modified,
             published: updatedFragment.published,
         };
-
-        const offers = await aosClient.resolveOfferSelector(offerSelectorId);
-        const offer = offers[0];
 
         const studioLinks = urlBuilder.createCardLinks(card);
 

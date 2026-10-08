@@ -162,6 +162,15 @@ export function extractKnownSurfaceFromPath(path) {
     return null;
 }
 
+// Guards a model-supplied parentPath before it decides where cards are written:
+// it must sit under /content/dam/mas/<surface>/ with no '..' traversal. Callers
+// fall back to the UI-derived path when this returns false.
+export function isSafeSurfacePath(path) {
+    if (typeof path !== 'string') return false;
+    if (path.split('/').includes('..')) return false;
+    return /^\/content\/dam\/mas\/[^/]+\/.+/.test(path);
+}
+
 export const CHAT_REQUEST_TIMEOUT_MS = 55000;
 
 export const CHAT_TIMEOUT_MESSAGE = 'The AI service took too long to respond. Please try again.';

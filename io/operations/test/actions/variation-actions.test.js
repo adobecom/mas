@@ -20,16 +20,16 @@ describe('variation actions', () => {
     const calls = [];
 
     before(() => {
-        originalValidateToken = Ims.prototype.validateToken;
+        originalValidateToken = Ims.prototype.validateTokenAllowList;
     });
 
     after(() => {
-        Ims.prototype.validateToken = originalValidateToken;
+        Ims.prototype.validateTokenAllowList = originalValidateToken;
     });
 
     beforeEach(() => {
         calls.length = 0;
-        Ims.prototype.validateToken = async () => ({ valid: true });
+        Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
     });
 
     /** Record what the action hands the library, without hitting AEM. */
@@ -81,7 +81,7 @@ describe('variation actions', () => {
             });
 
             it('rejects a token the IMS validator refuses', async () => {
-                Ims.prototype.validateToken = async () => ({ valid: false });
+                Ims.prototype.validateTokenAllowList = async () => ({ valid: false });
 
                 const result = await load({ ...baseParams, ...testCase.send });
 

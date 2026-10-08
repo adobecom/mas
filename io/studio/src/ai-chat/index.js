@@ -35,7 +35,7 @@ import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText }
 import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
-import { validateEnvelope, collectObservedIds } from './envelope-validator.js';
+import { validateEnvelope, collectObservedIds, collectObservedSelectors } from './envelope-validator.js';
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -502,13 +502,15 @@ async function main(params) {
     // ones the model invented. Covers the deterministic bypasses too, whose
     // ids are regex captures from the user's own message.
     const observedIds = collectObservedIds(params.context, conversationHistory, message);
+    const observedSelectors = collectObservedSelectors(params.context, conversationHistory, message);
+    const provenance = { observedIds, observedSelectors };
 
     // Deterministic bypasses build envelopes from regex captures; run them
     // through the same validator as model output. A failure means either a
     // code bug or an active flow where the shortcut is illegal — the normal
     // LLM path is the safe degradation, never a malformed envelope.
     const bypassEnvelopeValid = (envelope) => {
-        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, observedIds });
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, ...provenance });
         if (!validation.ok) {
             console.log(
                 JSON.stringify({
@@ -847,7 +849,7 @@ async function main(params) {
         if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
             const flow = params.context?.flow ?? null;
             let usage = response.usage;
-            let validation = validateEnvelope(extractToolEnvelope(response), { flow, observedIds });
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow, ...provenance });
             let retried = false;
             let rejectedRaw = null;
 
@@ -872,7 +874,7 @@ async function main(params) {
                 logUsageMetric(retryResponse, params, foundryClient.modelId);
                 if (retryResponse.success) {
                     usage = retryResponse.usage;
-                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, observedIds });
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, ...provenance });
                     if (retryValidation.ok) {
                         validation = retryValidation;
                     } else {
@@ -1083,10 +1085,12 @@ async function main(params) {
         // valid one: guided-flow JSON has no intent field, so its coerced
         // ASK_USER fallback must never ship — the frontend dispatcher would
         // prefer it over the real guided payload and hijack the turn.
-        const shadowValidation = logShadowValidation(response, params);
-        const envelopePayload = shadowValidation?.ok ? { envelope: shadowValidation.envelope } : {};
+        const shadowValidation = logShadowValidation(response, params, provenance);
+        const envelopePayload = shadowValidation?.isEnvelope
+            ? { envelope: shadowValidation.ok ? shadowValidation.envelope : shadowValidation.coerced }
+            : {};
 
-        let operationResult = handleOperation(response.message, enrichedContext);
+        let operationResult = handleOperation(response.message, enrichedContext, provenance);
         // An offer lookup without the product is a scan, not a lookup. The
         // conversation already names the product by this point, so fill it in
         // rather than depending on the model to have remembered.
@@ -1399,12 +1403,12 @@ export function shadowValidationOutcome(validation) {
     return validation.reason === 'intent-missing' ? 'not-an-envelope' : 'invalid';
 }
 
-function logShadowValidation(foundryResponse, params) {
+function logShadowValidation(foundryResponse, params, provenance) {
     try {
         const message = foundryResponse?.message;
         if (typeof message !== 'string') return null;
         const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
-        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null });
+        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null, ...provenance });
         console.log(
             JSON.stringify({
                 phase: 'shadow-validation',
@@ -1415,7 +1419,7 @@ function logShadowValidation(foundryResponse, params) {
                 intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
             }),
         );
-        return validation;
+        return { ...validation, isEnvelope: typeof maybeEnvelope?.intent === 'string' };
     } catch (shadowErr) {
         console.log(JSON.stringify({ phase: 'shadow-validation', req: resolveRequestId(params), error: shadowErr.message }));
         return null;

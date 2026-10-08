@@ -1,5 +1,12 @@
 import { expect } from 'chai';
-import { deriveSurfaceFromPath, canEditSurface, fetchUserGroups, requireSurfaceAccess } from '../../src/lib/ims-validator.js';
+import {
+    deriveSurfaceFromPath,
+    canEditSurface,
+    fetchUserGroups,
+    requireSurfaceAccess,
+    resolveAemBaseUrl,
+    isAllowedAemHost,
+} from '../../src/lib/ims-validator.js';
 import { Ims } from '@adobe/aio-lib-ims';
 
 describe('ims-validator surface authz', () => {
@@ -24,6 +31,48 @@ describe('ims-validator surface authz', () => {
             expect(deriveSurfaceFromPath(null)).to.be.null;
             expect(deriveSurfaceFromPath(undefined)).to.be.null;
             expect(deriveSurfaceFromPath(42)).to.be.null;
+        });
+
+        it('rejects paths containing a .. traversal segment', () => {
+            expect(deriveSurfaceFromPath('/content/dam/mas/acom/../ccd/en_US/card')).to.be.null;
+            expect(deriveSurfaceFromPath('/content/dam/mas/acom/en_US/../../ccd/card')).to.be.null;
+        });
+    });
+
+    describe('isAllowedAemHost / resolveAemBaseUrl', () => {
+        it('allows AEM Cloud and local hosts', () => {
+            expect(isAllowedAemHost('https://author-p1-e1.adobeaemcloud.com')).to.be.true;
+            expect(isAllowedAemHost('http://localhost:4502')).to.be.true;
+            expect(isAllowedAemHost('http://127.0.0.1:4502')).to.be.true;
+        });
+
+        it('rejects arbitrary and malformed hosts', () => {
+            expect(isAllowedAemHost('https://evil.example')).to.be.false;
+            expect(isAllowedAemHost('https://adobeaemcloud.com.evil.example')).to.be.false;
+            expect(isAllowedAemHost('not-a-url')).to.be.false;
+        });
+
+        it('ignores a disallowed _aemBaseUrl override and falls back to the configured URL', () => {
+            const resolved = resolveAemBaseUrl({
+                _aemBaseUrl: 'https://evil.example',
+                AEM_BASE_URL: 'https://author-p1-e1.adobeaemcloud.com',
+            });
+            expect(resolved.url).to.equal('https://author-p1-e1.adobeaemcloud.com');
+            expect(resolved.error).to.be.null;
+        });
+
+        it('honors an allowlisted _aemBaseUrl override', () => {
+            const resolved = resolveAemBaseUrl({
+                _aemBaseUrl: 'https://author-p2-e2.adobeaemcloud.com',
+                AEM_BASE_URL: 'https://author-p1-e1.adobeaemcloud.com',
+            });
+            expect(resolved.url).to.equal('https://author-p2-e2.adobeaemcloud.com');
+        });
+
+        it('returns a 500 error when nothing is configured', () => {
+            const resolved = resolveAemBaseUrl({});
+            expect(resolved.url).to.be.null;
+            expect(resolved.error.statusCode).to.equal(500);
         });
     });
 
@@ -109,17 +158,17 @@ describe('ims-validator surface authz', () => {
 
     describe('requireSurfaceAccess', () => {
         let originalFetch;
-        let originalValidateToken;
+        let originalValidate;
 
         beforeEach(() => {
             originalFetch = globalThis.fetch;
-            originalValidateToken = Ims.prototype.validateToken;
-            Ims.prototype.validateToken = async () => ({ valid: true });
+            originalValidate = Ims.prototype.validateTokenAllowList;
+            Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
         });
 
         afterEach(() => {
             globalThis.fetch = originalFetch;
-            Ims.prototype.validateToken = originalValidateToken;
+            Ims.prototype.validateTokenAllowList = originalValidate;
         });
 
         function stubProfile(groups) {

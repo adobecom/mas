@@ -51,7 +51,6 @@ export class AOSClient {
             sales_channel: DEFAULT_AOS_PARAMS.salesChannel,
             service_providers: 'PRICING',
             term: params.term,
-            api_key: this.apiKey,
             environment: 'PROD',
             landscape: 'PUBLISHED',
             page: '0',
@@ -118,7 +117,6 @@ export class AOSClient {
             for (const c of countries) {
                 const query = {
                     country: c,
-                    api_key: this.apiKey,
                     environment: 'PROD',
                     landscape,
                     page: '0',
@@ -215,7 +213,37 @@ export class AOSClient {
         return { id: data.data.id };
     }
 
-    async resolveOfferSelector(offerSelectorId, country) {
+    async resolveOfferSelector(offerSelectorId, country, { arrangementCode, verifyIdentity = false } = {}) {
+        if (typeof offerSelectorId !== 'string' || !/^[A-Za-z0-9_-]+$/.test(offerSelectorId)) return [];
+        if (/^[0-9a-f]{32}$/i.test(offerSelectorId)) {
+            const offer = await this.getOffer(offerSelectorId, country, { arrangementCode }).catch(() => null);
+            return offer ? [offer] : [];
+        }
+        let verifiedOfferIds;
+        if (verifyIdentity) {
+            // Match the selector identity contract used by web-components/src/wcs.js.
+            const query = new URLSearchParams({
+                offer_selector_ids: offerSelectorId,
+                country: country || 'US',
+                locale: 'en_US',
+                landscape: 'PUBLISHED',
+                api_key: 'wcms-commerce-ims-ro-user-milo',
+                language: 'MULT',
+            });
+            const response = await fetch(`https://www.adobe.com/web_commerce_artifact?${query}`, { credentials: 'omit' });
+            if (!response.ok) return [];
+            const data = await response.json();
+            const resolved = Array.isArray(data.resolvedOffers) ? data.resolvedOffers : [];
+            verifiedOfferIds = new Set(
+                resolved
+                    .filter(
+                        (offer) => Array.isArray(offer.offerSelectorIds) && offer.offerSelectorIds.includes(offerSelectorId),
+                    )
+                    .map((offer) => offer.offerId)
+                    .filter(Boolean),
+            );
+            if (!verifiedOfferIds.size) return [];
+        }
         // AOS has no GET-selector-by-id route (`/offer_selectors/{id}` and
         // `/v3/offer-selectors/{id}` both 404 at the proxy). The supported way
         // to resolve an OSI is the same GET /offers endpoint used for search,
@@ -227,7 +255,6 @@ export class AOSClient {
             country: country || 'US',
             locale: 'en_US',
             service_providers: 'MERCHANDISING,PRODUCT_ARRANGEMENT_V2,PRICING',
-            api_key: this.apiKey,
         });
         const url = `${this.baseUrl}/offers?${params.toString()}`;
 
@@ -251,6 +278,8 @@ export class AOSClient {
         const data = await response.json();
         let offers = Array.isArray(data) ? data : data?.data || [];
 
+        if (verifiedOfferIds) offers = offers.filter((offer) => verifiedOfferIds.has(offer.offer_id));
+
         // AOS ignores an offer_selector_ids filter it does not recognise and
         // answers with an unfiltered page, the same way it does for offer_id.
         // Verified against the live service: a mistyped OSI and the literal
@@ -272,17 +301,36 @@ export class AOSClient {
         }
 
         if (offers.length === 0) {
-            // OST occasionally populates data-wcs-osi with a 32-char hex
-            // Offer ID instead of a selector ID (draft/unindexed offers).
-            // If the OSI query matched nothing and the ID has the canonical
-            // Offer ID form, fall back to a direct offer lookup.
-            if (/^[0-9A-F]{32}$/.test(offerSelectorId)) {
-                const offer = await this.getOffer(offerSelectorId, country).catch(() => null);
-                if (offer) return [offer];
-            }
             return [];
         }
         return this.enrichOffersWithPlanType(offers);
+    }
+
+    async validateOfferFields(fields = {}, arrangementCode) {
+        const selectors = new Set();
+        for (const [name, value] of Object.entries(fields ?? {})) {
+            for (const entry of Array.isArray(value) ? value : [value]) {
+                if (name === 'osi' && entry !== '' && entry != null) {
+                    if (typeof entry !== 'string') return false;
+                    entry.split(',').forEach((id) => selectors.add(id.trim()));
+                }
+                if (typeof entry === 'string') {
+                    for (const match of entry.matchAll(/\bdata-wcs-osi\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi)) {
+                        const ids = match[1] ?? match[2] ?? match[3];
+                        if (ids) ids.split(',').forEach((id) => selectors.add(id.trim()));
+                    }
+                }
+            }
+        }
+        for (const selector of selectors) {
+            const offers = await this.resolveOfferSelector(selector, undefined, { arrangementCode, verifyIdentity: true });
+            if (
+                !offers.length ||
+                (arrangementCode && offers.some((offer) => offer.product_arrangement_code !== arrangementCode))
+            )
+                return false;
+        }
+        return true;
     }
 
     enrichOffersWithPlanType(offers) {

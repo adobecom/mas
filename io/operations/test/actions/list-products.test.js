@@ -25,18 +25,18 @@ describe('list-products action', () => {
     let fetchCalls;
 
     before(() => {
-        originalValidateToken = Ims.prototype.validateToken;
+        originalValidateToken = Ims.prototype.validateTokenAllowList;
     });
 
     after(() => {
-        Ims.prototype.validateToken = originalValidateToken;
+        Ims.prototype.validateTokenAllowList = originalValidateToken;
     });
 
     beforeEach(() => {
         originalFetch = globalThis.fetch;
         fetchCalls = [];
         clearProductCatalogCache();
-        Ims.prototype.validateToken = async () => ({ valid: true });
+        Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
     });
 
     afterEach(() => {

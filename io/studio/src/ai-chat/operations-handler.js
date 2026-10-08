@@ -9,6 +9,8 @@
  * and formats them for execution in the frontend.
  */
 
+import { validateEnvelope } from './envelope-validator.js';
+
 import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-registry.js';
 
 /**
@@ -18,6 +20,36 @@ import { getIntent, isStateChanging, INTENTS, SLOT_VALIDATORS } from './intent-r
 const VALID_OPERATIONS = new Set(INTENTS.map((intent) => intent.tool_target).filter(Boolean));
 
 const MAX_RESPONSE_LENGTH = 64 * 1024;
+
+/** Locate supported JSON fences without overlapping regex searches. */
+export function jsonFences(text) {
+    if (typeof text !== 'string' || text.length > MAX_RESPONSE_LENGTH) return [];
+    const fences = [];
+    let cursor = 0;
+    while (cursor < text.length) {
+        const start = text.indexOf('```', cursor);
+        if (start < 0) break;
+        let contentStart = start + 3;
+        if (text.startsWith('json', contentStart)) contentStart += 4;
+        const supported = /\s|\{/.test(text[contentStart] ?? '');
+        const close = text.indexOf('```', contentStart);
+        const end = close < 0 ? text.length : close + 3;
+        if (supported) fences.push({ start, end, content: text.slice(contentStart, close < 0 ? text.length : close) });
+        cursor = end;
+    }
+    return fences;
+}
+
+export function stripJsonFences(text) {
+    let cursor = 0;
+    const parts = [];
+    for (const fence of jsonFences(text)) {
+        parts.push(text.slice(cursor, fence.start));
+        cursor = fence.end;
+    }
+    parts.push(text.slice(cursor));
+    return parts.join('');
+}
 
 /**
  * Tools that must always be confirmed but have no registry intent entry
@@ -97,7 +129,7 @@ function findJSONObject(text, predicate) {
         } catch (error) {
             // not valid JSON at this position; advance and try the next `{`
         }
-        cursor = braceIdx + 1;
+        cursor = braceIdx + candidate.length;
     }
     return null;
 }
@@ -111,15 +143,15 @@ function findJSONObject(text, predicate) {
  * @returns {Object|null}
  */
 export function parseOperationRequest(responseText) {
-    if (!responseText) return null;
+    if (typeof responseText !== 'string' || !responseText) return null;
     if (responseText.length > MAX_RESPONSE_LENGTH) return null;
 
-    const jsonBlockMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+    const jsonBlockMatch = jsonFences(responseText)[0];
     let operationData = null;
 
     if (jsonBlockMatch) {
         try {
-            operationData = JSON.parse(jsonBlockMatch[1]);
+            operationData = JSON.parse(jsonBlockMatch.content);
         } catch (error) {
             console.error('Failed to parse operation JSON:', error);
         }
@@ -138,10 +170,10 @@ export function parseOperationRequest(responseText) {
  * @returns {string} - Message without JSON
  */
 export function extractOperationMessage(responseText) {
-    if (!responseText) return '';
+    if (typeof responseText !== 'string' || !responseText) return '';
     if (responseText.length > MAX_RESPONSE_LENGTH) return '';
 
-    let text = responseText.replace(/```json[\s\S]*?```/g, '').trim();
+    let text = stripJsonFences(responseText).trim();
 
     let cursor = 0;
     while (cursor < text.length) {
@@ -158,7 +190,7 @@ export function extractOperationMessage(responseText) {
         } catch (error) {
             // not JSON at this position; advance
         }
-        cursor = braceIdx + 1;
+        cursor = braceIdx + candidate.length;
     }
 
     return text.trim();
@@ -219,7 +251,7 @@ function normalizeOperationName(toolName) {
  * @private
  */
 function validateStudioOperation(operation) {
-    if (!operation.operationName) {
+    if (typeof operation.operationName !== 'string' || !operation.operationName) {
         return { valid: false, error: 'operationName is required for operations' };
     }
 
@@ -229,7 +261,11 @@ function validateStudioOperation(operation) {
         return { valid: false, error: `Invalid operation: ${operation.operationName}` };
     }
 
-    if (!operation.operationParams || typeof operation.operationParams !== 'object') {
+    if (
+        !operation.operationParams ||
+        typeof operation.operationParams !== 'object' ||
+        Array.isArray(operation.operationParams)
+    ) {
         return { valid: false, error: 'operationParams object is required for operations' };
     }
 
@@ -353,7 +389,7 @@ function validateStudioOperation(operation) {
  * @param {string} message - AI message
  * @returns {Object} - Operation response
  */
-function processOperation(operation, message) {
+function processOperation(operation, message, provenance) {
     const validation = validateOperation(operation);
 
     if (!validation.valid) {
@@ -361,6 +397,14 @@ function processOperation(operation, message) {
             type: 'error',
             message: `Operation validation failed: ${validation.error}`,
         };
+    }
+
+    if (provenance && getIntent(operation.operationName)) {
+        const checked = validateEnvelope(
+            { intent: operation.operationName, slots: operation.operationParams, confidence: 'high' },
+            provenance,
+        );
+        if (!checked.ok) return { type: 'message', message: checked.coerced.clarification_question, envelope: checked.coerced };
     }
 
     return {
@@ -384,14 +428,20 @@ function processOperation(operation, message) {
  * @param {Object} [enrichedContext] - Optional context for surface/locale injection before validation
  * @returns {Object|null} - Processed operation or null if not an operation
  */
-export function handleOperation(responseText, enrichedContext) {
+export function handleOperation(responseText, enrichedContext, provenance) {
     const operation = parseOperationRequest(responseText);
 
     if (!operation) {
         return null;
     }
 
-    if (enrichedContext && operation.operationName === 'search_cards') {
+    if (
+        enrichedContext &&
+        operation.operationName === 'search_cards' &&
+        operation.operationParams &&
+        typeof operation.operationParams === 'object' &&
+        !Array.isArray(operation.operationParams)
+    ) {
         if (enrichedContext.surface && !operation.operationParams.surface) {
             operation.operationParams.surface = enrichedContext.surface;
         }
@@ -401,7 +451,7 @@ export function handleOperation(responseText, enrichedContext) {
     }
 
     const message = extractOperationMessage(responseText);
-    return processOperation(operation, message);
+    return processOperation(operation, message, provenance);
 }
 
 /**

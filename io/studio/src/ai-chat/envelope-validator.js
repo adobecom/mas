@@ -4,6 +4,45 @@ const ALLOWED_CONFIDENCES = new Set(['high', 'medium', 'low']);
 
 const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 
+function operationResultFor(turn) {
+    let result = turn?.operationResult;
+    if (turn?.role === 'tool' && typeof turn.content === 'string' && turn.content.length <= 64 * 1024) {
+        try {
+            result = JSON.parse(turn.content);
+        } catch {
+            return null;
+        }
+    }
+    return result?.success === true ? result : null;
+}
+
+function selectorsInFields(fields) {
+    const pending = [fields];
+    const values = [];
+    const add = (value) => {
+        if (value != null) values.push(...(Array.isArray(value) ? value : [value]));
+    };
+    while (pending.length) {
+        const value = pending.pop();
+        if (typeof value === 'string') {
+            for (const match of value.matchAll(/data-wcs-osi\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'<>`=]+))/gi))
+                add(match[1] ?? match[2] ?? match[3]);
+        } else if (value && typeof value === 'object') {
+            add(value.osi);
+            if (value.name === 'osi') add(value.values);
+            pending.push(...Object.values(value));
+        }
+    }
+    return values.flatMap((value) =>
+        typeof value === 'string'
+            ? value
+                  .split(',')
+                  .map((part) => part.trim())
+                  .filter(Boolean)
+            : [value],
+    );
+}
+
 /**
  * Gather every fragment id the request actually saw, so a state-changing
  * envelope can be checked against them.
@@ -11,7 +50,7 @@ const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  * A model with no real ids in front of it will invent well-formed UUIDs to
  * fill a required slot — `uuid[]` validates the shape, so nothing else
  * catches it. Sources are the structured context the frontend sends, plus
- * any id quoted in the conversation or typed by the user, which is what the
+ * any id typed by the user or carried by structured operation results, which is what the
  * deterministic identifier bypasses rely on.
  *
  * @param {object} context — request context (workingSet, cards, lastOperation)
@@ -38,10 +77,60 @@ export function collectObservedIds(context = {}, conversationHistory = [], messa
 
     for (const id of list(context?.lastOperation?.fragmentIds)) add(id);
 
-    for (const turn of list(conversationHistory)) addFromText(turn?.content);
+    for (const turn of list(conversationHistory)) {
+        if (turn?.role === 'user') addFromText(turn.content);
+        const result = operationResultFor(turn);
+        if (!result) continue;
+        for (const item of [
+            ...list(result.results),
+            ...list(result.updatedCards),
+            ...list(result.rawResult?.cards),
+            ...list(result.variations),
+        ]) {
+            if (item?.success !== false) add(item?.card?.id ?? item?.id);
+        }
+        for (const id of list(result.fragmentIds)) add(id);
+        add(result.fragment?.id);
+        add(result.parent?.id);
+        add(result.newFragmentId);
+        add(result.fragmentId);
+    }
     addFromText(message);
 
     return ids;
+}
+
+/** User text is authorized input; structured data contributes only selector fields. */
+export function collectObservedSelectors(context = {}, conversationHistory = [], message = '') {
+    const selectors = new Set();
+    const add = (value) => {
+        for (const selector of Array.isArray(value) ? value : [value]) {
+            if (typeof selector !== 'string') continue;
+            for (const part of selector.split(',')) if (part.trim()) selectors.add(part.trim());
+        }
+    };
+    const addUserText = (text) => {
+        if (typeof text === 'string') for (const token of text.match(/[A-Za-z0-9_-]+/g) ?? []) selectors.add(token);
+    };
+    const pending = [context];
+    for (const turn of Array.isArray(conversationHistory) ? conversationHistory : []) {
+        if (turn?.role === 'user') addUserText(turn.content);
+        const result = operationResultFor(turn);
+        if (result) pending.push(result);
+    }
+    addUserText(message);
+    while (pending.length) {
+        const value = pending.pop();
+        if (!value || typeof value !== 'object') continue;
+        add(value.osi);
+        add(value.offerSelectorId);
+        add(value.selector?.id);
+        add(selectorsInFields(value.fields));
+        for (const [key, child] of Object.entries(value)) {
+            if (key !== 'fields' && child && typeof child === 'object') pending.push(child);
+        }
+    }
+    return selectors;
 }
 
 /** Slots the registry validates as ids, so new id slots are covered as they are added. */
@@ -80,7 +169,11 @@ export function validateEnvelope(raw, context = {}) {
         return fail('not-an-object', 'I had trouble understanding the response. Could you rephrase?');
     }
 
-    const { intent, slots = {}, confidence, missing_slots = [], clarification_question = null, user_message = null } = raw;
+    const { intent, slots = {}, confidence, clarification_question = null, user_message = null } = raw;
+    if (!slots || typeof slots !== 'object' || Array.isArray(slots)) return fail('slots-invalid', 'Could you say that again?');
+    if (raw.missing_slots !== undefined && !Array.isArray(raw.missing_slots))
+        return fail('missing-slots-invalid', 'Could you say that again?');
+    const missing_slots = [...(raw.missing_slots ?? [])];
 
     if (typeof intent !== 'string') return fail('intent-missing', 'Could you say that again?');
     if (!ALLOWED_CONFIDENCES.has(confidence)) return fail('bad-confidence', 'Could you say that again?');
@@ -128,6 +221,13 @@ export function validateEnvelope(raw, context = {}) {
                 attempted: intent,
                 unobserved: unseen,
             });
+        }
+    }
+
+    if (intent === 'update_card' && context.observedSelectors) {
+        const values = selectorsInFields(slots.fields);
+        if (values.some((value) => typeof value !== 'string' || !context.observedSelectors.has(value))) {
+            return fail('osi-not-observed', 'Please select or provide the offer selector before updating the card.');
         }
     }
 

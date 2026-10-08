@@ -32,6 +32,7 @@ export function prepareTextReveal(rootEl, options = {}) {
     if (wordCount === 0 || wordCount > MAX_WORDS) return SKIP_RESULT;
 
     const wordDelay = Math.min(maxWordDelay, maxDuration / wordCount);
+    const animations = [];
     let index = 0;
     for (const node of textNodes) {
         const fragment = document.createDocumentFragment();
@@ -44,8 +45,16 @@ export function prepareTextReveal(rootEl, options = {}) {
             const span = document.createElement('span');
             span.className = 'reveal-word';
             span.textContent = part;
-            span.style.animationDelay = `${Math.round(index * wordDelay)}ms`;
             fragment.appendChild(span);
+            animations.push(
+                span.animate(
+                    [
+                        { opacity: 0, filter: 'blur(4px)', transform: 'translateY(2px)' },
+                        { opacity: 1, filter: 'blur(0)', transform: 'none' },
+                    ],
+                    { duration: 180, delay: Math.round(index * wordDelay), easing: 'ease-out', fill: 'both' },
+                ),
+            );
             index += 1;
         }
         node.parentNode.replaceChild(fragment, node);
@@ -55,6 +64,7 @@ export function prepareTextReveal(rootEl, options = {}) {
         wordCount,
         totalDuration: Math.round(index * wordDelay),
         cleanup() {
+            animations.forEach((animation) => animation.cancel());
             for (const span of rootEl.querySelectorAll('.reveal-word')) {
                 span.replaceWith(document.createTextNode(span.textContent));
             }

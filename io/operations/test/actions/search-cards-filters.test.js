@@ -28,18 +28,18 @@ describe('search-cards filters', () => {
     let received;
 
     before(() => {
-        originalValidateToken = Ims.prototype.validateToken;
+        originalValidateToken = Ims.prototype.validateTokenAllowList;
         originalSearch = StudioOperations.prototype.searchCards;
     });
 
     after(() => {
-        Ims.prototype.validateToken = originalValidateToken;
+        Ims.prototype.validateTokenAllowList = originalValidateToken;
         StudioOperations.prototype.searchCards = originalSearch;
     });
 
     beforeEach(() => {
         received = null;
-        Ims.prototype.validateToken = async () => ({ valid: true });
+        Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
     });
 
     function stubResults(results) {

@@ -267,9 +267,7 @@ export class MasChatMessage extends LitElement {
                     <span class="progress-text">Processing ${current}/${total} cards...</span>
                     <span class="progress-percentage">${percentage}%</span>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" style="width: ${percentage}%"></div>
-                </div>
+                <progress class="progress-bar" max="100" .value=${percentage} aria-label="Card processing"></progress>
 
                 ${recentItems.length > 0
                     ? html`

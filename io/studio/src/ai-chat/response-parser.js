@@ -5,11 +5,13 @@
  * and handles conversational responses.
  */
 
-import { extractBalancedObject } from './operations-handler.js';
+import { extractBalancedObject, jsonFences, stripJsonFences } from './operations-handler.js';
 
 const PARSE_ERROR_MESSAGE = 'I had trouble formatting that response. Please try asking again.';
 
 const UNRECOGNIZED_RESPONSE_MESSAGE = "I couldn't turn that into an action. Could you rephrase your request?";
+
+const MAX_RESPONSE_LENGTH = 64 * 1024;
 
 const CARD_HINT_KEYS = ['variant', 'title', 'fields', 'size'];
 
@@ -160,13 +162,13 @@ function tryParse(candidate) {
  * @returns {Object|null} - Parsed JSON or null if not found
  */
 export function extractJSON(responseText) {
-    if (!responseText) return null;
+    if (typeof responseText !== 'string' || !responseText || responseText.length > MAX_RESPONSE_LENGTH) return null;
 
-    const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const jsonBlockMatch = jsonFences(responseText)[0];
     if (jsonBlockMatch) {
-        const parsed = tryParse(jsonBlockMatch[1]);
+        const parsed = tryParse(jsonBlockMatch.content);
         if (parsed) return parsed;
-        console.error('Failed to parse JSON from code block', jsonBlockMatch[1].slice(0, 2000));
+        console.error('Failed to parse JSON from code block', jsonBlockMatch.content.slice(0, 2000));
     }
 
     let cursor = 0;
@@ -177,7 +179,7 @@ export function extractJSON(responseText) {
         if (!candidate) return null;
         const parsed = tryParse(candidate);
         if (parsed && typeof parsed === 'object') return parsed;
-        cursor = braceIdx + 1;
+        cursor = braceIdx + candidate.length;
     }
 
     return null;
@@ -190,20 +192,21 @@ export function extractJSON(responseText) {
  * @returns {string} - Conversational text
  */
 export function extractConversationalText(responseText) {
-    if (!responseText) return '';
+    if (typeof responseText !== 'string' || !responseText || responseText.length > MAX_RESPONSE_LENGTH) return '';
 
-    let text = responseText.replace(/```json[\s\S]*?```/g, '').trim();
+    let text = stripJsonFences(responseText).trim();
 
     let cursor = 0;
     while (cursor < text.length) {
         const braceIdx = text.indexOf('{', cursor);
         if (braceIdx === -1) break;
         const candidate = extractBalancedObject(text, braceIdx);
-        if (candidate && tryParse(candidate)) {
+        if (!candidate) break;
+        if (tryParse(candidate)) {
             text = text.slice(0, braceIdx) + text.slice(braceIdx + candidate.length);
             cursor = braceIdx;
         } else {
-            cursor = braceIdx + 1;
+            cursor = braceIdx + candidate.length;
         }
     }
 
@@ -225,8 +228,8 @@ function looksLikeAttemptedJson(responseText) {
  * retry prompt can quote the concrete reason back to the model.
  */
 function describeParseFailure(responseText) {
-    const jsonBlockMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)\s*(?:```|$)/);
-    const candidate = jsonBlockMatch ? jsonBlockMatch[1] : responseText;
+    const jsonBlockMatch = jsonFences(responseText)[0];
+    const candidate = jsonBlockMatch ? jsonBlockMatch.content : responseText;
     try {
         JSON.parse(candidate);
         return 'the JSON did not match any supported response shape';
@@ -291,6 +294,15 @@ export function withDeadEndRecovery(parsed) {
 }
 
 export function parseAIResponse(responseText) {
+    if (typeof responseText !== 'string' || responseText.length > MAX_RESPONSE_LENGTH) {
+        return {
+            type: 'message',
+            message: PARSE_ERROR_MESSAGE,
+            parseError: true,
+            parseFailureMode: 'unparseable-json',
+            parseErrorDetail: 'Response exceeds the supported input limit',
+        };
+    }
     const cardConfig = extractJSON(responseText);
     const conversationalText = extractConversationalText(responseText);
 

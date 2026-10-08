@@ -43,14 +43,14 @@ describe('search-cards action', () => {
     let originalSearchById;
 
     before(() => {
-        originalValidateToken = Ims.prototype.validateToken;
+        originalValidateToken = Ims.prototype.validateTokenAllowList;
         originalSearchCards = StudioOperations.prototype.searchCards;
         originalSearchById = StudioOperations.prototype.searchById;
-        Ims.prototype.validateToken = async () => ({ valid: true });
+        Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
     });
 
     after(() => {
-        Ims.prototype.validateToken = originalValidateToken;
+        Ims.prototype.validateTokenAllowList = originalValidateToken;
         StudioOperations.prototype.searchCards = originalSearchCards;
         StudioOperations.prototype.searchById = originalSearchById;
     });

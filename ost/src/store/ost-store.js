@@ -390,6 +390,12 @@ export class OstStore extends EventTarget {
             this.authoringFlow = config.authoringFlow;
         }
         const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect'];
+        // Reset callbacks each open: the loop below skips keys the caller omits,
+        // so without this a later open that omits onMultiSelect would reuse the
+        // previous open's handler and send footer Use down the multi-select path.
+        CALLBACK_KEYS.forEach((key) => {
+            this[key] = null;
+        });
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
             if (config[key] === undefined) return;
@@ -880,13 +886,13 @@ export class OstStore extends EventTarget {
         // here so type routing resumes on the next pick.
         const manualTarget = this.#slotManuallyTargeted;
         this.#slotManuallyTargeted = false;
-        // When exactly one tryBuy slot is already filled, an untargeted pick
-        // fills the empty slot — so a second offer click lands in trial without
-        // the user first selecting the free-trial slot. Type routing
-        // (#defaultSlotFor) only decides the first pick (both slots empty).
+        // A typed offer decides its own slot (a BASE never lands in trial);
+        // only an untyped offer falls back to the empty slot, so a second
+        // untyped pick lands in trial without first clicking the free-trial
+        // slot. #defaultSlotFor returns undefined for untyped offers.
+        const typed = this.#defaultSlotFor(offer);
         const emptySlot = this.#emptyTryBuySlot();
-        const targetRole =
-            role || (manualTarget ? this.currentSlot : emptySlot || this.#defaultSlotFor(offer)) || this.currentSlot;
+        const targetRole = role || (manualTarget ? this.currentSlot : (typed ?? emptySlot)) || this.currentSlot;
         this.#batch(() => this.#addOffer(offer, osi, targetRole, !role && !manualTarget));
         // Auto-fill the counterpart unless the user manually targeted a slot —
         // a manual target means "put it exactly here", so don't also touch the

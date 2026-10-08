@@ -18,7 +18,7 @@ let newOstLoadPromise = null;
 // it, so the legacy bundle stays the default window.ost for RTE authoring. The
 // bundle exposes window.ostNew (and shares studio/ost/index.css, already loaded
 // by the default bundle). studio.html serves it at this path.
-function ensureNewOstLoaded() {
+export function ensureNewOstLoaded() {
     if (window.ostNew) return Promise.resolve(window.ostNew);
     if (!newOstLoadPromise) {
         newOstLoadPromise = new Promise((resolve, reject) => {
@@ -258,15 +258,10 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
         let initialReferenceOsi;
         let bundleOsis;
         const freshImsToken = window.adobeIMS?.getAccessToken?.()?.token;
-        const aosAccessToken =
-            freshImsToken ??
-            sessionStorage.getItem('masAccessToken') ??
-            localStorage.getItem('masAccessToken') ??
-            window.adobeid?.authorize?.();
+        const aosAccessToken = freshImsToken ?? sessionStorage.getItem('masAccessToken') ?? window.adobeid?.authorize?.();
 
         if (freshImsToken) {
             sessionStorage.setItem('masAccessToken', freshImsToken);
-            localStorage.setItem('masAccessToken', freshImsToken);
         }
 
         const searchParameters = new URLSearchParams();
@@ -412,7 +407,7 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
             dialog: true,
             multiSelect: isMultiSelectRequested,
             ...(isChatOsiAttach ? { authoringFlow: 'consult' } : {}),
-            onMultiSelect: onMultiOfferSelect,
+            onMultiSelect: isMultiSelectRequested ? onMultiOfferSelect : null,
             onCancel: () => closeOfferSelectorTool(),
             onSelect: triggerElement?.tagName === 'OSI-FIELD' ? onOfferSelect : onPlaceholderSelect,
         });

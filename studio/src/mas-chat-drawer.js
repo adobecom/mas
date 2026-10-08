@@ -18,6 +18,10 @@ export class MasChatDrawer extends LitElement {
         this.open = false;
         this.closing = false;
         this.drawerWidth = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 440;
+        this.widthStyleSheet = new CSSStyleSheet();
+        this.widthScope = crypto.randomUUID();
+        this.widthStyleSheet.replaceSync(`[data-chat-drawer="${this.widthScope}"] {}`);
+        this.updateWidthStyle();
         this.resizing = false;
         this.boundHandleMouseMove = this.handleMouseMove.bind(this);
         this.boundHandleMouseUp = this.handleMouseUp.bind(this);
@@ -25,6 +29,22 @@ export class MasChatDrawer extends LitElement {
 
     createRenderRoot() {
         return this;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.dataset.chatDrawer = this.widthScope;
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, this.widthStyleSheet];
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.handleMouseUp();
+        document.adoptedStyleSheets = document.adoptedStyleSheets.filter((sheet) => sheet !== this.widthStyleSheet);
+    }
+
+    updateWidthStyle() {
+        this.widthStyleSheet.cssRules[0].style.setProperty('--chat-drawer-width', `${this.drawerWidth}px`);
     }
 
     close() {
@@ -58,8 +78,7 @@ export class MasChatDrawer extends LitElement {
         const maxWidth = window.innerWidth * MAX_WIDTH_RATIO;
         const newWidth = Math.min(Math.max(this.startWidth + delta, MIN_WIDTH), maxWidth);
         this.drawerWidth = newWidth;
-        const drawer = this.querySelector('.chat-drawer');
-        if (drawer) drawer.style.setProperty('--chat-drawer-width', `${newWidth}px`);
+        this.updateWidthStyle();
     }
 
     handleMouseUp() {
@@ -87,10 +106,7 @@ export class MasChatDrawer extends LitElement {
 
         return html`
             <div class="chat-backdrop ${this.closing ? 'chat-backdrop-closing' : ''}" @click=${this.close}></div>
-            <div
-                class="chat-drawer ${this.closing ? 'chat-drawer-closing' : ''}"
-                style="--chat-drawer-width: ${this.drawerWidth}px"
-            >
+            <div class="chat-drawer ${this.closing ? 'chat-drawer-closing' : ''}">
                 <div class="chat-drawer-resize" @mousedown=${this.handleResizeStart}></div>
                 <div
                     class="chat-drawer-header"

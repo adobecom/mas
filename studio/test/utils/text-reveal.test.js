@@ -19,7 +19,7 @@ describe('text-reveal', () => {
         const words = el.querySelectorAll('.reveal-word');
         expect(wordCount).to.equal(6);
         expect(words).to.have.length(6);
-        const delays = [...words].map((w) => parseFloat(w.style.animationDelay));
+        const delays = [...words].map((word) => word.getAnimations()[0]?.effect.getTiming().delay);
         for (let i = 1; i < delays.length; i += 1) {
             expect(delays[i]).to.be.greaterThan(delays[i - 1]);
         }
@@ -44,7 +44,9 @@ describe('text-reveal', () => {
     it('ceilings the per-word delay for short answers', () => {
         const el = bubble('<p>one two three four five</p>');
         const { totalDuration } = prepareTextReveal(el);
-        const delays = [...el.querySelectorAll('.reveal-word')].map((w) => parseFloat(w.style.animationDelay));
+        const delays = [...el.querySelectorAll('.reveal-word')].map(
+            (word) => word.getAnimations()[0]?.effect.getTiming().delay,
+        );
         expect(delays).to.deep.equal([0, 90, 180, 270, 360]);
         expect(totalDuration).to.equal(450);
     });

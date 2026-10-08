@@ -131,6 +131,15 @@
                         expect(rte.shadowRoot).exist;
                     });
 
+                    it('pastes a plain URL without inserting HTML markup as text', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        const url = 'https://www.adobe.com/products/photoshop.html';
+
+                        rte.editorView.pasteText(url);
+
+                        expect(rte.editorView.state.doc.textContent).to.equal(url);
+                    });
+
                     it('should not emit change when syncing an external value update', async function () {
                         const rte = await createFromTemplate('rte-link', this.test.title);
                         let changeCount = 0;

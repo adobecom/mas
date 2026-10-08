@@ -1,5 +1,8 @@
 import { expect } from '../utilities.js';
 import * as snapshots from './__snapshots__/template.snapshots.js';
+import expectedLiterals from './__snapshots__/price-literals.expected.json' with { type: 'json' };
+import expectedMessages from './__snapshots__/message-format.expected.json' with { type: 'json' };
+import priceLiteralsJson from '../../price-literals.json' with { type: 'json' };
 import {
     createPriceTemplate,
     createPromoPriceTemplate,
@@ -405,6 +408,122 @@ describe('Promotion price display with annual template', () => {
         );
         expect(formattedLiteral).to.be.equal(
             'TVA comprise underline bold <span is="inline-price" osi="OSI"></span> and link <a href="https://www.adobe.com/test2.html">link2</a> and text',
+        );
+    });    
+
+    it('formats the ICU subset used by price literals', () => {
+        const literals = {
+            recurrence:
+                "{recurrenceTerm, select, MONTH {al mese} YEAR {all'anno} other {}}",
+            nested: '{planType, select, ABM {{label} ABM} other {none}}',
+            discount: '{remainingPercent, number, ::scale/0.1 .#}折',
+            fixed: '{remainingPercent, number, ::scale/0.1 .0}折',
+            plural: '{count, plural, one {#} other {# items}}',
+            quoted: "it''s {x}",
+            noOther: '{planType, select, ABM {abm}}',
+        };
+        const format = (key, parameters) =>
+            formatLiteral(literals, 'zh-TW', key, parameters);
+        expect(format('recurrence', { recurrenceTerm: 'YEAR' })).to.equal(
+            "all'anno",
+        );
+        expect(format('recurrence', { recurrenceTerm: 'DAY' })).to.equal('');
+        expect(format('nested', { planType: 'ABM', label: 'Annual' })).to.equal(
+            'Annual ABM',
+        );
+        expect(format('nested', { planType: 'M2M' })).to.equal('none');
+        expect(format('discount', { remainingPercent: 65 })).to.equal('6.5折');
+        expect(format('discount', { remainingPercent: 70 })).to.equal('7折');
+        expect(format('fixed', { remainingPercent: 100 })).to.equal('10.0折');
+        expect(format('recurrence', {})).to.equal('');
+        expect(format('plural', { count: 2 })).to.equal('2 items');
+        expect(format('quoted', { x: 'y' })).to.equal("it's y");
+        expect(format('noOther', { planType: 'ABM' })).to.equal('');
+    });
+});
+
+// Every braced entry of price-literals.json, formatted with one fixed argument
+// set. Expected values were recorded with intl-messageformat before it was
+// removed (MWPW-209048), so this keeps that parity checked in CI.
+describe('price-literals.json parity', () => {
+    const args = {
+        recurrenceTerm: 'MONTH',
+        perUnit: 'LICENSE',
+        taxTerm: 'VAT',
+        planType: 'ABM',
+        alternativePrice: 'US$10.00',
+        strikethroughPrice: 'US$20.00',
+        remainingPercent: 65,
+        discount: 35,
+    };
+    priceLiteralsJson.data.forEach(({ lang, ...literals }) => {
+        Object.entries(literals)
+            .filter(
+                ([, value]) => typeof value === 'string' && value.includes('{'),
+            )
+            .forEach(([key]) => {
+                it(`${lang} ${key}`, () => {
+                    expect(formatLiteral(literals, lang, key, args)).to.equal(
+                        expectedLiterals[lang]?.[key],
+                    );
+                });
+            });
+    });
+});
+
+// ICU syntax authored overrides may use (plural, selectordinal, apostrophe
+// quoting, number styles and skeletons, dates), including invalid messages,
+// which format to ''. Each message is formatted with a fixed value set per
+// group; expected values were recorded with intl-messageformat 9.13.
+describe('ICU message parity', () => {
+    const valueSets = {
+        plural: [
+            ...[0, 1, 2, 3, 11, 22, '3.5'].map((n) => ({ n, m: n, g: 'a' })),
+            {},
+        ],
+        text: [
+            { x: 'X', y: 'Y', g: 'a' },
+            { x: 0, y: '', g: 'z' },
+            { x: null, y: undefined },
+            {},
+        ],
+        number: [{ n: 1234567.891 }, { n: '0.5' }, { n: -1 }, {}],
+        date: [{ d: 1735732800000 }],
+        time: [{ d: 1735732800000 }, { d: 1735690500000 }],
+    };
+    Object.entries(expectedMessages).forEach(([group, messages]) => {
+        Object.entries(messages).forEach(([message, byLocale]) => {
+            Object.entries(byLocale).forEach(([locale, expected]) => {
+                it(`${locale} ${message}`, () => {
+                    const actual = valueSets[group].map((values) =>
+                        formatLiteral({ message }, locale, 'message', values),
+                    );
+                    expect(actual).to.deep.equal(expected);
+                });
+            });
+        });
+    });
+
+    // The library's fraction-stem regex keeps state (`g` flag), so it rejects
+    // this message only on every other call. Recorded output would depend on
+    // call order; the port always rejects it, as the library's first call does.
+    it('rejects a fraction stem with two options', () => {
+        expect(
+            formatLiteral(
+                { message: '{n, number, ::.00/@@#/w}' },
+                'en',
+                'message',
+                { n: 1 },
+            ),
+        ).to.equal('');
+    });
+
+    it('formats in the default locale when none is given', () => {
+        const message = '{n, plural, other {# items}} {n, number}';
+        const format = (locale) =>
+            formatLiteral({ message }, locale, 'message', { n: 1234.5 });
+        expect(format(undefined)).to.equal(
+            format(new Intl.NumberFormat().resolvedOptions().locale),
         );
     });
 });

@@ -285,6 +285,13 @@ export class Router extends EventTarget {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }
+                    // Clear the product-detail arrangement code when leaving
+                    // the product catalog so the hash-linked `arrangementCode`
+                    // param doesn't bleed into unrelated pages (AI Assistant,
+                    // Fragments, etc.) where it's semantically meaningless.
+                    if (Store.page.value === PAGE_NAMES.PRODUCT_CATALOG && targetPage !== PAGE_NAMES.PRODUCT_CATALOG) {
+                        Store.productDetail.arrangementCode.set(null);
+                    }
                     if (
                         (Store.page.value === PAGE_NAMES.MASKS || Store.page.value === PAGE_NAMES.MASKS_EDITOR) &&
                         targetPage !== PAGE_NAMES.MASKS_EDITOR
@@ -550,6 +557,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();

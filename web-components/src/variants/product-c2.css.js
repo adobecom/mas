@@ -102,8 +102,8 @@ merch-card[variant='product-c2'] [slot='badge'] merch-badge {
 
     merch-card[variant="product-c2"][background-color="black"] [slot="subtitle"],
     merch-card[variant="product-c2"][background-color="black"] [slot="heading-m"] [data-template="legal"] {
-        font-size: 14px;
-        line-height: 18px;
+        font-size: var(--consonant-merch-card-body-xs-font-size);
+        line-height: var(--consonant-merch-card-body-xxs-line-height);
     }
 
     merch-card[variant="product-c2"][background-color="black"] [slot="footer"] a.primary-outline {

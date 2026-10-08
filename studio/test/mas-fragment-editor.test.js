@@ -1,4 +1,4 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
 import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
@@ -2175,6 +2175,67 @@ describe('MasFragmentEditor', () => {
             expect(collections.rows[0].representative.id).to.equal('b1');
         });
 
+        describe('connected reference loading', () => {
+            const collection = {
+                id: 'connected-collection',
+                path: '/content/dam/mas/acom/en_US/connected-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+            };
+            let editor;
+            let repository;
+            let getReferencedByFragmentId;
+
+            beforeEach(() => {
+                getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
+                ({ editor, repository } = createEditor({
+                    aem: { sites: { cf: { fragments: { getReferencedByFragmentId } } } },
+                }));
+                sandbox.stub(editor, 'fragmentId').get(() => null);
+                sandbox.stub(editor, 'fragment').get(() => collection);
+                sandbox.stub(editor, 'render').callsFake(() => editor.relatedArtifactsSection);
+                sandbox.stub(console, 'error');
+            });
+
+            afterEach(() => editor.remove());
+
+            it('refreshes a failed lookup when rendering finishes before save resolves', async () => {
+                getReferencedByFragmentId.onFirstCall().rejects(new Error('503 Service Unavailable'));
+                await fixture(editor);
+                await waitUntil(() => editor.referencingFragmentsError);
+                await editor.updateComplete;
+                expect(editor.textContent).to.include('Related studio artifacts unavailable');
+                repository.saveFragment = async () => {
+                    editor.requestUpdate();
+                    await editor.updateComplete;
+                    return collection;
+                };
+
+                await editor.saveFragment();
+                await editor.updateComplete;
+                await waitUntil(() => !editor.isLoadingReferencingFragments);
+                await editor.updateComplete;
+
+                expect(editor.referencingFragmentsError).to.equal(false);
+                expect(editor.textContent).to.not.include('Related studio artifacts unavailable');
+                expect(getReferencedByFragmentId.callCount).to.equal(2);
+            });
+
+            for (const cursorMode of ['repeated', 'pending']) {
+                it(`shows unavailable for ${cursorMode} pagination instead of hiding empty filtered pages`, async () => {
+                    getReferencedByFragmentId.callsFake(async () => ({
+                        items: [],
+                        cursor: cursorMode === 'repeated' ? 'same-page' : `page-${getReferencedByFragmentId.callCount}`,
+                    }));
+                    await fixture(editor);
+                    await waitUntil(() => !editor.isLoadingReferencingFragments);
+                    await editor.updateComplete;
+
+                    expect(editor.textContent).to.include('Related studio artifacts unavailable');
+                    expect(editor.querySelector('.artifacts-counts')).to.equal(null);
+                });
+            }
+        });
+
         describe('after a failed load', () => {
             const collection = {
                 id: 'coll-id',
@@ -2204,15 +2265,6 @@ describe('MasFragmentEditor', () => {
                 await new Promise((r) => setTimeout(r, 10));
 
                 expect(getReferencedByFragmentId.callCount).to.equal(1);
-            });
-
-            it('loads the references again once the fragment is saved', async () => {
-                await editor.saveFragment();
-                editor.willUpdate(new Map());
-                await new Promise((r) => setTimeout(r, 10));
-
-                expect(getReferencedByFragmentId.callCount).to.equal(2);
-                expect(editor.referencingFragmentsError).to.equal(false);
             });
         });
 

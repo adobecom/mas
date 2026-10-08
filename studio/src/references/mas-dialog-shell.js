@@ -19,6 +19,11 @@ export class MasDialogShell extends LitElement {
     }
 
     close() {
+        this.shadowRoot.querySelector('sp-overlay').open = false;
+    }
+
+    onOverlayClosed(event) {
+        if (event.target !== event.currentTarget) return;
         this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
     }
 
@@ -32,18 +37,20 @@ export class MasDialogShell extends LitElement {
         // sp-underlay overrides click() to emit its own non-bubbling "close" event, so it never
         // fires a click event to bind against; @click here would silently never run.
         return html`
-            <sp-underlay open @close=${() => this.close()}></sp-underlay>
-            <sp-dialog no-divider size="l" class="dialog-shell">
-                <div class="dialog-content">
-                    <div class="dialog-header">
-                        <h2 class="dialog-title">${title}</h2>
-                        <sp-action-button quiet label="Close" class="dialog-close" @click=${() => this.close()}>
-                            <sp-icon-close slot="icon"></sp-icon-close>
-                        </sp-action-button>
+            <sp-overlay type="modal" .open=${this.open} @sp-closed=${this.onOverlayClosed}>
+                <sp-underlay open @close=${() => this.close()}></sp-underlay>
+                <sp-dialog no-divider size="l" class="dialog-shell">
+                    <div class="dialog-content">
+                        <div class="dialog-header">
+                            <h2 class="dialog-title">${title}</h2>
+                            <sp-action-button quiet label="Close" class="dialog-close" @click=${() => this.close()}>
+                                <sp-icon-close slot="icon"></sp-icon-close>
+                            </sp-action-button>
+                        </div>
+                        ${content}
                     </div>
-                    ${content}
-                </div>
-            </sp-dialog>
+                </sp-dialog>
+            </sp-overlay>
         `;
     }
 }

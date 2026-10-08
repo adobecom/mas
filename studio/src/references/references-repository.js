@@ -267,8 +267,8 @@ export function classifyReference(reference) {
  *
  * `aem.sites.cf.fragments.getReferencedByFragmentId` is expected to resolve a single page as
  * `{ items, cursor }`; this function owns the pagination loop so the aem layer stays a thin,
- * single-request client. It stops after `REFERENCED_BY_MAX_PAGES`, or when the server hands back
- * the cursor it was just given.
+ * single-request client. Incomplete traversal throws so callers cannot display partial counts
+ * as authoritative when the page bound is reached or the server repeats a cursor.
  *
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string} fragmentId
@@ -285,10 +285,11 @@ export async function fetchAllReferencingItems(aem, fragmentId, { abortControlle
             abortController,
         });
         items.push(...(page?.items ?? []));
-        if (!page?.cursor || page.cursor === cursor) break;
+        if (!page?.cursor) return items;
+        if (page.cursor === cursor) throw new Error('Reference lookup incomplete: repeated cursor');
         cursor = page.cursor;
     }
-    return items;
+    throw new Error('Reference lookup incomplete: page limit reached');
 }
 
 /**

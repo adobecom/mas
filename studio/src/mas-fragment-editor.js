@@ -1759,7 +1759,10 @@ export default class MasFragmentEditor extends LitElement {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
-            if (savedFragment) this.#referencingLoadedForId = null;
+            if (savedFragment) {
+                this.#referencingLoadedForId = null;
+                this.requestUpdate();
+            }
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }

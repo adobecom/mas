@@ -322,26 +322,30 @@ describe('references-repository', () => {
             expect(getReferencedByFragmentId.firstCall.args[1].abortController).to.equal(abortController);
         });
 
-        it(`stops after ${REFERENCED_BY_MAX_PAGES} pages even when the server keeps returning a cursor`, async () => {
+        it(`rejects incomplete results after ${REFERENCED_BY_MAX_PAGES} pages`, async () => {
             const getReferencedByFragmentId = sandbox.stub().callsFake(async (id, { cursor }) => {
                 if (getReferencedByFragmentId.callCount > REFERENCED_BY_MAX_PAGES) throw new Error('pagination is unbounded');
                 return { items: [{ id: `ref-${cursor}` }], cursor: `${cursor ?? 0}+` };
             });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
 
-            await fetchAllReferencingItems(aem, 'fragment-id');
+            const result = await fetchAllReferencingItems(aem, 'fragment-id').catch((error) => error);
+            expect(result).to.be.instanceOf(Error);
+            expect(result.message).to.include('Reference lookup incomplete');
 
             expect(getReferencedByFragmentId.callCount).to.equal(REFERENCED_BY_MAX_PAGES);
         });
 
-        it('stops when the server returns the cursor it was just given', async () => {
+        it('rejects incomplete results when the server repeats a cursor', async () => {
             const getReferencedByFragmentId = sandbox.stub().callsFake(async () => {
                 if (getReferencedByFragmentId.callCount > 2) throw new Error('a repeated cursor is followed');
                 return { items: [{ id: 'ref' }], cursor: 'stuck' };
             });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
 
-            await fetchAllReferencingItems(aem, 'fragment-id');
+            const result = await fetchAllReferencingItems(aem, 'fragment-id').catch((error) => error);
+            expect(result).to.be.instanceOf(Error);
+            expect(result.message).to.include('Reference lookup incomplete');
 
             expect(getReferencedByFragmentId.callCount).to.equal(2);
         });

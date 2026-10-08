@@ -74,7 +74,7 @@ const Store = {
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
-    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'table'),
     viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),

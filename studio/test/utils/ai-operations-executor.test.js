@@ -3,9 +3,10 @@ import { DESTRUCTIVE_TOOLS, shouldRequireConfirmation } from '../../src/utils/ai
 
 describe('ai-operations-executor', () => {
     describe('DESTRUCTIVE_TOOLS allowlist', () => {
-        it('contains all known destructive MCP tools', () => {
-            expect(DESTRUCTIVE_TOOLS.has('create_release_cards')).to.be.true;
-            expect(DESTRUCTIVE_TOOLS.has('publish_card')).to.be.true;
+        it('contains every state-mutating operation, not just publish and release', () => {
+            for (const tool of ['create_release_cards', 'publish_card', 'update_card', 'copy_card', 'link_card_to_offer']) {
+                expect(DESTRUCTIVE_TOOLS.has(tool), tool).to.be.true;
+            }
         });
 
         it('does not include read-only or preview tools', () => {
@@ -26,9 +27,14 @@ describe('ai-operations-executor', () => {
 
         it('returns true for destructive tools even when backend flag is false', () => {
             expect(shouldRequireConfirmation('create_release_cards', false)).to.be.true;
+            expect(shouldRequireConfirmation('update_card', false)).to.be.true;
+            expect(shouldRequireConfirmation('link_card_to_offer', false)).to.be.true;
         });
 
-        it('returns true for destructive tools when backend flag is undefined', () => {});
+        it('returns true for destructive tools when backend flag is undefined', () => {
+            expect(shouldRequireConfirmation('copy_card', undefined)).to.be.true;
+            expect(shouldRequireConfirmation('update_card', undefined)).to.be.true;
+        });
 
         it('returns false for read-only tools when backend flag is false', () => {
             expect(shouldRequireConfirmation('get_card', false)).to.be.false;

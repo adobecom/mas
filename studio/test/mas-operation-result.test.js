@@ -36,4 +36,15 @@ describe('buildSearchResultsCsv', () => {
         expect(buildSearchResultsCsv([])).to.equal(header);
         expect(buildSearchResultsCsv(null)).to.equal(header);
     });
+
+    it('neutralizes a formula-injection title so a spreadsheet treats it as text', () => {
+        expect(buildSearchResultsCsv([card({ title: '=cmd' })]).split('\n')[1]).to.match(/^'=cmd,/);
+    });
+
+    it('neutralizes a leading @, +, or - as well', () => {
+        const firstCell = (title) => buildSearchResultsCsv([card({ title })]).split('\n')[1];
+        expect(firstCell('@x')).to.match(/^'@x,/);
+        expect(firstCell('+x')).to.match(/^'\+x,/);
+        expect(firstCell('-x')).to.match(/^'-x,/);
+    });
 });

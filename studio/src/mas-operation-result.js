@@ -17,8 +17,19 @@ function escapeHtml(value) {
 
 const CSV_COLUMNS = ['Title', 'Path', 'Template', 'Status', 'Locale', 'ID'];
 
-function csvCell(value) {
+/**
+ * Neutralize spreadsheet formula injection: a cell whose text starts with one of
+ * `= + - @` (or a leading tab/CR) is run as a formula by Excel/Sheets on open or
+ * paste. Card titles are author-controlled, so prefix such a value with a single
+ * quote to force it to be treated as text. Applied to every clipboard cell.
+ */
+function neutralizeFormula(value) {
     const text = value == null ? '' : String(value);
+    return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
+function csvCell(value) {
+    const text = neutralizeFormula(value);
     return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
@@ -48,7 +59,7 @@ function buildSearchResultsHtmlTable(results) {
         .map(
             (card) =>
                 `<tr>${searchResultRow(card)
-                    .map((cell) => `<td>${escapeHtml(cell)}</td>`)
+                    .map((cell) => `<td>${escapeHtml(neutralizeFormula(cell))}</td>`)
                     .join('')}</tr>`,
         )
         .join('');

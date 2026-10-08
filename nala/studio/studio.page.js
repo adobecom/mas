@@ -333,6 +333,7 @@ export default class StudioPage {
     async discardEditorChanges(editor) {
         const fragmentUrl = this.page.url();
         await this.page.waitForFunction(() => document.querySelector('mas-repository').fragmentInEdit?.hasChanges);
+        await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 15000 });
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
         const navigationState = () => {

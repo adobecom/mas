@@ -553,54 +553,64 @@ for (const status of [200, 500]) {
     });
 }
 
-test('discard waits for dirty state and completed navigation before reloading the original fragment', async ({ browser }) => {
-    const cache = new EditorBootstrapCache();
-    const calls = [];
-    const clicks = [];
-    const { page, context } = await seedPage(browser, cache, calls);
-    try {
-        const studio = new StudioPage(page);
-        await page.exposeFunction('recordDiscard', (dirty) => clicks.push(dirty));
-        await cache.open(page, `${baseURL}/editor#fragmentId=seed-a`);
-        page.setDefaultTimeout(1500);
-        await page.evaluate(() => {
-            const fragment = document.querySelector('mas-repository').fragmentInEdit;
-            fragment.hasChanges = false;
-            document.querySelector('mas-fragment-editor').innerHTML =
-                '<div id="fragment-editor"><div id="editor-content">Editor</div></div>';
-            document.body.insertAdjacentHTML(
-                'beforeend',
-                '<div class="nav-breadcrumbs"><sp-breadcrumb-item>Fragments</sp-breadcrumb-item></div>' +
-                    '<sp-dialog variant="confirmation" hidden><sp-button>Discard</sp-button></sp-dialog>',
-            );
-            document.querySelector('sp-breadcrumb-item').addEventListener('click', async () => {
-                await window.recordDiscard(fragment.hasChanges);
-                if (fragment.hasChanges) document.querySelector('sp-dialog').hidden = false;
-            });
-            document.querySelector('sp-button').addEventListener('click', () => {
+for (const dirtyFirst of [true, false]) {
+    test(`discard waits for dirty state, enabled Save and completed navigation (${dirtyFirst ? 'model first' : 'Save first'})`, async ({
+        browser,
+    }) => {
+        const cache = new EditorBootstrapCache();
+        const calls = [];
+        const clicks = [];
+        const { page, context } = await seedPage(browser, cache, calls);
+        try {
+            const studio = new StudioPage(page);
+            await page.exposeFunction('recordDiscard', (state) => clicks.push(state));
+            await cache.open(page, `${baseURL}/editor#fragmentId=seed-a`);
+            page.setDefaultTimeout(1500);
+            await page.evaluate((dirtyFirst) => {
+                const fragment = document.querySelector('mas-repository').fragmentInEdit;
                 fragment.hasChanges = false;
-                document.querySelector('#editor-content').hidden = true;
-                document.querySelector('sp-dialog').hidden = true;
-                document.querySelector('merch-card').remove();
-                document.querySelector('mas-fragment-editor').initState = 'loading';
-                setTimeout(() => {
-                    history.replaceState(null, '', '#page=content');
-                    window.addEventListener('hashchange', () => window.start(), { once: true });
-                }, 150);
-            });
-            setTimeout(() => {
-                fragment.title = 'Unsaved local edit';
-                fragment.hasChanges = true;
-            }, 150);
-        });
-        await studio.discardEditorChanges(studio.editor);
-        expect(clicks).toEqual([true]);
-        expect(calls).toHaveLength(6);
-        expect(await page.locator('mas-repository').evaluate((repo) => repo.fragmentInEdit.title)).toBe('Original seed');
-    } finally {
-        await context.close();
-    }
-});
+                document.querySelector('mas-fragment-editor').innerHTML =
+                    '<div id="fragment-editor"><div id="editor-content">Editor</div></div>';
+                document.body.insertAdjacentHTML(
+                    'beforeend',
+                    '<div class="nav-breadcrumbs"><sp-breadcrumb-item>Fragments</sp-breadcrumb-item></div>' +
+                        '<mas-side-nav><mas-side-nav-item label="Save" disabled>Save</mas-side-nav-item></mas-side-nav>' +
+                        '<sp-dialog variant="confirmation" hidden><sp-button>Discard</sp-button></sp-dialog>',
+                );
+                const save = document.querySelector('mas-side-nav-item[label="Save"]');
+                document.querySelector('sp-breadcrumb-item').addEventListener('click', async () => {
+                    await window.recordDiscard({ dirty: fragment.hasChanges, saveEnabled: !save.hasAttribute('disabled') });
+                    if (fragment.hasChanges) document.querySelector('sp-dialog').hidden = false;
+                });
+                document.querySelector('sp-button').addEventListener('click', () => {
+                    fragment.hasChanges = false;
+                    document.querySelector('#editor-content').hidden = true;
+                    document.querySelector('sp-dialog').hidden = true;
+                    document.querySelector('merch-card').remove();
+                    document.querySelector('mas-fragment-editor').initState = 'loading';
+                    setTimeout(() => {
+                        history.replaceState(null, '', '#page=content');
+                        window.addEventListener('hashchange', () => window.start(), { once: true });
+                    }, 150);
+                });
+                setTimeout(
+                    () => {
+                        fragment.title = 'Unsaved local edit';
+                        fragment.hasChanges = true;
+                    },
+                    dirtyFirst ? 150 : 300,
+                );
+                setTimeout(() => save.removeAttribute('disabled'), dirtyFirst ? 300 : 150);
+            }, dirtyFirst);
+            await studio.discardEditorChanges(studio.editor);
+            expect(clicks).toEqual([{ dirty: true, saveEnabled: true }]);
+            expect(calls).toHaveLength(6);
+            expect(await page.locator('mas-repository').evaluate((repo) => repo.fragmentInEdit.title)).toBe('Original seed');
+        } finally {
+            await context.close();
+        }
+    });
+}
 
 test('RTE clearing waits for the empty model and deletes once without assuming selection boundaries', async ({ page }) => {
     await page.setContent('<rte-field></rte-field>');

@@ -443,6 +443,44 @@ export async function retrieveRAGContext(message, knowledgeClient, options = {})
  * @param {Object} params - Action parameters
  * @returns {Promise<Object>} - Action response
  */
+/**
+ * The model's internal step-planning narration, which must never reach the user.
+ *
+ * In guided-tool mode the model is offered tools with tool_choice:'required', so
+ * a legitimate turn is a tool call. Foundry/Qwen intermittently ignores the
+ * forced choice and answers in prose; most of that prose is its own reasoning
+ * ("The user is asking…", "I need to emit the guided_step JSON", "Step 1 of the
+ * guided flow"). These markers describe the model's own process rather than
+ * address the user — a plain question like "Which product is this release for?"
+ * matches none of them and stays a legitimate reply.
+ */
+const GUIDED_META_REASONING =
+    /(the user (is asking|wants|needs|hasn'?t|has not)|i (need|should|must|will|'?ll) (to )?(emit|call|use|output|return|respond)|emit(ting)? (the |a )?(guided[_ ]?step|tool|json|envelope)|guided[_ ]?step json|step \d+ of (the )?(guided )?flow)/i;
+
+/** A guided-tool turn that came back as internal reasoning instead of a tool call. */
+export function isGuidedToolMiss(response) {
+    if (!(response?.success && !response.toolUse && typeof response.message === 'string')) return false;
+    return GUIDED_META_REASONING.test(response.message);
+}
+
+/**
+ * Safe guided step shown when the model misses the tool even after a retry:
+ * re-anchors the release flow on product selection with a free-text affordance,
+ * so the user never reads the model's internal reasoning and always has a way to
+ * answer. Non-dead-end by construction (carries an inputHint).
+ */
+export function guidedToolMissFallback() {
+    return {
+        type: 'guided_step',
+        flowId: 'release',
+        message: "Let's create your release cards. Which product is this release for?",
+        buttonGroup: {
+            label: 'Product',
+            inputHint: 'Type a product name, arrangement code, offer ID, or offer selector (OSI)',
+        },
+    };
+}
+
 async function main(params) {
     console.log('AI Chat Action called with method:', params.__ow_method);
 
@@ -993,6 +1031,31 @@ async function main(params) {
                 }),
             );
             const payload = guidedPayload ?? response.toolUse.input ?? {};
+            response = { ...response, message: `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`` };
+        }
+
+        // Foundry/Qwen intermittently ignores tool_choice:'required' and answers
+        // in prose — typically its own step-planning reasoning ("I need to emit
+        // the guided_step JSON"). In guided-tool mode a real turn always calls a
+        // tool, so a bare message is a miss, never a user-facing reply. Re-ask
+        // once with the tool forced; if it misses again, emit a safe step rather
+        // than surface the model's internal monologue.
+        // Rollback: GUIDED_TOOL_MISS_RETRY=off.
+        if (guidedToolMode && isGuidedToolMiss(response) && params.GUIDED_TOOL_MISS_RETRY !== 'off') {
+            console.log(JSON.stringify({ phase: 'guided-tool-miss', req: requestId, retrying: true }));
+            const retry = await foundryClient.sendWithContext(
+                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
+                'You replied in prose without calling a tool. Do not describe the step — call emit_guided_step (or the right guided tool) now.',
+                GUIDED_CARD_CREATION_TOOL_PROMPT,
+                enrichedContext,
+                maxTokens,
+                { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE },
+            );
+            logUsageMetric(retry, params, foundryClient.modelId);
+            const retryPayload =
+                retry?.success && retry.toolUse ? (extractGuidedTool(retry) ?? retry.toolUse.input ?? {}) : null;
+            const payload = retryPayload ?? guidedToolMissFallback();
+            console.log(JSON.stringify({ phase: 'guided-tool-miss', req: requestId, recovered: Boolean(retryPayload) }));
             response = { ...response, message: `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`` };
         }
 

@@ -4,6 +4,8 @@ const sinon = require('sinon');
 const PARSE_ERROR_MESSAGE = 'I had trouble formatting that response. Please try asking again.';
 
 let main;
+let isGuidedToolMiss;
+let guidedToolMissFallback;
 let FoundryClient;
 let Ims;
 
@@ -40,7 +42,7 @@ describe('ai-chat/index main handler', () => {
     let sendStub;
 
     before(async () => {
-        ({ main } = await import('../../src/ai-chat/index.js'));
+        ({ main, isGuidedToolMiss, guidedToolMissFallback } = await import('../../src/ai-chat/index.js'));
         ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
         ({ Ims } = await import('@adobe/aio-lib-ims'));
     });
@@ -557,6 +559,88 @@ describe('ai-chat/index main handler', () => {
             expect(result.statusCode).to.equal(500);
             expect(result.body.requestId).to.equal('req-500');
             expect(JSON.stringify(result.body)).to.not.include('is not iterable');
+        });
+    });
+
+    describe('guided-tool miss recovery (release flow)', () => {
+        const reasoning =
+            "The user is asking to create cards but hasn't specified a product. This is Step 1 of the guided flow. I need to emit the guided_step JSON for product selection.";
+        const releaseParams = () =>
+            makeParams({ message: 'Help me create cards', intentHint: 'release', conversationHistory: [] });
+        const guidedStepTool = (input) => ({
+            success: true,
+            message: null,
+            toolUse: { name: 'emit_guided_step', input },
+            usage: { inputTokens: 10, outputTokens: 5 },
+        });
+        const leaks = (text) => /I need to emit|guided_step JSON|the user is asking/i.test(text || '');
+
+        it('never surfaces the model reasoning when it answers in prose in a guided turn', async () => {
+            sendStub.resolves(textResponse(reasoning));
+            const result = await main(releaseParams());
+            expect(result.statusCode).to.equal(200);
+            expect(leaks(result.body.message)).to.equal(false);
+        });
+
+        it('retries with the tool forced and uses the recovered guided_step', async () => {
+            sendStub.onCall(0).resolves(textResponse(reasoning));
+            sendStub.onCall(1).resolves(
+                guidedStepTool({
+                    flowId: 'release',
+                    message: 'Which product is this release for?',
+                    buttonGroup: { label: 'Product', inputHint: 'Type a product name' },
+                }),
+            );
+            const result = await main(releaseParams());
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.message).to.match(/which product/i);
+            expect(leaks(result.body.message)).to.equal(false);
+        });
+
+        it('after a repeated miss, returns a safe actionable product-selection step, not prose', async () => {
+            sendStub.resolves(textResponse(reasoning));
+            const result = await main(releaseParams());
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.buttonGroup?.inputHint || result.body.buttonGroup?.options?.length).to.be.ok;
+            expect(leaks(result.body.message)).to.equal(false);
+        });
+
+        it('leaves a legitimate guided tool call untouched', async () => {
+            sendStub.onCall(0).resolves(
+                guidedStepTool({
+                    flowId: 'release',
+                    message: 'Which product is this release for?',
+                    buttonGroup: { label: 'Product', inputHint: 'Type a product name' },
+                }),
+            );
+            const result = await main(releaseParams());
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.message).to.match(/which product/i);
+        });
+    });
+
+    describe('isGuidedToolMiss / guidedToolMissFallback', () => {
+        it('flags an internal-reasoning prose response with no tool call as a miss', () => {
+            const reasoning = 'The user is asking to create cards. I need to emit the guided_step JSON.';
+            expect(isGuidedToolMiss({ success: true, message: reasoning, toolUse: null })).to.equal(true);
+        });
+
+        it('does not flag a plain user-facing prose question as a miss', () => {
+            expect(isGuidedToolMiss({ success: true, message: 'Which product is this release for?', toolUse: null })).to.equal(
+                false,
+            );
+        });
+
+        it('does not flag a tool-call response as a miss', () => {
+            expect(
+                isGuidedToolMiss({ success: true, message: null, toolUse: { name: 'emit_guided_step', input: {} } }),
+            ).to.equal(false);
+        });
+
+        it('builds a non-dead-end guided_step fallback carrying no model reasoning', () => {
+            const step = guidedToolMissFallback();
+            expect(step.type).to.equal('guided_step');
+            expect(step.buttonGroup?.inputHint || step.buttonGroup?.options?.length).to.be.ok;
         });
     });
 });

@@ -139,6 +139,7 @@ application:
                             TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
                             NATIVE_GUIDED: $NATIVE_GUIDED
                             DEAD_END_RETRY: $DEAD_END_RETRY
+                            GUIDED_TOOL_MISS_RETRY: $GUIDED_TOOL_MISS_RETRY
                         annotations:
                             require-adobe-auth: false
                             final: true

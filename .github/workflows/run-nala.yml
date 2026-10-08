@@ -14,6 +14,7 @@ permissions:
     contents: read
     pull-requests: read
     checks: read
+    actions: read
 
 env:
     # Keep in sync with the branch-protection required-approval count. These are
@@ -53,9 +54,10 @@ jobs:
     check-approvals:
         name: Check Label and Approvals
         runs-on: ubuntu-latest
-        # Pure recompute, safe to supersede — a newer trigger restarts the poll below.
+        # Explicit requests (new commit, 're-added run nala') get their own group so an
+        # incidental review or label change cannot cancel them before Nala starts.
         concurrency:
-            group: nala-check-approvals-${{ github.event.pull_request.number }}
+            group: nala-check-approvals-${{ github.event.pull_request.number }}-${{ (github.run_attempt > 1 || (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')))) && 'request' || 'recheck' }}
             cancel-in-progress: true
         # Generous because this job waits out an in-progress Nala run on the same
         # commit rather than reporting it as unresolved. Must exceed the poll
@@ -85,7 +87,8 @@ jobs:
                   # — must not restart Nala if it already ran (or is still running) for
                   # this exact commit. Without this, every extra approval beyond the
                   # required count fires a brand-new full suite.
-                  consult-prior-runs: ${{ !(github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala'))) }}
+                  # A manual re-run replays the original event, so treat any re-attempt as explicit too.
+                  consult-prior-runs: ${{ !(github.run_attempt > 1 || (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')))) }}
                   # Wait the other run out instead of reporting 'running': its gate
                   # can settle before this one, which would leave this run's stale
                   # failure as the newest check and pin the PR red.
@@ -322,7 +325,8 @@ jobs:
                   pr-number: ${{ github.event.pull_request.number }}
                   required-approvals: ${{ env.REQUIRED_APPROVALS }}
                   consult-prior-runs: 'true'
-                  wait-for-in-flight: 'false'
+                  # A superseded run would otherwise report a false 'running' failure.
+                  wait-for-in-flight: ${{ contains(needs.*.result, 'cancelled') }}
                   github-token: ${{ github.token }}
             - name: Resolve Nala status
               env:

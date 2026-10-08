@@ -20,8 +20,8 @@ inputs:
         required: true
     wait-for-in-flight:
         description: >
-            'true' to block until an in-progress Nala run on this commit
-            finishes, 'false' to report it as 'running'.
+            'true' to block until older workflow runs and any in-progress Nala
+            run on this commit finish, 'false' to report it as 'running'.
         required: true
     github-token:
         description: Token used for the API calls.
@@ -152,7 +152,32 @@ runs:
                   if (canRun && process.env.CONSULT_PRIOR_RUNS === 'true') {
                       const wait = process.env.WAIT_FOR_IN_FLIGHT === 'true';
                       const deadline = Date.now() + 50 * 60 * 1000;
+                      const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          run_id: context.runId,
+                      });
+                      // Only older runs, so two waiting runs can never wait on each other.
+                      const olderRunInFlight = async () => {
+                          const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              workflow_id: currentRun.workflow_id,
+                              head_sha: pr.head.sha,
+                              per_page: 100,
+                          });
+                          return runs.some((run) => run.id < context.runId && run.status !== 'completed');
+                      };
                       while (!nalaConclusion) {
+                          // An older run may be about to start Nala without a visible check run yet.
+                          if (wait && (await olderRunInFlight())) {
+                              if (Date.now() > deadline) {
+                                  nalaConclusion = 'timed-out';
+                              } else {
+                                  await new Promise((resolve) => setTimeout(resolve, 60000));
+                              }
+                              continue;
+                          }
                         // Filter server-side by name so unrelated checks on this SHA
                         // can never push a Nala run out of the page.
                         const priorRuns = await Promise.all(

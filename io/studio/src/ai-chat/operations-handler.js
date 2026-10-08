@@ -269,6 +269,13 @@ function validateStudioOperation(operation) {
         return { valid: false, error: 'operationParams object is required for operations' };
     }
 
+    // The model echoes the surface in the user's casing ("ACOM"); canonicalize it
+    // to the lowercase key both the validator and getSurfacePath expect, else a
+    // valid request fails validation or resolves to the generic /content/dam/mas path.
+    if (typeof operation.operationParams.surface === 'string') {
+        operation.operationParams.surface = operation.operationParams.surface.trim().toLowerCase();
+    }
+
     switch (operation.operationName) {
         case 'publish_card':
         case 'get_card':

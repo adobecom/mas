@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { MasRepository } from '../src/mas-repository.js';
+import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
 import Store from '../src/store.js';
 import { STAGED, COLLECTION_MODEL_PATH } from '../src/constants.js';
 
@@ -9,6 +10,7 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
 
     afterEach(() => {
@@ -65,6 +67,19 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
     });
 
     describe('publishFragment (single publish, used by both editor UI paths)', () => {
+        it('does not publish or clear staged tags when reference diagnosis is cancelled', async () => {
+            const repo = makeRepo();
+            const fragment = stagedCardFragment();
+            MasReferenceDiagnosisDialog.confirmFor.resolves(false);
+
+            const result = await repo.publishFragment(fragment);
+
+            expect(result).to.be.false;
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+            expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+            expect(fragment.fields[0].values).to.deep.equal([STAGED.TAG, 'other-tag']);
+        });
+
         it('clears and persists the staged tag after a successful publish', async () => {
             const repo = makeRepo();
             const fragment = stagedCardFragment();
@@ -129,6 +144,20 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
                 get: () => fragments.map((fragment) => ({ get: () => fragment })),
             };
         };
+
+        it('does not publish or clear staged tags when bulk reference diagnosis is cancelled', async () => {
+            const repo = makeRepo();
+            const staged = stagedCardFragment();
+            setListStores([staged]);
+            MasReferenceDiagnosisDialog.confirmFor.resolves(false);
+
+            const result = await repo.bulkPublishFragments([staged.id], { withToast: false });
+
+            expect(result).to.be.false;
+            expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+            expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
+            expect(staged.fields[0].values).to.deep.equal([STAGED.TAG, 'other-tag']);
+        });
 
         it('clears the staged tag once for each successfully published staged fragment', async () => {
             const repo = makeRepo();

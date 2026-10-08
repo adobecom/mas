@@ -40,6 +40,20 @@ const TAG_MODEL_ID_MAPPING = {
 
 const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
 
+// Classify a variation reference path into one kind, mirroring the frontend
+// Fragment.#categorizeVariations priority (grouped > promo > locale): grouped
+// variations live under a /pzn/ folder, promo variations under promotions/, and
+// everything else at a non-default (regional) locale is a locale variation.
+function classifyVariationPath(path) {
+    if (!path) return null;
+    if (path.includes('/pzn/')) return 'grouped';
+    const match = PATH_TOKENS.exec(path);
+    if (match?.groups?.fragmentPath?.startsWith('promotions/')) return 'promo';
+    const locale = match?.groups?.locale;
+    if (locale && !LOCALE_DEFAULTS.includes(locale)) return 'locale-variations';
+    return null;
+}
+
 /**
  * Strip HTML tags from text while preserving the content
  * Used for searching text in HTML-formatted fields
@@ -1002,6 +1016,12 @@ export class StudioOperations {
 
             if (variationType === 'default-locale-only') return isDefaultLocale;
             if (variationType === 'variations-only') return !isDefaultLocale;
+            // "has a variation of type X": classify each of the card's own variation
+            // references and keep the card when at least one matches the requested kind.
+            if (variationType === 'grouped' || variationType === 'promo' || variationType === 'locale-variations') {
+                const variationPaths = fragment.fields?.find((f) => f.name === 'variations')?.values || [];
+                return variationPaths.some((path) => classifyVariationPath(path) === variationType);
+            }
             return true;
         });
     }

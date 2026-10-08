@@ -5,6 +5,8 @@ import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
 import { requireSurfaceAccess, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
+const MAX_VARIANTS = 20;
+
 /**
  * Fetch full MCS merchandising data directly from AOS API for a given arrangement code.
  * Same pattern as ost-products-write.js line 38, but filtered by arrangement_code.
@@ -30,10 +32,6 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
     const offer = offers.find((o) => o.merchandising) || offers[0];
     const merch = offer.merchandising || {};
 
-    // Detect offer types across ALL offers for CTA generation
-    const hasTrial = offers.some((o) => o.offer_type === 'TRIAL');
-    const hasBuy = offers.some((o) => o.offer_type === 'BASE' || o.offer_type === 'PROMOTION');
-
     return {
         arrangement_code: offer.product_arrangement_code || arrangementCode,
         product_code: offer.product_code,
@@ -52,28 +50,27 @@ async function fetchMCSProduct(arrangementCode, aosUrl, aosApiKey, locale = 'en_
         // Convenience aliases
         name: merch.copy?.name,
         icon: merch.assets?.icons?.svg,
-        // Offer type flags for CTA generation
-        hasTrial,
-        hasBuy,
     };
 }
 
-function generateCtaHtml(product, osi, variant) {
-    const checkoutAttrs = `is="checkout-link" data-wcs-osi="${osi}" data-checkout-workflow="UCv2" data-checkout-workflow-step="email"`;
+const checkoutAttrs = (osi) =>
+    `is="checkout-link" data-wcs-osi="${osi}" data-checkout-workflow="UCv2" data-checkout-workflow-step="email"`;
+
+// Build CTAs from the user's explicitly selected offers: the trial button uses
+// the trial OSI, the buy button uses the base OSI. Without a trial OSI only the
+// base CTA is emitted (no two buttons sharing one OSI).
+function generateCtaHtml(baseOsi, trialOsi, variant) {
     const isPlans = variant === 'plans' || variant === 'plans-students' || variant === 'plans-education';
     const ctaStyle = variant === 'catalog' ? 'accent' : 'primary';
     const buyLabel = isPlans ? 'Select' : 'Buy now';
-    if (!isPlans && product.hasTrial && product.hasBuy) {
-        return `<a ${checkoutAttrs} class="con-button secondary">Free trial</a> <a ${checkoutAttrs} class="con-button ${ctaStyle}">${buyLabel}</a>`;
+    if (!isPlans && trialOsi) {
+        return `<a ${checkoutAttrs(trialOsi)} class="con-button secondary">Free trial</a> <a ${checkoutAttrs(baseOsi)} class="con-button ${ctaStyle}">${buyLabel}</a>`;
     }
-    if (!isPlans && product.hasTrial) {
-        return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">Start free trial</a>`;
-    }
-    return `<a ${checkoutAttrs} class="con-button ${ctaStyle}">${buyLabel}</a>`;
+    return `<a ${checkoutAttrs(baseOsi)} class="con-button ${ctaStyle}">${buyLabel}</a>`;
 }
 
 async function main(params) {
-    const { arrangement_code, variants, parentPath, locale, osi, __ow_headers } = params;
+    const { arrangement_code, variants, parentPath, locale, osi, trialOsi, __ow_headers } = params;
 
     try {
         if (!arrangement_code) {
@@ -81,6 +78,15 @@ async function main(params) {
         }
         if (!Array.isArray(variants) || variants.length === 0) {
             return { statusCode: 400, body: { error: 'variants array is required' } };
+        }
+        // Validate every variant up front: a non-string entry would throw mid-loop
+        // (variant.charAt) after earlier cards were already created, and the 500
+        // would hide them.
+        if (variants.length > MAX_VARIANTS || !variants.every((v) => typeof v === 'string' && v)) {
+            return { statusCode: 400, body: { error: `variants must be 1-${MAX_VARIANTS} non-empty strings` } };
+        }
+        if (locale !== undefined && !/^[a-z]{2}_[A-Z]{2}$/.test(locale)) {
+            return { statusCode: 400, body: { error: 'locale must be in xx_XX form' } };
         }
         if (!parentPath) {
             return { statusCode: 400, body: { error: 'parentPath is required' } };
@@ -111,9 +117,12 @@ async function main(params) {
         if (!(await aosClient.validateOfferFields({ osi }, arrangement_code))) {
             return { statusCode: 400, body: { error: 'Offer selector did not resolve to the requested product' } };
         }
+        if (trialOsi && !(await aosClient.validateOfferFields({ osi: trialOsi }, arrangement_code))) {
+            return { statusCode: 400, body: { error: 'Trial offer selector did not resolve to the requested product' } };
+        }
 
         // Fetch full MCS data directly from AOS
-        const product = await fetchMCSProduct(arrangement_code, aosUrl, aosApiKey, 'en_US');
+        const product = await fetchMCSProduct(arrangement_code, aosUrl, aosApiKey, locale || 'en_US');
 
         if (!product) {
             return { statusCode: 404, body: { error: `Product not found in AOS for arrangement code: ${arrangement_code}` } };
@@ -159,7 +168,7 @@ async function main(params) {
                 fields.prices = `<span is="inline-price" data-wcs-osi="${osi}" data-display-per-unit="${perUnit}" data-display-recurrence="true" data-display-tax="false"></span>`;
             }
             if (osi) {
-                fields.ctas = generateCtaHtml(product, osi, variant);
+                fields.ctas = generateCtaHtml(osi, trialOsi, variant);
             }
             const card = {
                 title: `${productName} - ${variant.charAt(0).toUpperCase() + variant.slice(1)}`,

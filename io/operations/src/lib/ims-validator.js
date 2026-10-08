@@ -27,7 +27,9 @@ const EDITOR_ACCESS_GROUP_BY_SURFACE = new Map([
 export async function validateIMSToken(token) {
     try {
         const ims = new Ims('prod');
-        const validation = await ims.validateToken(token, 'mas-studio');
+        // validateTokenAllowList restricts by client_id; validateToken(token, 'mas-studio')
+        // only labels the check and accepts any Adobe app's token. Mirrors ai-chat + io/studio/utils.
+        const validation = await ims.validateTokenAllowList(token, ['mas-studio']);
 
         if (!validation || !validation.valid) {
             return {
@@ -55,6 +57,9 @@ export async function validateIMSToken(token) {
  */
 export function deriveSurfaceFromPath(path) {
     if (typeof path !== 'string' || !path) return null;
+    // Reject traversal: '/content/dam/mas/acom/../ccd/...' would derive 'acom'
+    // while AEM resolves it to 'ccd', letting an acom editor write to ccd.
+    if (path.split('/').includes('..')) return null;
     const match = path.match(/^\/content\/dam\/mas\/([^/]+)/);
     if (!match) return null;
     return match[1].toLowerCase();
@@ -149,8 +154,25 @@ export async function requireSurfaceAccess(headers, params) {
  * @param {Object} params - Runtime action params
  * @returns {{url: string, error?: Object}}
  */
+/**
+ * The caller-supplied `_aemBaseUrl` override is honored only for AEM Cloud hosts
+ * or local dev. Without this gate any mas-studio token holder could point the
+ * runtime — which attaches the caller's bearer token — at an arbitrary host (SSRF).
+ * @param {string} rawUrl
+ * @returns {boolean}
+ */
+export function isAllowedAemHost(rawUrl) {
+    try {
+        const { hostname } = new URL(rawUrl);
+        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.adobeaemcloud.com');
+    } catch {
+        return false;
+    }
+}
+
 export function resolveAemBaseUrl(params) {
-    const url = params._aemBaseUrl || params.AEM_BASE_URL;
+    const override = params._aemBaseUrl;
+    const url = override && isAllowedAemHost(override) ? override : params.AEM_BASE_URL;
     if (!url) {
         return { url: null, error: { statusCode: 500, body: { error: 'AEM_BASE_URL is not configured' } } };
     }

@@ -30,8 +30,8 @@ describe('offer writes validate AOS before mutation', () => {
     let requireArrangement;
     beforeEach(() => {
         originalFetch = globalThis.fetch;
-        originalValidate = Ims.prototype.validateToken;
-        Ims.prototype.validateToken = async () => ({ valid: true });
+        originalValidate = Ims.prototype.validateTokenAllowList;
+        Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
         offers = [product];
         writes = [];
         wcsOffers = [{ offerSelectorIds: [selector], offerId }];
@@ -53,7 +53,7 @@ describe('offer writes validate AOS before mutation', () => {
     });
     afterEach(() => {
         globalThis.fetch = originalFetch;
-        Ims.prototype.validateToken = originalValidate;
+        Ims.prototype.validateTokenAllowList = originalValidate;
     });
     for (const action of ['link', 'update', 'release']) {
         it(`rejects coherent unfiltered AOS responses for ${action}`, async () => {
@@ -166,6 +166,36 @@ describe('offer writes validate AOS before mutation', () => {
         expect(result.statusCode).to.equal(200);
         expect(writes[0].fields.find((field) => field.name === 'osi').values).to.deep.equal([selector]);
         expect(writes[0].fields.find((field) => field.name === 'ctas').values[0]).to.include(`data-wcs-osi="${selector}"`);
+    });
+
+    it('builds trial and buy CTAs from their own OSIs when a trialOsi is supplied', async () => {
+        const trialSelector = 'TR1ALxbVYb2BjlsnXgYwWJzBPN2anVXjJPsDtW49Ozqb';
+        wcsOffers = [{ offerSelectorIds: [selector, trialSelector], offerId }];
+        const result = await release({
+            ...params,
+            arrangement_code: 'firefly',
+            variants: ['catalog'],
+            parentPath: '/content/dam/mas/acom/en_US',
+            osi: selector,
+            trialOsi: trialSelector,
+        });
+        expect(result.statusCode).to.equal(200);
+        const ctas = writes[0].fields.find((field) => field.name === 'ctas').values[0];
+        expect(ctas).to.include('>Free trial<');
+        expect(ctas).to.include(`data-wcs-osi="${trialSelector}"`);
+        expect(ctas).to.include(`data-wcs-osi="${selector}"`);
+    });
+
+    it('rejects a non-string variant before creating any card', async () => {
+        const result = await release({
+            ...params,
+            arrangement_code: 'firefly',
+            variants: ['plans', 42],
+            parentPath: '/content/dam/mas/acom/en_US',
+            osi: selector,
+        });
+        expect(result.statusCode).to.equal(400);
+        expect(writes).to.deep.equal([]);
     });
     it('updates verified osi fields', async () => {
         const result = await update({ ...params, id: 'card', fields: { osi: selector } });

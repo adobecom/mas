@@ -51,7 +51,6 @@ export class AOSClient {
             sales_channel: DEFAULT_AOS_PARAMS.salesChannel,
             service_providers: 'PRICING',
             term: params.term,
-            api_key: this.apiKey,
             environment: 'PROD',
             landscape: 'PUBLISHED',
             page: '0',
@@ -118,7 +117,6 @@ export class AOSClient {
             for (const c of countries) {
                 const query = {
                     country: c,
-                    api_key: this.apiKey,
                     environment: 'PROD',
                     landscape,
                     page: '0',
@@ -257,7 +255,6 @@ export class AOSClient {
             country: country || 'US',
             locale: 'en_US',
             service_providers: 'MERCHANDISING,PRODUCT_ARRANGEMENT_V2,PRICING',
-            api_key: this.apiKey,
         });
         const url = `${this.baseUrl}/offers?${params.toString()}`;
 

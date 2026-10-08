@@ -23,6 +23,7 @@ import {
     getPreferredProductDescription as getPreferredProductDescriptionFn,
     getAutoSelectedSegmentOption as getAutoSelectedSegmentOptionFn,
     extractKnownSurfaceFromPath,
+    isSafeSurfacePath,
     composeChatRequestSignal,
     isChatRequestTimeout,
     stripReleaseConfig,
@@ -1533,8 +1534,10 @@ export class MasChat extends LitElement {
             },
         ];
 
-        const parentPath =
-            response.parentPath || `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
+        const fallbackParentPath = `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
+        // response.parentPath is model-authored; only honor it when it is a real
+        // surface path, else a prompt injection could redirect where cards write.
+        const parentPath = isSafeSurfacePath(response.parentPath) ? response.parentPath : fallbackParentPath;
 
         const results = [];
         for (const cardConfig of cardConfigs) {

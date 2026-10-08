@@ -4,12 +4,12 @@ import { executeOperation } from './services/operations-client.js';
 import { fetchProducts } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
-import { EVENT_OST_OFFER_SELECT, PAGE_NAMES } from './constants.js';
+import { EVENT_OST_MULTI_OFFER_SELECT, PAGE_NAMES } from './constants.js';
 import { TEMPLATE_PREVIEWS } from './mas-chat/config.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
 import { getUserSurfaces } from './groups.js';
-import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
+import { openOfferSelectorTool } from './rte/ost.js';
 
 class MasProductCatalog extends LitElement {
     createRenderRoot() {
@@ -49,7 +49,7 @@ class MasProductCatalog extends LitElement {
         this.planTypesFilter = new Set();
         this.segmentsFilter = new Set();
         this.familiesFilter = new Set();
-        this.handleOfferSelect = this.handleOfferSelect.bind(this);
+        this.handleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
     }
 
     toggleFilter(facet, value) {
@@ -176,13 +176,13 @@ class MasProductCatalog extends LitElement {
         super.connectedCallback();
         this.loadProducts();
         Store.productCatalog.search.subscribe(this.handleSearchChange);
-        document.addEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
+        document.addEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.handleMultiOfferSelect);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         Store.productCatalog.search.unsubscribe(this.handleSearchChange);
-        document.removeEventListener(EVENT_OST_OFFER_SELECT, this.handleOfferSelect);
+        document.removeEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.handleMultiOfferSelect);
     }
 
     async loadProducts() {
@@ -357,16 +357,16 @@ class MasProductCatalog extends LitElement {
         openOfferSelectorTool({ tagName: 'OSI-FIELD' }, null, {
             arrangement_code: product.arrangement_code,
             ostVariant: 'new',
+            mode: 'plans-base-and-trial',
         });
     }
 
-    handleOfferSelect({ detail: { offerSelectorId } }) {
-        if (!this.pendingCreate) return;
-        closeOfferSelectorTool();
-        this.executeCreate(offerSelectorId);
+    handleMultiOfferSelect({ detail: { base, trial } }) {
+        if (!this.pendingCreate || !base?.osi) return;
+        this.executeCreate(base.osi, trial?.osi);
     }
 
-    async executeCreate(osi) {
+    async executeCreate(osi, trialOsi) {
         const { product, surface, locale, variants } = this.pendingCreate;
         this.pendingCreate = null;
         this.creating = true;
@@ -376,7 +376,9 @@ class MasProductCatalog extends LitElement {
                 arrangement_code: product.arrangement_code,
                 variants,
                 parentPath,
+                locale,
                 osi,
+                trialOsi,
             });
             if (result.success) {
                 const count = result.cards?.filter((c) => !c.error).length || 0;

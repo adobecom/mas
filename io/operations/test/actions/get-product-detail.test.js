@@ -18,11 +18,11 @@ describe('get-product-detail', () => {
     let originalValidateToken;
 
     before(() => {
-        originalValidateToken = Ims.prototype.validateToken;
+        originalValidateToken = Ims.prototype.validateTokenAllowList;
     });
 
     after(() => {
-        Ims.prototype.validateToken = originalValidateToken;
+        Ims.prototype.validateTokenAllowList = originalValidateToken;
     });
 
     beforeEach(() => {
@@ -34,7 +34,7 @@ describe('get-product-detail', () => {
     });
 
     function mockAuth(valid = true) {
-        Ims.prototype.validateToken = async () => (valid ? { valid: true } : { valid: false });
+        Ims.prototype.validateTokenAllowList = async () => (valid ? { valid: true } : { valid: false });
     }
 
     it('returns 401 when no authorization header', async () => {

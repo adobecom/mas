@@ -9,6 +9,7 @@ import {
     isSegmentSelectionStep,
     getAutoSelectedSegmentOption,
     extractKnownSurfaceFromPath,
+    isSafeSurfacePath,
     stripReleaseConfig,
     RELEASE_FIELDS_TO_STRIP,
 } from '../../src/utils/mas-chat-helpers.js';
@@ -313,5 +314,23 @@ describe('stripReleaseConfig', () => {
         for (const field of ['callout', 'promoText', 'whatsIncluded']) {
             expect(RELEASE_FIELDS_TO_STRIP, field).to.include(field);
         }
+    });
+});
+
+describe('isSafeSurfacePath', () => {
+    it('accepts a real surface path with a child segment', () => {
+        expect(isSafeSurfacePath('/content/dam/mas/acom/en_US/card-foo')).to.be.true;
+        expect(isSafeSurfacePath('/content/dam/mas/ccd/fr_FR')).to.be.true;
+    });
+
+    it('rejects a .. traversal', () => {
+        expect(isSafeSurfacePath('/content/dam/mas/acom/../ccd/en_US')).to.be.false;
+    });
+
+    it('rejects paths outside /content/dam/mas and non-strings', () => {
+        expect(isSafeSurfacePath('/content/dam/other/acom/en_US')).to.be.false;
+        expect(isSafeSurfacePath('/content/dam/mas')).to.be.false;
+        expect(isSafeSurfacePath(null)).to.be.false;
+        expect(isSafeSurfacePath(42)).to.be.false;
     });
 });

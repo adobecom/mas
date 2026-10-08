@@ -62,10 +62,12 @@ describe('AOSClient.getOffer', () => {
 
         await client().getOffer(OFFER_ID, 'US');
 
-        const params = fetchStub.calls[0].url.searchParams;
+        const { url, init } = fetchStub.calls[0];
+        const params = url.searchParams;
         expect(params.get('offer_id')).to.equal(OFFER_ID);
         expect(params.get('country')).to.equal('US');
-        expect(params.get('api_key')).to.equal('test-key');
+        expect(params.get('api_key'), 'api_key must ride in the header, not the query string').to.equal(null);
+        expect(init.headers['x-api-key']).to.equal('test-key');
         expect(params.get('environment')).to.equal('PROD');
         expect(params.get('landscape')).to.be.oneOf(['PUBLISHED', 'DRAFT']);
     });

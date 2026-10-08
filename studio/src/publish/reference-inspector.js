@@ -189,25 +189,32 @@ export async function inspectReferences(
     const fragments = aem.sites.cf.fragments;
     const fetched = new Map();
     const visited = new Set();
+    const budgetGaps = new Map();
     let requestedCount = 0;
     const queue = roots.map((owner) => ({ owner, field: { name: '' }, valueIndex: null, targetPath: owner.path, root: true }));
     const deadline = Date.now() + timeoutMs;
-    const read = (load) => readFragment(load, Math.min(requestTimeoutMs, deadline - Date.now()));
+    const read = (load) => {
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) return Promise.resolve({ limited: 'inspection time limit' });
+        const timeLimited = remainingMs <= requestTimeoutMs;
+        const timeoutMessage = timeLimited ? 'The reference inspection time limit was reached.' : 'Reference lookup timed out.';
+        return readFragment(load, Math.min(requestTimeoutMs, remainingMs), timeoutMessage).then(
+            (fragment) => ({ fragment }),
+            (error) => (timeLimited && error.message === timeoutMessage ? { limited: 'inspection time limit' } : { error }),
+        );
+    };
     const loadJob = (job) => {
         if (!job.root && !job.targetPath.startsWith('/content/dam/')) {
             return { error: new Error('Reference lookup is not supported for this identifier.') };
         }
         const key = job.root ? `id:${job.owner.id}` : `path:${job.targetPath}`;
         if (!fetched.has(key)) {
-            if (requestedCount >= maxFragments) return { limited: true };
+            if (requestedCount >= maxFragments) return { limited: 'reference lookup limit' };
             requestedCount++;
             const result = read((controller) =>
                 job.root
                     ? fragments.getById(job.owner.id, controller, { references: 'none' })
                     : fragments.getByPath(job.targetPath, { references: 'none', signal: controller.signal }),
-            ).then(
-                (fragment) => ({ fragment }),
-                (error) => ({ error }),
             );
             fetched.set(key, result);
             if (job.root && job.targetPath) fetched.set(`path:${job.targetPath}`, result);
@@ -225,7 +232,7 @@ export async function inspectReferences(
             }
             if (limited) {
                 report.complete = false;
-                report.coverageGaps.push({ ownerPath: job.targetPath, detail: 'The reference lookup limit was reached.' });
+                budgetGaps.set(limited, (budgetGaps.get(limited) ?? 0) + 1);
                 continue;
             }
             if (error) {
@@ -246,6 +253,12 @@ export async function inspectReferences(
             report.inspectedCount += 1;
             enqueueReferences(fragment, queue);
         }
+    }
+    for (const [reason, count] of budgetGaps) {
+        report.coverageGaps.push({
+            ownerPath: '',
+            detail: `${count} reference${count === 1 ? '' : 's'} not inspected (${reason} reached).`,
+        });
     }
     applyBulkEligibility(report.issues);
     return report;

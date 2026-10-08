@@ -1576,14 +1576,14 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
-        const { selectedRefIds = null, allSelected = false } = options;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
         try {
-            this.operation.set(OPERATIONS.PUBLISH);
             const roots = [
                 fragment,
                 ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
             ];
-            if (!(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
+            if (!skipReferenceDiagnosis && !(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
+            this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
             if (allSelected) {
@@ -1707,12 +1707,12 @@ export class MasRepository extends LitElement {
         }
 
         try {
-            this.operation.set(OPERATIONS.PUBLISH);
-            if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
-
             const listStores = Store.fragments.list.data.get();
             const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
             if (!(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
+            this.operation.set(OPERATIONS.PUBLISH);
+            if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
+
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);

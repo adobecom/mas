@@ -150,9 +150,7 @@ export async function createDictionaryIndexFragment({ parentPath, parentReferenc
             return null;
         }
 
-        if (publish) {
-            await repo.publishFragment(indexFragment, {}, false);
-        }
+        if (publish && !(await repo.publishFragment(indexFragment, { skipReferenceDiagnosis: true }, false))) return null;
         return indexFragment;
     } catch (error) {
         console.error('Failed to create dictionary index fragment:', error);
@@ -269,8 +267,7 @@ export async function addToIndexFragment(fragment) {
             console.info(`Fragment already added to index: ${fragment.path}`);
         }
 
-        await repo.publishFragment(updatedIndexFragment, {}, false);
-        return true;
+        return await repo.publishFragment(updatedIndexFragment, { skipReferenceDiagnosis: true }, false);
     } catch (error) {
         repo.processError(error, 'Failed to add fragment to index.');
         return false;
@@ -307,8 +304,7 @@ export async function removeFromIndexFragment(fragments) {
             console.info('Fragment(s) already added to index.');
         }
 
-        await repo.publishFragment(updatedIndexFragment, {}, false);
-        return true;
+        return await repo.publishFragment(updatedIndexFragment, { skipReferenceDiagnosis: true }, false);
     } catch (error) {
         repo.processError(error, 'Failed to add fragment(s) to index.');
         return false;
@@ -374,7 +370,7 @@ export async function publishPlaceholder(placeholder) {
         return false;
     }
 
-    return repo.publishFragment(indexFragment, {}, false);
+    return repo.publishFragment(indexFragment, { skipReferenceDiagnosis: true }, false);
 }
 
 export function clearDictionaryCache() {

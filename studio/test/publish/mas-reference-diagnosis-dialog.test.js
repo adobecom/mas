@@ -326,6 +326,19 @@ describe('reference diagnosis dialog', () => {
         expect(dialog.shadowRoot.querySelector('dialog').getAttribute('aria-busy')).to.equal('false');
     });
 
+    it('renders an inspection budget summary without an empty owner-path prefix', async () => {
+        const summary = {
+            complete: false,
+            issues: [],
+            coverageGaps: [{ ownerPath: '', detail: '600 references not inspected (reference lookup limit reached).' }],
+        };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${summary}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelector('.gap').textContent.trim()).to.equal(summary.coverageGaps[0].detail);
+    });
+
     it('shows the collection label and fragment title alongside the owner path', async () => {
         const dialog = await fixture(html`<mas-reference-diagnosis-dialog .report=${report}></mas-reference-diagnosis-dialog>`);
         const owner = dialog.shadowRoot.querySelector('.owner');

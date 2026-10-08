@@ -364,7 +364,7 @@ describe('publish reference inspector', () => {
         expect(report.complete).to.be.false;
     });
 
-    it('reports every remaining target without starting GETs after the inspection deadline', async () => {
+    it('summarizes references left uninspected without starting GETs after the inspection deadline', async () => {
         const paths = Array.from({ length: 6 }, (_, index) => `${ROOT_PATH}/deadline-${index}`);
         const root = makeFragment('root', ROOT_PATH, paths);
         const getByPath = sinon.stub().callsFake(() => new Promise(() => {}));
@@ -373,9 +373,11 @@ describe('publish reference inspector', () => {
         const report = await inspectReferences(aem, [root], { concurrency: 2, requestTimeoutMs: 1000, timeoutMs: 15 });
 
         expect(getByPath.callCount).to.equal(2);
-        expect(report.issues.map((issue) => issue.targetPath)).to.deep.equal(paths);
+        expect(report.issues).to.have.length(0);
         expect(report.complete).to.be.false;
-        expect(report.coverageGaps).to.have.length(6);
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: '', detail: '6 references not inspected (inspection time limit reached).' },
+        ]);
     });
 
     it('aborts a timed-out target lookup before advancing the queue', async () => {
@@ -511,7 +513,7 @@ describe('publish reference inspector', () => {
         expect(report.issues[0].detail).to.include('timed out');
     });
 
-    it('marks the uninspected branch when the fragment limit is reached', async () => {
+    it('summarizes the uninspected branch when the fragment limit is reached', async () => {
         const root = makeFragment('root', ROOT_PATH, [FIRST_PATH]);
         const child = makeFragment('child', FIRST_PATH);
         const aem = {
@@ -521,7 +523,9 @@ describe('publish reference inspector', () => {
         const report = await inspectReferences(aem, [root], { maxFragments: 1 });
 
         expect(report.complete).to.be.false;
-        expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.include(FIRST_PATH);
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: '', detail: '1 reference not inspected (reference lookup limit reached).' },
+        ]);
     });
 
     for (const failure of ['403 Forbidden', '500 Internal Server Error', 'timeout']) {
@@ -552,8 +556,8 @@ describe('publish reference inspector', () => {
         });
     }
 
-    it('does not fetch any of forty child references when the root exhausts the request budget', async () => {
-        const paths = Array.from({ length: 40 }, (_, index) => `${ROOT_PATH}/target-${index}`);
+    it('summarizes hundreds of child references when the root exhausts the request budget', async () => {
+        const paths = Array.from({ length: 600 }, (_, index) => `${ROOT_PATH}/target-${index}`);
         const root = makeFragment('root', ROOT_PATH, paths);
         const fragments = {
             getById: sinon.stub().resolves(root),
@@ -565,7 +569,10 @@ describe('publish reference inspector', () => {
         expect(fragments.getById.callCount).to.equal(1);
         expect(fragments.getByPath.callCount).to.equal(0);
         expect(report.complete).to.be.false;
-        expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.deep.equal(paths);
+        expect(report.issues).to.have.length(0);
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: '', detail: '600 references not inspected (reference lookup limit reached).' },
+        ]);
     });
 
     it('counts failed lookups against the budget before starting further requests', async () => {
@@ -576,7 +583,42 @@ describe('publish reference inspector', () => {
 
         expect(fragments.getByPath.callCount).to.equal(1);
         expect(report.complete).to.be.false;
-        expect(report.coverageGaps.map((gap) => gap.ownerPath)).to.deep.equal([FIRST_PATH, SECOND_PATH]);
+        expect(report.issues.map((issue) => issue.targetPath)).to.deep.equal([FIRST_PATH]);
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: FIRST_PATH, detail: 'References below this target could not be inspected.' },
+            { ownerPath: '', detail: '1 reference not inspected (reference lookup limit reached).' },
+        ]);
+    });
+
+    it('preserves owner validation evidence without offering removal when the lookup budget is exhausted', async () => {
+        const { aem, owner } = removalFixture();
+
+        const report = await inspectReferences(aem, [owner], { maxFragments: 1 });
+
+        expect(report.complete).to.be.false;
+        expect(report.issues).to.have.length(1);
+        expect(report.issues[0].evidence).to.equal('fields.cards.values[0].<list element>');
+        expect(report.issues[0].removable).to.be.false;
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: '', detail: '2 references not inspected (reference lookup limit reached).' },
+        ]);
+    });
+
+    it('reuses successful cached targets after the request budget has been exhausted', async () => {
+        const root = makeFragment('root', ROOT_PATH, [FIRST_PATH, SECOND_PATH, FIRST_PATH]);
+        const fragments = {
+            getById: sinon.stub().resolves(root),
+            getByPath: sinon.stub().resolves(makeFragment('child', FIRST_PATH)),
+        };
+
+        const report = await inspectReferences({ sites: { cf: { fragments } } }, [root], { maxFragments: 2 });
+
+        expect(fragments.getByPath.callCount).to.equal(1);
+        expect(report.inspectedCount).to.equal(2);
+        expect(report.issues).to.have.length(0);
+        expect(report.coverageGaps).to.deep.equal([
+            { ownerPath: '', detail: '1 reference not inspected (reference lookup limit reached).' },
+        ]);
     });
 
     it('reuses cached root lookups without consuming another request slot', async () => {

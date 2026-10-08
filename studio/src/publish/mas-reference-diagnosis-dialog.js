@@ -358,7 +358,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                     ${repeat(
                         this.report.coverageGaps,
                         (gap, index) => index,
-                        (gap) => html`<div class="gap">${gap.ownerPath}: ${gap.detail}</div>`,
+                        (gap) => html`<div class="gap">${gap.ownerPath ? `${gap.ownerPath}: ` : nothing}${gap.detail}</div>`,
                     )}
                     <div class="actions" slot="button" role="group" aria-label="Publish actions">
                         <sp-button

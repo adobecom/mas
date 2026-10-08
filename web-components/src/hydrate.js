@@ -63,7 +63,32 @@ export function appendSlot(fieldName, fields, el, mapping) {
 
         const tag = createTag(config.tag, attributes, content);
         el.append(tag);
+        return tag;
     }
+}
+
+// Splits `<li>` items made only of `<p>` children into one `<li>` per paragraph.
+export function splitParagraphListItems(root) {
+    if (!root) return;
+    root.querySelectorAll('li').forEach((li) => {
+        const elements = [...li.children];
+        if (!elements.length || elements.some((child) => child.tagName !== 'P'))
+            return;
+        const hasText = [...li.childNodes].some(
+            (node) =>
+                node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+        );
+        if (hasText) return;
+        const items = elements.map((p) => {
+            const item = document.createElement('li');
+            [...li.attributes].forEach(({ name, value }) =>
+                item.setAttribute(name, value),
+            );
+            item.append(...p.childNodes);
+            return item;
+        });
+        li.replaceWith(...items);
+    });
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
@@ -676,7 +701,9 @@ export function processDescription(fields, merchCard, mapping, settings) {
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
     processQuantitySelect(fields, merchCard, mapping, settings);
-    appendSlot('whatsIncluded', fields, merchCard, mapping);
+    splitParagraphListItems(
+        appendSlot('whatsIncluded', fields, merchCard, mapping),
+    );
 }
 
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
@@ -1089,6 +1116,8 @@ export function cleanup(merchCard) {
         'badge-text',
         'gradient-border',
         'size',
+        'data-promotion-project',
+        'data-promotion-variation-project',
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));

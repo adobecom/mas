@@ -348,6 +348,7 @@ describe('translation-utils', () => {
             const createdFragment = new Fragment({ id: 'new-1', title: 'Spring Campaign copy' });
             const createFragment = sinon.stub().resolves(createdFragment);
             const repository = {
+                aem: { sites: { cf: { fragments: { getById: sinon.stub().resolves(sourceFragment) } } } },
                 createFragment,
                 getTranslationsPath: () => '/content/dam/mas/acom/translations',
             };
@@ -366,6 +367,7 @@ describe('translation-utils', () => {
         it('throws when createFragment resolves falsy', async () => {
             const sourceFragment = new Fragment({ id: 'src-1', title: 'Spring Campaign', fields: [] });
             const repository = {
+                aem: { sites: { cf: { fragments: { getById: sinon.stub().resolves(sourceFragment) } } } },
                 createFragment: sinon.stub().resolves(null),
                 getTranslationsPath: () => '/content/dam/mas/acom/translations',
             };
@@ -379,6 +381,98 @@ describe('translation-utils', () => {
             expect(error).to.exist;
             expect(error.message).to.equal('Failed to duplicate project.');
             expect(error.alreadyToasted).to.be.true;
+        });
+
+        for (const status of ['QUEUED', 'RUNNING', 'UNKNOWN']) {
+            it(`rejects duplication when the current source status is ${status}`, async () => {
+                const sourceFragment = new Fragment({ id: 'src-1', fields: [] });
+                const repository = {
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: {
+                                    getById: sinon.stub().resolves({
+                                        id: 'src-1',
+                                        fields: [{ name: 'status', type: 'text', multiple: false, values: [status] }],
+                                    }),
+                                },
+                            },
+                        },
+                    },
+                    createFragment: sinon.stub().resolves(new Fragment({ id: 'new-1', fields: [] })),
+                    getTranslationsPath: () => '/content/dam/mas/acom/translations',
+                };
+
+                let error;
+                try {
+                    await duplicateTranslationProject(repository, sourceFragment, 'Spring-Campaign-copy');
+                } catch (caught) {
+                    error = caught;
+                }
+
+                expect(error?.message).to.equal('This project cannot be duplicated in its current status.');
+                expect(repository.createFragment.called).to.be.false;
+            });
+        }
+
+        it('duplicates the latest source fields rather than the stale source snapshot', async () => {
+            const sourceFragment = new Fragment({
+                id: 'src-1',
+                fields: [
+                    { name: 'status', type: 'text', multiple: false, values: [] },
+                    { name: 'targetLocales', type: 'text', multiple: true, values: ['fr_FR'] },
+                ],
+            });
+            const repository = {
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sinon
+                                    .stub()
+                                    .withArgs('src-1')
+                                    .resolves({
+                                        id: 'src-1',
+                                        fields: [
+                                            { name: 'status', type: 'text', multiple: false, values: ['COMPLETED'] },
+                                            { name: 'targetLocales', type: 'text', multiple: true, values: ['de_DE'] },
+                                        ],
+                                    }),
+                            },
+                        },
+                    },
+                },
+                createFragment: sinon.stub().resolves(new Fragment({ id: 'new-1', fields: [] })),
+                getTranslationsPath: () => '/content/dam/mas/acom/translations',
+            };
+
+            await duplicateTranslationProject(repository, sourceFragment, 'Spring-Campaign-copy');
+
+            expect(repository.createFragment.firstCall.args[0].fields).to.deep.equal([
+                { name: 'status', type: 'text', multiple: false, values: [] },
+                { name: 'targetLocales', type: 'text', multiple: true, values: ['de_DE'] },
+            ]);
+            expect(sourceFragment.getFieldValues('targetLocales')).to.deep.equal(['fr_FR']);
+        });
+
+        it('does not create a duplicate when fetching the current source fails', async () => {
+            const sourceFragment = new Fragment({ id: 'src-1', fields: [] });
+            const fetchError = new Error('Failed to load project');
+            const repository = {
+                aem: { sites: { cf: { fragments: { getById: sinon.stub().rejects(fetchError) } } } },
+                createFragment: sinon.stub().resolves(new Fragment({ id: 'new-1', fields: [] })),
+                getTranslationsPath: () => '/content/dam/mas/acom/translations',
+            };
+
+            let error;
+            try {
+                await duplicateTranslationProject(repository, sourceFragment, 'Spring-Campaign-copy');
+            } catch (caught) {
+                error = caught;
+            }
+
+            expect(error).to.equal(fetchError);
+            expect(repository.createFragment.called).to.be.false;
         });
     });
 });

@@ -40,6 +40,7 @@ class MasTranslationEditor extends LitElement {
         isProjectReadonly: { type: Boolean, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
+        sending: { type: Boolean, state: true },
     };
 
     #cardsSnapshot = [];
@@ -68,6 +69,7 @@ class MasTranslationEditor extends LitElement {
         ]);
         this.duplicateDialogOpen = false;
         this.duplicating = false;
+        this.sending = false;
         this.isSelectedItemsOpen = false;
         this.showSelectedEmptyState = true;
         this.showLangSelectedEmptyState = true;
@@ -165,7 +167,7 @@ class MasTranslationEditor extends LitElement {
     }
 
     get #canDuplicateTranslationProject() {
-        if (this.isNewTranslationProject || this.duplicating) return false;
+        if (this.isNewTranslationProject || this.duplicating || this.sending) return false;
         const hasUnsavedChanges = !this.disabledActions.has(QUICK_ACTION.SAVE);
         if (hasUnsavedChanges) return false;
         return canDuplicateTranslationProject(this.translationProject?.getFieldValue('status'));
@@ -174,6 +176,11 @@ class MasTranslationEditor extends LitElement {
     get #quickActionsDisabled() {
         const disabled = new Set(this.disabledActions);
         if (!this.#canDuplicateTranslationProject) disabled.add(QUICK_ACTION.DUPLICATE);
+        if (this.duplicating || this.sending) {
+            for (const action of [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD, QUICK_ACTION.DELETE, QUICK_ACTION.LOC]) {
+                disabled.add(action);
+            }
+        }
         return disabled;
     }
 
@@ -184,18 +191,24 @@ class MasTranslationEditor extends LitElement {
         this.disabledActions = newSet;
     }
 
+    #ownsProject(projectStore) {
+        return this.isConnected && this.translationProjectStore === projectStore;
+    }
+
     async #handleDuplicateTranslationProject() {
         if (!this.#canDuplicateTranslationProject) return;
+        const sourceProjectStore = this.translationProjectStore;
         this.duplicating = true;
         try {
-            const fragment = await this.repository.aem.sites.cf.fragments.getById(this.translationProject.id);
-            this.translationProjectStore.refreshFrom(fragment);
-            if (!canDuplicateTranslationProject(this.translationProject.getFieldValue('status'))) {
+            const fragment = new Fragment(await this.repository.aem.sites.cf.fragments.getById(sourceProjectStore.id));
+            if (!this.#ownsProject(sourceProjectStore)) return;
+            if (!canDuplicateTranslationProject(fragment.getFieldValue('status'))) {
                 showToast('This project cannot be duplicated in its current status.', 'negative');
                 return;
             }
-            this.#duplicateProposedTitle = `${this.translationProject.title}-copy`;
+            this.#duplicateProposedTitle = `${fragment.title}-copy`;
             await this.repository.loadTranslationProjects();
+            if (!this.#ownsProject(sourceProjectStore)) return;
             this.#duplicateExistingTitles = getTranslationProjectTitles(
                 Store.translationProjects.list.data.get().map((project) => project.get()),
             );
@@ -209,16 +222,18 @@ class MasTranslationEditor extends LitElement {
     }
 
     #onDuplicateConfirmed = async ({ detail: { title } }) => {
-        const sourceProject = this.translationProject;
+        const sourceProjectStore = this.translationProjectStore;
+        const sourceProject = sourceProjectStore?.get();
         this.duplicateDialogOpen = false;
-        if (!sourceProject) return;
+        if (!sourceProject || this.duplicating || this.sending) return;
         this.duplicating = true;
         try {
             const newProject = await duplicateTranslationProject(this.repository, sourceProject, title);
             showToast('Project successfully duplicated.', 'positive');
+            if (!this.#ownsProject(sourceProjectStore)) return;
             Store.translationProjects.translationProjectId.set(newProject.id);
             this.isNewTranslationProject = false;
-            await this.#loadTranslationProjectById(newProject.id);
+            if (!(await this.#loadTranslationProjectById(newProject.id))) return;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
             this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
             if (this.isProjectReadonly) {
@@ -235,13 +250,15 @@ class MasTranslationEditor extends LitElement {
     };
 
     async #loadTranslationProjectById(id) {
-        if (!id) return;
+        if (!id) return false;
+        const sourceProjectStore = this.translationProjectStore;
         this.isLoading = true;
         try {
             let fragment = await getFromFragmentCache(id);
             if (!fragment) {
                 fragment = await this.repository.aem.sites.cf.fragments.getById(id);
             }
+            if (!this.#ownsProject(sourceProjectStore)) return false;
             if (fragment) {
                 const translationProject = new Fragment(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
@@ -252,6 +269,7 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
                 this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
+                return true;
             }
         } catch (err) {
             console.error('Failed to load translation project:', err);
@@ -259,6 +277,7 @@ class MasTranslationEditor extends LitElement {
         } finally {
             this.isLoading = false;
         }
+        return false;
     }
 
     #initializeNewTranslationProject(fragmentPath, targetLocale, isCollection = false) {
@@ -498,6 +517,10 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #sendTranslationProject() {
+        if (this.duplicating || this.sending) return;
+        const sourceProjectStore = this.translationProjectStore;
+        const sourceProject = sourceProjectStore.get();
+        this.sending = true;
         showToast('Sending translation project to localization...', 'positive');
         this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
 
@@ -508,24 +531,29 @@ class MasTranslationEditor extends LitElement {
                     Authorization: `Bearer ${window.adobeIMS?.getAccessToken()?.token}`,
                 },
             };
-            const url = `${this.ioBaseUrl}/translation-project-start?projectId=${this.translationProject.id}&surface=${Store.surface()}`;
+            const url = `${this.ioBaseUrl}/translation-project-start?projectId=${sourceProject.id}&surface=${Store.surface()}`;
             const response = await fetch(url, params);
             if (!response.ok) {
                 throw new Error('Failed to send translation project to localization');
             }
             const data = await response.json();
-            const submissionDateField = this.translationProject.getField('submissionDate');
+            const submissionDateField = sourceProject.getField('submissionDate');
             if (submissionDateField) {
                 submissionDateField.values = [data.submissionDate];
+            }
+            showToast('Translation project sent to localization successfully.', 'positive');
+            if (this.#ownsProject(sourceProjectStore)) {
+                this.isProjectReadonly = true;
             }
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');
-            this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
-            return;
+            if (this.#ownsProject(sourceProjectStore)) {
+                this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
+            }
+        } finally {
+            this.sending = false;
         }
-        showToast('Translation project sent to localization successfully.', 'positive');
-        this.isProjectReadonly = true;
     }
 
     async #showDialog(title, message, options = {}) {

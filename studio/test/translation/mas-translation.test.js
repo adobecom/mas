@@ -848,15 +848,23 @@ describe('MasTranslation', () => {
         let originalQuerySelector;
         let createFragmentStub;
         let loadTranslationProjectsStub;
+        let getByIdStub;
 
         beforeEach(() => {
             toastEmitStub = sinon.stub(Events.toast, 'emit');
             createFragmentStub = sinon.stub().resolves(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
             loadTranslationProjectsStub = sinon.stub().resolves();
+            getByIdStub = sinon.stub().callsFake(async (id) =>
+                Store.translationProjects.list.data
+                    .get()
+                    .find((project) => project.id === id)
+                    .get(),
+            );
             originalQuerySelector = document.querySelector.bind(document);
             querySelectorStub = sinon.stub(document, 'querySelector').callsFake((selector) => {
                 if (selector === 'mas-repository') {
                     return {
+                        aem: { sites: { cf: { fragments: { getById: getByIdStub } } } },
                         createFragment: createFragmentStub,
                         getTranslationsPath: () => '/content/dam/mas/acom/translations',
                         loadTranslationProjects: loadTranslationProjectsStub,
@@ -905,6 +913,38 @@ describe('MasTranslation', () => {
             expect(el.duplicateDialogOpen).to.be.false;
             expect(el.duplicating).to.be.false;
         });
+
+        for (const status of ['QUEUED', 'RUNNING']) {
+            it(`blocks confirmation when the source became ${status} after opening the dialog`, async () => {
+                sandbox.stub(console, 'error');
+                Store.translationProjects.list.data.value = [createMockTranslationProject('dup-1', 'Project-1')];
+                const el = await fixture(html`<mas-translation></mas-translation>`);
+                const duplicateItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+                    item.textContent.trim().includes('Duplicate'),
+                );
+                duplicateItem.click();
+                await el.updateComplete;
+                getByIdStub.resolves(createMockTranslationProject('dup-1', 'Project-1', 'John Doe', null, status).get());
+                const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+
+                dialog.dispatchEvent(
+                    new CustomEvent('duplicate-confirmed', {
+                        detail: { title: 'Project-1-copy' },
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+                await waitUntil(() => !el.duplicating, 'duplication should finish');
+
+                expect(createFragmentStub.called).to.be.false;
+                expect(
+                    toastEmitStub.calledWith({
+                        variant: 'negative',
+                        content: 'This project cannot be duplicated in its current status.',
+                    }),
+                ).to.be.true;
+            });
+        }
 
         it('shows a single error toast and does not reload the list when duplication fails', async () => {
             createFragmentStub.rejects(new Error('Failed to duplicate project.'));

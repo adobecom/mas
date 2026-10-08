@@ -1,7 +1,7 @@
 import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../constants.js';
 import Store from '../store.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey } from '../utils.js';
+import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey, UserFriendlyError } from '../utils.js';
 
 /** Field types for duplication; `title` is replaced and `status`, `submissionDate`, and `completedLocales` are reset. */
 const TRANSLATION_PROJECT_FIELD_TYPE_MAP = {
@@ -71,16 +71,21 @@ export function buildTranslationProjectDuplicatePayload(sourceFragment, title) {
 }
 
 /**
- * Duplicates a translation project as a new Draft project with the same
- * fragments, placeholders, collections, and target locales as the source.
- * @param {{ createFragment: Function, getTranslationsPath: () => string }} repository
+ * Revalidates the latest source and duplicates it as a new Draft project with
+ * the same fragments, placeholders, collections, and target locales.
+ * @param {{ aem: Object, createFragment: Function, getTranslationsPath: () => string }} repository
  * @param {Object} sourceProject
  * @param {string} title
  * @returns {Promise<Object>} the newly created translation project fragment
  */
 export async function duplicateTranslationProject(repository, sourceProject, title) {
+    const sourceFragment = await repository.aem.sites.cf.fragments.getById(sourceProject.id);
+    const status = sourceFragment.fields.find((field) => field.name === 'status')?.values[0];
+    if (!canDuplicateTranslationProject(status)) {
+        throw new UserFriendlyError('This project cannot be duplicated in its current status.');
+    }
     const payload = {
-        ...buildTranslationProjectDuplicatePayload(sourceProject, title),
+        ...buildTranslationProjectDuplicatePayload(sourceFragment, title),
         parentPath: repository.getTranslationsPath(),
         modelId: TRANSLATION_PROJECT_MODEL_ID,
     };

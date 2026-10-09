@@ -9,6 +9,9 @@ name: Resolve AIO Identity
 #
 # QA is safe to share: AIO_WWW_ENV_QA / AIO_WWW_AIO_QA / AIO_NS_QA are deployed to by no
 # other workflow, unlike STAGE, which io-merge.yaml owns for main.
+#
+# Allowlisted bots' io/studio deploys read the stage Odin bucket, matching Piñata's
+# stage-pinned Studio previews, and skip the shared AOS/OST service secrets.
 
 on:
     workflow_call:
@@ -26,6 +29,12 @@ on:
                     Path segment for merch-at-scale/aio-studio/<login>, minus any trailing
                     [bot]. Never QA: that Vault path holds only odin_bucket, no env/aio.
                 value: ${{ jobs.resolve.outputs.vault_login }}
+            odin_bucket_path:
+                description: 'Vault path holding the odin_bucket for io/studio deploys: stage for allowlisted bots, QA otherwise'
+                value: ${{ jobs.resolve.outputs.odin_bucket_path }}
+            shared_secrets:
+                description: "'false' for allowlisted bots: their io/studio deploys skip the shared AOS/OST service secrets"
+                value: ${{ jobs.resolve.outputs.shared_secrets }}
 
 jobs:
     resolve:
@@ -33,6 +42,8 @@ jobs:
         outputs:
             secret_suffix: ${{ steps.map.outputs.secret_suffix }}
             vault_login: ${{ steps.map.outputs.vault_login }}
+            odin_bucket_path: ${{ steps.map.outputs.odin_bucket_path }}
+            shared_secrets: ${{ steps.map.outputs.shared_secrets }}
         steps:
             - name: Map author to deploy identity
               id: map
@@ -42,12 +53,24 @@ jobs:
                   set -euo pipefail
 
                   case "$LOGIN" in
-                      'pinatacode[bot]') secret_suffix=QA ;;
-                      *) secret_suffix="$LOGIN" ;;
+                      'pinatacode[bot]')
+                          secret_suffix=QA
+                          odin_bucket_path=merch-at-scale/aio-studio/stage
+                          shared_secrets=false
+                          ;;
+                      *)
+                          secret_suffix="$LOGIN"
+                          odin_bucket_path=merch-at-scale/aio-studio/qa
+                          shared_secrets=true
+                          ;;
                   esac
 
                   vault_login=$(printf '%s' "$LOGIN" | sed 's/\[bot\]$//')
 
-                  echo "Resolved '$LOGIN' to secret suffix '$secret_suffix', vault login '$vault_login'"
-                  echo "secret_suffix=$secret_suffix" >> "$GITHUB_OUTPUT"
-                  echo "vault_login=$vault_login" >> "$GITHUB_OUTPUT"
+                  echo "Resolved '$LOGIN' to secret suffix '$secret_suffix', vault login '$vault_login', odin bucket '$odin_bucket_path', shared secrets '$shared_secrets'"
+                  {
+                      echo "secret_suffix=$secret_suffix"
+                      echo "vault_login=$vault_login"
+                      echo "odin_bucket_path=$odin_bucket_path"
+                      echo "shared_secrets=$shared_secrets"
+                  } >> "$GITHUB_OUTPUT"

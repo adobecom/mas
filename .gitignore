@@ -88,3 +88,6 @@ scripts/content/fragments
 
 # Python cache from the Piñata configuration tests
 .pinata/scripts/__pycache__/
+
+# The mas-agent knowledge corpus, fetched at deploy (io/studio/scripts/fetch-masa-knowledge.mjs); never committed.
+io/studio/src/ai-chat/masa-knowledge.js

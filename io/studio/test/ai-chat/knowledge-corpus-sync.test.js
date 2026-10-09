@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { readdirSync, readFileSync } = require('node:fs');
 const { join } = require('node:path');
+const { requireRealCorpus } = require('./real-corpus.js');
 
 let parseKnowledgeMarkdown;
 let KNOWLEDGE_CHUNKS;
@@ -24,16 +25,28 @@ describe('ai-chat/knowledge corpus', () => {
         expect(KNOWLEDGE_CHUNKS).to.deep.equal(chunksFromMarkdown());
     });
 
-    it('has substantive coverage including the newer features', () => {
-        expect(KNOWLEDGE_CHUNKS.length).to.be.greaterThan(20);
-        const topics = new Set(KNOWLEDGE_CHUNKS.map((chunk) => chunk.topic));
+    // Most MAS topics come from the mas-agent corpus, so coverage is checked on what the assistant
+    // actually retrieves from: its own chunks plus that corpus.
+    it('has substantive coverage including the newer features', async function () {
+        const chunks = await requireRealCorpus(this);
+        expect(chunks.length).to.be.greaterThan(20);
+        const topics = new Set(chunks.map((chunk) => chunk.topic));
         for (const required of ['translations', 'promotions']) {
             expect([...topics].join(','), `missing topic ${required}`).to.include(required);
         }
-        const allText = KNOWLEDGE_CHUNKS.map((c) => `${c.section} ${c.text}`)
+        const allText = chunks
+            .map((c) => `${c.section} ${c.text}`)
             .join(' ')
             .toLowerCase();
         expect(allText).to.include('bulk publish');
+    });
+    it('keeps every mas-agent chunk within the standalone-injection size band', async function () {
+        await requireRealCorpus(this);
+        const { MASA_KNOWLEDGE } = await import('../../src/ai-chat/masa-knowledge.js');
+        for (const chunk of MASA_KNOWLEDGE.chunks) {
+            expect(chunk.text.length, `${chunk.id} too short`).to.be.at.least(150);
+            expect(chunk.text.length, `${chunk.id} too long`).to.be.at.most(2000);
+        }
     });
 
     it('keeps every chunk within the standalone-injection size band', () => {

@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { requireRealCorpus } = require('./real-corpus.js');
 
 /**
  * The stopword list is hand-written, so it encodes an assumption about English
@@ -24,11 +25,9 @@ let retriever;
 const PROD = { topK: 3, minScore: 0.7 };
 
 describe('ai-chat/knowledge-retriever stopwords', () => {
-    before(async () => {
-        [{ LocalKnowledgeRetriever }, { KNOWLEDGE_CHUNKS }] = await Promise.all([
-            import('../../src/ai-chat/knowledge-retriever.js'),
-            import('../../src/ai-chat/knowledge-corpus.js'),
-        ]);
+    before(async function () {
+        KNOWLEDGE_CHUNKS = await requireRealCorpus(this);
+        ({ LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js'));
         retriever = new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
     });
 

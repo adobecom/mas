@@ -66,7 +66,10 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            # npm test fetches the mas-agent knowledge corpus first (pretest); the coverage tests need it.
             - name: Run tests
+              env:
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: npm test
 
             # Offline AI-chat eval: golden-dataset structure check (--unit) and

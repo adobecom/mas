@@ -27,7 +27,6 @@ export const styles = [
             margin-bottom: 20px;
             border: 1px solid var(--spectrum-gray-300, #dadada);
             border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             box-shadow:
                 0 0 2px 0 var(--Alias-drop-shadow-elevated-key, rgba(0, 0, 0, 0.12)),
                 0 2px 6px 0 var(--Alias-drop-shadow-transition, rgba(0, 0, 0, 0.04)),

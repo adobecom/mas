@@ -101,7 +101,7 @@ export const styles = css`
     }
 
     .filter-popover {
-        padding: 13px;
+        padding: 12px;
     }
 
     .checkbox-list {

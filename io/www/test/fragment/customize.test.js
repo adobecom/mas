@@ -1937,221 +1937,7 @@ describe('customize promo variation', function () {
     });
 });
 
-describe('customize documented promotion rules', function () {
-    const setups = {
-        firefly: { pzn: 'EDU', rootPromo: true, pznIncluded: false, pznPromo: false },
-        photoshop: { pzn: 'SMB', rootPromo: false, pznIncluded: true, pznPromo: true },
-        acrobat: { pzn: 'ENTRY', rootPromo: false, pznIncluded: true, pznPromo: false },
-    };
-    const cases = [
-        {
-            name: 'row 1: Firefly outside the project renders EDU without promotion',
-            product: 'firefly',
-            pzn: 'EDU',
-            rootIncluded: false,
-            expectedVariation: 'firefly-edu',
-            expectedBadge: 'EDU badge',
-            expectedCode: undefined,
-            expectedProject: undefined,
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'row 2: Firefly included without PZN renders the default promo',
-            product: 'firefly',
-            expectedVariation: 'firefly-promo',
-            expectedBadge: 'firefly promo badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: 'promo-project',
-        },
-        {
-            name: 'row 3: Firefly included with EDU excluded renders EDU without promotion',
-            product: 'firefly',
-            pzn: 'EDU',
-            expectedVariation: 'firefly-edu',
-            expectedBadge: 'EDU badge',
-            expectedCode: undefined,
-            expectedProject: undefined,
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'row 4: Photoshop included without PZN renders default with the code',
-            product: 'photoshop',
-            expectedVariation: undefined,
-            expectedBadge: 'photoshop default badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'row 5: Photoshop with SMB included renders its own promo with the code',
-            product: 'photoshop',
-            pzn: 'SMB',
-            expectedVariation: 'photoshop-smb-promo',
-            expectedBadge: 'SMB promo badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: 'promo-project',
-        },
-        {
-            name: 'row 6: Acrobat with ENTRY included renders ENTRY with the code',
-            product: 'acrobat',
-            pzn: 'ENTRY',
-            expectedVariation: 'acrobat-entry',
-            expectedBadge: 'ENTRY badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: undefined,
-        },
-    ];
-    const regionalCases = [
-        {
-            name: 'regional row 3: regional content keeps the default promo code with EDU excluded',
-            product: 'firefly',
-            pzn: 'EDU',
-            rootPromo: false,
-            expectedVariation: 'firefly-regional',
-            expectedBadge: 'firefly regional badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'regional row 3 with a root promo: regional precedence does not let EDU suppress the promo',
-            product: 'firefly',
-            pzn: 'EDU',
-            expectedVariation: 'firefly-promo',
-            expectedBadge: 'firefly promo badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: 'promo-project',
-        },
-        {
-            name: 'regional row 6: regional content keeps the default promo code with ENTRY included',
-            product: 'acrobat',
-            pzn: 'ENTRY',
-            expectedVariation: 'acrobat-regional',
-            expectedBadge: 'acrobat regional badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'regional content cannot use a project containing only its unrendered ENTRY variation',
-            product: 'acrobat',
-            pzn: 'ENTRY',
-            rootIncluded: false,
-            expectedVariation: 'acrobat-regional',
-            expectedBadge: 'acrobat regional badge',
-            expectedCode: undefined,
-            expectedProject: undefined,
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'regional locale without a regional variation falls back to EDU without promotion',
-            product: 'firefly',
-            pzn: 'EDU',
-            regionalVariation: false,
-            expectedVariation: 'firefly-edu',
-            expectedBadge: 'EDU badge',
-            expectedCode: undefined,
-            expectedProject: undefined,
-            expectedVariationProject: undefined,
-        },
-        {
-            name: 'regional locale without a regional variation falls back to ENTRY with the code',
-            product: 'acrobat',
-            pzn: 'ENTRY',
-            regionalVariation: false,
-            expectedVariation: 'acrobat-entry',
-            expectedBadge: 'ENTRY badge',
-            expectedCode: 'PROMO-CODE',
-            expectedProject: 'promo-project',
-            expectedVariationProject: undefined,
-        },
-    ];
-
-    for (const scenario of [...cases, ...regionalCases.map((entry) => ({ locale: 'en_KW', ...entry }))]) {
-        it(scenario.name, async function () {
-            const { product, locale = 'en_US', rootIncluded = true, regionalVariation = true } = scenario;
-            const { pzn, pznIncluded, pznPromo } = setups[product];
-            const pznPath = `${product}/pzn/${pzn.toLowerCase()}`;
-            const pznId = `${product}-${pzn.toLowerCase()}`;
-            const pznFragment = {
-                id: pznId,
-                path: `/content/dam/mas/sandbox/en_US/${pznPath}`,
-                fields: { badge: `${pzn} badge`, pznTags: [`mas:pzn/${pzn}`] },
-            };
-            const body = {
-                id: product,
-                path: `/content/dam/mas/sandbox/en_US/${product}`,
-                fields: { badge: `${product} default badge`, osi: 'OSI-TEST', variations: [pznId] },
-                references: { [pznId]: { type: 'content-fragment', value: pznFragment } },
-                referencesTree: [],
-            };
-            if (locale === 'en_KW' && regionalVariation) {
-                const regionalId = `${product}-regional`;
-                body.fields.variations.push(regionalId);
-                body.references[regionalId] = {
-                    type: 'content-fragment',
-                    value: {
-                        id: regionalId,
-                        path: `/content/dam/mas/sandbox/en_KW/${product}`,
-                        fields: { badge: `${product} regional badge` },
-                    },
-                };
-            }
-            const project = {
-                id: 'promo-project',
-                path: '/content/dam/mas/promotions/black-friday',
-                fragmentPaths: [...(rootIncluded ? [product] : []), ...(pznIncluded ? [pznPath] : [])],
-                defaultVariations: {},
-                regionVariations: {},
-            };
-            if (scenario.rootPromo ?? setups[product].rootPromo) {
-                project.defaultVariations[product] = {
-                    id: `${product}-promo`,
-                    fields: { badge: `${product} promo badge` },
-                };
-            }
-            if (pznPromo) {
-                project.defaultVariations[pznPath] = {
-                    id: `${pznId}-promo`,
-                    fields: { badge: `${pzn} promo badge`, pznTags: [`mas:pzn/${pzn}`] },
-                };
-            }
-            const result = await processWithPromoProjects(
-                {
-                    ...FAKE_CONTEXT,
-                    debugLogs: false,
-                    fragmentPath: product,
-                    locale,
-                    parsedLocale: 'en_US',
-                    pzn: scenario.pzn,
-                    body,
-                },
-                [
-                    {
-                        project,
-                        promoMap: { '*': 'PROMO-CODE' },
-                        fragmentPaths: new Set(project.fragmentPaths),
-                        groupedVariationPaths: new Set(pznIncluded ? [pznPath] : []),
-                        groupedVariationReferences: new Map(pznIncluded ? [[pznPath, pznFragment]] : []),
-                    },
-                ],
-            );
-
-            expect(result.status).to.equal(200);
-            expect(result.body.variationId).to.equal(scenario.expectedVariation);
-            expect(result.body.fields.badge).to.equal(scenario.expectedBadge);
-            expect(result.body.fields.promoCode).to.equal(scenario.expectedCode);
-            expect(result.body.promoProject).to.equal(scenario.expectedProject);
-            expect(result.body.promoVariationProject).to.equal(scenario.expectedVariationProject);
-        });
-    }
-});
-
-describe('customize promo variation vs. personalization (personalization wins by default)', function () {
+describe('customize promo variation vs. personalization (promo variation always wins)', function () {
     const PZN_VARIATION_ID = 'pzn-var-edu';
     const PROMO_VARIATION = {
         id: 'promo-var-id',
@@ -2198,7 +1984,7 @@ describe('customize promo variation vs. personalization (personalization wins by
         return [{ project, promoMap: { '*': 'PROMO-CODE' }, fragmentPaths: new Set(project.fragmentPaths) }];
     }
 
-    it('renders personalization without promo when only the default fragment is included in the project', async function () {
+    it('renders the promo variation even when a matching pzn/personalization variation exists', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2212,11 +1998,9 @@ describe('customize promo variation vs. personalization (personalization wins by
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
-        expect(result.body.fields.badge).to.equal('EDU badge');
-        expect(result.body.fields.promoCode).to.be.undefined;
-        expect(result.body.promoProject).to.be.undefined;
-        expect(result.body.promoVariationProject).to.be.undefined;
+        expect(result.body.variationId).to.equal('promo-var-id');
+        expect(result.body.fields.badge).to.equal('PROMO badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
     it('renders the promo variation when no personalization variation matches', async function () {
@@ -2273,7 +2057,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         const project = {
             id: 'promo-proj-id',
             path: '/content/dam/mas/promotions/black-friday',
-            fragmentPaths: ['pzn-test-fragment', ...groupedVariationPaths],
+            fragmentPaths: ['pzn-test-fragment'],
             defaultVariations: {},
             regionVariations: {},
         };
@@ -2307,7 +2091,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.promoProject).to.equal('promo-proj-id');
     });
 
-    it('renders personalization without promo when a different pzn variation is curated into this project', async function () {
+    it('renders the plain promo when the pzn variation is not curated into this project', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2321,10 +2105,9 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
-        expect(result.body.fields.badge).to.equal('EDU badge');
-        expect(result.body.fields.promoCode).to.be.undefined;
-        expect(result.body.promoProject).to.be.undefined;
+        expect(result.body.variationId).to.be.undefined;
+        expect(result.body.fields.badge).to.equal('default badge');
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 
     it('does not stamp promoVariationProject when the pzn variation is not curated (no content was actually merged)', async function () {
@@ -2344,7 +2127,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.promoVariationProject).to.be.undefined;
     });
 
-    it('renders personalization without promo when the project has curated no grouped variations', async function () {
+    it('falls back to unscoped personalization when the project has curated no grouped variations', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2360,7 +2143,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
         expect(result.body.fields.badge).to.equal('EDU badge');
-        expect(result.body.fields.promoCode).to.be.undefined;
+        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
 });
 
@@ -2409,7 +2192,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
         const project = {
             id: 'promo-proj-id',
             path: '/content/dam/mas/promotions/black-friday',
-            fragmentPaths: ['pzn-test-fragment', ...groupedVariationPaths],
+            fragmentPaths: ['pzn-test-fragment'],
             defaultVariations,
             regionVariations: {},
         };
@@ -2490,25 +2273,6 @@ describe('customize grouped variation scoped to a promo project (promo variation
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal('root-promo-var-id');
         expect(result.body.fields.badge).to.equal('ROOT PROMO badge');
-    });
-
-    it('keeps curated personalization with the promo code when only the root-level promo variation exists', async function () {
-        const result = await processWithPromoProjects(
-            {
-                ...FAKE_CONTEXT,
-                fragmentPath: 'pzn-test-fragment',
-                locale: 'en_US',
-                parsedLocale: 'en_US',
-                pzn: 'EDU',
-                body: buildBodyWithPzn(),
-            },
-            buildPromoProjectsEntry(['PA-123/pzn/edu'], { 'pzn-test-fragment': ROOT_PROMO_VARIATION }),
-        );
-
-        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
-        expect(result.body.fields.badge).to.equal('EDU badge');
-        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
-        expect(result.body.promoVariationProject).to.be.undefined;
     });
 
     it('prefers the grouped-variation promo over a matching regional-locale variation when both match', async function () {
@@ -2704,7 +2468,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
             {
                 project,
                 promoMap: { '*': 'PROMO-CODE' },
-                fragmentPaths: new Set([FIREFLY_PATH, PHOTOSHOP_PATH, FIREFLY_GROUPED_PATH, PHOTOSHOP_GROUPED_PATH]),
+                fragmentPaths: new Set([FIREFLY_PATH, PHOTOSHOP_PATH]),
                 groupedVariationPaths: new Set([FIREFLY_GROUPED_PATH, PHOTOSHOP_GROUPED_PATH]),
                 groupedVariationReferences,
             },
@@ -2764,7 +2528,7 @@ describe('customize ignore promo variations per offer & geo', function () {
         const project = {
             id: 'promo-proj-id',
             path: '/content/dam/mas/promotions/black-friday',
-            fragmentPaths: ['pzn-test-fragment', 'PA-123/pzn/edu'],
+            fragmentPaths: ['pzn-test-fragment'],
             defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
             regionVariations: {},
         };
@@ -2805,6 +2569,7 @@ describe('customize ignore promo variations per offer & geo', function () {
                 fragmentPath: 'pzn-test-fragment',
                 locale: 'en_US',
                 parsedLocale: 'en_US',
+                pzn: 'EDU',
                 body: buildBody(),
             },
             buildEntry(new Set(['OTHER-OSI'])),

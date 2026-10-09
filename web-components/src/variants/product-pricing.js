@@ -9,8 +9,7 @@ import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
-// Synced across a collection so siblings share baselines; price and
-// short-description are one row so a "Free" price aligns with a priced amount.
+// Synced per collection row so siblings share baselines.
 const SYNCED_ROWS = [
     {
         name: 'heading-s',
@@ -22,7 +21,15 @@ const SYNCED_ROWS = [
     },
     {
         name: 'price',
-        getElement: (card) => card.shadowRoot?.querySelector('.price'),
+        getElement: (card) => card.querySelector('[slot="heading-xs"]'),
+    },
+    {
+        name: 'fine',
+        getElement: (card) => card.shadowRoot?.querySelector('.fine'),
+    },
+    {
+        name: 'footer',
+        getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
 ];
 
@@ -74,9 +81,7 @@ export class ProductPricing extends VariantLayout {
             const legal = price.cloneNode(true);
             await price.onceSettled();
             if (!price.options) return;
-            // Strip fine print off the bold price; the legal line renders it.
-            if (price.options.displayPerUnit)
-                price.dataset.displayPerUnit = 'false';
+            legal.dataset.displayPerUnit = 'false';
             if (price.options.displayTax) price.dataset.displayTax = 'false';
             if (price.options.displayPlanType)
                 price.dataset.displayPlanType = 'false';
@@ -173,7 +178,7 @@ export class ProductPricing extends VariantLayout {
                 </div>
                 <div class="spacer"></div>
                 <div class="price-buttons">
-                    <div class="price">
+                    <div>
                         <slot name="heading-xs"></slot>
                         <div class="fine">
                             <slot name="legal"></slot>
@@ -203,8 +208,8 @@ export class ProductPricing extends VariantLayout {
         }
 
         /* Mnemonic + badge share one centered row on the header strip. Strip
-           background is white by default, black when framed (badge authored or a
-           CTA hovered); triggers live in product-pricing.css.js. */
+           background is white by default, black when framed (badge authored, see
+           product-pricing.css.js). */
         :host([variant='product-pricing']) .header {
             display: flex;
             align-items: center;
@@ -250,6 +255,12 @@ export class ProductPricing extends VariantLayout {
         :host([variant='product-pricing']) slot[name='heading-xs'] {
             display: flex;
             flex-direction: column;
+            /* Bottom-align so a plain price shares a baseline with a stacked
+               strikethrough price. */
+            justify-content: flex-end;
+            min-height: var(
+                --consonant-merch-card-product-pricing-price-height
+            );
         }
 
         /* No price authored: hide the price slot and drop the reserved row
@@ -259,7 +270,7 @@ export class ProductPricing extends VariantLayout {
             display: none;
         }
 
-        :host([variant='product-pricing'][no-price]) .price {
+        :host([variant='product-pricing'][no-price]) .fine {
             min-height: 0;
         }
 
@@ -279,21 +290,11 @@ export class ProductPricing extends VariantLayout {
             gap: 24px;
         }
 
-        /* Price + short-description: one bottom-aligned synced row (SYNCED_ROWS). */
-        :host([variant='product-pricing']) .price {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            gap: 8px;
-            min-height: var(
-                --consonant-merch-card-product-pricing-price-height
-            );
-        }
-
-        /* Legal + short-description share this sub-row; a card shows one. */
+        /* Legal + short-description share this row; a card shows one. */
         :host([variant='product-pricing']) .fine {
             display: flex;
             flex-direction: column;
+            min-height: var(--consonant-merch-card-product-pricing-fine-height);
         }
 
         :host([variant='product-pricing']) slot[name='short-description'] {
@@ -307,6 +308,10 @@ export class ProductPricing extends VariantLayout {
             justify-content: stretch;
             align-items: stretch;
             flex-wrap: nowrap;
+            /* Row-max height keeps a wrapped CTA from shifting siblings' rows. */
+            min-height: var(
+                --consonant-merch-card-product-pricing-footer-height
+            );
         }
     `;
 }

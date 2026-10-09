@@ -1,6 +1,6 @@
 # Merch At Scale
 
-This project is a library of web components providing merchandising content to various surfaces.
+This project is a library of web components providing merchandising content to various surfaces. Test.
 
 ## Environments
 

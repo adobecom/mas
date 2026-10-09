@@ -1,4 +1,9 @@
-import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import {
+    MOBILE_LANDSCAPE,
+    TABLET_UP,
+    C2_DESKTOP_UP,
+    XL_DESKTOP_UP,
+} from '../media.js';
 
 export const CSS = `
 :root {
@@ -30,8 +35,8 @@ export const CSS = `
     display: block;
 }
 
-/* Width is driven by the grid track, not a fixed value — cards fluidly fit
-   261px (1280 viewport) → 394px (1920 viewport) per Figma. */
+/* Standalone cards retain their cap; 3+ card collections fill their tracks
+   at MD and XL below. */
 merch-card[variant="pro"] {
     width: 100%;
     max-width: var(--consonant-merch-card-pro-max-width);
@@ -635,13 +640,12 @@ merch-card[variant="pro"]
     content: none;
 }
 
-/* Collection grid — C2 breakpoints only (768, 1280).
+/* Collection grid — C2 column breakpoints (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.
    - Desktop (≥1280): full column count.
    Cards stretch to equal height within a row (matches Figma row-equal layout)
-   and widths flow fluidly via 1fr tracks. Container max-width caps growth so
-   cards don't exceed the Figma xl (394px) width. */
+   and widths flow fluidly via 1fr tracks. */
 merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
     display: grid;
     gap: 8px;
@@ -696,6 +700,24 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
     merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="pro"] {
         max-width: var(--consonant-merch-card-pro-2up-max-width);
+    }
+}
+
+@media screen and ${TABLET_UP} and (width < 1280px) {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 840px;
+    }
+}
+
+@media screen and ${XL_DESKTOP_UP} {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 1920px;
+    }
+}
+
+@media screen and ${TABLET_UP} and (width < 1280px), screen and ${XL_DESKTOP_UP} {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) > merch-card[variant="pro"]:not([size="edu"]) {
+        max-width: none;
     }
 }
 

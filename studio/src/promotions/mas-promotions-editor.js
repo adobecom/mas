@@ -7,6 +7,7 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { ReactiveStore } from '../reactivity/reactive-store.js';
 import styles from './mas-promotions-editor-css.js';
 import {
     SURFACES,
@@ -16,6 +17,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    PZN_COUNTRY_TAG_PATH_PREFIX,
     STAGED,
     VARIATION_TAB_NAME,
 } from '../constants.js';
@@ -36,6 +38,16 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
+import '../common/components/mas-grouped-selector.js';
+import '../common/components/mas-region-picker.js';
+import {
+    getEligibleCountries,
+    getPersonalizationGeos,
+    getSelectedCountries,
+    pruneIneligibleCountries,
+    setCountriesInGeos,
+    setPersonalizationGeos,
+} from './promotion-countries.js';
 import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
 import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
@@ -186,8 +198,11 @@ class MasPromotionsEditor extends LitElement {
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
+    #countryItemsKey = null;
+    #countryItems = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
+    #countriesStore = new ReactiveStore([]);
 
     constructor() {
         super();
@@ -311,15 +326,13 @@ class MasPromotionsEditor extends LitElement {
 
     get canManagePromoCodes() {
         if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
-        return hasOffers && geos.length > 0;
+        return hasOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
         if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
-        return this.hasSelectedOffers && geos.length > 0;
+        return this.hasSelectedOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
@@ -399,6 +412,50 @@ class MasPromotionsEditor extends LitElement {
 
     get promotionPickerSurfaces() {
         return parsePromotionSurfacesFieldValues(this.fragment?.fields?.find((f) => f.name === 'surfaces')?.values ?? []);
+    }
+
+    get geos() {
+        return this.fragment?.getFieldValues('geos') ?? [];
+    }
+
+    get countryItems() {
+        const surfaces = this.promotionPickerSurfaces;
+        const key = surfaces.join(',');
+        if (key !== this.#countryItemsKey) {
+            this.#countryItemsKey = key;
+            this.#countryItems = getEligibleCountries(surfaces).map((country) => ({ value: country, country }));
+        }
+        return this.#countryItems;
+    }
+
+    get countriesSelector() {
+        const hasSurfaces = this.promotionPickerSurfaces.length > 0;
+        return html`
+            <mas-grouped-selector
+                id="promotion-countries"
+                class="form-field"
+                label="Selected countries"
+                heading="Select countries"
+                add-label=${hasSurfaces ? 'Add countries' : 'Select surfaces first'}
+                description=${hasSurfaces
+                    ? 'Choose one or more countries for your promotion.'
+                    : 'Countries will be generated automatically once surfaces are selected.'}
+                required
+                ?readonly=${!this.canEdit}
+                ?disabled=${!this.canEdit || !hasSurfaces}
+                .selected=${getSelectedCountries(this.geos)}
+                @open=${this.#openCountriesSelection}
+                @confirm=${this.#confirmCountriesSelection}
+            >
+                <mas-region-picker
+                    .store=${this.#countriesStore}
+                    .items=${this.countryItems}
+                    noun="country"
+                    noun-plural="countries"
+                    search-placeholder="Search country"
+                ></mas-region-picker>
+            </mas-grouped-selector>
+        `;
     }
 
     get #itemsSelectionDirty() {
@@ -685,9 +742,43 @@ class MasPromotionsEditor extends LitElement {
 
     #handleGeosChange = (event) => {
         const value = event.target.getAttribute('value');
-        const newGeos = value ? value.split(',') : [];
-        this.fragmentStore.updateField('geos', newGeos);
+        const personalizationGeos = value ? value.split(',') : [];
+        this.fragmentStore.updateField('geos', setPersonalizationGeos(this.geos, personalizationGeos));
     };
+
+    #openCountriesSelection = () => {
+        this.#countriesStore.set(getSelectedCountries(this.geos));
+    };
+
+    #confirmCountriesSelection = ({ detail }) => {
+        detail.pending = this.#applyCountriesSelection();
+    };
+
+    async #applyCountriesSelection() {
+        const countries = this.#countriesStore.value;
+        const existing = new Set(getSelectedCountries(this.geos));
+        try {
+            const tags = countries.some((country) => !existing.has(country))
+                ? (await this.repository.aem.tags.list(PZN_COUNTRY_TAG_PATH_PREFIX)).hits
+                : [];
+            this.fragmentStore.updateField('geos', setCountriesInGeos(this.geos, countries, tags));
+            return true;
+        } catch (error) {
+            showToast(error.message, 'negative');
+            return false;
+        }
+    }
+
+    #updateSurfaces(surfaces) {
+        this.fragmentStore.updateField('surfaces', surfaces);
+        const { geos } = this;
+        const prunedGeos = pruneIneligibleCountries(geos, this.promotionPickerSurfaces);
+        if (prunedGeos === geos) return;
+        const kept = new Set(getSelectedCountries(prunedGeos));
+        const removed = getSelectedCountries(geos).filter((country) => !kept.has(country));
+        this.fragmentStore.updateField('geos', prunedGeos);
+        showToast(`Removed countries not available on the selected surfaces: ${removed.join(', ')}.`, 'info');
+    }
 
     #handleCloseAddSurfacesDialog = (event) => {
         // Get the table element and its selected rows
@@ -696,7 +787,7 @@ class MasPromotionsEditor extends LitElement {
 
         // Update the fragment with the selected surfaces
         if (selectedSurfaces.length > 0) {
-            this.fragmentStore.updateField('surfaces', selectedSurfaces);
+            this.#updateSurfaces(selectedSurfaces);
         }
 
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -719,10 +810,7 @@ class MasPromotionsEditor extends LitElement {
     #handleSurfaceDelete = (event) => {
         const deletedSurface = event.target.attributes.getNamedItem('value').value;
         const surfaces = this.fragment.fields.find((field) => field.name === 'surfaces')?.values || [];
-        this.fragmentStore.updateField(
-            'surfaces',
-            surfaces.filter((surface) => surface !== deletedSurface),
-        );
+        this.#updateSurfaces(surfaces.filter((surface) => surface !== deletedSurface));
     };
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -1780,16 +1868,17 @@ class MasPromotionsEditor extends LitElement {
                                 class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label required>Geos</sp-field-label>
+                                <sp-field-label>Personalization and locale tags</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
-                                    label="Locale tags"
+                                    label="Personalization and locale tags"
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
+                                    exclude-country-tags
                                     multiple
                                     ?disabled=${readOnly}
-                                    value="${form.geos?.values.join(',') || ''}"
+                                    value="${getPersonalizationGeos(this.geos).join(',')}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
                             </sp-field-group>
@@ -1854,6 +1943,7 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                     </div>
                 </div>
+                ${this.countriesSelector}
                 <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState

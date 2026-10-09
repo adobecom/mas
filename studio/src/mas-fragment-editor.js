@@ -49,6 +49,9 @@ import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
 
+const LOCALE_VARIATION_DEPRECATION_MESSAGE =
+    'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation';
+
 // Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
 // they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
 export function getGroupedPreviewLocaleCodes(fragment) {
@@ -424,6 +427,24 @@ export default class MasFragmentEditor extends LitElement {
 
         .card-variant-change-warning sp-icon {
             color: var(--spectrum-global-color-yellow-700);
+        }
+
+        .locale-variation-deprecation-notice {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            background: var(--spectrum-yellow-100, var(--spectrum-global-color-yellow-100));
+            border: 2px solid var(--spectrum-yellow-400, var(--spectrum-global-color-yellow-400));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
+        }
+
+        .locale-variation-deprecation-notice-icon {
+            flex-shrink: 0;
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
         }
 
         #orphan-grouped-variation-panel {
@@ -2036,6 +2057,21 @@ export default class MasFragmentEditor extends LitElement {
         return this.variationTypeHeader('locale-variation-header');
     }
 
+    /** A deprecated locale (regional) variation: neither a promo nor a grouped variation. */
+    get isLocaleVariation() {
+        if (!this.fragment || this.isPromoVariationFragment()) return false;
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) return false;
+        return this.editorContextStore.isVariation(this.fragment.id);
+    }
+
+    get localeVariationDeprecationNotice() {
+        if (!this.isLocaleVariation) return nothing;
+        return html`<div class="locale-variation-deprecation-notice" role="status">
+            <sp-icon-alert class="locale-variation-deprecation-notice-icon"></sp-icon-alert>
+            <span class="locale-variation-deprecation-notice-message">${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>
+        </div>`;
+    }
+
     #handleGroupedPreviewLocaleChange = (event) => {
         // Grouped preview locale is ephemeral UI state; keep its picker `change` from leaking to any
         // ancestor listener. Setting previewLocaleOverride re-prices the card and fires
@@ -2227,7 +2263,7 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer}
+            ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
             <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>

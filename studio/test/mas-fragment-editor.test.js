@@ -1717,6 +1717,126 @@ describe('MasFragmentEditor', () => {
             expect(container.textContent).to.not.include('Promo variation');
         });
 
+        it('renders the deprecation notice for regional variations at the validation alert spot, not in the locale header', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.localeVariationHeader, container);
+            expect(container.textContent).to.include('Regional variation:');
+            expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+
+            const noticeContainer = document.createElement('div');
+            render(el.localeVariationDeprecationNotice, noticeContainer);
+            const notice = noticeContainer.querySelector('.locale-variation-deprecation-notice');
+            expect(notice).to.exist;
+            expect(notice.getAttribute('role')).to.equal('status');
+            expect(notice.querySelector('sp-icon-alert')).to.exist;
+            expect(notice.textContent.trim()).to.equal(
+                'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation',
+            );
+            expect(notice.querySelector('a, button, sp-button')).to.not.exist;
+
+            sandbox.stub(el, 'localeDefaultFragment').get(() => ({
+                id: 'parent-id',
+                title: 'Parent',
+                path: '/content/dam/mas/sandbox/en_US/my-card',
+            }));
+            const editorContainer = document.createElement('div');
+            render(el.fragmentEditor, editorContainer);
+            const cardEditor = editorContainer.querySelector('merch-card-editor');
+            expect(cardEditor).to.exist;
+            expect(
+                editorContainer
+                    .querySelector('.derived-from-container')
+                    .nextElementSibling.classList.contains('locale-variation-deprecation-notice'),
+            ).to.be.true;
+            expect(editorContainer.querySelector('merch-card-editor .locale-variation-deprecation-notice')).to.not.exist;
+            expect(editorContainer.querySelector('.section .locale-variation-deprecation-notice')).to.not.exist;
+            expect(cardEditor.deprecationNotice).to.be.undefined;
+
+            const previewContainer = document.createElement('div');
+            render(el.previewVariationHeader, previewContainer);
+            expect(previewContainer.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+        });
+
+        it('does not render the deprecation notice for grouped or non-variation fragments', () => {
+            const grouped = new Fragment({
+                id: 'grouped-var-id',
+                path: '/content/dam/mas/sandbox/en_US/pzn/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'pznTags', type: 'tag', values: ['mas:locale/fr_FR'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => grouped };
+            const isVariation = sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            expect(el.localeVariationDeprecationNotice).to.equal(nothing);
+            render(el.fragmentEditor, container);
+            expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+
+            isVariation.returns(false);
+            expect(el.localeVariationDeprecationNotice).to.equal(nothing);
+            render(el.fragmentEditor, container);
+            expect(container.querySelector('.locale-variation-deprecation-notice')).to.not.exist;
+
+            isVariation.returns(true);
+            sandbox.stub(el, 'isPromoVariationFragment').returns(true);
+            expect(el.localeVariationDeprecationNotice).to.equal(nothing);
+        });
+
+        it('renders the deprecation notice right after the derived-from block for collection regional variations', () => {
+            const fragment = new Fragment({
+                id: 'collection-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            sandbox.stub(el, 'localeDefaultFragment').get(() => ({
+                id: 'parent-id',
+                title: 'Parent',
+                path: '/content/dam/mas/sandbox/en_US/my-collection',
+            }));
+
+            const container = document.createElement('div');
+            render(el.fragmentEditor, container);
+            expect(
+                container
+                    .querySelector('.derived-from-container')
+                    .nextElementSibling.classList.contains('locale-variation-deprecation-notice'),
+            ).to.be.true;
+            expect(container.querySelector('.section .locale-variation-deprecation-notice')).to.not.exist;
+        });
+
+        it('renders the deprecation notice before the section when there is no distinct parent', () => {
+            const fragment = new Fragment({
+                id: 'locale-var-id',
+                path: '/content/dam/mas/sandbox/en_QA/my-card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+
+            const container = document.createElement('div');
+            render(el.fragmentEditor, container);
+            const notice = container.querySelector('.locale-variation-deprecation-notice');
+            expect(notice).to.exist;
+            expect(container.querySelector('.section').previousElementSibling).to.equal(notice);
+        });
+
         it('renders derived from container', async () => {
             el.localeDefaultFragment = { id: 'parent-id', path: '/content/dam/mas/s/en_US/f', title: 'Parent' };
             const container = el.derivedFromContainer;

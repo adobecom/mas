@@ -75,7 +75,6 @@
                         dialog = document.querySelector('mas-variation-dialog');
                         dialog.fragment = { ...mockFragment };
                         dialog.repository = mockRepository;
-                        dialog.existingVariationLocales = ['en_AU'];
                         await dialog.updateComplete;
                     });
 
@@ -83,9 +82,7 @@
                         if (dialog) {
                             dialog.fragment = null;
                             dialog.repository = null;
-                            dialog.existingVariationLocales = [];
-                            dialog.selectedLocale = '';
-                            dialog.variationType = 'regional';
+                            dialog.variationType = 'grouped';
                             dialog.pznTags = [];
                             dialog.offerData = null;
                             dialog.loading = false;
@@ -101,16 +98,26 @@
                             expect(header.textContent).to.equal('Set a variation type');
                         });
 
-                        it('should render variation type picker with regional as default', async () => {
+                        it('should render variation type picker with grouped as default', async () => {
                             const typePicker = dialog.shadowRoot.querySelector('sp-picker');
                             expect(typePicker).to.exist;
-                            expect(typePicker.value).to.equal('regional');
-                            expect(typePicker.disabled).to.be.false;
+                            expect(typePicker.value).to.equal('grouped');
+                            expect(typePicker.disabled).to.be.true;
+                            const items = typePicker.querySelectorAll('sp-menu-item');
+                            expect(items.length).to.equal(1);
+                            expect(items[0].value).to.equal('grouped');
                         });
 
-                        it('should render locale picker', async () => {
-                            const localePicker = dialog.shadowRoot.querySelectorAll('sp-picker')[1];
-                            expect(localePicker).to.exist;
+                        it('should not offer a regional variation type', async () => {
+                            expect(dialog.shadowRoot.querySelector('sp-menu-item[value="regional"]')).to.not.exist;
+                        });
+
+                        it('should explain unavailability and disable submit for non en_US source locale', async () => {
+                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/fr_FR/test-fragment' };
+                            await dialog.updateComplete;
+
+                            expect(dialog.shadowRoot.querySelector('.unavailable-message')).to.exist;
+                            expect(dialog.shadowRoot.querySelector('sp-button[variant="accent"]').disabled).to.be.true;
                         });
 
                         it('should render grouped variation option for en_US source locale', async () => {
@@ -146,45 +153,6 @@
                             expect(buttons.length).to.equal(2);
                             expect(buttons[0].textContent.trim()).to.equal('Cancel');
                             expect(buttons[1].textContent.trim()).to.equal('Create variation');
-                        });
-                    });
-
-                    describe('Locale Filtering', () => {
-                        it('should filter locales to same language only', async () => {
-                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test' };
-                            await dialog.updateComplete;
-
-                            const availableLocales = dialog.availableTargetLocales;
-                            const allEnglish = availableLocales.every((l) => l.lang === 'en');
-                            expect(allEnglish).to.be.true;
-                        });
-
-                        it('should not include source locale in available options', async () => {
-                            dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/en_US/test' };
-                            await dialog.updateComplete;
-
-                            const availableLocales = dialog.availableTargetLocales;
-                            const hasSourceLocale = availableLocales.some((l) => l.lang === 'en' && l.country === 'US');
-                            expect(hasSourceLocale).to.be.false;
-                        });
-
-                        it('should disable existing variation locales', async () => {
-                            dialog.existingVariationLocales = ['en_KW'];
-                            await dialog.updateComplete;
-
-                            const availableLocales = dialog.availableTargetLocales;
-                            expect(availableLocales.length).to.be.equal(78);
-                            const enKW = availableLocales.find((l) => l.lang === 'en' && l.country === 'KW');
-                            expect(enKW?.disabled).to.be.true;
-                        });
-
-                        it('should return first available locale', async () => {
-                            dialog.existingVariationLocales = [];
-                            await dialog.updateComplete;
-
-                            const firstAvailable = dialog.firstAvailableLocale;
-                            expect(firstAvailable).to.be.a('string');
-                            expect(firstAvailable.length).to.be.greaterThan(0);
                         });
                     });
 
@@ -261,18 +229,7 @@
                     });
 
                     describe('Form Validation', () => {
-                        it('should show error when no locale selected', async () => {
-                            dialog.selectedLocale = '';
-                            await dialog.updateComplete;
-
-                            await dialog.handleSubmit();
-                            await dialog.updateComplete;
-
-                            expect(dialog.error).to.equal('Please select a locale');
-                        });
-
                         it('should show error when repository not available', async () => {
-                            dialog.selectedLocale = 'en_CA';
                             dialog.repository = null;
                             await dialog.updateComplete;
 
@@ -290,16 +247,16 @@
                             expect(submitButton.disabled).to.be.true;
                         });
 
-                        it('should disable submit button when no locale selected', async () => {
-                            dialog.selectedLocale = '';
+                        it('should disable submit button when no pzn tags selected', async () => {
+                            dialog.pznTags = [];
                             await dialog.updateComplete;
 
                             const submitButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
                             expect(submitButton.disabled).to.be.true;
                         });
 
-                        it('should enable submit button when locale selected and not loading', async () => {
-                            dialog.selectedLocale = 'en_CA';
+                        it('should enable submit button when pzn tags selected and not loading', async () => {
+                            dialog.pznTags = ['mas:locale/fr_FR'];
                             dialog.loading = false;
                             await dialog.updateComplete;
 
@@ -309,7 +266,8 @@
 
                     describe('Submission', () => {
                         it('should set loading state during submission', async () => {
-                            dialog.selectedLocale = 'en_CA';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac' };
                             await dialog.updateComplete;
 
                             const submitPromise = dialog.handleSubmit();
@@ -318,18 +276,9 @@
                             await submitPromise;
                         });
 
-                        it('should call createVariation with correct arguments', async () => {
-                            dialog.selectedLocale = 'en_CA';
-                            await dialog.updateComplete;
-
-                            await dialog.handleSubmit();
-
-                            expect(mockRepository.createVariation.calledOnce).to.be.true;
-                            expect(mockRepository.createVariation.calledWith(mockFragment.id, 'en_CA', false)).to.be.true;
-                        });
-
                         it('should dispatch fragment-copied event on success', async () => {
-                            dialog.selectedLocale = 'en_CA';
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac' };
                             await dialog.updateComplete;
 
                             const eventPromise = oneEvent(dialog, 'fragment-copied');
@@ -443,9 +392,20 @@
                             ).to.be.true;
                         });
 
+                        it('should never call createVariation', async () => {
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac' };
+                            await dialog.updateComplete;
+
+                            await dialog.handleSubmit();
+
+                            expect(mockRepository.createVariation.called).to.be.false;
+                        });
+
                         it('should show error on submission failure', async () => {
-                            mockRepository.createVariation.rejects(new Error('Network error'));
-                            dialog.selectedLocale = 'en_CA';
+                            mockRepository.createGroupedVariation.rejects(new Error('Network error'));
+                            dialog.pznTags = ['mas:locale/fr_FR'];
+                            dialog.offerData = { productArrangementCode: 'pac' };
                             await dialog.updateComplete;
 
                             await dialog.handleSubmit();
@@ -471,13 +431,12 @@
                             expect(dialog.sourceLocale).to.be.null;
                         });
 
-                        it('should reset grouped variationType to regional for non en_US locales', async () => {
-                            dialog.variationType = 'grouped';
+                        it('should not allow grouped creation for non en_US locales', async () => {
                             dialog.fragment = { ...mockFragment, path: '/content/dam/mas/commerce/de_DE/test-fragment' };
                             await dialog.updateComplete;
 
-                            expect(dialog.variationType).to.equal('regional');
                             expect(dialog.isGrouped).to.be.false;
+                            expect(dialog.shadowRoot.querySelector('.unavailable-message')).to.exist;
                         });
 
                         it('should keep grouped variationType for collection model when source locale is not en_US', async () => {

@@ -30,6 +30,29 @@
 <p>This custom element implements all the merch-card variants provided in acom and ccd figma designs.</p>
 <p>A <code>merch-card</code> can be rendered using either static html markup or <code>aem-fragment</code> custom element to retrieve a card from Odin/AEM.</p>
 <p>The CTAs styles depend on Spectrum CSS that must be provided by the consumer.</p>
+<p>For <code>headless</code>, <code>marquee</code>, and <code>banner-blade</code> fragments, the RTE link dialog
+persists CTA variants as link classes. Hydration uses those variants to render
+primary buttons, secondary buttons, and links in the fragment’s authored order.
+Bold and italic remain text formatting, not CTA variant controls.
+New commerce CTAs default to Primary button; new web links default to Link.</p>
+<p><code>&lt;mas-field field=&quot;ctas&quot;&gt;</code> hydrates the entire CTA group without requiring Milo
+button decoration. Groups inherit the surrounding Milo block’s button size,
+utility classes, and responsive action-area layout, retaining explicitly
+authored button sizes.</p>
+<p>Indexed fields, such as <code>ctas[1]</code> or <code>ctas[reference-key]</code>, use Studio variants
+by default, with the same sizing and utility-class handling as full groups. Page-authored
+bold/italic wrappers or a <code>feds-cta-wrapper</code> around an individual reference explicitly override that
+presentation: MAS preserves those wrappers, skips fragment styling, and lets
+Milo decorate the CTA. Existing formatted references keep their page-owned styles.
+An unformatted reference outside a <code>feds-cta-wrapper</code> inherits Studio, including when the stored variant is Link;
+absence of formatting does not override a Studio button to Link.</p>
+<p>Individual Copy Field links do not add variant-derived emphasis, so newly copied
+references inherit subsequent Studio changes rather than creating a page override.</p>
+<p>For Studio-owned CTAs and previews, existing classless CTAs saved with
+<code>&lt;strong&gt;</code> or <code>&lt;em&gt;</code> wrappers retain their primary or secondary variant; an
+explicit variant always takes precedence. Studio converts that legacy encoding
+to link classes when the CTA field is edited. Change the fragment’s variant to update
+inheriting references, or the page’s CTA reference formatting to set an explicit override.</p>
 <p>Designs:</p>
 <p><strong>ACOM</strong>: <a href="https://www.figma.com/design/tiEUQLJ1hVlosqwzAATVXZ/Cards-(Merch)?node-id=1086-17994&amp;t=LeMR0vbaBoEKaKln-1">https://www.figma.com/design/tiEUQLJ1hVlosqwzAATVXZ/Cards-(Merch)?node-id=1086-17994&amp;t=LeMR0vbaBoEKaKln-1</a></p>
 <p><strong>CCD</strong>: <a href="https://www.figma.com/proto/7tUtNgFelfMjgPoJ5QcE1k/Merch%40Scale-Frameworks?node-id=2077-63597&amp;t=cWfdzWlga79eyjyI-1">https://www.figma.com/proto/7tUtNgFelfMjgPoJ5QcE1k/Merch%40Scale-Frameworks?node-id=2077-63597&amp;t=cWfdzWlga79eyjyI-1</a></p>

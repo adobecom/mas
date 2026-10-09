@@ -374,8 +374,52 @@
                         const ctas = editor.querySelector('rte-field#ctas');
                         expect(ctas).to.exist;
                         expect(ctas.hasAttribute('is-headless-cta')).to.be.true;
-                        expect(ctas.getAttribute('default-link-style')).to.equal('primary');
+                        expect(ctas.getAttribute('default-link-style')).to.equal('secondary-link');
+                        await ctas.updateComplete;
+                        expect(ctas.shadowRoot.querySelectorAll('sp-action-button')).to.have.length(2);
+                        expect(ctas.shadowRoot.querySelector('#linkEditorButton')).to.exist;
+                        expect(ctas.shadowRoot.querySelector('#offerSelectorToolButton')).to.exist;
                     });
+
+                    for (const variant of ['headless', 'marquee', 'banner-blade']) {
+                        it(`shows only Link and OST in the ${variant} footer toolbar`, async () => {
+                            await setupTestEnvironment({ isVariation: false, variant: [variant] }, `${variant}-footer`);
+
+                            const ctas = editor.querySelector('rte-field#ctas');
+                            await ctas.updateComplete;
+                            expect(ctas.defaultLinkStyle).to.equal('secondary-link');
+                            const toolbar = ctas.shadowRoot.querySelector('sp-action-group');
+                            expect([...toolbar.querySelectorAll('sp-action-button')].map((button) => button.id)).to.deep.equal([
+                                'linkEditorButton',
+                                'offerSelectorToolButton',
+                            ]);
+
+                            const description = editor.querySelector('rte-field#description');
+                            await description.updateComplete;
+                            expect(description.shadowRoot.querySelector('sp-action-button[title="Bold (Command+B)"]')).to.exist;
+                        });
+                    }
+
+                    for (const variant of ['plans', 'product']) {
+                        it(`keeps formatting options in the ${variant} footer toolbar`, async () => {
+                            await setupTestEnvironment({ isVariation: false, variant: [variant] }, `${variant}-footer`);
+
+                            const ctas = editor.querySelector('rte-field#ctas');
+                            await ctas.updateComplete;
+                            for (const title of [
+                                'Bold (Command+B)',
+                                'Italic (Command+I)',
+                                'Strikethrough (Command+S)',
+                                'Underline (Command+U)',
+                                'Superscript (Command+Shift+.)',
+                            ]) {
+                                expect(ctas.shadowRoot.querySelector(`sp-action-button[title="${title}"]`)).to.exist;
+                            }
+                            expect(ctas.shadowRoot.querySelector('#linkEditorButton')).to.exist;
+                            expect(ctas.shadowRoot.querySelector('#offerSelectorToolButton')).to.exist;
+                            expect(ctas.shadowRoot.querySelector('#addDividerButton') !== null).to.equal(variant === 'product');
+                        });
+                    }
 
                     it('renders card status on top of the editor', async () => {
                         await setupTestEnvironment();

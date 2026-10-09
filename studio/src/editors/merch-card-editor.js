@@ -2072,6 +2072,7 @@ class MerchCardEditor extends LitElement {
                         id="ctas"
                         link
                         divider="${this.fragment.variant === 'product' ? '' : nothing}"
+                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? [] : undefined}
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
@@ -2079,7 +2080,9 @@ class MerchCardEditor extends LitElement {
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
                         ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)}
-                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? 'primary' : 'primary-outline'}"
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)
+                            ? 'secondary-link'
+                            : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}

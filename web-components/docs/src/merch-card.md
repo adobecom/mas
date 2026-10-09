@@ -10,6 +10,34 @@ A `merch-card` can be rendered using either static html markup or `aem-fragment`
 
 The CTAs styles depend on Spectrum CSS that must be provided by the consumer.
 
+For `headless`, `marquee`, and `banner-blade` fragments, the RTE link dialog
+persists CTA variants as link classes. Hydration uses those variants to render
+primary buttons, secondary buttons, and links in the fragment's authored order.
+Bold and italic remain text formatting, not CTA variant controls.
+New commerce CTAs default to Primary button; new web links default to Link.
+
+`<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
+button decoration. Groups inherit the surrounding Milo block's button size,
+utility classes, and responsive action-area layout, retaining explicitly
+authored button sizes.
+
+Indexed fields, such as `ctas[1]` or `ctas[reference-key]`, use Studio variants
+by default, with the same sizing and utility-class handling as full groups. Page-authored
+bold/italic wrappers or a `feds-cta-wrapper` around an individual reference explicitly override that
+presentation: MAS preserves those wrappers, skips fragment styling, and lets
+Milo decorate the CTA. Existing formatted references keep their page-owned styles.
+An unformatted reference outside a `feds-cta-wrapper` inherits Studio, including when the stored variant is Link;
+absence of formatting does not override a Studio button to Link.
+
+Individual Copy Field links do not add variant-derived emphasis, so newly copied
+references inherit subsequent Studio changes rather than creating a page override.
+
+For Studio-owned CTAs and previews, existing classless CTAs saved with
+`<strong>` or `<em>` wrappers retain their primary or secondary variant; an
+explicit variant always takes precedence. Studio converts that legacy encoding
+to link classes when the CTA field is edited. Change the fragment's variant to update
+inheriting references, or the page's CTA reference formatting to set an explicit override.
+
 Designs:
 
 **ACOM**: https://www.figma.com/design/tiEUQLJ1hVlosqwzAATVXZ/Cards-(Merch)?node-id=1086-17994&t=LeMR0vbaBoEKaKln-1

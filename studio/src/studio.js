@@ -297,18 +297,12 @@ class MasStudio extends LitElement {
         return html`<mas-side-nav></mas-side-nav>`;
     }
 
-    get editorPanel() {
-        if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
-        if (!this.#lazyLoad('editor-panel', './editor-panel.js')) return nothing;
-        return html`<editor-panel></editor-panel>`;
-    }
-
     get currentPage() {
         switch (this.page.value) {
             case PAGE_NAMES.WELCOME:
                 return this.splashScreen;
             case PAGE_NAMES.CONTENT:
-                return html`${this.content}${this.editorPanel}`;
+                return this.content;
             case PAGE_NAMES.PLACEHOLDERS:
                 return this.placeholders;
             case PAGE_NAMES.FRAGMENT_EDITOR:

@@ -43,12 +43,19 @@
             import { initElementFromTemplate } from '../utils.js';
 
             import '../../src/swc.js';
-            import '../../src/editor-panel.js';
             import '../../src/editors/merch-card-collection-editor.js';
             import { Fragment } from '../../src/aem/fragment.js';
             import { FragmentStore } from '../../src/reactivity/fragment-store.js';
-            import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from '../../src/constants.js';
+            import {
+                CARD_MODEL_PATH,
+                COLLECTION_MODEL_PATH,
+                PAGE_NAMES,
+                QUICK_ACTION,
+                STAGED,
+                TAG_PROMOTION_PREFIX,
+            } from '../../src/constants.js';
             import Store from '../../src/store.js';
+            import router from '../../src/router.js';
 
             runTests(async () => {
                 describe('merch-card-collection-editor custom element', async () => {
@@ -394,35 +401,20 @@
                         fragEditorHost = null;
                     });
 
-                    it('renders fragment-title, fragment-description, and the locReady sp-switch', async () => {
+                    it('renders the fragment title in General info, without a fragment details section', async () => {
                         const editor = document.createElement('merch-card-collection-editor');
                         editor.updateFragment = () => {};
                         editor.fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-render')));
                         fragEditorHost.appendChild(editor);
                         await editor.updateComplete;
 
-                        expect(editor.shadowRoot.querySelector('#fragment-title')).to.exist;
-                        expect(editor.shadowRoot.querySelector('#fragment-description')).to.exist;
-                        expect(editor.shadowRoot.querySelector('sp-switch:not(#hide-cards)')).to.exist;
-                    });
-
-                    it('calls fragmentStore.updateField to toggle locReady when the sp-switch fires a change event', async () => {
-                        const editor = document.createElement('merch-card-collection-editor');
-                        editor.updateFragment = () => {};
-                        const fragmentStore = new FragmentStore(new Fragment(collectionWithLocReady(false, '-toggle')));
-                        const updateFieldSpy = spy(fragmentStore, 'updateField');
-                        editor.fragmentStore = fragmentStore;
-                        fragEditorHost.appendChild(editor);
-                        await editor.updateComplete;
-
-                        editor.shadowRoot
-                            .querySelector('sp-switch:not(#hide-cards):not(#markStaged)')
-                            .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-
-                        const locReadyCall = updateFieldSpy.getCalls().find((c) => c.args[0] === 'locReady');
-                        expect(locReadyCall).to.exist;
-                        expect(locReadyCall.args[1]).to.deep.equal([true]); // !false → true
-                        updateFieldSpy.restore();
+                        const generalInfo = editor.shadowRoot.querySelector('.general-info-container');
+                        expect(generalInfo.querySelector('#fragment-title')).to.exist;
+                        expect(generalInfo.querySelector('#collection-description')).to.exist;
+                        expect(editor.shadowRoot.textContent).to.not.include('Fragment details');
+                        expect(editor.shadowRoot.textContent).to.not.include('Send to translation');
+                        const switches = [...editor.shadowRoot.querySelectorAll('sp-switch')].map((el) => el.id);
+                        expect(switches).to.deep.equal(['markStaged']);
                     });
 
                     it('calls fragmentStore.updateFieldInternal with field name and new value on title input', async () => {
@@ -441,6 +433,595 @@
                         expect(updateInternalSpy.calledWith('title', 'Updated Title')).to.be.true;
                         updateInternalSpy.restore();
                     });
+
+                    const mountWithFields = async (extraFields = [], suffix = '') => {
+                        const data = collectionWithLocReady(false, suffix);
+                        data.fields.push(...extraFields);
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(data));
+                        fragEditorHost.appendChild(editor);
+                        await editor.updateComplete;
+                        return editor;
+                    };
+                    const sidenavFieldsVisible = (editor) =>
+                        getComputedStyle(editor.shadowRoot.querySelector('#sidenav-fields')).display !== 'none';
+
+                    it('collapses an empty side navigation by default and expands it on demand', async () => {
+                        const editor = await mountWithFields([], '-sidenav-empty');
+                        const toggle = editor.shadowRoot.querySelector('#toggle-sidenav-fields');
+                        expect(sidenavFieldsVisible(editor)).to.be.false;
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+
+                        toggle.click();
+                        await editor.updateComplete;
+                        expect(sidenavFieldsVisible(editor)).to.be.true;
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('true');
+
+                        toggle.nextElementSibling.click();
+                        await editor.updateComplete;
+                        expect(sidenavFieldsVisible(editor)).to.be.false;
+                    });
+
+                    it('expands the side navigation when it already has content', async () => {
+                        const editor = await mountWithFields(
+                            [{ name: 'searchText', type: 'text', multiple: false, values: ['Search'] }],
+                            '-sidenav-filled',
+                        );
+                        expect(sidenavFieldsVisible(editor)).to.be.true;
+                    });
+                });
+
+                describe('promo variation collection editing', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let promoHost;
+
+                    const cardA = {
+                        id: 'card-a-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-a',
+                        title: 'Card A',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+                    const cardB = {
+                        id: 'card-b-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/card-b',
+                        title: 'Card B',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+
+                    function promoVariationCollectionData(overrides = {}) {
+                        return {
+                            id: 'promo-variation-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Promo Collection Variation',
+                            tags: [{ id: 'mas:promotion/black-friday' }],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'queryLabel', type: 'text', multiple: false, values: [''] },
+                                { name: 'icon', type: 'text', multiple: false, values: [''] },
+                                { name: 'iconLight', type: 'text', multiple: false, values: [''] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [cardA.path, cardB.path] },
+                                { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                            ],
+                            references: [cardA, cardB],
+                            ...overrides,
+                        };
+                    }
+
+                    beforeEach(() => {
+                        promoHost = document.createElement('div');
+                        spTheme().appendChild(promoHost);
+                    });
+
+                    afterEach(() => {
+                        promoHost?.remove();
+                        promoHost = null;
+                    });
+
+                    // A promo variation is a full clone (own `cards` field already has real values), but
+                    // editorContextStore.isVariation() reports promo variations as `isVariation: true` just
+                    // like locale variations. getEffectiveFieldValues only reads the parent when the
+                    // variation's own values are empty, so this pins the non-empty case: the variation's
+                    // own cards must render, not the parent's, even with isVariation true.
+                    it("renders a promo variation collection's own cards, not the locale-default parent's, even though isVariation is true", async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.isVariation = true;
+                        const parentOnlyCardPath = '/content/dam/mas/sandbox/en_US/parent-only-card';
+                        editor.localeDefaultFragment = new Fragment({
+                            id: 'default-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/my-collection',
+                            model: { path: COLLECTION_MODEL_PATH },
+                            fields: [
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [parentOnlyCardPath] },
+                            ],
+                            references: [
+                                {
+                                    id: 'parent-only-card-id',
+                                    path: parentOnlyCardPath,
+                                    title: 'Parent-only card',
+                                    model: { path: CARD_MODEL_PATH },
+                                    fields: [],
+                                },
+                            ],
+                        });
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        const subtexts = Array.from(editor.shadowRoot.querySelectorAll('.item-subtext')).map((el) =>
+                            el.textContent.trim(),
+                        );
+                        expect(subtexts).to.deep.equal(['Card A', 'Card B']);
+                    });
+
+                    it('removeItem on a promo variation collection updates only its own cards field', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        const updateSpy = spy();
+                        editor.updateFragment = updateSpy;
+                        editor.isVariation = true;
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        editor.removeItem(cardA.path);
+                        await editor.updateComplete;
+
+                        expect(updateSpy.called).to.be.true;
+                        const cardsCall = updateSpy.getCalls().find((c) => c.args[0]?.target?.dataset?.field === 'cards');
+                        expect(cardsCall).to.exist;
+                        expect(cardsCall.args[0].values).to.deep.equal([cardB.path]);
+                    });
+
+                    it('reorders cards on a promo variation collection via internal drag-and-drop', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        const updateSpy = spy();
+                        editor.updateFragment = updateSpy;
+                        editor.isVariation = true;
+                        editor.fragmentStore = new FragmentStore(new Fragment(promoVariationCollectionData()));
+                        promoHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await editor.updateComplete;
+
+                        // Mirrors what #dragStart puts on the DataTransfer for item 0 (card-a), then
+                        // drives the same public entry point the real @drop listener calls (#drop is
+                        // private, but it just forwards to this).
+                        editor.draggingIndex = 0;
+                        editor.draggingFieldName = 'cards';
+                        const dragData = {
+                            isInternalDrag: true,
+                            sourceIndex: 0,
+                            fieldName: 'cards',
+                            id: cardA.id,
+                            path: cardA.path,
+                            model: cardA.model,
+                            title: cardA.title,
+                        };
+                        const dropEvent = {
+                            preventDefault: () => {},
+                            stopPropagation: () => {},
+                            dataTransfer: { getData: () => JSON.stringify(dragData) },
+                        };
+                        editor.handleDropOperation(dropEvent, 'cards', 1, true);
+                        await editor.updateComplete;
+
+                        expect(updateSpy.called).to.be.true;
+                        const cardsCall = updateSpy.getCalls().find((c) => c.args[0]?.target?.dataset?.field === 'cards');
+                        expect(cardsCall).to.exist;
+                        expect(cardsCall.args[0].values).to.deep.equal([cardB.path, cardA.path]);
+                    });
+                });
+
+                describe('quick actions bar', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let quickActionsHost;
+                    let hostEditor;
+                    let querySelectorStub;
+
+                    const collectionData = {
+                        id: 'qa-collection-id',
+                        path: '/content/dam/mas/sandbox/en_US/qa-collection',
+                        model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                        title: 'QA Collection',
+                        tags: [],
+                        fields: [{ name: 'label', type: 'text', multiple: false, values: ['Label'] }],
+                    };
+
+                    async function mountEditor({ isVariation = false } = {}) {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.isVariation = isVariation;
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionData));
+                        quickActionsHost.appendChild(editor);
+                        await editor.updateComplete;
+                        return editor;
+                    }
+
+                    const quickActionsOf = (editor) => editor.shadowRoot.querySelector('mas-quick-actions');
+                    const trigger = (editor, action) =>
+                        quickActionsOf(editor).dispatchEvent(new CustomEvent(action, { bubbles: true, composed: true }));
+
+                    beforeEach(() => {
+                        quickActionsHost = document.createElement('div');
+                        spTheme().appendChild(quickActionsHost);
+                        hostEditor = Object.assign(new EventTarget(), {
+                            promptDiscardChanges: spy(),
+                            showCreateVariation: spy(),
+                        });
+                        querySelectorStub = stub(document, 'querySelector');
+                        querySelectorStub.callThrough();
+                        querySelectorStub.withArgs('mas-fragment-editor').returns(hostEditor);
+                    });
+
+                    afterEach(() => {
+                        querySelectorStub.restore();
+                        quickActionsHost?.remove();
+                        quickActionsHost = null;
+                    });
+
+                    it('offers the same actions as the sidenav toolbar plus Discard', async () => {
+                        const editor = await mountEditor();
+                        expect(quickActionsOf(editor).actions).to.deep.equal([
+                            QUICK_ACTION.SAVE,
+                            QUICK_ACTION.DISCARD,
+                            QUICK_ACTION.CREATE_VARIATION,
+                            QUICK_ACTION.DUPLICATE,
+                            QUICK_ACTION.PREVIEW,
+                            QUICK_ACTION.PUBLISH,
+                            QUICK_ACTION.COPY,
+                            QUICK_ACTION.HISTORY,
+                            QUICK_ACTION.DELETE,
+                        ]);
+                    });
+
+                    it('hides Create Variation and Duplicate for variations', async () => {
+                        const editor = await mountEditor({ isVariation: true });
+                        const { actions } = quickActionsOf(editor);
+                        expect(actions).to.not.include(QUICK_ACTION.CREATE_VARIATION);
+                        expect(actions).to.not.include(QUICK_ACTION.DUPLICATE);
+                        expect(actions).to.include(QUICK_ACTION.HISTORY);
+                    });
+
+                    it('disables Save and Discard until there are changes', async () => {
+                        expect(Store.editor.hasChanges).to.be.false;
+                        const editor = await mountEditor();
+                        const { disabled } = quickActionsOf(editor);
+                        expect(disabled.has(QUICK_ACTION.SAVE)).to.be.true;
+                        expect(disabled.has(QUICK_ACTION.DISCARD)).to.be.true;
+                        expect(disabled.has(QUICK_ACTION.HISTORY)).to.be.false;
+                    });
+
+                    it('delegates Discard and Create Variation to the fragment editor', async () => {
+                        const editor = await mountEditor();
+                        trigger(editor, QUICK_ACTION.DISCARD);
+                        trigger(editor, QUICK_ACTION.CREATE_VARIATION);
+                        expect(hostEditor.promptDiscardChanges.calledOnce).to.be.true;
+                        expect(hostEditor.showCreateVariation.calledOnce).to.be.true;
+                    });
+
+                    it('opens the fragment preview in a new tab', async () => {
+                        const openStub = stub(window, 'open');
+                        try {
+                            const editor = await mountEditor();
+                            trigger(editor, QUICK_ACTION.PREVIEW);
+                            expect(openStub.calledOnce).to.be.true;
+                            expect(openStub.firstCall.args[0]).to.include('fragment-id=qa-collection-id');
+                            expect(openStub.firstCall.args[0]).to.include('content-type=merch-card-collection');
+                        } finally {
+                            openStub.restore();
+                        }
+                    });
+
+                    it('navigates to the version history of the collection', async () => {
+                        const navigate = spy();
+                        const navigateStub = stub(router, 'navigateToPage').returns(navigate);
+                        try {
+                            const editor = await mountEditor();
+                            trigger(editor, QUICK_ACTION.HISTORY);
+                            expect(Store.version.fragmentId.get()).to.equal('qa-collection-id');
+                            expect(navigateStub.calledOnceWith(PAGE_NAMES.VERSION)).to.be.true;
+                            expect(navigate.calledOnce).to.be.true;
+                        } finally {
+                            navigateStub.restore();
+                            Store.version.fragmentId.set(null);
+                        }
+                    });
+                });
+
+                describe('reopened collection with saved cards and categories', () => {
+                    const spTheme = () => document.querySelector('main sp-theme');
+                    let reopenHost;
+
+                    const savedCard = {
+                        id: 'saved-card-id',
+                        path: '/content/dam/mas/sandbox/en_US/saved-card',
+                        title: 'Saved Card',
+                        model: { path: CARD_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+                    const savedCategory = {
+                        id: 'saved-category-id',
+                        path: '/content/dam/mas/sandbox/en_US/saved-category',
+                        title: 'Saved Category',
+                        model: { path: COLLECTION_MODEL_PATH },
+                        fields: [],
+                        tags: [],
+                    };
+
+                    function savedCollectionData(overrides = {}) {
+                        return {
+                            id: 'saved-collection-id',
+                            path: '/content/dam/mas/sandbox/en_US/saved-collection',
+                            model: { path: COLLECTION_MODEL_PATH, name: 'Collection', title: 'Collection' },
+                            title: 'Saved Collection',
+                            tags: [],
+                            fields: [
+                                { name: 'label', type: 'text', multiple: false, values: ['Label'] },
+                                { name: 'cards', type: 'content-reference', multiple: true, values: [savedCard.path] },
+                                {
+                                    name: 'collections',
+                                    type: 'content-reference',
+                                    multiple: true,
+                                    values: [savedCategory.path],
+                                },
+                            ],
+                            references: [savedCard, savedCategory],
+                            ...overrides,
+                        };
+                    }
+
+                    async function mountEditor(fragmentData) {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        editor.fragmentStore = new FragmentStore(new Fragment(fragmentData));
+                        reopenHost.appendChild(editor);
+                        await editor.updateComplete;
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                        await editor.updateComplete;
+                        return editor;
+                    }
+
+                    const renderedItemCount = (editor, containerClass) =>
+                        editor.shadowRoot.querySelectorAll(`.${containerClass} .item-wrapper`).length;
+
+                    beforeEach(() => {
+                        reopenHost = document.createElement('div');
+                        spTheme().appendChild(reopenHost);
+                    });
+
+                    afterEach(() => {
+                        reopenHost?.remove();
+                        reopenHost = null;
+                    });
+
+                    // Opening a collection from the fragments list activates the list store, whose search
+                    // result carries no references; the editor's background refresh fills them in later.
+                    it('shows saved cards and categories once references arrive via a later refresh', async () => {
+                        const withoutReferences = savedCollectionData({ references: undefined });
+                        const editor = await mountEditor(withoutReferences);
+                        expect(renderedItemCount(editor, 'cards-container')).to.equal(0);
+                        expect(editor.shadowRoot.querySelectorAll('.cards-container .item-placeholder').length).to.equal(1);
+
+                        editor.fragmentStore.refreshFrom(savedCollectionData());
+                        await editor.updateComplete;
+                        await new Promise((resolve) => setTimeout(resolve, 0));
+                        await editor.updateComplete;
+
+                        expect(renderedItemCount(editor, 'cards-container')).to.equal(1);
+                        expect(renderedItemCount(editor, 'collections-container')).to.equal(1);
+                        expect(editor.shadowRoot.querySelectorAll('.item-placeholder').length).to.equal(0);
+                    });
+
+                    it('drops the picker cache when a collection opens on another locale', async () => {
+                        const staleCard = { path: '/content/dam/mas/sandbox/fr_FR/stale-card', id: 'stale' };
+                        const originalLocale = Store.filters.value.locale;
+                        const first = await mountEditor(savedCollectionData());
+                        Store.collectionCards.allCards.set([staleCard]);
+                        Store.collectionCards.cardsByPaths.set(new Map([[staleCard.path, staleCard]]));
+                        first.remove();
+
+                        await mountEditor(savedCollectionData());
+                        expect(Store.collectionCards.allCards.value).to.deep.equal([staleCard]);
+                        reopenHost.replaceChildren();
+
+                        Store.filters.set({ ...Store.filters.value, locale: 'de_DE' });
+                        try {
+                            await mountEditor(savedCollectionData());
+                            expect(Store.collectionCards.allCards.value).to.deep.equal([]);
+                            expect(Store.collectionCards.cardsByPaths.value.size).to.equal(0);
+                        } finally {
+                            Store.filters.set({ ...Store.filters.value, locale: originalLocale });
+                        }
+                    });
+
+                    it('seeds the fragments picker with only the saved cards', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        Store.collectionCards.selectedCollections.set([savedCategory.path]);
+
+                        editor.shadowRoot
+                            .querySelector('.collection-cards-selector-dialog')
+                            .dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+
+                        expect(Store.collectionCards.selectedCards.value).to.deep.equal([savedCard.path]);
+                        expect(Store.collectionCards.selectedCollections.value).to.deep.equal([]);
+                        expect(Store.collectionCards.cardsByPaths.value.has(savedCard.path)).to.be.true;
+                    });
+
+                    it('seeds the categories picker with only the saved categories', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        Store.collectionCards.selectedCards.set([savedCard.path]);
+
+                        editor.shadowRoot
+                            .querySelector('.collection-categories-selector-dialog')
+                            .dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+
+                        expect(Store.collectionCards.selectedCollections.value).to.deep.equal([savedCategory.path]);
+                        expect(Store.collectionCards.selectedCards.value).to.deep.equal([]);
+                        expect(Store.collectionCards.collectionsByPaths.value.has(savedCategory.path)).to.be.true;
+                    });
+
+                    describe('confirming a picker on a variation', () => {
+                        async function mountVariation({ ownCards = [], references = [], tags = [], parentTags = [] } = {}) {
+                            const editor = document.createElement('merch-card-collection-editor');
+                            editor.updateFragment = spy();
+                            editor.isVariation = true;
+                            editor.localeDefaultFragment = new Fragment(savedCollectionData({ tags: parentTags }));
+                            editor.fragmentStore = new FragmentStore(
+                                new Fragment(
+                                    savedCollectionData({
+                                        id: 'variation-collection-id',
+                                        path: '/content/dam/mas/sandbox/fr_FR/saved-collection',
+                                        tags,
+                                        fields: [
+                                            { name: 'cards', type: 'content-reference', multiple: true, values: ownCards },
+                                            { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                        ],
+                                        references,
+                                    }),
+                                ),
+                            );
+                            reopenHost.appendChild(editor);
+                            await editor.updateComplete;
+                            await new Promise((resolve) => setTimeout(resolve, 0));
+                            await editor.updateComplete;
+                            return editor;
+                        }
+
+                        const openAndConfirm = (editor, dialogClass) => {
+                            const dialog = editor.shadowRoot.querySelector(`.${dialogClass}`);
+                            dialog.dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+                            dialog.close = () => {};
+                            dialog.dispatchEvent(new Event('confirm'));
+                        };
+
+                        it('keeps inherited cards inherited when the selection is unchanged', async () => {
+                            const editor = await mountVariation();
+                            openAndConfirm(editor, 'collection-cards-selector-dialog');
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('keeps inherited categories inherited when the selection is unchanged', async () => {
+                            const editor = await mountVariation();
+                            openAndConfirm(editor, 'collection-categories-selector-dialog');
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        const confirmCardsSelection = (editor, selection) => {
+                            const dialog = editor.shadowRoot.querySelector('.collection-cards-selector-dialog');
+                            dialog.dispatchEvent(new Event('sp-opened', { bubbles: true, composed: true }));
+                            Store.collectionCards.selectedCards.set(selection);
+                            dialog.close = () => {};
+                            dialog.dispatchEvent(new Event('confirm'));
+                        };
+
+                        it('writes a local override once the selection changes', async () => {
+                            const editor = await mountVariation();
+                            const otherCardPath = '/content/dam/mas/sandbox/en_US/other-card';
+                            confirmCardsSelection(editor, [savedCard.path, otherCardPath]);
+                            expect(editor.updateFragment.calledOnce).to.be.true;
+                            expect(editor.updateFragment.firstCall.args[0].values).to.deep.equal([
+                                savedCard.path,
+                                otherCardPath,
+                            ]);
+                        });
+
+                        // An empty list on a variation means "inherit", so the parent's cards would come back.
+                        it('rejects an empty selection instead of re-inheriting the parent cards', async () => {
+                            const editor = await mountVariation();
+                            confirmCardsSelection(editor, []);
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('rejects removing the last own card', async () => {
+                            const editor = await mountVariation({ ownCards: [savedCard.path], references: [savedCard] });
+                            expect(renderedItemCount(editor, 'cards-container')).to.equal(1);
+                            editor.removeItem(savedCard.path);
+                            expect(editor.updateFragment.called).to.be.false;
+                        });
+
+                        it('does not report the promotion tag as a tags override', async () => {
+                            const parentTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                            const promotionTag = { id: `${TAG_PROMOTION_PREFIX}black-friday`, title: 'Black Friday' };
+                            const editor = await mountVariation({ tags: [parentTag, promotionTag], parentTags: [parentTag] });
+                            const tagsField = editor.shadowRoot.querySelector('#collection-tags');
+                            expect(tagsField.dataset.fieldState).to.equal('same-as-parent');
+                        });
+
+                        it('keeps the promotion tag when restoring tags to the parent', async () => {
+                            const parentTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                            const ownTag = { id: 'mas:product_code/ilst', title: 'Illustrator' };
+                            const promotionTag = { id: `${TAG_PROMOTION_PREFIX}black-friday`, title: 'Black Friday' };
+                            const editor = await mountVariation({ tags: [ownTag, promotionTag], parentTags: [parentTag] });
+                            const tagsField = editor.shadowRoot.querySelector('#collection-tags');
+                            expect(tagsField.dataset.fieldState).to.equal('overridden');
+
+                            tagsField.parentElement.querySelector('.field-status-inherited-link').click();
+                            expect(editor.fragmentStore.get().newTags).to.deep.equal([parentTag.id, promotionTag.id]);
+                        });
+                    });
+
+                    it('collapses the selected fragments list with the chevron toggle and the heading', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        const container = editor.shadowRoot.querySelector('.cards-container');
+                        const toggle = editor.shadowRoot.querySelector('#toggle-cards-container');
+                        expect(getComputedStyle(container).display).to.not.equal('none');
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('true');
+
+                        toggle.click();
+                        await editor.updateComplete;
+                        expect(getComputedStyle(container).display).to.equal('none');
+                        expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+                        expect(editor.shadowRoot.querySelector('[data-field-name="cards-section"] h2').textContent).to.include(
+                            'Selected fragments (1)',
+                        );
+                        expect(editor.shadowRoot.querySelector('.cards-header-actions overlay-trigger')).to.exist;
+
+                        editor.shadowRoot.querySelector('[data-field-name="cards-section"] h2').click();
+                        await editor.updateComplete;
+                        expect(getComputedStyle(container).display).to.not.equal('none');
+                    });
+
+                    it('toggles Staged without duplicating the tag or dropping existing tags', async () => {
+                        const existingTag = { id: 'mas:product_code/phsp', title: 'Photoshop' };
+                        const editor = await mountEditor(savedCollectionData({ tags: [existingTag] }));
+                        const toggle = () => {
+                            editor.shadowRoot
+                                .querySelector('sp-switch#markStaged')
+                                .dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                        };
+                        const tagIds = () => editor.fragmentStore.get().newTags;
+                        const switchChecked = async () => {
+                            await editor.updateComplete;
+                            return editor.shadowRoot.querySelector('sp-switch#markStaged').checked;
+                        };
+
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id, STAGED.TAG]);
+                        expect(await switchChecked()).to.be.true;
+
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id]);
+                        expect(await switchChecked()).to.be.false;
+
+                        toggle();
+                        toggle();
+                        toggle();
+                        expect(tagIds()).to.deep.equal([existingTag.id, STAGED.TAG]);
+                    });
+
+                    it('shows the number of selected categories in the Categories heading', async () => {
+                        const editor = await mountEditor(savedCollectionData());
+                        const heading = editor.shadowRoot.querySelector('[data-field-name="collections"] h2');
+                        expect(heading.textContent.trim()).to.equal('Categories (1)');
+                    });
                 });
             });
         </script>
@@ -450,7 +1031,6 @@
         <template id="merch-card-collection-editor">
             <div>
                 <mas-repository base-url="http://localhost:2023/test/mocks"></mas-repository>
-                <editor-panel></editor-panel>
             </div>
         </template>
     </body>

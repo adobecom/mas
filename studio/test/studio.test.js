@@ -20,7 +20,6 @@ const PAGE_GETTERS = [
     { getter: 'bulkPublish', matchingPages: [PAGE_NAMES.BULK_PUBLISH], tag: 'mas-bulk-publish' },
     { getter: 'bulkPublishEditor', matchingPages: [PAGE_NAMES.BULK_PUBLISH_EDITOR], tag: 'mas-bulk-publish-editor' },
     { getter: 'advancedTools', matchingPages: [PAGE_NAMES.ADVANCED_TOOLS], tag: 'mas-advanced-tools' },
-    { getter: 'editorPanel', matchingPages: [PAGE_NAMES.CONTENT], tag: 'editor-panel' },
 ];
 
 // Pre-register stubs so customElements.get(tag) returns a constructor in template tests,

@@ -3422,6 +3422,132 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-seasonal');
         expect(result.body.fields.promoCode).to.be.undefined;
     });
+
+    describe('collections (no offer attached)', function () {
+        const collectionProject = (id, { endDate } = {}) => ({
+            id,
+            path: `/content/dam/mas/promotions/${id}`,
+            ...(endDate && { endDate }),
+            defaultVariations: {
+                'coll-a': {
+                    id: `var-${id}`,
+                    path: `/content/dam/mas/sandbox/en_US/promotions/${id}/coll-a`,
+                    fields: { cards: ['card-2', 'card-1'] },
+                },
+            },
+            regionVariations: {},
+        });
+        const collectionRoot = () => ({
+            id: 'coll-a',
+            path: '/content/dam/mas/sandbox/en_US/coll-a',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { cards: ['card-1', 'card-2'], collections: [] },
+            references: {},
+            referencesTree: [],
+        });
+        const processCollection = (entries) =>
+            processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'coll-a', body: collectionRoot() }, entries);
+
+        it('applies an evergreen promo variation without any mapping or wildcard', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: {}, fragmentPaths: new Set(['coll-a']) },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-evergreen');
+            expect(result.body.fields.cards).to.deep.equal(['card-2', 'card-1']);
+            expect(result.body.promoProject).to.equal('proj-evergreen');
+        });
+
+        it('prefers a seasonal project over an evergreen one', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['coll-a']) },
+                {
+                    project: collectionProject('proj-seasonal', { endDate: '2026-09-01T00:00:00.000Z' }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal');
+            expect(result.body.promoProject).to.equal('proj-seasonal');
+        });
+
+        // promoProjects arrive sorted by the promotions transformer: seasonal first, newest startDate first.
+        it('takes the first (most recently started) of several seasonal projects', async function () {
+            const endDate = '2026-09-01T00:00:00.000Z';
+            const result = await processCollection([
+                {
+                    project: collectionProject('proj-seasonal-new', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+                {
+                    project: collectionProject('proj-seasonal-old', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal-new');
+            expect(result.body.promoProject).to.equal('proj-seasonal-new');
+        });
+
+        it('resolves and customizes cards and collections that only the promo variation references', async function () {
+            const card = (id) => ({
+                type: 'content-fragment',
+                value: { id, path: `/content/dam/mas/sandbox/en_US/${id}`, model: { id: CARD_MODEL_ID }, fields: {} },
+            });
+            const collection = (id) => ({
+                type: 'content-fragment',
+                value: { id, path: `/content/dam/mas/sandbox/en_US/${id}`, model: { id: COLLECTION_MODEL_ID }, fields: {} },
+            });
+            const cardEntry = (id) => ({ fieldName: 'cards', identifier: id, referencesTree: [] });
+            const project = {
+                id: 'proj-evergreen',
+                path: '/content/dam/mas/promotions/proj-evergreen',
+                defaultVariations: {
+                    'coll-a': {
+                        id: 'var-coll-a',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/proj-evergreen/coll-a',
+                        model: { id: COLLECTION_MODEL_ID },
+                        fields: { cards: ['card-1', 'card-2'], collections: ['coll-b'] },
+                        references: {
+                            'card-1': card('card-1'),
+                            'card-2': card('card-2'),
+                            'coll-b': collection('coll-b'),
+                        },
+                        referencesTree: [
+                            cardEntry('card-1'),
+                            cardEntry('card-2'),
+                            { fieldName: 'collections', identifier: 'coll-b', referencesTree: [] },
+                        ],
+                    },
+                },
+                regionVariations: {},
+            };
+            const body = {
+                ...collectionRoot(),
+                fields: { cards: ['card-1'], collections: [] },
+                references: { 'card-1': card('card-1') },
+                referencesTree: [cardEntry('card-1')],
+            };
+            const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'coll-a', body }, [
+                { project, promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['coll-a', 'card-2']) },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.fields.cards).to.deep.equal(['card-1', 'card-2']);
+            expect(result.body.referencesTree.map(({ identifier }) => identifier)).to.deep.equal([
+                'card-1',
+                'card-2',
+                'coll-b',
+            ]);
+            expect(result.body.references['card-2'].value.id).to.equal('card-2');
+            // the added card is customized recursively, like any other card of the collection
+            expect(result.body.references['card-2'].value.promoProject).to.equal('proj-evergreen');
+            expect(result.body.fields.collections).to.deep.equal(['coll-b']);
+            expect(result.body.references['coll-b'].value.id).to.equal('coll-b');
+        });
+    });
 });
 
 describe('customize OSI substitution', function () {

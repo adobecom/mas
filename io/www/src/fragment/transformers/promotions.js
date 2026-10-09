@@ -51,7 +51,7 @@
  *     Both dates are required: a project defining only a start or only an end exposes nothing.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
+import { COLLECTION_MODEL_ID, fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
@@ -316,6 +316,33 @@ function cacheVariations(preview, key, variations) {
 }
 
 /**
+ * The folder listing only returns the variation's fields (references are plain ids). A collection
+ * variation may add cards/collections the default collection does not reference, so its
+ * `references`/`referencesTree` must be hydrated for customize to resolve and render them.
+ * On hydration failure the unhydrated item is kept: items shared with the default still render.
+ */
+async function hydrateCollectionVariations(variations, context) {
+    const collectionPaths = Object.keys(variations).filter((path) => variations[path].model?.id === COLLECTION_MODEL_ID);
+    await Promise.all(
+        collectionPaths.map(async (path) => {
+            const item = variations[path];
+            const response = await fetch(
+                odinReferences(item.id, context.preview, REFERENCES.ALL),
+                context,
+                `promo-variation-hydrate-${item.id}`,
+            );
+            if (response.status !== 200) {
+                logError(`Failed to hydrate collection promo variation ${item.id}: ${response.message}`, context);
+                return;
+            }
+            const { references, referencesTree } = response.body;
+            variations[path] = { ...item, references, referencesTree };
+        }),
+    );
+    return variations;
+}
+
+/**
  * Fetches all promo variation fragments from a locale-specific promotions folder.
  * Results are cached by surface/projectName/locale with the same TTL as projects.
  * Returns a map of fragmentPath → fragment item.
@@ -345,6 +372,7 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
                     `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}) after collecting ${Object.keys(variations).length}; returning partial results`,
                     context,
                 );
+                await hydrateCollectionVariations(variations, context);
                 return cacheVariations(context.preview, cacheKey, variations);
             }
             return cacheVariations(context.preview, cacheKey, {});
@@ -362,6 +390,7 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
         }
         cursor = response.body?.cursor;
     } while (cursor);
+    await hydrateCollectionVariations(variations, context);
     return cacheVariations(context.preview, cacheKey, variations);
 }
 

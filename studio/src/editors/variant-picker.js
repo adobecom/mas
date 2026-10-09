@@ -77,7 +77,7 @@ export const VARIANTS = [
     {
         label: 'Product C2',
         value: VARIANT_NAMES.PRODUCT_C2,
-        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Segment',

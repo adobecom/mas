@@ -753,6 +753,29 @@ export class MerchCardCollection extends LitElement {
             padding-block: 4px;
         }
 
+        /* Same look as the outlined product-pricing CTAs. */
+        :host(.product-pricing) sp-button {
+            --mod-button-height: 40px;
+            --mod-button-border-width: 2px;
+            --mod-button-edge-to-text: 22px;
+            /* The label hugs the top, so padding centers it in 40px. */
+            --mod-button-line-height: 18px;
+            --mod-button-top-to-text: 11px;
+            --mod-button-bottom-to-text: 11px;
+            --mod-button-border-color-default: #000;
+            --mod-button-border-color-hover: #000;
+            --mod-button-border-color-down: #000;
+            --mod-button-border-color-focus: #000;
+            --mod-button-content-color-default: #000;
+            --mod-button-content-color-hover: #000;
+            --mod-button-content-color-down: #000;
+            --mod-button-content-color-focus: #000;
+            --mod-button-background-color-default: transparent;
+            --mod-button-background-color-hover: transparent;
+            --mod-button-background-color-down: transparent;
+            --mod-button-background-color-focus: transparent;
+        }
+
         sp-theme {
             display: contents;
         }

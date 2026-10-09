@@ -9,6 +9,9 @@ import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
+const CARDS = 'merch-card[variant="product-pricing"]';
+const heightProp = (name) =>
+    `--consonant-merch-card-product-pricing-${name}-height`;
 // Synced per collection row so siblings share baselines.
 const SYNCED_ROWS = [
     {
@@ -32,6 +35,27 @@ const SYNCED_ROWS = [
         getElement: (card) => card.shadowRoot?.querySelector('footer'),
     },
 ];
+
+const clearSynced = (card) => {
+    card.removeAttribute('stacked');
+    SYNCED_ROWS.forEach(({ name }) =>
+        card.style.removeProperty(heightProp(name)),
+    );
+};
+
+// A row's footer is over 1.5 buttons tall only if some card's CTAs wrapped.
+// That card's whole row stacks so the buttons line up.
+const hasStackedCtas = (card) => {
+    const rowFooter = parseFloat(
+        card.style.getPropertyValue(heightProp('footer')),
+    );
+    const button = card.querySelector('[slot="footer"] a');
+    return Boolean(
+        rowFooter &&
+            button &&
+            rowFooter > button.getBoundingClientRect().height * 1.5,
+    );
+};
 
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -117,8 +141,14 @@ export class ProductPricing extends VariantLayout {
 
     syncHeights() {
         if (this.card.getBoundingClientRect().width <= 2) return;
+        const cards = [...(this.getContainer()?.querySelectorAll(CARDS) ?? [])];
+        // Narrow cards are each their own row: drop what a wider layout set.
+        cards.forEach(clearSynced);
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
         this.syncRowHeights(SYNCED_ROWS);
+        cards.forEach((card) =>
+            card.toggleAttribute('stacked', hasStackedCtas(card)),
+        );
     }
 
     // Cards with no authored price must not reserve the synced price row.

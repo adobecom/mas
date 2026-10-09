@@ -1,10 +1,10 @@
 /* eslint-disable import/no-import-module-exports */
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
-import { installEdsThrottleOnPage } from './eds-throttle.js';
+import { installEdsThrottleOnPage, removePageRoutes } from './eds-throttle.js';
 import { signIn } from './ims-auth.js';
 import { recordRunStaticHar } from './run-static-har.js';
-import { waitForEditorReady } from './editor-bootstrap.js';
+import { trackEditorReads, waitForEditorReady } from './editor-bootstrap.js';
 import individualsSpec from '../studio/acom/plans/individuals/specs/individuals_edit_and_discard.spec.js';
 
 const authFile = path.join(__dirname, '../../nala/.auth/user.json');
@@ -47,6 +47,7 @@ setup('authenticate, @mas-studio', async ({ page, browser, baseURL, browserName 
     // End of authentication steps.
 
     await page.context().storageState({ path: authFile });
+    await removePageRoutes(page);
     const fragmentId = individualsSpec.features[0].data.cardid;
     const url = new URL('/studio.html', baseURL);
     for (const override of [process.env.MILO_LIBS, process.env.MAS_LIBS, process.env.MAS_IO_URL]) {
@@ -64,6 +65,7 @@ setup('authenticate, @mas-studio', async ({ page, browser, baseURL, browserName 
             userAgent: testInfo.project.use.userAgent,
             extraHTTPHeaders: { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
         },
+        prepare: trackEditorReads,
         ready: (page) => waitForEditorReady(page, fragmentId),
     });
 });

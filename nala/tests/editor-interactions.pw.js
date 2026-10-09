@@ -16,6 +16,7 @@ test.beforeAll(async () => {
                 import '@spectrum-web-components/picker/sp-picker.js';
                 import '@spectrum-web-components/menu/sp-menu-item.js';
                 import '@spectrum-web-components/action-button/sp-action-button.js';
+                import '@spectrum-web-components/action-menu/sp-action-menu.js';
                 import '@spectrum-web-components/button/sp-button.js';
                 import '@spectrum-web-components/checkbox/sp-checkbox.js';
                 import '@spectrum-web-components/overlay/overlay-trigger.js';
@@ -28,6 +29,42 @@ test.beforeAll(async () => {
         write: false,
     });
     spectrum = result.outputFiles[0].text;
+});
+
+test('native pointer activation deletes a Spectrum action-menu owner exactly once without scrolling its open menu', async ({
+    page,
+}) => {
+    await page.setContent(`
+        <div style="height:800px"></div>
+        <sp-action-menu>
+            <sp-menu>
+                <sp-menu-item value="edit">Edit</sp-menu-item>
+                <sp-menu-item value="delete">Delete</sp-menu-item>
+            </sp-menu>
+        </sp-action-menu>
+        <div style="height:800px"></div>
+    `);
+    await page.addScriptTag({ content: spectrum });
+    await page.evaluate(async () => {
+        await customElements.whenDefined('sp-action-menu');
+        window.deletions = 0;
+        const menu = document.querySelector('sp-action-menu');
+        menu.addEventListener('change', (event) => {
+            if (event.target.value === 'delete') {
+                window.deletions++;
+                menu.remove();
+            }
+        });
+    });
+    const menu = page.locator('sp-action-menu');
+    await menu.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await menu.click();
+    const option = menu.getByRole('menuitem', { name: 'Delete', exact: true });
+    await expect(option).toBeVisible();
+    await expect(option).toBeEnabled();
+    await option.click();
+    await expect(menu).toHaveCount(0);
+    expect(await page.evaluate(() => window.deletions)).toBe(1);
 });
 
 for (const label of ['Default', 'Yellow 300', 'Firefly Spectrum Gradient']) {

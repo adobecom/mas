@@ -65,7 +65,7 @@ async function logRateLimit(request, headers, applyCooldown = true, status = 429
     if (applyCooldown) await coordinateRateLimit('cooldown', origin, Date.now() + delay);
 }
 
-export function logRateLimitedResponses(page, applyCooldown = true) {
+export function logRateLimitedResponses(page, applyCooldown = true, applyOdinCooldown = false) {
     page.on('response', (response) => {
         const status = response.status();
         const request = response.request();
@@ -74,7 +74,8 @@ export function logRateLimitedResponses(page, applyCooldown = true) {
         if (status >= 500) counts.responses5xx++;
         const throttled = status === 429 || ([503, 529].includes(status) && response.headers()['retry-after']);
         if (throttled && !loggedRequests.has(request)) {
-            const report = logRateLimit(request, response.headers(), applyCooldown, status);
+            const cooldown = applyCooldown || (applyOdinCooldown && isOdinOrigin(request.url()));
+            const report = logRateLimit(request, response.headers(), cooldown, status);
             pendingReports.add(report);
             report.then(
                 () => pendingReports.delete(report),

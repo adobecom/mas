@@ -58,7 +58,7 @@ export async function installRunStaticHar(page) {
  * Record sequential seed loads, then publish only successful public JS/CSS.
  * Raw browser headers/cookies never enter the archive used by test workers.
  */
-export async function recordRunStaticHar({ browser, name, urls, contextOptions, ready }) {
+export async function recordRunStaticHar({ browser, name, urls, contextOptions, prepare = async () => {}, ready }) {
     if (process.env.NALA_STATIC_CACHE_DISABLED === '1') return;
     const directory = process.env.NALA_STATIC_HAR_DIR;
     if (!directory) throw new Error('Static HAR recording requires an initialized Nala run');
@@ -110,12 +110,17 @@ export async function recordRunStaticHar({ browser, name, urls, contextOptions, 
             });
             for (const url of urls) {
                 const page = await context.newPage();
-                await installEdsThrottleOnPage(page, { replayHar: false, cache: false });
-                console.info(`[NALA] Recording current-run ${name} static assets: ${url}`);
-                const response = await page.goto(url, { waitUntil: 'load' });
-                if (!response.ok()) throw new Error(`Static HAR seed navigation failed: HTTP ${response.status()} ${url}`);
-                await ready(page);
-                await page.waitForLoadState('networkidle');
+                try {
+                    await prepare(page);
+                    await installEdsThrottleOnPage(page, { replayHar: false, cache: false });
+                    console.info(`[NALA] Recording current-run ${name} static assets: ${url}`);
+                    const response = await page.goto(url, { waitUntil: 'load' });
+                    if (!response.ok()) throw new Error(`Static HAR seed navigation failed: HTTP ${response.status()} ${url}`);
+                    await ready(page);
+                    await page.waitForLoadState('networkidle');
+                } finally {
+                    await removePageRoutes(page);
+                }
             }
             await Promise.all(pending);
             if (errors.length) {

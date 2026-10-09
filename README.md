@@ -106,6 +106,9 @@ Each Playwright invocation records fresh public JS/CSS into run-owned HAR files 
 Global setup allocates the run directory; the Docs setup project and authentication setup seed their respective
 assets before dependent workers start. Studio recording covers the editor and both OST modes on separate seed pages,
 waiting for lazy imports to finish before publishing the archive.
+Each Studio seed installs editor readiness observation before navigation and closes its own page before the next seed starts.
+Editor setup requires the native `fragment-loaded` notification as well as ready store/preview state; an uninstalled
+observer fails explicitly instead of timing out waiting for an event that could never have been recorded.
 Workers replay only those current-run assets. HAR files are never committed, reused by another invocation/PR, or restored
 from a CI cache, and global setup's teardown removes them after the run (interrupted runs can leave unused files).
 Unrecorded assets fall back to the network and the bounded worker-local static cache; fonts and images also use that cache.
@@ -155,14 +158,23 @@ Native documents, writes and streaming/range requests remain browser-managed and
 to enforce the read-concurrency limit. Writes are never automatically retried.
 The existing user agent is unchanged. A possible UA-based upstream bucket is respected, not bypassed by rotating identities;
 separate CI runs using the same bucket can still affect one another.
-The authentication page logs native 429s without adding cooldowns, leaving IMS's login request timing unchanged.
+The authentication page logs native IMS 429s without adding cooldowns, leaving IMS's login request timing unchanged.
+Odin traffic on that page still uses its shard's pacing, read permits and cooldowns. After storage state is captured,
+owned route teardown closes the authentication page before HAR recording, so welcome-page previews cannot keep loading in the background.
 Its public static asset requests still honor cooldowns and the existing EDS pacing.
 Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
 Public static GETs and eligible fetch/XHR GETs retry a 429 once after cooldown, including live Odin reads.
 Eligible GETs also retry a recognized transient connection reset once, within the same two-attempt limit.
 Cancelled requests and timeouts are not retried. Native HTTP 503/529 responses with `Retry-After` coordinate subsequent
 cooldowns but still reach the application unchanged; overload responses are not converted into successes.
-API responses are never cached; persistent 429s reach the browser unchanged.
+Outside the explicitly opted-in immutable seed bootstrap, completed API responses are never cached;
+persistent 429s reach the browser unchanged.
+Concurrent Odin preview `settings/index` lookups with identical full URLs and request headers share only their
+in-flight read within one owned page. Completed responses, including missing settings and errors, are not retained:
+the next lookup is live. Native mutations advance the page's read generation, preventing read-after-write requests
+from joining earlier reads. Cancelling one consumer does not cancel another; cancelling every consumer releases queued work.
+No sharing occurs across pages, workers, shards or PRs, and ordinary fragment/commerce reads remain independent.
+Per-test attachments and request summaries report coalesced settings reads separately from cached setup reads.
 Transport failures on intercepted API reads are logged and returned as failed browser requests, not successful responses.
 Network diagnostics also count browser HTTP 4xx/5xx outcomes, transport failures and aborted reads. Non-404 HTTP errors
 and unexpected transport failures log only the method and origin/path, never query strings or response bodies.
@@ -232,6 +244,8 @@ separate machines still need an explicit aggregate Odin/EDS traffic budget.
 
 Version tests wait for loaded history, hydrated previews, rendered search results and completed breadcrumb navigation;
 these waits add no polling HTTP requests. Live edits, commerce reads and mutations remain uncached.
+Fragment creation waits for its successful live POST, closed dialog and run-owned editor identity, not a transient toast.
+Locale-only URL changes do not invalidate an already loaded source editor when Studio does not initialize it again.
 
 Offline setup regression checks (no IMS, Odin or EDS requests):
 

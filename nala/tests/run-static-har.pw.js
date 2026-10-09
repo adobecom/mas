@@ -6,6 +6,7 @@ import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { initializeRunStaticHar, recordRunStaticHar } from '../libs/run-static-har.js';
 import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { trackEditorReads, waitForEditorReady } from '../libs/editor-bootstrap.js';
 
 let server;
 let baseURL;
@@ -77,6 +78,19 @@ test.beforeAll(async () => {
         } else if (request.url.startsWith('/late-seed')) {
             response.writeHead(200, { 'content-type': 'text/html' });
             response.end('<!doctype html><script type="module">window.seedReady = true; import("/late.js");</script>');
+        } else if (request.url.startsWith('/editor-seed')) {
+            response.writeHead(200, { 'content-type': 'text/html' });
+            response.end(`<!doctype html><script src="/asset0.js"></script>
+                <mas-repository></mas-repository><mas-fragment-editor></mas-fragment-editor>
+                <merch-card><aem-fragment fragment="seed">Seed</aem-fragment></merch-card>
+                <script>
+                    const editor = document.querySelector('mas-fragment-editor');
+                    editor.fragmentStore = { get: () => ({ id: 'seed' }), loading: false };
+                    editor.initState = 'ready';
+                    editor.previewResolved = true;
+                    document.querySelector('mas-repository').operation = { get: () => null, subscribe: () => {} };
+                    editor.dispatchEvent(new CustomEvent('fragment-loaded', { bubbles: true, composed: true }));
+                </script>`);
         } else {
             counts.documents++;
             response.writeHead(200, { 'content-type': 'text/html' });
@@ -345,8 +359,38 @@ test('a URL that returns a cookie-bearing response is excluded even if an earlie
             await page.addScriptTag({ url: `${baseURL}/mixed.js` });
         },
     });
+
     expect(mixedRequests).toBe(2);
     const har = JSON.parse(readFileSync(join(directory, 'studio.har'), 'utf8'));
     expect(har.log.entries).toHaveLength(120);
     expect(har.log.entries.some(({ request }) => request.url === `${baseURL}/mixed.js`)).toBe(false);
+});
+
+test('Studio HAR installs readiness before the first loaded event and closes each seed before the next', async ({
+    browser,
+}) => {
+    const pages = [];
+    await recordRunStaticHar({
+        browser,
+        name: 'studio',
+        urls: [`${baseURL}/editor-seed#fragmentId=seed`, `${baseURL}/editor-seed?ost=new#fragmentId=seed`],
+        prepare: async (page) => {
+            expect(page.context().pages()).toEqual([page]);
+            expect(pages.every((previous) => previous.isClosed())).toBe(true);
+            pages.push(page);
+            await trackEditorReads(page);
+        },
+        ready: (page) => waitForEditorReady(page, 'seed'),
+    });
+    expect(pages).toHaveLength(2);
+    expect(pages.every((page) => page.isClosed())).toBe(true);
+    const har = JSON.parse(readFileSync(join(directory, 'studio.har'), 'utf8'));
+    expect(new Set(har.log.entries.map(({ request }) => request.url))).toEqual(new Set([`${baseURL}/asset0.js`]));
+});
+
+test('missing readiness instrumentation fails explicitly instead of waiting for an impossible event', async ({ page }) => {
+    await page.goto(`${baseURL}/editor-seed#fragmentId=seed`);
+    await expect(waitForEditorReady(page, 'seed')).rejects.toThrow(
+        'Editor readiness tracking must be installed before navigating to Studio',
+    );
 });

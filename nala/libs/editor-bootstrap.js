@@ -17,7 +17,8 @@ export function trackEditorReads(page) {
         if (window !== window.top) return;
         window.__nalaLoadedEditor = null;
         window.addEventListener('hashchange', () => {
-            window.__nalaLoadedEditor = null;
+            const fragmentId = new URLSearchParams(location.hash.slice(1)).get('fragmentId');
+            if (window.__nalaLoadedEditor !== fragmentId) window.__nalaLoadedEditor = null;
         });
         document.addEventListener(
             'fragment-loaded',
@@ -48,6 +49,9 @@ export function trackEditorReads(page) {
  * Wait for the requested editor and preview markup, not live commerce success.
  */
 export async function waitForEditorReady(page, fragmentId, { preview = true } = {}) {
+    const state = pendingEditorReads.get(page);
+    if (!state) throw new Error('Editor readiness tracking must be installed before navigating to Studio');
+    await state.script;
     const ready = ({ id, preview }) => {
         const editor = document.querySelector('mas-fragment-editor');
         return (
@@ -60,12 +64,9 @@ export async function waitForEditorReady(page, fragmentId, { preview = true } = 
         );
     };
     await page.waitForFunction(ready, { id: fragmentId, preview });
-    const pending = pendingEditorReads.get(page)?.pending;
-    if (pending) {
-        // Promotion/reference hydration can still refresh the editor after its fragment GET has finished.
-        await expect.poll(() => pending.size).toBe(0);
-        await page.waitForFunction(ready, { id: fragmentId, preview });
-    }
+    // Promotion/reference hydration can still refresh the editor after its fragment GET has finished.
+    await expect.poll(() => state.pending.size).toBe(0);
+    await page.waitForFunction(ready, { id: fragmentId, preview });
     if (!preview) return;
     const card = page.locator(`merch-card:has(aem-fragment[fragment="${fragmentId}"])`);
     await expect(card).toBeVisible();

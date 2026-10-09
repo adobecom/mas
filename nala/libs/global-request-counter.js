@@ -53,6 +53,7 @@ class GlobalRequestCounter {
                 totalRequests: 0,
                 methods: {},
                 cacheHits: 0,
+                coalescedReads: 0,
             };
         }
 
@@ -71,7 +72,19 @@ class GlobalRequestCounter {
             }
         };
         page.on('request', listener);
-        return () => page.removeListener('request', listener);
+        const coalesced = (url) => {
+            for (const [name, prefix] of Object.entries(globalThis.requestCounter.trackedUrls)) {
+                if (url.startsWith(prefix)) {
+                    globalThis.requestCounter.serviceCounts[name].coalescedReads++;
+                    break;
+                }
+            }
+        };
+        page.on('nala:coalesced-settings-read', coalesced);
+        return () => {
+            page.removeListener('request', listener);
+            page.removeListener('nala:coalesced-settings-read', coalesced);
+        };
     }
 
     /**

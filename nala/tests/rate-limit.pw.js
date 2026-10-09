@@ -1,10 +1,11 @@
 import { createServer } from 'node:http';
 import { test, expect } from '@playwright/test';
-import { installEdsThrottleOnPage, throttleEdsGap } from '../libs/eds-throttle.js';
+import { getPageRouteMetrics, installEdsThrottleOnPage, throttleEdsGap } from '../libs/eds-throttle.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
 import { signIn } from '../libs/ims-auth.js';
 import { getRateLimitMetrics } from '../libs/rate-limit.js';
-import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
+import initializeRateLimitCoordinator, { coordinateRateLimit } from '../libs/rate-limit-coordinator.js';
+import GlobalRequestCounter from '../libs/global-request-counter.js';
 
 let server;
 let baseURL;
@@ -15,12 +16,178 @@ let pressureActive = 0;
 let pressurePeak = 0;
 const pressureUserAgents = new Set();
 
+test.describe('concurrent settings reads', () => {
+    let previousOrigin;
+    let previousEndpoint;
+    let stop;
+    const path = '/adobe/contentFragments/byPath';
+    const settings = (status = 200) => `${baseURL}${path}?path=/content/dam/mas/nala/settings/index&status=${status}`;
+
+    test.beforeEach(async () => {
+        previousOrigin = process.env.NALA_ODIN_PREVIEW_ORIGIN;
+        previousEndpoint = process.env.NALA_RATE_LIMIT_COORDINATOR;
+        process.env.NALA_ODIN_PREVIEW_ORIGIN = baseURL;
+        stop = await initializeRateLimitCoordinator(undefined, { maxRps: 1000, maxInFlight: 1 });
+        requests.delete(path);
+    });
+
+    test.afterEach(async () => {
+        await stop();
+        if (previousOrigin === undefined) delete process.env.NALA_ODIN_PREVIEW_ORIGIN;
+        else process.env.NALA_ODIN_PREVIEW_ORIGIN = previousOrigin;
+        process.env.NALA_RATE_LIMIT_COORDINATOR = previousEndpoint;
+    });
+
+    for (const status of [200, 404, 500]) {
+        test(`20 overlapping settings lookups use one upstream read, preserve HTTP ${status} and never cache it`, async ({
+            page,
+        }) => {
+            await installEdsThrottleOnPage(page);
+            await page.goto(baseURL);
+            GlobalRequestCounter.setTargetUrl(baseURL, 'COALESCED_READ_TEST');
+            const stopCounting = await GlobalRequestCounter.init(page);
+            try {
+                const results = await page.evaluate(
+                    (url) =>
+                        Promise.all(
+                            Array.from({ length: 20 }, async () => {
+                                const response = await fetch(url);
+                                return { status: response.status, body: await response.json() };
+                            }),
+                        ),
+                    settings(status),
+                );
+                expect(results).toEqual(Array(20).fill({ status, body: { sequence: 1 } }));
+                expect(requests.get(path)).toHaveLength(1);
+                expect(getPageRouteMetrics(page).coalescedSettingsReads).toBe(19);
+                expect(globalThis.requestCounter.serviceCounts.COALESCED_READ_TEST.coalescedReads).toBe(19);
+                expect(await page.evaluate(async (url) => (await fetch(url)).json(), settings(status))).toEqual({
+                    sequence: 2,
+                });
+                expect(requests.get(path)).toHaveLength(2);
+            } finally {
+                stopCounting();
+            }
+        });
+    }
+
+    test('distinct authorization headers and fragment lookups remain independent', async ({ page }) => {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        await page.evaluate(async (url) => {
+            await Promise.all([
+                fetch(url, { headers: { Authorization: 'Bearer synthetic-a' } }),
+                fetch(url, { headers: { Authorization: 'Bearer synthetic-b' } }),
+                fetch(url.replace('/settings/index', '/en_US/card')),
+                fetch(url.replace('/settings/index', '/en_US/card')),
+            ]);
+        }, settings());
+        expect(requests.get(path)).toHaveLength(4);
+        expect(getPageRouteMetrics(page).coalescedSettingsReads).toBe(0);
+    });
+
+    test('authentication timing exemption does not bypass Odin read permits or settings coalescing', async ({ page }) => {
+        await installEdsThrottleOnPage(page, { nativeCooldowns: false });
+        await page.goto(baseURL);
+        const responses = await page.evaluate(
+            (url) => Promise.all(Array.from({ length: 4 }, async () => (await fetch(url)).json())),
+            settings(),
+        );
+        expect(responses).toEqual(Array(4).fill({ sequence: 1 }));
+        expect(requests.get(path)).toHaveLength(1);
+        expect(getPageRouteMetrics(page).coalescedSettingsReads).toBe(3);
+    });
+
+    test('a mutation starts a fresh settings read rather than joining the pre-mutation request', async ({ page }) => {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        await Promise.all([
+            page.waitForRequest(settings()),
+            page.evaluate((url) => {
+                window.firstSettingsRead = fetch(url).then((response) => response.json());
+            }, settings()),
+        ]);
+        const result = await page.evaluate(async (url) => {
+            await fetch('/settings-change', { method: 'PUT' });
+            const second = fetch(url).then((response) => response.json());
+            return Promise.all([window.firstSettingsRead, second]);
+        }, settings());
+        expect(result).toEqual([{ sequence: 1 }, { sequence: 2 }]);
+        expect(requests.get(path)).toHaveLength(2);
+        expect(getPageRouteMetrics(page).coalescedSettingsReads).toBe(0);
+    });
+
+    test('cancelling the first consumer does not cancel the other consumer', async ({ page }) => {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        const result = await page.evaluate(async (url) => {
+            const controller = new AbortController();
+            const first = fetch(url, { signal: controller.signal }).catch((error) => error.name);
+            const second = fetch(url).then((response) => response.json());
+            setTimeout(() => controller.abort(), 100);
+            return Promise.all([first, second]);
+        }, settings());
+        expect(result).toEqual(['AbortError', { sequence: 1 }]);
+        expect(requests.get(path)).toHaveLength(1);
+        expect(getPageRouteMetrics(page).coalescedSettingsReads).toBe(1);
+    });
+
+    test('cancelling every queued consumer releases the shared acquisition and allows a fresh read', async ({ page }) => {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        const permit = await coordinateRateLimit('acquire', baseURL);
+        try {
+            const result = await page.evaluate(async (url) => {
+                const controllers = [new AbortController(), new AbortController()];
+                const reads = controllers.map((controller) =>
+                    fetch(url, { signal: controller.signal }).catch((error) => error.name),
+                );
+                setTimeout(() => {
+                    for (const controller of controllers) controller.abort();
+                }, 100);
+                return Promise.all(reads);
+            }, settings());
+            expect(result).toEqual(['AbortError', 'AbortError']);
+            await expect.poll(() => getPageRouteMetrics(page).pendingRoutes).toBe(0);
+            expect(requests.get(path)).toBeUndefined();
+        } finally {
+            await coordinateRateLimit('release', baseURL, undefined, { id: permit.id, status: 200, latencyMs: 0 });
+        }
+        expect(await page.evaluate(async (url) => (await fetch(url)).json(), settings())).toEqual({ sequence: 1 });
+        expect(requests.get(path)).toHaveLength(1);
+    });
+
+    test('separate owned pages never share their settings reads', async ({ browser }) => {
+        const context = await browser.newContext();
+        try {
+            const pages = await Promise.all([context.newPage(), context.newPage()]);
+            for (const page of pages) {
+                await installEdsThrottleOnPage(page);
+                await page.goto(baseURL);
+            }
+            await Promise.all(pages.map((page) => page.evaluate(async (url) => (await fetch(url)).json(), settings())));
+            expect(requests.get(path)).toHaveLength(2);
+            expect(pages.map((page) => getPageRouteMetrics(page).coalescedSettingsReads)).toEqual([0, 0]);
+        } finally {
+            await context.close();
+        }
+    });
+});
+
 test.beforeAll(async () => {
     server = createServer((request, response) => {
-        const { pathname } = new URL(request.url, 'http://localhost');
+        const { pathname, searchParams } = new URL(request.url, 'http://localhost');
         const calls = requests.get(pathname) ?? [];
-        calls.push({ time: Date.now(), method: request.method });
+        calls.push({ time: Date.now(), method: request.method, url: request.url });
         requests.set(pathname, calls);
+        if (pathname === '/adobe/contentFragments/byPath') {
+            const sequence = calls.length;
+            setTimeout(() => {
+                response.writeHead(Number(searchParams.get('status') || 200), { 'content-type': 'application/json' });
+                response.end(JSON.stringify({ sequence }));
+            }, 250);
+            return;
+        }
         if (pathname.startsWith('/pressure/slow')) {
             pressureUserAgents.add(request.headers['user-agent']);
             pressureActive++;
@@ -32,6 +199,7 @@ test.beforeAll(async () => {
             }, 200);
             return;
         }
+
         if (pathname === '/reset-read') {
             request.socket.destroy();
             return;

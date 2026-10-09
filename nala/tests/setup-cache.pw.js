@@ -332,6 +332,31 @@ for (const cached of [false, true]) {
     });
 }
 
+test('locale-only navigation preserves the loaded source and an event arriving before hashchange remains valid', async ({
+    browser,
+}) => {
+    const cache = new EditorBootstrapCache();
+    const calls = [];
+    const { page, context } = await seedPage(browser, cache, calls);
+    try {
+        await cache.open(page, `${baseURL}/editor#page=fragment-editor&fragmentId=source-a`);
+        await page.goto(`${baseURL}/editor#page=fragment-editor&fragmentId=source-a&locale=tr_TR`);
+        await waitForEditorReady(page, 'source-a');
+        expect(calls).toHaveLength(3);
+        await page.evaluate(() => {
+            const editor = document.querySelector('mas-fragment-editor');
+            editor.fragmentStore.get().id = 'source-b';
+            document.querySelector('aem-fragment').setAttribute('fragment', 'source-b');
+            location.hash = 'page=fragment-editor&fragmentId=source-b';
+            editor.dispatchEvent(new CustomEvent('fragment-loaded', { bubbles: true, composed: true }));
+        });
+        await waitForEditorReady(page, 'source-b');
+        expect(await page.evaluate(() => window.__nalaLoadedEditor)).toBe('source-b');
+    } finally {
+        await context.close();
+    }
+});
+
 test('repeated seed bootstrap is isolated; all post-setup reads and writes stay live', async ({ browser }) => {
     const cache = new EditorBootstrapCache();
     const calls = [];
@@ -608,6 +633,55 @@ test('fragment registration waits for navigation and the newly initialized run-o
         rmdirSync(directory);
         clearRunId();
         if (previousRunId !== undefined) process.env.NALA_RUN_ID = previousRunId;
+    }
+});
+
+test('creation rejects a failed live POST without retrying or waiting for a success toast', async ({ page }) => {
+    const runId = createRunId();
+    initializeFragmentLedger();
+    const directory = resolve('nala/.runs', runId);
+    try {
+        await page.goto(baseURL);
+        await page.setContent(`
+            <button id="create">Create</button><div role="menuitem">Merch Card</div>
+            <mas-create-dialog>
+                <sp-textfield id="fragment-title"><input></sp-textfield>
+                <osi-field id="osi"><button id="offerSelectorToolButtonOSI">Offer</button></osi-field>
+                <sp-button>Create</sp-button>
+            </mas-create-dialog>
+            <div id="offers" hidden><input id="offer-search"><button id="next">Next</button><button id="use">Use</button></div>
+        `);
+        await page.evaluate(() => {
+            document.querySelector('#offerSelectorToolButtonOSI').onclick = () => {
+                document.querySelector('#offers').hidden = false;
+            };
+            document.querySelector('#use').onclick = () => {
+                document.querySelector('#offers').hidden = true;
+            };
+            document.querySelector('sp-button').onclick = () => fetch('/adobe/sites/cf/fragments', { method: 'POST' });
+        });
+        let writes = 0;
+        await page.route('**/adobe/sites/cf/fragments', (route) => {
+            writes++;
+            return route.fulfill({ status: 500, contentType: 'application/json', body: '{"error":"create failed"}' });
+        });
+        const studio = new StudioPage(page);
+        studio.createButton = page.locator('#create');
+        studio.ost = {
+            searchField: page.locator('#offer-search'),
+            nextButton: page.locator('#next'),
+            priceUse: page.locator('#use'),
+            popup: page.locator('#offers'),
+        };
+        await expect(studio.createFragment({ osi: 'test-offer', variant: 'plans' })).rejects.toThrow(
+            'Fragment creation must succeed (HTTP 500)',
+        );
+        expect(writes).toBe(1);
+        expect(readFragmentLedger()).toMatchObject({ fragments: [], recover: true });
+    } finally {
+        for (const name of readdirSync(directory)) unlinkSync(join(directory, name));
+        rmdirSync(directory);
+        clearRunId();
     }
 });
 
@@ -956,14 +1030,19 @@ for (const status of [200, 500]) {
 
 for (const status of [200, 500]) {
     test(`delete performs one mutation and verifies its response without a toast (HTTP ${status})`, async ({ page }) => {
-        await page.goto(baseURL);
-        await page.setContent(
-            '<mas-repository></mas-repository><mas-fragment-editor><div id="fragment-editor">' +
-                '<div id="editor-content">Editor</div></div></mas-fragment-editor>' +
-                '<merch-card><aem-fragment fragment="deleted">Card</aem-fragment></merch-card>' +
-                '<mas-side-nav><mas-side-nav-item label="Delete">Delete</mas-side-nav-item></mas-side-nav>' +
-                '<sp-dialog variant="confirmation" hidden><sp-button>Delete</sp-button></sp-dialog>',
+        const studio = new StudioPage(page);
+        await page.route(`${baseURL}/delete-editor`, (route) =>
+            route.fulfill({
+                contentType: 'text/html',
+                body:
+                    '<mas-repository></mas-repository><mas-fragment-editor><div id="fragment-editor">' +
+                    '<div id="editor-content">Editor</div></div></mas-fragment-editor>' +
+                    '<merch-card><aem-fragment fragment="deleted">Card</aem-fragment></merch-card>' +
+                    '<mas-side-nav><mas-side-nav-item label="Delete">Delete</mas-side-nav-item></mas-side-nav>' +
+                    '<sp-dialog variant="confirmation" hidden><sp-button>Delete</sp-button></sp-dialog>',
+            }),
         );
+        await page.goto(`${baseURL}/delete-editor`);
         let writes = 0;
         await page.route('**/fragments/deleted/deleteAndUnpublish', (route) => {
             writes++;
@@ -979,6 +1058,7 @@ for (const status of [200, 500]) {
             editor.fragmentStore = { get: () => fragment };
             editor.initState = 'ready';
             editor.previewResolved = true;
+            editor.dispatchEvent(new CustomEvent('fragment-loaded', { bubbles: true, composed: true }));
             document.querySelector('mas-side-nav-item').addEventListener('click', () => {
                 document.querySelector('sp-dialog').hidden = false;
             });
@@ -988,7 +1068,6 @@ for (const status of [200, 500]) {
                 deleting = false;
             });
         });
-        const studio = new StudioPage(page);
         if (status === 200) await studio.deleteCard('deleted');
         else await expect(studio.deleteCard('deleted')).rejects.toThrow('Fragment deletion must succeed');
         expect(writes).toBe(1);

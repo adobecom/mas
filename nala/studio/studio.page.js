@@ -432,9 +432,14 @@ export default class StudioPage {
 
         await expect(this.createDialogCreateButton).toBeVisible({ timeout: 10000 });
         const creation = beginFragmentCreation('create');
-        await this.createDialogCreateButton.click();
-
-        await expect(this.toastPositive).toBeVisible({ timeout: 15000 });
+        const [response] = await Promise.all([
+            this.page.waitForResponse(
+                (response) =>
+                    response.request().method() === 'POST' && new URL(response.url()).pathname === '/adobe/sites/cf/fragments',
+            ),
+            this.createDialogCreateButton.click(),
+        ]);
+        expect(response.ok(), `Fragment creation must succeed (HTTP ${response.status()})`).toBe(true);
         await expect(this.createDialog).not.toBeVisible();
 
         await this.editorPanel.waitFor({

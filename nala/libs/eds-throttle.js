@@ -9,7 +9,7 @@ import {
 } from './rate-limit.js';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { isOdinOrigin } from './rate-limit-coordinator.js';
+import { isOdinOrigin, isPreviewOrigin } from './rate-limit-coordinator.js';
 
 const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
@@ -30,9 +30,60 @@ export function getPageRouteMetrics(page) {
         applicationCancelledReads: state?.applicationCancelled.size ?? 0,
         foregroundSearchActive: state?.foregroundSearch ?? false,
         foregroundMutationActive: state?.foregroundMutation ?? false,
+        coalescedSettingsReads: state?.coalescedSettingsReads ?? 0,
         pendingRoutes: state?.pending.size ?? 0,
         teardownMs: state?.teardownMs ?? 0,
     };
+}
+
+async function serveConcurrentSettingsRead(page, route, beforeFetch, options, state) {
+    const request = route.request();
+    const headers = Object.entries(await request.allHeaders()).sort(([a], [b]) => a.localeCompare(b));
+    options.signal.throwIfAborted();
+    const key = JSON.stringify([request.url(), headers, state.settingsRequestEpochs.get(request)]);
+    let entry = state.settingsReads.get(key);
+    if (!entry) {
+        entry = { controller: new AbortController(), consumers: new Set() };
+        state.settingsReads.set(key, entry);
+        const sharedOptions = { ...options, signal: AbortSignal.any([state.controller.signal, entry.controller.signal]) };
+        entry.pending = (async () => {
+            try {
+                const response = await fetchWithRateLimitRetry(route, () => beforeFetch(sharedOptions), sharedOptions);
+                try {
+                    const headers = response.headers();
+                    const body = await response.body();
+                    delete headers['content-encoding'];
+                    delete headers['content-length'];
+                    delete headers['transfer-encoding'];
+                    return { status: response.status(), headers, body };
+                } finally {
+                    await response.dispose();
+                }
+            } finally {
+                if (state.settingsReads.get(key) === entry) state.settingsReads.delete(key);
+            }
+        })();
+    } else {
+        state.coalescedSettingsReads++;
+        page.emit('nala:coalesced-settings-read', request.url());
+    }
+    entry.consumers.add(options.signal);
+    const release = () => {
+        entry.consumers.delete(options.signal);
+        if (!entry.consumers.size) {
+            entry.controller.abort();
+            if (state.settingsReads.get(key) === entry) state.settingsReads.delete(key);
+        }
+    };
+    options.signal.addEventListener('abort', release, { once: true });
+    try {
+        const response = await entry.pending;
+        options.signal.throwIfAborted();
+        await route.fulfill(response);
+    } finally {
+        options.signal.removeEventListener('abort', release);
+        release();
+    }
 }
 
 /** Close only the owned page; preserve author mutations and their creation-ledger responses. */
@@ -176,6 +227,10 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         readControllers: new Map(),
         foregroundSearch: false,
         foregroundMutation: false,
+        settingsReads: new Map(),
+        settingsEpoch: 0,
+        settingsRequestEpochs: new WeakMap(),
+        coalescedSettingsReads: 0,
     };
     pendingPageRoutes.set(page, state);
     await page.exposeBinding('__nalaForegroundSearch', ({ frame }, foreground) => {
@@ -211,6 +266,8 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
     });
     page.on('request', (request) => {
         const { hostname } = new URL(request.url());
+        if (isOdinOrigin(request.url()) && !isReadOnlyRequest(request)) state.settingsEpoch++;
+        state.settingsRequestEpochs.set(request, state.settingsEpoch);
         if (!hostname.endsWith('.adobeaemcloud.com') || isReadOnlyRequest(request)) return;
         let finish;
         const done = new Promise((resolve) => (finish = resolve));
@@ -239,22 +296,23 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         finishMutation(request);
         state.readControllers.delete(request);
     });
-    logRateLimitedResponses(page, nativeCooldowns);
+    logRateLimitedResponses(page, nativeCooldowns, true);
     logEdsThrottleOnce(edsMaxRps);
     const handleRoute = async (route, options) => {
         const url = route.request().url();
-        const pace = async (enforceCooldown = nativeCooldowns, reservePreview = true) => {
-            if (isReadOnlyRequest(route.request())) options.signal.throwIfAborted();
+        const paceNativeReads = nativeCooldowns || isOdinOrigin(url);
+        const pace = async (enforceCooldown = paceNativeReads, reservePreview = true, pacingOptions = options) => {
+            if (isReadOnlyRequest(route.request())) pacingOptions.signal.throwIfAborted();
             if (edsMaxRps > 0 && isEdsEdgeHost(url)) {
                 const read = isReadOnlyRequest(route.request());
-                await throttleEdsGap(edsMaxRps, url, { owner: state.owner, signal: read ? options.signal : undefined });
+                await throttleEdsGap(edsMaxRps, url, { owner: state.owner, signal: read ? pacingOptions.signal : undefined });
             } else if (enforceCooldown) {
                 const read = isReadOnlyRequest(route.request());
                 await waitForRateLimit(url, {
                     reservePreview,
                     owner: state.owner,
-                    signal: read ? options.signal : undefined,
-                    priority: options.priority,
+                    signal: read ? pacingOptions.signal : undefined,
+                    priority: pacingOptions.priority,
                 });
             }
         };
@@ -272,10 +330,25 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
             }
             return;
         }
-        if (nativeCooldowns && (await isRetryableRead(route.request()))) {
+        if (paceNativeReads && (await isRetryableRead(route.request()))) {
             let response;
             try {
-                response = await fetchWithRateLimitRetry(route, () => pace(nativeCooldowns, false), options);
+                const target = new URL(url);
+                if (
+                    isPreviewOrigin(url) &&
+                    target.pathname === '/adobe/contentFragments/byPath' &&
+                    /^\/content\/dam\/mas\/[^/]+\/settings\/index$/.test(target.searchParams.get('path'))
+                ) {
+                    await serveConcurrentSettingsRead(
+                        page,
+                        route,
+                        (sharedOptions) => pace(paceNativeReads, false, sharedOptions),
+                        options,
+                        state,
+                    );
+                    return;
+                }
+                response = await fetchWithRateLimitRetry(route, () => pace(paceNativeReads, false), options);
             } catch (error) {
                 const message = error.message.split('\n')[0];
                 const networkFailure = message.match(

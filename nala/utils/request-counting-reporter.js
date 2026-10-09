@@ -32,6 +32,7 @@ export default class RequestCountingReporter {
         const serviceMethodCounts = {};
         const serviceCacheHits = {};
         const serviceRetries = {};
+        const serviceCoalescedReads = {};
         const rateLimits = {};
         const trackedUrls = {};
         const testResultsDir = './test-results';
@@ -76,6 +77,8 @@ export default class RequestCountingReporter {
                             serviceCacheHits[serviceName] = (serviceCacheHits[serviceName] || 0) + (serviceData.cacheHits || 0);
                             serviceRetries[serviceName] =
                                 (serviceRetries[serviceName] || 0) + (serviceData.upstreamRetries || 0);
+                            serviceCoalescedReads[serviceName] =
+                                (serviceCoalescedReads[serviceName] || 0) + (serviceData.coalescedReads || 0);
 
                             // Aggregate method counts
                             for (const [method, count] of Object.entries(serviceData.methods || {})) {
@@ -105,8 +108,12 @@ export default class RequestCountingReporter {
                 const servicePadding = ' '.repeat(Math.max(0, 25 - serviceLabel.length));
                 console.log(`    \x1b[1m\x1b[33m${serviceLabel}${servicePadding}: \x1b[0m\x1b[32m${total}\x1b[0m`);
                 const retryCount = serviceRetries[serviceName] || 0;
-                console.log(`        # Upstream requests: ${total - (serviceCacheHits[serviceName] || 0) + retryCount}`);
+                const coalescedReads = serviceCoalescedReads[serviceName] || 0;
+                console.log(
+                    `        # Upstream requests: ${total - (serviceCacheHits[serviceName] || 0) - coalescedReads + retryCount}`,
+                );
                 console.log(`        # Replayed setup reads: ${serviceCacheHits[serviceName] || 0}`);
+                console.log(`        # Coalesced concurrent settings reads: ${coalescedReads}`);
 
                 // Method breakdown for this service
                 const methods = serviceMethodCounts[serviceName] || {};

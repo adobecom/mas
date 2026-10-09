@@ -842,8 +842,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-8: Remove whats included icon', async () => {
             await expect(await editor.whatsIncluded.locator(editor.whatsIncludedEditMenu)).toBeVisible();
+            await editor.whatsIncluded
+                .locator(editor.whatsIncludedEditMenu)
+                .evaluate((element) => element.scrollIntoView({ block: 'center' }));
             await editor.whatsIncluded.locator(editor.whatsIncludedEditMenu).click();
             await expect(await editor.whatsIncluded.locator(editor.whatsIncludedDeleteButton)).toBeVisible();
+            await expect(await editor.whatsIncluded.locator(editor.whatsIncludedDeleteButton)).toBeEnabled();
             await editor.whatsIncluded.locator(editor.whatsIncludedDeleteButton).click();
         });
 

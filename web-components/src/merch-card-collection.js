@@ -755,6 +755,8 @@ export class MerchCardCollection extends LitElement {
 
         /* Same look as the outlined product-pricing CTAs. */
         :host(.product-pricing) sp-button {
+            --outline-ink: #000;
+            --outline-fill: transparent;
             --mod-button-height: 40px;
             --mod-button-border-width: 2px;
             --mod-button-edge-to-text: 22px;
@@ -762,18 +764,18 @@ export class MerchCardCollection extends LitElement {
             --mod-button-line-height: 18px;
             --mod-button-top-to-text: 11px;
             --mod-button-bottom-to-text: 11px;
-            --mod-button-border-color-default: #000;
-            --mod-button-border-color-hover: #000;
-            --mod-button-border-color-down: #000;
-            --mod-button-border-color-focus: #000;
-            --mod-button-content-color-default: #000;
-            --mod-button-content-color-hover: #000;
-            --mod-button-content-color-down: #000;
-            --mod-button-content-color-focus: #000;
-            --mod-button-background-color-default: transparent;
-            --mod-button-background-color-hover: transparent;
-            --mod-button-background-color-down: transparent;
-            --mod-button-background-color-focus: transparent;
+            --mod-button-border-color-default: var(--outline-ink);
+            --mod-button-border-color-hover: var(--outline-ink);
+            --mod-button-border-color-down: var(--outline-ink);
+            --mod-button-border-color-focus: var(--outline-ink);
+            --mod-button-content-color-default: var(--outline-ink);
+            --mod-button-content-color-hover: var(--outline-ink);
+            --mod-button-content-color-down: var(--outline-ink);
+            --mod-button-content-color-focus: var(--outline-ink);
+            --mod-button-background-color-default: var(--outline-fill);
+            --mod-button-background-color-hover: var(--outline-fill);
+            --mod-button-background-color-down: var(--outline-fill);
+            --mod-button-background-color-focus: var(--outline-fill);
         }
 
         sp-theme {

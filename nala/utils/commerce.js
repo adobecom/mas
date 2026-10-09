@@ -220,6 +220,7 @@ function validateCommerceUrl(url, options = {}) {
 /**
  * Helper function to construct test URLs with proper query parameter handling
  * Includes MAS_IO_URL, MILO_LIBS and MAS_LIBS environment variables
+ * Docs pages default maslibs to the test host's branch--repo--owner, or local for localhost
  * @param {string} baseURL - The base URL from Playwright test context
  * @param {string} path - The path to append to the base URL
  * @param {string} browserParams - Browser parameters to append (optional, may start with ? or &)
@@ -231,6 +232,12 @@ function constructTestUrl(baseURL, path, browserParams = '') {
     fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
     fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
     fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
+    const pageUrl = new URL(fullUrl);
+    if (!pageUrl.searchParams.has('maslibs')) {
+        const maslibs =
+            pageUrl.hostname === 'localhost' || pageUrl.hostname === '127.0.0.1' ? 'local' : pageUrl.hostname.split('.')[0];
+        fullUrl = addUrlQueryParams(fullUrl, `maslibs=${maslibs}`);
+    }
     return fullUrl;
 }
 
@@ -354,10 +361,7 @@ function createWorkerPageSetup(config = {}) {
         const loadPage = async (pageConfig) => {
             const { name, url } = pageConfig;
 
-            let fullUrl = `${baseURL}${url}`;
-            fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
-            fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
-            fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
+            const fullUrl = constructTestUrl(baseURL, url);
 
             console.info(`[Worker Setup]: Creating page for ${name}:`, fullUrl);
 

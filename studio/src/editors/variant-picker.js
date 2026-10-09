@@ -37,7 +37,7 @@ export const VARIANT_NAMES = {
 export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surfaces: ['all'] },
     { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surfaces: [SURFACES.ACOM] },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM] },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM, SURFACES.GENUINE] },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
@@ -61,7 +61,7 @@ export const VARIANTS = [
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Brand Concierge Product',
@@ -124,17 +124,17 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC, SURFACES.GENUINE, SURFACES.ACOM_EDU],
     },
     {
         label: 'Mini Compare Chart',
         value: VARIANT_NAMES.MINI_COMPARE_CHART,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC],
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Compare Chart Column',

@@ -2,7 +2,7 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import router from '../../src/router.js';
-import { BULK_PUBLISH_STATUS } from '../../src/constants.js';
+import { BULK_PUBLISH_STATUS, PAGE_NAMES } from '../../src/constants.js';
 import '../../src/bulk-publish/mas-bulk-publish.js';
 
 describe('mas-bulk-publish (overview)', () => {
@@ -26,6 +26,19 @@ describe('mas-bulk-publish (overview)', () => {
         await el.updateComplete;
         const rows = el.shadowRoot.querySelectorAll('[data-testid="project-row"]');
         expect(rows).to.have.lengthOf(2);
+    });
+
+    it('renders bulk-publish editor links on the project title and row overlay', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ id: 'bulk-project-1' })]);
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        const row = el.shadowRoot.querySelector('[data-testid="project-row"]');
+        for (const selector of ['a.fragment-editor-link', 'a.row-link-overlay']) {
+            const link = row.querySelector(selector);
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal(PAGE_NAMES.BULK_PUBLISH_EDITOR);
+            expect(params.get('bulkPublishProjectId')).to.equal('bulk-project-1');
+        }
     });
 
     it('counts items from the fragments field when items metadata is absent', async () => {
@@ -124,6 +137,19 @@ describe('mas-bulk-publish (methods)', () => {
         el.openProject(ps);
         expect(Store.bulkPublishProjects.projectId.get()).to.equal('abc-123');
         expect(navigateStub.calledOnce).to.equal(true);
+    });
+
+    it('resets the previously edited project when its title link is activated with Enter', async () => {
+        Store.bulkPublishProjects.list.data.set([makeProjectStore({ id: 'next-project' })]);
+        Store.bulkPublishProjects.inEdit.set(makeProjectStore({ id: 'previous-project' }));
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+        el.shadowRoot.querySelector('a.fragment-editor-link').dispatchEvent(event);
+
+        expect(event.defaultPrevented).to.be.true;
+        expect(Store.bulkPublishProjects.projectId.get()).to.equal('next-project');
+        expect(Store.bulkPublishProjects.inEdit.get()).to.be.null;
     });
 
     it('openProject does nothing when projectStore has no id', async () => {

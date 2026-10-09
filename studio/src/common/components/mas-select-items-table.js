@@ -451,7 +451,12 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
-                            <sp-table-cell> ${renderEditorLink(fragment, fragment.title || '-')} </sp-table-cell>
+                            <sp-table-cell>
+                                ${renderEditorLink(fragment, fragment.title || '-', {
+                                    selectionOnly: !this.viewOnly,
+                                    nativeKeyboard: this.viewOnly,
+                                })}
+                            </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,

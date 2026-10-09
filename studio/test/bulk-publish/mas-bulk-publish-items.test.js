@@ -2,6 +2,26 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-items.js';
 
 describe('mas-bulk-publish-items', () => {
+    it('prevents plain-click navigation on the full-row overlay', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ fragmentId: 'card-id', url: 'https://mas.adobe.com/' }]}
+            ></mas-bulk-publish-items>
+        `);
+        const link = el.shadowRoot.querySelector('a.row-link-overlay');
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
+        let defaultPrevented;
+        link.addEventListener('click', () => {
+            defaultPrevented = event.defaultPrevented;
+            event.preventDefault();
+        });
+
+        link.dispatchEvent(event);
+
+        expect(defaultPrevented).to.be.true;
+        expect(link.hasAttribute('target')).to.be.false;
+    });
+
     it('renders sp-textfield in empty state', async () => {
         const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
         expect(el.shadowRoot.querySelector('sp-textfield[multiline]')).to.exist;

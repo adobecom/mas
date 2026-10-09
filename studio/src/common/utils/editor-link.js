@@ -1,7 +1,14 @@
-import { html } from 'lit';
+import { html, nothing } from 'lit';
+import { ifDefined } from 'lit/directives/if-defined.js';
 import { PAGE_NAMES } from '../../constants.js';
 import Store from '../../store.js';
 import { extractLocaleFromPath, extractSurfaceFromPath } from '../../utils.js';
+
+const PAGE_ID_PARAM = {
+    [PAGE_NAMES.TRANSLATION_EDITOR]: 'translationProjectId',
+    [PAGE_NAMES.BULK_PUBLISH_EDITOR]: 'bulkPublishProjectId',
+    [PAGE_NAMES.PROMOTIONS_EDITOR]: 'promotionId',
+};
 
 /**
  * Builds a deep link to the editor without changing the current Studio state.
@@ -14,16 +21,12 @@ export function buildEditorHref(fragment, options = {}) {
     const page = options.page ?? PAGE_NAMES.FRAGMENT_EDITOR;
     params.set('page', page);
     if (page === PAGE_NAMES.MASKS_EDITOR) {
-        params.set('maskName', fragment.fragmentName ?? fragment.path.split('/').pop());
-    } else if (page === PAGE_NAMES.TRANSLATION_EDITOR) {
-        params.set('translationProjectId', fragment.id);
-    } else if (page === PAGE_NAMES.BULK_PUBLISH_EDITOR) {
-        params.set('bulkPublishProjectId', fragment.id);
-    } else if (page === PAGE_NAMES.PROMOTIONS_EDITOR) {
-        params.set('promotionId', fragment.id);
+        const maskName = fragment.fragmentName ?? fragment.path?.split('/').pop();
+        if (maskName) params.set('maskName', maskName);
     } else {
-        params.set('fragmentId', fragment.id);
-        if (options.promotionId) params.set('promotionId', options.promotionId);
+        const idParam = PAGE_ID_PARAM[page] ?? 'fragmentId';
+        params.set(idParam, fragment.id);
+        if (idParam === 'fragmentId' && options.promotionId) params.set('promotionId', options.promotionId);
     }
     const surface = extractSurfaceFromPath(fragment.path) || Store.search.get().path;
     if (surface) params.set('path', surface);
@@ -31,21 +34,23 @@ export function buildEditorHref(fragment, options = {}) {
     if (region) params.set('region', region);
     const locale = Store.filters.get().locale;
     if (locale) params.set('locale', locale);
-    const url = new URL(window.location.href);
-    url.hash = params.toString();
-    return url.href;
+    return `#${params}`;
 }
 
 function isNativeLinkGesture(event) {
     return event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
 }
 
-function handleLinkClick(event) {
-    if (isNativeLinkGesture(event) || event.detail === 0) {
+function handleLinkClick(event, options) {
+    if (isNativeLinkGesture(event) || (event.detail === 0 && options.nativeKeyboard)) {
         event.stopPropagation();
         return;
     }
     event.preventDefault();
+    if (event.detail === 0 && !options.selectionOnly) {
+        event.stopPropagation();
+        event.currentTarget.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true, detail: 2 }));
+    }
 }
 
 function handleLinkDoubleClick(event) {
@@ -56,24 +61,31 @@ function stopLinkPropagation(event) {
     event.stopPropagation();
 }
 
-/**
- * Renders a native editor link while preserving the containing row's interactions.
- * @param {object} fragment
- * @param {string} label
- * @param {object} [options]
- * @returns {import('lit').TemplateResult|string}
- */
-export function renderEditorLink(fragment, label, options = {}) {
-    if (!fragment.id) return label;
+function renderLink(fragment, label, options, overlay = false) {
     return html`<a
-        class="fragment-editor-link"
-        href=${buildEditorHref(fragment, options)}
-        @click=${handleLinkClick}
+        class=${overlay ? 'row-link-overlay' : 'fragment-editor-link'}
+        tabindex=${ifDefined(overlay ? '-1' : undefined)}
+        aria-hidden=${ifDefined(overlay ? 'true' : undefined)}
+        href=${options.href ?? buildEditorHref(fragment, options)}
+        @click=${(event) => handleLinkClick(event, options)}
         @dblclick=${handleLinkDoubleClick}
         @auxclick=${stopLinkPropagation}
         @contextmenu=${stopLinkPropagation}
         >${label}</a
     >`;
+}
+
+/**
+ * Renders a native editor link while preserving the containing row's interactions.
+ * Enter reuses the row's double-click handler, unless the row only selects or uses native navigation.
+ * @param {object} fragment
+ * @param {string} label
+ * @param {{page?: string, promotionId?: string, selectionOnly?: boolean, nativeKeyboard?: boolean, disabled?: boolean}} [options]
+ * @returns {import('lit').TemplateResult|string}
+ */
+export function renderEditorLink(fragment, label, options = {}) {
+    if (!fragment.id || options.disabled) return label;
+    return renderLink(fragment, label, options);
 }
 
 /**
@@ -83,19 +95,10 @@ export function renderEditorLink(fragment, label, options = {}) {
  * (a sibling of its cells), never nested inside a cell that truncates text
  * with `overflow: hidden`, otherwise the stretched area gets clipped.
  * @param {object} fragment
- * @param {object} [options]
- * @returns {import('lit').TemplateResult|string}
+ * @param {{page?: string, promotionId?: string, href?: string, selectionOnly?: boolean, nativeKeyboard?: boolean, disabled?: boolean}} [options]
+ * @returns {import('lit').TemplateResult|typeof nothing}
  */
 export function renderRowLinkOverlay(fragment, options = {}) {
-    if (!fragment.id) return '';
-    return html`<a
-        class="row-link-overlay"
-        tabindex="-1"
-        aria-hidden="true"
-        href=${buildEditorHref(fragment, options)}
-        @click=${handleLinkClick}
-        @dblclick=${handleLinkDoubleClick}
-        @auxclick=${stopLinkPropagation}
-        @contextmenu=${stopLinkPropagation}
-    ></a>`;
+    if (options.disabled || (!fragment.id && !options.href)) return nothing;
+    return renderLink(fragment, nothing, options, true);
 }

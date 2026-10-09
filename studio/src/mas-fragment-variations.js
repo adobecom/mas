@@ -106,12 +106,26 @@ class MasFragmentVariations extends LitElement {
         void this.#loadOrphanPromoVariationsFallback();
         if (
             !this.#promotionProjectsRequested &&
+            !this.promotionProjectsReady &&
             this.repository &&
             this.fragment &&
             this.promoVariations.some((variation) => getPromotionTagFromFragment(variation))
         ) {
-            this.#promotionProjectsRequested = true;
-            void getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            void this.#loadPromotionProjects();
+        }
+    }
+
+    get promotionProjectsReady() {
+        return Store.promotions.list.data.hasMeta('listFetched') || Store.promotions.list.data.get().length > 0;
+    }
+
+    async #loadPromotionProjects() {
+        this.#promotionProjectsRequested = true;
+        try {
+            await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            if (this.promotionProjectsReady) this.requestUpdate();
+        } finally {
+            this.#promotionProjectsRequested = false;
         }
     }
 
@@ -498,7 +512,14 @@ class MasFragmentVariations extends LitElement {
                                 .canCreateVariation=${false}
                                 .nested=${true}
                                 .expanded=${isExpanded}
-                                .editorLinkOptions=${promotionId ? { promotionId } : {}}
+                                .editorLinkOptions=${{
+                                    promotionId,
+                                    disabled: Boolean(
+                                        getPromotionTagFromFragment(variationFragment) &&
+                                            !promotionId &&
+                                            !this.promotionProjectsReady,
+                                    ),
+                                }}
                                 .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}
                             ></mas-fragment-table>

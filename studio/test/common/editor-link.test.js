@@ -31,7 +31,7 @@ describe('editor-link', () => {
         window.history.replaceState(window.history.state, '', originalHref);
     });
 
-    const getParams = (href) => new URLSearchParams(new URL(href).hash.slice(1));
+    const getParams = (href) => new URLSearchParams(new URL(href, window.location.href).hash.slice(1));
 
     describe('buildEditorHref', () => {
         it('builds a fragment editor link with the fragment surface and region', () => {
@@ -76,6 +76,17 @@ describe('editor-link', () => {
             expect(params.get('maskName')).to.equal('example');
         });
 
+        it('omits the mask name when neither a name nor a path is available', () => {
+            const params = getParams(buildEditorHref({ id: 'mask-1' }, { page: PAGE_NAMES.MASKS_EDITOR }));
+
+            expect(params.get('page')).to.equal(PAGE_NAMES.MASKS_EDITOR);
+            expect(params.has('maskName')).to.be.false;
+        });
+
+        it('returns a relative hash link', () => {
+            expect(buildEditorHref(fragment)).to.match(/^#page=/);
+        });
+
         it('includes promotion context when opening a fragment', () => {
             const params = getParams(buildEditorHref(fragment, { promotionId: 'promotion-1' }));
 
@@ -117,7 +128,7 @@ describe('editor-link', () => {
         it('preserves the current origin, pathname, and query string', () => {
             const currentUrl = new URL(window.location.href);
 
-            const href = new URL(buildEditorHref(fragment));
+            const href = new URL(buildEditorHref(fragment), window.location.href);
 
             expect(href.origin).to.equal(currentUrl.origin);
             expect(href.pathname).to.equal(currentUrl.pathname);
@@ -163,7 +174,7 @@ describe('editor-link', () => {
 
             expect(link.classList.contains('fragment-editor-link')).to.be.true;
             expect(link.textContent).to.equal('Example project');
-            expect(link.href).to.equal(buildEditorHref(fragment, { page: PAGE_NAMES.TRANSLATION_EDITOR }));
+            expect(link.getAttribute('href')).to.equal(buildEditorHref(fragment, { page: PAGE_NAMES.TRANSLATION_EDITOR }));
         });
 
         it('renders labels as text instead of interpreting them as HTML', () => {
@@ -189,7 +200,7 @@ describe('editor-link', () => {
             expect(link.classList.contains('row-link-overlay')).to.be.true;
             expect(link.tabIndex).to.equal(-1);
             expect(link.getAttribute('aria-hidden')).to.equal('true');
-            expect(link.href).to.equal(buildEditorHref(fragment, { promotionId: 'promotion-1' }));
+            expect(link.getAttribute('href')).to.equal(buildEditorHref(fragment, { promotionId: 'promotion-1' }));
         });
 
         it('renders no overlay when a fragment has no ID', () => {
@@ -197,6 +208,27 @@ describe('editor-link', () => {
 
             expect(row.querySelector('a')).to.be.null;
             expect(row.textContent).to.equal('');
+        });
+
+        it('renders the title as plain text while its editor link is disabled', () => {
+            const row = fixtureSync(html`<div>${renderEditorLink(fragment, 'Loading context', { disabled: true })}</div>`);
+
+            expect(row.querySelector('a')).to.be.null;
+            expect(row.textContent).to.equal('Loading context');
+        });
+
+        it('omits the row overlay while its editor link is disabled', () => {
+            const row = fixtureSync(html`<div>${renderRowLinkOverlay(fragment, { disabled: true })}</div>`);
+
+            expect(row.querySelector('a')).to.be.null;
+        });
+
+        it('renders an overlay for a precomputed item URL without a fragment ID', () => {
+            const row = fixtureSync(
+                html`<div>${renderRowLinkOverlay({}, { href: 'https://mas.adobe.com/studio.html#page=placeholders' })}</div>`,
+            );
+
+            expect(row.querySelector('a').href).to.equal('https://mas.adobe.com/studio.html#page=placeholders');
         });
     });
 
@@ -246,7 +278,6 @@ describe('editor-link', () => {
                 ['Alt-click', { altKey: true }],
                 ['middle-button click', { button: 1 }],
                 ['secondary-button click', { button: 2 }],
-                ['keyboard activation', { detail: 0 }],
             ]) {
                 it(`allows native ${gesture} without triggering the row click interaction`, () => {
                     const defaultPrevented = dispatchGesture(link, 'click', options);
@@ -255,6 +286,14 @@ describe('editor-link', () => {
                     expect(rowClick.called).to.be.false;
                 });
             }
+
+            it('opens through the row double-click handler on keyboard activation', () => {
+                const defaultPrevented = dispatchGesture(link, 'click', { detail: 0 });
+
+                expect(defaultPrevented).to.be.true;
+                expect(rowClick.called).to.be.false;
+                expect(rowDoubleClick.calledOnce).to.be.true;
+            });
 
             it('preserves plain double-click handling on the row', () => {
                 const defaultPrevented = dispatchGesture(link, 'dblclick', { detail: 2 });
@@ -285,4 +324,40 @@ describe('editor-link', () => {
             }
         });
     }
+
+    it('preserves selection on keyboard activation in selection-only tables', () => {
+        const select = sinon.spy();
+        const open = sinon.spy();
+        const row = fixtureSync(
+            html`<div @click=${select} @dblclick=${open}>
+                ${renderEditorLink(fragment, 'Select fragment', { selectionOnly: true })}
+            </div>`,
+        );
+
+        expect(dispatchGesture(row.querySelector('a'), 'click', { detail: 0 })).to.be.true;
+        expect(select.calledOnce).to.be.true;
+        expect(open.called).to.be.false;
+    });
+
+    it('preserves native keyboard navigation in view-only rows without an open handler', () => {
+        const rowClick = sinon.spy();
+        const rowDoubleClick = sinon.spy();
+        const row = fixtureSync(
+            html`<div @click=${rowClick} @dblclick=${rowDoubleClick}>
+                ${renderEditorLink(fragment, 'View fragment', { nativeKeyboard: true })}
+            </div>`,
+        );
+
+        expect(dispatchGesture(row.querySelector('a'), 'click', { detail: 0 })).to.be.false;
+        expect(rowClick.called).to.be.false;
+        expect(rowDoubleClick.called).to.be.false;
+    });
+
+    it('preserves modified keyboard activation as a native browser gesture', () => {
+        const open = sinon.spy();
+        const row = fixtureSync(html`<div @dblclick=${open}>${renderEditorLink(fragment, 'Fragment')}</div>`);
+
+        expect(dispatchGesture(row.querySelector('a'), 'click', { detail: 0, metaKey: true })).to.be.false;
+        expect(open.called).to.be.false;
+    });
 });

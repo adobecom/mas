@@ -1,4 +1,4 @@
-import { expect, fixture, fixtureSync, html } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-fragment-table.js';
@@ -331,6 +331,81 @@ describe('MasFragmentTable', () => {
         afterEach(() => {
             Store.selecting.set(selectingSnapshot);
             Store.selection.set(selectionSnapshot);
+        });
+
+        for (const selector of ['.name a', '.title a', 'a.row-link-overlay']) {
+            it(`selects a nested variation through ${selector} on Enter without opening it`, async () => {
+                Store.selecting.set(true);
+                Store.selection.set([]);
+                const open = sandbox.spy();
+                const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+                const el = await fixture(
+                    html`<mas-fragment-table
+                        .fragmentStore=${fragmentStore}
+                        .nested=${true}
+                        @dblclick=${open}
+                    ></mas-fragment-table>`,
+                );
+
+                el.querySelector(selector).dispatchEvent(
+                    new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }),
+                );
+
+                expect(Store.selection.get()).to.deep.equal(['variation-1']);
+                expect(open.called).to.be.false;
+            });
+        }
+
+        it('selects a parent row on Enter without opening it', async () => {
+            Store.selecting.set(false);
+            const open = sandbox.spy();
+            const fragmentStore = createFragmentStore();
+            const table = await fixture(
+                html`<sp-table>
+                    <sp-table-body>
+                        <mas-fragment-table .fragmentStore=${fragmentStore} @dblclick=${open}></mas-fragment-table>
+                    </sp-table-body>
+                </sp-table>`,
+            );
+            await table.querySelector('mas-fragment-table').updateComplete;
+            table.selects = 'multiple';
+            await table.updateComplete;
+            const row = table.querySelector('sp-table-row');
+            await waitUntil(() => row.selectable);
+            Store.selecting.set(true);
+            await table.querySelector('mas-fragment-table').updateComplete;
+
+            table
+                .querySelector('.title a')
+                .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+
+            await waitUntil(() => table.selectedSet.has('fragment-1'));
+            expect(open.called).to.be.false;
+        });
+
+        it('updates keyboard selection behavior when selection mode changes', async () => {
+            Store.selecting.set(false);
+            Store.selection.set([]);
+            const open = sandbox.spy();
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    @dblclick=${open}
+                ></mas-fragment-table>`,
+            );
+            Store.selecting.set(true);
+            await el.updateComplete;
+
+            el.querySelector('.title a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+            expect(open.called).to.be.false;
+            Store.selecting.set(false);
+            await el.updateComplete;
+            el.querySelector('.title a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+            expect(open.calledOnce).to.be.true;
         });
 
         it('shows expand-cell when nested and toggleExpand is provided', async () => {

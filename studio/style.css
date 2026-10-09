@@ -1343,32 +1343,6 @@ mas-fragment-table .icon {
     object-fit: contain;
 }
 
-mas-fragment-table sp-table-row {
-    position: relative;
-}
-
-mas-fragment-table a.fragment-editor-link {
-    color: inherit;
-    text-decoration: none;
-}
-
-mas-fragment-table a.row-link-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-}
-
-mas-fragment-table sp-checkbox,
-mas-fragment-table sp-action-menu,
-mas-fragment-table sp-button,
-mas-fragment-table button,
-mas-fragment-table .validation-error-indicator,
-mas-fragment-table .offer-id-text,
-mas-fragment-table sp-table-cell.preview {
-    position: relative;
-    z-index: 2;
-}
-
 .staged-badge {
     background-color: var(--spectrum-orange-200);
     color: var(--spectrum-gray-900);

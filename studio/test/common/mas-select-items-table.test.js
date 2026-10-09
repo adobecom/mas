@@ -148,6 +148,21 @@ describe('MasSelectItemsTable', () => {
             expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([collection.path]);
         });
 
+        it('selects a collection without navigating when its title link is activated with Enter', async () => {
+            const collection = {
+                ...createMockCollection('/content/dam/mas/acom/en_US/collections/example', 'Example collection'),
+                id: 'collection-1',
+            };
+            setupCollectionsInStore([collection]);
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+            el.shadowRoot.querySelector('sp-table-row a').dispatchEvent(event);
+
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.translationProjects.selectedCollections.get()).to.deep.equal([collection.path]);
+        });
+
         it('should initialize with default values', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;

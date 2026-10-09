@@ -137,6 +137,18 @@ describe('MasPromotions', () => {
     });
 
     describe('rendering and guards', () => {
+        it('renders promotion editor links on the project title and row overlay', async () => {
+            const { el } = await mountWithRepo(makePromotion({ id: 'promotion-1', title: 'Promotion' }));
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            for (const selector of ['a.fragment-editor-link', 'a.row-link-overlay']) {
+                const link = row.querySelector(selector);
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('page')).to.equal('promotions-editor');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
         describe('promotion badge layout', () => {
             let viewport;
 

@@ -79,6 +79,137 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('initialization', () => {
+        it('withholds prefetched promotion variation links until their project context is loaded', async () => {
+            const card = createMockTopLevelCard();
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${card}
+                    .isTopLevelExpanded=${true}
+                    .selectedTabKey=${VARIATION_TAB_NAME.PROMOTION}
+                    .promoVariationsFetchedByParent=${new Map([[card.path, [variation]]])}
+                ></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${variation.path}"]`);
+
+            try {
+                expect(row.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(row.querySelector('a.row-link-overlay')).to.be.null;
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => {
+                const link = row.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+        });
+
+        it('withholds promotion title, path, and overlay links while project context is pending', async () => {
+            const card = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            try {
+                expect(el.shadowRoot.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(el.shadowRoot.querySelector('a.row-link-overlay')).to.be.null;
+                expect(el.shadowRoot.querySelector('.title').textContent).to.include(card.title);
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => el.shadowRoot.querySelectorAll('a.fragment-editor-link').length === 2);
+            for (const link of el.shadowRoot.querySelectorAll('a')) {
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('promotionId')).to.equal('promo-project-1');
+            }
+        });
+
+        it('retries an unsuccessful promotion context load on a later render', async () => {
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'promo-var-1',
+            };
+            const loadPromotions = sandbox.stub();
+            loadPromotions.onFirstCall().resolves();
+            loadPromotions.onSecondCall().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            document.querySelector('mas-repository').loadPromotions = loadPromotions;
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            await waitUntil(() => loadPromotions.calledOnce);
+            await el.updateComplete;
+
+            el.requestUpdate();
+
+            await waitUntil(() => {
+                const link = el.shadowRoot.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+            expect(loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('selects the card without navigating when its title link is activated with Enter', async () => {
+            const card = { ...createMockTopLevelCard(), id: 'card-1' };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+            el.shadowRoot.querySelector('.title a').dispatchEvent(event);
+
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([card.path]);
+        });
+
+        it('shares promotion context between the row overlay, title, and path links', async () => {
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'promotion-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+            ]);
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'card-1',
+            };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            for (const selector of ['a.row-link-overlay', '.title a', '.path a']) {
+                const link = el.shadowRoot.querySelector(selector);
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal('card-1');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
         for (const source of ['top-level card', 'prefetched variations']) {
             it(`loads promotion context for links from ${source} without opening the editor`, async () => {
                 Store.promotions.list.data.set([]);

@@ -1,0 +1,229 @@
+name: Resolve Nala status
+description: >
+    Resolves, from live API state rather than the event payload, whether a PR is
+    allowed to run Nala and what Nala already concluded for its head commit. The
+    job that starts the E2E jobs and the required gate both call this, so they
+    can never disagree, and so re-running the gate alone re-derives the verdict
+    instead of replaying a stale one.
+
+inputs:
+    pr-number:
+        description: Pull request number to resolve.
+        required: true
+    required-approvals:
+        description: Approvals from write-access reviewers needed to run Nala.
+        required: true
+    consult-prior-runs:
+        description: >
+            'true' to report what Nala already concluded for this commit,
+            'false' to report nothing because this run is expected to run it.
+        required: true
+    wait-for-in-flight:
+        description: >
+            'true' to block until older workflow runs and any in-progress Nala
+            run on this commit finish, 'false' to report it as 'running'.
+        required: true
+    github-token:
+        description: Token used for the API calls.
+        required: true
+
+outputs:
+    has-label:
+        description: "'true' if the 'run nala' label is currently on the PR"
+        value: ${{ steps.resolve.outputs.has-label }}
+    can-run:
+        description: "'true' if the label and the required approvals are both present"
+        value: ${{ steps.resolve.outputs.can-run }}
+    head-sha:
+        description: The PR's live head SHA
+        value: ${{ steps.resolve.outputs.head-sha }}
+    nala-conclusion:
+        description: >
+            '' when prior runs were not consulted, otherwise 'success',
+            'failure', 'running', 'timed-out' or 'none'.
+        value: ${{ steps.resolve.outputs.nala-conclusion }}
+
+runs:
+    using: composite
+    steps:
+        - name: Resolve label, approvals and prior Nala result
+          id: resolve
+          uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+          env:
+              PR_NUMBER: ${{ inputs.pr-number }}
+              REQUIRED_APPROVALS: ${{ inputs.required-approvals }}
+              CONSULT_PRIOR_RUNS: ${{ inputs.consult-prior-runs }}
+              WAIT_FOR_IN_FLIGHT: ${{ inputs.wait-for-in-flight }}
+          with:
+              github-token: ${{ inputs.github-token }}
+              script: |
+                  const required = Number(process.env.REQUIRED_APPROVALS);
+
+                  // Fetch the PR live instead of trusting context.payload.pull_request.
+                  // That payload is a point-in-time snapshot: a manual "Re-run jobs"
+                  // replays the *original* event payload rather than refetching it, so
+                  // a label added after the first trigger would otherwise be reported
+                  // as missing forever.
+                  const { data: pr } = await github.rest.pulls.get({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: Number(process.env.PR_NUMBER),
+                  });
+                  const hasLabel = pr.labels.some((label) => label.name === 'run nala');
+
+                  const reviews = await github.paginate(github.rest.pulls.listReviews, {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pr.number,
+                      per_page: 100,
+                  });
+
+                  // Only the latest APPROVED/CHANGES_REQUESTED/DISMISSED review per
+                  // reviewer counts; COMMENTED reviews never supersede an approval.
+                  const latestByReviewer = new Map();
+                  for (const review of reviews) {
+                      if (review.state === 'COMMENTED' || !review.user) continue;
+                      latestByReviewer.set(review.user.id, {
+                          login: review.user.login,
+                          state: review.state,
+                      });
+                  }
+
+                  // An approval only counts from someone who can push to the repo.
+                  // Without this, any account's approval plus the label would run
+                  // PR-authored code on the self-hosted runners.
+                  const approvers = [...latestByReviewer.values()].filter(
+                      (review) => review.state === 'APPROVED',
+                  );
+                  const canWrite = async (login) => {
+                      try {
+                          const { data } =
+                              await github.rest.repos.getCollaboratorPermissionLevel({
+                                  owner: context.repo.owner,
+                                  repo: context.repo.repo,
+                                  username: login,
+                              });
+                          return data.permission === 'admin' || data.permission === 'write';
+                      } catch (error) {
+                          // 404 is the only answer that means "not a collaborator".
+                          // Anything else (token scope, rate limit, 5xx) would silently
+                          // drop a real approval and pin the gate red forever, so fail
+                          // loudly instead.
+                          if (error.status === 404) return false;
+                          throw new Error(
+                              `Could not resolve write permission for ${login}: ${error.message}`,
+                          );
+                      }
+                  };
+                  const permissions = await Promise.all(
+                      approvers.map((review) => canWrite(review.login)),
+                  );
+                  const approvals = permissions.filter(Boolean).length;
+
+                  const canRun = hasLabel && approvals >= required;
+
+                  // Keep in sync with the `name:` of the two E2E jobs in run-nala.yml.
+                  const nalaTestNames = [
+                      'Running Nala Studio E2E UI Tests',
+                      'Running Nala Docs E2E UI Tests',
+                  ];
+                  // A skipped or cancelled run means Nala did not execute, so it must
+                  // not count as a prior result — otherwise a PR that was labelled
+                  // before it had approvals would never run Nala at all.
+                  const ignoredConclusions = ['skipped', 'cancelled'];
+                  const latestRun = (runs, name) =>
+                      runs
+                          .filter(
+                              (run) =>
+                                  run.name.startsWith(name) &&
+                                  (run.status !== 'completed' ||
+                                      !ignoredConclusions.includes(run.conclusion)),
+                          )
+                          // A queued run has no started_at; treat it as newest so a
+                          // stale completed run cannot win over an in-flight one.
+                          .sort(
+                              (a, b) =>
+                                  new Date(b.started_at ?? Date.now()) -
+                                  new Date(a.started_at ?? Date.now()),
+                          )[0];
+
+                  let nalaConclusion = '';
+                  // Known race: two qualifying triggers landing before either's check-run is visible can both start.
+                  if (canRun && process.env.CONSULT_PRIOR_RUNS === 'true') {
+                      const wait = process.env.WAIT_FOR_IN_FLIGHT === 'true';
+                      const deadline = Date.now() + 50 * 60 * 1000;
+                      const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          run_id: context.runId,
+                      });
+                      // Only older runs, so two waiting runs can never wait on each other.
+                      const olderRunInFlight = async () => {
+                          const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              workflow_id: currentRun.workflow_id,
+                              head_sha: pr.head.sha,
+                              per_page: 100,
+                          });
+                          return runs.some((run) => run.id < context.runId && run.status !== 'completed');
+                      };
+                      while (!nalaConclusion) {
+                          // An older run may be about to start Nala without a visible check run yet.
+                          if (wait && (await olderRunInFlight())) {
+                              if (Date.now() > deadline) {
+                                  nalaConclusion = 'timed-out';
+                              } else {
+                                  await new Promise((resolve) => setTimeout(resolve, 60000));
+                              }
+                              continue;
+                          }
+                        // Filter server-side by name so unrelated checks on this SHA
+                        // can never push a Nala run out of the page.
+                        const priorRuns = await Promise.all(
+                            nalaTestNames.map(async (name) => {
+                                const checkRuns = await github.paginate(github.rest.checks.listForRef, {
+                                    owner: context.repo.owner,
+                                    repo: context.repo.repo,
+                                    ref: pr.head.sha,
+                                    check_name: name,
+                                    filter: 'all',
+                                    per_page: 100,
+                                });
+                                return latestRun(checkRuns, name);
+                            }),
+                        );
+                          const inFlight = priorRuns.some((run) => run && run.status !== 'completed');
+                          const failed = priorRuns.some(
+                              (run) =>
+                                  run && run.status === 'completed' && run.conclusion !== 'success',
+                          );
+                          const allPassed = priorRuns.every(
+                              (run) =>
+                                  run && run.status === 'completed' && run.conclusion === 'success',
+                          );
+                          if (failed) {
+                              nalaConclusion = 'failure';
+                          } else if (allPassed) {
+                              nalaConclusion = 'success';
+                          } else if (!inFlight) {
+                              nalaConclusion = 'none';
+                          } else if (!wait) {
+                              nalaConclusion = 'running';
+                          } else if (Date.now() > deadline) {
+                              nalaConclusion = 'timed-out';
+                          } else {
+                              await new Promise((resolve) => setTimeout(resolve, 60000));
+                          }
+                      }
+                  }
+
+                  core.info(
+                      `'run nala' label: ${hasLabel}, approvals: ${approvals}/${required}, ` +
+                          `Nala for ${pr.head.sha}: ${nalaConclusion || 'not consulted'}`,
+                  );
+
+                  core.setOutput('has-label', String(hasLabel));
+                  core.setOutput('can-run', String(canRun));
+                  core.setOutput('head-sha', pr.head.sha);
+                  core.setOutput('nala-conclusion', nalaConclusion);

@@ -13,17 +13,17 @@ on:
 permissions:
     contents: read
     pull-requests: read
+    checks: read
+    actions: read
 
 env:
     # Keep in sync with the branch-protection required-approval count. These are
     # separate sources of truth and will drift if one is changed without the other.
     REQUIRED_APPROVALS: 2
 
-# Prevent multiple runs from happening at the same time. Keyed on the PR number
-# so pull_request and pull_request_review runs for the same PR share a group.
-concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-    cancel-in-progress: true
+# Concurrency is declared per job rather than workflow-wide: the cheap jobs must
+# run for every trigger so the gate always reports, and only the heavy E2E jobs
+# are worth cancelling.
 
 jobs:
     identity:
@@ -34,14 +34,16 @@ jobs:
     check-paths:
         name: Check Changed Paths
         runs-on: ubuntu-latest
+        # No concurrency group: a cancelled result would stick to a gate re-run.
         outputs:
             is-trivial: ${{ steps.filter.outputs.trivial }}
         steps:
             - uses: actions/checkout@v4
               with:
-                  # pull_request_review defaults to the base branch; pin the PR head
-                  # so the diff is computed against the PR, not main against main.
-                  ref: ${{ github.event.pull_request.head.sha }}
+                  # pull_request_review defaults to the base branch, and the event
+                  # payload SHA is a stale snapshot on a replayed re-run. The pull ref
+                  # always resolves to the live head, matching the E2E jobs.
+                  ref: refs/pull/${{ github.event.pull_request.number }}/head
                   fetch-depth: 0
             - name: Detect trivial-only changes
               id: filter
@@ -52,129 +54,78 @@ jobs:
     check-approvals:
         name: Check Label and Approvals
         runs-on: ubuntu-latest
+        # Explicit requests (new commit, 're-added run nala') get their own group so an
+        # incidental review or label change cannot cancel them before Nala starts.
+        concurrency:
+            group: nala-check-approvals-${{ github.event.pull_request.number }}-${{ (github.run_attempt > 1 || (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')))) && 'request' || 'recheck' }}
+            cancel-in-progress: true
+        # Generous because this job waits out an in-progress Nala run on the same
+        # commit rather than reporting it as unresolved. Must exceed the poll
+        # deadline in .github/actions/resolve-nala-status.
+        timeout-minutes: 55
         outputs:
-            has-label: ${{ steps.check.outputs.has-label }}
             can-run: ${{ steps.check.outputs.can-run }}
+            # A prior conclusion of any kind means Nala must not be started again
+            # for this commit; the gate resolves the verdict itself.
+            already-handled: ${{ steps.check.outputs.nala-conclusion != '' && steps.check.outputs.nala-conclusion != 'none' }}
+            head-sha: ${{ steps.check.outputs.head-sha }}
         steps:
+            - uses: actions/checkout@v4
+              with:
+                  # pull_request_review defaults to the base branch, and the event
+                  # payload SHA is a stale snapshot on a replayed re-run.
+                  ref: refs/pull/${{ github.event.pull_request.number }}/head
             - name: Count current approvals
               id: check
-              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+              uses: ./.github/actions/resolve-nala-status
               with:
-                  script: |
-                      const required = Number(process.env.REQUIRED_APPROVALS);
-                      const pr = context.payload.pull_request;
-                      const hasLabel = pr.labels.some((label) => label.name === 'run nala');
-
-                      const reviews = await github.paginate(github.rest.pulls.listReviews, {
-                          owner: context.repo.owner,
-                          repo: context.repo.repo,
-                          pull_number: pr.number,
-                          per_page: 100,
-                      });
-
-                      // Only the latest APPROVED/CHANGES_REQUESTED/DISMISSED review per
-                      // reviewer counts; COMMENTED reviews never supersede an approval.
-                      const latestByReviewer = new Map();
-                      for (const review of reviews) {
-                          if (review.state === 'COMMENTED' || !review.user) continue;
-                          latestByReviewer.set(review.user.id, {
-                              login: review.user.login,
-                              state: review.state,
-                          });
-                      }
-
-                      // An approval only counts from someone who can push to the repo.
-                      // Without this, any account's approval plus the label would run
-                      // PR-authored code on the self-hosted runners.
-                      const approvers = [...latestByReviewer.values()].filter(
-                          (review) => review.state === 'APPROVED',
-                      );
-                      const canWrite = async (login) => {
-                          try {
-                              const { data } =
-                                  await github.rest.repos.getCollaboratorPermissionLevel({
-                                      owner: context.repo.owner,
-                                      repo: context.repo.repo,
-                                      username: login,
-                                  });
-                              return data.permission === 'admin' || data.permission === 'write';
-                          } catch (error) {
-                              // Throws on insufficient token scope, transient 403/5xx,
-                              // rate limiting, or an unresolvable login. Log it so a
-                              // dropped approver is diagnosable instead of silent.
-                              core.warning(
-                                  `Could not resolve write permission for ${login}; not counting their approval: ${error.message}`,
-                              );
-                              return false;
-                          }
-                      };
-                      const permissions = await Promise.all(
-                          approvers.map((review) => canWrite(review.login)),
-                      );
-                      const approvals = permissions.filter(Boolean).length;
-
-                      const canRun = hasLabel && approvals >= required;
-                      const summary = `'run nala' label: ${hasLabel}, approvals: ${approvals}/${required}`;
-                      if (canRun) {
-                          core.info(`Nala will run — ${summary}`);
-                      } else {
-                          core.notice(`Nala skipped — ${summary}`);
-                      }
-
-                      core.setOutput('has-label', String(hasLabel));
-                      core.setOutput('can-run', String(canRun));
-
-    nala-gate:
-        name: Nala Gate
-        needs: [check-paths, check-approvals]
-        if: always()
-        runs-on: ubuntu-latest
-        steps:
-            - name: Fail if a prerequisite job did not succeed
-              if: needs.check-paths.result != 'success' || needs.check-approvals.result != 'success'
-              env:
-                  CHECK_PATHS_RESULT: ${{ needs.check-paths.result }}
-                  CHECK_APPROVALS_RESULT: ${{ needs.check-approvals.result }}
-              run: |
-                  echo "::error::Prerequisite job did not succeed (check-paths: ${CHECK_PATHS_RESULT}, check-approvals: ${CHECK_APPROVALS_RESULT})"
-                  exit 1
-            - name: Pass gate for trivial PRs
-              if: needs.check-paths.outputs.is-trivial == 'true'
-              run: echo "Trivial PR — skipping Nala gate"
-            - name: Require 'run nala' label
-              # Merge requirement is label-only — approvals are enforced by branch
-              # protection, not here. The only bypass is the git-computed is-trivial
-              # output from check-paths, never the mutable 'trivial' label.
-              if: |
-                  needs.check-paths.outputs.is-trivial != 'true' &&
-                  needs.check-approvals.outputs.has-label != 'true'
-              run: |
-                  echo "::error::Add the 'run nala' label to merge this PR"
-                  exit 1
+                  pr-number: ${{ github.event.pull_request.number }}
+                  required-approvals: ${{ env.REQUIRED_APPROVALS }}
+                  # A new commit, or deliberately re-adding the 'run nala' label, is a
+                  # genuine request to (re)run Nala. Anything else that re-evaluates the
+                  # gate — a review landing/being dismissed, or an unrelated label change
+                  # — must not restart Nala if it already ran (or is still running) for
+                  # this exact commit. Without this, every extra approval beyond the
+                  # required count fires a brand-new full suite.
+                  # A manual re-run replays the original event, so treat any re-attempt as explicit too.
+                  consult-prior-runs: ${{ !(github.run_attempt > 1 || (github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')))) }}
+                  # Wait the other run out instead of reporting 'running': its gate
+                  # can settle before this one, which would leave this run's stale
+                  # failure as the newest check and pin the PR red.
+                  wait-for-in-flight: 'true'
+                  github-token: ${{ github.token }}
 
     run-nala-studio-tests:
+        # Keep in sync with nalaTestNames in .github/actions/resolve-nala-status.
         name: Running Nala Studio E2E UI Tests
-        needs: [nala-gate, check-paths, check-approvals]
+        needs: [check-paths, check-approvals]
         if: |
-            needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
-            needs.check-approvals.outputs.can-run == 'true'
+            needs.check-approvals.outputs.can-run == 'true' &&
+            needs.check-approvals.outputs.already-handled != 'true'
+        # Only a new commit, or a deliberate re-request via the label, should cancel
+        # an in-progress test run; any other event that reaches this job at all does
+        # so because the dedup guard in check-approvals found no prior run for this
+        # exact commit.
+        concurrency:
+            group: nala-studio-tests-${{ github.event.pull_request.number }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')) }}
         runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 45 # Prevent hanging jobs
-        strategy:
-            matrix:
-                node-version: [20.x]
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.event.pull_request.head.sha }}
+                  # Single source of truth for the head SHA: the dedup check in
+                  # check-approvals resolves it live, and the event payload can be a
+                  # stale snapshot on a replayed re-run.
+                  ref: ${{ needs.check-approvals.outputs.head-sha }}
                   fetch-depth: 2
 
-            - name: Set up Node.js ${{ matrix.node-version }}
+            - name: Set up Node.js 20.x
               uses: actions/setup-node@v4
               with:
-                  node-version: ${{ matrix.node-version }}
+                  node-version: 20.x
                   cache: 'npm'
                   cache-dependency-path: |
                       **/package-lock.json
@@ -249,22 +200,25 @@ jobs:
                   IMS_PASS: ${{ secrets.IMS_PASS }}
 
     run-nala-docs-tests:
+        # Keep in sync with nalaTestNames in .github/actions/resolve-nala-status.
         name: Running Nala Docs E2E UI Tests
-        needs: [nala-gate, check-paths, check-approvals, identity]
+        needs: [check-paths, check-approvals, identity]
         if: |
-            needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
-            needs.check-approvals.outputs.can-run == 'true'
+            needs.check-approvals.outputs.can-run == 'true' &&
+            needs.check-approvals.outputs.already-handled != 'true'
+        # See run-nala-studio-tests above for why this is job-scoped.
+        concurrency:
+            group: nala-docs-tests-${{ github.event.pull_request.number }}
+            cancel-in-progress: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || (github.event.action == 'labeled' && github.event.label.name == 'run nala')) }}
         runs-on: [self-hosted, Linux, X64, nala-studio]
         timeout-minutes: 20 # Prevent hanging jobs
-        strategy:
-            matrix:
-                node-version: [20.x]
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.event.pull_request.head.sha }}
+                  # See run-nala-studio-tests for why this is not the event payload.
+                  ref: ${{ needs.check-approvals.outputs.head-sha }}
                   fetch-depth: 0
 
             - name: Fetch base branch for diff
@@ -283,10 +237,10 @@ jobs:
                       echo "io-www=true" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Set up Node.js ${{ matrix.node-version }}
+            - name: Set up Node.js 20.x
               uses: actions/setup-node@v4
               with:
-                  node-version: ${{ matrix.node-version }}
+                  node-version: 20.x
                   cache: 'npm'
                   cache-dependency-path: |
                       **/package-lock.json
@@ -346,3 +300,88 @@ jobs:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
                   NALA_PLAYWRIGHT_WORKERS: 1
+
+    nala-gate:
+        # The only required check in the main ruleset. It never skips, so GitHub's
+        # "skipped required check counts as passed" rule can never mask a Nala run
+        # that did not happen — unlike the E2E jobs, which skip while approvals are
+        # still pending.
+        name: Nala Gate
+        needs: [check-paths, check-approvals, run-nala-studio-tests, run-nala-docs-tests]
+        if: always()
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: refs/pull/${{ github.event.pull_request.number }}/head
+            # Re-derived here rather than read off check-approvals: re-running only
+            # the failed gate reuses that job's outputs, so a gate that went red
+            # while approvals were still pending could never turn green without
+            # replaying the whole workflow and the whole Nala suite with it.
+            - name: Resolve live PR and Nala state
+              id: status
+              uses: ./.github/actions/resolve-nala-status
+              with:
+                  pr-number: ${{ github.event.pull_request.number }}
+                  required-approvals: ${{ env.REQUIRED_APPROVALS }}
+                  consult-prior-runs: 'true'
+                  # A superseded run would otherwise report a false 'running' failure.
+                  wait-for-in-flight: ${{ contains(needs.*.result, 'cancelled') }}
+                  github-token: ${{ github.token }}
+            - name: Resolve Nala status
+              env:
+                  PATHS_RESULT: ${{ needs.check-paths.result }}
+                  IS_TRIVIAL: ${{ needs.check-paths.outputs.is-trivial }}
+                  HAS_LABEL: ${{ steps.status.outputs.has-label }}
+                  CAN_RUN: ${{ steps.status.outputs.can-run }}
+                  NALA_CONCLUSION: ${{ steps.status.outputs.nala-conclusion }}
+                  STUDIO_RESULT: ${{ needs.run-nala-studio-tests.result }}
+                  DOCS_RESULT: ${{ needs.run-nala-docs-tests.result }}
+              run: |
+                  if [ "$PATHS_RESULT" != "success" ]; then
+                      echo "::error::check-paths did not succeed (${PATHS_RESULT})"
+                      exit 1
+                  fi
+                  # The only bypass is the git-computed is-trivial output, never a mutable label.
+                  if [ "$IS_TRIVIAL" = "true" ]; then
+                      echo "Trivial PR — Nala not required"
+                      exit 0
+                  fi
+                  if [ "$HAS_LABEL" != "true" ]; then
+                      echo "::error::Add the 'run nala' label to merge this PR"
+                      exit 1
+                  fi
+                  if [ "$CAN_RUN" != "true" ]; then
+                      echo "::error::${REQUIRED_APPROVALS} approvals from write-access reviewers are required before the E2E jobs start"
+                      exit 1
+                  fi
+                  # This run's own E2E jobs take precedence: their check runs can still
+                  # read as in-progress for a moment after the job hands off to us.
+                  # A re-run gate may retain successes that a newer failing run on this SHA supersedes.
+                  if [ "$STUDIO_RESULT" = "success" ] && [ "$DOCS_RESULT" = "success" ] \
+                      && [ "$NALA_CONCLUSION" != "failure" ]; then
+                      echo "Nala E2E passed"
+                      exit 0
+                  fi
+                  # A re-run gate keeps its original needs results, so a newer passing run on this SHA overrides them.
+                  if { [ "$STUDIO_RESULT" = "failure" ] || [ "$DOCS_RESULT" = "failure" ]; } && [ "$NALA_CONCLUSION" != "success" ]; then
+                      echo "::error::Nala E2E did not pass (studio: ${STUDIO_RESULT}, docs: ${DOCS_RESULT})"
+                      exit 1
+                  fi
+                  case "$NALA_CONCLUSION" in
+                      success)
+                          echo "Nala passed for this commit"
+                          ;;
+                      running)
+                          echo "::error::Nala is still running for this commit — re-run this job once it finishes"
+                          exit 1
+                          ;;
+                      none)
+                          echo "::error::Nala has not run for this commit"
+                          exit 1
+                          ;;
+                      *)
+                          echo "::error::Nala did not pass for this commit (${NALA_CONCLUSION})"
+                          exit 1
+                          ;;
+                  esac

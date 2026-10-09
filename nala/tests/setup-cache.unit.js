@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { EventEmitter } from 'node:events';
 import { chromium } from '@playwright/test';
 import { isStaticResource, serveStaticResource, getResourceMetrics } from '../libs/static-resource-cache.js';
 import { isBootstrapRead } from '../libs/editor-bootstrap.js';
-import { installEdsThrottleOnPage, isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
-import { isRetryableRead, retryAfterMs } from '../libs/rate-limit.js';
+import { installEdsThrottleOnPage, removePageRoutes, isEdsEdgeHost, resolveEdsMaxRps } from '../libs/eds-throttle.js';
+import { isReadOnlyRequest, isRetryableRead, retryAfterMs } from '../libs/rate-limit.js';
+import initializeRateLimitCoordinator from '../libs/rate-limit-coordinator.js';
 import { createRunId, clearRunId, setCurrentTestName, setCurrentTestAttempt, getTitle } from '../utils/fragment-tracker.js';
 import {
     initializeFragmentLedger,
@@ -48,8 +50,98 @@ const request = (url, { method = 'GET', headers = {}, type = 'script', body = nu
     method: () => method,
     headers: () => headers,
     allHeaders: async () => headers,
+    headerValue: async (name) => headers[name] ?? 'Nala unit',
     resourceType: () => type,
     postData: () => body,
+});
+
+test('author query POSTs are read-only without exempting creation, publish, version or update mutations', async () => {
+    const author = 'https://author-test.adobeaemcloud.com';
+    for (const path of ['search', 'referencedBy']) {
+        const read = request(`${author}/adobe/sites/cf/fragments/${path}`, { method: 'POST' });
+        assert.equal(isReadOnlyRequest(read), true);
+        assert.equal(isBootstrapRead(read), path === 'search');
+        assert.equal(await isRetryableRead(read), false);
+    }
+    for (const [path, method] of [
+        ['/adobe/sites/cf/fragments', 'POST'],
+        ['/adobe/sites/cf/fragments/id/versions', 'POST'],
+        ['/adobe/sites/cf/fragments/id', 'PUT'],
+        ['/adobe/sites/cf/fragments/id', 'DELETE'],
+        ['/bin/wcmcommand', 'POST'],
+        ['/adobe/sites/cf/fragments/publish', 'POST'],
+    ]) {
+        assert.equal(isReadOnlyRequest(request(`${author}${path}`, { method })), false, `${method} ${path}`);
+    }
+    assert.equal(
+        isReadOnlyRequest(request('https://other.example/adobe/sites/cf/fragments/referencedBy', { method: 'POST' })),
+        false,
+    );
+});
+
+test('only foreground UUID searches and editors prioritize dependencies, not background fragment lookups', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'nala-foreground-'));
+    const previousCoordinator = process.env.NALA_RATE_LIMIT_COORDINATOR;
+    const stop = await initializeRateLimitCoordinator(
+        { projects: [{ outputDir: directory }] },
+        { maxRps: 1000, maxInFlight: 3 },
+    );
+    const page = new EventEmitter();
+    let url = 'https://studio.example/studio.html#page=content';
+    page.url = () => url;
+    page.close = async () => {};
+    page.addInitScript = async () => {};
+    let reportSearch;
+    let reportMutation;
+    page.exposeBinding = async (name, callback) => {
+        const report = (foreground) => callback({ frame: { parentFrame: () => null } }, foreground);
+        if (name === '__nalaForegroundSearch') reportSearch = report;
+        else reportMutation = report;
+    };
+    let handleRoute;
+    page.route = async (pattern, handler) => {
+        handleRoute = handler;
+    };
+    const fetch = async (url) => {
+        const read = request(url, { type: 'fetch' });
+        page.emit('request', read);
+        await handleRoute({
+            request: () => read,
+            fetch: async () => ({ status: () => 200, headers: () => ({}), dispose: async () => {} }),
+            fulfill: async () => {},
+        });
+        page.emit('requestfinished', read);
+    };
+    try {
+        await installEdsThrottleOnPage(page, { cache: false, replayHar: false });
+        const preview = 'https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath';
+        await fetch(preview);
+        await fetch('https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments/48a759ce-3c9a-4158-9bc3-b21ffa07e8e4');
+        await fetch(preview);
+        reportSearch(true);
+        await fetch(preview);
+        page.emit('domcontentloaded');
+        reportMutation(true);
+        await fetch(preview);
+        page.emit('domcontentloaded');
+        await fetch(preview);
+        url = 'https://studio.example/studio.html#page=fragment-editor&fragmentId=seed';
+        await fetch(preview);
+        await removePageRoutes(page);
+    } finally {
+        await stop();
+        if (previousCoordinator === undefined) delete process.env.NALA_RATE_LIMIT_COORDINATOR;
+        else process.env.NALA_RATE_LIMIT_COORDINATOR = previousCoordinator;
+    }
+    try {
+        const pressure = JSON.parse(readFileSync(join(directory, 'odin-pressure.json'), 'utf8'));
+        assert.equal(pressure.starts, 7);
+        assert.equal(pressure.foregroundStarts, 3);
+        assert.equal(pressure.active, 0);
+    } finally {
+        unlinkSync(join(directory, 'odin-pressure.json'));
+        rmdirSync(directory);
+    }
 });
 
 function routes(url, { headers = {}, status = 200, fail = false, body = Buffer.from('asset') } = {}) {
@@ -189,6 +281,9 @@ test('authentication logs native 429s without blocking subsequent sign-in reques
     t.mock.method(globalThis, 'setTimeout', () => assert.fail('Authentication must not wait for a native cooldown'));
     const warnings = t.mock.method(console, 'warn', () => {});
     const page = new EventEmitter();
+    page.url = () => 'https://studio.example/';
+    page.exposeBinding = async () => {};
+    page.addInitScript = async () => {};
     let handleRoute;
     page.route = async (pattern, handler) => {
         handleRoute = handler;
@@ -249,6 +344,9 @@ test('native 429 cooldowns apply to every origin, including IMS and other third-
         'http://127.0.0.1:54321',
     ]) {
         const page = new EventEmitter();
+        page.url = () => 'https://studio.example/';
+        page.exposeBinding = async () => {};
+        page.addInitScript = async () => {};
         let handleRoute;
         page.route = async (pattern, handler) => {
             handleRoute = handler;

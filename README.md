@@ -114,6 +114,10 @@ At test completion Nala cancels that page's queued reads and closes only its own
 background reads. Native author mutations and creation-ledger response payloads settle before closure within a 30-second
 teardown budget; failed mutations remain failures. In-flight static loads belong to their page, while completed public
 responses can be shared within the worker, so closing one page cannot poison another page's load.
+Read-only author `search` and `referencedBy` POSTs are cancellable reads, not writes, and are never automatically retried.
+`referencedBy` stays live even during editor bootstrap. Aborted application reads release their queued work immediately,
+including during navigation and search, rather than remaining scheduled until test teardown.
+Mutation transport errors include the method, origin/path and browser failure reason.
 Worker-scoped Docs pages also drain handlers between tests so background requests remain attributed to the owning test.
 Missing (HTTP 404) seed assets are reported and excluded from HAR; their test requests stay live, so caching does not
 block unrelated tests or conceal missing dependencies. Seed navigation, readiness, rate-limit and transport failures still fail setup.
@@ -125,13 +129,24 @@ including IMS, Odin and third-party services on test and HAR seed pages; no host
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
 This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
 Intercepted test Odin author and preview traffic share a budget from the first request, initially 10 request starts/second locally.
-Intercepted reads additionally share three in-flight permits across the invocation's workers; cached assets use neither budget.
+Buffered Odin GET reads additionally share three in-flight permits across the invocation's workers;
+cached assets use neither budget. Read-only POSTs remain browser-managed and start-paced, not buffered.
 `NALA_ODIN_PREVIEW_MAX_RPS` and `NALA_ODIN_PREVIEW_MAX_IN_FLIGHT` tune these positive, run-wide budgets, not per-worker limits.
 These are benchmark starting points, not published Odin limits. One 429 burst halves the shared rate once;
 repeated responses extend the shared cooldown without repeatedly halving it. Adaptive spacing is bounded at 1 second
 (or the configured spacing if already slower). After at least 20 non-throttled responses (including expected 404s) and
 10 seconds of recovery, the rate increases by 1 RPS, never above its configured maximum.
 Queued page owners receive round-robin grants; cancelling one owner's reads does not cancel another owner's requests.
+Within an owner's queue, writes, CSRF/model requests and active-editor Odin requests
+take priority over inventory reads. UUID searches and active repository mutation operations also prioritize their Odin dependencies
+(including dictionaries/settings). Read-only observation of native search input distinguishes these searches from
+background configuration lookups; subscribing to the public repository operation store identifies mutation work
+until that operation completes. Background fragment lookups alone do not receive foreground priority.
+No application events or requests are synthesized. A new document resets these phases.
+After three foreground grants, an available background request receives a grant,
+preventing starvation. Occupied read permits do not block native writes that need only a paced start.
+Priority changes neither the request-start budget nor the in-flight limit. Pressure reports include foreground starts
+and their maximum queue wait; per-test attachments distinguish application cancellations from teardown cancellations.
 Other origins retain their existing recovery spacing.
 Permits cover the upstream fetch only: they are released on success or transport failure and before retry waiting.
 Intercepted preview fetches are bounded at 60 seconds; other hosts keep their existing fetch timeout.
@@ -149,6 +164,8 @@ Cancelled requests and timeouts are not retried. Native HTTP 503/529 responses w
 cooldowns but still reach the application unchanged; overload responses are not converted into successes.
 API responses are never cached; persistent 429s reach the browser unchanged.
 Transport failures on intercepted API reads are logged and returned as failed browser requests, not successful responses.
+Network diagnostics also count browser HTTP 4xx/5xx outcomes, transport failures and aborted reads. Non-404 HTTP errors
+and unexpected transport failures log only the method and origin/path, never query strings or response bodies.
 Cookie-setting responses are neither retried nor cached. Authentication endpoints, streaming/range reads, documents and writes
 are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
 Remaining EDS requests are paced at 45 RPS per worker locally, including `.aem.page` previews.
@@ -168,6 +185,8 @@ It does not rely on global keyboard focus or select intermediate options. No sel
 These checks preserve live saves and mandatory discard confirmations; they do not retry writes or force clicks.
 New-fragment preview failures include source, preview and rendered variants plus preview/card failure state;
 they do not trigger reloads or repeat saves.
+Private clone-source tag writes consume their response body before navigating away. Receiving successful headers alone
+does not mean the browser transport has finished; navigating earlier can cancel that write response and falsely fail teardown.
 Accessibility scans wait for finite animations in the tested section to finish, so accordion fades are not
 mistaken for permanent contrast failures. Infinite animations do not block scans; accessibility thresholds are unchanged.
 Translation search uses an already-loaded baseline card or this run's immutable source, never another run's temporary cards.
@@ -202,6 +221,8 @@ Most save routes already opened the editor directly; the French legal-disclaimer
 Contexts, pages and fragment stores remain fresh per test. Only successful initial source reads are replayed;
 each clone, its initialization, subsequent edits, saves, reads and deletions stay live. Grid/search/navigation tests keep
 their existing routes and coverage; mutated clones are never shared between tests.
+Editor readiness waits for all outstanding page-owned author reads, including promotion searches and reference resolution,
+then rechecks the editor/store state. A completed fragment GET alone does not mean related hydration has finished.
 UI clone tests provision an immutable source with an explicitly unique name for each run, worker and source fixture.
 Only its ID is reused within that worker; each test still creates and edits its own clone through the live UI.
 This isolates AEM's automatic copy-name allocation across workers and machines without rewriting clone requests or retrying writes.

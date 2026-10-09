@@ -42,9 +42,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await editor.variant.click();
-            await page.getByRole('option', { name: 'suggested' }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerValue(editor.variant, 'ccd-suggested');
             await studio.saveCard();
         });
 
@@ -78,12 +76,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            const wideOption = page.getByRole('option', { name: 'Wide', exact: true });
-            await expect(wideOption).toBeVisible();
-            await wideOption.click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.size, 'Wide');
             await studio.saveCard();
         });
 

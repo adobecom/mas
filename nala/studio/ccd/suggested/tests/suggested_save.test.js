@@ -87,9 +87,7 @@ test.describe('M@S Studio CCD Suggested card test suite', () => {
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
             await expect(await editor.variant).toHaveAttribute('value', 'ccd-suggested');
-            await editor.variant.click();
-            await page.getByRole('option', { name: 'slice' }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerValue(editor.variant, 'ccd-slice');
             await studio.saveCard();
         });
 

@@ -67,6 +67,7 @@ export class CloneSourceCache {
                     body: JSON.stringify({ tags }),
                 });
                 if (!saved.ok) throw new Error(`Cannot copy clone-source tags: HTTP ${saved.status}`);
+                await saved.arrayBuffer();
             }, seed);
         }
         this.sources.set(key, seed.id);

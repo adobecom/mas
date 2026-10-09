@@ -1,23 +1,47 @@
 import { expect } from '@playwright/test';
 import GlobalRequestCounter from './global-request-counter.js';
+import { isReadOnlyRequest } from './rate-limit.js';
 
 const pendingEditorReads = new WeakMap();
 
 export async function loadEditorDocument(page, url) {
+    await trackEditorReads(page);
     const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
     if (!response) await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
 export function trackEditorReads(page) {
-    if (pendingEditorReads.has(page)) return;
+    if (pendingEditorReads.has(page)) return pendingEditorReads.get(page).script;
     const pending = new Set();
-    pendingEditorReads.set(page, pending);
+    const script = page.addInitScript(() => {
+        if (window !== window.top) return;
+        window.__nalaLoadedEditor = null;
+        window.addEventListener('hashchange', () => {
+            window.__nalaLoadedEditor = null;
+        });
+        document.addEventListener(
+            'fragment-loaded',
+            (event) => {
+                const editor = event.composedPath().find((element) => element.localName === 'mas-fragment-editor');
+                if (editor) window.__nalaLoadedEditor = editor.fragmentStore.get().id;
+            },
+            true,
+        );
+    });
+    pendingEditorReads.set(page, { pending, script });
     page.on('request', (request) => {
-        if (request.method() === 'GET' && isBootstrapRead(request)) pending.add(request);
+        const { hostname, pathname } = new URL(request.url());
+        if (
+            hostname.endsWith('.adobeaemcloud.com') &&
+            (pathname.startsWith('/adobe/sites/') || pathname.startsWith('/api/assets/')) &&
+            isReadOnlyRequest(request)
+        )
+            pending.add(request);
     });
     const finished = (request) => pending.delete(request);
     page.on('requestfinished', finished);
     page.on('requestfailed', finished);
+    return script;
 }
 
 /**
@@ -28,6 +52,7 @@ export async function waitForEditorReady(page, fragmentId, { preview = true } = 
         const editor = document.querySelector('mas-fragment-editor');
         return (
             editor?.initState === 'ready' &&
+            window.__nalaLoadedEditor === id &&
             editor.fragmentStore?.get().id === id &&
             !editor.fragmentStore.loading &&
             (!preview || editor.previewResolved) &&
@@ -35,16 +60,10 @@ export async function waitForEditorReady(page, fragmentId, { preview = true } = 
         );
     };
     await page.waitForFunction(ready, { id: fragmentId, preview });
-    const pending = pendingEditorReads.get(page);
+    const pending = pendingEditorReads.get(page)?.pending;
     if (pending) {
-        // Concurrent refreshes can clear the store's loading flag before the last response arrives.
-        await expect
-            .poll(
-                () =>
-                    [...pending].filter((request) => new URL(request.url()).pathname.endsWith(`/cf/fragments/${fragmentId}`))
-                        .length,
-            )
-            .toBe(0);
+        // Promotion/reference hydration can still refresh the editor after its fragment GET has finished.
+        await expect.poll(() => pending.size).toBe(0);
         await page.waitForFunction(ready, { id: fragmentId, preview });
     }
     if (!preview) return;
@@ -79,7 +98,7 @@ export class EditorBootstrapCache {
     metrics = { coldLoads: 0, reusedLoads: 0, replayedReads: 0 };
 
     async install(page) {
-        trackEditorReads(page);
+        await trackEditorReads(page);
         const state = { active: null };
         this.pages.set(page, state);
         await page.route('**/*', async (route) => {

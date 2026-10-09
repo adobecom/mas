@@ -1,19 +1,21 @@
 import { isStaticResource, serveStaticResource, recordStaticCacheHit } from './static-resource-cache.js';
 import { installRunStaticHar, STATIC_HAR_URLS } from './run-static-har.js';
-import { fetchWithRateLimitRetry, isRetryableRead, logRateLimitedResponses, waitForRateLimit } from './rate-limit.js';
+import {
+    fetchWithRateLimitRetry,
+    isReadOnlyRequest,
+    isRetryableRead,
+    logRateLimitedResponses,
+    waitForRateLimit,
+} from './rate-limit.js';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
+import { isOdinOrigin } from './rate-limit-coordinator.js';
 
 const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
 let lastRequestAt = 0;
 let throttleLogged = false;
-
-function isCancellableRead(request) {
-    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method())) return true;
-    const { hostname, pathname } = new URL(request.url());
-    return hostname.endsWith('.adobeaemcloud.com') && request.method() === 'POST' && pathname.endsWith('/cf/fragments/search');
-}
+const UUID_QUERY = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 
 export async function drainPageRoutes(page) {
     const state = pendingPageRoutes.get(page);
@@ -25,6 +27,9 @@ export function getPageRouteMetrics(page) {
     const state = pendingPageRoutes.get(page);
     return {
         cancelledReads: state?.cancelled.size ?? 0,
+        applicationCancelledReads: state?.applicationCancelled.size ?? 0,
+        foregroundSearchActive: state?.foregroundSearch ?? false,
+        foregroundMutationActive: state?.foregroundMutation ?? false,
         pendingRoutes: state?.pending.size ?? 0,
         teardownMs: state?.teardownMs ?? 0,
     };
@@ -42,7 +47,7 @@ export async function removePageRoutes(page, beforeClose = async () => {}) {
         // Closing a page can release intercepted requests to the network unless they are aborted first.
         await Promise.all(
             [...state.routes]
-                .filter((route) => isCancellableRead(route.request()))
+                .filter((route) => isReadOnlyRequest(route.request()))
                 .map(async (route) => {
                     state.cancelled.add(route.request());
                     try {
@@ -57,7 +62,12 @@ export async function removePageRoutes(page, beforeClose = async () => {}) {
             (async () => {
                 while (state.mutations.size) await Promise.all([...state.mutations.values()].map(({ done }) => done));
                 await beforeClose();
-                if (state.errors.length) throw new AggregateError(state.errors, 'Author mutation transport failed');
+                if (state.errors.length) {
+                    throw new AggregateError(
+                        state.errors,
+                        `Author mutation transport failed:\n${state.errors.map((error) => error.message).join('\n')}`,
+                    );
+                }
             })(),
             new Promise((resolve, reject) => {
                 timer = setTimeout(
@@ -69,6 +79,7 @@ export async function removePageRoutes(page, beforeClose = async () => {}) {
     } finally {
         clearTimeout(timer);
         await page.close();
+        state.readControllers.clear();
         state.teardownMs = Date.now() - started;
     }
 }
@@ -161,11 +172,46 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         controller: new AbortController(),
         owner: randomUUID(),
         cancelled: new Set(),
+        applicationCancelled: new Set(),
+        readControllers: new Map(),
+        foregroundSearch: false,
+        foregroundMutation: false,
     };
     pendingPageRoutes.set(page, state);
+    await page.exposeBinding('__nalaForegroundSearch', ({ frame }, foreground) => {
+        if (!frame.parentFrame()) state.foregroundSearch = foreground;
+    });
+    await page.exposeBinding('__nalaForegroundMutation', ({ frame }, foreground) => {
+        if (!frame.parentFrame()) state.foregroundMutation = foreground;
+    });
+    await page.addInitScript((uuidPattern) => {
+        if (window !== window.top) return;
+        const uuid = new RegExp(uuidPattern, 'i');
+        const observeSearch = (event) => {
+            const path = event.composedPath();
+            const search = path.find((element) => element.localName === 'sp-search' && element.closest('#actions'));
+            if (search) void window.__nalaForegroundSearch(uuid.test(path[0].value));
+        };
+        for (const event of ['input', 'change']) document.addEventListener(event, observeSearch, true);
+        let subscribed = false;
+        const observeOperation = () => {
+            const operation = document.querySelector('mas-repository')?.operation;
+            if (subscribed || !operation) return;
+            subscribed = true;
+            operation.subscribe((value) => void window.__nalaForegroundMutation(Boolean(value)));
+            observer.disconnect();
+        };
+        const observer = new MutationObserver(observeOperation);
+        observer.observe(document, { childList: true, subtree: true });
+        void customElements.whenDefined('mas-repository').then(observeOperation);
+    }, UUID_QUERY.source);
+    page.on('domcontentloaded', () => {
+        state.foregroundSearch = false;
+        state.foregroundMutation = false;
+    });
     page.on('request', (request) => {
         const { hostname } = new URL(request.url());
-        if (!hostname.endsWith('.adobeaemcloud.com') || isCancellableRead(request)) return;
+        if (!hostname.endsWith('.adobeaemcloud.com') || isReadOnlyRequest(request)) return;
         let finish;
         const done = new Promise((resolve) => (finish = resolve));
         state.mutations.set(request, { done, finish });
@@ -174,27 +220,42 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         state.mutations.get(request)?.finish();
         state.mutations.delete(request);
     };
-    page.on('requestfinished', finishMutation);
+    page.on('requestfinished', (request) => {
+        finishMutation(request);
+        state.readControllers.delete(request);
+    });
     page.on('requestfailed', (request) => {
+        if (isReadOnlyRequest(request) && /ERR_ABORTED|NS_BINDING_ABORTED/.test(request.failure().errorText)) {
+            state.cancelled.add(request);
+            if (!state.closing) state.applicationCancelled.add(request);
+            state.readControllers.get(request)?.abort();
+        }
         if (state.mutations.has(request)) {
             const { origin, pathname } = new URL(request.url());
-            state.errors.push(new Error(`${request.method()} ${origin}${pathname}: ${request.failure().errorText}`));
+            const error = new Error(`${request.method()} ${origin}${pathname}: ${request.failure().errorText}`);
+            state.errors.push(error);
+            console.warn(`[NALA] Author mutation transport failure: ${error.message}`);
         }
         finishMutation(request);
+        state.readControllers.delete(request);
     });
-    const options = { signal: state.controller.signal, owner: state.owner };
     logRateLimitedResponses(page, nativeCooldowns);
     logEdsThrottleOnce(edsMaxRps);
-    const handleRoute = async (route) => {
+    const handleRoute = async (route, options) => {
         const url = route.request().url();
         const pace = async (enforceCooldown = nativeCooldowns, reservePreview = true) => {
-            if (isCancellableRead(route.request())) options.signal.throwIfAborted();
+            if (isReadOnlyRequest(route.request())) options.signal.throwIfAborted();
             if (edsMaxRps > 0 && isEdsEdgeHost(url)) {
-                const read = isCancellableRead(route.request());
+                const read = isReadOnlyRequest(route.request());
                 await throttleEdsGap(edsMaxRps, url, { owner: state.owner, signal: read ? options.signal : undefined });
             } else if (enforceCooldown) {
-                const read = isCancellableRead(route.request());
-                await waitForRateLimit(url, { reservePreview, owner: state.owner, signal: read ? options.signal : undefined });
+                const read = isReadOnlyRequest(route.request());
+                await waitForRateLimit(url, {
+                    reservePreview,
+                    owner: state.owner,
+                    signal: read ? options.signal : undefined,
+                    priority: options.priority,
+                });
             }
         };
         if (await isStaticResource(route.request())) {
@@ -238,19 +299,39 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         await route.continue();
     };
     const trackRoute = (handler) => async (route) => {
+        const request = route.request();
+        const read = isReadOnlyRequest(request);
+        const controller = state.readControllers.get(request) ?? new AbortController();
+        if (read) state.readControllers.set(request, controller);
+        if (state.cancelled.has(request)) controller.abort();
+        const { hostname, pathname } = new URL(request.url());
+        const params = new URLSearchParams(new URL(page.url()).hash.slice(1));
+        const foreground =
+            !read ||
+            (isOdinOrigin(request.url()) &&
+                (params.get('fragmentId') ||
+                    UUID_QUERY.test(params.get('query')) ||
+                    state.foregroundSearch ||
+                    state.foregroundMutation)) ||
+            (hostname.endsWith('.adobeaemcloud.com') &&
+                (pathname === '/libs/granite/csrf/token.json' || pathname.startsWith('/adobe/sites/cf/models/')));
+        const options = {
+            signal: AbortSignal.any([state.controller.signal, controller.signal]),
+            owner: state.owner,
+            priority: foreground ? 'foreground' : 'background',
+        };
         state.routes.add(route);
-        const operation = handler(route);
+        const operation = handler(route, options);
         state.pending.add(operation);
         try {
             await operation;
         } catch (error) {
-            const read = isCancellableRead(route.request());
             const closed = /Target (?:page|browser|context).*closed|Request context disposed|Browser has been closed/.test(
                 error.message,
             );
-            if (!state.closing || !read || (error.name !== 'AbortError' && !closed)) throw error;
-            const alreadyCancelled = state.cancelled.has(route.request());
-            state.cancelled.add(route.request());
+            const alreadyCancelled = state.cancelled.has(request);
+            if ((!state.closing && !alreadyCancelled) || !read || (error.name !== 'AbortError' && !closed)) throw error;
+            state.cancelled.add(request);
             if (!alreadyCancelled && !page.isClosed()) {
                 try {
                     await route.abort('aborted');
@@ -270,12 +351,12 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         if (harUrls.size) {
             await page.route(
                 STATIC_HAR_URLS,
-                trackRoute(async (route) => {
+                trackRoute(async (route, options) => {
                     if (harUrls.has(route.request().url()) && (await isStaticResource(route.request()))) {
                         recordStaticCacheHit();
                         await route.fallback();
                     } else {
-                        await handleRoute(route);
+                        await handleRoute(route, options);
                     }
                 }),
             );

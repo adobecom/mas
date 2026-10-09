@@ -326,9 +326,10 @@ test('persistent API connection resets fail after one bounded retry without leak
     expect(result).toBe('browser network failure');
     await failure;
     expect(requests.get('/reset-read')).toHaveLength(2);
-    expect(warnings).toHaveLength(2);
+    expect(warnings).toHaveLength(3);
     expect(warnings[0]).toContain('transient connection failure; retrying once');
     expect(warnings[1]).toContain('GET network failure');
+    expect(warnings[2]).toContain('Transport failure GET');
     for (const warning of warnings) expect(warning).not.toContain('do-not-log');
 });
 

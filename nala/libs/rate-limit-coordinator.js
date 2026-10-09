@@ -6,6 +6,7 @@ import { join } from 'node:path';
 const RECOVERY_GAP_MS = 100;
 const LEASE_MS = 90000;
 const RECOVERY_WINDOW_MS = 10000;
+const FOREGROUND_BURST = 3;
 
 export const previewOrigin = () => new URL(process.env.NALA_ODIN_PREVIEW_ORIGIN || 'https://odinpreview.corp.adobe.com').origin;
 export const isPreviewOrigin = (url) => new URL(url).origin === previewOrigin();
@@ -53,6 +54,7 @@ export class OriginRateLimits {
             queue: [],
             timer: null,
             owners: [],
+            foregroundBursts: new Map(),
             gap,
             decreaseUntil: 0,
             recoveredAt: 0,
@@ -71,6 +73,8 @@ export class OriginRateLimits {
                 waitMs: 0,
                 cancelled: 0,
                 maxWaitMs: 0,
+                foregroundStarts: 0,
+                maxForegroundWaitMs: 0,
             },
         };
     }
@@ -100,18 +104,19 @@ export class OriginRateLimits {
         return origin === this.preview || isOdinOrigin(origin) ? this.preview : origin;
     }
 
-    wait(origin, read, { signal, owner = read?.owner } = {}) {
+    wait(origin, read, { signal, owner = read?.owner, priority = read?.priority } = {}) {
         origin = this.budgetOrigin(origin);
         const state = this.origins.get(origin);
         if (!state) return Promise.resolve(0);
         signal?.throwIfAborted();
         const started = Date.now();
         return new Promise((resolve, reject) => {
-            const entry = { read, owner, started, resolve, reject, signal };
+            const entry = { read, owner, priority, started, resolve, reject, signal };
             entry.cancel = () => {
                 const index = state.queue.indexOf(entry);
                 if (index < 0) return;
                 state.queue.splice(index, 1);
+                if (!state.queue.some((queued) => queued.owner === owner)) state.foregroundBursts.delete(owner);
                 state.stats.cancelled++;
                 reject(signal.reason);
                 this.pump(state);
@@ -133,21 +138,41 @@ export class OriginRateLimits {
                 state.leases.delete(id);
                 console.warn(`[NALA] Expired Odin read permit for ${this.preview}${lease.path}; releasing abandoned capacity.`);
             }
-            while (!state.queue.some((entry) => entry.owner === state.owners[0])) state.owners.shift();
-            const index = state.queue.findIndex((entry) => entry.owner === state.owners[0]);
-            const entry = state.queue[index];
+            state.owners = state.owners.filter((owner) => state.queue.some((entry) => entry.owner === owner));
+            const available = (entry) => !entry.read || state.leases.size < this.maxInFlight;
+            const ownerIndex = state.owners.findIndex((owner) =>
+                state.queue.some((entry) => entry.owner === owner && available(entry)),
+            );
             const delay = Math.max(state.deadline, state.nextAt) - now;
-            if (delay > 0 || (entry.read && state.leases.size >= this.maxInFlight)) {
+            if (delay > 0 || ownerIndex < 0) {
                 state.timer = setTimeout(() => this.pump(state), Math.max(1, Math.ceil(delay > 0 ? delay : 50)));
                 return;
             }
+            const owner = state.owners[ownerIndex];
+            const backgroundIndex = state.queue.findIndex(
+                (entry) => entry.owner === owner && available(entry) && entry.priority !== 'foreground',
+            );
+            const foregroundIndex = state.queue.findIndex(
+                (entry) => entry.owner === owner && available(entry) && entry.priority === 'foreground',
+            );
+            const useForeground =
+                foregroundIndex >= 0 && (backgroundIndex < 0 || (state.foregroundBursts.get(owner) ?? 0) < FOREGROUND_BURST);
+            const index = useForeground ? foregroundIndex : backgroundIndex;
+            const entry = state.queue[index];
             state.queue.splice(index, 1);
-            state.owners.shift();
-            if (state.queue.some((queued) => queued.owner === entry.owner)) state.owners.push(entry.owner);
+            state.owners.splice(ownerIndex, 1);
+            if (state.queue.some((queued) => queued.owner === entry.owner)) {
+                state.owners.push(entry.owner);
+                state.foregroundBursts.set(owner, useForeground ? (state.foregroundBursts.get(owner) ?? 0) + 1 : 0);
+            } else state.foregroundBursts.delete(owner);
             entry.signal?.removeEventListener('abort', entry.cancel);
             state.lastStart = now;
             state.nextAt = now + state.gap;
             const waitMs = now - entry.started;
+            if (entry.priority === 'foreground') {
+                state.stats.foregroundStarts++;
+                state.stats.maxForegroundWaitMs = Math.max(state.stats.maxForegroundWaitMs, waitMs);
+            }
             if (!entry.read) {
                 entry.resolve(waitMs);
                 continue;
@@ -240,7 +265,7 @@ export async function coordinateRateLimit(action, origin, deadline, details = {}
         if (action === 'cancel') return localLimits.cancel(origin, details.id);
         if (action === 'release')
             return localLimits.release(origin, details.id, details.status, details.latencyMs, details.cancelled);
-        return localLimits.wait(origin, undefined, { signal, owner: details.owner });
+        return localLimits.wait(origin, undefined, { signal, owner: details.owner, priority: details.priority });
     }
     try {
         const response = await fetch(`${endpoint}/${action}`, {
@@ -288,7 +313,12 @@ export default async function initializeRateLimitCoordinator(config, options, pr
         else if (request.url.endsWith('/release'))
             limits.release(origin, details.id, details.status, details.latencyMs, details.cancelled);
         else if (request.url.endsWith('/cooldown')) limits.cooldown(origin, deadline);
-        else waitMs = await limits.wait(origin, undefined, { signal: controller.signal, owner: details.owner });
+        else
+            waitMs = await limits.wait(origin, undefined, {
+                signal: controller.signal,
+                owner: details.owner,
+                priority: details.priority,
+            });
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify(permit ?? { waitMs }));
     };

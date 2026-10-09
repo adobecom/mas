@@ -65,6 +65,8 @@ for (const cleanup of ['skipped', 'empty', 'failed', 'completed']) {
                 const fragmentsUrl = 'https://author-test.adobeaemcloud.com/adobe/sites/cf/fragments';
                 const page = new EventEmitter();
                 page.route = async () => {};
+                page.exposeBinding = async () => {};
+                page.addInitScript = async () => {};
                 page.unrouteAll = async () => {};
                 page.close = async () => {};
                 page.goto = async () => {};
@@ -74,7 +76,7 @@ for (const cleanup of ['skipped', 'empty', 'failed', 'completed']) {
                     page.emit('response', {
                         status: () => 404,
                         url: () => `${fragmentsUrl}/already-absent-id`,
-                        request: () => ({ method: () => 'GET' }),
+                        request: () => ({ method: () => 'GET', url: () => `${fragmentsUrl}/already-absent-id` }),
                     });
                     return { deletedIds: ['deleted-id'], alreadyDeletedIds: ['already-absent-id'], failures: [] };
                 };
@@ -521,7 +523,8 @@ test('request summary counts Odin preview, retries and rate-limit waits without 
     const previousCounterFile = globalThis.requestCounter.counterFile;
     const logs = [];
     t.mock.method(console, 'log', (message) => logs.push(message));
-    t.mock.method(console, 'warn', () => {});
+    const warnings = [];
+    t.mock.method(console, 'warn', (message) => warnings.push(message));
     process.chdir(directory);
     mkdirSync('test-results');
     globalThis.requestCounter.counterFile = './test-results/request-count.json';
@@ -537,6 +540,19 @@ test('request summary counts Odin preview, retries and rate-limit waits without 
             status: () => 429,
             request: () => request,
             headers: () => ({ 'retry-after': '0.01' }),
+        });
+        for (const status of [401, 500]) {
+            page.emit('response', {
+                status: () => status,
+                request: () => request,
+                headers: () => ({}),
+            });
+        }
+        page.emit('requestfailed', { ...request, failure: () => ({ errorText: 'net::ERR_ABORTED' }) });
+        page.emit('requestfailed', {
+            ...request,
+            method: () => 'PUT',
+            failure: () => ({ errorText: 'net::ERR_CONNECTION_RESET' }),
         });
         await waitForRateLimit(url);
         let attempts = 0;
@@ -560,6 +576,10 @@ test('request summary counts Odin preview, retries and rate-limit waits without 
         assert.equal(data.serviceCounts.ODIN_PREVIEW.totalRequests, 1);
         assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].responses429, 2);
         assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].retries, 1);
+        assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].responses4xx, 2);
+        assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].responses5xx, 1);
+        assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].transportFailures, 1);
+        assert.equal(data.rateLimits['https://odinpreview.corp.adobe.com'].abortedReads, 1);
         assert.ok(data.rateLimits['https://odinpreview.corp.adobe.com'].waitMs >= 10);
         await stopCoordinator();
         stopCoordinator = null;
@@ -570,7 +590,9 @@ test('request summary counts Odin preview, retries and rate-limit waits without 
         assert.match(logs.join('\n'), /Upstream reads: 2; peak in-flight: 1/);
         assert.match(logs.join('\n'), /User agents: Nala test/);
         assert.match(logs.join('\n'), /summed request waits/);
+        assert.match(logs.join('\n'), /total HTTP 4xx: 2; total HTTP 5xx: 1; transport failures: 1; aborted reads: 1/);
         assert.doesNotMatch(logs.join('\n'), /token=secret/);
+        assert.doesNotMatch(warnings.join('\n'), /token=secret/);
     } finally {
         if (stopCoordinator) await stopCoordinator();
         stopCounting();
@@ -599,6 +621,68 @@ test('preview requests are paced before any 429 and in-flight capacity is shared
     assert.deepEqual(limits.snapshot().userAgents, ['Nala']);
     assert.deepEqual(limits.snapshot().paths, { '/adobe/contentFragments/byPath': 2 });
     assert.equal(limits.snapshot().active, 0);
+});
+
+for (const backlog of [8, 128]) {
+    test(`foreground work bypasses ${backlog} queued background reads without increasing the budget`, async () => {
+        const origin = 'https://odinpreview.corp.adobe.com';
+        const limits = new OriginRateLimits({ maxRps: 100, maxInFlight: 1 });
+        const held = await limits.wait(origin, { path: '/held', owner: 'page' });
+        const controllers = Array.from({ length: backlog }, () => new AbortController());
+        const background = controllers.map((controller, index) =>
+            limits
+                .wait(origin, { path: `/background-${index}`, owner: 'page' }, { signal: controller.signal })
+                .catch((error) => error),
+        );
+        const foreground = limits.wait(origin, { path: '/foreground', owner: 'page', priority: 'foreground' });
+        limits.release(origin, held.id, 200, 1);
+        const permit = await foreground;
+        assert.equal(limits.snapshot().paths['/foreground'], 1);
+        assert.equal(limits.snapshot().starts, 2);
+        assert.equal(limits.snapshot().peakInFlight, 1);
+        for (const controller of controllers) controller.abort();
+        limits.release(origin, permit.id, 200, 1);
+        const errors = await Promise.all(background);
+        assert.ok(errors.every((error) => error.name === 'AbortError'));
+        assert.equal(limits.snapshot().queued, 0);
+    });
+}
+
+test('native mutation pacing is not blocked by occupied read permits or an earlier read', async () => {
+    const origin = 'https://odinpreview.corp.adobe.com';
+    const limits = new OriginRateLimits({ maxRps: 100, maxInFlight: 1 });
+    const held = await limits.wait(origin, { path: '/held', owner: 'page' });
+    const controller = new AbortController();
+    const background = limits
+        .wait(origin, { path: '/background', owner: 'page' }, { signal: controller.signal })
+        .catch((error) => error);
+    await limits.wait(origin, undefined, { owner: 'page', priority: 'foreground' });
+    assert.equal(limits.snapshot().active, 1);
+    assert.equal(limits.snapshot().foregroundStarts, 1);
+    assert.equal(limits.origins.get(origin).foregroundBursts.size, 1);
+    controller.abort();
+    assert.equal((await background).name, 'AbortError');
+    assert.equal(limits.origins.get(origin).foregroundBursts.size, 0);
+    limits.release(origin, held.id, 200, 1);
+});
+
+test('foreground prioritization preserves background progress and page-owner fairness', async () => {
+    const origin = 'https://odinpreview.corp.adobe.com';
+    const limits = new OriginRateLimits({ maxRps: 100, maxInFlight: 1 });
+    const held = await limits.wait(origin, { path: '/held', owner: 'page' });
+    const order = [];
+    const paths = ['/background', '/foreground-1', '/foreground-2', '/foreground-3', '/foreground-4'];
+    const queued = paths.map((path) =>
+        limits
+            .wait(origin, { path, owner: 'page', priority: path === '/background' ? 'background' : 'foreground' })
+            .then((permit) => {
+                order.push(path);
+                limits.release(origin, permit.id, 200, 1);
+            }),
+    );
+    limits.release(origin, held.id, 200, 1);
+    await Promise.all(queued);
+    assert.deepEqual(order, ['/foreground-1', '/foreground-2', '/foreground-3', '/background', '/foreground-4']);
 });
 
 test('backend rate decreases once per burst and recovers despite expected 404 reads', async (t) => {

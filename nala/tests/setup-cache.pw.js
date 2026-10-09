@@ -19,6 +19,7 @@ import { test as studioTest } from '../libs/mas-test.js';
 import { test as docsTest } from '../libs/docs-test.js';
 import StudioPage from '../studio/studio.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
+import { CloneSourceCache } from '../libs/clone-source-cache.js';
 
 const AUTHOR = 'http://author-test.adobeaemcloud.com';
 let server;
@@ -41,9 +42,11 @@ async function start() {
     ]);
     const fragment = await responses[0].json();
     const repository = document.querySelector('mas-repository');
-    repository.operation = { get: () => null };
+    repository.operation = { get: () => null, subscribe: () => {} };
     repository.fragmentInEdit = fragment;
     const editor = document.querySelector('mas-fragment-editor');
+    const loaded = () => editor.dispatchEvent(new CustomEvent('fragment-loaded', { bubbles: true, composed: true }));
+    let deferred = false;
     editor.fragmentStore = { get: () => fragment };
     editor.previewResolved = true;
     const card = document.createElement('merch-card');
@@ -57,13 +60,16 @@ async function start() {
     document.body.append(card);
     editor.initState = 'ready';
     if (new URLSearchParams(location.search).has('refresh')) {
+        deferred = true;
         editor.fragmentStore.loading = true;
         setTimeout(() => {
             fragment.title = 'Refreshed seed';
             editor.fragmentStore.loading = false;
+            loaded();
         }, 200);
     }
     if (new URLSearchParams(location.search).has('overlap')) {
+        deferred = true;
         editor.fragmentStore.loading = true;
         fetch('${AUTHOR}/adobe/sites/cf/fragments/' + id + '?refresh=fast').then(() => {
             fragment.title = 'First refresh';
@@ -72,8 +78,34 @@ async function start() {
         fetch('${AUTHOR}/adobe/sites/cf/fragments/' + id + '?refresh=slow').then(() => {
             fragment.title = 'Last refresh';
             editor.fragmentStore.loading = false;
+            loaded();
         });
     }
+    for (const dependency of ['search', 'referencedBy']) {
+        if (!new URLSearchParams(location.search).has(dependency + '-refresh')) continue;
+        deferred = true;
+        editor.fragmentStore.loading = true;
+        fetch('${AUTHOR}/adobe/sites/cf/fragments/' + id + '?refresh=fast').then(() => {
+            fragment.title = 'First refresh';
+            editor.fragmentStore.loading = false;
+        });
+        fetch('${AUTHOR}/adobe/sites/cf/fragments/' + dependency + '?refresh=slow', {
+            method: 'POST',
+            body: JSON.stringify({ id, locale })
+        }).then(() => {
+            fragment.title = 'Last dependency refresh';
+            editor.fragmentStore.loading = false;
+            loaded();
+        });
+    }
+    if (new URLSearchParams(location.search).has('deferred-loaded')) {
+        deferred = true;
+        setTimeout(() => {
+            fragment.title = 'Editor initialization finished';
+            loaded();
+        }, 200);
+    }
+    if (!deferred) loaded();
 }
 start();
 </script>`;
@@ -83,6 +115,15 @@ test.beforeAll(async () => {
     slowRequestsFinished.clear();
     server = createServer((request, response) => {
         documentLoads.push(request.url);
+        if (request.url === '/headers-write' && request.method === 'PUT') {
+            response.writeHead(200, { 'access-control-allow-origin': '*', 'content-type': 'application/json' });
+            response.flushHeaders();
+            setTimeout(() => {
+                response.end('{}');
+                slowRequestsFinished.add(request.url);
+            }, 200);
+            return;
+        }
         if (request.url.startsWith('/slow-asset') || request.url.startsWith('/slow-read')) {
             slowAssetStarted();
             setTimeout(
@@ -103,11 +144,142 @@ test.beforeAll(async () => {
                 ? 'globalThis.assetLoaded = true;'
                 : request.url.startsWith('/editor')
                   ? editorHTML
-                  : `<h1>${request.url}</h1>`,
+                  : request.url.startsWith('/search-controls')
+                    ? `<div id="actions"><sp-search><input type="search"></sp-search></div>${
+                          request.url.includes('?frame') ? '<iframe src="/search-controls"></iframe>' : ''
+                      }`
+                    : `<h1>${request.url}</h1>`,
         );
     });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseURL = `http://127.0.0.1:${server.address().port}`;
+});
+
+test('native UUID search input sets foreground mode, and clearing it restores background mode', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(`${baseURL}/search-controls?frame`);
+    const childInput = page.frameLocator('iframe').locator('input');
+    await childInput.fill('48a759ce-3c9a-4158-9bc3-b21ffa07e8e4');
+    expect(await childInput.inputValue()).toBe('48a759ce-3c9a-4158-9bc3-b21ffa07e8e4');
+    expect(getPageRouteMetrics(page).foregroundSearchActive).toBe(false);
+    const input = page.locator('#actions input');
+    await input.fill('48a759ce-3c9a-4158-9bc3-b21ffa07e8e4');
+    await expect.poll(() => getPageRouteMetrics(page).foregroundSearchActive).toBe(true);
+    await input.fill('Plans');
+    await expect.poll(() => getPageRouteMetrics(page).foregroundSearchActive).toBe(false);
+    await input.fill('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    expect(getPageRouteMetrics(page).foregroundSearchActive).toBe(false);
+    await input.fill('48a759ce-3c9a-4158-9bc3-b21ffa07e8e4');
+    await expect.poll(() => getPageRouteMetrics(page).foregroundSearchActive).toBe(true);
+    await page.goto(baseURL);
+    expect(getPageRouteMetrics(page).foregroundSearchActive).toBe(false);
+    await removePageRoutes(page);
+});
+
+test('clone-source tag writes finish their response before navigation without becoming false mutation failures', async ({
+    page,
+}) => {
+    const runId = createRunId();
+    initializeFragmentLedger();
+    const ledgerDirectory = resolve('nala', '.runs', runId);
+    try {
+        await installEdsThrottleOnPage(page);
+        await page.goto(baseURL);
+        await page.route(`${AUTHOR}/**`, async (route) => {
+            const method = route.request().method();
+            if (method === 'OPTIONS') {
+                await route.fulfill({
+                    headers: {
+                        'access-control-allow-origin': '*',
+                        'access-control-allow-methods': 'PUT',
+                        'access-control-allow-headers': 'Content-Type, If-Match',
+                    },
+                });
+            } else if (method === 'GET') {
+                await route.fulfill({
+                    headers: {
+                        etag: '"live-tag-etag"',
+                        'access-control-allow-origin': '*',
+                        'access-control-expose-headers': 'etag',
+                    },
+                    json: { tags: [] },
+                });
+            } else {
+                await route.continue({ url: `${baseURL}/headers-write` });
+            }
+        });
+        await page.evaluate((author) => {
+            const repo = document.createElement('mas-repository');
+            repo.fragmentInEdit = { title: 'Golden source' };
+            repo.aem = {
+                baseUrl: author,
+                cfFragmentsUrl: `${author}/adobe/sites/cf/fragments`,
+                headers: {},
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: async () => ({
+                                path: '/content/dam/mas/nala/en_US/seed',
+                                description: 'Seed',
+                                model: { id: 'model' },
+                                fields: [],
+                                tags: [{ id: 'mas:test' }],
+                            }),
+                            create: async ({ title, name, parentPath }) => ({
+                                id: 'owned',
+                                title,
+                                path: `${parentPath}/${name}`,
+                            }),
+                        },
+                    },
+                },
+            };
+            document.body.append(repo);
+        }, AUTHOR);
+        const cache = new CloneSourceCache(0);
+        expect(await cache.get(page, 'seed')).toBe('owned');
+        expect(slowRequestsFinished.has('/headers-write')).toBe(true);
+        expect(documentLoads.filter((url) => url === '/headers-write')).toHaveLength(1);
+        await page.goto(`${baseURL}/after-source`);
+        await removePageRoutes(page);
+        expect(page.isClosed()).toBe(true);
+    } finally {
+        if (!page.isClosed()) await removePageRoutes(page);
+        for (const file of readdirSync(ledgerDirectory)) unlinkSync(join(ledgerDirectory, file));
+        rmdirSync(ledgerDirectory);
+        clearRunId();
+    }
+});
+
+test('native repository operation notifications prioritize mutation dependencies only until the operation completes', async ({
+    page,
+}) => {
+    await installEdsThrottleOnPage(page);
+    await page.route('**/reactive-store.js', (route) =>
+        route.fulfill({ path: resolve('studio/src/reactivity/reactive-store.js'), contentType: 'application/javascript' }),
+    );
+    await page.goto(baseURL);
+    await page.evaluate(async () => {
+        const { ReactiveStore } = await import('/reactive-store.js');
+        const repository = document.createElement('mas-repository');
+        repository.operation = new ReactiveStore(null);
+        document.body.append(repository);
+        for (const [id, value] of [
+            ['start', 'create'],
+            ['finish', null],
+        ]) {
+            const button = document.createElement('button');
+            button.id = id;
+            button.textContent = id;
+            button.addEventListener('click', () => repository.operation.set(value));
+            document.body.append(button);
+        }
+    });
+    await page.locator('#start').click();
+    await expect.poll(() => getPageRouteMetrics(page).foregroundMutationActive).toBe(true);
+    await page.locator('#finish').click();
+    await expect.poll(() => getPageRouteMetrics(page).foregroundMutationActive).toBe(false);
+    await removePageRoutes(page);
 });
 
 test.afterAll(async () => {
@@ -318,6 +490,40 @@ test('editor setup waits for every overlapping source refresh, not the first cle
     }
 });
 
+for (const dependency of ['search', 'referencedBy']) {
+    test(`editor setup waits for ${dependency} hydration after the fragment GET and loading flag settle`, async ({
+        browser,
+    }) => {
+        const cache = new EditorBootstrapCache();
+        const calls = [];
+        const { page, context } = await seedPage(browser, cache, calls);
+        try {
+            await cache.open(page, `${baseURL}/editor?${dependency}-refresh#fragmentId=seed-a`);
+            expect(await page.locator('mas-fragment-editor').evaluate((editor) => editor.fragmentStore.get().title)).toBe(
+                'Last dependency refresh',
+            );
+            expect(calls.some(({ method, url }) => method === 'POST' && url.endsWith(`/${dependency}?refresh=slow`))).toBe(
+                true,
+            );
+        } finally {
+            await context.close();
+        }
+    });
+}
+
+test('editor setup waits for its public loaded event across quiet asynchronous initialization gaps', async ({ browser }) => {
+    const cache = new EditorBootstrapCache();
+    const { page, context } = await seedPage(browser, cache, []);
+    try {
+        await cache.open(page, `${baseURL}/editor?deferred-loaded#fragmentId=seed-a`);
+        expect(await page.locator('mas-fragment-editor').evaluate((editor) => editor.fragmentStore.get().title)).toBe(
+            'Editor initialization finished',
+        );
+    } finally {
+        await context.close();
+    }
+});
+
 test('seed, locale, URL overrides and worker caches have separate cold snapshots', async ({ browser }) => {
     const cache = new EditorBootstrapCache();
     const calls = [];
@@ -468,8 +674,12 @@ for (const [name, fixtureTest] of [
     }
 }
 
-for (const method of ['GET', 'POST']) {
-    test(`closing a page cancels its queued author ${method} read without closing another page in the same context`, async ({
+for (const [method, path] of [
+    ['GET', '/adobe/sites/cf/models/queued'],
+    ['POST', '/adobe/sites/cf/fragments/search'],
+    ['POST', '/adobe/sites/cf/fragments/referencedBy'],
+]) {
+    test(`closing a page cancels its queued author ${method} ${path} read without closing another page in the same context`, async ({
         browser,
     }) => {
         const origin = 'https://odinpreview.corp.adobe.com';
@@ -489,11 +699,10 @@ for (const method of ['GET', 'POST']) {
             await closing.goto(baseURL);
             await live.goto(baseURL);
             await closing.evaluate(
-                ({ author, method }) => {
-                    const path = method === 'POST' ? '/adobe/sites/cf/fragments/search' : '/adobe/sites/cf/models/queued';
+                ({ author, method, path }) => {
                     fetch(`${author}${path}`, { method }).catch(() => {});
                 },
-                { author: AUTHOR, method },
+                { author: AUTHOR, method, path },
             );
             await expect.poll(() => getPageRouteMetrics(closing).pendingRoutes).toBe(1);
             await removePageRoutes(closing);
@@ -518,6 +727,53 @@ for (const method of ['GET', 'POST']) {
         }
     });
 }
+
+for (const [method, path] of [
+    ['GET', '/adobe/sites/cf/fragments/search'],
+    ['POST', '/adobe/sites/cf/fragments/referencedBy'],
+]) {
+    test(`application cancellation releases a queued ${method} ${path} before page teardown`, async ({ page }) => {
+        const previousCoordinator = process.env.NALA_RATE_LIMIT_COORDINATOR;
+        const stop = await initializeRateLimitCoordinator(undefined, { maxRps: 10, maxInFlight: 3 });
+        try {
+            await installEdsThrottleOnPage(page);
+            await page.goto(baseURL);
+            await coordinateRateLimit('cooldown', AUTHOR, Date.now() + 5000);
+            await page.evaluate(
+                ({ author, method, path }) => {
+                    window.pendingRead = new AbortController();
+                    fetch(`${author}${path}`, { method, signal: window.pendingRead.signal }).catch(() => {});
+                },
+                { author: AUTHOR, method, path },
+            );
+            await expect.poll(() => getPageRouteMetrics(page).pendingRoutes).toBe(1);
+            await page.evaluate(() => window.pendingRead.abort());
+            await expect.poll(() => getPageRouteMetrics(page).applicationCancelledReads, { timeout: 1000 }).toBe(1);
+            await expect.poll(() => getPageRouteMetrics(page).pendingRoutes, { timeout: 1000 }).toBe(0);
+            expect(page.isClosed()).toBe(false);
+            await page.goto(`${baseURL}/after-cancel`);
+            await expect(page.locator('h1')).toHaveText('/after-cancel');
+            await removePageRoutes(page);
+        } finally {
+            await stop();
+            if (previousCoordinator === undefined) delete process.env.NALA_RATE_LIMIT_COORDINATOR;
+            else process.env.NALA_RATE_LIMIT_COORDINATOR = previousCoordinator;
+        }
+    });
+}
+
+test('an aborted native referencedBy POST is not reported as a failed write', async ({ page }) => {
+    await installEdsThrottleOnPage(page);
+    await page.goto(baseURL);
+    await page.route(`${AUTHOR}/adobe/sites/cf/fragments/referencedBy`, (route) => route.abort('aborted'));
+    const failure = page.waitForEvent('requestfailed', (request) => request.url().endsWith('/referencedBy'));
+    await page.evaluate((author) => {
+        fetch(`${author}/adobe/sites/cf/fragments/referencedBy`, { method: 'POST' }).catch(() => {});
+    }, AUTHOR);
+    await failure;
+    await removePageRoutes(page);
+    expect(page.isClosed()).toBe(true);
+});
 
 test('cancelling an in-flight static load cannot poison another page load or its completed cache entry', async ({
     browser,
@@ -648,7 +904,7 @@ test('owned teardown surfaces a native mutation transport failure and still comp
         removePageRoutes(page, async () => {
             trackingCompleted = true;
         }),
-    ).rejects.toThrow('Author mutation transport failed');
+    ).rejects.toThrow(`PUT ${AUTHOR}/adobe/sites/cf/fragments/abcd: net::ERR_FAILED`);
     expect(trackingCompleted).toBe(true);
     expect(writes).toBe(1);
     expect(page.isClosed()).toBe(true);

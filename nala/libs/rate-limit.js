@@ -9,7 +9,19 @@ let coordinatorError;
 
 function originMetrics(url) {
     const { origin } = new URL(url);
-    if (!metrics.has(origin)) metrics.set(origin, { responses429: 0, responses503: 0, responses529: 0, retries: 0, waitMs: 0 });
+    if (!metrics.has(origin)) {
+        metrics.set(origin, {
+            responses429: 0,
+            responses503: 0,
+            responses529: 0,
+            responses4xx: 0,
+            responses5xx: 0,
+            transportFailures: 0,
+            abortedReads: 0,
+            retries: 0,
+            waitMs: 0,
+        });
+    }
     return metrics.get(origin);
 }
 
@@ -19,6 +31,16 @@ export function getRateLimitMetrics() {
 
 export function getReadRetryCounts() {
     return new Map(retryCounts);
+}
+
+export function isReadOnlyRequest(request) {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method())) return true;
+    const { hostname, pathname } = new URL(request.url());
+    return (
+        hostname.endsWith('.adobeaemcloud.com') &&
+        request.method() === 'POST' &&
+        ['/adobe/sites/cf/fragments/search', '/adobe/sites/cf/fragments/referencedBy'].includes(pathname)
+    );
 }
 
 export function retryAfterMs(value, now = Date.now()) {
@@ -46,9 +68,13 @@ async function logRateLimit(request, headers, applyCooldown = true, status = 429
 export function logRateLimitedResponses(page, applyCooldown = true) {
     page.on('response', (response) => {
         const status = response.status();
+        const request = response.request();
+        const counts = originMetrics(request.url());
+        if (status >= 400 && status < 500) counts.responses4xx++;
+        if (status >= 500) counts.responses5xx++;
         const throttled = status === 429 || ([503, 529].includes(status) && response.headers()['retry-after']);
-        if (throttled && !loggedRequests.has(response.request())) {
-            const report = logRateLimit(response.request(), response.headers(), applyCooldown, status);
+        if (throttled && !loggedRequests.has(request)) {
+            const report = logRateLimit(request, response.headers(), applyCooldown, status);
             pendingReports.add(report);
             report.then(
                 () => pendingReports.delete(report),
@@ -57,17 +83,29 @@ export function logRateLimitedResponses(page, applyCooldown = true) {
                     console.error(`[NALA] Failed to share HTTP ${status} cooldown: ${error.message}`);
                 },
             );
+        } else if (status >= 400 && status !== 404 && !throttled) {
+            const { origin, pathname } = new URL(request.url());
+            console.warn(`[NALA] HTTP ${status} ${request.method()} ${origin}${pathname}.`);
+        }
+    });
+    page.on('requestfailed', (request) => {
+        const error = request.failure().errorText;
+        const cancelled = isReadOnlyRequest(request) && /ERR_ABORTED|NS_BINDING_ABORTED/.test(error);
+        originMetrics(request.url())[cancelled ? 'abortedReads' : 'transportFailures']++;
+        if (!cancelled) {
+            const { origin, pathname } = new URL(request.url());
+            console.warn(`[NALA] Transport failure ${request.method()} ${origin}${pathname}: ${error}`);
         }
     });
 }
 
-export async function waitForRateLimit(url, { reservePreview = true, signal, owner } = {}) {
+export async function waitForRateLimit(url, { reservePreview = true, signal, owner, priority } = {}) {
     const { origin } = new URL(url);
     if (coordinatorError) throw coordinatorError;
     await Promise.all(pendingReports);
     signal?.throwIfAborted();
     if (!reservePreview && isOdinOrigin(url)) return;
-    const waitMs = await coordinateRateLimit('wait', origin, undefined, { owner }, { signal });
+    const waitMs = await coordinateRateLimit('wait', origin, undefined, { owner, priority }, { signal });
     if (waitMs > 0) originMetrics(url).waitMs += waitMs;
 }
 
@@ -81,7 +119,7 @@ export async function isRetryableRead(request) {
 }
 
 /** Retry an eligible GET once for throttling or a connection reset, never replay writes. */
-export async function fetchWithRateLimitRetry(route, beforeFetch, { signal, owner } = {}) {
+export async function fetchWithRateLimitRetry(route, beforeFetch, { signal, owner, priority } = {}) {
     for (let attempt = 0; attempt < 2; attempt++) {
         await beforeFetch();
         const request = route.request();
@@ -92,7 +130,7 @@ export async function fetchWithRateLimitRetry(route, beforeFetch, { signal, owne
                   'acquire',
                   url.origin,
                   undefined,
-                  { path: url.pathname, userAgent: await request.headerValue('user-agent'), owner },
+                  { path: url.pathname, userAgent: await request.headerValue('user-agent'), owner, priority },
                   { signal },
               )
             : null;

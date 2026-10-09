@@ -58,7 +58,9 @@ export default class RequestCountingReporter {
                         Object.assign(trackedUrls, data.trackedUrls || {});
                         for (const [origin, counts] of Object.entries(data.rateLimits || {})) {
                             rateLimits[origin] ??= { responses429: 0, responses503: 0, responses529: 0, retries: 0, waitMs: 0 };
-                            for (const [name, count] of Object.entries(counts)) rateLimits[origin][name] += count;
+                            for (const [name, count] of Object.entries(counts)) {
+                                rateLimits[origin][name] = (rateLimits[origin][name] ?? 0) + count;
+                            }
                         }
 
                         // Aggregate service counts
@@ -138,6 +140,13 @@ export default class RequestCountingReporter {
                         `        # Retry-After overload responses: HTTP 503: ${counts.responses503}; HTTP 529: ${counts.responses529}`,
                     );
                 }
+                if (counts.responses4xx || counts.responses5xx || counts.transportFailures || counts.abortedReads) {
+                    console.log(
+                        `        # Other network diagnostics: total HTTP 4xx: ${counts.responses4xx ?? 0}; ` +
+                            `total HTTP 5xx: ${counts.responses5xx ?? 0}; transport failures: ${counts.transportFailures ?? 0}; ` +
+                            `aborted reads: ${counts.abortedReads ?? 0}`,
+                    );
+                }
             }
         }
         const pressureFiles = (
@@ -165,6 +174,10 @@ export default class RequestCountingReporter {
             console.log(
                 `        # Mean/max queue wait: ${(pressure.starts ? pressure.waitMs / pressure.starts : 0).toFixed(0)}/` +
                     `${pressure.maxWaitMs ?? 0}ms; cancelled: ${pressure.cancelled ?? 0}; queued: ${pressure.queued ?? 0}`,
+            );
+            console.log(
+                `        # Foreground starts: ${pressure.foregroundStarts ?? 0}; ` +
+                    `max foreground queue wait: ${pressure.maxForegroundWaitMs ?? 0}ms`,
             );
             console.log(`        # User agents: ${pressure.userAgents.join(' | ') || 'no reads'}`);
             for (const [path, count] of Object.entries(pressure.paths)

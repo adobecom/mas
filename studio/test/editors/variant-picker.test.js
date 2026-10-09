@@ -177,6 +177,20 @@ describe('VariantPicker', () => {
             expect(names.length).to.equal(10);
         });
 
+        it('should return only plans and headless templates for genuine surface', () => {
+            const names = getVariantTreeData('genuine')
+                .map((v) => v.name)
+                .sort();
+            expect(names).to.deep.equal(['headless', 'plans']);
+        });
+
+        it('should return only the enabled templates for acom-edu surface', () => {
+            const names = getVariantTreeData('acom-edu')
+                .map((v) => v.name)
+                .sort();
+            expect(names).to.deep.equal(['headless', 'mini-compare-chart', 'mini-compare-chart-mweb', 'product']);
+        });
+
         it('should return only plans/catalog templates for acom surface', () => {
             const result = getVariantTreeData('acom');
             const names = result.map((v) => v.name);

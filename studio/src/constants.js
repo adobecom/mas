@@ -255,6 +255,10 @@ export const SURFACES = {
         label: 'ACOM DC',
         name: 'acom-dc',
     },
+    ACOM_EDU: {
+        label: 'ACOM EDU',
+        name: 'acom-edu',
+    },
     ADOBE_HOME: {
         label: 'Adobe Home',
         name: 'adobe-home',
@@ -274,6 +278,10 @@ export const SURFACES = {
     EXPRESS: {
         label: 'Express',
         name: 'express',
+    },
+    GENUINE: {
+        label: 'Genuine',
+        name: 'genuine',
     },
     NALA: {
         label: 'Nala',

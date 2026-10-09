@@ -10519,6 +10519,10 @@ merch-card[variant="product-c2"] [slot="footer"] a.primary-outline {
     color: var(--color-black);
 }
 
+merch-card[variant="product-c2"] [slot="footer"] a.primary-outline:hover {
+    background-color: #00000014;
+}
+
 merch-card[variant="product-c2"] [slot="heading-m"],
 merch-card[variant="product-c2"] [slot="body-xs"] {
     color: var(--color-black);
@@ -10548,7 +10552,7 @@ merch-card[variant="product-c2"] [slot="body-xs"] {
         color: var(--color-white);
     }
 
-    merch-card[variant="product-c2"][background-color="black"] [slot="footer"] a.primary-outline::hover {
+    merch-card[variant="product-c2"][background-color="black"] [slot="footer"] a.primary-outline:hover {
         background-color: var(--legal-gray);
         color: var(--color-black);
     }    

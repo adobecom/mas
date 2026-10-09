@@ -108,6 +108,32 @@ describe('get-product-detail', () => {
         expect(result.body.error).to.equal('No product found for arrangement code: test-code');
     });
 
+    it('falls back to the DRAFT landscape when the product is not published', async () => {
+        mockAuth();
+        const draftOffer = {
+            product_arrangement_code: 'PA-2543',
+            product_code: 'PROD-DRAFT',
+            merchandising: { copy: { name: 'New Offering' } },
+        };
+        const landscapesTried = [];
+        globalThis.fetch = (url) => {
+            const landscape = new URL(url).searchParams.get('landscape');
+            landscapesTried.push(landscape);
+            return createResponse(200, landscape === 'DRAFT' ? [draftOffer] : []);
+        };
+
+        const result = await main({
+            __ow_headers: validHeaders,
+            arrangementCode: 'PA-2543',
+            AOS_URL: 'https://aos.example.com',
+            AOS_API_KEY: 'test-key',
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.product.product_code).to.equal('PROD-DRAFT');
+        expect(result.body.product.name).to.equal('New Offering');
+        expect(landscapesTried).to.deep.equal(['PUBLISHED', 'DRAFT']);
+    });
+
     it('returns 200 with correct product shape when merchandising data exists', async () => {
         mockAuth();
         const mockOffer = {

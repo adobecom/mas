@@ -106,7 +106,7 @@ export class ProductC2 extends VariantLayout {
             gap: 24px;
             padding: 24px;
             box-sizing: border-box;
-            border-radius: 16px;
+            border-radius: 12px;
             color: #000;
             border: none;
         }

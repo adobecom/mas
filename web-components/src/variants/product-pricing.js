@@ -27,6 +27,10 @@ const SYNCED_ROWS = [
         name: 'fine',
         getElement: (card) => card.shadowRoot?.querySelector('.fine'),
     },
+    {
+        name: 'footer',
+        getElement: (card) => card.shadowRoot?.querySelector('footer'),
+    },
 ];
 
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
@@ -251,6 +255,9 @@ export class ProductPricing extends VariantLayout {
         :host([variant='product-pricing']) slot[name='heading-xs'] {
             display: flex;
             flex-direction: column;
+            /* Bottom-align so a plain price shares a baseline with a stacked
+               strikethrough price. */
+            justify-content: flex-end;
             min-height: var(
                 --consonant-merch-card-product-pricing-price-height
             );
@@ -301,6 +308,10 @@ export class ProductPricing extends VariantLayout {
             justify-content: stretch;
             align-items: stretch;
             flex-wrap: nowrap;
+            /* Row-max height keeps a wrapped CTA from shifting siblings' rows. */
+            min-height: var(
+                --consonant-merch-card-product-pricing-footer-height
+            );
         }
     `;
 }

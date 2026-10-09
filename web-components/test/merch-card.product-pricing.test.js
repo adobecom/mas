@@ -522,6 +522,70 @@ describe('ProductPricing price row collapse', () => {
     });
 });
 
+describe('ProductPricing row alignment', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    const renderRow = async (cardsHtml) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText =
+            'display:grid;grid-template-columns:repeat(2,261px);width:600px;';
+        wrap.innerHTML = cardsHtml
+            .map(
+                (inner) => `<merch-card variant="product-pricing">
+                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+            )
+            .join('');
+        document.body.appendChild(wrap);
+        const cards = [...wrap.children];
+        await Promise.all(cards.map((c) => c.updateComplete));
+        cards.forEach((c) => c.variantLayout.syncHeights());
+        await Promise.all(cards.map((c) => c.updateComplete));
+        return { wrap, cards };
+    };
+
+    it('bottom-aligns a plain price with a stacked strikethrough price', async () => {
+        const { wrap, cards } = await renderRow([
+            `<p slot="heading-xs"><span class="price-strikethrough">US$20</span><span class="price-alternative">US$10</span></p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+            `<p slot="heading-xs"><span class="price-alternative">US$10</span></p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+        ]);
+        try {
+            const [stacked, plain] = cards.map(
+                (c) =>
+                    c
+                        .querySelector('.price-alternative')
+                        .getBoundingClientRect().bottom,
+            );
+            expect(plain).to.equal(stacked);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('keeps price and fine print aligned when one CTA wraps', async () => {
+        const { wrap, cards } = await renderRow([
+            `<p slot="heading-xs">US$10</p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+            `<p slot="heading-xs">US$10</p>
+             <div slot="footer"><a href="#">Jetzt kaufen und sparen</a><a href="#" class="outline">Kostenlos testen und mehr</a></div>`,
+        ]);
+        try {
+            const [a, b] = cards.map((c) =>
+                c.querySelector('[slot="heading-xs"]').getBoundingClientRect(),
+            );
+            expect(b.bottom).to.equal(a.bottom);
+            const [fa, fb] = cards.map((c) =>
+                c.shadowRoot.querySelector('footer').getBoundingClientRect(),
+            );
+            expect(fb.height, 'footers share a height').to.equal(fa.height);
+        } finally {
+            wrap.remove();
+        }
+    });
+});
+
 describe('ProductPricing CTAs', () => {
     before(() => initMasCommerceService());
     after(() => removeMasCommerceService());

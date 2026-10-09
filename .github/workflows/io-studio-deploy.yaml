@@ -64,10 +64,23 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
+            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            - name: Mint a mas-agent read token
+              id: masa-token
+              if: ${{ vars.MAS_AGENT_READER_APP_ID != '' }}
+              uses: actions/create-github-app-token@v3
+              with:
+                  app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
+                  private-key: ${{ secrets.MAS_AGENT_READER_APP_KEY }}
+                  owner: adobecom
+                  repositories: mas-agent
+                  permission-contents: read
+
             # npm test fetches the mas-agent knowledge corpus first (pretest); the coverage tests need it.
             - name: Run tests
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: npm test
 
     deploy:
@@ -134,11 +147,24 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
+            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
+            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            - name: Mint a mas-agent read token
+              id: masa-token
+              if: ${{ vars.MAS_AGENT_READER_APP_ID != '' }}
+              uses: actions/create-github-app-token@v3
+              with:
+                  app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
+                  private-key: ${{ secrets.MAS_AGENT_READER_APP_KEY }}
+                  owner: adobecom
+                  repositories: mas-agent
+                  permission-contents: read
+
             # The assistant searches the mas-agent knowledge corpus in process; the deploy bundles it from
             # the knowledge-latest release of adobecom/mas-agent and fails without it.
             - name: Fetch the mas-agent knowledge corpus
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: npm run fetch:masa-knowledge -- --required
 
             - name: Deploy

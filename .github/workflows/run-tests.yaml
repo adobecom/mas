@@ -32,10 +32,23 @@ jobs:
             - name: Install XVFB
               run: sudo apt-get install xvfb
 
+            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
+            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            - name: Mint a mas-agent read token
+              id: masa-token
+              if: ${{ vars.MAS_AGENT_READER_APP_ID != '' }}
+              uses: actions/create-github-app-token@v3
+              with:
+                  app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
+                  private-key: ${{ secrets.MAS_AGENT_READER_APP_KEY }}
+                  owner: adobecom
+                  repositories: mas-agent
+                  permission-contents: read
+
             # io/studio's tests fetch the mas-agent knowledge corpus first (pretest); its coverage tests need it.
             - name: Run the tests
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: xvfb-run -a npm test
 
             - name: Upload coverage to Codecov

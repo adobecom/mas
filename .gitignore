@@ -39,6 +39,7 @@ extension/mas-studio-extension.zip
 .logs/
 .scout
 .specify/
+.superpowers/
 .worktrees/
 .pids
 /specs/
@@ -61,7 +62,11 @@ masStudio-*.json
 
 
 # Worktree documentation (per-ticket, not committed)
-/docs/
+docs/
+# But the AI assistant ships its documentation knowledge as runtime source —
+# those modules must be committed so deploys outside this worktree work.
+!io/studio/src/ai-chat/docs/
+!io/studio/src/ai-chat/docs/**
 
 # pznTags migration scratch reports (live content paths/etags, never committed)
 /scripts/pzn-tags-locale-to-country/tmp/
@@ -72,7 +77,11 @@ web-components/commerce.json
 web-components/mas.json
 web-components/stats.json
 *.jsonl
-mcp-server.log
+operations.log
+
+# MWPW-183572 workspace-local (not shipped with PR)
+io/knowledge/
+.claude
 
 # raw copy of fragments before update
 scripts/content/fragments

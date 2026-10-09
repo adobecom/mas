@@ -13,6 +13,18 @@ const COMMITMENT_TERM_LICENSE = 'TERM_LICENSE';
 const TERM_ANNUAL = 'ANNUAL';
 const TERM_MONTHLY = 'MONTHLY';
 const errorValueNotOffer = 'NOT_IN_OFFER';
+
+const getProductCopy = (offer) => {
+    const copy = offer.merchandising?.copy || {};
+    const normalizedCopy = {};
+
+    if (copy.description) normalizedCopy.description = copy.description;
+    if (copy.short_description) normalizedCopy.short_description = copy.short_description;
+    if (copy.shortDescription) normalizedCopy.shortDescription = copy.shortDescription;
+
+    return normalizedCopy;
+};
+
 const getPlanType = ({ commitment, term }) => {
     switch (commitment) {
         case undefined:
@@ -53,11 +65,16 @@ const paginatedOffers = (allProducts, landscape, locale, params, page = 0) => {
                                 icon: offer.merchandising?.assets?.icons?.svg,
                                 product_code: offer.product_code,
                                 product_family: offer.product_arrangement_v2?.family,
+                                copy: getProductCopy(offer),
                                 planTypes: {},
                                 customerSegments: {},
                                 marketSegments: {},
                             };
                         }
+                        p.copy = {
+                            ...p.copy,
+                            ...getProductCopy(offer),
+                        };
                         p.planTypes[getPlanType(offer)] = true;
                         p.customerSegments[offer.customer_segment] = true;
                         offer.market_segments.forEach((s) => (p.marketSegments[s] = true));

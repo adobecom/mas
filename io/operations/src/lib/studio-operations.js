@@ -1,0 +1,1367 @@
+const PATH_TOKENS = /\/content\/dam\/mas\/(?<surface>[\w-]+)\/(?<locale>[a-z]{2}_[A-Z]{2,4})\/(?<fragmentPath>.+)/;
+
+const LOCALE_DEFAULTS = [
+    'ar_MENA',
+    'bg_BG',
+    'cs_CZ',
+    'da_DK',
+    'de_DE',
+    'en_US',
+    'es_ES',
+    'fi_FI',
+    'fr_FR',
+    'he_IL',
+    'hu_HU',
+    'id_ID',
+    'it_IT',
+    'ja_JP',
+    'ko_KR',
+    'nb_NO',
+    'nl_NL',
+    'pl_PL',
+    'pt_BR',
+    'ro_RO',
+    'ru_RU',
+    'sk_SK',
+    'sl_SI',
+    'sv_SE',
+    'th_TH',
+    'tr_TR',
+    'uk_UA',
+    'vi_VN',
+    'zh_CN',
+    'zh_TW',
+];
+
+const TAG_MODEL_ID_MAPPING = {
+    'mas:studio/content-type/merch-card-collection': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24',
+    'mas:studio/content-type/merch-card': 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ',
+};
+
+const CARD_MODEL_ID = TAG_MODEL_ID_MAPPING['mas:studio/content-type/merch-card'];
+
+// Classify a variation reference path into one kind, mirroring the frontend
+// Fragment.#categorizeVariations priority (grouped > promo > locale): grouped
+// variations live under a /pzn/ folder, promo variations under promotions/, and
+// everything else at a non-default (regional) locale is a locale variation.
+function classifyVariationPath(path) {
+    if (!path) return null;
+    if (path.includes('/pzn/')) return 'grouped';
+    const match = PATH_TOKENS.exec(path);
+    if (match?.groups?.fragmentPath?.startsWith('promotions/')) return 'promo';
+    const locale = match?.groups?.locale;
+    if (locale && !LOCALE_DEFAULTS.includes(locale)) return 'locale-variations';
+    return null;
+}
+
+/**
+ * Strip HTML tags from text while preserving the content
+ * Used for searching text in HTML-formatted fields
+ * @param {string} html - HTML text to strip
+ * @returns {string} - Plain text without HTML tags
+ */
+function stripHtml(html) {
+    if (typeof html !== 'string') {
+        return '';
+    }
+    return html.replace(/<[^>]*>/g, '');
+}
+
+/**
+ * Check if text exists in either raw HTML or stripped plain text
+ * Handles both HTML-formatted fields and plain text fields
+ * @param {string} value - The field value to search in
+ * @param {string} find - The text to find
+ * @returns {boolean} - True if found in either raw or stripped version
+ */
+function textExistsInField(value, find) {
+    if (typeof value !== 'string' || typeof find !== 'string') {
+        return false;
+    }
+    return value.includes(find) || stripHtml(value).includes(find);
+}
+
+/**
+ * Map an array with bounded concurrency. Mirrors `Promise.all(arr.map(fn))`
+ * semantics (preserves order, fails fast) but caps the number of in-flight
+ * tasks. Used to fan out per-fragment AEM round trips without overwhelming
+ * the upstream service.
+ */
+async function mapWithConcurrency(items, concurrency, mapper) {
+    const results = new Array(items.length);
+    let cursor = 0;
+    const workerCount = Math.min(Math.max(1, concurrency), items.length);
+    if (workerCount === 0) return results;
+    const workers = Array.from({ length: workerCount }, async () => {
+        while (cursor < items.length) {
+            const i = cursor;
+            cursor += 1;
+            results[i] = await mapper(items[i], i);
+        }
+    });
+    await Promise.all(workers);
+    return results;
+}
+
+/**
+ * Extract a single field value from a fragment, handling both the
+ * AEM array-of-fields shape and the legacy keyed-object shape.
+ */
+function extractFieldValue(fragment, name) {
+    if (!fragment) return undefined;
+    const fields = fragment.fields;
+    if (Array.isArray(fields)) {
+        return fields.find((f) => f.name === name)?.values?.[0];
+    }
+    return fields?.[name]?.value || fields?.[name];
+}
+
+/**
+ * Studio Operations Tools
+ * Operations for Studio AI Chat (NO AI CALLS - pure execution only)
+ *
+ * These tools handle AEM operations requested through Studio's AI chat.
+ * AI intent detection happens in Adobe I/O Runtime, these tools only execute.
+ * Auto-synced to io/operations via Claude Code hook (verified working)
+ */
+export class StudioOperations {
+    constructor(aemClient, urlBuilder) {
+        this.aemClient = aemClient;
+        this.urlBuilder = urlBuilder;
+    }
+
+    /**
+     * Publish a card to production
+     * @param {Object} params - { id: string, publishReferences?: boolean }
+     */
+    async publishCard(params) {
+        const { id, publishReferences = true } = params;
+
+        if (!id) {
+            throw new Error('Card ID is required for publish operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Card not found: ${id}`);
+        }
+
+        await this.aemClient.publishFragment(fragment.id, publishReferences);
+
+        const card = this.formatCard(fragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'publish',
+            card,
+            message: `✓ "${fragment.title}" has been published to production.`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * Unpublish a card from production
+     * @param {Object} params - { id: string }
+     */
+    async unpublishCard(params) {
+        const { id } = params;
+
+        if (!id) {
+            throw new Error('Card ID is required for unpublish operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Card not found: ${id}`);
+        }
+
+        await this.aemClient.unpublishFragment(fragment.id);
+
+        const card = this.formatCard(fragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'unpublish',
+            card,
+            message: `✓ "${fragment.title}" has been unpublished from production.`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * Get a card by ID
+     * @param {Object} params - { id: string }
+     */
+    async getCard(params) {
+        const { id } = params;
+
+        if (!id) {
+            throw new Error('Card ID is required for get operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Card not found: ${id}`);
+        }
+
+        const card = this.formatCard(fragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'get',
+            card,
+            message: `Found "${fragment.title}"`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * Check if a search query is CTA-related
+     * @param {string} query - Search query string
+     * @returns {boolean} True if query is searching for CTAs
+     */
+    static isCTASearch(query) {
+        if (!query || typeof query !== 'string') {
+            return false;
+        }
+
+        const ctaKeywords = [
+            'cta',
+            'button',
+            'link',
+            'trial',
+            'buy',
+            'purchase',
+            'checkout',
+            'select',
+            'start',
+            'get started',
+            'learn more',
+            'free trial',
+            'buy now',
+            'shop now',
+            'subscribe',
+        ];
+
+        const lowerQuery = query.toLowerCase();
+        return ctaKeywords.some((keyword) => lowerQuery.includes(keyword));
+    }
+
+    /**
+     * Extract CTA elements from HTML content
+     * Extracts ALL <a> and <button> tags from the content
+     * @param {string} htmlContent - HTML string to parse
+     * @returns {Array} Array of CTA objects with text and href properties
+     */
+    static extractCTAElements(htmlContent) {
+        if (!htmlContent || typeof htmlContent !== 'string') {
+            return [];
+        }
+
+        const ctas = [];
+        let match;
+
+        // Pattern 1: Extract ALL <a> tags (not limited to footer slots)
+        const linkRegex = /<a\s[^>]*>(.*?)<\/a>/gis;
+
+        while ((match = linkRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[1];
+
+            // Extract href attribute
+            const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            // Strip HTML tags from inner text to get clean text
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            // Include if there's text or href
+            if (text || href) {
+                ctas.push({ text, href, type: 'link' });
+            }
+        }
+
+        // Pattern 2: Extract ALL <button> tags
+        const buttonRegex = /<button\s[^>]*>(.*?)<\/button>/gis;
+
+        while ((match = buttonRegex.exec(htmlContent)) !== null) {
+            const fullElement = match[0];
+            const innerText = match[1];
+
+            // Extract data-href if it exists (some buttons have this)
+            const hrefMatch = fullElement.match(/(?:data-)?href=["']([^"']+)["']/i);
+            const href = hrefMatch ? hrefMatch[1] : '';
+
+            // Strip HTML tags from inner text to get clean text
+            const text = innerText.replace(/<[^>]+>/g, '').trim();
+
+            // Include if there's text
+            if (text) {
+                ctas.push({ text, href, type: 'button' });
+            }
+        }
+
+        return ctas;
+    }
+
+    /**
+     * Filter search results to only include cards with CTAs matching the query - simplified approach
+     * @param {Array} fragments - Array of fragment objects with fields
+     * @param {string} query - Original search query
+     * @returns {Array} Filtered fragments with matching CTA content
+     */
+    static filterCTAResults(fragments, query) {
+        if (!query || !fragments || fragments.length === 0) {
+            return fragments;
+        }
+
+        const lowerQuery = query.toLowerCase();
+        console.log('[StudioOperations] CTA search: simple filtering for links and buttons');
+        const beforeCount = fragments.length;
+
+        // Extract meaningful keywords (skip CTA-intent words)
+        const skipWords = ['cta', 'button', 'link', 'call', 'action'];
+        const queryKeywords = lowerQuery.split(/\s+/).filter((word) => word.length > 2 && !skipWords.includes(word));
+
+        console.log(`[StudioOperations] Searching for keywords: ${queryKeywords.join(', ') || '(any CTA)'}`);
+
+        const filtered = fragments.filter((fragment) => {
+            const fields = fragment.fields;
+            if (!fields) return true; // Include if no fields to check
+
+            // FIRST: Check if this card has ANY merch-addon elements
+            const hasAddonElements = Object.values(fields).some((field) => {
+                // Fields have structure: { name, type, multiple, locked, values: [...] }
+                let fieldValue = null;
+                if (field && field.values && Array.isArray(field.values)) {
+                    fieldValue = field.values.join(' '); // Join all values if multiple
+                } else if (field && typeof field === 'string') {
+                    fieldValue = field; // Direct string field
+                }
+                return typeof fieldValue === 'string' && fieldValue.includes('<merch-addon');
+            });
+
+            // If card has addon elements, exclude it from CTA search results
+            if (hasAddonElements) {
+                console.log(`[StudioOperations] Excluding card with addon elements: ${fragment.id || fragment.title}`);
+                return false;
+            }
+
+            // Check ALL fields - no exclusions or restrictions
+            for (const fieldName of Object.keys(fields)) {
+                const field = fields[fieldName];
+
+                // Fields have structure: { name, type, multiple, locked, values: [...] }
+                // Access the actual content from field.values array
+                let fieldValue = null;
+                if (field && field.values && Array.isArray(field.values)) {
+                    fieldValue = field.values.join(' '); // Join all values if multiple
+                } else if (field && typeof field === 'string') {
+                    fieldValue = field; // Direct string field
+                }
+
+                if (!fieldValue || typeof fieldValue !== 'string') continue;
+
+                // Extract CTAs from this field
+                const ctas = StudioOperations.extractCTAElements(fieldValue);
+
+                if (ctas.length === 0) continue;
+
+                // If no specific keywords, include any card with CTAs
+                if (queryKeywords.length === 0) {
+                    console.log(`[StudioOperations] Found CTAs in ${fragment.id || fragment.title || 'fragment'}`);
+                    return true;
+                }
+
+                // Check if any CTA matches keywords
+                for (const cta of ctas) {
+                    const ctaContent = `${cta.text} ${cta.href}`.toLowerCase();
+
+                    // Check if ALL keywords are found (more lenient)
+                    const hasMatch = queryKeywords.some((keyword) => ctaContent.includes(keyword));
+
+                    if (hasMatch) {
+                        console.log(
+                            `[StudioOperations] Match found: "${cta.text}" in ${fragment.id || fragment.title || 'fragment'}`,
+                        );
+                        return true;
+                    }
+                }
+            }
+
+            return false; // No matching CTAs found
+        });
+
+        console.log(`[StudioOperations] CTA filter: ${fragments.length} → ${filtered.length} results`);
+        return filtered;
+    }
+
+    /**
+     * Search several surfaces in one request and merge the results.
+     *
+     * Each surface is scanned on its own path (scoped queries are faster than
+     * one tree-wide scan) with bounded concurrency, then results are deduped by
+     * fragment id and capped to `limit`. A surface that errors is skipped, not
+     * fatal, so one slow or failing surface cannot sink the whole search. The
+     * caller passes only surfaces the user is entitled to (see entitledSurfaces).
+     */
+    async searchAcrossSurfaces(params) {
+        const { surfaces = [], limit = 10, ...rest } = params;
+        const perSurface = await mapWithConcurrency(surfaces, 4, async (surface) => {
+            try {
+                const result = await this.searchCards({ ...rest, surface, limit });
+                return Array.isArray(result?.results) ? result.results : [];
+            } catch (error) {
+                console.error(`[StudioOperations] cross-surface search failed for "${surface}": ${error.message}`);
+                return [];
+            }
+        });
+
+        const seen = new Set();
+        const merged = [];
+        for (const cards of perSurface) {
+            for (const card of cards) {
+                if (card?.id && !seen.has(card.id)) {
+                    seen.add(card.id);
+                    merged.push(card);
+                }
+            }
+        }
+        const capped = merged.slice(0, limit);
+        return {
+            success: true,
+            operation: 'search',
+            results: capped,
+            count: capped.length,
+            surfacesSearched: surfaces,
+            message: `Found ${capped.length} card${capped.length !== 1 ? 's' : ''} across ${surfaces.length} surface${surfaces.length !== 1 ? 's' : ''}: ${surfaces.join(', ')}`,
+        };
+    }
+
+    async searchCards(params) {
+        const {
+            surface,
+            query,
+            tags = [],
+            limit = 10,
+            locale = 'en_US',
+            variant,
+            offset = 0,
+            variationType = 'all',
+            osi,
+            titleSearch,
+        } = params;
+
+        if (osi && !surface) {
+            return this.searchCardsByOsi(osi, limit, surface, locale);
+        }
+
+        console.log('[StudioOperations] searchCards received params:', {
+            surface,
+            locale,
+            query,
+            limit,
+            variant,
+            offset,
+            variationType,
+        });
+
+        if (!surface) {
+            return {
+                success: false,
+                error: 'SURFACE_REQUIRED',
+                operation: 'search',
+                results: [],
+                count: 0,
+                message: 'Surface is required for search operation',
+            };
+        }
+
+        const surfacePath = this.getSurfacePath(surface, locale);
+        console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
+
+        // Title search: deterministic path used by the AI assistant search router.
+        // Two-stage: AEM full-text (EDGES) using the user's full query narrows
+        // to candidate fragments, then a local case-insensitive substring filter
+        // on the `title` field keeps only the real title matches. Iterates AEM's
+        // cursor (matching studio's production search in studio/src/aem/aem.js)
+        // so we get every match, not a 4-page slice.
+        const isTitleSearch = titleSearch === true;
+        if (isTitleSearch && query && !tags.length) {
+            const needle = query.trim().toLowerCase();
+            console.log(`[StudioOperations] Title-substring search for "${query}" under ${surfacePath} (cursor mode)`);
+
+            const candidates = [];
+            let cursor = null;
+            const MAX_PAGES = 40;
+            for (let page = 0; page < MAX_PAGES; page += 1) {
+                const response = await this.aemClient.searchFragments({
+                    path: surfacePath,
+                    query,
+                    modelIds: [CARD_MODEL_ID],
+                    limit: 50,
+                    cursor,
+                    searchMode: 'EDGES',
+                    includeCursor: true,
+                });
+                if (response?.items?.length) {
+                    candidates.push(...response.items);
+                }
+                cursor = response?.cursor || null;
+                if (!cursor) break;
+            }
+            console.log(`[StudioOperations] Title-substring: ${candidates.length} candidates from full-text`);
+
+            const matches = candidates.filter((fragment) => {
+                const cardTitle = (extractFieldValue(fragment, 'title') || fragment.title || '').toLowerCase();
+                return cardTitle.includes(needle);
+            });
+
+            const results = matches.map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+            return {
+                success: true,
+                operation: 'search',
+                results,
+                count: results.length,
+                message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} with title containing "${query}"`,
+                studioLinks: { viewFolder: this.urlBuilder.createFolderLink(surface) },
+            };
+        }
+
+        // Detect if query has special characters that need exact phrase matching
+        let searchMode = 'EDGES';
+        if (query) {
+            const hasSpecialChars = /[+\-()]/.test(query);
+            const isQuoted = query.trim().startsWith('"') && query.trim().endsWith('"');
+            if (hasSpecialChars || isQuoted) {
+                searchMode = 'EXACT_PHRASE';
+                console.log(`[StudioOperations] Query "${query}" has special chars or is quoted, using EXACT_PHRASE mode`);
+            }
+        }
+
+        // Tag-only fast path: when the caller filters by tag(s) and has no
+        // free-text query, AEM's tag filter narrows results sharply. AEM
+        // caps page size at 50, so we walk the cursor but stop as soon as
+        // we have enough results (limit + a small buffer for variant
+        // filtering). This avoids the 40-page sweep / 15s timeout that was
+        // silently returning "0 cards" for tag searches.
+        const isTagOnlySearch = !query && Array.isArray(tags) && tags.length > 0;
+        if (isTagOnlySearch) {
+            console.log('[StudioOperations] Tag-only search (bounded cursor):', {
+                path: surfacePath,
+                tags,
+                modelIds: [CARD_MODEL_ID],
+                limit,
+                variant,
+            });
+            const targetCount = Math.max(limit * 2, 50);
+            const collected = [];
+            let cursor = null;
+            const TAG_MAX_PAGES = 8;
+            for (let page = 0; page < TAG_MAX_PAGES; page += 1) {
+                const response = await this.aemClient.searchFragments({
+                    path: surfacePath,
+                    tags,
+                    modelIds: [CARD_MODEL_ID],
+                    limit: 50,
+                    cursor,
+                    searchMode: 'EDGES',
+                    includeCursor: true,
+                });
+                if (response?.items?.length) collected.push(...response.items);
+                cursor = response?.cursor || null;
+                if (!cursor) break;
+                if (collected.length >= targetCount) break;
+            }
+            console.log(`[StudioOperations] Tag-only search collected ${collected.length} fragments`);
+
+            const filtered = collected.filter((fragment) => fragment?.id && fragment?.fields);
+            const filteredByVariant = variant
+                ? filtered.filter((fragment) => extractFieldValue(fragment, 'variant') === variant)
+                : filtered;
+            const results = filteredByVariant.slice(0, limit).map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+            return {
+                success: true,
+                operation: 'search',
+                results,
+                count: results.length,
+                message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} tagged ${tags.join(', ')}`,
+                studioLinks: { viewFolder: this.urlBuilder.createFolderLink(surface) },
+            };
+        }
+
+        // Cursor-paginated full-text search across the surface. Capped at
+        // MAX_PAGES so a dilute query can't run forever; the action layer
+        // also wraps this in its own timeout.
+        console.log('[StudioOperations] Cursor-paginated search:', {
+            path: surfacePath,
+            query,
+            modelIds: [CARD_MODEL_ID],
+        });
+
+        const fragments = [];
+        let cursor = null;
+        const MAX_PAGES = 40;
+        for (let page = 0; page < MAX_PAGES; page += 1) {
+            const response = await this.aemClient.searchFragments({
+                path: surfacePath,
+                query,
+                tags,
+                modelIds: [CARD_MODEL_ID],
+                limit: 50,
+                cursor,
+                searchMode,
+                includeCursor: true,
+            });
+            if (response?.items?.length) {
+                fragments.push(...response.items);
+            }
+            cursor = response?.cursor || null;
+            if (!cursor) break;
+        }
+        console.log(`[StudioOperations] Cursor search collected ${fragments.length} fragments`);
+
+        // searchFragments already returns full fields arrays — no N+1 getFragment.
+        // Drop any malformed candidate.
+        let filteredFragments = fragments.filter((fragment) => fragment?.id && fragment?.fields);
+
+        if (variant) {
+            filteredFragments = filteredFragments.filter((fragment) => extractFieldValue(fragment, 'variant') === variant);
+        }
+
+        if (StudioOperations.isCTASearch(query)) {
+            console.log('[StudioOperations] CTA search detected, applying CTA filter to exclude addon checkboxes');
+            const beforeCTAFilter = filteredFragments.length;
+            filteredFragments = StudioOperations.filterCTAResults(filteredFragments, query);
+            console.log(
+                `[StudioOperations] CTA filter: ${beforeCTAFilter} fragments → ${filteredFragments.length} fragments (excluded ${beforeCTAFilter - filteredFragments.length} with only addon matches)`,
+            );
+        }
+
+        if (variationType !== 'all') {
+            const beforeVariationFilter = filteredFragments.length;
+            filteredFragments = this.filterByVariationType(filteredFragments, variationType);
+            console.log(
+                `[StudioOperations] Variation filter (${variationType}): ${beforeVariationFilter} fragments → ${filteredFragments.length} fragments`,
+            );
+        }
+
+        if (osi) {
+            filteredFragments = filteredFragments.filter((fragment) => extractFieldValue(fragment, 'osi') === osi);
+        }
+
+        console.log(
+            `[StudioOperations] Search returned ${fragments.length} fragments, ${filteredFragments.length} valid${variant ? ` (filtered by variant: ${variant})` : ''}${variationType !== 'all' ? ` (filtered by variationType: ${variationType})` : ''}${osi ? ` (filtered by osi: ${osi})` : ''}, returning ${Math.min(filteredFragments.length, limit)}`,
+        );
+
+        const results = filteredFragments.slice(0, limit).map((fragment) => {
+            const card = this.formatCard(fragment);
+            card.fragmentData = this.formatFragmentForCache(fragment, card);
+            return card;
+        });
+
+        return {
+            success: true,
+            operation: 'search',
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''}`,
+            studioLinks: {
+                viewFolder: this.urlBuilder.createFolderLink(surface),
+            },
+        };
+    }
+
+    async searchCardsByOsi(osi, limit = 200, surface, locale) {
+        const searchPath = surface ? this.getSurfacePath(surface, locale || 'all') : '/content/dam/mas';
+        const fragments = await this.aemClient.searchFragments({
+            path: searchPath,
+            query: osi,
+            modelIds: [CARD_MODEL_ID],
+            limit: Math.min(limit, 50),
+            offset: 0,
+            searchMode: 'EXACT_PHRASE',
+        });
+
+        const validFragments = await mapWithConcurrency(fragments, 10, async (fragment) => {
+            try {
+                const full = await this.aemClient.getFragment(fragment.id);
+                if (!full?.id || !full?.fields) return null;
+                return full;
+            } catch {
+                return null;
+            }
+        });
+
+        const results = validFragments
+            .filter((fragment) => fragment && extractFieldValue(fragment, 'osi') === osi)
+            .map((fragment) => {
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return card;
+            });
+
+        return {
+            success: true,
+            operation: 'search',
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} using OSI ${osi}`,
+        };
+    }
+
+    /**
+     * Fast-path direct lookup. One of `id` or `osi` must be provided.
+     *
+     * - `id`: single getFragment round trip; misses return an empty result set
+     *   (NOT an error — UUID misses are surfaced as "no card found" by the
+     *   caller).
+     * - `osi`: EXACT_PHRASE search scoped to a surface (or all of MAS if no
+     *   surface), then field-level filter. No N+1 hydration — searchFragments
+     *   already returns full field arrays.
+     */
+    async searchById({ id, osi, surface, locale = 'en_US' }) {
+        if (!id && !osi) {
+            return {
+                success: false,
+                error: 'MISSING_LOOKUP_KEY',
+                operation: 'searchById',
+                results: [],
+                count: 0,
+                message: 'Either `id` or `osi` is required for lookup',
+            };
+        }
+
+        if (id) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                if (!fragment?.id || !fragment?.fields) {
+                    return {
+                        success: true,
+                        operation: 'searchById',
+                        results: [],
+                        count: 0,
+                        message: `No card found with ID ${id}`,
+                    };
+                }
+                const card = this.formatCard(fragment);
+                card.fragmentData = this.formatFragmentForCache(fragment, card);
+                return {
+                    success: true,
+                    operation: 'searchById',
+                    results: [card],
+                    count: 1,
+                    message: `Found card with ID ${id}`,
+                };
+            } catch {
+                return {
+                    success: true,
+                    operation: 'searchById',
+                    results: [],
+                    count: 0,
+                    message: `No card found with ID ${id}`,
+                };
+            }
+        }
+
+        const searchPath = surface ? this.getSurfacePath(surface, locale === 'en_US' ? locale : 'all') : '/content/dam/mas';
+        const fragments = await this.aemClient.searchFragments({
+            path: searchPath,
+            query: osi,
+            modelIds: [CARD_MODEL_ID],
+            limit: 50,
+            offset: 0,
+            searchMode: 'EXACT_PHRASE',
+        });
+
+        const matched = fragments.filter((fragment) => extractFieldValue(fragment, 'osi') === osi);
+        const results = matched.map((fragment) => {
+            const card = this.formatCard(fragment);
+            card.fragmentData = this.formatFragmentForCache(fragment, card);
+            return card;
+        });
+
+        return {
+            success: true,
+            operation: 'searchById',
+            results,
+            count: results.length,
+            message: `Found ${results.length} card${results.length !== 1 ? 's' : ''} using OSI ${osi}`,
+            studioLinks: surface ? { viewFolder: this.urlBuilder.createFolderLink(surface) } : undefined,
+        };
+    }
+
+    /**
+     * Copy/duplicate a card
+     * @param {Object} params - { id: string, parentPath?: string, newTitle?: string }
+     */
+    async copyCard(params) {
+        const { id, parentPath, newTitle } = params;
+
+        if (!id) {
+            throw new Error('Card ID is required for copy operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Card not found: ${id}`);
+        }
+
+        const copyParams = {
+            id: fragment.id,
+            parentPath: parentPath || fragment.parentPath,
+            newTitle: newTitle || `${fragment.title} (Copy)`,
+        };
+
+        const newFragment = await this.aemClient.copyFragment(copyParams);
+
+        const card = this.formatCard(newFragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'copy',
+            originalId: id,
+            card,
+            message: `✓ Created copy: "${newFragment.title}"`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * Update card fields
+     * @param {Object} params - { id: string, fields: Object, title?: string, tags?: string[] }
+     */
+    async updateCard(params) {
+        const { id, fields, title, tags } = params;
+
+        if (!id) {
+            throw new Error('Card ID is required for update operation');
+        }
+
+        if (!fields && !title && !tags) {
+            throw new Error('At least one of fields, title, or tags must be provided for update');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Card not found: ${id}`);
+        }
+
+        const updatedFragment = await this.aemClient.updateFragment(fragment.id, fields || {}, fragment.etag, title, tags);
+
+        const card = this.formatCard(updatedFragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        const updatedFields = Object.keys(fields || {});
+        const updates = [];
+        if (title) updates.push('title');
+        if (tags) updates.push('tags');
+        if (updatedFields.length > 0) updates.push(...updatedFields);
+
+        return {
+            success: true,
+            operation: 'update',
+            card,
+            updatedFields: updates,
+            message: `✓ Updated "${updatedFragment.title}" (${updates.join(', ')})`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * Format fragment to card object
+     * @private
+     */
+    formatCard(fragment) {
+        const transformedFields = {};
+
+        if (fragment.fields) {
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        const key = field.name;
+                        if (field.mimeType) {
+                            transformedFields[key] = field.values?.[0] || '';
+                        } else if (Array.isArray(field.values)) {
+                            transformedFields[key] = field.multiple ? field.values : field.values[0];
+                        } else if (field.value !== undefined) {
+                            transformedFields[key] = field.value;
+                        } else {
+                            transformedFields[key] = field.values?.[0];
+                        }
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        if (value.mimeType) {
+                            transformedFields[key] = value.value || value;
+                        } else if (value.value !== undefined) {
+                            transformedFields[key] = value.value;
+                        } else if (Array.isArray(value.values)) {
+                            transformedFields[key] = value.multiple ? value.values : value.values[0];
+                        } else {
+                            transformedFields[key] = value;
+                        }
+                    } else {
+                        transformedFields[key] = value;
+                    }
+                });
+            }
+        }
+
+        const model = fragment.model || '/conf/mas/settings/dam/cfm/models/card';
+
+        // Read variant/size/osi via the canonical extractor so the top-level
+        // values stay consistent with the same fields when read by filters
+        // elsewhere (e.g., the variant filter in searchCards). Fall back to
+        // the locally-transformed map for resilience.
+        const variant = extractFieldValue(fragment, 'variant') ?? transformedFields.variant ?? 'unknown';
+        const size = extractFieldValue(fragment, 'size') ?? transformedFields.size ?? 'wide';
+        const osi = extractFieldValue(fragment, 'osi') ?? transformedFields.osi ?? null;
+
+        return {
+            id: fragment.id,
+            path: fragment.path,
+            title: fragment.title,
+            model,
+            variant,
+            size,
+            osi,
+            fields: transformedFields,
+            tags: fragment.tags || [],
+            modified: fragment.modified,
+            published: fragment.published,
+            status: fragment.status,
+        };
+    }
+
+    /**
+     * Format fragment for cache (matches I/O Runtime structure)
+     * Transforms nested fields to flat structure that merch-card expects
+     * @private
+     */
+    formatFragmentForCache(fragment, card) {
+        const transformedFields = {};
+
+        if (fragment.fields) {
+            if (Array.isArray(fragment.fields)) {
+                fragment.fields.forEach((field) => {
+                    if (field.name) {
+                        transformedFields[field.name] = field.multiple ? field.values : field.values?.[0] || field.value || '';
+                    }
+                });
+            } else {
+                Object.entries(fragment.fields).forEach(([key, value]) => {
+                    if (value && typeof value === 'object') {
+                        transformedFields[key] = value.mimeType
+                            ? value.value
+                            : value.multiple
+                              ? value.values
+                              : value.values?.[0] || value.value || '';
+                    } else {
+                        transformedFields[key] = value || '';
+                    }
+                });
+            }
+        }
+
+        const result = {
+            id: fragment.id,
+            fields: transformedFields,
+            tags: fragment.tags || [],
+            settings: fragment.settings || {},
+            priceLiterals: fragment.priceLiterals || {},
+            dictionary: fragment.dictionary || {},
+            placeholders: fragment.placeholders || {},
+        };
+
+        return result;
+    }
+
+    /**
+     * Get AEM path for surface with locale
+     * @private
+     */
+    getSurfacePath(surface, locale = 'en_US') {
+        const surfaceMap = {
+            commerce: '/content/dam/mas/commerce',
+            acom: '/content/dam/mas/acom',
+            ccd: '/content/dam/mas/ccd',
+            'adobe-home': '/content/dam/mas/adobe-home',
+            express: '/content/dam/mas/express',
+            sandbox: '/content/dam/mas/sandbox',
+            docs: '/content/dam/mas/docs',
+            nala: '/content/dam/mas/nala',
+        };
+
+        const basePath = surfaceMap[surface] || '/content/dam/mas';
+        return locale && locale !== 'all' ? `${basePath}/${locale}` : basePath;
+    }
+
+    /**
+     * Extract locale code from a fragment path
+     * @private
+     * @param {string} path - Fragment path (e.g., /content/dam/mas/acom/en_US/cards/my-card)
+     * @returns {string|null} - Locale code or null if not found
+     */
+    extractLocaleFromPath(path) {
+        const match = path?.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
+        return match?.[1] || null;
+    }
+
+    /**
+     * Filter fragments by variation type (default-locale or variation)
+     * @private
+     * @param {Array} fragments - Array of fragment objects
+     * @param {string} variationType - 'all', 'default-locale-only', or 'variations-only'
+     * @returns {Array} - Filtered fragments
+     */
+    filterByVariationType(fragments, variationType) {
+        return fragments.filter((fragment) => {
+            const pathLocale = this.extractLocaleFromPath(fragment.path);
+            const isDefaultLocale = LOCALE_DEFAULTS.includes(pathLocale);
+
+            if (variationType === 'default-locale-only') return isDefaultLocale;
+            if (variationType === 'variations-only') return !isDefaultLocale;
+            // "has a variation of type X": classify each of the card's own variation
+            // references and keep the card when at least one matches the requested kind.
+            if (variationType === 'grouped' || variationType === 'promo' || variationType === 'locale-variations') {
+                const variationPaths = fragment.fields?.find((f) => f.name === 'variations')?.values || [];
+                return variationPaths.some((path) => classifyVariationPath(path) === variationType);
+            }
+            return true;
+        });
+    }
+
+    /**
+     * Get all regional locale variations of a fragment
+     * @param {Object} params - { id: string }
+     * @returns {Promise<Object>} - Variations info including parent and variations list
+     */
+    async getFragmentVariations(params) {
+        const { id } = params;
+
+        if (!id) {
+            throw new Error('Fragment ID is required for get variations operation');
+        }
+
+        const fragment = await this.aemClient.getFragment(id);
+
+        if (!fragment) {
+            throw new Error(`Fragment not found: ${id}`);
+        }
+
+        const pathLocale = this.extractLocaleFromPath(fragment.path);
+        const isParent = LOCALE_DEFAULTS.includes(pathLocale);
+
+        if (!isParent) {
+            return {
+                success: true,
+                operation: 'get_variations',
+                isVariation: true,
+                message:
+                    'This fragment is a regional variation. To see all variations, search using the locale default fragment.',
+                fragment: this.formatCard(fragment),
+            };
+        }
+
+        const variationsField = fragment.fields?.find((f) => f.name === 'variations');
+        const variationPaths = variationsField?.values || [];
+
+        if (variationPaths.length === 0) {
+            return {
+                success: true,
+                operation: 'get_variations',
+                parent: this.formatCard(fragment),
+                variations: [],
+                count: 0,
+                message: 'This fragment has no regional variations.',
+            };
+        }
+
+        const variationResults = await Promise.all(
+            variationPaths.map(async (path) => {
+                try {
+                    const result = await this.aemClient.getFragmentByPath(path);
+                    return result?.items?.[0] || null;
+                } catch {
+                    return null;
+                }
+            }),
+        );
+
+        const validVariations = variationResults.filter(Boolean);
+
+        return {
+            success: true,
+            operation: 'get_variations',
+            parent: this.formatCard(fragment),
+            variations: validVariations.map((v) => this.formatCard(v)),
+            count: validVariations.length,
+            message: `Found ${validVariations.length} regional variation(s)`,
+        };
+    }
+
+    /**
+     * Create a new merch card
+     * @param {Object} params - { title: string, parentPath: string, variant?: string, size?: string, fields?: Object, tags?: string[] }
+     */
+    async createCard(params) {
+        const { title, parentPath, variant = 'plans', size = 'wide', fields = {}, tags = [] } = params;
+
+        if (!title) {
+            throw new Error('Card title is required');
+        }
+
+        if (!parentPath) {
+            throw new Error('Parent path is required');
+        }
+
+        const LONG_TEXT_FIELDS = ['badge', 'trialBadge', 'prices', 'shortDescription', 'description', 'callout', 'ctas'];
+
+        const transformedFields = [
+            { name: 'variant', type: 'text', values: [variant] },
+            { name: 'size', type: 'text', values: [size] },
+        ];
+
+        for (const [name, value] of Object.entries(fields)) {
+            if (name === 'mnemonics' && Array.isArray(value)) {
+                transformedFields.push({ name: 'mnemonicIcon', type: 'text', values: value.map((m) => m.icon || '') });
+                transformedFields.push({ name: 'mnemonicAlt', type: 'text', values: value.map((m) => m.alt || '') });
+                transformedFields.push({ name: 'mnemonicLink', type: 'text', values: value.map((m) => m.link || '') });
+            } else {
+                const type = LONG_TEXT_FIELDS.includes(name) ? 'long-text' : 'text';
+                transformedFields.push({ name, type, values: Array.isArray(value) ? value : [value] });
+            }
+        }
+
+        const fragmentData = {
+            title,
+            description: `Merch card: ${title}`,
+            modelId: CARD_MODEL_ID,
+            parentPath,
+            fields: transformedFields,
+        };
+
+        let fragment = await this.aemClient.createFragment(fragmentData);
+
+        const allTags = [...tags, 'mas:studio/content-type/merch-card'].map((t) => t.toLowerCase());
+        if (allTags.length > 0) {
+            await this.aemClient.applyValidTags(fragment.id, allTags);
+            fragment = await this.aemClient.getFragment(fragment.id);
+        }
+
+        const card = this.formatCard(fragment);
+        const studioLinks = this.urlBuilder.createCardLinks(card);
+
+        return {
+            success: true,
+            operation: 'create',
+            card,
+            message: `✓ Created new card: "${fragment.title}"`,
+            studioLinks: {
+                viewInStudio: studioLinks.view,
+                viewFolder: studioLinks.folder,
+            },
+        };
+    }
+
+    /**
+     * List cards from context (previous operation)
+     * Fetches current data for cards from a previous operation
+     * @param {Object} params - { fragmentIds: string[], operationType?: string }
+     * @returns {Promise<Object>} - Card list with current data
+     */
+    async listContextCards(params) {
+        const { fragmentIds, operationType } = params;
+
+        if (!fragmentIds || fragmentIds.length === 0) {
+            throw new Error('No fragment IDs provided. There may be no previous operation to show.');
+        }
+
+        const results = [];
+        const errors = [];
+
+        for (const id of fragmentIds) {
+            try {
+                const fragment = await this.aemClient.getFragment(id);
+                if (fragment) {
+                    const card = this.formatCard(fragment);
+                    card.fragmentData = this.formatFragmentForCache(fragment, card);
+                    results.push(card);
+                }
+            } catch (error) {
+                console.warn(`[ListContextCards] Failed to fetch fragment ${id}:`, error.message);
+                errors.push({ id, error: error.message });
+            }
+        }
+
+        const operationLabel = operationType ? this.getOperationLabel(operationType) : 'previous operation';
+
+        return {
+            success: true,
+            operation: 'search',
+            results,
+            count: results.length,
+            errors: errors.length > 0 ? errors : undefined,
+            message: `Showing ${results.length} card${results.length !== 1 ? 's' : ''} from ${operationLabel}`,
+        };
+    }
+
+    async createLocaleVariation(params) {
+        const { id, targetLocale } = params;
+        if (!id) throw new Error('Card ID is required');
+        if (!targetLocale) throw new Error('Target locale is required');
+
+        const parentFragment = await this.aemClient.getFragment(id);
+        if (!parentFragment) throw new Error(`Card not found: ${id}`);
+
+        const match = parentFragment.path.match(PATH_TOKENS);
+        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
+
+        const { surface, locale: parentLocale, fragmentPath } = match.groups;
+        if (parentLocale !== 'en_US') {
+            throw new Error('Variations can only be created from en_US (default locale) cards');
+        }
+
+        const targetFolderPath = `/content/dam/mas/${surface}/${targetLocale}`;
+        const targetFragmentPath = `${targetFolderPath}/${fragmentPath}`;
+
+        try {
+            const existing = await this.aemClient.getFragmentByPath(targetFragmentPath);
+            if (existing) throw new Error(`Variation already exists at ${targetFragmentPath}`);
+        } catch (e) {
+            if (!e.message.includes('not found') && !e.message.includes('Failed to get')) throw e;
+        }
+
+        const folderParts = targetFragmentPath.split('/');
+        folderParts.pop();
+        const folderPath = folderParts.join('/');
+        await this.aemClient.createFolder(folderPath);
+
+        const fragmentData = {
+            title: parentFragment.title,
+            description: parentFragment.description || `Variation: ${targetLocale}`,
+            modelId: parentFragment.model?.id || parentFragment.modelId,
+            parentPath: folderPath,
+            fields: [],
+            tags: (parentFragment.tags || []).map((t) => t.id || t),
+        };
+
+        const newFragment = await this.aemClient.createFragment(fragmentData);
+
+        await this.updateParentVariations(parentFragment, newFragment.path || targetFragmentPath);
+
+        const card = this.formatCard(newFragment);
+        return {
+            success: true,
+            operation: 'create_locale_variation',
+            card,
+            parentId: id,
+            targetLocale,
+            message: `Created ${targetLocale} variation of "${parentFragment.title}"`,
+        };
+    }
+
+    async updateParentVariations(parentFragment, variationPath) {
+        const freshParent = await this.aemClient.getFragment(parentFragment.id || parentFragment);
+        const fields = Array.isArray(freshParent.fields) ? freshParent.fields : [];
+        const variationsField = fields.find((f) => f.name === 'variations');
+
+        const currentPaths = variationsField ? variationsField.values || [] : [];
+        if (currentPaths.includes(variationPath)) return;
+
+        const updatedPaths = [...currentPaths, variationPath];
+        await this.aemClient.updateFragment(freshParent.id, { variations: updatedPaths }, freshParent.etag);
+    }
+
+    async createGroupedVariation(params) {
+        const { id, pznTags, title: customTitle } = params;
+        if (!id) throw new Error('Card ID is required');
+        if (!pznTags || pznTags.length === 0) throw new Error('pznTags array is required');
+
+        const parentFragment = await this.aemClient.getFragment(id);
+        if (!parentFragment) throw new Error(`Card not found: ${id}`);
+
+        const match = parentFragment.path.match(PATH_TOKENS);
+        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
+
+        const { surface } = match.groups;
+        const pznFolderPath = `/content/dam/mas/${surface}/en_US/pzn`;
+
+        await this.aemClient.createFolder(pznFolderPath);
+
+        const fragmentData = {
+            title: customTitle || parentFragment.title,
+            description: `PZN variation of ${parentFragment.title}`,
+            modelId: parentFragment.model?.id || parentFragment.modelId,
+            parentPath: pznFolderPath,
+            fields: [{ name: 'pznTags', values: pznTags }],
+            tags: (parentFragment.tags || []).map((t) => t.id || t),
+        };
+
+        const newFragment = await this.aemClient.createFragment(fragmentData);
+        await this.updateParentVariations(parentFragment, newFragment.path);
+
+        const card = this.formatCard(newFragment);
+        return {
+            success: true,
+            operation: 'create_grouped_variation',
+            card,
+            parentId: id,
+            pznTags,
+            message: `Created grouped variation of "${parentFragment.title}" with PZN tags: ${pznTags.join(', ')}`,
+        };
+    }
+
+    /**
+     * Get human-readable label for operation type
+     * @private
+     */
+    getOperationLabel(operationType) {
+        const labels = {
+            search: 'your search',
+            bulk_update: 'the bulk update',
+            bulk_publish: 'the bulk publish',
+            update: 'the update',
+            publish: 'the publish',
+            delete: 'the delete',
+        };
+        return labels[operationType] || 'the previous operation';
+    }
+}

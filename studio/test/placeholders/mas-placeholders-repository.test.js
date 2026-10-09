@@ -620,6 +620,15 @@ describe('mas-placeholders-repository', () => {
     describe('fetchDictionary', () => {
         let fetchStub;
 
+        // Two different caches sit behind this call, and clearing one is not
+        // enough. clearDictionaryCache is the REPOSITORY's, but fetchDictionary
+        // delegates to getDictionary in the replace transformer, which keeps
+        // its own dictionary cache and memoizes fragment ids per
+        // surface+locale. Leaving that one warm makes the call return without
+        // fetching, so the assertions below see no request and fail — but only
+        // when an earlier test happened to populate it, which is why this
+        // failed intermittently rather than always. clearCaches() clears the
+        // transformer side.
         beforeEach(() => {
             clearDictionaryCache();
             clearCaches();

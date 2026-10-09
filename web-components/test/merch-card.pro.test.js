@@ -107,8 +107,8 @@ describe('pro collection responsive widths', () => {
                 const cap =
                     width < 768
                         ? availableWidth
-                        : width < 1280
-                          ? 840
+                        : width <= 1280
+                          ? 1280
                           : width < 1440
                             ? desktopCap
                             : 1920;
@@ -118,6 +118,11 @@ describe('pro collection responsive widths', () => {
                 const expectedCardWidth =
                     (expectedWidth - (columnCount - 1) * 8) / columnCount;
                 const rect = collection.getBoundingClientRect();
+                if (width >= 768 && width <= 1280) {
+                    expect(getComputedStyle(collection).maxWidth).to.equal(
+                        '1280px',
+                    );
+                }
                 expect(
                     rect.width,
                     `${count} cards: collection width`,

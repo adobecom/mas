@@ -703,9 +703,9 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-@media screen and ${TABLET_UP} and (width < 1280px) {
+@media screen and ${TABLET_UP} and (width <= 1280px) {
     merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
-        max-width: 840px;
+        max-width: 1280px;
     }
 }
 
@@ -715,7 +715,7 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
-@media screen and ${TABLET_UP} and (width < 1280px), screen and ${XL_DESKTOP_UP} {
+@media screen and ${TABLET_UP} and (width <= 1280px), screen and ${XL_DESKTOP_UP} {
     merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) > merch-card[variant="pro"]:not([size="edu"]) {
         max-width: none;
     }

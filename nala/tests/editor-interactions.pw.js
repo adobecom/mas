@@ -2,12 +2,73 @@ import { errors, test, expect } from '@playwright/test';
 import { build } from 'esbuild';
 import EditorPage from '../studio/editor.page.js';
 import TranslationEditorPage from '../studio/translations/translation-editor.page.js';
+import PlaceholdersPage from '../studio/placeholders/placeholders.page.js';
+import StudioPage from '../studio/studio.page.js';
 import { runAccessibilityTest } from '../libs/accessibility.js';
 import { createRunId } from '../utils/fragment-tracker.js';
 
 let spectrum;
 
 test.describe.configure({ mode: 'parallel' });
+
+test('placeholder data waits for hydrated cells after its row host is attached', async ({ page }) => {
+    await page.setContent('<mas-placeholders-item></mas-placeholders-item>');
+    await page.evaluate(() => {
+        const row = document.querySelector('mas-placeholders-item');
+        setTimeout(() => {
+            row.innerHTML = `
+                <sp-table-row>
+                    <sp-table-cell class="key">test-key</sp-table-cell>
+                    <sp-table-cell>Test value</sp-table-cell>
+                    <sp-table-cell><mas-fragment-status variant="draft"></mas-fragment-status></sp-table-cell>
+                    <sp-table-cell>en_US</sp-table-cell>
+                    <sp-table-cell>Test author</sp-table-cell>
+                    <sp-table-cell>Today</sp-table-cell>
+                    <sp-table-cell>Actions</sp-table-cell>
+                </sp-table-row>`;
+        }, 200);
+    });
+    const placeholders = new PlaceholdersPage(page);
+    await placeholders.waitForTableToLoad();
+    expect(await placeholders.getPlaceholderRowData()).toEqual({
+        key: 'test-key',
+        value: 'Test value',
+        status: 'draft',
+        locale: 'en_US',
+        updatedBy: 'Test author',
+        updatedAt: 'Today',
+    });
+});
+
+for (const initiallyExpanded of [false, true]) {
+    test(`table expansion waits for references and does not collapse an ${
+        initiallyExpanded ? 'automatically expanded' : 'initially collapsed'
+    } row`, async ({ page }) => {
+        await page.setContent(`
+            <div id="content"><sp-table><mas-fragment>
+                <mas-fragment-table data-id="parent"><button class="expand-button">Expand</button></mas-fragment-table>
+                <mas-fragment-variations></mas-fragment-variations>
+            </mas-fragment></sp-table></div>
+        `);
+        await page.evaluate((expanded) => {
+            const button = document.querySelector('button');
+            const variations = document.querySelector('mas-fragment-variations');
+            window.expansionClicks = 0;
+            variations.loading = true;
+            button.setAttribute('aria-label', expanded ? 'Collapse row' : 'Expand row');
+            button.onclick = () => {
+                window.expansionClicks++;
+                button.setAttribute('aria-label', 'Collapse row');
+            };
+            setTimeout(() => {
+                variations.loading = false;
+            }, 200);
+        }, initiallyExpanded);
+        await new StudioPage(page).expandRowIfCollapsed('parent');
+        expect(await page.evaluate(() => window.expansionClicks)).toBe(initiallyExpanded ? 0 : 1);
+        await expect(page.locator('mas-fragment-variations')).toHaveJSProperty('loading', false);
+    });
+}
 
 test.beforeAll(async () => {
     const result = await build({

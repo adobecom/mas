@@ -254,6 +254,8 @@ export default class StudioPage {
     }
 
     async saveCard() {
+        await this.saveCardButton.scrollIntoViewIfNeeded();
+        await this.saveCardButton.click({ trial: true });
         await this.page.waitForFunction(() => document.querySelector('mas-repository').fragmentInEdit?.hasChanges);
         await expect(this.saveCardButton).not.toHaveAttribute('disabled');
         const id = await this.page.locator('mas-fragment-editor').evaluate((editor) => editor.fragment.id);
@@ -388,8 +390,13 @@ export default class StudioPage {
 
     async expandRowIfCollapsed(fragmentId) {
         const expandButton = this.expandButton(fragmentId);
-        const isCollapsed = await expandButton.locator('> sp-icon-chevron-right').count();
-        if (isCollapsed) await expandButton.click();
+        await expect(expandButton).toBeVisible();
+        if ((await expandButton.getAttribute('aria-label')) === 'Expand row') await expandButton.click();
+        await expect(expandButton).toHaveAttribute('aria-label', 'Collapse row');
+        const variations = this.tableView.locator(
+            `mas-fragment:has(mas-fragment-table[data-id="${fragmentId}"]) mas-fragment-variations`,
+        );
+        await expect(variations).toHaveJSProperty('loading', false);
     }
 
     /**

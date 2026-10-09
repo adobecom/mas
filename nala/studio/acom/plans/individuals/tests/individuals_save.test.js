@@ -484,11 +484,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 test.step('Validation-3: Verify checkout parameters saved', async () => {
                     await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi.updated);
                     await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('is', 'checkout-link');
-                    const CTAhref = await clonedCard.locator(plans.cardCTA).getAttribute('href');
-                    const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
-                    expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-                    expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
-                    expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+                    await expect
+                        .poll(async () => {
+                            const href = await clonedCard.locator(plans.cardCTA).getAttribute('href');
+                            const params = new URLSearchParams(decodeURI(href ?? '').split('?')[1]);
+                            return Object.fromEntries(['mv', 'promoid', 'mv2'].map((name) => [name, params.get(name)]));
+                        })
+                        .toEqual(data.checkoutParams);
                 }),
             ]);
 

@@ -185,8 +185,35 @@ CI sets `NALA_TOTAL_WORKERS=12` for the fixed runner pool: Studio shards use 4, 
 pinned runners, while Docs uses one worker. EDS divides 180 RPS over that pool (15 RPS per worker).
 Odin partitions `NALA_ODIN_MAX_RPS` (default 20 RPS) by `NALA_WORKER_COUNT / NALA_TOTAL_WORKERS`; each shard's
 independent cleanup retains its allocation. Explicit per-worker EDS or per-invocation Odin overrides replace these defaults.
-Studio selection is complete and disjoint: save suites and OST/sandbox go to the first shard, non-save
-acom/ahome/ccd/commerce to the second, and all remaining suites to the third. Existing tags and `nopr` exclusions still apply.
+Studio selection is complete and disjoint: `mixed-1`, `mixed-2` and `mixed-3` mix saves, editor checks and navigation
+using measured successful-test durations, balanced against their 4/4/3 worker capacities. Individuals edit/discard,
+regional variations and Individuals saves anchor different shards; save suites and OST coverage are spread across the pool.
+Whole files stay together to preserve worker-local bootstrap reuse. Selection is defined by suite-family policies, not a list
+of current files: new tests in an existing file and new files under a known suite are included automatically, even in nested
+directories. Workload overrides recognize `save`, `css` and `edit` filename/path words. Fries gradient and OST authoring/bundle
+coverage have their own feature-group overrides. The rules live together in `nala/utils/studio-shards.js`.
+New suite families use the following domain defaults; known-family overrides take precedence:
+
+| New suite domain      | Saves   | Edit/discard | CSS     | Other workflows |
+| --------------------- | ------- | ------------ | ------- | --------------- |
+| `acom`                | mixed-3 | mixed-1      | mixed-2 | mixed-2         |
+| `ahome`               | mixed-2 | mixed-1      | mixed-3 | mixed-2         |
+| `ccd`                 | mixed-1 | mixed-3      | mixed-2 | mixed-2         |
+| `commerce`            | mixed-3 | mixed-1      | mixed-2 | mixed-2         |
+| Other new directories | mixed-2 | mixed-3      | mixed-1 | mixed-2         |
+
+Root-level Studio specs stay with the main navigation tests in mixed-3. Renaming a file within the same suite/workload does
+not arbitrarily move it to another shard. New coverage cannot be omitted by a stale manifest and each file belongs to exactly
+one shard. This guarantees discovery, not duration balance for unknown future workloads; review suite-level policies when
+coverage or timings change substantially. No writer semaphore or serial test mode is added.
+Existing tags and `nopr` exclusions still apply.
+
+| Shard     | Workers | Main workload            | Complementary coverage                                                     |
+| --------- | ------- | ------------------------ | -------------------------------------------------------------------------- |
+| `mixed-1` | 4       | Individuals edit/discard | Pro and Suggested saves, OST authoring/bundle, placeholders                |
+| `mixed-2` | 4       | Regional variations      | Try-buy, Slice and gradient saves, core OST, translation/version workflows |
+| `mixed-3` | 3       | Individuals saves        | Ordinary Fries saves, Slice editors, navigation/settings                   |
+
 Each shard authenticates independently and records its own fresh HAR; neither HAR nor authentication state is shared
 between shards or PRs. Concurrent PR suites are not globally serialized.
 Studio rich-text edits use native field input and wait for the editor model to commit, not only the editable DOM.
@@ -246,11 +273,34 @@ Version tests wait for loaded history, hydrated previews, rendered search result
 these waits add no polling HTTP requests. Live edits, commerce reads and mutations remain uncached.
 Fragment creation waits for its successful live POST, closed dialog and run-owned editor identity, not a transient toast.
 Locale-only URL changes do not invalidate an already loaded source editor when Studio does not initialize it again.
+Placeholder reads wait for hydrated table cells rather than snapshotting an empty row host. Variation expansion preserves
+automatically expanded rows and waits for reference loading instead of toggling them closed or using fixed delays.
+Checkout-parameter assertions wait for the live checkout link to resolve its URL; they do not trigger new commerce requests.
+Save actionability is checked before the final dirty-state boundary; the actual save is still one native click and one live write.
+
+PR jobs use `.github/actions/setup-nala` to cache installed root Nala dependencies and Chromium binaries separately.
+Nala does not need the I/O backend or application workspace installations: cold preparation uses
+`npm ci --workspaces=false --include=dev` against the existing root lockfile. Application build/test commands are unchanged.
+Installed dependency keys include the root lockfile, manifest and project npm configuration, plus actual runner OS release,
+kernel, architecture, glibc, Node version/ABI, npm version and runner-image metadata. Exact cache hits validate the installed tree
+and execute the Playwright, accessibility and native esbuild dependencies offline; invalid cached installations are logged
+and replaced using `npm ci`. Root installation hooks, if added, require a fresh install rather than reusing code-dependent effects.
+Chromium keys use the same runner fingerprint and installed Playwright version, not branch names or test configuration.
+Only Chromium is installed in a job-local browser directory, so unrelated browsers or old revisions on self-hosted runners
+cannot inflate the cache. Installation verifies its required revisions even on a cache hit. A real browser launch/render
+probe checks system libraries on every job; apt runs only for recognized missing dependencies and a second probe must succeed.
+System directories and apt state are not cached. Package-manager lock waits and repair attempts are bounded and never kill
+runner updates. Cache downloads have a two-minute segment timeout, npm fetches have bounded retries/timeouts, and preparation
+has a ten-minute step budget. Cache service failures remain visible and fall back to ordinary installation.
+Dependencies are saved before the tests, so a failing suite does not prevent reuse on a later run. GitHub cache branch-access
+rules still apply; a new PR may need a cold install if no compatible base-branch cache is available.
+Authentication, run-owned fragments, HARs and results are never part of these dependency caches.
 
 Offline setup regression checks (no IMS, Odin or EDS requests):
 
 ```sh
 node --test nala/tests/setup-cache.unit.js
+node --test nala/tests/studio-shards.unit.js nala/tests/ci-dependencies.unit.js
 npx playwright test --config=nala/tests/setup-cache.config.js --workers=3
 ```
 

@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class PlaceholdersPage {
     constructor(page) {
         this.page = page;
@@ -81,9 +83,7 @@ export default class PlaceholdersPage {
     }
 
     async waitForTableToLoad() {
-        // For test environment with path=nala, we expect placeholders to exist
-        // Wait specifically for placeholder rows to appear
-        await this.placeholderRows.first().waitFor({ timeout: 10000 });
+        await expect(this.placeholderRows.first().locator('sp-table-cell.key')).toBeVisible({ timeout: 10000 });
     }
 
     async waitForPlaceholderRows() {
@@ -142,22 +142,18 @@ export default class PlaceholdersPage {
     }
 
     async getPlaceholderRowData(rowIndex = 0) {
-        // Get data from a specific placeholder row
-        const rows = await this.placeholderRows.all();
-        if (rowIndex >= rows.length) {
-            throw new Error(`Row index ${rowIndex} out of bounds (${rows.length} rows available)`);
-        }
-
-        const row = rows[rowIndex];
-        const cells = await row.locator('sp-table-cell').all();
+        const row = this.placeholderRows.nth(rowIndex);
+        const cells = row.locator('sp-table-cell');
+        await expect(cells).toHaveCount(7);
+        await expect(row.locator('mas-fragment-status')).toHaveAttribute('variant', /.+/);
 
         return {
-            key: await cells[0].textContent(),
-            value: await cells[1].textContent(),
+            key: await cells.nth(0).textContent(),
+            value: await cells.nth(1).textContent(),
             status: await row.locator('mas-fragment-status').getAttribute('variant'),
-            locale: await cells[3].textContent(),
-            updatedBy: await cells[4].textContent(),
-            updatedAt: await cells[5].textContent(),
+            locale: await cells.nth(3).textContent(),
+            updatedBy: await cells.nth(4).textContent(),
+            updatedAt: await cells.nth(5).textContent(),
         };
     }
 

@@ -1,10 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { load } from 'js-yaml';
-import { STUDIO_SHARDS, selectStudioShard, studioShardTestMatch, studioTestFiles } from '../utils/studio-shards.js';
+import {
+    STUDIO_SHARDS,
+    selectStudioShard,
+    studioShardForFile,
+    studioShardTestMatch,
+    studioTestFiles,
+} from '../utils/studio-shards.js';
 
 const fixtures = [
     'nala/studio/studio.test.js',
@@ -22,16 +29,92 @@ const fixtures = [
     'nala/studio/commerce/tests/not-a-test.spec.js',
 ];
 
-test('shards are sorted, complete and disjoint, including nested saves and future directories', () => {
-    assert.deepEqual(
-        selectStudioShard('saves', fixtures),
-        [fixtures[1], fixtures[2], fixtures[3], fixtures[4], fixtures[5]].sort(),
-    );
-    assert.deepEqual(selectStudioShard('acom-ahome-ccd-commerce', fixtures), fixtures.slice(6, 10).sort());
-    assert.deepEqual(selectStudioShard('rest', fixtures), [fixtures[0], fixtures[10], fixtures[11]].sort());
+test('mixed shards are sorted, complete and disjoint, including nested saves and future directories', () => {
+    for (const shard of STUDIO_SHARDS) {
+        const selected = selectStudioShard(shard, fixtures);
+        assert.deepEqual(selected, [...selected].sort());
+    }
     const combined = STUDIO_SHARDS.flatMap((shard) => selectStudioShard(shard, fixtures));
     assert.equal(new Set(combined).size, combined.length);
     assert.deepEqual(combined.sort(), fixtures.filter((file) => file.endsWith('.test.js')).sort());
+});
+
+test('mixed shards separate the largest workloads and distribute save suites without serialization', () => {
+    assert.equal(studioShardForFile('acom/plans/individuals/tests/individuals_edit_and_discard.test.js'), 'mixed-1');
+    assert.equal(studioShardForFile('regional-variations/tests/variations.test.js'), 'mixed-2');
+    assert.equal(studioShardForFile('acom/plans/individuals/tests/individuals_save.test.js'), 'mixed-3');
+    assert.equal(studioShardForFile('ccd/suggested/tests/suggested_save.test.js'), 'mixed-1');
+    assert.equal(studioShardForFile('ccd/slice/tests/slice_save.test.js'), 'mixed-2');
+    assert.equal(studioShardForFile('commerce/fries/tests/fries_save.test.js'), 'mixed-3');
+});
+
+test('new files inherit suite and workload policies rather than filename hashes or a maintained file list', () => {
+    const additions = [
+        ['acom/plans/individuals/nested/tests/new_save.test.js', 'mixed-3'],
+        ['acom/plans/individuals/tests/new_edit_and_discard.test.js', 'mixed-1'],
+        ['acom/plans/individuals/tests/new_css.test.js', 'mixed-2'],
+        ['acom/pro/tests/new_feature.test.js', 'mixed-1'],
+        ['commerce/fries/nested/tests/new_gradient_save.test.js', 'mixed-2'],
+        ['ost/new-folder/tests/new_authoring_save.test.js', 'mixed-1'],
+        ['ost/new-folder/tests/new_bundle_fields.test.js', 'mixed-1'],
+        ['ost/tests/authoringish.test.js', 'mixed-2'],
+        ['regional-variations/new-folder/tests/new_feature.test.js', 'mixed-2'],
+        ['placeholders/tests/new_search.test.js', 'mixed-1'],
+        ['acom/new-product/tests/new_save.test.js', 'mixed-3'],
+        ['acom/new-product/tests/new_edit_and_discard.test.js', 'mixed-1'],
+        ['ahome/new-product/tests/new_save.test.js', 'mixed-2'],
+        ['ccd/new-product/tests/new_save.test.js', 'mixed-1'],
+        ['commerce/new-product/tests/new_save.test.js', 'mixed-3'],
+        ['new-area/nested/tests/new_css.test.js', 'mixed-1'],
+        ['new-area/nested/tests/new_save.test.js', 'mixed-2'],
+        ['new-area/nested/tests/new_edit_and_discard.test.js', 'mixed-3'],
+        ['new-area/nested/tests/new_feature.test.js', 'mixed-2'],
+        ['new_navigation.test.js', 'mixed-3'],
+    ];
+    for (const [file, shard] of additions) {
+        assert.equal(studioShardForFile(file), shard, file);
+        assert.equal(studioShardForFile(`nala/studio/${file}`), shard, file);
+        assert.equal(studioShardForFile(`nala/studio/${file}`.replaceAll('/', '\\')), shard, file);
+    }
+    const files = additions.map(([file]) => `nala/studio/${file}`);
+    for (const shard of STUDIO_SHARDS) {
+        assert.deepEqual(
+            selectStudioShard(shard, files),
+            additions
+                .filter(([, selected]) => selected === shard)
+                .map(([file]) => `nala/studio/${file}`)
+                .sort(),
+        );
+    }
+});
+
+test('recursive discovery automatically includes new suites and nested files without a manifest update', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'nala-studio-discovery-'));
+    const additions = [
+        ['acom/pro/new-folder/tests/another_save.test.js', 'mixed-1'],
+        ['brand-new-suite/deeper/tests/new_save.test.js', 'mixed-2'],
+        ['brand-new-suite/deeper/tests/new_edit_and_discard.test.js', 'mixed-3'],
+    ];
+    try {
+        for (const [file] of additions) {
+            mkdirSync(dirname(join(directory, file)), { recursive: true });
+            writeFileSync(join(directory, file), '');
+        }
+        writeFileSync(join(directory, 'not-a-nala-spec.js'), '');
+        const discovered = studioTestFiles(directory);
+        assert.deepEqual(discovered, additions.map(([file]) => `nala/studio/${file}`).sort());
+        for (const shard of STUDIO_SHARDS) {
+            assert.deepEqual(
+                selectStudioShard(shard, discovered),
+                additions
+                    .filter(([, selected]) => selected === shard)
+                    .map(([file]) => `nala/studio/${file}`)
+                    .sort(),
+            );
+        }
+    } finally {
+        rmSync(directory, { recursive: true, force: true });
+    }
 });
 
 test('actual Studio discovery and exact config matchers cover every file once', () => {
@@ -52,8 +135,8 @@ test('actual Studio discovery and exact config matchers cover every file once', 
 
 test('unknown IDs and empty selections fail instead of silently running all Studio tests', () => {
     assert.throws(() => selectStudioShard('typo', fixtures), /Unknown Studio shard/);
-    assert.throws(() => selectStudioShard('rest', []), /no test files/);
-    assert.throws(() => selectStudioShard('saves', [fixtures[0]]), /no test files/);
+    assert.throws(() => selectStudioShard('mixed-3', []), /no test files/);
+    assert.throws(() => selectStudioShard('mixed-1', [fixtures[0]]), /no test files/);
     for (const shard of ['typo', '']) {
         const result = spawnSync(process.execPath, ['nala/utils/studio-shards.js', shard], { encoding: 'utf8' });
         assert.notEqual(result.status, 0);
@@ -89,7 +172,7 @@ test('config keeps local discovery and setup dependencies while selecting a CI s
 });
 
 test('gh wrapper preserves label grep and nopr exclusion with and without sharding', () => {
-    for (const shard of ['saves', '']) {
+    for (const shard of ['mixed-1', '']) {
         const result = spawnSync(
             'bash',
             ['-c', 'npx() { printf "MOCK_ARG:%s\\n" "$@"; }; export -f npx; bash ./nala/utils/gh.run.sh'],
@@ -121,9 +204,9 @@ test('workflow uses fixed runner slots, independent cleanup and credential-free 
     assert.deepEqual(
         studio.strategy.matrix.include.map(({ shard, runner, workers }) => [shard, runner, workers]),
         [
-            ['saves', 'nala-studio-sj', 4],
-            ['acom-ahome-ccd-commerce', 'nala-studio-or', 4],
-            ['rest', 'nala-studio-no', 3],
+            ['mixed-1', 'nala-studio-sj', 4],
+            ['mixed-2', 'nala-studio-or', 4],
+            ['mixed-3', 'nala-studio-no', 3],
         ],
     );
     assert.equal(

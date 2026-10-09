@@ -177,15 +177,15 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - shard: saves
+                    - shard: mixed-1
                       runner: nala-studio-sj
                       workers: 4
                       node-version: 20.x
-                    - shard: acom-ahome-ccd-commerce
+                    - shard: mixed-2
                       runner: nala-studio-or
                       workers: 4
                       node-version: 20.x
-                    - shard: rest
+                    - shard: mixed-3
                       runner: nala-studio-no
                       workers: 3
                       node-version: 20.x
@@ -205,31 +205,15 @@ jobs:
                       **/package-lock.json
                       **/yarn.lock
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Prepare compatible Nala dependencies
+              uses: ./.github/actions/setup-nala
+              timeout-minutes: 10
 
             - name: Report runner capacity and shard selection
               run: |
                   node -e "console.log('Available CPUs:', require('node:os').availableParallelism())"
                   echo "Runner: ${{ matrix.runner }}; shard: ${{ matrix.shard }}; workers: ${{ matrix.workers }}"
                   node ./nala/utils/studio-shards.js "${{ matrix.shard }}"
-
-            - name: Cache Playwright browsers
-              uses: actions/cache@v4
-              id: playwright-cache
-              continue-on-error: true
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
-
-            - name: Install Playwright system dependencies
-              uses: ./.github/actions/prep-apt
-
-            - name: Install/verify Playwright browsers
-              run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
-                  npx playwright install
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
@@ -329,26 +313,9 @@ jobs:
                       **/package-lock.json
                       **/yarn.lock
 
-            - name: Install dependencies
-              run: npm ci
-
-            - name: Cache Playwright browsers
-              uses: actions/cache@v4
-              id: playwright-cache
-              continue-on-error: true
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
-
-            # Docs have their own self-hosted runner, independent of the Studio shards.
-            - name: Install Playwright system dependencies
-              uses: ./.github/actions/prep-apt
-
-            - name: Install/verify Playwright browsers
-              run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
-                  npx playwright install
+            - name: Prepare compatible Nala dependencies
+              uses: ./.github/actions/setup-nala
+              timeout-minutes: 10
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh

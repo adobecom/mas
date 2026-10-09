@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { executeOperation } from './services/operations-client.js';
+import { createReleaseCard } from './utils/release-cards.js';
 import { fetchProducts } from './services/product-api.js';
 import { showToast } from './utils.js';
 import Store from './store.js';
@@ -372,19 +372,29 @@ class MasProductCatalog extends LitElement {
         this.creating = true;
         try {
             const parentPath = `/content/dam/mas/${surface}/${locale}`;
-            const result = await executeOperation('create_release_cards', {
-                arrangement_code: product.arrangement_code,
-                variants,
-                parentPath,
-                locale,
-                osi,
-                trialOsi,
-            });
-            if (result.success) {
-                const count = result.cards?.filter((c) => !c.error).length || 0;
+            const repository = document.querySelector('mas-repository');
+            const results = [];
+            for (const variant of variants) {
+                try {
+                    const fragment = await createReleaseCard({
+                        product,
+                        variant,
+                        baseOsi: osi,
+                        trialOsi,
+                        parentPath,
+                        repository,
+                    });
+                    results.push({ success: true, fragment });
+                } catch (error) {
+                    results.push({ success: false, error: error.message });
+                }
+            }
+            const count = results.filter((r) => r.success).length;
+            if (count === results.length) {
                 showToast(`Created ${count} fragment${count !== 1 ? 's' : ''}`, 'positive');
             } else {
-                showToast(`Failed: ${result.cards?.[0]?.error || 'Unknown error'}`, 'negative');
+                const firstError = results.find((r) => !r.success)?.error || 'Unknown error';
+                showToast(`Created ${count} of ${results.length} — ${firstError}`, 'negative');
             }
         } catch (e) {
             console.error('Failed to create fragments:', e);

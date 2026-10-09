@@ -2,6 +2,8 @@ import Store from './store.js';
 
 const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
 
+const MAS_BULK_PUBLISH_GROUP = 'GRP-ODIN-MAS-ACOM-CURATORS';
+
 const MAS_PROMO_EDITORS_GROUP = 'GRP-ODIN-MAS-PROMO-EDITORS';
 
 /** Surface path segment → LDAP group required for Studio settings (non-admin). */
@@ -35,6 +37,12 @@ export function isMasAdmin() {
     const groups = getCurrentUserNormalizedGroups();
     if (!groups) return false;
     return groups.includes(MAS_ADMIN_GROUP.toUpperCase());
+}
+
+export function canAccessBulkPublish() {
+    const groups = getCurrentUserNormalizedGroups();
+    if (!groups) return false;
+    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_BULK_PUBLISH_GROUP.toUpperCase());
 }
 
 /** Promotions authoring is gated to a single global editors group (admins always allowed). */

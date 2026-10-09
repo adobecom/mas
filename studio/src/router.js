@@ -2,16 +2,17 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PAT
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce, hasNonEmptyCompareChart } from './utils.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
 
 // Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
-// (programmatic nav only) never runs — mapped to the per-surface permission gate for reaching them.
-// Both currently share settings access.
+// (programmatic nav only) never runs — mapped to the permission gate for reaching them.
 const RESTRICTED_PAGE_ACCESS = {
+    [PAGE_NAMES.BULK_PUBLISH]: canAccessBulkPublish,
+    [PAGE_NAMES.BULK_PUBLISH_EDITOR]: canAccessBulkPublish,
     [PAGE_NAMES.SETTINGS]: canAccessSettings,
     [PAGE_NAMES.SETTINGS_EDITOR]: canAccessSettings,
     [PAGE_NAMES.MASKS]: canAccessMasks,
@@ -717,12 +718,20 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.OFFER_MAPPING;
     }
 
+    #isBulkPublishPage(page) {
+        return page === PAGE_NAMES.BULK_PUBLISH || page === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
     #syncSearchStoreFromHashParams() {
         const currentValue = Store.search.get();
         this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
     }
 
     #getAuthorizedPage(page) {
+        if (this.#isBulkPublishPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            return canAccessBulkPublish() ? page : PAGE_NAMES.WELCOME;
+        }
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;

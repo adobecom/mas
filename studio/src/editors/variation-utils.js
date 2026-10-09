@@ -86,16 +86,16 @@ export function normalizePznTagToLocaleCode(tag, surface, preferredLang) {
 
 const escapeHtml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Emphasis tag for a parsed CTA anchor: prefers a real <strong>/<em> wrapper - how headless CTAs
- *  store bold/italic (see rte-field.js's #marksForHeadlessVariant), so Milo can map it to the
- *  context-appropriate button style - falling back to the variant-class heuristic for CTAs
- *  authored under the older class-driven button-style system (see {@link getCtaEmphasis}). */
+/** Copy individual CTAs using their persisted variant; legacy wrapper-only CTAs retain emphasis. */
 function ctaEmphasisTag(a) {
+    if ([...a.classList].some((value) => /^(accent|primary|secondary)(-(outline|link))?$/.test(value))) {
+        const emphasis = getCtaEmphasis(a.getAttribute('class'));
+        return emphasis === 'bold' ? 'strong' : emphasis === 'italic' ? 'em' : null;
+    }
     const parentTag = a.parentElement?.tagName;
     if (parentTag === 'STRONG') return 'strong';
     if (parentTag === 'EM') return 'em';
-    const emphasis = getCtaEmphasis(a.getAttribute('class') || '');
-    return emphasis === 'bold' ? 'strong' : emphasis === 'italic' ? 'em' : null;
+    return null;
 }
 
 /** Parses CTA HTML and returns an array of `{ text, href, key, className, formattedText }` objects,

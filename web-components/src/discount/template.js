@@ -1,4 +1,4 @@
-import { isPositiveFiniteNumber } from '@dexter/tacocat-core';
+import { isPositiveFiniteNumber } from '@dexter/tacocat-core/src/utilities.js';
 import {
     defaultLiterals,
     formatLiteral,

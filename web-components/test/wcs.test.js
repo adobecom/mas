@@ -1,11 +1,35 @@
 import { Defaults } from '../src/defaults.js';
 import { Wcs } from '../src/wcs.js';
+import sinon from 'sinon';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { expect } from './utilities.js';
 
 describe('resolveOfferSelectors', () => {
+    it('leaves browser requests without a default timeout', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings: Defaults });
+        await Promise.all(client.resolveOfferSelectors({ wcsOsi: ['abm'] }));
+        expect(fetch.firstCall.args[1]).to.not.have.property('signal');
+    });
+
+    it('passes an opt-in fetch timeout to WCS requests', async () => {
+        await mockFetch(withWcs);
+        const signal = new AbortController().signal;
+        const timeoutStub = sinon.stub(AbortSignal, 'timeout').returns(signal);
+        try {
+            const client = Wcs({ settings: Defaults, fetchTimeout: 5000 });
+            await Promise.all(
+                client.resolveOfferSelectors({ wcsOsi: ['abm'] }),
+            );
+            expect(timeoutStub.calledOnceWithExactly(5000)).to.be.true;
+            expect(fetch.firstCall.args[1].signal).to.equal(signal);
+        } finally {
+            timeoutStub.restore();
+        }
+    });
+
     it('ignores multiple OSIs and loads them one by one', async () => {
         await mockFetch(withWcs);
         const client = Wcs({

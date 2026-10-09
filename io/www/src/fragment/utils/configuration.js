@@ -6,6 +6,7 @@ const HARDCODED_API_KEYS = [
     /^CreativeCloud_v\d+_\d+$/,
     'AdobeExpressWeb',
     'unified_checkout_client_v3',
+    'concierge-conversation-service',
 ];
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];

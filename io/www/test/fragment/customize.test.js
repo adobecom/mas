@@ -2141,6 +2141,16 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             expectedVariationProject: 'promo-project',
         },
         {
+            name: 'geo-only grouped exclusion remains unchanged when another card and its grouped variation are included',
+            country: 'GR',
+            tags: ['mas:locale/en_GR'],
+            rootPromo: false,
+            otherGroupedIncluded: true,
+            expectedBadge: 'Default badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
             name: 'an ordinary regional variation keeps mapping from the default despite excluded SMB',
             locale: 'en_KW',
             pzn: 'SMB',
@@ -2223,8 +2233,23 @@ describe('customize PZN-only promotion rules and geo regression', function () {
                     },
                 };
             }
-            const groupedPaths = scenario.groupedIncluded ? ['card/pzn/grouped'] : [];
-            const fragmentPaths = [...(rootIncluded ? ['card'] : []), ...groupedPaths];
+            const groupedPaths = [
+                ...(scenario.groupedIncluded ? ['card/pzn/grouped'] : []),
+                ...(scenario.otherGroupedIncluded ? ['other/pzn/grouped'] : []),
+            ];
+            const fragmentPaths = [
+                ...(rootIncluded ? ['card'] : []),
+                ...(scenario.otherGroupedIncluded ? ['other'] : []),
+                ...groupedPaths,
+            ];
+            const groupedVariationReferences = new Map(scenario.groupedIncluded ? [['card/pzn/grouped', grouped]] : []);
+            if (scenario.otherGroupedIncluded) {
+                groupedVariationReferences.set('other/pzn/grouped', {
+                    id: 'other-grouped',
+                    path: '/content/dam/mas/sandbox/en_US/other/pzn/grouped',
+                    fields: { pznTags: ['mas:locale/en_GR'] },
+                });
+            }
             const defaultVariations = {};
             if (rootPromo) {
                 defaultVariations.card = {
@@ -2255,7 +2280,7 @@ describe('customize PZN-only promotion rules and geo regression', function () {
                         project: { id: 'promo-project', fragmentPaths, defaultVariations, regionVariations: {} },
                         fragmentPaths: new Set(fragmentPaths),
                         groupedVariationPaths: new Set(groupedPaths),
-                        groupedVariationReferences: new Map(scenario.groupedIncluded ? [['card/pzn/grouped', grouped]] : []),
+                        groupedVariationReferences,
                         promoMap: { '*': 'PROMO-CODE' },
                         substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
                     },

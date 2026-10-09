@@ -1541,6 +1541,9 @@ describe('MasTranslationEditor', () => {
             await selector.updateComplete;
             selector.shadowRoot.querySelector('.add-button').click();
             expect(openSpy.calledOnce).to.be.true;
+            selector.shadowRoot
+                .querySelector('.selector-dialog')
+                .dispatchEvent(new Event('close', { bubbles: true, composed: true }));
         });
 
         it('should enable save and discard when language selection is confirmed', async () => {
@@ -1572,10 +1575,9 @@ describe('MasTranslationEditor', () => {
             Store.search.set({ path: 'acom' });
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            const langPicker = getLangSelector(el).querySelector('mas-translation-languages');
-            expect(langPicker).to.exist;
-            expect(langPicker.hasAttribute('include-regional')).to.equal(false);
-            const codes = langPicker.localesArray.map((item) => item.locale);
+            const langPicker = getLangSelector(el).querySelector('mas-region-picker');
+            expect(langPicker.store).to.equal(Store.translationProjects.targetLocales);
+            const codes = langPicker.items.map(({ value }) => value);
             expect(codes).to.include('fr_FR');
             expect(codes).to.include('de_DE');
             expect(codes).to.not.include('fr_CA');

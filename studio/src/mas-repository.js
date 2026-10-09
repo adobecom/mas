@@ -6,6 +6,7 @@ import Store from './store.js';
 import router from './router.js';
 import { AEM, filterByTags } from './aem/aem.js';
 import { Fragment } from './aem/fragment.js';
+import { MasReferenceDiagnosisDialog } from './publish/mas-reference-diagnosis-dialog.js';
 import Events from './events.js';
 import {
     debounce,
@@ -1575,8 +1576,13 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
-        const { selectedRefIds = null, allSelected = false } = options;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
         try {
+            const roots = [
+                fragment,
+                ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
+            ];
+            if (!skipReferenceDiagnosis && !(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
@@ -1701,10 +1707,12 @@ export class MasRepository extends LitElement {
         }
 
         try {
+            const listStores = Store.fragments.list.data.get();
+            const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
+            if (!(await MasReferenceDiagnosisDialog.confirmFor(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const listStores = Store.fragments.list.data.get();
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);

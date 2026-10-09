@@ -1959,7 +1959,7 @@ describe('customize promo variation vs. PZN precedence', function () {
                 [PZN_VARIATION_ID]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment/pzn/edu',
                         id: PZN_VARIATION_ID,
                         title: 'EDU pricing',
                         fields: {
@@ -1984,14 +1984,14 @@ describe('customize promo variation vs. PZN precedence', function () {
         return [{ project, promoMap: { '*': 'PROMO-CODE' }, fragmentPaths: new Set(project.fragmentPaths) }];
     }
 
-    it('renders the matching PZN without promotion when only the default fragment is included', async function () {
+    it('matches audience-prefixed EDU tags case-insensitively without inheriting the default promotion', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'pzn-test-fragment',
                 locale: 'en_US',
                 parsedLocale: 'en_US',
-                pzn: 'EDU',
+                pzn: 'edu',
                 body: buildBodyWithPromoAndPzn(),
             },
             buildPromoProjectsEntry(),
@@ -2025,13 +2025,14 @@ describe('customize promo variation vs. PZN precedence', function () {
     });
 });
 
-describe('customize PZN-only promotion rules and geo regression', function () {
+describe('customize PZN-only promotion rules', function () {
     const cases = [
         {
             name: 'rule 1: excluded SMB keeps its content without promo mapping',
             pzn: 'SMB',
             expectedVariation: 'grouped',
             expectedBadge: 'SMB badge',
+            expectedCode: undefined,
             expectedOsi: 'OSI-TEST',
         },
         {
@@ -2073,6 +2074,16 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             expectedVariationProject: 'promo-project',
         },
         {
+            name: 'a root without variations keeps the default promo',
+            pzn: 'SMB',
+            variations: [],
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
             name: 'an unmatched PZN token keeps the default promo',
             pzn: 'EDU',
             expectedVariation: 'root-promo',
@@ -2086,6 +2097,7 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             pzn: 'EDU, smb',
             expectedVariation: 'grouped',
             expectedBadge: 'SMB badge',
+            expectedCode: undefined,
             expectedOsi: 'OSI-TEST',
         },
         {
@@ -2095,6 +2107,7 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             tags: ['mas:pzn/SMB', 'mas:locale/en_GR'],
             expectedVariation: 'grouped',
             expectedBadge: 'SMB badge',
+            expectedCode: undefined,
             expectedOsi: 'OSI-TEST',
         },
         {
@@ -2182,6 +2195,7 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             rootPromo: false,
             expectedVariation: 'regional',
             expectedBadge: 'Regional badge',
+            expectedCode: undefined,
             expectedOsi: 'OSI-TEST',
         },
         {
@@ -2203,90 +2217,95 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             pzn: 'SMB',
             expectedVariation: 'grouped',
             expectedBadge: 'SMB badge',
+            expectedCode: undefined,
             expectedOsi: 'OSI-TEST',
         },
     ];
 
+    function buildScenarioProject(scenario) {
+        const { locale = 'en_US', tags = ['mas:pzn/SMB'], rootIncluded = true, rootPromo = true } = scenario;
+        const grouped = {
+            id: 'grouped',
+            path: '/content/dam/mas/sandbox/en_US/card/pzn/grouped',
+            fields: { pznTags: tags, badge: 'SMB badge' },
+        };
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: { badge: 'Default badge', osi: 'OSI-TEST', variations: scenario.variations ?? ['grouped'] },
+            references: { grouped: { type: 'content-fragment', value: grouped } },
+            referencesTree: [],
+        };
+        if (scenario.regional) {
+            body.fields.variations.push('regional');
+            body.references.regional = {
+                type: 'content-fragment',
+                value: {
+                    id: 'regional',
+                    path: `/content/dam/mas/sandbox/${locale}/card`,
+                    fields: { badge: 'Regional badge' },
+                },
+            };
+        }
+        const groupedPaths = [
+            ...(scenario.groupedIncluded ? ['card/pzn/grouped'] : []),
+            ...(scenario.otherGroupedIncluded ? ['other/pzn/grouped'] : []),
+        ];
+        const fragmentPaths = [
+            ...(rootIncluded ? ['card'] : []),
+            ...(scenario.otherGroupedIncluded ? ['other'] : []),
+            ...groupedPaths,
+        ];
+        const groupedVariationReferences = new Map(scenario.groupedIncluded ? [['card/pzn/grouped', grouped]] : []);
+        if (scenario.otherGroupedIncluded) {
+            groupedVariationReferences.set('other/pzn/grouped', {
+                id: 'other-grouped',
+                path: '/content/dam/mas/sandbox/en_US/other/pzn/grouped',
+                fields: { pznTags: ['mas:locale/en_GR'] },
+            });
+        }
+        const defaultVariations = {};
+        if (rootPromo) {
+            defaultVariations.card = {
+                id: 'root-promo',
+                path: '/content/dam/mas/sandbox/en_US/promotions/bf/card',
+                fields: { badge: 'Default promo badge' },
+            };
+        }
+        if (scenario.groupedPromo) {
+            defaultVariations['card/pzn/grouped'] = {
+                id: 'grouped-promo',
+                path: '/content/dam/mas/sandbox/en_US/promotions/bf/card/pzn/grouped',
+                fields: { badge: 'SMB promo badge' },
+            };
+        }
+        return {
+            context: {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale,
+                parsedLocale: 'en_US',
+                country: scenario.country,
+                pzn: scenario.pzn,
+                body,
+            },
+            promoProjects: [
+                {
+                    project: { id: 'promo-project', fragmentPaths, defaultVariations, regionVariations: {} },
+                    fragmentPaths: new Set(fragmentPaths),
+                    groupedVariationPaths: new Set(groupedPaths),
+                    groupedVariationReferences,
+                    promoMap: { '*': 'PROMO-CODE' },
+                    substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
+                },
+            ],
+        };
+    }
+
     for (const scenario of cases) {
         it(scenario.name, async function () {
-            const { locale = 'en_US', tags = ['mas:pzn/SMB'], rootIncluded = true, rootPromo = true } = scenario;
-            const grouped = {
-                id: 'grouped',
-                path: '/content/dam/mas/sandbox/en_US/card/pzn/grouped',
-                fields: { pznTags: tags, badge: 'SMB badge' },
-            };
-            const body = {
-                id: 'card',
-                path: '/content/dam/mas/sandbox/en_US/card',
-                fields: { badge: 'Default badge', osi: 'OSI-TEST', variations: ['grouped'] },
-                references: { grouped: { type: 'content-fragment', value: grouped } },
-                referencesTree: [],
-            };
-            if (scenario.regional) {
-                body.fields.variations.push('regional');
-                body.references.regional = {
-                    type: 'content-fragment',
-                    value: {
-                        id: 'regional',
-                        path: `/content/dam/mas/sandbox/${locale}/card`,
-                        fields: { badge: 'Regional badge' },
-                    },
-                };
-            }
-            const groupedPaths = [
-                ...(scenario.groupedIncluded ? ['card/pzn/grouped'] : []),
-                ...(scenario.otherGroupedIncluded ? ['other/pzn/grouped'] : []),
-            ];
-            const fragmentPaths = [
-                ...(rootIncluded ? ['card'] : []),
-                ...(scenario.otherGroupedIncluded ? ['other'] : []),
-                ...groupedPaths,
-            ];
-            const groupedVariationReferences = new Map(scenario.groupedIncluded ? [['card/pzn/grouped', grouped]] : []);
-            if (scenario.otherGroupedIncluded) {
-                groupedVariationReferences.set('other/pzn/grouped', {
-                    id: 'other-grouped',
-                    path: '/content/dam/mas/sandbox/en_US/other/pzn/grouped',
-                    fields: { pznTags: ['mas:locale/en_GR'] },
-                });
-            }
-            const defaultVariations = {};
-            if (rootPromo) {
-                defaultVariations.card = {
-                    id: 'root-promo',
-                    path: '/content/dam/mas/sandbox/en_US/promotions/bf/card',
-                    fields: { badge: 'Default promo badge' },
-                };
-            }
-            if (scenario.groupedPromo) {
-                defaultVariations['card/pzn/grouped'] = {
-                    id: 'grouped-promo',
-                    path: '/content/dam/mas/sandbox/en_US/promotions/bf/card/pzn/grouped',
-                    fields: { badge: 'SMB promo badge' },
-                };
-            }
-            const result = await processWithPromoProjects(
-                {
-                    ...FAKE_CONTEXT,
-                    fragmentPath: 'card',
-                    locale,
-                    parsedLocale: 'en_US',
-                    country: scenario.country,
-                    pzn: scenario.pzn,
-                    body,
-                },
-                [
-                    {
-                        project: { id: 'promo-project', fragmentPaths, defaultVariations, regionVariations: {} },
-                        fragmentPaths: new Set(fragmentPaths),
-                        groupedVariationPaths: new Set(groupedPaths),
-                        groupedVariationReferences,
-                        promoMap: { '*': 'PROMO-CODE' },
-                        substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
-                    },
-                ],
-            );
-
+            const { context, promoProjects } = buildScenarioProject(scenario);
+            const result = await processWithPromoProjects(context, promoProjects);
             expect(result.status).to.equal(200);
             expect(result.body.variationId).to.equal(scenario.expectedVariation);
             expect(result.body.fields.badge).to.equal(scenario.expectedBadge);
@@ -2294,7 +2313,16 @@ describe('customize PZN-only promotion rules and geo regression', function () {
             expect(result.body.fields.osi).to.equal(scenario.expectedOsi);
             expect(result.body.promoProject).to.equal(scenario.expectedCode ? 'promo-project' : undefined);
             expect(result.body.promoVariationProject).to.equal(scenario.expectedVariationProject);
-            if (!scenario.expectedCode) expect(result.promoScopeById).to.deep.equal({});
+            expect(result.promoScopeById).to.deep.equal(
+                scenario.expectedCode
+                    ? {
+                          card: {
+                              promoMap: { '*': 'PROMO-CODE' },
+                              substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
+                          },
+                      }
+                    : {},
+            );
         });
     }
 });

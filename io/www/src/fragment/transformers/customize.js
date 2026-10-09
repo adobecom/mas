@@ -257,9 +257,9 @@ function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, cou
     return defaultVar && regionVar ? deepMerge(defaultVar, regionVar) : defaultVar || regionVar;
 }
 
-// If a promo variation for the pzn variation was added to the promo project, it wins over the
-// default fragment's promo variation. When this OSI opted out of promo variations, no promo
-// variation is looked up at all — only the pzn variation is resolved.
+// A matching audience PZN uses its own promo variation when available, otherwise it suppresses
+// the default promo. Geo-only and regional precedence stay unchanged. Offers flagged to ignore
+// promo variations retain regional or grouped content without merging promo content.
 function findPromoVariation(root, customizeContext, selectedPromoProject) {
     if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
         return {};
@@ -300,8 +300,6 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
     }
     if (findPznVariationForPromotion(root, customizeContext)) return {};
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
-    // No promo variation for the default fragment.
-    // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
         if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
             return { variation: {}, label };

@@ -16,6 +16,7 @@ function openOfferSelectorTool(options) {
         promotionCode,
         onSelect,
         onCancel,
+        onMultiSelect,
         multiSelect = false,
         authoringFlow,
         rootElement,
@@ -46,6 +47,7 @@ function openOfferSelectorTool(options) {
         promotionCode,
         onSelect,
         onCancel,
+        onMultiSelect,
         multiSelect,
         authoringFlow,
         zIndex,
@@ -98,4 +100,11 @@ function openOfferSelectorTool(options) {
     };
 }
 
-window.ost = { openOfferSelectorTool };
+// Namespaced opener so this (the new Lit OST) can be loaded alongside the
+// legacy bundle without clobbering it: MASA calls window.ostNew, while RTE
+// authoring keeps the default window.ost (legacy). On a standalone ?ost=new
+// page the legacy bundle is not loaded, so we also claim window.ost.
+window.ostNew = { openOfferSelectorTool };
+if (!window.ost) {
+    window.ost = { openOfferSelectorTool };
+}

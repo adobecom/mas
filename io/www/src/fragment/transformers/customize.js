@@ -172,6 +172,20 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
+function findPznVariationForPromotion(root, customizeContext) {
+    const variations = root.fields?.variations;
+    const tokens = parsePznTokens(customizeContext.pzn);
+    if (
+        !tokens.length ||
+        !variations?.length ||
+        (customizeContext.isRegionLocale && findRegionalVariation(variations, customizeContext))
+    ) {
+        return null;
+    }
+    const variation = findPersonalizationVariation(variations, customizeContext);
+    return variation && countMatchedPznTokens(variation.fields.pznTags, tokens) ? variation : null;
+}
+
 // Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
 // Kept in sync by hand with the same constant + `-N` suffix convention in
 // studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
@@ -243,9 +257,9 @@ function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, cou
     return defaultVar && regionVar ? deepMerge(defaultVar, regionVar) : defaultVar || regionVar;
 }
 
-// If a promo variation for the pzn variation was added to the promo project, it wins over the
-// default fragment's promo variation. When this OSI opted out of promo variations, no promo
-// variation is looked up at all — only the pzn variation is resolved.
+// A matching audience PZN uses its own promo variation when available, otherwise it suppresses
+// the default promo. Geo-only and regional precedence stay unchanged. Offers flagged to ignore
+// promo variations retain regional or grouped content without merging promo content.
 function findPromoVariation(root, customizeContext, selectedPromoProject) {
     if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
         return {};
@@ -284,9 +298,8 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             }
         }
     }
+    if (findPznVariationForPromotion(root, customizeContext)) return {};
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
-    // No promo variation for the default fragment.
-    // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
         if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
             return { variation: {}, label };
@@ -302,7 +315,8 @@ function findPromoMapsForFragment(root, customizeContext) {
     if (!promoProjects?.length) return [];
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return [];
-    const { fragmentPath } = match.groups;
+    const pznVariation = findPznVariationForPromotion(root, customizeContext);
+    const { fragmentPath } = pznVariation ? PATH_TOKENS.exec(pznVariation.path).groups : match.groups;
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
@@ -358,10 +372,6 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-    // Promo variation (checking the pzn variation first, see `findPromoVariation`) takes
-    // priority, independent of fields.variations — unless the fragment's offer is flagged
-    // "ignore variations" for this geo, in which case we fall through so regional and pzn
-    // variations still apply.
     const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);

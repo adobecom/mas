@@ -95,6 +95,7 @@ describe('MasGroupedSelector', () => {
         query(el, '.edit-button').click();
         await el.updateComplete;
         expect(el.expanded).to.be.false;
+        query(el, '.selector-dialog').dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     });
 
     it('projects slotted picker content into the dialog', async () => {
@@ -109,6 +110,7 @@ describe('MasGroupedSelector', () => {
         el.addEventListener('open', onOpen);
         query(el, '.add-button').click();
         expect(onOpen.calledOnce).to.be.true;
+        query(el, '.selector-dialog').dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     });
 
     it('dispatches confirm and closes the dialog on confirm', async () => {

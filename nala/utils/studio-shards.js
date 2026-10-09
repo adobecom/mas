@@ -5,11 +5,11 @@ import { pathToFileURL } from 'node:url';
 export const STUDIO_SHARDS = ['mixed-1', 'mixed-2', 'mixed-3'];
 // Whole-suite defaults and workload overrides preserve the measured 4/4/3 allocation.
 const SUITE_SHARDS = {
-    'acom/plans/individuals': { default: 'mixed-1', css: 'mixed-2', save: 'mixed-3' },
-    'acom/pro': { default: 'mixed-1', css: 'mixed-3' },
+    'acom/plans/individuals': { default: 'mixed-1', css: 'mixed-2' },
+    'acom/pro': { default: 'mixed-3' },
     'ahome/promoted-plans': { default: 'mixed-1', save: 'mixed-3' },
     'ahome/try-buy-widget': { default: 'mixed-2' },
-    'ccd/suggested': { default: 'mixed-1', css: 'mixed-2' },
+    'ccd/suggested': { default: 'mixed-3', css: 'mixed-2' },
     'ccd/slice': { default: 'mixed-3', save: 'mixed-2' },
     'commerce/fries': { default: 'mixed-1', save: 'mixed-3', gradient: 'mixed-2' },
     express: { default: 'mixed-3', css: 'mixed-1' },

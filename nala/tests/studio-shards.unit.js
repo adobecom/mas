@@ -39,21 +39,22 @@ test('mixed shards are sorted, complete and disjoint, including nested saves and
     assert.deepEqual(combined.sort(), fixtures.filter((file) => file.endsWith('.test.js')).sort());
 });
 
-test('mixed shards separate the largest workloads and distribute save suites without serialization', () => {
+test('mixed shards keep Individuals workloads on San Jose and distribute smaller save suites without serialization', () => {
     assert.equal(studioShardForFile('acom/plans/individuals/tests/individuals_edit_and_discard.test.js'), 'mixed-1');
     assert.equal(studioShardForFile('regional-variations/tests/variations.test.js'), 'mixed-2');
-    assert.equal(studioShardForFile('acom/plans/individuals/tests/individuals_save.test.js'), 'mixed-3');
-    assert.equal(studioShardForFile('ccd/suggested/tests/suggested_save.test.js'), 'mixed-1');
+    assert.equal(studioShardForFile('acom/plans/individuals/tests/individuals_save.test.js'), 'mixed-1');
+    assert.equal(studioShardForFile('acom/pro/tests/pro_save.test.js'), 'mixed-3');
+    assert.equal(studioShardForFile('ccd/suggested/tests/suggested_save.test.js'), 'mixed-3');
     assert.equal(studioShardForFile('ccd/slice/tests/slice_save.test.js'), 'mixed-2');
     assert.equal(studioShardForFile('commerce/fries/tests/fries_save.test.js'), 'mixed-3');
 });
 
 test('new files inherit suite and workload policies rather than filename hashes or a maintained file list', () => {
     const additions = [
-        ['acom/plans/individuals/nested/tests/new_save.test.js', 'mixed-3'],
+        ['acom/plans/individuals/nested/tests/new_save.test.js', 'mixed-1'],
         ['acom/plans/individuals/tests/new_edit_and_discard.test.js', 'mixed-1'],
         ['acom/plans/individuals/tests/new_css.test.js', 'mixed-2'],
-        ['acom/pro/tests/new_feature.test.js', 'mixed-1'],
+        ['acom/pro/tests/new_feature.test.js', 'mixed-3'],
         ['commerce/fries/nested/tests/new_gradient_save.test.js', 'mixed-2'],
         ['ost/new-folder/tests/new_authoring_save.test.js', 'mixed-1'],
         ['ost/new-folder/tests/new_bundle_fields.test.js', 'mixed-1'],
@@ -91,7 +92,8 @@ test('new files inherit suite and workload policies rather than filename hashes 
 test('recursive discovery automatically includes new suites and nested files without a manifest update', () => {
     const directory = mkdtempSync(join(tmpdir(), 'nala-studio-discovery-'));
     const additions = [
-        ['acom/pro/new-folder/tests/another_save.test.js', 'mixed-1'],
+        ['acom/plans/individuals/new-folder/tests/another_save.test.js', 'mixed-1'],
+        ['acom/pro/new-folder/tests/another_save.test.js', 'mixed-3'],
         ['brand-new-suite/deeper/tests/new_save.test.js', 'mixed-2'],
         ['brand-new-suite/deeper/tests/new_edit_and_discard.test.js', 'mixed-3'],
     ];
@@ -209,6 +211,15 @@ test('workflow uses fixed runner slots, independent cleanup and credential-free 
             ['mixed-3', 'nala-studio-no', 3],
         ],
     );
+    for (const file of [
+        'acom/plans/individuals/tests/individuals_save.test.js',
+        'acom/plans/individuals/nested/tests/new_save.test.js',
+        'acom/plans/individuals/nested/tests/new_feature.test.js',
+    ]) {
+        const slot = studio.strategy.matrix.include.find(({ shard }) => shard === studioShardForFile(file));
+        assert.equal(slot.runner, 'nala-studio-sj', `${file} must never run on Noida`);
+        assert.equal(slot.workers, 4);
+    }
     assert.equal(
         studio.strategy.matrix.include.reduce((total, { workers }) => total + workers, docs.env.NALA_WORKER_COUNT),
         12,

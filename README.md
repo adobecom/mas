@@ -186,8 +186,9 @@ pinned runners, while Docs uses one worker. EDS divides 180 RPS over that pool (
 Odin partitions `NALA_ODIN_MAX_RPS` (default 20 RPS) by `NALA_WORKER_COUNT / NALA_TOTAL_WORKERS`; each shard's
 independent cleanup retains its allocation. Explicit per-worker EDS or per-invocation Odin overrides replace these defaults.
 Studio selection is complete and disjoint: `mixed-1`, `mixed-2` and `mixed-3` mix saves, editor checks and navigation
-using measured successful-test durations, balanced against their 4/4/3 worker capacities. Individuals edit/discard,
-regional variations and Individuals saves anchor different shards; save suites and OST coverage are spread across the pool.
+using measured successful-test durations, balanced against their 4/4/3 worker capacities. San Jose owns Individuals
+edit/discard and saves; Oregon anchors regional variations; Noida receives the smaller Pro and Suggested suites instead
+of Individuals saves. Save suites and OST coverage are still spread across the pool.
 Whole files stay together to preserve worker-local bootstrap reuse. Selection is defined by suite-family policies, not a list
 of current files: new tests in an existing file and new files under a known suite are included automatically, even in nested
 directories. Workload overrides recognize `save`, `css` and `edit` filename/path words. Fries gradient and OST authoring/bundle
@@ -208,11 +209,15 @@ one shard. This guarantees discovery, not duration balance for unknown future wo
 coverage or timings change substantially. No writer semaphore or serial test mode is added.
 Existing tags and `nopr` exclusions still apply.
 
-| Shard     | Workers | Main workload            | Complementary coverage                                                     |
-| --------- | ------- | ------------------------ | -------------------------------------------------------------------------- |
-| `mixed-1` | 4       | Individuals edit/discard | Pro and Suggested saves, OST authoring/bundle, placeholders                |
-| `mixed-2` | 4       | Regional variations      | Try-buy, Slice and gradient saves, core OST, translation/version workflows |
-| `mixed-3` | 3       | Individuals saves        | Ordinary Fries saves, Slice editors, navigation/settings                   |
+| Shard     | Runner   | Workers | Main workload                  | Complementary coverage                                                     |
+| --------- | -------- | ------- | ------------------------------ | -------------------------------------------------------------------------- |
+| `mixed-1` | San Jose | 4       | Individuals edit/discard/saves | OST authoring/bundle, placeholders                                         |
+| `mixed-2` | Oregon   | 4       | Regional variations            | Try-buy, Slice and gradient saves, core OST, translation/version workflows |
+| `mixed-3` | Noida    | 3       | Smaller Pro/Suggested suites   | Ordinary Fries saves, Slice editors, navigation/settings                   |
+
+Individuals suite defaults keep new save/editor files on San Jose, including files without workload words in their names;
+its CSS override remains on Oregon. Regression coverage checks actual runner placement so Individuals saves cannot
+silently return to Noida when the workflow matrix or selector changes.
 
 Each shard authenticates independently and records its own fresh HAR; neither HAR nor authentication state is shared
 between shards or PRs. Concurrent PR suites are not globally serialized.

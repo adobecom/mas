@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { Ims } from '@adobe/aio-lib-ims';
+import stateLib from '@adobe/aio-lib-state';
 import { main as link } from '../../src/actions/link-card-to-offer.js';
 import { main as release } from '../../src/actions/create-release-cards.js';
 import { main as update } from '../../src/actions/update-card.js';
@@ -24,6 +25,7 @@ const fragment = {
 describe('offer writes validate AOS before mutation', () => {
     let originalFetch;
     let originalValidate;
+    let originalInit;
     let offers;
     let writes;
     let wcsOffers;
@@ -31,7 +33,13 @@ describe('offer writes validate AOS before mutation', () => {
     beforeEach(() => {
         originalFetch = globalThis.fetch;
         originalValidate = Ims.prototype.validateTokenAllowList;
+        originalInit = stateLib.init;
         Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
+        stateLib.init = async () => ({
+            get: async () => ({
+                value: JSON.stringify([{ userPrincipalName: 'caller@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]),
+            }),
+        });
         offers = [product];
         writes = [];
         wcsOffers = [{ offerSelectorIds: [selector], offerId }];
@@ -43,7 +51,7 @@ describe('offer writes validate AOS before mutation', () => {
                 return new Response(
                     JSON.stringify(requireArrangement && url.searchParams.get('arrangement_code') !== 'firefly' ? [] : offers),
                 );
-            if (url.hostname.includes('adobelogin')) return new Response(JSON.stringify({ groups: ['GRP-ODIN-MAS-ADMINS'] }));
+            if (url.hostname.includes('adobelogin')) return new Response(JSON.stringify({ email: 'caller@adobe.com' }));
             if (url.pathname.includes('csrf')) return new Response(JSON.stringify({ token: 'csrf' }));
             if (init.method && init.method !== 'GET') writes.push(JSON.parse(init.body || '{}'));
             return new Response(JSON.stringify(init.method === 'PUT' ? { ...fragment, ...writes.at(-1) } : fragment), {
@@ -54,6 +62,7 @@ describe('offer writes validate AOS before mutation', () => {
     afterEach(() => {
         globalThis.fetch = originalFetch;
         Ims.prototype.validateTokenAllowList = originalValidate;
+        stateLib.init = originalInit;
     });
     for (const action of ['link', 'update', 'release']) {
         it(`rejects coherent unfiltered AOS responses for ${action}`, async () => {

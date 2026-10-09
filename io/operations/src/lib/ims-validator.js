@@ -1,9 +1,13 @@
 import { Ims } from '@adobe/aio-lib-ims';
+import stateLib from '@adobe/aio-lib-state';
 
 /**
  * MAS admin group — bypasses surface-scoped checks.
  */
 const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
+
+/** The namespace-scoped cache key MerchAtScaleStudio/listMembers serves. */
+const MAS_USERS_CACHE_KEY = 'mas-users';
 
 /**
  * Surface path segment → LDAP group required to mutate fragments in that surface.
@@ -72,6 +76,35 @@ export function deriveSurfaceFromPath(path) {
  * @param {string} token - Bearer token (no 'Bearer ' prefix)
  * @returns {Promise<string[]>} - uppercase LDAP group names, or [] on failure
  */
+/**
+ * The MAS groups for a user, looked up by email in the mas-users list.
+ * Case-insensitive on the email; returns uppercase group names, [] if unknown.
+ *
+ * @param {Array<{userPrincipalName?: string, groups?: string[]}>} users
+ * @param {string} email
+ * @returns {string[]}
+ */
+export function groupsForEmail(users, email) {
+    if (!Array.isArray(users) || !email) return [];
+    const normalized = String(email).toLowerCase();
+    const user = users.find((entry) => entry?.userPrincipalName?.toLowerCase() === normalized);
+    return (user?.groups ?? []).map((group) => String(group).toUpperCase());
+}
+
+/**
+ * Resolve the caller's MAS groups from the shared `mas-users` cache — the same
+ * source studio/src/groups.js uses — keyed by the caller's email.
+ *
+ * IMS profile/v1 does NOT carry the GRP-ODIN-MAS-* LDAP groups; only the
+ * per-namespace mas-users cache does. Reading `profile.groups` therefore
+ * returned nothing and denied every surface (create_release_cards, copy-card,
+ * cross-surface). The cache is namespace-scoped, so this reads the same store
+ * MerchAtScaleStudio/listMembers serves. Profile/v1 is still used, but only for
+ * the caller's email.
+ *
+ * @param {string} token - Bearer token (no 'Bearer ' prefix)
+ * @returns {Promise<string[]>} - uppercase LDAP group names, or [] on failure
+ */
 export async function fetchUserGroups(token) {
     try {
         const response = await fetch('https://ims-na1.adobelogin.com/ims/profile/v1', {
@@ -79,10 +112,16 @@ export async function fetchUserGroups(token) {
         });
         if (!response.ok) return [];
         const profile = await response.json();
-        const groups = Array.isArray(profile?.groups) ? profile.groups : [];
-        return groups.map((g) => String(g).toUpperCase());
+        const email = String(profile?.email ?? '').toLowerCase();
+        if (!email) return [];
+
+        const state = await stateLib.init();
+        const cached = await state.get(MAS_USERS_CACHE_KEY);
+        if (!cached?.value) return [];
+        const users = JSON.parse(cached.value);
+        return groupsForEmail(users, email);
     } catch (error) {
-        console.error('Failed to fetch user groups from IMS profile:', error.message);
+        console.error('Failed to resolve user groups from mas-users:', error.message);
         return [];
     }
 }

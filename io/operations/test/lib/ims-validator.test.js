@@ -3,12 +3,14 @@ import {
     deriveSurfaceFromPath,
     canEditSurface,
     entitledSurfaces,
+    groupsForEmail,
     fetchUserGroups,
     requireSurfaceAccess,
     resolveAemBaseUrl,
     isAllowedAemHost,
 } from '../../src/lib/ims-validator.js';
 import { Ims } from '@adobe/aio-lib-ims';
+import stateLib from '@adobe/aio-lib-state';
 
 describe('ims-validator surface authz', () => {
     describe('deriveSurfaceFromPath', () => {
@@ -118,62 +120,71 @@ describe('ims-validator surface authz', () => {
 
     describe('fetchUserGroups', () => {
         let originalFetch;
+        let originalInit;
 
         beforeEach(() => {
             originalFetch = globalThis.fetch;
+            originalInit = stateLib.init;
         });
 
         afterEach(() => {
             globalThis.fetch = originalFetch;
+            stateLib.init = originalInit;
         });
 
-        it('returns uppercase group names on a successful profile response', async () => {
-            globalThis.fetch = async () => ({
-                ok: true,
-                json: async () => ({ groups: ['grp-odin-mas-admins', 'grp-odin-mas-express-editors'] }),
-            });
+        function stubMasUsers(users) {
+            stateLib.init = async () => ({ get: async () => ({ value: JSON.stringify(users) }) });
+        }
+
+        it('resolves the caller groups from mas-users by email, uppercased', async () => {
+            globalThis.fetch = async () => ({ ok: true, json: async () => ({ email: 'X@Y' }) });
+            stubMasUsers([{ userPrincipalName: 'x@y', groups: ['grp-odin-mas-admins', 'grp-odin-mas-express-editors'] }]);
             const groups = await fetchUserGroups('token-abc');
             expect(groups).to.deep.equal(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-EXPRESS-EDITORS']);
         });
 
-        it('returns empty array when profile response is not OK', async () => {
+        it('returns empty array when the profile response is not OK', async () => {
             globalThis.fetch = async () => ({ ok: false, status: 401 });
-            const groups = await fetchUserGroups('token-xyz');
-            expect(groups).to.deep.equal([]);
+            expect(await fetchUserGroups('token-xyz')).to.deep.equal([]);
         });
 
-        it('returns empty array when fetch throws', async () => {
+        it('returns empty array when the profile fetch throws', async () => {
             globalThis.fetch = async () => {
                 throw new Error('network down');
             };
-            const groups = await fetchUserGroups('token-xyz');
-            expect(groups).to.deep.equal([]);
+            expect(await fetchUserGroups('token-xyz')).to.deep.equal([]);
         });
 
-        it('returns empty array when profile has no groups field', async () => {
+        it('returns empty array when the caller is not in mas-users', async () => {
             globalThis.fetch = async () => ({ ok: true, json: async () => ({ email: 'x@y' }) });
-            const groups = await fetchUserGroups('token-abc');
-            expect(groups).to.deep.equal([]);
+            stubMasUsers([{ userPrincipalName: 'someone-else@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+            expect(await fetchUserGroups('token-abc')).to.deep.equal([]);
         });
     });
 
     describe('requireSurfaceAccess', () => {
         let originalFetch;
         let originalValidate;
+        let originalInit;
 
         beforeEach(() => {
             originalFetch = globalThis.fetch;
             originalValidate = Ims.prototype.validateTokenAllowList;
+            originalInit = stateLib.init;
             Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
         });
 
         afterEach(() => {
             globalThis.fetch = originalFetch;
             Ims.prototype.validateTokenAllowList = originalValidate;
+            stateLib.init = originalInit;
         });
 
         function stubProfile(groups) {
-            globalThis.fetch = async () => ({ ok: true, json: async () => ({ groups }) });
+            globalThis.fetch = async () => ({ ok: true, json: async () => ({ email: 'caller@adobe.com' }) });
+            stateLib.init = async () => ({
+                get: async () => ({ value: JSON.stringify([{ userPrincipalName: 'caller@adobe.com', groups }]) }),
+            });
         }
 
         it('returns 401 when no authorization header is provided', async () => {
@@ -242,6 +253,28 @@ describe('ims-validator surface authz', () => {
             );
             expect(result).to.be.null;
         });
+    });
+});
+
+describe('groupsForEmail (mas-users group resolution)', () => {
+    const users = [
+        { userPrincipalName: 'axel@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] },
+        { userPrincipalName: 'editor@adobe.com', groups: ['grp-odin-mas-acom-editors'] },
+    ];
+
+    it('returns the uppercase groups for a matching email', () => {
+        expect(groupsForEmail(users, 'axel@adobe.com')).to.deep.equal(['GRP-ODIN-MAS-ADMINS']);
+    });
+
+    it('matches email case-insensitively and uppercases the groups', () => {
+        expect(groupsForEmail(users, 'Editor@Adobe.com')).to.deep.equal(['GRP-ODIN-MAS-ACOM-EDITORS']);
+    });
+
+    it('returns [] for an unknown email, empty users, or missing email', () => {
+        expect(groupsForEmail(users, 'nobody@adobe.com')).to.deep.equal([]);
+        expect(groupsForEmail([], 'axel@adobe.com')).to.deep.equal([]);
+        expect(groupsForEmail(users, '')).to.deep.equal([]);
+        expect(groupsForEmail(null, 'axel@adobe.com')).to.deep.equal([]);
     });
 });
 

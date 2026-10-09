@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test';
+import { errors, expect } from '@playwright/test';
 
 export default class EditorPage {
     constructor(page) {
@@ -103,8 +103,6 @@ export default class EditorPage {
         this.whatsIncludedAddBullet = this.panel.locator('#whatsIncluded sp-action-button:has-text("Add bullet")');
 
         // Discard dialog
-        // this.closeEditor = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="close"]');
-        // this.discardButton = this.panel.locator('div[id="editor-toolbar"] >> sp-action-button[value="discard"]');
         this.cancelDiscardButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Cancel")');
         this.discardConfirmDialog = page.locator('sp-dialog[variant="confirmation"]');
         this.discardConfirmButton = page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Discard")');
@@ -155,6 +153,103 @@ export default class EditorPage {
 
     overrideRestoreIn(fieldGroupLocator) {
         return fieldGroupLocator.locator(this.overrideRestoreLink);
+    }
+
+    async fillRteField(field, value) {
+        await field.fill(value);
+        await expect
+            .poll(() => field.evaluate((element) => element.getRootNode().host.editorView.state.doc.textContent))
+            .toBe(value);
+        await expect(field).toHaveText(value);
+    }
+
+    async clearRteField(field) {
+        await expect(async () => {
+            await field.click();
+            await field.press('ControlOrMeta+a');
+            await expect
+                .poll(
+                    () =>
+                        field.evaluate((element) => {
+                            const { selection, doc } = element.getRootNode().host.editorView.state;
+                            const start = selection.constructor.atStart(doc).from;
+                            const end = selection.constructor.atEnd(doc).to;
+                            return JSON.stringify({
+                                from: selection.from,
+                                to: selection.to,
+                                start,
+                                end,
+                                complete: selection.from <= start && selection.to >= end,
+                            });
+                        }),
+                    { timeout: 1000 },
+                )
+                .toContain('"complete":true');
+        }).toPass({ timeout: 10000 });
+        await field.press('Backspace');
+        await expect
+            .poll(() => field.evaluate((element) => element.getRootNode().host.editorView.state.doc.textContent))
+            .toBe('');
+        await expect(field).toHaveText('');
+    }
+
+    async selectPickerValue(picker, value) {
+        const label = await picker.locator(`sp-menu-item[value="${value}"]`).textContent();
+        await this.selectPickerOption(picker, label.trim().replace(/\s+/g, ' '));
+    }
+
+    async selectPickerOption(picker, label) {
+        const button = picker.locator('button#button');
+        const option = picker.getByRole('option', { name: label, exact: true });
+        let value;
+        await button.scrollIntoViewIfNeeded();
+        const activation = await picker.evaluateHandle((picker) => {
+            const state = { started: false, committed: false };
+            const start = () => {
+                state.started = true;
+            };
+            const commit = (event) => {
+                if (event.composedPath()[0] === picker) state.committed = true;
+            };
+            document.addEventListener('pointerdown', start, true);
+            picker.addEventListener('change', commit, true);
+            return {
+                state,
+                stop: () => {
+                    document.removeEventListener('pointerdown', start, true);
+                    picker.removeEventListener('change', commit, true);
+                },
+            };
+        });
+        let activationError;
+        try {
+            await expect(async () => {
+                if (activationError) throw activationError;
+                await button.press('ArrowDown');
+                await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+                await expect(option).toBeVisible({ timeout: 1000 });
+                await expect(option).toBeEnabled({ timeout: 1000 });
+                value = await option.evaluate((element) => element.value);
+                await expect(picker.locator('sp-overlay')).toHaveJSProperty('state', 'opened', { timeout: 1000 });
+                await expect(option).toBeVisible({ timeout: 1000 });
+                try {
+                    await option.click({ timeout: 1000 });
+                } catch (error) {
+                    activationError = error;
+                    if (error instanceof errors.TimeoutError && !(await activation.evaluate(({ state }) => state.started))) {
+                        activationError = undefined;
+                    }
+                    throw error;
+                }
+            }).toPass({ timeout: 10000 });
+            await expect.poll(() => activation.evaluate(({ state }) => state.committed)).toBe(true);
+            await expect(picker).toHaveJSProperty('value', value);
+            await expect(button).toContainText(label);
+            await expect(picker).toHaveJSProperty('open', false);
+        } finally {
+            await activation.evaluate(({ stop }) => stop());
+            await activation.dispose();
+        }
     }
 
     async getLinkVariant(variant) {

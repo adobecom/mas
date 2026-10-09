@@ -1,11 +1,15 @@
 import { expect } from '@playwright/test';
 import { getTitle } from '../utils/fragment-tracker.js';
+import { beginFragmentCreation, completeFragmentCreation } from '../utils/fragment-ledger.js';
+import { loadEditorDocument, trackEditorReads, waitForEditorReady } from '../libs/editor-bootstrap.js';
 import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
 export default class StudioPage {
-    constructor(page) {
+    constructor(page, cloneSourceCache) {
         this.page = page;
+        this.cloneSourceCache = cloneSourceCache;
+        trackEditorReads(page);
         this.ost = new OSTPage(page);
         this.editor = new EditorPage(page);
 
@@ -120,6 +124,19 @@ export default class StudioPage {
     }
 
     /**
+     * Open a test's starting route; eligible editor suites override only setup.
+     */
+    async openPage(url) {
+        const fragmentId = new URLSearchParams(new URL(url).hash.slice(1)).get('fragmentId');
+        if (fragmentId) {
+            await loadEditorDocument(this.page, url);
+            await waitForEditorReady(this.page, fragmentId);
+        } else {
+            await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+        }
+    }
+
+    /**
      * Wait for cards to load on both content and fragment-editor pages.
      * Content pages render mas-fragment-render (lazy loaded via IntersectionObserver).
      * Fragment-editor pages render merch-card directly inside mas-fragment-editor.
@@ -143,13 +160,19 @@ export default class StudioPage {
 
             const min = Math.max(1, minMerchCardsInRender);
             const main = this.page.locator('.main-container').first();
-            for (let i = 0; i < 8; i++) {
-                if ((await this.renderView.locator('merch-card').count()) >= min) break;
-                await main.evaluate((el) => {
-                    el.scrollTop = el.scrollHeight;
-                });
-                await this.page.waitForTimeout(250);
-            }
+            await expect
+                .poll(
+                    async () => {
+                        const count = await this.renderView.locator('merch-card').count();
+                        if (count < min)
+                            await main.evaluate((el) => {
+                                el.scrollTop = el.scrollHeight;
+                            });
+                        return count;
+                    },
+                    { timeout: 30000 },
+                )
+                .toBeGreaterThanOrEqual(min);
         }
 
         await this.page.locator('merch-card').first().waitFor({ state: 'visible', timeout: 30000 });
@@ -166,18 +189,17 @@ export default class StudioPage {
      * @param {string} localeName - The display name of the locale (e.g., 'French (FR)', 'Turkish (TR)')
      */
     async selectLocale(localeName) {
+        const params = new URLSearchParams(new URL(this.page.url()).hash.slice(1));
+        if (params.get('page') === 'fragment-editor') {
+            await waitForEditorReady(this.page, params.get('fragmentId'));
+        }
         await this.localePicker.click();
-        await this.page.waitForTimeout(500);
         await this.page.getByRole('menuitem', { name: localeName }).click();
-        await this.page.waitForTimeout(2000);
+        await expect(this.localePicker).toHaveJSProperty('open', false);
     }
 
     async getCard(id, cloned, secondID) {
         const card = this.page.locator('merch-card');
-        if (!card) {
-            throw new Error(`No merch card found`);
-        }
-
         if (cloned) {
             const baseSelector = `aem-fragment:not([fragment="${id}"])`;
             const selector = secondID ? `${baseSelector}:not([fragment="${secondID}"])` : baseSelector;
@@ -191,273 +213,64 @@ export default class StudioPage {
         });
     }
 
-    #setupConsoleListener(consoleErrors) {
-        return (msg) => {
-            if (msg.type() === 'error') {
-                const errorText = msg.text();
-                let errorCode = '';
-                const codeMatch = errorText.match(/(?:\[ERR[_-])?\d+\]?|(?:Error:?\s*)\d+|(?:status(?:\scode)?:?\s*)\d+/i);
-                if (codeMatch) {
-                    errorCode = codeMatch[0];
-                    consoleErrors.push(`[${errorCode}] ${errorText}`);
-                } else {
-                    consoleErrors.push(errorText);
-                }
-            }
-        };
-    }
-
-    async #retryOperation(operation, shouldReload = false, maxRetries = 2) {
-        const attempts = [];
-
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                if (shouldReload && attempt > 1) {
-                    // Wait for network to be idle before reload
-                    await this.page.waitForLoadState('networkidle').catch(() => {});
-
-                    // Perform reload
-                    await this.page.reload({ waitUntil: 'networkidle', timeout: 30000 }).catch(async (e) => {
-                        // If reload fails, try navigating to the current URL
-                        const url = this.page.url();
-                        await this.page.goto(url, {
-                            waitUntil: 'networkidle',
-                            timeout: 30000,
-                        });
-                    });
-
-                    // Wait for page to be ready
-                    await this.page.waitForLoadState('domcontentloaded');
-                }
-
-                await operation(attempt);
-                return; // Success - exit the retry loop
-            } catch (error) {
-                attempts.push(`[Attempt ${attempt}/${maxRetries}] ${error.message}`);
-
-                if (attempt === maxRetries) {
-                    const errorMessage = `All attempts failed:\n\n${attempts.join('\n\n')}`;
-                    throw new Error(errorMessage);
-                }
-            }
-        }
-    }
-
     async cloneCard(cardId) {
         if (!cardId) {
             throw new Error('cardId is required parameter for cloneCard');
         }
-
-        const consoleErrors = [];
-        const consoleListener = this.#setupConsoleListener(consoleErrors);
-        this.page.on('console', consoleListener);
-
-        try {
-            await this.#retryOperation(async (attempt) => {
-                // Open editor only if not already visible
-                const editorAlreadyVisible = await this.editorPanel.isVisible().catch(() => false);
-                if (!editorAlreadyVisible) {
-                    const card = await this.getCard(cardId);
-                    await expect(card).toBeVisible();
-                    await card.dblclick();
-                    await this.editorPanel.waitFor({
-                        state: 'visible',
-                        timeout: 30000,
-                    });
-                }
-
-                // Wait for network to be idle to ensure all async operations complete
-                await this.page.waitForLoadState('networkidle').catch(() => {});
-                await this.page.waitForTimeout(1500); // Give editor time to stabilize
-
-                await expect(this.cloneCardButton).toBeVisible({ timeout: 10000 });
-                await expect(this.cloneCardButton).toBeEnabled({ timeout: 15000 });
-
-                await this.cloneCardButton.scrollIntoViewIfNeeded();
-                await this.page.waitForTimeout(500);
-
-                // Hover over the button to ensure it's interactive and ready
-                await this.cloneCardButton.hover({ timeout: 5000 });
-                await this.page.waitForTimeout(300);
-
-                // Verify button is still enabled after hover
-                const isEnabled = await this.cloneCardButton.isEnabled();
-                if (!isEnabled) {
-                    throw new Error('[BUTTON_DISABLED] Clone button is not enabled after hover');
-                }
-
-                // Click the button - try normal click first, then force if needed
-                try {
-                    await this.cloneCardButton.click({ timeout: 5000 });
-                } catch (clickError) {
-                    await this.cloneCardButton.click({ force: true });
-                }
-
-                // Wait for fragment title dialog and enter title
-                await this.page
-                    .waitForSelector('sp-dialog[variant="confirmation"]', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Clone button click did not trigger confirmation dialog');
-                    });
-
-                // Enter fragment title with run ID
-                const titleInput = this.page.locator('sp-dialog[variant="confirmation"] sp-textfield input');
-                await titleInput.fill(getTitle());
-
-                await this.page.locator('sp-dialog[variant="confirmation"] sp-button:has-text("Clone")').click();
-
-                // Wait for progress circle
-                await this.page
-                    .waitForSelector('sp-dialog[variant="confirmation"] sp-button sp-progress-circle', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Clone button click did not trigger progress circle');
-                    });
-
-                // Wait for any toast
-                await this.page
-                    .waitForSelector('mas-toast >> sp-toast', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
-
-                // Check for error toast first
-                if (await this.toastNegative.isVisible()) {
-                    const errorText = await this.toastNegative.textContent();
-                    throw new Error(`[ERROR_TOAST] Clone operation received error: "${errorText.trim()}"`);
-                }
-
-                // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
-                    throw new Error('[NO_RESPONSE] Clone operation failed - no success toast shown');
-                });
-
-                // Wait for toast to disappear to ensure operation is fully complete
-                // This prevents failures on subsequent operations that might be affected by lingering toasts
-                const anyToast = this.page.locator('mas-toast >> sp-toast');
-                const isToastVisible = await anyToast.isVisible().catch(() => false);
-                if (isToastVisible) {
-                    await anyToast.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {});
-                    // Give a bit more time after toast disappears for UI to stabilize
-                    await this.page.waitForTimeout(500);
-                }
-            }, true);
-        } catch (e) {
-            // On failure, collect all attempt errors and console logs
-            if (e.message.includes('\nAll attempts failed:')) {
-                // Extract individual attempt errors from the combined error message
-                const attemptErrors = e.message
-                    .split('\n\n')
-                    .filter((msg) => msg.startsWith('[Attempt'))
-                    .map((msg) => {
-                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
-                        if (attemptMatch) {
-                            const attemptNum = parseInt(attemptMatch[1]);
-                            // Get console errors that occurred during this attempt
-                            const attemptConsoleErrors = consoleErrors
-                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
-                                .filter((err) => err); // Remove any undefined entries
-
-                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
-                        }
-                        return msg;
-                    });
-                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
-            }
-            throw new Error(e.message);
-        } finally {
-            this.page.removeListener('console', consoleListener);
+        if (!(await this.editorPanel.isVisible())) {
+            const card = await this.getCard(cardId);
+            await card.dblclick();
         }
+        await waitForEditorReady(this.page, cardId);
+        const sourceId = await this.cloneSourceCache.get(this.page, cardId);
+        if (sourceId !== cardId) {
+            const url = new URL(this.page.url());
+            const params = new URLSearchParams(url.hash.slice(1));
+            params.set('fragmentId', sourceId);
+            url.hash = params.toString();
+            await this.openPage(url.href);
+        }
+        await expect(this.cloneCardButton).not.toHaveAttribute('disabled');
+        await this.cloneCardButton.click();
+        await expect(this.confirmationDialog).toBeVisible();
+        await this.confirmationDialog.locator('sp-textfield input').fill(getTitle());
+        const creation = beginFragmentCreation('clone');
+        const [response] = await Promise.all([
+            this.page.waitForResponse(
+                (response) => response.request().method() === 'POST' && new URL(response.url()).pathname === '/bin/wcmcommand',
+            ),
+            this.confirmationDialog.locator('sp-button:has-text("Clone")').click(),
+        ]);
+        expect(response.ok(), `Fragment copy must succeed (HTTP ${response.status()})`).toBe(true);
+        await expect
+            .poll(() => {
+                const id = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
+                return !!id && id !== sourceId;
+            })
+            .toBe(true);
+        const id = await completeFragmentCreation(creation, this.page);
+        await waitForEditorReady(this.page, id);
+        return id;
     }
 
     async saveCard() {
-        const consoleErrors = [];
-        const consoleListener = this.#setupConsoleListener(consoleErrors);
-        this.page.on('console', consoleListener);
-
-        try {
-            await this.#retryOperation(async (attempt) => {
-                await this.saveCardButton.scrollIntoViewIfNeeded();
-                await this.page.waitForTimeout(500);
-
-                const isEnabled = await this.saveCardButton.isEnabled();
-
-                // Only consider disabled button a success on retry attempts
-                if (attempt > 1 && !isEnabled) {
-                    return;
-                }
-
-                if (!isEnabled) {
-                    throw new Error('[BUTTON_DISABLED] Save button is not enabled');
-                }
-
-                await this.saveCardButton.click({ force: true });
-
-                // Wait for progress toast or success toast (save may complete before progress is visible)
-                await Promise.race([
-                    this.toastProgress.waitFor({ state: 'visible', timeout: 10000 }),
-                    this.toastPositive.waitFor({ state: 'visible', timeout: 10000 }),
-                ]).catch(() => {
-                    throw new Error('[CLICK_FAILED] Save button click did not trigger progress circle');
-                });
-
-                // Wait for any toast (excluding progress toast)
-                await this.page
-                    .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
-
-                // Check for error toast first
-                if (await this.toastNegative.isVisible()) {
-                    const errorText = await this.toastNegative.textContent();
-
-                    // If it's the specific "Save completed but couldn't retrieve" message, consider it a success
-                    if (errorText.includes('Save completed but the updated fragment could not be retrieved')) {
-                        return; // Exit successfully
-                    }
-
-                    throw new Error(`[ERROR_TOAST] Save operation received error: "${errorText.trim()}"`);
-                }
-
-                // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
-                    throw new Error('[NO_RESPONSE] Save operation failed - no success toast shown');
-                });
-            });
-        } catch (e) {
-            // On failure, collect all attempt errors and console logs
-            if (e.message.includes('\nAll attempts failed:')) {
-                // Extract individual attempt errors from the combined error message
-                const attemptErrors = e.message
-                    .split('\n\n')
-                    .filter((msg) => msg.startsWith('[Attempt'))
-                    .map((msg) => {
-                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
-                        if (attemptMatch) {
-                            const attemptNum = parseInt(attemptMatch[1]);
-                            // Get console errors that occurred during this attempt
-                            const attemptConsoleErrors = consoleErrors
-                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
-                                .filter((err) => err); // Remove any undefined entries
-
-                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
-                        }
-                        return msg;
-                    });
-                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
-            }
-            throw new Error(e.message);
-        } finally {
-            this.page.removeListener('console', consoleListener);
-        }
+        await this.saveCardButton.scrollIntoViewIfNeeded();
+        await this.saveCardButton.click({ trial: true });
+        await this.page.waitForFunction(() => document.querySelector('mas-repository').fragmentInEdit?.hasChanges);
+        await expect(this.saveCardButton).not.toHaveAttribute('disabled');
+        const id = await this.page.locator('mas-fragment-editor').evaluate((editor) => editor.fragment.id);
+        const [response] = await Promise.all([
+            this.page.waitForResponse(
+                (response) =>
+                    response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith(`/cf/fragments/${id}`),
+            ),
+            this.saveCardButton.click(),
+        ]);
+        expect(response.ok(), 'Fragment save must succeed').toBe(true);
+        await this.page.waitForFunction((id) => {
+            const repo = document.querySelector('mas-repository');
+            return !repo.operation.get() && repo.fragmentInEdit?.id === id && !repo.fragmentInEdit.hasChanges;
+        }, id);
     }
 
     /**
@@ -467,7 +280,6 @@ export default class StudioPage {
         await this.publishCardButton.click();
         const publishToast = this.page.locator('mas-toast sp-toast[variant="positive"]:has-text("successfully published")');
         await expect(publishToast).toBeVisible({ timeout: 20000 });
-        await this.page.waitForTimeout(1000);
     }
 
     async deleteCard(cardId) {
@@ -475,94 +287,24 @@ export default class StudioPage {
             throw new Error('cardId is required parameter for deleteCard');
         }
 
-        const consoleErrors = [];
-        const consoleListener = this.#setupConsoleListener(consoleErrors);
-        this.page.on('console', consoleListener);
-
-        try {
-            // First ensure card exists and editor is open
-            const isEditorVisible = await this.editorPanel.isVisible().catch(() => false);
-            if (!isEditorVisible) {
-                const card = await this.getCard(cardId);
-                await expect(card).toBeVisible();
-                await card.dblclick();
-                await this.editorPanel.waitFor({
-                    state: 'visible',
-                    timeout: 30000,
-                });
-            }
-            await this.page.waitForTimeout(1500); // Give editor time to stabilize
-
-            await this.#retryOperation(async (attempt) => {
-                // Wait for delete button and ensure it's enabled
-                await this.deleteCardButton.waitFor({
-                    state: 'visible',
-                    timeout: 5000,
-                });
-                await expect(this.deleteCardButton).toBeEnabled();
-
-                await this.deleteCardButton.scrollIntoViewIfNeeded();
-                await this.page.waitForTimeout(500);
-
-                await this.deleteCardButton.click({ force: true });
-                await expect(await this.confirmationDialog).toBeVisible();
-                await this.confirmationDialog.locator(this.deleteDialog).click();
-
-                // Wait for progress toast
-                await this.toastProgress
-                    .waitFor({
-                        state: 'visible',
-                        timeout: 5000,
-                    })
-                    .catch(() => {
-                        throw new Error('[CLICK_FAILED] Delete confirmation did not trigger progress toast');
-                    });
-
-                // Wait for any toast
-                await this.page
-                    .waitForSelector('mas-toast >> sp-toast:not([variant="info"])', {
-                        state: 'visible',
-                        timeout: 15000,
-                    })
-                    .catch(() => {}); // Ignore timeout, we'll check for specific toasts next
-
-                // Check for error toast first
-                if (await this.toastNegative.isVisible()) {
-                    const errorText = await this.toastNegative.textContent();
-                    throw new Error(`[ERROR_TOAST] Delete operation received error: "${errorText.trim()}"`);
-                }
-
-                // Wait for success toast
-                await this.toastPositive.waitFor({ timeout: 15000 }).catch(() => {
-                    throw new Error('[NO_RESPONSE] Delete operation failed - no success toast shown');
-                });
-            });
-        } catch (e) {
-            // On failure, collect all attempt errors and console logs
-            if (e.message.includes('\nAll attempts failed:')) {
-                // Extract individual attempt errors from the combined error message
-                const attemptErrors = e.message
-                    .split('\n\n')
-                    .filter((msg) => msg.startsWith('[Attempt'))
-                    .map((msg) => {
-                        const attemptMatch = msg.match(/\[Attempt (\d+)\/\d+\]/);
-                        if (attemptMatch) {
-                            const attemptNum = parseInt(attemptMatch[1]);
-                            // Get console errors that occurred during this attempt
-                            const attemptConsoleErrors = consoleErrors
-                                .slice((attemptNum - 1) * 3, attemptNum * 3) // Assuming max 3 errors per attempt
-                                .filter((err) => err); // Remove any undefined entries
-
-                            return `${msg}${attemptConsoleErrors.length ? `\nConsole errors:\n${attemptConsoleErrors.join('\n')}` : ''}`;
-                        }
-                        return msg;
-                    });
-                throw new Error(`All attempts failed:\n\n${attemptErrors.join('\n\n')}`);
-            }
-            throw new Error(e.message);
-        } finally {
-            this.page.removeListener('console', consoleListener);
+        if (!(await this.editorPanel.isVisible())) {
+            const card = await this.getCard(cardId);
+            await card.dblclick();
         }
+        await waitForEditorReady(this.page, cardId);
+        await expect(this.deleteCardButton).not.toHaveAttribute('disabled');
+        await this.deleteCardButton.click();
+        await expect(this.confirmationDialog).toBeVisible();
+        const [response] = await Promise.all([
+            this.page.waitForResponse(
+                (response) =>
+                    response.request().method() === 'DELETE' &&
+                    new URL(response.url()).pathname.endsWith(`/fragments/${cardId}/deleteAndUnpublish`),
+            ),
+            this.confirmationDialog.locator(this.deleteDialog).click(),
+        ]);
+        expect(response.ok(), 'Fragment deletion must succeed').toBe(true);
+        await this.page.waitForFunction(() => !document.querySelector('mas-repository').operation.get());
     }
 
     async cleanupAfterTest(editor, clonedCardID, baseURL, miloLibs = '') {
@@ -591,21 +333,39 @@ export default class StudioPage {
     }
 
     async discardEditorChanges(editor) {
-        // Close the editor and verify discard is triggered
-        // await editor.closeEditor.click(); // discard and close buttons were removed with the new UI. Enable back when implemented
         const fragmentUrl = this.page.url();
-        // Navigating away only prompts once the editor registers the change, so wait for Save to enable first.
+        await this.page.waitForFunction(() => document.querySelector('mas-repository').fragmentInEdit?.hasChanges);
         await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 15000 });
         await expect(this.fragmentsTable).toBeVisible();
         await this.fragmentsTable.scrollIntoViewIfNeeded();
+        const navigationState = () => {
+            const panel = document.querySelector('mas-fragment-editor');
+            return {
+                page: new URLSearchParams(location.hash.slice(1)).get('page'),
+                fragmentId: panel?.fragmentStore?.get()?.id,
+                hasChanges: panel?.fragmentStore?.get()?.hasChanges,
+                loading: panel?.fragmentStore?.loading,
+                discardRequested: panel?.showDiscardDialog,
+            };
+        };
+        const before = await this.page.evaluate(navigationState);
         await this.fragmentsTable.click();
-        // await this.page.goBack();
-        await expect(await this.confirmationDialog).toBeVisible();
+        await expect
+            .poll(
+                async () =>
+                    JSON.stringify({
+                        ...(await this.page.evaluate(navigationState)),
+                        confirmationVisible: await this.confirmationDialog.isVisible(),
+                    }),
+                { message: `Discard confirmation must open after navigation; before: ${JSON.stringify(before)}` },
+            )
+            .toContain('"confirmationVisible":true');
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
+        await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
         await this.page.goto(fragmentUrl);
-        await this.page.waitForLoadState('domcontentloaded');
-        await this.waitForCardsLoaded();
+        const fragmentId = new URLSearchParams(new URL(fragmentUrl).hash.slice(1)).get('fragmentId');
+        await waitForEditorReady(this.page, fragmentId);
     }
 
     /**
@@ -623,17 +383,20 @@ export default class StudioPage {
         await expect(this.previewMenu).toBeVisible({ timeout: 10000 });
         await this.previewMenu.scrollIntoViewIfNeeded();
         await this.previewMenu.click();
-        await this.page.waitForTimeout(500);
         await expect(this.tableViewOption).toBeVisible({ timeout: 10000 });
         await this.tableViewOption.click();
-        await this.page.waitForTimeout(2000);
         await expect(this.tableView).toBeVisible({ timeout: 15000 });
     }
 
     async expandRowIfCollapsed(fragmentId) {
         const expandButton = this.expandButton(fragmentId);
-        const isCollapsed = await expandButton.locator('> sp-icon-chevron-right').count();
-        if (isCollapsed) await expandButton.click();
+        await expect(expandButton).toBeVisible();
+        if ((await expandButton.getAttribute('aria-label')) === 'Expand row') await expandButton.click();
+        await expect(expandButton).toHaveAttribute('aria-label', 'Collapse row');
+        const variations = this.tableView.locator(
+            `mas-fragment:has(mas-fragment-table[data-id="${fragmentId}"]) mas-fragment-variations`,
+        );
+        await expect(variations).toHaveJSProperty('loading', false);
     }
 
     /**
@@ -659,7 +422,6 @@ export default class StudioPage {
         await this.createDialogMerchCardOption.click();
 
         await expect(this.createDialog).toBeVisible({ timeout: 15000 });
-        await this.page.waitForTimeout(500);
 
         await expect(this.createDialogTitleInput).toBeVisible({ timeout: 10000 });
         const titleWithRunId = getTitle();
@@ -673,36 +435,37 @@ export default class StudioPage {
         await this.ost.nextButton.click();
         await expect(this.ost.priceUse).toBeVisible({ timeout: 10000 });
         await this.ost.priceUse.click();
-        await this.page.waitForTimeout(1000);
+        await expect(this.ost.popup).not.toBeVisible();
 
         await expect(this.createDialogCreateButton).toBeVisible({ timeout: 10000 });
-        await this.createDialogCreateButton.click();
-
-        // Wait for positive toast to appear and then disappear after fragment creation
-        await this.toastPositive.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
-            // If toast doesn't appear, continue
-        });
-        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
-            // If toast disappears quickly or doesn't appear, continue
-        });
+        const creation = beginFragmentCreation('create');
+        const [response] = await Promise.all([
+            this.page.waitForResponse(
+                (response) =>
+                    response.request().method() === 'POST' && new URL(response.url()).pathname === '/adobe/sites/cf/fragments',
+            ),
+            this.createDialogCreateButton.click(),
+        ]);
+        expect(response.ok(), `Fragment creation must succeed (HTTP ${response.status()})`).toBe(true);
+        await expect(this.createDialog).not.toBeVisible();
 
         await this.editorPanel.waitFor({
             state: 'visible',
             timeout: 30000,
         });
-        await this.page.waitForTimeout(1000);
+        const fragmentId = await completeFragmentCreation(creation, this.page);
+        await waitForEditorReady(this.page, fragmentId, { preview: false });
 
         await expect(this.editor.variant).toBeVisible({ timeout: 10000 });
-        await this.editor.variant.click();
-        await this.page.locator(`sp-menu-item[value="${variant}"]`).first().click();
-        await this.page.waitForTimeout(1000);
+        await this.editor.selectPickerValue(this.editor.variant, variant);
+        await expect(this.editor.variant).toHaveJSProperty('value', variant);
 
         await expect(this.deleteCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
         await expect(this.saveCardButton).not.toHaveAttribute('disabled', { timeout: 30000 });
 
         // Enter card title (auto-generated with run ID, same as fragment title)
         await expect(this.editor.title).toBeVisible({ timeout: 10000 });
-        await this.editor.title.fill(titleWithRunId);
+        await this.editor.fillRteField(this.editor.title, titleWithRunId);
 
         await expect(this.editor.prices).toBeVisible({ timeout: 10000 });
         const pricesOSTButton = this.editor.prices.locator(this.editor.OSTButton);
@@ -711,32 +474,34 @@ export default class StudioPage {
 
         await expect(this.ost.priceUse).toBeVisible({ timeout: 15000 });
         await this.ost.priceUse.click();
-        await this.page.waitForTimeout(1000);
+        await expect(this.ost.popup).not.toBeVisible();
 
         await this.saveCard();
 
-        // Wait for positive toast to disappear before navigating away
-        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
-            // If toast doesn't appear or disappears quickly, continue
-        });
-
-        const currentUrl = this.page.url();
-        const fragmentIdMatch = currentUrl.match(/fragment=([^&]+)/);
-        let fragmentId = fragmentIdMatch ? fragmentIdMatch[1] : null;
-
-        // If not in URL, get from card preview in editor
-        if (!fragmentId) {
-            fragmentId = await this.page
-                .locator('aem-fragment[fragment]')
-                .first()
-                .getAttribute('fragment')
-                .catch(() => null);
-        }
-
-        if (!fragmentId) {
-            throw new Error('Failed to retrieve fragment ID from URL or card preview');
-        }
-
+        await expect
+            .poll(
+                () =>
+                    this.page.evaluate(
+                        ({ fragmentId, variant }) => {
+                            const editor = document.querySelector('mas-fragment-editor');
+                            const card = document.querySelector(`merch-card:has(aem-fragment[fragment="${fragmentId}"])`);
+                            const renderedVariant = card?.getAttribute('variant');
+                            return JSON.stringify({
+                                sourceVariant: editor.fragmentStore.get().getField('variant')?.values[0],
+                                previewVariant: editor.fragmentStore.previewStore.get().getField('variant')?.values[0],
+                                renderedVariant,
+                                previewResolved: editor.previewResolved,
+                                previewError: editor.previewError,
+                                failed: card?.failed,
+                                variantMatches: renderedVariant === variant,
+                            });
+                        },
+                        { fragmentId, variant },
+                    ),
+                { message: 'Created fragment preview must render the selected variant' },
+            )
+            .toContain('"variantMatches":true');
+        await waitForEditorReady(this.page, fragmentId);
         return fragmentId;
     }
 
@@ -759,19 +524,15 @@ export default class StudioPage {
 
         if (isInEditor) {
             // Create variation from editor sidenav
-            // Wait for network to be idle to ensure all async operations complete
-            await this.page.waitForLoadState('networkidle').catch(() => {});
-            await this.page.waitForTimeout(500);
+            await waitForEditorReady(this.page, fragmentId);
 
             await expect(this.createVariationButton).toBeVisible({ timeout: 10000 });
             await expect(this.createVariationButton).toBeEnabled({ timeout: 15000 });
 
             await this.createVariationButton.scrollIntoViewIfNeeded();
-            await this.page.waitForTimeout(500);
 
             // Hover over the button to ensure it's interactive and ready
             await this.createVariationButton.hover({ timeout: 5000 });
-            await this.page.waitForTimeout(300);
 
             // Verify button is still enabled after hover
             const isEnabled = await this.createVariationButton.isEnabled();
@@ -799,18 +560,16 @@ export default class StudioPage {
 
             const createVariationOption = this.tableViewCreateVariationOption(actionsMenu);
             await expect(createVariationOption).toBeVisible();
-            await createVariationOption.click();
+            await expect(createVariationOption).toBeEnabled();
+            await createVariationOption.press('Enter');
         }
 
         await expect(this.variationDialog).toBeVisible();
-        await this.page.waitForTimeout(500);
 
         await expect(this.variationDialogLocalePicker).toBeVisible();
         await expect(this.variationDialogLocalePicker).toBeEnabled();
         await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
-        await this.page.waitForTimeout(200);
         await this.variationDialogLocalePicker.click({ force: true, timeout: 5000 });
-        await this.page.waitForTimeout(300);
 
         const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();
         await expect(localeOption).toBeVisible();
@@ -819,44 +578,28 @@ export default class StudioPage {
         } catch (localeOptionClickError) {
             await localeOption.click({ force: true });
         }
-        await this.page.waitForTimeout(500);
+        await expect(this.variationDialogLocalePicker).toHaveJSProperty('value', locale);
 
         await expect(this.variationDialogCreateButton).toBeEnabled();
+        const creation = beginFragmentCreation('variation');
         await this.variationDialogCreateButton.click();
 
-        // Wait for positive toast to appear and disappear
-        await this.toastPositive.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
-            // If toast doesn't appear, continue
-        });
-        await this.toastPositive.waitFor({ state: 'hidden', timeout: 15000 }).catch(() => {
-            // If toast disappears quickly or doesn't appear, continue
-        });
+        await expect(this.variationDialog).not.toBeVisible();
+        await expect
+            .poll(() => {
+                const id = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
+                return !!id && id !== fragmentId;
+            })
+            .toBe(true);
 
         // Wait for editor to open (if not already open)
         await this.editorPanel.waitFor({
             state: 'visible',
             timeout: 30000,
         });
-        await this.page.waitForTimeout(1000);
-
-        // Get the variation fragment ID from URL
-        const currentUrl = this.page.url();
-        const variationIdMatch = currentUrl.match(/fragment=([^&]+)/);
-        let variationId = variationIdMatch ? variationIdMatch[1] : null;
-
-        if (!variationId) {
-            // Try to get from card preview in editor
-            variationId = await this.page
-                .locator('aem-fragment[fragment]')
-                .first()
-                .getAttribute('fragment')
-                .catch(() => null);
-        }
-
-        if (!variationId) {
-            throw new Error('Failed to retrieve variation fragment ID from URL or card preview');
-        }
-
+        const variationId = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
+        await waitForEditorReady(this.page, variationId);
+        await completeFragmentCreation(creation, this.page);
         return variationId;
     }
 }

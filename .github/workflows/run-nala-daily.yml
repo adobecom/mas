@@ -72,12 +72,13 @@ jobs:
 
             - name: Cleanup cloned cards
               if: always()
+              continue-on-error: true
               run: node -e "
                   import('./nala/utils/global.teardown.js')
                   .then(module => module.default())
                   .catch(err => {
-                  console.error('Cleanup failed:', err.message);
-                  process.exit(1);
+                  console.error('::warning::Cleanup failed:', err.message);
+                  process.exitCode = 1;
                   });"
               env:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}

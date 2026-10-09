@@ -13,12 +13,8 @@ const workerSetup = createWorkerPageSetup({
     pages: [{ name: 'US', url: DOCS_GALLERY_PATH.ADOBE_HOME.US }],
 });
 
-test.describe.configure({
-    retries: 2,
-    reporter: [['list'], ['html', { outputFolder: 'test-results' }]],
-});
-
 test.describe('Merch AH Try Buy Widget test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -27,24 +23,28 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     const verifyWidgetCSS = async (widget, testData) => {
         const { cssProps } = testData.data;
 
         if (cssProps?.theme) {
-            expect(webUtil.verifyCSS(widget, ah.widgetCssProp.base[cssProps.theme])).toBeTruthy();
+            expect(await webUtil.verifyCSS(widget, ah.widgetCssProp.base[cssProps.theme])).toBeTruthy();
         }
 
         if (cssProps?.size) {
-            expect(webUtil.verifyCSS(widget, ah.widgetCssProp.sizes[cssProps.size])).toBeTruthy();
+            expect(await webUtil.verifyCSS(widget, ah.widgetCssProp.sizes[cssProps.size])).toBeTruthy();
         }
 
         if (cssProps?.typography) {
             const element = await ah.getWidgetField(testData.data.id, testData.data.size, cssProps.typography);
-            expect(webUtil.verifyCSS(element, ah.widgetCssProp.typography[cssProps.typography])).toBeTruthy();
+            expect(await webUtil.verifyCSS(element, ah.widgetCssProp.typography[cssProps.typography])).toBeTruthy();
         }
     };
 
@@ -52,7 +52,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[0];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -85,111 +85,20 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         });
 
         await test.step(`Validate widget content for ${testData.name}`, async () => {
-            try {
-                const widget = await ah.getWidget(testData.data.id, testData.data.size);
-
-                const contentInfo = await page.evaluate(
-                    ({ id, size }) => {
-                        function searchShadowDOM(root, selector) {
-                            if (!root) return null;
-
-                            let result = root.querySelector(selector);
-                            if (result) return result;
-
-                            if (root.shadowRoot) {
-                                result = root.shadowRoot.querySelector(selector);
-                                if (result) return result;
-                            }
-
-                            for (const child of Array.from(root.children)) {
-                                result = searchShadowDOM(child, selector);
-                                if (result) return result;
-                            }
-
-                            return null;
-                        }
-
-                        const fragment = document.querySelector(`aem-fragment[fragment="${id}"]`);
-                        if (!fragment) return { error: 'Fragment not found' };
-                        let merchCard = null;
-                        let parent = fragment.parentElement;
-                        while (parent) {
-                            if (
-                                parent.tagName.toLowerCase() === 'merch-card' &&
-                                parent.getAttribute('variant') === 'ah-try-buy-widget' &&
-                                parent.getAttribute('size') === size
-                            ) {
-                                merchCard = parent;
-                                break;
-                            }
-                            parent = parent.parentElement;
-                        }
-
-                        if (!merchCard) {
-                            const allWidgets = document.querySelectorAll(
-                                `merch-card[variant="ah-try-buy-widget"][size="${size}"]`,
-                            );
-                            for (const w of allWidgets) {
-                                if (w.querySelector(`aem-fragment[fragment="${id}"]`)) {
-                                    merchCard = w;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (!merchCard) return { error: 'Merch card not found' };
-
-                        const titleEl = searchShadowDOM(merchCard, '[slot="heading-xxxs"]');
-                        const descriptionEl = searchShadowDOM(merchCard, '[slot="body-xxs"]');
-                        const priceEl = searchShadowDOM(merchCard, '[slot="price"]');
-                        const ctaEl = searchShadowDOM(merchCard, '[slot="cta"] sp-button');
-
-                        return {
-                            found: true,
-                            cardAttributes: {
-                                variant: merchCard.getAttribute('variant'),
-                                size: merchCard.getAttribute('size'),
-                            },
-                            content: {
-                                title: titleEl ? titleEl.textContent.trim() : null,
-                                description: descriptionEl ? descriptionEl.textContent.trim() : null,
-                                price: priceEl ? priceEl.textContent.trim() : null,
-                                ctaText: ctaEl ? ctaEl.textContent.trim() : null,
-                                ctaAttr: ctaEl ? ctaEl.getAttribute('daa-ll') : null,
-                            },
-                        };
-                    },
-                    { id: testData.data.id, size: testData.data.size },
-                );
-
-                console.log('Content info:', JSON.stringify(contentInfo, null, 2));
-
-                if (contentInfo.found) {
-                    expect(contentInfo.cardAttributes.variant).toBe('ah-try-buy-widget');
-                    expect(contentInfo.cardAttributes.size).toBe(testData.data.size);
-
-                    if (contentInfo.content.title) {
-                        expect(contentInfo.content.title).toBe(testData.data.title);
-                    }
-
-                    if (contentInfo.content.description) {
-                        expect(contentInfo.content.description).toContain('creative apps');
-                    }
-
-                    if (contentInfo.content.price) {
-                        expect(contentInfo.content.price).toMatch(/US\$\d+\.\d{2}\/mo/);
-                    }
-                } else {
-                    console.log('Could not find widget content:', contentInfo.error);
-                }
-
-                if (testData.data.cssProps) {
-                    await verifyWidgetCSS(widget, testData);
-                    console.log(`CSS validation passed for ${testData.name}`);
-                }
-            } catch (e) {
-                console.log(`Error in widget validation for ${testData.name}:`, e.message);
-            }
+            const widget = await ah.getWidget(testData.data.id, testData.data.size);
+            await expect(widget).toBeVisible();
+            await expect(widget).toHaveAttribute('variant', 'ah-try-buy-widget');
+            await expect(widget).toHaveAttribute('size', testData.data.size);
+            await expect(await ah.getWidgetField(testData.data.id, testData.data.size, 'title')).toHaveText(
+                testData.data.title,
+            );
+            await expect(await ah.getWidgetField(testData.data.id, testData.data.size, 'description')).toContainText(
+                'creative apps',
+            );
+            await expect(await ah.getWidgetField(testData.data.id, testData.data.size, 'price')).toContainText(
+                /US\$\d+\.\d{2}\/mo/,
+            );
+            await verifyWidgetCSS(widget, testData);
         });
     });
 
@@ -197,61 +106,29 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[1];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
         await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.ADOBE_HOME.US, expect);
 
-        await test.step('Verify dark theme styles', async () => {
+        await test.step('Verify double size layout', async () => {
             const widget = await ah.getWidget(testData.data.id, testData.data.size);
+            await expect(widget).toBeVisible();
+            await expect(widget).toHaveAttribute('size', testData.data.size);
             await verifyWidgetCSS(widget, testData);
         });
 
         await test.step('Verify price styling', async () => {
-            const computedStyle = await page.evaluate(
-                ({ id, size }) => {
-                    const fragment = document.querySelector(`aem-fragment[fragment="${id}"]`);
-                    if (!fragment) return null;
-
-                    let merchCard = null;
-                    let parent = fragment.parentElement;
-                    while (parent) {
-                        if (
-                            parent.tagName.toLowerCase() === 'merch-card' &&
-                            parent.getAttribute('variant') === 'ah-try-buy-widget' &&
-                            parent.getAttribute('size') === size
-                        ) {
-                            merchCard = parent;
-                            break;
-                        }
-                        parent = parent.parentElement;
-                    }
-
-                    if (!merchCard) return null;
-
-                    const priceEl = merchCard.querySelector('[slot="price"]');
-                    if (!priceEl) return null;
-
-                    const style = window.getComputedStyle(priceEl);
-                    return {
-                        fontSize: style.fontSize,
-                        lineHeight: style.lineHeight,
-                        fontStyle: style.fontStyle,
-                        color: style.color,
-                    };
-                },
-                { id: testData.data.id, size: testData.data.size },
+            const price = await ah.getWidgetField(testData.data.id, testData.data.size, 'price');
+            const fontSize = await price.evaluate((element) =>
+                getComputedStyle(element).getPropertyValue('--consonant-merch-card-detail-s-font-size').trim(),
             );
-
-            if (computedStyle) {
-                expect(computedStyle.fontSize).toBe('14px');
-                expect(computedStyle.lineHeight).toBe('17px');
-                expect(computedStyle.fontStyle).toBe('italic');
-                expect(computedStyle.color).toBe('rgb(19, 19, 19)');
-            } else {
-                console.log('Could not get computed style for price element');
-            }
+            expect(fontSize, 'Price typography token must resolve for the active Spectrum scale').toMatch(/^\d+(\.\d+)?px$/);
+            await expect(price).toHaveCSS('font-size', fontSize);
+            await expect(price).toHaveCSS('line-height', '17px');
+            await expect(price).toHaveCSS('font-style', 'italic');
+            await expect(price).toHaveCSS('color', 'rgb(19, 19, 19)');
         });
     });
 
@@ -259,7 +136,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[2];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -267,6 +144,8 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
 
         await test.step('Verify single size layout', async () => {
             const widget = await ah.getWidget(testData.data.id, testData.data.size);
+            await expect(widget).toBeVisible();
+            await expect(widget).toHaveAttribute('size', testData.data.size);
             await verifyWidgetCSS(widget, testData);
         });
     });
@@ -275,67 +154,38 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[3];
         console.log(`Running API validation test with ID ${testData.data.id}`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
         await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.ADOBE_HOME.US, expect);
         const originalUrl = page.url();
+        const originalPages = new Set(page.context().pages());
 
         try {
-            const clicked = await page.evaluate(
-                ({ id, size }) => {
-                    const fragment = document.querySelector(`aem-fragment[fragment="${id}"]`);
-                    if (!fragment) return { success: false, error: 'Fragment not found' };
-
-                    let merchCard = null;
-                    let parent = fragment.parentElement;
-                    while (parent) {
-                        if (
-                            parent.tagName.toLowerCase() === 'merch-card' &&
-                            parent.getAttribute('variant') === 'ah-try-buy-widget' &&
-                            parent.getAttribute('size') === size
-                        ) {
-                            merchCard = parent;
-                            break;
-                        }
-                        parent = parent.parentElement;
-                    }
-
-                    if (!merchCard) return { success: false, error: 'Merch card not found' };
-
-                    const ctaEl = merchCard.querySelector('[slot="cta"] sp-button');
-                    if (!ctaEl) return { success: false, error: 'CTA button not found' };
-
-                    ctaEl.click();
-
-                    return { success: true };
-                },
-                {
-                    id: testData.data.id,
-                    size: testData.data.size,
-                },
-            );
-
-            if (clicked.success) {
-                const response = await page.waitForResponse((res) => res.url().includes(testData.data.offerid));
-
-                console.log(`API response status: ${response.status()}`);
-                expect(response.status()).toBe(200);
-            } else {
-                console.log('Failed to click CTA:', clicked.error);
-                throw new Error(`Failed to click CTA: ${clicked.error}`);
+            const cta = (await ah.getWidgetField(testData.data.id, testData.data.size, 'cta')).filter({
+                hasText: testData.data.cta,
+            });
+            const [initialResponse] = await Promise.all([
+                page.context().waitForEvent('response', {
+                    predicate: (response) =>
+                        response.request().isNavigationRequest() && response.url().includes(testData.data.offerid),
+                }),
+                cta.click(),
+            ]);
+            let response = initialResponse;
+            while ([301, 302, 303, 307, 308].includes(response.status())) {
+                const request = response.request();
+                await expect.poll(() => request.redirectedTo()).not.toBeNull();
+                response = await request.redirectedTo().response();
+                expect(response, 'Checkout redirect must receive a response').not.toBeNull();
             }
-        } catch (e) {
-            console.log('Error in API validation test:', e.message);
+            expect(response.status(), 'Checkout redirect chain must finish successfully').toBe(200);
         } finally {
-            // This test clicks a live buy CTA on the shared 'US' page - the click may navigate the
-            // page away entirely, so page.reload() isn't safe here (it reloads wherever the click
-            // left us, not the original docs page). Explicitly navigate back to the URL confirmed
-            // above instead, so later tests reusing getPage('US') don't inherit whatever the click
-            // triggered, wherever it left the page.
-            await page.goto(originalUrl);
-            await page.waitForLoadState('networkidle');
+            for (const popup of page.context().pages()) {
+                if (!originalPages.has(popup)) await popup.close();
+            }
+            if (page.url() !== originalUrl) await page.goto(originalUrl, { waitUntil: 'domcontentloaded' });
         }
     });
 
@@ -343,7 +193,7 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
         const testData = features[4];
         console.log(`Running test for ${testData.name} with ID ${testData.data.id} - Badge validation`);
 
-        const page = workerSetup.getPage('US');
+        const page = await workerSetup.getPage('US');
         ah = new AdobeHomePage(page);
         webUtil = new WebUtil(page);
 
@@ -448,14 +298,11 @@ test.describe('Merch AH Try Buy Widget test suite', () => {
                 { id: testData.data.id, size: testData.data.size },
             );
 
-            if (badgeStyle) {
-                expect(badgeStyle.backgroundColor).toBe(testData.data.badge.color);
-                expect(badgeStyle.position).toBe('absolute');
-                expect(badgeStyle.top).toBe('18px');
-                expect(badgeStyle.right).toBe('12px');
-            } else {
-                console.log('Could not get badge style');
-            }
+            expect(badgeStyle, 'Badge styling must be present').not.toBeNull();
+            expect(badgeStyle.backgroundColor).toBe(testData.data.badge.color);
+            expect(badgeStyle.position).toBe('absolute');
+            expect(badgeStyle.top).toBe('18px');
+            expect(badgeStyle.right).toBe('12px');
         });
 
         await test.step('Verify widget CSS with badge', async () => {

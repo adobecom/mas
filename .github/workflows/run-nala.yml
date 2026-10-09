@@ -153,17 +153,42 @@ jobs:
                   exit 1
 
     run-nala-studio-tests:
-        name: Running Nala Studio E2E UI Tests
+        name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
         needs: [nala-gate, check-paths, check-approvals]
         if: |
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
-        runs-on: [self-hosted, Linux, X64, nala-studio]
+        runs-on: [self-hosted, Linux, X64, '${{ matrix.runner }}']
         timeout-minutes: 45 # Prevent hanging jobs
+        # Fixed participating runner pool: each uniquely labeled runner executes one job
+        # at a time, including cleanup, even when different PRs overlap. This allocation
+        # does not coordinate legacy workflows or other nonparticipating jobs.
+        # Backend scheduling allocates NALA_ODIN_MAX_RPS * NALA_WORKER_COUNT / 12
+        # to this job; the same job-level budget is inherited by standalone cleanup.
+        env:
+            NALA_TOTAL_WORKERS: 12
+            NALA_WORKER_COUNT: ${{ matrix.workers }}
+            NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
+            NALA_ODIN_MAX_RPS: 20
+            NALA_STUDIO_SHARD: ${{ matrix.shard }}
+            NALA_SHARD_ID: ${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
         strategy:
+            fail-fast: false
             matrix:
-                node-version: [20.x]
+                include:
+                    - shard: mixed-1
+                      runner: nala-studio-sj
+                      workers: 4
+                      node-version: 20.x
+                    - shard: mixed-2
+                      runner: nala-studio-or
+                      workers: 4
+                      node-version: 20.x
+                    - shard: mixed-3
+                      runner: nala-studio-no
+                      workers: 3
+                      node-version: 20.x
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -180,25 +205,15 @@ jobs:
                       **/package-lock.json
                       **/yarn.lock
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Prepare compatible Nala dependencies
+              uses: ./.github/actions/setup-nala
+              timeout-minutes: 10
 
-            - name: Cache Playwright browsers
-              uses: actions/cache@v4
-              id: playwright-cache
-              continue-on-error: true
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
-
-            - name: Install Playwright system dependencies
-              uses: ./.github/actions/prep-apt
-
-            - name: Install/verify Playwright browsers
+            - name: Report runner capacity and shard selection
               run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
-                  npx playwright install
+                  node -e "console.log('Available CPUs:', require('node:os').availableParallelism())"
+                  echo "Runner: ${{ matrix.runner }}; shard: ${{ matrix.shard }}; workers: ${{ matrix.workers }}"
+                  node ./nala/utils/studio-shards.js "${{ matrix.shard }}"
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
@@ -218,16 +233,15 @@ jobs:
                   IMS_EMAIL: ${{ secrets.IMS_EMAIL }}
                   IMS_PASS: ${{ secrets.IMS_PASS }}
                   FORCE_COLOR: 3 # Force color output
-                  # studio:3 + docs:1 = 4 workers × 45 RPS = 180 RPS, safely under 200 RPS EDS limit.
-                  # Both jobs share the same self-hosted runner pool — 4 total workers = 4 vCPUs.
-                  NALA_PLAYWRIGHT_WORKERS: 3
+                  # Authentication and fresh run-scoped HAR seeding happen within this invocation.
+                  # No auth state or HAR artifacts are exchanged between jobs or PRs.
 
             # Traces are excluded on purpose: they capture the test account's IMS bearer tokens and this repo is public.
             - name: Upload failure screenshots
               if: failure()
               uses: actions/upload-artifact@v4
               with:
-                  name: nala-studio-failures-attempt-${{ github.run_attempt }}
+                  name: nala-studio-${{ matrix.shard }}-failures-${{ github.run_id }}-attempt-${{ github.run_attempt }}
                   path: |
                       test-results/**/*.png
                       test-results/**/error-context.md
@@ -236,12 +250,13 @@ jobs:
 
             - name: Cleanup cloned cards
               if: always()
+              continue-on-error: true
               run: node -e "
                   import('./nala/utils/global.teardown.js')
                   .then(module => module.default())
                   .catch(err => {
-                  console.error('Cleanup failed:', err.message);
-                  process.exit(1);
+                  console.error('::warning::Cleanup failed:', err.message);
+                  process.exitCode = 1;
                   });"
               env:
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
@@ -255,8 +270,14 @@ jobs:
             needs.nala-gate.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true'
-        runs-on: [self-hosted, Linux, X64, nala-studio]
+        runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
+        env:
+            NALA_TOTAL_WORKERS: 12
+            NALA_WORKER_COUNT: 1
+            NALA_PLAYWRIGHT_WORKERS: 1
+            NALA_ODIN_MAX_RPS: 20
+            NALA_SHARD_ID: docs-${{ github.run_id }}-${{ github.run_attempt }}
         strategy:
             matrix:
                 node-version: [20.x]
@@ -292,28 +313,9 @@ jobs:
                       **/package-lock.json
                       **/yarn.lock
 
-            - name: Install dependencies
-              run: npm ci
-
-            - name: Cache Playwright browsers
-              uses: actions/cache@v4
-              id: playwright-cache
-              continue-on-error: true
-              with:
-                  path: ~/.cache/ms-playwright
-                  key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/playwright.config.js') }}
-
-            # Docs tests run on GitHub-hosted runners (ubuntu-latest) — no unattended-upgrades
-            # lock contention, so the prep-apt composite action is not needed here.
-            - name: Install Playwright system dependencies
-              if: steps.playwright-cache.outputs.cache-hit != 'true'
-              run: npx playwright install-deps
-
-            - name: Install/verify Playwright browsers
-              run: |
-                  # Always run this - it's idempotent and fast when browsers are already correct
-                  # It checks version compatibility and only installs if browsers are missing or outdated
-                  npx playwright install
+            - name: Prepare compatible Nala dependencies
+              uses: ./.github/actions/setup-nala
+              timeout-minutes: 10
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh
@@ -345,4 +347,14 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
-                  NALA_PLAYWRIGHT_WORKERS: 1
+
+            - name: Upload failure screenshots
+              if: failure()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: nala-docs-failures-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+                  path: |
+                      test-results/**/*.png
+                      test-results/**/error-context.md
+                  retention-days: 7
+                  if-no-files-found: ignore

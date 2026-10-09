@@ -138,7 +138,7 @@ export default {
                 legalDisclaimerTax: 'par licenceTTC. Annual, billed monthly',
                 cardLegalDisclaimerTax: 'par licenceTTC',
             },
-            browserParams: '#locale=fr_FR&query=',
+            browserParams: '#page=fragment-editor&path=nala&locale=fr_FR&fragmentId=',
             tags: '@mas-studio @acom @acom-save @acom-plans @acom-plans-save @acom-plans-individuals @acom-plans-individuals-save',
         },
         {

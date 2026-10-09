@@ -16,6 +16,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('ACOM MAS Variations feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -24,8 +25,12 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     // @MAS-Grouped-Variation-Card-in-Collection
@@ -33,7 +38,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[0];
 
         await test.step('step-1: Verify grouped card variation on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -44,7 +49,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify grouped card variation on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -55,7 +60,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-3: Verify grouped card variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_co');
+            const page = await workerSetup.getPage('AR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -71,7 +76,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[1];
 
         await test.step('step-1: Verify regional card variation on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -81,7 +86,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify regional card variation on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.id)).toBeVisible();
@@ -96,7 +101,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[2];
 
         await test.step('step-1: Verify regional collection variation on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCollection(data.id)).toBeVisible();
@@ -111,7 +116,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify regional collection variation on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCollection(data.id)).toBeVisible();
@@ -131,7 +136,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[3];
 
         await test.step('step-1: Verify grouped collection variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_co');
+            const page = await workerSetup.getPage('AR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_co, expect);
             await expect(acomPage.getCollection(data.id)).toBeVisible();
@@ -150,7 +155,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[4];
 
         await test.step('step-1: Verify grouped card variation in regional collection on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -165,7 +170,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify grouped card variation in regional collection on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -185,7 +190,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[5];
 
         await test.step('step-1: Verify regional card variation in regional collection on GR_co', async () => {
-            const page = workerSetup.getPage('GR_co');
+            const page = await workerSetup.getPage('GR_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -200,7 +205,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify regional card variation in regional collection on GR_EN', async () => {
-            const page = workerSetup.getPage('GR_EN');
+            const page = await workerSetup.getPage('GR_EN');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('GR_EN', DOCS_GALLERY_PATH.PLANS_COLLECTION.GR_EN, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -220,7 +225,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[6];
 
         await test.step('step-1: Verify translated grouped card variation on AR_ES', async () => {
-            const page = workerSetup.getPage('AR_ES');
+            const page = await workerSetup.getPage('AR_ES');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -232,7 +237,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated grouped card variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_ES_co');
+            const page = await workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -249,7 +254,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[7];
 
         await test.step('step-1: Verify translated regional card variation on AR_ES', async () => {
-            const page = workerSetup.getPage('AR_ES');
+            const page = await workerSetup.getPage('AR_ES');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -260,7 +265,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated regional card variation on AR_co', async () => {
-            const page = workerSetup.getPage('AR_ES_co');
+            const page = await workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -276,7 +281,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         const { data } = features[8];
 
         await test.step('step-1: Verify translated regional card variation in grouped collection on AR_ES_co', async () => {
-            const page = workerSetup.getPage('AR_ES_co');
+            const page = await workerSetup.getPage('AR_ES_co');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES_co', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES_co, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();
@@ -290,7 +295,7 @@ test.describe('ACOM MAS Variations feature test suite', () => {
         });
 
         await test.step('step-2: Verify translated regional card variation in grouped collection on AR_ES', async () => {
-            const page = workerSetup.getPage('AR_ES');
+            const page = await workerSetup.getPage('AR_ES');
             const acomPage = new MasPlans(page);
             await workerSetup.verifyPageURL('AR_ES', DOCS_GALLERY_PATH.PLANS_COLLECTION.AR_ES, expect);
             await expect(acomPage.getCard(data.cardid)).toBeVisible();

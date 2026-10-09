@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Minicompare gallery feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,16 +21,19 @@ test.describe('Minicompare gallery feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Minicompare gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasMinicompare(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.MINICOMPARE, expect);
         });
@@ -49,7 +53,7 @@ test.describe('Minicompare gallery feature test suite', () => {
 
     test(`${features[1].name},${features[1].tags}`, async () => {
         await test.step('step-1: Go to Minicompare gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasMinicompare(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.MINICOMPARE, expect);
         });

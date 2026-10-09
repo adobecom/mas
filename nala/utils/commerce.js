@@ -1,5 +1,7 @@
 import { test } from '@playwright/test';
-import { installEdsThrottleOnPage } from '../libs/eds-throttle.js';
+import { drainPageRoutes, installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
+import GlobalRequestCounter from '../libs/global-request-counter.js';
+import { getResourceMetrics } from '../libs/static-resource-cache.js';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
@@ -67,9 +69,7 @@ const DOCS_GALLERY_PATH = {
     BRAND_CONCIERGE: '/web-components/docs/brand-concierge.html',
 };
 
-async function setupMasConsoleListener(consoleErrors) {
-    const seenErrors = new Set();
-
+async function setupMasConsoleListener(consoleErrors, seenErrors = new Set()) {
     return (msg) => {
         if (msg.type() === 'error') {
             const errorText = msg.text();
@@ -233,9 +233,7 @@ function constructTestUrl(baseURL, path, browserParams = '') {
     return fullUrl;
 }
 
-async function setupMasRequestLogger(masRequestErrors) {
-    const seenRequests = new Set();
-
+async function setupMasRequestLogger(masRequestErrors, seenRequests = new Set()) {
     return {
         responseListener: async (response) => {
             const url = response.url();
@@ -310,10 +308,8 @@ async function setupMasRequestLogger(masRequestErrors) {
  * @param {Object} config - Configuration object
  * @param {Array} config.pages - Array of page configurations [{ name: 'US', url: '/path' }, ...]
  * @param {Object} config.extraHTTPHeaders - HTTP headers to set on the context
- * @param {number} config.loadTimeout - Timeout after networkidle (default: 5000ms)
  * @param {number} config.setupTimeout - Timeout for beforeAll hook setup (default: 60000ms)
- * @param {number} config.concurrency - Max pages loaded simultaneously (default: Infinity, i.e. all at once)
- * @param {number} config.retries - Extra attempts per page on navigation/networkidle failure (default: 0)
+ * @param {number} config.retries - Extra attempts per page on navigation failure (default: 0)
  * @param {number} config.retryDelay - Base delay in ms before a retry; grows linearly per attempt (default: 1000ms)
  * @returns {Object} - Setup object with pages, setup/cleanup methods, and error arrays
  */
@@ -321,17 +317,21 @@ function createWorkerPageSetup(config = {}) {
     const {
         pages = [],
         extraHTTPHeaders = { 'sec-ch-ua': '"Chromium";v="123", "Not:A-Brand";v="8"' },
-        loadTimeout = 5000,
         setupTimeout = 60000, // Default 60 second timeout for worker setup
-        concurrency = Infinity,
         retries = 0,
         retryDelay = 1000,
     } = config;
 
     let workerContext;
+    let workerBaseURL;
     const workerPages = {};
+    const pageLoads = new Map();
     let consoleErrors = [];
     let masRequestErrors = [];
+    const consoleErrorKeys = new Set();
+    const requestErrorKeys = new Set();
+    let resourceMetrics = getResourceMetrics();
+    let stopCounting;
 
     /**
      * Sets up worker-scoped pages and listeners
@@ -339,63 +339,70 @@ function createWorkerPageSetup(config = {}) {
      * @param {Object} params.browser - Playwright browser object
      * @param {string} params.baseURL - Base URL for the test environment
      */
-    async function setupWorkerPages({ browser, baseURL }) {
+    async function setupWorkerPages({ browser, baseURL, contextOptions = {} }) {
         console.info('[Worker Setup]: Initializing worker-scoped pages...');
 
         // Set timeout for the current test (beforeAll hook)
         test.setTimeout(setupTimeout);
 
-        workerContext = await browser.newContext({ extraHTTPHeaders });
+        const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch, bypassCSP, ignoreHTTPSErrors } =
+            test.info().project.use;
+        workerContext = await browser.newContext({
+            viewport,
+            userAgent,
+            deviceScaleFactor,
+            isMobile,
+            hasTouch,
+            bypassCSP,
+            ignoreHTTPSErrors,
+            serviceWorkers: 'block',
+            ...contextOptions,
+            extraHTTPHeaders,
+        });
+        workerBaseURL = baseURL;
 
         consoleErrors = [];
         masRequestErrors = [];
 
-        const loadPage = async (pageConfig) => {
-            const { name, url } = pageConfig;
+        console.info('[Worker Setup]: Pages will load on first use');
+    }
 
-            let fullUrl = `${baseURL}${url}`;
-            fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
-            fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
-            fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
+    async function loadPage(pageConfig) {
+        const { name, url } = pageConfig;
 
-            console.info(`[Worker Setup]: Creating page for ${name}:`, fullUrl);
+        let fullUrl = `${workerBaseURL}${url}`;
+        fullUrl = addUrlQueryParams(fullUrl, MAS_IO_URL);
+        fullUrl = addUrlQueryParams(fullUrl, MILO_LIBS);
+        fullUrl = addUrlQueryParams(fullUrl, MAS_LIBS);
 
-            const page = await workerContext.newPage();
-            workerPages[name] = page;
+        console.info(`[Worker Setup]: Creating page for ${name}:`, fullUrl);
 
-            // Set up MAS request logger
-            const masRequestLogger = await setupMasRequestLogger(masRequestErrors);
-            page.on('response', masRequestLogger.responseListener);
-            page.on('requestfailed', masRequestLogger.requestFailedListener);
+        const page = await workerContext.newPage();
+        workerPages[name] = page;
 
-            // Set up console listener
-            const consoleListener = await setupMasConsoleListener(consoleErrors);
-            page.on('console', consoleListener);
+        // Set up MAS request logger
+        const masRequestLogger = await setupMasRequestLogger(masRequestErrors, requestErrorKeys);
+        page.on('response', masRequestLogger.responseListener);
+        page.on('requestfailed', masRequestLogger.requestFailedListener);
 
-            await installEdsThrottleOnPage(page);
+        // Set up console listener
+        const consoleListener = await setupMasConsoleListener(consoleErrors, consoleErrorKeys);
+        page.on('console', consoleListener);
 
-            // Load the page, retrying against a rate-limited host (e.g. AEM/EDS 429s/timeouts)
-            for (let attempt = 1; attempt <= retries + 1; attempt++) {
-                try {
-                    await page.goto(fullUrl);
-                    await page.waitForLoadState('networkidle');
-                    break;
-                } catch (error) {
-                    if (attempt > retries) throw error;
-                    await page.waitForTimeout(retryDelay * attempt);
-                }
+        await installEdsThrottleOnPage(page);
+
+        // Load the page, retrying against a rate-limited host (e.g. AEM/EDS 429s/timeouts)
+        for (let attempt = 1; attempt <= retries + 1; attempt++) {
+            try {
+                await page.goto(fullUrl, { waitUntil: 'domcontentloaded' });
+                break;
+            } catch (error) {
+                if (attempt > retries) throw error;
+                await page.waitForTimeout(retryDelay * attempt);
             }
-            await page.waitForTimeout(loadTimeout);
-
-            console.info(`[Worker Setup]: ${name} page fully loaded:`, await page.url());
-
-            return { name, page, url: fullUrl };
-        };
-
-        for (let i = 0; i < pages.length; i += concurrency) {
-            await Promise.all(pages.slice(i, i + concurrency).map(loadPage));
         }
-        console.info('[Worker Setup]: All worker-scoped pages ready');
+        console.info(`[Worker Setup]: ${name} page ready for assertions:`, page.url());
+        return page;
     }
 
     /**
@@ -427,7 +434,12 @@ function createWorkerPageSetup(config = {}) {
 
         // Clean up worker context
         if (workerContext) {
+            for (const page of workerContext.pages()) await removePageRoutes(page);
+            stopCounting?.();
             await workerContext.close();
+            workerContext = null;
+            pageLoads.clear();
+            for (const name of Object.keys(workerPages)) delete workerPages[name];
             console.info('[Worker Cleanup]: Worker context closed');
         }
     }
@@ -457,17 +469,45 @@ function createWorkerPageSetup(config = {}) {
         }
     }
 
+    async function beginTest() {
+        consoleErrors.length = 0;
+        masRequestErrors.length = 0;
+        consoleErrorKeys.clear();
+        requestErrorKeys.clear();
+        stopCounting?.();
+        stopCounting = await GlobalRequestCounter.init(workerContext);
+        resourceMetrics = getResourceMetrics();
+    }
+
+    async function finishTest(testInfo) {
+        for (const page of workerContext.pages()) await drainPageRoutes(page);
+        attachWorkerErrorsToFailure(testInfo);
+        stopCounting?.();
+        GlobalRequestCounter.saveCountToFileSync();
+        const metrics = getResourceMetrics();
+        await testInfo.attach('Static resource requests', {
+            body: JSON.stringify({
+                cacheHits: metrics.cacheHits - resourceMetrics.cacheHits,
+                upstreamRequests: metrics.upstreamRequests - resourceMetrics.upstreamRequests,
+            }),
+            contentType: 'application/json',
+        });
+    }
+
     /**
-     * Gets a worker page by name
+     * Load a worker page on first use, preserving named locale/theme isolation.
      * @param {string} pageName - Name of the page to retrieve
      * @returns {Object} - Playwright page object
      */
-    function getPage(pageName) {
-        const page = workerPages[pageName];
-        if (!page) {
-            throw new Error(`Worker page '${pageName}' not found. Available pages: ${Object.keys(workerPages).join(', ')}`);
+    async function getPage(pageName) {
+        const pageConfig = pages.find(({ name }) => name === pageName);
+        if (!pageConfig)
+            throw new Error(`Unknown worker page '${pageName}'. Available pages: ${pages.map(({ name }) => name)}`);
+        if (!pageLoads.has(pageName)) {
+            test.setTimeout(test.info().timeout + setupTimeout);
+            pageLoads.set(pageName, loadPage(pageConfig));
         }
-        return page;
+        return pageLoads.get(pageName);
     }
 
     /**
@@ -477,7 +517,7 @@ function createWorkerPageSetup(config = {}) {
      * @param {Function} expect - Playwright expect function
      */
     async function verifyPageURL(pageName, expectedPath, expect) {
-        const page = getPage(pageName);
+        const page = await getPage(pageName);
         // Create regex that matches the expected path with optional miloLibs and masLibs parameters
         const escapedPath = expectedPath.replace('?', '\\?');
         const regex = new RegExp(`${escapedPath}.*`);
@@ -489,6 +529,8 @@ function createWorkerPageSetup(config = {}) {
         setupWorkerPages,
         cleanupWorkerPages,
         attachWorkerErrorsToFailure,
+        beginTest,
+        finishTest,
 
         // Page access methods
         getPage,

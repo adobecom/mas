@@ -12,6 +12,7 @@ const workerSetup = createWorkerPageSetup({
 });
 
 test.describe('Catalog gallery feature test suite', () => {
+    test.describe.configure({ mode: 'default' });
     test.beforeAll(async ({ browser, baseURL }) => {
         await workerSetup.setupWorkerPages({ browser, baseURL });
     });
@@ -20,16 +21,19 @@ test.describe('Catalog gallery feature test suite', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        // eslint-disable-line no-empty-pattern
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     test(`[Test Id - ${features[0].tcid}] ${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
 
         await test.step('step-1: Go to Catalog gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasCatalog(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.CATALOG, expect);
         });
@@ -61,12 +65,16 @@ test.describe('Catalog gallery feature test suite', () => {
 
     test(`[Test Id - ${features[1].tcid}] ${features[1].name},${features[1].tags}`, async () => {
         await test.step('step-1: Go to Catalog gallery page', async () => {
-            const page = workerSetup.getPage('US');
+            const page = await workerSetup.getPage('US');
             galleryPage = new MasCatalog(page);
             await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.CATALOG, expect);
         });
 
         await test.step('step-2: Verify all CTA buttons have the same top (bounding box y)', async () => {
+            await expect(galleryPage.getCatalogCards()).toHaveCount(CATALOG_FRAGMENT_IDS.length);
+            for (const id of CATALOG_FRAGMENT_IDS) {
+                await expect(galleryPage.getCard(id)).toHaveCount(1);
+            }
             const tolerancePx = 0;
             const buttons = galleryPage.getGalleryFooterCtas();
             const count = await buttons.count();

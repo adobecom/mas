@@ -3,6 +3,8 @@ import COMFriesSpec from '../specs/fries_edit_and_discard.spec.js';
 
 const { features } = COMFriesSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio Commerce Fries card test suite', () => {
     // @studio-fries-edit-discard-trial-badge - Validate edit trial badge for fries card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -11,7 +13,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -19,12 +21,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Remove badge field', async () => {
             await expect(await editor.trialBadge).toBeVisible();
             await expect(await editor.trialBadge).toHaveText(data.trialBadge.original);
-            await editor.trialBadge.click();
-            await page.waitForTimeout(500);
-            await page.keyboard.press('ControlOrMeta+A');
-            await page.keyboard.press('Backspace');
-            await page.waitForTimeout(1000);
-            await expect(await editor.trialBadge).toHaveText('');
+            await editor.clearRteField(editor.trialBadge);
         });
 
         await test.step('step-3: Validate badge field is removed', async () => {
@@ -33,7 +30,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         });
 
         await test.step('step-4: Enter new value in the badge field', async () => {
-            await editor.trialBadge.fill(data.trialBadge.updated);
+            await editor.fillRteField(editor.trialBadge, data.trialBadge.updated);
         });
 
         await test.step('step-5: Validate badge field updated', async () => {
@@ -58,7 +55,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -66,11 +63,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Edit badge color field', async () => {
             await expect(await editor.trialBadgeColor).toBeVisible();
             await expect(await editor.trialBadgeColor).toContainText(data.color.original);
-            await editor.trialBadgeColor.scrollIntoViewIfNeeded();
-            await editor.trialBadgeColor.click();
-            await expect(await editor.trialBadgeColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.trialBadgeColor, data.color.updated);
         });
 
         await test.step('step-3: Validate badge color field updated', async () => {
@@ -103,7 +96,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -111,11 +104,7 @@ test.describe('M@S Studio Commerce Fries card test suite', () => {
         await test.step('step-2: Edit badge border color field', async () => {
             await expect(await editor.trialBadgeBorderColor).toBeVisible();
             await expect(await editor.trialBadgeBorderColor).toContainText(data.color.original);
-            await editor.trialBadgeBorderColor.scrollIntoViewIfNeeded();
-            await editor.trialBadgeBorderColor.click();
-            await expect(await editor.trialBadgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.trialBadgeBorderColor, data.color.updated);
         });
 
         await test.step('step-3: Validate badge border color field updated', async () => {

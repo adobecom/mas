@@ -3280,7 +3280,7 @@ class MerchCardEditor extends LitElement {
                                             : colorName === 'Transparent'
                                               ? html`<span>Transparent</span>`
                                               : html`
-                                                    <div class="color-swatch" style="--swatch-bg: ${colorValue}"></div>
+                                                    <div class="color-swatch" style="--swatch-bg: var(${colorValue})"></div>
                                                     <span class="color-name-text" title="${colorName}"> ${colorName} </span>
                                                 `}
                                     </div>

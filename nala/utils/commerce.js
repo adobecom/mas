@@ -56,6 +56,7 @@ const DOCS_GALLERY_PATH = {
     MINICOMPARE: '/web-components/docs/minicompare.html',
     MINICOMPARE_MWEB: '/web-components/docs/minicomparemweb.html',
     PRODUCT: '/web-components/docs/product.html',
+    PRODUCT_C2: '/web-components/docs/productc2.html',
     SEGMENT: '/web-components/docs/segment.html',
     SPECIALOFFER: '/web-components/docs/specialoffer.html',
     IMAGE: '/web-components/docs/image.html',

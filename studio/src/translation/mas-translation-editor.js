@@ -9,7 +9,8 @@ import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
-import './mas-translation-languages.js';
+import '../common/components/mas-region-picker.js';
+import { getLocalePickerItems } from '../locales.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
@@ -704,7 +705,12 @@ class MasTranslationEditor extends LitElement {
                     @confirm=${this.#confirmLangSelection}
                     @cancel=${this.#cancelLangSelection}
                 >
-                    <mas-translation-languages></mas-translation-languages>
+                    <mas-region-picker
+                        .store=${Store.translationProjects.targetLocales}
+                        .items=${getLocalePickerItems(Store.search.value.path)}
+                        noun="language"
+                        search-placeholder="Search locale"
+                    ></mas-region-picker>
                 </mas-grouped-selector>
                 ${
                     this.showSelectedEmptyState

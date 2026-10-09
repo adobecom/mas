@@ -673,20 +673,22 @@ describe('ProductPricing CTAs', () => {
         }
     });
 
-    it('stack, full width, when a label outgrows its half', async () => {
-        const card = await render([
-            'Kostenlos testen',
-            'Jetzt kaufen und sparen',
-        ]);
-        try {
-            const [a, b] = rects(card);
-            expect(b.top).to.be.at.least(a.bottom);
-            expect(b.left).to.equal(a.left);
-            expect(b.width).to.equal(a.width);
-            expect(a.height).to.equal(40);
-        } finally {
-            card.remove();
-        }
+    [
+        ['261px', ['Kostenlos testen', 'Jetzt kaufen und sparen']],
+        ['420px', ['Kostenlos testen', 'Jetzt kaufen und sparen sofort']],
+    ].forEach(([width, labels]) => {
+        it(`stack, full width, when a label outgrows its half at ${width}`, async () => {
+            const card = await render(labels, width);
+            try {
+                const [a, b] = rects(card);
+                expect(b.top).to.be.at.least(a.bottom);
+                expect(b.left).to.equal(a.left);
+                expect(b.width).to.equal(a.width);
+                expect(a.height).to.equal(40);
+            } finally {
+                card.remove();
+            }
+        });
     });
 
     it('lead with the filled CTA, side by side or stacked', async () => {

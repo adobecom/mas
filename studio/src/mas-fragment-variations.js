@@ -52,6 +52,7 @@ class MasFragmentVariations extends LitElement {
     reactiveController = new ReactiveController(this, [
         Store.fragments.highlightedVariationId,
         Store.fragments.variationSearchTab,
+        Store.promotions.list.data,
     ]);
 
     constructor() {
@@ -70,6 +71,7 @@ class MasFragmentVariations extends LitElement {
     }
 
     #orphanPromoVariationsLoader = createKeyedAsyncLoader();
+    #promotionProjectsRequested = false;
 
     createRenderRoot() {
         return this;
@@ -102,6 +104,29 @@ class MasFragmentVariations extends LitElement {
             this.scrollToHighlightedVariation();
         }
         void this.#loadOrphanPromoVariationsFallback();
+        if (
+            !this.#promotionProjectsRequested &&
+            !this.promotionProjectsReady &&
+            this.repository &&
+            this.fragment &&
+            this.promoVariations.some((variation) => getPromotionTagFromFragment(variation))
+        ) {
+            void this.#loadPromotionProjects();
+        }
+    }
+
+    get promotionProjectsReady() {
+        return Store.promotions.list.data.hasMeta('listFetched') || Store.promotions.list.data.get().length > 0;
+    }
+
+    async #loadPromotionProjects() {
+        this.#promotionProjectsRequested = true;
+        try {
+            await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            if (this.promotionProjectsReady) this.requestUpdate();
+        } finally {
+            this.#promotionProjectsRequested = false;
+        }
     }
 
     async #loadOrphanPromoVariationsFallback() {
@@ -206,6 +231,19 @@ class MasFragmentVariations extends LitElement {
             }
         }
         await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
+    }
+
+    #getPromotionIdForItem(fragment) {
+        const promotionTagId = getPromotionTagFromFragment(fragment);
+        if (!promotionTagId) return null;
+        const projects =
+            Store.promotions.list.data
+                .get()
+                ?.map((store) => store.get())
+                .filter(Boolean) || [];
+        const inEditProject = Store.promotions.inEdit.get()?.value;
+        const allProjects = inEditProject ? [...projects, inEditProject] : projects;
+        return findPromotionProjectIdByTag(promotionTagId, allProjects) || null;
     }
 
     /**
@@ -462,6 +500,7 @@ class MasFragmentVariations extends LitElement {
                         const { promotionName } = getPromotionInfo(variationFragment);
                         const isGroupedVariation = Fragment.isGroupedVariationPath(variationFragment.path);
                         const geosValue = getPromoVariationGeoTagsValue(variationFragment);
+                        const promotionId = this.#getPromotionIdForItem(variationFragment);
                         return html`
                             <mas-fragment-table
                                 class="mas-fragment nested-fragment ${isExpanded ? 'expanded' : ''} ${isHighlighted
@@ -473,6 +512,14 @@ class MasFragmentVariations extends LitElement {
                                 .canCreateVariation=${false}
                                 .nested=${true}
                                 .expanded=${isExpanded}
+                                .editorLinkOptions=${{
+                                    promotionId,
+                                    disabled: Boolean(
+                                        getPromotionTagFromFragment(variationFragment) &&
+                                            !promotionId &&
+                                            !this.promotionProjectsReady,
+                                    ),
+                                }}
                                 .toggleExpand=${() => this.togglePromoVariation(variationFragment.id)}
                                 @dblclick=${() => this.handleEdit(editStore)}
                             ></mas-fragment-table>

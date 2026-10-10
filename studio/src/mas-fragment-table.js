@@ -4,6 +4,8 @@ import { extractLocaleFromPath, generateLinkToUse, getService, showToast, previe
 import { getFragmentName } from './translation/translation-utils.js';
 import Store, { toggleSelection } from './store.js';
 import { shouldIgnoreRowClickForSelection } from './common/utils/render-utils.js';
+import { renderEditorLink, renderRowLinkOverlay } from './common/utils/editor-link.js';
+import { tableRowLinkStyles } from './common/styles/table-styles.css.js';
 import { closePreview, openPreview } from './mas-card-preview.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, STAGED } from './constants.js';
 import { MasRepository } from './mas-repository.js';
@@ -19,6 +21,7 @@ class MasFragmentTable extends LitElement {
         nested: { type: Boolean, attribute: false },
         canCreateVariation: { type: Boolean, attribute: false },
         toggleExpand: { type: Function, attribute: false },
+        editorLinkOptions: { type: Object, attribute: false },
         showVariationDialog: { state: true },
         failedPrice: { type: Boolean, state: true },
     };
@@ -39,6 +42,7 @@ class MasFragmentTable extends LitElement {
         this.canCreateVariation = true;
         this.showVariationDialog = false;
         this.failedPrice = false;
+        this.editorLinkOptions = {};
     }
 
     #reactiveController = new ReactiveController(this);
@@ -86,9 +90,9 @@ class MasFragmentTable extends LitElement {
 
     update(changedProperties) {
         if (changedProperties.has('fragmentStore') || changedProperties.has('nested')) {
-            const stores = [this.fragmentStore];
+            const stores = [this.fragmentStore, Store.selecting];
             if (this.nested) {
-                stores.push(Store.selecting, Store.selection);
+                stores.push(Store.selection);
             }
             this.#reactiveController.updateStores(stores);
         }
@@ -219,8 +223,15 @@ class MasFragmentTable extends LitElement {
 
     render() {
         const data = this.fragmentStore.value;
+        const editorFragment = (this.editFragmentStore || this.fragmentStore).get();
+        const linkOptions = { ...this.editorLinkOptions, selectionOnly: Store.selecting.get() };
         const validationErrors = data.getValidationErrors();
         return html`
+            <style>
+                mas-fragment-table {
+                    ${tableRowLinkStyles}
+                }
+            </style>
             ${this.showVariationDialog
                 ? html`<mas-variation-dialog
                       .fragment=${data}
@@ -238,6 +249,7 @@ class MasFragmentTable extends LitElement {
                     : ''}"
                 @click=${this.handleNestedRowClick}
             >
+                ${renderRowLinkOverlay(editorFragment, linkOptions)}
                 ${this.nested && !this.toggleExpand
                     ? ''
                     : html`<sp-table-cell class="expand-cell">
@@ -267,11 +279,11 @@ class MasFragmentTable extends LitElement {
                           ></sp-checkbox>`
                         : ''}
                     ${this.nested && !this.toggleExpand
-                        ? html`${data.locale}`
+                        ? renderEditorLink(editorFragment, data.locale, linkOptions)
                         : html`<div class="icon">${this.icon}</div>
-                              ${getFragmentName(data)}`}
+                              ${renderEditorLink(editorFragment, getFragmentName(data), linkOptions)}`}
                 </sp-table-cell>
-                <sp-table-cell class="title">${data.title}</sp-table-cell>
+                <sp-table-cell class="title">${renderEditorLink(editorFragment, data.title, linkOptions)}</sp-table-cell>
                 <sp-table-cell class="wf-status"
                     >${this.isStaged ? html`<span class="staged-badge">Staged</span>` : ''}</sp-table-cell
                 >

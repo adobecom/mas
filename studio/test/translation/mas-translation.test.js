@@ -135,6 +135,32 @@ describe('MasTranslation', () => {
     });
 
     describe('rendering', () => {
+        it('renders translation editor links on the project title and row overlay', async () => {
+            Store.translationProjects.list.data.set([createMockTranslationProject('translation-1', 'Translation')]);
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const row = el.shadowRoot.querySelector('sp-table-row[data-id="translation-1"]');
+            for (const selector of ['a.fragment-editor-link', 'a.row-link-overlay']) {
+                const link = row.querySelector(selector);
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('page')).to.equal(PAGE_NAMES.TRANSLATION_EDITOR);
+                expect(params.get('translationProjectId')).to.equal('translation-1');
+            }
+        });
+
+        it('initializes the translation editor when a title link is activated with Enter', async () => {
+            const project = createMockTranslationProject('translation-1', 'Translation');
+            Store.translationProjects.list.data.set([project]);
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+            el.shadowRoot.querySelector('a.fragment-editor-link').dispatchEvent(event);
+
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.translationProjects.inEdit.get()).to.equal(project);
+            expect(Store.translationProjects.translationProjectId.get()).to.equal('translation-1');
+        });
+
         it('should render translation container', async () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const container = el.shadowRoot.querySelector('.translation-container');

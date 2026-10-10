@@ -56,7 +56,42 @@ export const tableColumnIconStyles = css`
     }
 `;
 
+export const tableRowLinkStyles = css`
+    sp-table-row {
+        position: relative;
+    }
+
+    a.fragment-editor-link {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    a.row-link-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+    }
+
+    sp-table-row sp-checkbox,
+    sp-table-row sp-action-menu,
+    sp-table-row sp-action-button,
+    sp-table-row sp-button,
+    sp-table-row sp-icon-button,
+    sp-table-row button,
+    sp-table-row .validation-error-indicator,
+    sp-table-row .offer-id-text,
+    sp-table-row sp-table-cell.preview,
+    sp-table-row .title overlay-trigger,
+    sp-table-row .path overlay-trigger,
+    sp-table-row .offer-id overlay-trigger,
+    sp-table-row .osi overlay-trigger {
+        position: relative;
+        z-index: 2;
+    }
+`;
+
 export const tableCellBaseStyles = css`
+    ${tableRowLinkStyles}
     .item-table sp-table-cell,
     sp-table-cell {
         display: flex;

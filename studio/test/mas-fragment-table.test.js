@@ -1,4 +1,4 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-fragment-table.js';
@@ -88,6 +88,38 @@ describe('MasFragmentTable', () => {
     });
 
     describe('handleEditFragment', () => {
+        it('keeps fragments with an empty title openable through the name cell', async () => {
+            const fragmentStore = createFragmentStore({
+                title: '',
+                path: '/content/dam/mas/acom/en_US/cards/untitled-card',
+            });
+            const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+            const link = el.querySelector('.name a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('fragmentId')).to.equal('fragment-1');
+        });
+
+        it('exposes the edit fragment as a native title link rather than the merged preview fragment', async () => {
+            const fragmentStore = createFragmentStore();
+            const editFragmentStore = createFragmentStore({
+                id: 'variation-1',
+                path: '/content/dam/mas/acom/fr_FR/cards/variation',
+            });
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .editFragmentStore=${editFragmentStore}
+                    .nested=${true}
+                ></mas-fragment-table>`,
+            );
+            const link = el.querySelector('.title a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('fragmentId')).to.equal('variation-1');
+            expect(params.get('region')).to.equal('fr_FR');
+        });
+
         it('stops propagation and calls editFragment', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
@@ -301,6 +333,81 @@ describe('MasFragmentTable', () => {
             Store.selection.set(selectionSnapshot);
         });
 
+        for (const selector of ['.name a', '.title a', 'a.row-link-overlay']) {
+            it(`selects a nested variation through ${selector} on Enter without opening it`, async () => {
+                Store.selecting.set(true);
+                Store.selection.set([]);
+                const open = sandbox.spy();
+                const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+                const el = await fixture(
+                    html`<mas-fragment-table
+                        .fragmentStore=${fragmentStore}
+                        .nested=${true}
+                        @dblclick=${open}
+                    ></mas-fragment-table>`,
+                );
+
+                el.querySelector(selector).dispatchEvent(
+                    new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }),
+                );
+
+                expect(Store.selection.get()).to.deep.equal(['variation-1']);
+                expect(open.called).to.be.false;
+            });
+        }
+
+        it('selects a parent row on Enter without opening it', async () => {
+            Store.selecting.set(false);
+            const open = sandbox.spy();
+            const fragmentStore = createFragmentStore();
+            const table = await fixture(
+                html`<sp-table>
+                    <sp-table-body>
+                        <mas-fragment-table .fragmentStore=${fragmentStore} @dblclick=${open}></mas-fragment-table>
+                    </sp-table-body>
+                </sp-table>`,
+            );
+            await table.querySelector('mas-fragment-table').updateComplete;
+            table.selects = 'multiple';
+            await table.updateComplete;
+            const row = table.querySelector('sp-table-row');
+            await waitUntil(() => row.selectable);
+            Store.selecting.set(true);
+            await table.querySelector('mas-fragment-table').updateComplete;
+
+            table
+                .querySelector('.title a')
+                .dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+
+            await waitUntil(() => table.selectedSet.has('fragment-1'));
+            expect(open.called).to.be.false;
+        });
+
+        it('updates keyboard selection behavior when selection mode changes', async () => {
+            Store.selecting.set(false);
+            Store.selection.set([]);
+            const open = sandbox.spy();
+            const fragmentStore = createFragmentStore({ id: 'variation-1', locale: 'en_CA' });
+            const el = await fixture(
+                html`<mas-fragment-table
+                    .fragmentStore=${fragmentStore}
+                    .nested=${true}
+                    @dblclick=${open}
+                ></mas-fragment-table>`,
+            );
+            Store.selecting.set(true);
+            await el.updateComplete;
+
+            el.querySelector('.title a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+
+            expect(Store.selection.get()).to.deep.equal(['variation-1']);
+            expect(open.called).to.be.false;
+            Store.selecting.set(false);
+            await el.updateComplete;
+            el.querySelector('.title a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }));
+            expect(open.calledOnce).to.be.true;
+        });
+
         it('shows expand-cell when nested and toggleExpand is provided', async () => {
             const fragmentStore = createFragmentStore({ id: 'grouped-1' });
             const toggleExpand = sandbox.stub();
@@ -398,6 +505,28 @@ describe('MasFragmentTable', () => {
     });
 
     describe('validationStatus indicator', () => {
+        for (const selector of ['.validation-error-indicator', '.offer-id-text']) {
+            it(`keeps ${selector} tooltip above the row link overlay`, async () => {
+                const stylesheet = await (await fetch(new URL('../style.css', import.meta.url))).text();
+                fixtureSync(
+                    html`<style>
+                        ${stylesheet}
+                    </style>`,
+                );
+                const fragmentStore = createFragmentStore({
+                    getValidationErrors: sandbox.stub().returns([{ message: 'is not valid HTML' }]),
+                });
+                const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);
+                el.offerData = { offerId: '1234567890' };
+                await el.updateComplete;
+                const tooltipStyle = getComputedStyle(el.querySelector(selector));
+                const overlayStyle = getComputedStyle(el.querySelector('.row-link-overlay'));
+
+                expect(tooltipStyle.position).to.not.equal('static');
+                expect(Number(tooltipStyle.zIndex)).to.be.greaterThan(Number(overlayStyle.zIndex));
+            });
+        }
+
         it('renders no indicator when the fragment has no validation errors', async () => {
             const fragmentStore = createFragmentStore();
             const el = await fixture(html`<mas-fragment-table .fragmentStore=${fragmentStore}></mas-fragment-table>`);

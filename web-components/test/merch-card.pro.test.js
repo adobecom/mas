@@ -1523,6 +1523,9 @@ describe('pro resize handling', () => {
                 getBoundingClientRect: () => ({ width: 300 }),
                 // no strikethrough authored, so no reserve is published
                 querySelector: () => null,
+                querySelectorAll: () => [],
+                removeAttribute: () => {},
+                toggleAttribute: () => {},
                 shadowRoot: { querySelector: () => topCard },
                 style: {
                     setProperty: (k, v) => (styles[k] = v),
@@ -1593,6 +1596,7 @@ describe('pro resize handling', () => {
             variant: 'pro',
             getBoundingClientRect: () => ({ width: 300 }),
             querySelector: () => null,
+            removeAttribute: () => {},
             shadowRoot: { querySelector: () => null },
             style: {
                 setProperty: (k, v) => (styles[k] = v),
@@ -1649,6 +1653,9 @@ describe('pro resize handling', () => {
             getBoundingClientRect: () => ({ width: 300 }),
             querySelector: (selector) =>
                 selector.includes('strikethrough') ? strike : null,
+            querySelectorAll: () => [],
+            removeAttribute: () => {},
+            toggleAttribute: () => {},
             shadowRoot: {
                 querySelector: (selector) => {
                     if (selector === '.top-card') return topCard;
@@ -1947,5 +1954,136 @@ describe('pro quantity selector repricing', () => {
         layout.updatePriceQuantity({});
         layout.updatePriceQuantity({ detail: {} });
         expect(price.dataset.quantity).to.be.undefined;
+    });
+});
+
+describe('pro CTAs', () => {
+    // Background test pages never fire animation frames, which syncHeights awaits.
+    let raf;
+    beforeEach(() => {
+        raf = sinon
+            .stub(window, 'requestAnimationFrame')
+            .callsFake((cb) => setTimeout(cb, 0));
+    });
+    afterEach(() => raf.restore());
+
+    const footer = (...labels) =>
+        `<div slot="footer">${labels
+            .map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`)
+            .join('')}</div>`;
+
+    const renderRow = async (footers, column) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `display:grid;grid-template-columns:repeat(${footers.length},${column});gap:8px;`;
+        document.body.appendChild(wrap);
+        const cards = [];
+        for (const html of footers) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'pro');
+            card.innerHTML = html;
+            wrap.appendChild(card);
+            cards.push(card);
+        }
+        await Promise.all(cards.map((c) => c.updateComplete));
+        return { wrap, cards };
+    };
+
+    const rects = (card) =>
+        [...card.querySelectorAll('[slot="footer"] a')].map((el) =>
+            el.getBoundingClientRect(),
+        );
+
+    it('share a row while both labels fit on one line', async () => {
+        const { wrap, cards } = await renderRow(
+            [footer('Free trial', 'Buy now')],
+            '340px',
+        );
+        try {
+            const [a, b] = rects(cards[0]);
+            expect(b.top).to.equal(a.top);
+            expect(a.height).to.equal(40);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('stack, full width, when a label outgrows its half', async () => {
+        const { wrap, cards } = await renderRow(
+            [footer('Starta gratis provperiod nu', 'Köp nu')],
+            '340px',
+        );
+        try {
+            const [a, b] = rects(cards[0]);
+            expect(b.top).to.be.at.least(a.bottom);
+            expect(b.width).to.equal(a.width);
+            expect(a.height).to.equal(40);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('ignore a hidden CTA when checking for wrapping', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                '<div slot="footer"><a href="#" style="display:none">Trial</a><a href="#">Buy now</a></div>',
+                footer('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('stack every card in a row when one card must', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                footer('Buy', 'Try'),
+                footer('Starta gratis provperiod nu', 'Köp nu'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach((card) => {
+                expect(card.hasAttribute('stacked')).to.be.true;
+                const [a, b] = rects(card);
+                expect(b.top).to.be.at.least(a.bottom);
+            });
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('drop the row stacking when the layout narrows', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                footer('Buy', 'Try'),
+                footer('Starta gratis provperiod nu', 'Köp nu'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            expect(cards[0].hasAttribute('stacked')).to.be.true;
+            mm.returns({ matches: false });
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
     });
 });

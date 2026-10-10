@@ -1001,6 +1001,11 @@ function createConsonantButton(
     return button;
 }
 
+// Filled (accent) CTA first, so Tab and screen-reader order match what is shown.
+const isFilled = (cta) => cta.classList.contains('blue');
+const filledFirst = (ctas) =>
+    [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+
 export function processCTAs(
     fields,
     merchCard,
@@ -1026,7 +1031,9 @@ export function processCTAs(
         );
 
         footer.textContent = '';
-        footer.append(...ctas);
+        footer.append(
+            ...(merchCard.variant === 'pro' ? filledFirst(ctas) : ctas),
+        );
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {

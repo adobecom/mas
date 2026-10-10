@@ -5,8 +5,14 @@ import router from '../router.js';
 import Store from '../store.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { PAGE_NAMES } from '../constants.js';
-import { showToast } from '../utils.js';
+import { showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
 import { handleSearchInput, filterBySearchQuery } from '../common/utils/selectable-list.js';
+import {
+    canDuplicateTranslationProject,
+    duplicateTranslationProject,
+    getTranslationProjectTitles,
+} from './translation-utils.js';
+import './mas-translation-duplicate-dialog.js';
 
 const translationSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -24,7 +30,13 @@ class MasTranslation extends LitElement {
         confirmDialogConfig: { type: Object, state: true },
         columns: { type: Set, state: true },
         searchQuery: { type: String, state: true },
+        duplicateDialogOpen: { type: Boolean, state: true },
+        duplicating: { type: Boolean, state: true },
     };
+
+    #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
+    #duplicateProject = null;
 
     constructor() {
         super();
@@ -35,6 +47,8 @@ class MasTranslation extends LitElement {
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
         this.searchQuery = '';
+        this.duplicateDialogOpen = false;
+        this.duplicating = false;
         this.columns = new Set([
             { key: 'title', label: 'Translation Project' },
             { key: 'status', label: 'Status' },
@@ -148,7 +162,14 @@ class MasTranslation extends LitElement {
                                                 <sp-icon-edit slot="icon"></sp-icon-edit>
                                                 Edit
                                             </sp-menu-item>
-                                            <sp-menu-item disabled>
+                                            <sp-menu-item
+                                                ?disabled=${this.duplicating ||
+                                                !canDuplicateTranslationProject(
+                                                    translationProject.get().getFieldValue('status'),
+                                                )}
+                                                @click=${() =>
+                                                    this.#handleDuplicateTranslationProjectFromList(translationProject)}
+                                            >
                                                 <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                                                 Duplicate
                                             </sp-menu-item>
@@ -276,6 +297,36 @@ class MasTranslation extends LitElement {
         });
     }
 
+    #handleDuplicateTranslationProjectFromList(translationProject) {
+        if (this.duplicating) return;
+        const fragment = translationProject.get();
+        this.#duplicateProposedTitle = `${fragment.title}-copy`;
+        this.#duplicateProject = fragment;
+        this.#duplicateExistingTitles = getTranslationProjectTitles(
+            this.#allTranslationProjectsData.map((project) => project.get()),
+        );
+        this.duplicateDialogOpen = true;
+    }
+
+    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+        const sourceProject = this.#duplicateProject;
+        if (!sourceProject) return;
+        this.duplicateDialogOpen = false;
+        this.duplicating = true;
+        try {
+            await duplicateTranslationProject(this.repository, sourceProject, title);
+            await this.repository.loadTranslationProjects();
+            showToast('Project successfully duplicated.', 'positive');
+        } catch (error) {
+            console.error('Error duplicating translation project:', error);
+            if (!error.alreadyToasted) {
+                showToast(error instanceof UserFriendlyError ? error.message : getCreateProjectErrorMessage(error), 'negative');
+            }
+        } finally {
+            this.duplicating = false;
+        }
+    };
+
     #formatProjectStatus(translationProject) {
         const status = translationProject.get().getFieldValue('status');
         switch (status) {
@@ -328,6 +379,20 @@ class MasTranslation extends LitElement {
                     <div>${this.translationProjectsData.length} result(s)</div>
                 </div>
                 ${this.confirmDialog}
+                ${this.duplicating
+                    ? html`<div class="duplicating-overlay">
+                          <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                      </div>`
+                    : nothing}
+                <mas-translation-duplicate-dialog
+                    .open=${this.duplicateDialogOpen}
+                    .proposedTitle=${this.#duplicateProposedTitle}
+                    .existingTitles=${this.#duplicateExistingTitles}
+                    @duplicate-confirmed=${this.#onDuplicateConfirmed}
+                    @duplicate-cancelled=${() => {
+                        this.duplicateDialogOpen = false;
+                    }}
+                ></mas-translation-duplicate-dialog>
                 <div class="translation-content">${this.translationsProjectsContent}</div>
             </div>
         `;

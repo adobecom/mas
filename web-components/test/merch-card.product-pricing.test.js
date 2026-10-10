@@ -85,6 +85,7 @@ describe('ProductPricing.syncHeights across a collection', () => {
                         ? { __h: heights.fine }
                         : null,
             },
+            querySelectorAll: () => [],
             removeAttribute: () => {},
             toggleAttribute: () => {},
             style: {
@@ -524,6 +525,12 @@ describe('ProductPricing price row collapse', () => {
     });
 });
 
+// First link is filled, the rest outlined.
+const links = (labels) =>
+    labels
+        .map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`)
+        .join('');
+
 describe('ProductPricing row alignment', () => {
     before(() => initMasCommerceService());
     after(() => removeMasCommerceService());
@@ -566,9 +573,7 @@ describe('ProductPricing row alignment', () => {
     });
 
     const ctas = (...labels) =>
-        `<p slot="heading-xs">US$10</p><div slot="footer">${labels
-            .map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`)
-            .join('')}</div>`;
+        `<p slot="heading-xs">US$10</p><div slot="footer">${links(labels)}</div>`;
 
     it('stacks every card in a row when one card must', async () => {
         const { wrap, cards } = await renderRow(
@@ -590,6 +595,45 @@ describe('ProductPricing row alignment', () => {
                 c.shadowRoot.querySelector('footer').getBoundingClientRect(),
             );
             expect(fa.height).to.equal(fb.height);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('does not stack a row for a single CTA whose label wraps', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                ctas('Buy', 'Try'),
+                ctas('Ein sehr langes Angebot jetzt sofort kostenlos testen'),
+            ],
+            '261px',
+        );
+        try {
+            const [, long] = cards;
+            expect(
+                long.querySelector('[slot="footer"] a').offsetHeight,
+            ).to.be.above(40);
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('leaves siblings alone when an opted-out card syncs', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                ctas('Jetzt kaufen und sparen', 'Kostenlos testen und mehr'),
+                ctas('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        try {
+            expect(cards[1].hasAttribute('stacked')).to.be.true;
+            cards[0].heightSync = false;
+            cards[0].variantLayout.syncHeights();
+            expect(cards[1].hasAttribute('stacked')).to.be.true;
         } finally {
             wrap.remove();
         }
@@ -649,7 +693,7 @@ describe('ProductPricing CTAs', () => {
         card.innerHTML = `
             <h3 slot="heading-s">Title</h3>
             <div slot="footer">
-                ${labels.map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`).join('')}
+                ${links(labels)}
             </div>`;
         document.body.appendChild(card);
         await card.updateComplete;
@@ -689,28 +733,6 @@ describe('ProductPricing CTAs', () => {
                 card.remove();
             }
         });
-    });
-
-    it('lead with the filled CTA, side by side or stacked', async () => {
-        const side = await render(['Free trial', 'Buy now'], '340px');
-        const stacked = await render([
-            'Kostenlos testen',
-            'Jetzt kaufen und sparen',
-        ]);
-        try {
-            // Authored outlined-first: move the filled link last.
-            [side, stacked].forEach((card) => {
-                const footer = card.querySelector('[slot="footer"]');
-                footer.append(footer.firstElementChild);
-            });
-            const [sideOutlined, sideFilled] = rects(side);
-            const [stackedOutlined, stackedFilled] = rects(stacked);
-            expect(sideFilled.left).to.be.below(sideOutlined.left);
-            expect(stackedFilled.top).to.be.below(stackedOutlined.top);
-        } finally {
-            side.remove();
-            stacked.remove();
-        }
     });
 
     it('wrap a label wider than the whole footer instead of overflowing', async () => {

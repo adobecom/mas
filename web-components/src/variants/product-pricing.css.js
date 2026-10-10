@@ -188,7 +188,6 @@ merch-card[variant="product-pricing"] [slot="footer"] a.outline {
     background: transparent;
     color: #000;
     border: 2px solid #000;
-    order: 1; /* the filled CTA leads */
 }
 
 merch-card[variant="product-pricing"][stacked] [slot="footer"] a {

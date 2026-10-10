@@ -9,9 +9,6 @@ import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
-const CARDS = 'merch-card[variant="product-pricing"]';
-const heightProp = (name) =>
-    `--consonant-merch-card-product-pricing-${name}-height`;
 // Synced per collection row so siblings share baselines.
 const SYNCED_ROWS = [
     {
@@ -39,23 +36,26 @@ const SYNCED_ROWS = [
 const clearSynced = (card) => {
     card.removeAttribute('stacked');
     SYNCED_ROWS.forEach(({ name }) =>
-        card.style.removeProperty(heightProp(name)),
+        card.style.removeProperty(
+            `--consonant-merch-card-product-pricing-${name}-height`,
+        ),
     );
 };
 
-// A row's footer is over 1.5 buttons tall only if some card's CTAs wrapped.
-// That card's whole row stacks so the buttons line up.
-const hasStackedCtas = (card) => {
-    const rowFooter = parseFloat(
-        card.style.getPropertyValue(heightProp('footer')),
-    );
-    const button = card.querySelector('[slot="footer"] a');
+// Two CTAs wrap when the second sits below the first. A lone CTA never does,
+// so a long single label can't stack its row.
+const ctasWrap = (card) => {
+    const [first, second] = [
+        ...card.querySelectorAll('[slot="footer"] a'),
+    ].filter((a) => a.getClientRects().length);
     return Boolean(
-        rowFooter &&
-            button &&
-            rowFooter > button.getBoundingClientRect().height * 1.5,
+        second &&
+            second.getBoundingClientRect().top >=
+                first.getBoundingClientRect().bottom,
     );
 };
+
+const rowOf = (card) => Math.round(card.getBoundingClientRect().top);
 
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -140,14 +140,22 @@ export class ProductPricing extends VariantLayout {
     }
 
     syncHeights() {
+        if (this.card.heightSync === false) return;
         if (this.card.getBoundingClientRect().width <= 2) return;
-        const cards = [...(this.getContainer()?.querySelectorAll(CARDS) ?? [])];
+        const cards = [
+            ...(this.getContainer()?.querySelectorAll(
+                'merch-card[variant="product-pricing"]',
+            ) ?? []),
+        ];
         // Narrow cards are each their own row: drop what a wider layout set.
         cards.forEach(clearSynced);
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
         this.syncRowHeights(SYNCED_ROWS);
-        cards.forEach((card) =>
-            card.toggleAttribute('stacked', hasStackedCtas(card)),
+        // One card whose CTAs wrap stacks every card in its row.
+        const rows = cards.map(rowOf);
+        const stackedRows = new Set(rows.filter((_, i) => ctasWrap(cards[i])));
+        cards.forEach((card, i) =>
+            card.toggleAttribute('stacked', stackedRows.has(rows[i])),
         );
     }
 

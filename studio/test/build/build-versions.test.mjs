@@ -121,6 +121,7 @@ describe('collectModuleGraph', () => {
         assert.ok(graph.includes('/studio/src/placeholders/mas-placeholders.js'));
         assert.ok(graph.some((assetPath) => assetPath.startsWith('/io/www/src/')));
         assert.ok(graph.some((assetPath) => assetPath.startsWith('/web-components/src/')));
+        assert.ok(graph.every((assetPath) => !assetPath.includes('?retry=')));
     });
 
     test('includes io/www modules reached from fragment-client', async () => {

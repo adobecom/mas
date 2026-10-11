@@ -87,7 +87,8 @@ export async function collectModuleGraph(rootDir, entries) {
         );
     }
     return Object.keys(result.metafile.inputs)
-        .map((input) => `/${input}`)
+        .map((input) => `/${input.split('?')[0]}`)
+        .filter((input, index, inputs) => inputs.indexOf(input) === index)
         .sort();
 }
 

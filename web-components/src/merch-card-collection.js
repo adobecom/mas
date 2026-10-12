@@ -744,6 +744,15 @@ export class MerchCardCollection extends LitElement {
             order: 1000;
         }
 
+        :host(.product-pricing) #footer {
+            display: flex;
+            justify-content: center;
+            /* 24px below the last row, less the grid gap and the padding. */
+            margin-top: calc(24px - 8px - 4px);
+            /* Room for the button's focus ring, which an ancestor would clip. */
+            padding-block: 4px;
+        }
+
         sp-theme {
             display: contents;
         }

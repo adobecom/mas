@@ -64,11 +64,26 @@ class MasPlaceholderReferencesModal extends LitElement {
         this.dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
     };
 
+    showTimeoutWarning() {
+        if (this.mode === 'publish' && !this.allowProceed && !this.references.length) {
+            return html`<p class="reference-warning">
+                The reference check took too long to confirm it is safe to proceed with publishing, so this action is blocked.
+            </p>`;
+        }
+
+        return nothing;
+    }
+
+    showNoUsageMsg() {
+        if (this.mode === 'publish' && !this.allowProceed) return nothing;
+
+        return html`<p><strong>No usage detected</strong> for the placeholder <strong>${this.placeholderKey}</strong>.</p>`;
+    }
+
     render() {
         if (!this.open) return nothing;
         const hasReferences = this.references.length > 0;
-        const showProceed =
-            (this.mode === 'publish' && this.allowProceed) || (this.mode === 'remove' && !hasReferences) || false;
+        const showProceed = (this.mode === 'publish' && this.allowProceed) || (this.mode === 'remove' && !hasReferences);
         const headline = this.mode === 'publish' ? 'Publish placeholder' : 'Delete placeholder';
         const subline = hasReferences ? `"${this.placeholderKey}" is referenced` : '';
         return html`
@@ -89,7 +104,7 @@ class MasPlaceholderReferencesModal extends LitElement {
                     ${this.mode === 'remove' && !hasReferences
                         ? html`<p>Are you sure you want to delete the placeholder? This action cannot be undone.</p>`
                         : nothing}
-                    <p><strong>${subline}</strong></p>
+                    ${subline ? html`<p><strong>${subline}</strong></p>` : nothing}
                     ${hasReferences
                         ? html`
                               <p>
@@ -116,15 +131,8 @@ class MasPlaceholderReferencesModal extends LitElement {
                                   )}
                               </ul>
                           `
-                        : html`<p>
-                              <strong>No usage detected</strong> for the placeholder <strong>${this.placeholderKey}</strong>.
-                          </p>`}
-                    ${this.mode === 'publish' && !this.allowProceed
-                        ? html`<p class="reference-warning">
-                              The reference check took too long to confirm it is safe to proceed with publishing, so this action
-                              is blocked.
-                          </p>`
-                        : nothing}
+                        : this.showNoUsageMsg()}
+                    ${this.showTimeoutWarning()}
                 </div>
             </sp-dialog-wrapper>
         `;
@@ -141,7 +149,7 @@ class MasPlaceholderReferencesModal extends LitElement {
                 resolve(result);
             };
 
-            dialog.addEventListener('proceed', (e) => cleanup({ confirmed: true }), { once: true });
+            dialog.addEventListener('proceed', () => cleanup({ confirmed: true }), { once: true });
             dialog.addEventListener('cancel', () => cleanup({ confirmed: false }), { once: true });
 
             dialog.open = true;

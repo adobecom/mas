@@ -87,6 +87,8 @@ export async function findPlaceholderReferences(aem, { key, surface, locale, exc
 }
 
 export async function findPlaceholderReferencesWithTimeout(aem, args) {
+    const processAbortController = new AbortController();
+    args.signal = processAbortController.signal;
     const startedAt = Date.now();
     const refsPromise = findPlaceholderReferences(aem, args);
 
@@ -102,5 +104,8 @@ export async function findPlaceholderReferencesWithTimeout(aem, args) {
     result.durationMs = Date.now() - startedAt;
     result.allowProceed =
         args.mode === 'publish' ? result.durationMs < REFERENCE_CHECK_PROCEED_THRESHOLD_MS : result.references.length === 0;
+    if (result.durationMs > REFERENCE_CHECK_PROCEED_THRESHOLD_MS) {
+        processAbortController.abort();
+    }
     return result;
 }

@@ -123,11 +123,17 @@ class MasPlaceholdersItem extends LitElement {
             this.updatePending(false);
             return;
         }
-        await this.repository.deleteFragment(this.placeholder, {
-            startToast: false,
-            endToast: false,
-        });
-        this.updatePending(false);
+        try {
+            await this.repository.deleteFragment(this.placeholder, {
+                startToast: false,
+                endToast: false,
+            });
+        } catch (error) {
+            console.error('Error deleting placeholder:', error);
+            showToast('Failed to delete placeholder.', 'negative');
+        } finally {
+            this.updatePending(false);
+        }
     }
 
     async onPublish(event) {

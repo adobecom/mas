@@ -36,11 +36,11 @@ class MasRelatedArtifactsDialog extends LitElement {
     }
 
     #rowsFor(key) {
-        return (this.buckets ?? []).find((bucket) => bucket.key === key)?.rows ?? [];
+        return this.buckets.find((bucket) => bucket.key === key)?.rows ?? [];
     }
 
     #rowTitle(row) {
-        return row.title ?? row.representative?.path?.split('/').pop() ?? '';
+        return row.title ?? row.path.split('/').pop();
     }
 
     #sortedRows(key) {
@@ -64,7 +64,7 @@ class MasRelatedArtifactsDialog extends LitElement {
 
     #renderRow(row) {
         const title = this.#rowTitle(row);
-        const link = row.representative?.link;
+        const { link } = row;
         return html`
             <sp-table-row>
                 <sp-table-cell>

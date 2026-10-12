@@ -1,4 +1,4 @@
-import { buildCardsDeepLink, buildProjectDeepLink, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
+import { buildCardsDeepLink, buildProjectDeepLink } from '../utils.js';
 import {
     BULK_PUBLISH_PROJECT_MODEL_PATH,
     CARD_MODEL_PATH,
@@ -6,12 +6,15 @@ import {
     PAGE_NAMES,
     PATH_TOKENS,
     PROMOTION_MODEL_PATH,
-    PROMOTIONS_PATH_PREFIX,
     TRANSLATION_PROJECT_MODEL_PATH,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
-import { findPromotionProjectIdByTag, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
+import {
+    findPromotionProjectIdByTag,
+    getPromotionTagFromFragment,
+    isPromoVariationPath,
+} from '../promotions/promotion-model.js';
 
 /**
  * Verified cap for the GET-by-id `referencedBy` endpoint. `limit=99` is rejected with a 400;
@@ -44,17 +47,6 @@ export function parsePathTokens(path) {
 }
 
 /**
- * Excludes promo-variation parents, mirroring the `promotions/` path-prefix check used by
- * `promotion-model.js`.
- *
- * @param {string} fragmentPath the collection-relative segment produced by `parsePathTokens`
- * @returns {boolean}
- */
-export function isPromoVariationReference(fragmentPath) {
-    return fragmentPath.startsWith(PROMOTIONS_PATH_PREFIX);
-}
-
-/**
  * Excludes a reference that is simply a locale-variation of the fragment currently open — that
  * relationship is already expressed by the "Derived from" row, so it does not belong in this list.
  *
@@ -65,7 +57,7 @@ export function isPromoVariationReference(fragmentPath) {
  * @returns {boolean}
  */
 export function isSelfLocaleVariationReference(refSurface, refFragmentPath, surface, fragmentPath) {
-    return Boolean(refSurface) && Boolean(surface) && refSurface === surface && refFragmentPath === fragmentPath;
+    return Boolean(surface) && refSurface === surface && refFragmentPath === fragmentPath;
 }
 
 /**
@@ -97,9 +89,9 @@ export function isExcludedReference(reference, openFragmentTokens) {
     if (Fragment.isGroupedVariationPath(reference.path)) return true;
     if (isCrossSurfaceReference(reference.path, openFragmentTokens.surface)) return true;
     if (getReferenceType(reference).grouping !== 'locale') return false;
+    if (isPromoVariationPath(reference.path)) return true;
     const tokens = parsePathTokens(reference.path);
     if (!tokens) return false;
-    if (isPromoVariationReference(tokens.fragmentPath)) return true;
     return isSelfLocaleVariationReference(
         tokens.surface,
         tokens.fragmentPath,
@@ -117,23 +109,22 @@ export function isExcludedReference(reference, openFragmentTokens) {
  * @param {Array<Object>} items decorated group items (each carrying a resolved `locale`)
  * @param {string} [openLocale] locale of the fragment currently open in the editor
  * @param {string} [defaultLocale] default locale of the group's surface
- * @returns {Object|null}
+ * @returns {Object}
  */
 export function chooseRepresentative(items, openLocale, defaultLocale) {
-    if (!items?.length) return null;
     const byLocale = (locale) => (locale ? items.find((item) => item.locale === locale) : undefined);
     return byLocale(openLocale) ?? byLocale(defaultLocale) ?? items[0];
 }
 
 /**
- * Groups filtered, non-project references by logical collection across locales. The group key is
- * `surface + '/' + fragmentPath`, so locale copies collapse into one row; a path `PATH_TOKENS`
- * cannot parse keeps its raw path as the key rather than being dropped.
+ * Groups filtered, non-project references by logical collection across locales, one row per
+ * collection. Rows group on `surface + '/' + fragmentPath`, so locale copies collapse into one; a
+ * path `PATH_TOKENS` cannot parse keeps its raw path as the key rather than being dropped.
  *
  * @param {Array<Object>} items filtered `referencedBy` items (projects already removed)
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
  * @param {string} [openLocale] locale of the fragment currently open in the editor
- * @returns {Array<{ groupKey: string, title: string|null, modelPath: string|null, representative: Object|null, locales: string[], localeCount: number }>}
+ * @returns {Array<{ title: string|null, path: string, link: string|null }>}
  */
 export function groupReferencesByCollection(items, openFragmentTokens, openLocale) {
     const groups = new Map();
@@ -145,35 +136,24 @@ export function groupReferencesByCollection(items, openFragmentTokens, openLocal
         if (!groups.has(groupKey)) groups.set(groupKey, []);
         groups.get(groupKey).push(decorated);
     }
-    return Array.from(groups.entries()).map(([groupKey, groupItems]) => {
-        const defaultLocale = getDefaultLocaleCode(groupItems[0]?.surface ?? openFragmentTokens.surface, openLocale);
+    return Array.from(groups.values()).map((groupItems) => {
+        const defaultLocale = getDefaultLocaleCode(groupItems[0].surface, openLocale);
         const representative = chooseRepresentative(groupItems, openLocale, defaultLocale);
-        const locales = [...new Set(groupItems.map((item) => item.locale).filter(Boolean))];
         return {
-            groupKey,
-            title: representative?.title ?? null,
-            modelPath: representative?.model?.path ?? null,
-            representative: representative
-                ? {
-                      id: representative.id,
-                      path: representative.path,
-                      status: representative.status,
-                      link: buildCardsDeepLink(representative, representative.surface),
-                  }
-                : null,
-            locales,
-            localeCount: locales.length,
+            title: representative.title ?? null,
+            path: representative.path,
+            link: buildCardsDeepLink(representative, representative.surface),
         };
     });
 }
 
 /**
  * Lists one row per project reference, deduplicated by path. Projects are never grouped across
- * locales, so rows carry no locale chip.
+ * locales.
  *
  * @param {Array<Object>} items filtered `referencedBy` items of a single flat reference type
  * @param {(item: Object) => string|null} [buildLink] deep link for a row
- * @returns {Array<{ groupKey: string, title: string|null, modelPath: string|null, representative: Object|null, locales: string[], localeCount: number }>}
+ * @returns {Array<{ title: string|null, path: string, link: string|null }>}
  */
 export function groupFlatReferences(items, buildLink) {
     const byPath = new Map();
@@ -181,17 +161,9 @@ export function groupFlatReferences(items, buildLink) {
         if (!byPath.has(item.path)) byPath.set(item.path, item);
     }
     return Array.from(byPath.values()).map((item) => ({
-        groupKey: item.path,
         title: item.title ?? null,
-        modelPath: item.model?.path ?? null,
-        representative: {
-            id: item.id,
-            path: item.path,
-            status: item.status,
-            link: buildLink ? buildLink(item) : null,
-        },
-        locales: [],
-        localeCount: 0,
+        path: item.path,
+        link: buildLink ? buildLink(item) : null,
     }));
 }
 
@@ -232,6 +204,8 @@ export const REFERENCE_TYPES = [
 // and the "other" catch-all are classified for correctness but not surfaced in this UI (per Figma).
 export const ARTIFACT_TYPE_KEYS = ['collections', 'bulkPublishProjects', 'promoProjects', 'localizationProjects'];
 
+const buildProjectLink = (editor, surface) => (item) => buildProjectDeepLink(editor.page, editor.param, item.id, surface);
+
 function getReferenceType(reference) {
     return REFERENCE_TYPES.find((type) => type.match(reference));
 }
@@ -264,13 +238,10 @@ export function bucketReferences(items, openFragmentTokens, openLocale, promotio
     if (promotionProject) itemsByType.get('promoProjects').push(promotionProject);
     return REFERENCE_TYPES.filter((type) => itemsByType.get(type.key).length).map((type) => {
         const typeItems = itemsByType.get(type.key);
-        const buildLink =
-            type.editor &&
-            ((item) => buildProjectDeepLink(type.editor.page, type.editor.param, item.id, openFragmentTokens.surface));
         const rows =
             type.grouping === 'locale'
                 ? groupReferencesByCollection(typeItems, openFragmentTokens, openLocale)
-                : groupFlatReferences(typeItems, buildLink);
+                : groupFlatReferences(typeItems, type.editor && buildProjectLink(type.editor, openFragmentTokens.surface));
         return { key: type.key, label: type.label, rows };
     });
 }
@@ -299,8 +270,8 @@ export async function fetchAllReferencingItems(aem, fragmentId, { abortControlle
             limit: REFERENCED_BY_PAGE_LIMIT,
             abortController,
         });
-        items.push(...(page?.items ?? []));
-        if (!page?.cursor) return items;
+        items.push(...page.items);
+        if (!page.cursor) return items;
         if (page.cursor === cursor) throw new Error('Reference lookup incomplete: repeated cursor');
         cursor = page.cursor;
     }
@@ -343,14 +314,11 @@ async function findPromotionProjectForVariation(fragment, loadPromotionProjects)
  * @returns {Promise<{ buckets: Array<{ key: string, label: string, rows: Array<Object> }>, promotionLookupFailed: boolean }>}
  */
 export async function getReferencingFragments(aem, fragment, { abortController, loadPromotionProjects } = {}) {
-    // The open fragment is normally a card/collection whose path parses cleanly. If it does not
-    // (e.g. a promo-type path that fails PATH_TOKENS), `surface` is null and the cross-surface and
-    // self-locale exclusions become no-ops for this session — references are still listed, just
-    // unfiltered on those two axes. Acceptable because those fragment types are not the subject here.
-    const openFragmentTokens = parsePathTokens(fragment?.path) ?? {
-        surface: extractSurfaceFromPath(fragment?.path),
-        parsedLocale: extractLocaleFromPath(fragment?.path),
-        fragmentPath: fragment?.path,
+    // A path PATH_TOKENS cannot parse has no surface, so the surface-based exclusions are skipped.
+    const openFragmentTokens = parsePathTokens(fragment.path) ?? {
+        surface: null,
+        parsedLocale: null,
+        fragmentPath: fragment.path,
     };
     const items = await fetchAllReferencingItems(aem, fragment.id, { abortController });
     const kept = items.filter((item) => !isExcludedReference(item, openFragmentTokens));
@@ -359,7 +327,7 @@ export async function getReferencingFragments(aem, fragment, { abortController, 
         buckets: bucketReferences(
             kept,
             openFragmentTokens,
-            fragment?.locale ?? openFragmentTokens.parsedLocale,
+            fragment.locale ?? openFragmentTokens.parsedLocale,
             promotion.project,
         ),
         promotionLookupFailed: promotion.failed,

@@ -34,7 +34,7 @@ describe('mas-related-artifacts', () => {
     const collectionIds = (el) =>
         dialogOf(el)
             .buckets.find((bucket) => bucket.key === 'collections')
-            .rows.map((row) => row.representative.id);
+            .rows.map((row) => row.title);
     // Opening and closing the modal each run a Spectrum transition, which can take over a second on
     // a loaded CI runner.
     const modalTransition = { timeout: 5000 };

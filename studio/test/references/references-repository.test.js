@@ -25,7 +25,6 @@ import {
     groupReferencesByCollection,
     isCrossSurfaceReference,
     isExcludedReference,
-    isPromoVariationReference,
     isSelfLocaleVariationReference,
     parsePathTokens,
 } from '../../src/references/references-repository.js';
@@ -66,16 +65,6 @@ describe('references-repository', () => {
     describe('classifyReference', () => {
         it('classifies a reference with an unknown model as other', () => {
             expect(classifyReference({ model: { path: '/conf/mas/settings/dam/cfm/models/unknown' } })).to.equal('other');
-        });
-    });
-
-    describe('isPromoVariationReference (promo predicate)', () => {
-        it('excludes a fragmentPath rooted at the promotions prefix', () => {
-            expect(isPromoVariationReference(`${PROMOTIONS_PATH_PREFIX}black-friday/my-card`)).to.be.true;
-        });
-
-        it('keeps a fragmentPath that is not a promo variation', () => {
-            expect(isPromoVariationReference('plans-two-wide-reflow-all')).to.be.false;
         });
     });
 
@@ -209,10 +198,6 @@ describe('references-repository', () => {
         it('falls back to the first item when neither locale is present', () => {
             expect(chooseRepresentative(items, 'de_DE', 'it_IT').id).to.equal('fr-id');
         });
-
-        it('returns null for an empty group', () => {
-            expect(chooseRepresentative([], 'en_US', 'en_US')).to.equal(null);
-        });
     });
 
     describe('groupReferencesByCollection', () => {
@@ -240,13 +225,15 @@ describe('references-repository', () => {
                 },
             ];
 
-            const [group] = groupReferencesByCollection(items, openFragmentTokens, 'en_US');
+            const groups = groupReferencesByCollection(items, openFragmentTokens, 'en_US');
 
-            expect(group.groupKey).to.equal('acom/plans-two-wide-reflow-all');
-            expect(group.locales.sort()).to.deep.equal(['en_US', 'fr_FR', 'ja_JP']);
-            expect(group.localeCount).to.equal(3);
-            expect(group.representative.id).to.equal('en-id');
-            expect(group.representative.status).to.equal('PUBLISHED');
+            expect(groups).to.deep.equal([
+                {
+                    title: 'Plans',
+                    path: '/content/dam/mas/acom/en_US/plans-two-wide-reflow-all',
+                    link: groups[0].link,
+                },
+            ]);
         });
 
         it('keeps distinct collections in separate rows', () => {
@@ -257,22 +244,23 @@ describe('references-repository', () => {
 
             const groups = groupReferencesByCollection(items, openFragmentTokens, 'en_US');
 
-            expect(groups).to.have.lengthOf(2);
-            expect(groups.map((group) => group.groupKey).sort()).to.deep.equal(['acom/collection-a', 'acom/collection-b']);
+            expect(groups.map((group) => group.path)).to.deep.equal([
+                '/content/dam/mas/acom/en_US/collection-a',
+                '/content/dam/mas/acom/en_US/collection-b',
+            ]);
         });
 
-        it('falls back to the raw path as its own key when PATH_TOKENS does not match', () => {
+        it('keeps a path PATH_TOKENS cannot parse as its own row', () => {
             const items = [{ path: '/content/dam/mas/promotions/campaign-card', id: 'weird-id' }];
 
-            const [group] = groupReferencesByCollection(items, openFragmentTokens, 'en_US');
+            const groups = groupReferencesByCollection(items, openFragmentTokens, 'en_US');
 
-            expect(group.groupKey).to.equal('/content/dam/mas/promotions/campaign-card');
-            expect(group.locales).to.deep.equal([]);
+            expect(groups.map((group) => group.path)).to.deep.equal(['/content/dam/mas/promotions/campaign-card']);
         });
     });
 
     describe('groupFlatReferences', () => {
-        it('lists one row per project, suppressing the locale chip', () => {
+        it('lists one row per project', () => {
             const items = [
                 {
                     path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
@@ -283,12 +271,9 @@ describe('references-repository', () => {
                 },
             ];
 
-            const [project] = groupFlatReferences(items);
+            const projects = groupFlatReferences(items);
 
-            expect(project.groupKey).to.equal(items[0].path);
-            expect(project.locales).to.deep.equal([]);
-            expect(project.localeCount).to.equal(0);
-            expect(project.representative.id).to.equal('project-1');
+            expect(projects).to.deep.equal([{ title: 'Holiday Push', path: items[0].path, link: null }]);
         });
 
         it('deduplicates repeated project parents by path', () => {
@@ -394,7 +379,7 @@ describe('references-repository', () => {
             const [promoBucket] = bucketReferences([], openFragmentTokens, 'en_US', promotionProject);
 
             expect(promoBucket.key).to.equal('promoProjects');
-            expect(promoBucket.rows[0].representative.id).to.equal('promo-id');
+            expect(promoBucket.rows[0].title).to.equal('AugDemo');
         });
 
         [
@@ -406,7 +391,7 @@ describe('references-repository', () => {
                 const [projectBucket] = bucketReferences([reference('proj-1', modelPath)], openFragmentTokens, 'en_US');
 
                 expect(projectBucket.key).to.equal(key);
-                expect(hashParams(projectBucket.rows[0].representative.link)).to.deep.equal({
+                expect(hashParams(projectBucket.rows[0].link)).to.deep.equal({
                     page,
                     [param]: 'proj-1',
                     path: 'acom',
@@ -418,7 +403,7 @@ describe('references-repository', () => {
             const [otherBucket] = bucketReferences([reference('unknown', '/conf/x')], openFragmentTokens, 'en_US');
 
             expect(otherBucket.key).to.equal('other');
-            expect(otherBucket.rows[0].representative.link).to.equal(null);
+            expect(otherBucket.rows[0].link).to.equal(null);
         });
     });
 
@@ -484,14 +469,10 @@ describe('references-repository', () => {
             const collections = bucket(result, 'collections');
             expect(collections.label).to.equal('Collections');
             expect(collections.rows).to.have.lengthOf(1);
-            expect(collections.rows[0].groupKey).to.equal('acom/plans-two-wide-reflow-all');
-            expect(collections.rows[0].representative.id).to.equal('coll-en');
-            expect(collections.rows[0].localeCount).to.equal(2);
-            expect(bucket(result, 'bulkPublishProjects').rows[0].representative.id).to.equal('project-1');
-            expect(bucket(result, 'promoProjects').rows[0].representative.link).to.include('promotionId=promo-proj');
-            expect(bucket(result, 'localizationProjects').rows[0].representative.link).to.include(
-                'translationProjectId=loc-proj',
-            );
+            expect(collections.rows[0].path).to.equal('/content/dam/mas/acom/en_US/plans-two-wide-reflow-all');
+            expect(bucket(result, 'bulkPublishProjects').rows[0].title).to.equal('Holiday Push');
+            expect(bucket(result, 'promoProjects').rows[0].link).to.include('promotionId=promo-proj');
+            expect(bucket(result, 'localizationProjects').rows[0].link).to.include('translationProjectId=loc-proj');
         });
 
         describe('promo variations', () => {
@@ -518,8 +499,7 @@ describe('references-repository', () => {
                 const result = await getReferencingFragments(noReferences(), promoVariation, { loadPromotionProjects });
 
                 const [row] = bucket(result, 'promoProjects').rows;
-                expect(row.representative.id).to.equal('aug-id');
-                expect(row.representative.link).to.include('promotionId=aug-id');
+                expect(row.link).to.include('promotionId=aug-id');
             });
 
             it('does not load promotion projects for a fragment without a promotion tag', async () => {
@@ -584,8 +564,9 @@ describe('references-repository', () => {
             const result = await getReferencingFragments(aem, fragment);
 
             expect(getReferencedByFragmentId.calledTwice).to.be.true;
-            expect(bucket(result, 'collections').rows).to.have.lengthOf(1);
-            expect(bucket(result, 'collections').rows[0].localeCount).to.equal(2);
+            expect(bucket(result, 'collections').rows.map((row) => row.path)).to.deep.equal([
+                '/content/dam/mas/acom/en_US/plans-two-wide-reflow-all',
+            ]);
         });
     });
 
@@ -604,18 +585,16 @@ describe('references-repository', () => {
             const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'some-card' };
             const items = [collItem('en_US', 'en1'), collItem('fr_FR', 'fr1'), collItem('de_DE', 'de1')];
             const [group] = groupReferencesByCollection(items, openFragmentTokens, 'fr_CA');
-            expect(group.localeCount).to.equal(3);
             // fr_CA is absent → falls back to the surface default (fr_FR), NOT items[0] (en_US)
-            expect(group.representative.id).to.equal('fr1');
+            expect(group.path).to.equal('/content/dam/mas/acom/fr_FR/plans-all');
             // link-ready: the headline feature of the GET-by-id endpoint
-            expect(group.representative.link).to.be.a('string');
-            expect(group.representative.link).to.include('fr1');
+            expect(hashParams(group.link).query).to.equal('fr1');
         });
 
         it('links a collection row on its surface, not its DAM path', () => {
             const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'some-card' };
             const [group] = groupReferencesByCollection([collItem('en_US', 'en1')], openFragmentTokens, 'en_US');
-            expect(hashParams(group.representative.link).path).to.equal('acom');
+            expect(hashParams(group.link).path).to.equal('acom');
         });
 
         it('propagates an error from getReferencedByFragmentId (never swallows to empty)', async () => {

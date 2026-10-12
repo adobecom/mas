@@ -1032,7 +1032,9 @@ export function processCTAs(
 
         footer.textContent = '';
         footer.append(
-            ...(merchCard.variant === 'pro' ? filledFirst(ctas) : ctas),
+            ...(['pro', 'product-pricing'].includes(merchCard.variant)
+                ? filledFirst(ctas)
+                : ctas),
         );
         merchCard.append(footer);
 
@@ -1184,7 +1186,12 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
-    if (mapping.style === 'consonant') {
+    // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
+    if (
+        mapping.style === 'consonant' &&
+        !merchCard.hasAttribute('consonant') &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);

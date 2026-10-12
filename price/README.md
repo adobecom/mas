@@ -1,4 +1,4 @@
-# @adobecom/mas-render
+# @adobecom/mas-price
 
 Framework-free, source-ESM price rendering extracted from M@S web-components.
 Runs natively in Node 22+ and browsers, with **no runtime dependencies**, DOM,
@@ -11,7 +11,7 @@ The original browser implementation remains in place until its integration PR.
 ## API
 
 ```js
-import { selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-render';
+import { selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
 
 const options = {
     country: 'GB',
@@ -112,9 +112,9 @@ retains the trial-offer net-price special case.
 From the repository root:
 
 ```sh
-npm run test:ci --workspace=@adobecom/mas-render
-npm run test:node --workspace=@adobecom/mas-render
-npm run test:browser --workspace=@adobecom/mas-render
+npm run test:ci --workspace=@adobecom/mas-price
+npm run test:node --workspace=@adobecom/mas-price
+npm run test:browser --workspace=@adobecom/mas-price
 ```
 
 `test:ci` runs native Node contracts with coverage, then real Chrome tests.

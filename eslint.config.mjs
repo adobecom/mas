@@ -73,8 +73,8 @@ const config = {
     },
 };
 
-const renderConfig = {
-    files: ['render/src/**/*.js'],
+const priceConfig = {
+    files: ['price/src/**/*.js'],
     languageOptions: {
         globals: {
             ...Object.fromEntries(
@@ -103,4 +103,4 @@ const renderConfig = {
     },
 };
 
-export default [ignoresConfig, config, renderConfig];
+export default [ignoresConfig, config, priceConfig];

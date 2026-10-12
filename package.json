@@ -10,11 +10,11 @@
         "io/studio",
         "ost",
         "scripts/content",
-        "render"
+        "price"
     ],
     "scripts": {
-        "lint": "eslint --fix web-components studio render",
-        "format": "prettier web-components studio render --write",
+        "lint": "eslint --fix web-components studio price",
+        "format": "prettier web-components studio price --write",
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces --if-present",
         "studio": "cd studio && npm run proxy & aem up",

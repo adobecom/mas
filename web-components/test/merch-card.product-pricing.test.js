@@ -6,6 +6,7 @@ import {
 } from './utilities.js';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
+import '../src/merch-card-collection.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
 let ProductPricing;
@@ -18,7 +19,12 @@ describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
         const layout = Object.create(ProductPricing.prototype);
         const rect = { width: 0 };
-        const heights = { 'heading-s': 18, 'body-xs': 54, price: 20 };
+        const heights = {
+            'heading-s': 18,
+            'body-xs': 54,
+            'heading-xs': 20,
+            fine: 0,
+        };
         const box = (h) => ({ getBoundingClientRect: () => ({ height: h }) });
         layout.card = {
             getBoundingClientRect: () => rect,
@@ -30,7 +36,7 @@ describe('ProductPricing.resyncOnReflow', () => {
             },
             shadowRoot: {
                 querySelector: (sel) =>
-                    sel.includes('.price') ? box(heights.price) : null,
+                    sel.includes('.fine') ? box(heights.fine) : null,
             },
         };
         const sync = sinon.stub(layout, 'syncHeights');
@@ -45,7 +51,7 @@ describe('ProductPricing.resyncOnReflow', () => {
         layout.resyncOnReflow();
         expect(sync.calledOnce, 'deduped on unchanged geometry').to.be.true;
 
-        heights.price = 40; // legal clone grows the price row
+        heights.fine = 18; // legal clone grows the legal row
         layout.resyncOnReflow();
         expect(sync.calledTwice, 're-syncs when a synced row reflows').to.be
             .true;
@@ -75,8 +81,8 @@ describe('ProductPricing.syncHeights across a collection', () => {
             },
             shadowRoot: {
                 querySelector: (sel) =>
-                    sel.includes('.price') && heights.price != null
-                        ? { __h: heights.price }
+                    sel.includes('.fine') && heights.fine != null
+                        ? { __h: heights.fine }
                         : null,
             },
             style: {
@@ -134,6 +140,27 @@ describe('ProductPricing.syncHeights across a collection', () => {
                 c.__styles[prop],
                 'a card on its own row keeps its own height',
             ).to.equal('18px');
+        } finally {
+            gcs.restore();
+            mm.restore();
+        }
+    });
+
+    it('syncs the price and the legal line as separate rows', () => {
+        const price = '--consonant-merch-card-product-pricing-price-height';
+        const fine = '--consonant-merch-card-product-pricing-fine-height';
+        const withLegal = makeCard({ heights: { 'heading-xs': 20, fine: 18 } });
+        const noLegal = makeCard({ heights: { 'heading-xs': 20, fine: 0 } });
+        const layout = layoutFor([withLegal, noLegal]);
+        const [gcs, mm] = stubMeasurement();
+        try {
+            layout.syncHeights();
+            [withLegal, noLegal].forEach((card) => {
+                expect(card.__styles[price]).to.equal('20px');
+                expect(card.__styles[fine], 'legal row shared').to.equal(
+                    '18px',
+                );
+            });
         } finally {
             gcs.restore();
             mm.restore();
@@ -276,7 +303,7 @@ describe('ProductPricing.adjustLegal', () => {
         return { layout, price, clone, legalHost };
     };
 
-    it('strips fine print off the bold price and clones a legal line', async () => {
+    it('keeps per-unit on the bold price, moves tax and plan type to a cloned legal line', async () => {
         const { layout, price, clone, legalHost } = makeFixture({
             options: {
                 displayPerUnit: true,
@@ -287,7 +314,10 @@ describe('ProductPricing.adjustLegal', () => {
         await layout.adjustLegal();
         expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
             .true;
-        expect(price.dataset.displayPerUnit).to.equal('false');
+        expect(price.dataset.displayPerUnit, 'stays on price').to.be.undefined;
+        expect(clone.dataset.displayPerUnit, 'off the legal line').to.equal(
+            'false',
+        );
         expect(price.dataset.displayTax).to.equal('false');
         expect(price.dataset.displayPlanType).to.equal('false');
         expect(legalHost.appendChild.calledWith(clone)).to.be.true;
@@ -488,6 +518,116 @@ describe('ProductPricing price row collapse', () => {
         } finally {
             priced.remove();
             bare.remove();
+        }
+    });
+});
+
+describe('ProductPricing row alignment', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    const renderRow = async (cardsHtml) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText =
+            'display:grid;grid-template-columns:repeat(2,261px);width:600px;';
+        wrap.innerHTML = cardsHtml
+            .map(
+                (inner) => `<merch-card variant="product-pricing">
+                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+            )
+            .join('');
+        document.body.appendChild(wrap);
+        const cards = [...wrap.children];
+        await Promise.all(cards.map((c) => c.updateComplete));
+        cards.forEach((c) => c.variantLayout.syncHeights());
+        await Promise.all(cards.map((c) => c.updateComplete));
+        return { wrap, cards };
+    };
+
+    it('bottom-aligns a plain price with a stacked strikethrough price', async () => {
+        const { wrap, cards } = await renderRow([
+            `<p slot="heading-xs"><span class="price-strikethrough">US$20</span><span class="price-alternative">US$10</span></p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+            `<p slot="heading-xs"><span class="price-alternative">US$10</span></p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+        ]);
+        try {
+            const [stacked, plain] = cards.map(
+                (c) =>
+                    c
+                        .querySelector('.price-alternative')
+                        .getBoundingClientRect().bottom,
+            );
+            expect(plain).to.equal(stacked);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('keeps price and fine print aligned when one CTA wraps', async () => {
+        const { wrap, cards } = await renderRow([
+            `<p slot="heading-xs">US$10</p>
+             <div slot="footer"><a href="#">Buy</a></div>`,
+            `<p slot="heading-xs">US$10</p>
+             <div slot="footer"><a href="#">Jetzt kaufen und sparen</a><a href="#" class="outline">Kostenlos testen und mehr</a></div>`,
+        ]);
+        try {
+            const [a, b] = cards.map((c) =>
+                c.querySelector('[slot="heading-xs"]').getBoundingClientRect(),
+            );
+            expect(b.bottom).to.equal(a.bottom);
+            const [fa, fb] = cards.map((c) =>
+                c.shadowRoot.querySelector('footer').getBoundingClientRect(),
+            );
+            expect(fb.height, 'footers share a height').to.equal(fa.height);
+        } finally {
+            wrap.remove();
+        }
+    });
+});
+
+describe('ProductPricing CTAs', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    it('wrap a long label instead of overflowing the pill', async () => {
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'product-pricing');
+        card.style.width = '261px';
+        card.innerHTML = `
+            <h3 slot="heading-s">Title</h3>
+            <div slot="footer">
+                <a href="#">Kostenlos testen</a>
+                <a href="#" class="outline">Jetzt kaufen und sparen</a>
+            </div>`;
+        document.body.appendChild(card);
+        await card.updateComplete;
+        try {
+            const [short, long] = card.querySelectorAll('[slot="footer"] a');
+            expect(short.scrollWidth, 'fits').to.be.at.most(short.clientWidth);
+            expect(long.scrollWidth, 'no overflow').to.be.at.most(
+                long.clientWidth,
+            );
+            expect(long.offsetHeight, 'grew to a second line').to.be.above(40);
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('product-pricing collection footer', () => {
+    it('leaves room around "Show more" for its focus ring', async () => {
+        const collection = document.createElement('merch-card-collection');
+        collection.classList.add('product-pricing');
+        document.body.appendChild(collection);
+        await collection.updateComplete;
+        try {
+            const footer = collection.shadowRoot.querySelector('#footer');
+            const style = getComputedStyle(footer);
+            expect(style.paddingTop).to.equal('4px');
+            expect(style.paddingBottom).to.equal('4px');
+        } finally {
+            collection.remove();
         }
     });
 });

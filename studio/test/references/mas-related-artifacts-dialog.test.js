@@ -1,6 +1,7 @@
-import { fixture, html, expect } from '@open-wc/testing';
+import { fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
 // Registers the real sp-* components: against unregistered stubs the underlay and scroll contracts
 // below silently pass no matter what the dialog binds.
+import { sendKeys } from '@web/test-runner-commands';
 import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts-dialog.js';
 
@@ -28,10 +29,20 @@ const openDialog = async (bucketData = buckets()) => {
     el.buckets = bucketData;
     el.open = true;
     await el.updateComplete;
+    await waitUntil(() => el.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
     return el;
 };
 
+const closeFixture = async () => {
+    const overlay = document.querySelector('mas-related-artifacts-dialog')?.shadowRoot.querySelector('sp-overlay');
+    if (!overlay?.open) return;
+    const closed = oneEvent(overlay, 'sp-closed');
+    overlay.open = false;
+    await closed;
+};
+
 describe('mas-related-artifacts-dialog', () => {
+    afterEach(closeFixture);
     it('closes when the underlay is clicked', async () => {
         const el = await openDialog();
         let closed = false;
@@ -42,6 +53,7 @@ describe('mas-related-artifacts-dialog', () => {
         const underlay = el.shadowRoot.querySelector('sp-underlay');
         underlay.dispatchEvent(new PointerEvent('pointerdown'));
         underlay.dispatchEvent(new PointerEvent('pointerup'));
+        await waitUntil(() => closed);
         expect(closed).to.equal(true);
     });
 
@@ -103,6 +115,54 @@ describe('mas-related-artifacts-dialog', () => {
             closed = true;
         });
         el.shadowRoot.querySelector('.dialog-close').click();
+        await waitUntil(() => closed);
         expect(closed).to.equal(true);
+    });
+});
+
+describe('related artifacts modal keyboard lifecycle', () => {
+    afterEach(closeFixture);
+    let dialog;
+    let opener;
+
+    beforeEach(async () => {
+        const host = fixtureSync(html`
+            <div>
+                <button>View artifacts</button>
+                <mas-related-artifacts-dialog></mas-related-artifacts-dialog>
+            </div>
+        `);
+        opener = host.querySelector('button');
+        dialog = host.querySelector('mas-related-artifacts-dialog');
+        dialog.buckets = buckets();
+        dialog.addEventListener('close', (event) => {
+            event.currentTarget.open = false;
+        });
+        opener.addEventListener('click', () => {
+            dialog.open = true;
+        });
+        opener.focus();
+        opener.click();
+        await dialog.updateComplete;
+        await waitUntil(() => dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+    });
+
+    it('moves focus from the opener into the dialog', async () => {
+        await waitUntil(() => document.activeElement === dialog, 'Opening must move focus into the modal');
+        expect(dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within')).to.equal(true);
+    });
+
+    it('keeps Tab inside the dialog after the last link', async () => {
+        const links = dialog.shadowRoot.querySelectorAll('.artifact-link');
+        links[links.length - 1].focus();
+        await sendKeys({ press: 'Tab' });
+        expect(dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within')).to.equal(true);
+    });
+
+    it('dismisses on Escape and restores focus to the opener', async () => {
+        dialog.shadowRoot.querySelector('.dialog-close').focus();
+        await sendKeys({ press: 'Escape' });
+        await waitUntil(() => !dialog.open, 'Escape must close the modal');
+        await waitUntil(() => document.activeElement === opener, 'Closing must restore focus to the opener');
     });
 });

@@ -1,6 +1,5 @@
-import { html, nothing } from 'lit';
-import { MasDialogShell } from './mas-dialog-shell.js';
-import { dialogShellStyles } from './mas-dialog-shell.css.js';
+import { LitElement, html, nothing } from 'lit';
+import { dialogTableStyles } from './dialog-table.css.js';
 import { styles } from './mas-external-usage-dialog.css.js';
 import { showToast } from '../utils.js';
 /**
@@ -14,22 +13,24 @@ import { showToast } from '../utils.js';
  * Request counts cover the action's rolling 7-day retention window, not all time, and reflect the
  * pages that survived its per-hour cap — so they rank pages against each other rather than being a
  * guaranteed-complete traffic total.
+ *
+ * The modal sp-overlay owns focus entry, Tab containment, Escape and focus restoration; the dialog
+ * wrapper owns the frame, headline, close button and underlay.
  */
-class MasExternalUsageDialog extends MasDialogShell {
-    static styles = [dialogShellStyles, styles];
+class MasExternalUsageDialog extends LitElement {
+    static styles = [dialogTableStyles, styles];
 
     static properties = {
-        ...MasDialogShell.properties,
+        open: { type: Boolean },
         usage: { type: Object },
-        loading: { type: Boolean },
         sortColumn: { state: true },
         sortDirection: { state: true },
     };
 
     constructor() {
         super();
+        this.open = false;
         this.usage = null;
-        this.loading = false;
         this.sortColumn = 'requests';
         this.sortDirection = 'desc';
     }
@@ -91,21 +92,26 @@ class MasExternalUsageDialog extends MasDialogShell {
         return [...this.#pages].sort(comparator);
     }
 
-    #toggleSort(column) {
-        if (this.sortColumn === column) {
-            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    #handleSorted(event) {
+        const { sortKey, sortDirection } = event.detail;
+        if (sortKey === this.sortColumn) {
+            this.sortDirection = sortDirection;
             return;
         }
         // A column starts in the direction it is normally read in: busiest first for counts,
         // A→Z for text.
-        this.sortColumn = column;
-        this.sortDirection = column === 'requests' ? 'desc' : 'asc';
+        this.sortColumn = sortKey;
+        this.sortDirection = sortKey === 'requests' ? 'desc' : 'asc';
     }
 
     /** Only the active column carries a direction, otherwise every header shows a sort arrow. */
     #sortDirectionFor(column) {
-        if (this.sortColumn !== column) return nothing;
-        return this.sortDirection === 'desc' ? 'descending' : 'ascending';
+        return this.sortColumn === column ? this.sortDirection : nothing;
+    }
+
+    #handleOverlayClosed(event) {
+        if (event.target !== event.currentTarget) return;
+        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
     }
 
     async #copyUrl(url) {
@@ -148,12 +154,6 @@ class MasExternalUsageDialog extends MasDialogShell {
     }
 
     #renderBody() {
-        if (this.loading) {
-            return html`<div class="usage-placeholder">
-                <sp-progress-circle indeterminate size="s" label="Loading page usage"></sp-progress-circle>
-            </div>`;
-        }
-
         if (!this.usage?.available) {
             return html`<div class="usage-placeholder">Usage data unavailable</div>`;
         }
@@ -169,20 +169,16 @@ class MasExternalUsageDialog extends MasDialogShell {
 
         const commonHost = this.#commonHost;
         return html`
-            <sp-table emphasized class="pages-table dialog-table">
+            <sp-table emphasized class="pages-table dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
-                    <sp-table-head-cell
-                        sortable
-                        sort-direction=${this.#sortDirectionFor('page')}
-                        @click=${() => this.#toggleSort('page')}
-                    >
+                    <sp-table-head-cell sortable sort-key="page" sort-direction=${this.#sortDirectionFor('page')}>
                         ${commonHost ? `Page on ${commonHost}` : 'Page'}
                     </sp-table-head-cell>
                     <sp-table-head-cell
                         sortable
+                        sort-key="requests"
                         class="requests-column"
                         sort-direction=${this.#sortDirectionFor('requests')}
-                        @click=${() => this.#toggleSort('requests')}
                     >
                         Requests (7d)
                     </sp-table-head-cell>
@@ -197,15 +193,20 @@ class MasExternalUsageDialog extends MasDialogShell {
 
     render() {
         if (!this.open) return nothing;
-        return this.renderShell(
-            'Related pages',
-            html`
-                <div class="table-wrapper">${this.#renderBody()}</div>
-                ${this.usage?.updatedAt
-                    ? html`<div class="usage-freshness">Updated ${new Date(this.usage.updatedAt).toLocaleString()}</div>`
-                    : nothing}
-            `,
-        );
+        return html`
+            <sp-overlay type="modal" open @sp-closed=${this.#handleOverlayClosed}>
+                <sp-dialog-wrapper headline="Related pages" dismissable underlay no-divider size="l">
+                    <div class="dialog-content">
+                        <div class="table-wrapper">${this.#renderBody()}</div>
+                        ${this.usage?.updatedAt
+                            ? html`<div class="usage-freshness">
+                                  Updated ${new Date(this.usage.updatedAt).toLocaleString()}
+                              </div>`
+                            : nothing}
+                    </div>
+                </sp-dialog-wrapper>
+            </sp-overlay>
+        `;
     }
 }
 

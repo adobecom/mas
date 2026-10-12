@@ -21,11 +21,18 @@ const usage = {
     ],
 };
 
+// Opening and closing the modal each run a Spectrum transition, which can take over a second on a
+// loaded CI runner.
+const modalTransition = { timeout: 5000 };
+const wrapperOf = (element) => element.shadowRoot.querySelector('sp-dialog-wrapper');
+const closeButtonOf = (element) =>
+    wrapperOf(element).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
+
 async function openDialog(data = usage) {
     const element = await fixture(html`<mas-external-usage-dialog .usage=${data}></mas-external-usage-dialog>`);
     element.open = true;
     await element.updateComplete;
-    await waitUntil(() => element.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+    await waitUntil(() => wrapperOf(element)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
     return element;
 }
 
@@ -59,7 +66,7 @@ describe('mas-external-usage-dialog', () => {
         const element = await fixture(
             html`<mas-external-usage-dialog .open=${false} .usage=${usage}></mas-external-usage-dialog>`,
         );
-        expect(element.shadowRoot.querySelector('sp-dialog')).to.equal(null);
+        expect(wrapperOf(element)).to.equal(null);
     });
 
     it('scrolls the row list instead of clipping it when the pages outrun the dialog', async () => {
@@ -185,7 +192,7 @@ describe('mas-external-usage-dialog', () => {
 
     it('titles itself Related pages', async () => {
         const element = await openDialog();
-        expect(element.shadowRoot.querySelector('.dialog-title').textContent.trim()).to.equal('Related pages');
+        expect(wrapperOf(element).headline).to.equal('Related pages');
     });
 
     it('shows how many requests each page made', async () => {
@@ -237,11 +244,21 @@ describe('mas-external-usage-dialog', () => {
     it('marks only the active column as sorted, so one arrow shows at a time', async () => {
         const element = await openDialog();
         expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal(null);
-        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('descending');
+        expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal('desc');
         headerCell(element, 0).click();
         await element.updateComplete;
-        expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal('ascending');
+        expect(headerCell(element, 0).getAttribute('sort-direction')).to.equal('asc');
         expect(headerCell(element, 1).getAttribute('sort-direction')).to.equal(null);
+    });
+
+    it('announces the active sort to screen readers', async () => {
+        const element = await openDialog();
+        await headerCell(element, 1).updateComplete;
+        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('descending');
+        headerCell(element, 1).click();
+        await element.updateComplete;
+        await headerCell(element, 1).updateComplete;
+        expect(headerCell(element, 1).getAttribute('aria-sort')).to.equal('ascending');
     });
 
     it('still omits the aggregate traffic panel, which stayed out of scope', async () => {
@@ -259,13 +276,6 @@ describe('mas-external-usage-dialog', () => {
         expect(element.shadowRoot.querySelector('.usage-placeholder').textContent).to.contain('unavailable');
     });
 
-    it('shows a spinner while loading', async () => {
-        const element = await fixture(
-            html`<mas-external-usage-dialog .open=${true} .loading=${true}></mas-external-usage-dialog>`,
-        );
-        expect(element.shadowRoot.querySelector('sp-progress-circle')).to.not.equal(null);
-    });
-
     it('shows how fresh the data is', async () => {
         const element = await openDialog();
         expect(element.shadowRoot.querySelector('.usage-freshness').textContent).to.contain('Updated');
@@ -277,8 +287,8 @@ describe('mas-external-usage-dialog', () => {
         element.addEventListener('close', () => {
             closed = true;
         });
-        element.shadowRoot.querySelector('.dialog-close').click();
-        await waitUntil(() => closed);
+        closeButtonOf(element).click();
+        await waitUntil(() => closed, 'Close button did not emit close', modalTransition);
         expect(closed).to.equal(true);
     });
 
@@ -289,10 +299,10 @@ describe('mas-external-usage-dialog', () => {
             closed = true;
         });
         // sp-underlay turns a real pointer press into its own close event; it never emits click.
-        const underlay = element.shadowRoot.querySelector('sp-underlay');
+        const underlay = wrapperOf(element).shadowRoot.querySelector('sp-underlay');
         underlay.dispatchEvent(new PointerEvent('pointerdown'));
         underlay.dispatchEvent(new PointerEvent('pointerup'));
-        await waitUntil(() => closed);
+        await waitUntil(() => closed, 'Underlay did not emit close', modalTransition);
         expect(closed).to.equal(true);
     });
 
@@ -311,12 +321,16 @@ describe('mas-external-usage-dialog', () => {
         opener.focus();
         dialog.open = true;
         await dialog.updateComplete;
-        await waitUntil(() => dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+        await waitUntil(
+            () => wrapperOf(dialog)?.matches(':focus-within'),
+            'Focus never moved into the dialog',
+            modalTransition,
+        );
 
         await sendKeys({ press: 'Escape' });
 
-        await waitUntil(() => !dialog.open);
-        await waitUntil(() => document.activeElement === opener);
+        await waitUntil(() => !dialog.open, 'Escape did not close the dialog', modalTransition);
+        await waitUntil(() => document.activeElement === opener, 'Focus did not return to the opener', modalTransition);
     });
 
     it('resets the sort order each time it reopens', async () => {

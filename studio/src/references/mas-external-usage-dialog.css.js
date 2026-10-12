@@ -1,6 +1,6 @@
 import { css } from 'lit';
 
-// Layered over dialogShellStyles, which supplies the overlay, frame, header and scroll plumbing.
+// Layered over dialogTableStyles, which supplies the flex column and scroll plumbing.
 export const styles = css`
     .dialog-content {
         width: min(720px, 90vw);
@@ -10,17 +10,8 @@ export const styles = css`
         max-height: 70vh;
     }
 
-    .dialog-header {
-        gap: 16px;
-        margin-bottom: 16px;
-    }
-
-    .dialog-title {
-        font-size: 24px;
-    }
-
     .table-wrapper {
-        border: 1px solid var(--spectrum-global-color-gray-300);
+        border: 1px solid var(--spectrum-gray-300);
         border-radius: 12px;
         overflow: hidden;
     }
@@ -49,7 +40,7 @@ export const styles = css`
        instead of shifting with each row's glyphs. */
     .page-requests {
         font-variant-numeric: tabular-nums;
-        color: var(--spectrum-global-color-gray-900);
+        color: var(--spectrum-gray-900);
     }
 
     sp-table-head-cell:last-child,
@@ -65,7 +56,7 @@ export const styles = css`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: var(--spectrum-global-color-gray-900);
+        color: var(--spectrum-gray-900);
         font-weight: 700;
         text-decoration: none;
     }
@@ -91,7 +82,7 @@ export const styles = css`
         flex: 0 0 auto;
         padding: 2px 6px;
         border-radius: 4px;
-        background: var(--spectrum-global-color-gray-200);
+        background: var(--spectrum-gray-200);
         color: var(--spectrum-neutral-subdued-content-color-default);
         font-size: 11px;
     }

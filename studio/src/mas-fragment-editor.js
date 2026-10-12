@@ -15,8 +15,7 @@ import {
 } from './constants.js';
 import router from './router.js';
 import './references/mas-related-artifacts.js';
-import './references/mas-external-usage-dialog.js';
-import { fetchFragmentUsage, groupPagesByRegion, canFetchFragmentUsage } from './references/usage-repository.js';
+import './references/mas-related-pages.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
@@ -605,9 +604,6 @@ export default class MasFragmentEditor extends LitElement {
         promotionGeoOptions: { type: Array, state: true },
         disabledPromoGeoOptions: { type: Array, state: true },
         fragmentSaveCount: { type: Number, state: true },
-        externalUsage: { type: Object, state: true },
-        isLoadingExternalUsage: { type: Boolean, state: true },
-        usageDialogOpen: { type: Boolean, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -624,10 +620,6 @@ export default class MasFragmentEditor extends LitElement {
         Store.filters,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
-    #usageLoadToken = 0;
-    #usageLoadedForId = null;
-    #usageLoadingForId = null;
-    #usageAbortController = null;
 
     get localeDefaultFragment() {
         return this.editorContextStore?.localeDefaultFragment ?? null;
@@ -671,9 +663,6 @@ export default class MasFragmentEditor extends LitElement {
         this.promotionGeoOptions = [];
         this.disabledPromoGeoOptions = [];
         this.fragmentSaveCount = 0;
-        this.externalUsage = null;
-        this.isLoadingExternalUsage = false;
-        this.usageDialogOpen = false;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -705,43 +694,6 @@ export default class MasFragmentEditor extends LitElement {
         super.disconnectedCallback();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
-        this.#usageAbortController?.abort();
-    }
-
-    // Loads CDN traffic for the open fragment from the fragment-usage IO action. Same monotonic
-    // load-token guard as the references loader, so an A -> B -> A fragment switch cannot render
-    // A's usage under B. Failure is silent by design: usage is supplementary, and the action is not
-    // deployed in every environment.
-    #maybeLoadExternalUsage() {
-        const fragment = this.fragment;
-        if (!fragment?.id) return;
-        // Skip before touching reactive state: toggling the loading flag costs two editor renders,
-        // and with no IO backend configured the lookup cannot return anything either way.
-        if (!canFetchFragmentUsage()) return;
-        if (fragment.id === this.#usageLoadedForId || fragment.id === this.#usageLoadingForId) return;
-        void this.#loadExternalUsageFor(fragment);
-    }
-
-    async #loadExternalUsageFor(fragment) {
-        const token = ++this.#usageLoadToken;
-        this.#usageLoadingForId = fragment.id;
-        this.#usageAbortController?.abort();
-        const abortController = new AbortController();
-        this.#usageAbortController = abortController;
-        this.externalUsage = null;
-        this.isLoadingExternalUsage = true;
-        this.usageDialogOpen = false;
-        try {
-            const usage = await fetchFragmentUsage(fragment.id, { signal: abortController.signal });
-            if (token !== this.#usageLoadToken) return;
-            this.externalUsage = usage;
-            this.#usageLoadedForId = fragment.id;
-        } finally {
-            if (token === this.#usageLoadToken) {
-                this.isLoadingExternalUsage = false;
-                this.#usageLoadingForId = null;
-            }
-        }
     }
 
     willUpdate(changedProperties) {
@@ -758,7 +710,6 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         void this.#loadPromotionGeoOptions().then(() => this.#loadDisabledPromoGeoOptions());
-        void this.#maybeLoadExternalUsage();
     }
 
     async #loadDisabledPromoGeoOptions() {
@@ -2265,68 +2216,10 @@ export default class MasFragmentEditor extends LitElement {
         ></mas-related-artifacts>`;
     }
 
-    // "Related pages" summary box, directly below the internal artifacts box: one count line per
-    // region the fragment is served in, with "Global" covering pages whose traffic is spread across
-    // regions. "View pages" opens the full page list with the countries each page was served to.
-    // Data is CDN referer traffic, so it reflects what is actually being served rather than what
-    // merely links to the fragment inside Studio.
-    get externalUsageSection() {
+    // Pages that serve the open fragment, from CDN traffic.
+    get relatedPagesSection() {
         if (!this.fragment) return nothing;
-        const title = html`<div class="references-title">Related pages:</div>`;
-        if (this.isLoadingExternalUsage) {
-            return html`<div class="references-container">
-                ${title}
-                <div class="referencing-message">Loading…</div>
-            </div>`;
-        }
-        // Null means the fragment has not been looked up yet; hide rather than flash an empty box.
-        if (!this.externalUsage) return nothing;
-        if (!this.externalUsage.available) {
-            return html`<div class="references-container references-error">
-                ${title}
-                <div class="referencing-message">Usage data unavailable</div>
-            </div>`;
-        }
-        // No attributable pages is a real answer, but a permanently empty box is noise in the editor.
-        const regions = groupPagesByRegion(this.externalUsage.pages);
-        if (!regions.length) return nothing;
-        return html`
-            <div class="references-container">
-                <div class="artifacts-header">
-                    ${title}
-                    <sp-action-button class="artifacts-view-link" quiet size="s" @click=${() => this.#openUsageDialog()}>
-                        View pages
-                        <sp-icon-open-in size="s"></sp-icon-open-in>
-                    </sp-action-button>
-                </div>
-                <div class="artifacts-counts">
-                    ${regions.map(
-                        ({ region, pages }) => html`<div class="artifacts-count-line">${pages.length} ${region}</div>`,
-                    )}
-                </div>
-            </div>
-        `;
-    }
-
-    // Rendered at the editor's top level (not inside the sticky preview column) so the modal overlay
-    // is not trapped in that stacking context.
-    get externalUsageDialog() {
-        return html`
-            <mas-external-usage-dialog
-                .open=${this.usageDialogOpen}
-                .usage=${this.externalUsage}
-                .loading=${this.isLoadingExternalUsage}
-                @close=${() => this.#closeUsageDialog()}
-            ></mas-external-usage-dialog>
-        `;
-    }
-
-    #openUsageDialog() {
-        this.usageDialogOpen = true;
-    }
-
-    #closeUsageDialog() {
-        this.usageDialogOpen = false;
+        return html`<mas-related-pages .fragment=${this.fragment}></mas-related-pages>`;
     }
 
     get fragmentEditor() {
@@ -2448,7 +2341,7 @@ export default class MasFragmentEditor extends LitElement {
                         ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection} ${this.relatedArtifactsSection} ${this.externalUsageSection}
+                ${this.relatedVariationsSection} ${this.relatedArtifactsSection} ${this.relatedPagesSection}
             </div>
         `;
     }
@@ -2576,7 +2469,7 @@ export default class MasFragmentEditor extends LitElement {
                     ${this.previewColumn}
                 </div>
                 ${this.deleteConfirmationDialog} ${this.discardConfirmationDialog} ${this.cloneConfirmationDialog}
-                ${this.copyVariationDialog} ${this.externalUsageDialog}
+                ${this.copyVariationDialog}
             </div>
         `;
     }

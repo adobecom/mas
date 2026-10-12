@@ -1,16 +1,9 @@
-import {
-    buildBulkPublishProjectDeepLink,
-    buildCardsDeepLink,
-    buildPromoProjectDeepLink,
-    buildTranslationProjectDeepLink,
-    extractLocaleFromPath,
-    extractSurfaceFromPath,
-} from '../utils.js';
+import { buildCardsDeepLink, buildProjectDeepLink, extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import {
     BULK_PUBLISH_PROJECT_MODEL_PATH,
-    BULK_PUBLISH_PROJECTS_FOLDER,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    PAGE_NAMES,
     PATH_TOKENS,
     PROMOTION_MODEL_PATH,
     PROMOTIONS_PATH_PREFIX,
@@ -40,29 +33,14 @@ const MAS_CONTENT_ROOT = '/content/dam/mas';
  * `fragmentPath` capture that `extractSurfaceFromPath` / `extractLocaleFromPath` do not expose — so
  * this is one regex run rather than three for the same result.
  *
- * `PATH_TOKENS` is unanchored and mis-parses a handful of real tenant folders — most notably
- * `.../bulk-publish-projects/<name>`, whose folder segment gets captured as `parsedLocale`. That
- * bogus locale is suppressed here (set to `null`) rather than left to leak into the UI as a chip.
- *
  * @param {string} path
- * @returns {{ surface: string, parsedLocale: string|null, fragmentPath: string }|null}
+ * @returns {{ surface: string, parsedLocale: string, fragmentPath: string }|null}
  */
 export function parsePathTokens(path) {
     const match = PATH_TOKENS.exec(path);
     if (!match?.groups) return null;
-    const rawLocale = match.groups.parsedLocale;
-    const parsedLocale = rawLocale === BULK_PUBLISH_PROJECTS_FOLDER ? null : rawLocale;
-    return { surface: match.groups.surface, parsedLocale, fragmentPath: match.groups.fragmentPath };
-}
-
-/**
- * Excludes `pzn` grouped-variation parents (variations of a card, not collections).
- *
- * @param {string} path
- * @returns {boolean}
- */
-export function isGroupedVariationReference(path) {
-    return Fragment.isGroupedVariationPath(path);
+    const { surface, parsedLocale, fragmentPath } = match.groups;
+    return { surface, parsedLocale, fragmentPath };
 }
 
 /**
@@ -104,9 +82,11 @@ export function isCrossSurfaceReference(path, surface) {
 }
 
 /**
- * Runs all four exclusion predicates against a single `referencedBy` item, relative to the
- * fragment currently open in the editor. Promotion projects skip them: they are stored globally
- * under `/content/dam/mas/promotions`, so every surface-based check would drop them.
+ * Runs the exclusion predicates against a single `referencedBy` item, relative to the fragment
+ * currently open in the editor. Promotion projects skip them: they are stored globally under
+ * `/content/dam/mas/promotions`, so every surface-based check would drop them. The promo-variation
+ * and self-locale checks only apply to cards and collections: a project's folder is not a locale,
+ * and a project named like the open card is not one of its variations.
  *
  * @param {Object} reference raw `referencedBy` item
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
@@ -114,8 +94,9 @@ export function isCrossSurfaceReference(path, surface) {
  */
 export function isExcludedReference(reference, openFragmentTokens) {
     if (reference.model?.path === PROMOTION_MODEL_PATH) return false;
-    if (isGroupedVariationReference(reference.path)) return true;
+    if (Fragment.isGroupedVariationPath(reference.path)) return true;
     if (isCrossSurfaceReference(reference.path, openFragmentTokens.surface)) return true;
+    if (getReferenceType(reference).grouping !== 'locale') return false;
     const tokens = parsePathTokens(reference.path);
     if (!tokens) return false;
     if (isPromoVariationReference(tokens.fragmentPath)) return true;
@@ -177,7 +158,7 @@ export function groupReferencesByCollection(items, openFragmentTokens, openLocal
                       id: representative.id,
                       path: representative.path,
                       status: representative.status,
-                      link: buildCardsDeepLink(representative, representative.path),
+                      link: buildCardsDeepLink(representative, representative.surface),
                   }
                 : null,
             locales,
@@ -218,6 +199,7 @@ export function groupFlatReferences(items, buildLink) {
  * Reference type buckets, in display order. `match` is evaluated top-to-bottom against a raw
  * `referencedBy` item; the last entry (`other`) is the catch-all. `grouping: 'locale'` collapses
  * locale copies into one row (collections/cards); `'flat'` lists one row per fragment (projects).
+ * `editor` is the Studio page and hash param a project row deep-links to.
  */
 export const REFERENCE_TYPES = [
     { key: 'collections', label: 'Collections', grouping: 'locale', match: (r) => r.model?.path === COLLECTION_MODEL_PATH },
@@ -227,37 +209,70 @@ export const REFERENCE_TYPES = [
         label: 'Promo Project',
         grouping: 'flat',
         match: (r) => r.model?.path === PROMOTION_MODEL_PATH,
-        buildLink: (item) => buildPromoProjectDeepLink(item.id),
+        editor: { page: PAGE_NAMES.PROMOTIONS_EDITOR, param: 'promotionId' },
     },
     {
         key: 'bulkPublishProjects',
         label: 'Bulk Publish Project',
         grouping: 'flat',
         match: (r) => r.model?.path === BULK_PUBLISH_PROJECT_MODEL_PATH,
-        buildLink: (item) => buildBulkPublishProjectDeepLink(item.id),
+        editor: { page: PAGE_NAMES.BULK_PUBLISH_EDITOR, param: 'bulkPublishProjectId' },
     },
     {
         key: 'localizationProjects',
         label: 'Translation Project',
         grouping: 'flat',
         match: (r) => r.model?.path === TRANSLATION_PROJECT_MODEL_PATH,
-        buildLink: (item) => buildTranslationProjectDeepLink(item.id),
+        editor: { page: PAGE_NAMES.TRANSLATION_EDITOR, param: 'translationProjectId' },
     },
-    { key: 'other', label: 'Other', grouping: 'flat', match: () => true, buildLink: () => null },
+    { key: 'other', label: 'Other', grouping: 'flat', match: () => true },
 ];
 
 // The artifact types shown in the "Related studio artifacts" box + modal, in display order. Cards
 // and the "other" catch-all are classified for correctness but not surfaced in this UI (per Figma).
 export const ARTIFACT_TYPE_KEYS = ['collections', 'bulkPublishProjects', 'promoProjects', 'localizationProjects'];
 
+function getReferenceType(reference) {
+    return REFERENCE_TYPES.find((type) => type.match(reference));
+}
+
 /**
  * Classifies a raw `referencedBy` item into one of REFERENCE_TYPES by its model, returning the
- * first matching type key (falls back to `other`).
+ * first matching type key (the `other` catch-all always matches).
  * @param {Object} reference
  * @returns {string}
  */
 export function classifyReference(reference) {
-    return (REFERENCE_TYPES.find((type) => type.match(reference)) ?? REFERENCE_TYPES[REFERENCE_TYPES.length - 1]).key;
+    return getReferenceType(reference).key;
+}
+
+/**
+ * Buckets filtered references by type, in display order, skipping empty types. The promotion
+ * project a promo variation belongs to is resolved separately and joins the promo bucket.
+ *
+ * @param {Array<Object>} items filtered `referencedBy` items
+ * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
+ * @param {string} [openLocale] locale of the fragment currently open in the editor
+ * @param {Object|null} [promotionProject]
+ * @returns {Array<{ key: string, label: string, rows: Array<Object> }>}
+ */
+export function bucketReferences(items, openFragmentTokens, openLocale, promotionProject = null) {
+    const itemsByType = new Map(REFERENCE_TYPES.map((type) => [type.key, []]));
+    for (const item of items) {
+        itemsByType.get(classifyReference(item)).push(item);
+    }
+    if (promotionProject) itemsByType.get('promoProjects').push(promotionProject);
+    return REFERENCE_TYPES.filter((type) => itemsByType.get(type.key).length).map((type) => {
+        const typeItems = itemsByType.get(type.key);
+        const buildLink =
+            type.editor &&
+            ((item) => buildProjectDeepLink(type.editor.page, type.editor.param, item.id, openFragmentTokens.surface));
+        const rows =
+            type.grouping === 'locale'
+                ? groupReferencesByCollection(typeItems, openFragmentTokens, openLocale)
+                : groupFlatReferences(typeItems, buildLink);
+        return { key: type.key, label: type.label, rows };
+    });
 }
 
 /**
@@ -295,18 +310,24 @@ export async function fetchAllReferencingItems(aem, fragmentId, { abortControlle
 /**
  * Finds the promotion project a promo variation belongs to. `referencedBy` never returns it: the
  * project's `fragments` field holds the default card, not the variation, so the variation's
- * `mas:promotion/` tag is the only link.
+ * `mas:promotion/` tag is the only link. A failed lookup is reported rather than thrown, so it
+ * does not discard the references already fetched.
  *
  * @param {Object} fragment the fragment currently open in the editor
  * @param {() => Promise<Array<Object>>} [loadPromotionProjects]
- * @returns {Promise<Object|null>}
+ * @returns {Promise<{ project: Object|null, failed: boolean }>}
  */
 async function findPromotionProjectForVariation(fragment, loadPromotionProjects) {
     const promotionTagId = getPromotionTagFromFragment(fragment);
-    if (!promotionTagId || !loadPromotionProjects) return null;
-    const projects = await loadPromotionProjects();
-    const projectId = findPromotionProjectIdByTag(promotionTagId, projects);
-    return projects.find((project) => project.id === projectId) ?? null;
+    if (!promotionTagId || !loadPromotionProjects) return { project: null, failed: false };
+    try {
+        const projects = await loadPromotionProjects();
+        const projectId = findPromotionProjectIdByTag(promotionTagId, projects);
+        return { project: projects.find((project) => project.id === projectId) ?? null, failed: false };
+    } catch (error) {
+        console.error('Failed to resolve the promotion project:', error);
+        return { project: null, failed: true };
+    }
 }
 
 /**
@@ -319,7 +340,7 @@ async function findPromotionProjectForVariation(fragment, loadPromotionProjects)
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} fragment the fragment currently open in the editor
  * @param {{ abortController?: AbortController, loadPromotionProjects?: () => Promise<Array<Object>> }} [options]
- * @returns {Promise<Array<{ key: string, label: string, rows: Array<Object> }>>} ordered, non-empty type buckets
+ * @returns {Promise<{ buckets: Array<{ key: string, label: string, rows: Array<Object> }>, promotionLookupFailed: boolean }>}
  */
 export async function getReferencingFragments(aem, fragment, { abortController, loadPromotionProjects } = {}) {
     // The open fragment is normally a card/collection whose path parses cleanly. If it does not
@@ -331,27 +352,16 @@ export async function getReferencingFragments(aem, fragment, { abortController, 
         parsedLocale: extractLocaleFromPath(fragment?.path),
         fragmentPath: fragment?.path,
     };
-    const openLocale = fragment?.locale ?? openFragmentTokens.parsedLocale;
-
     const items = await fetchAllReferencingItems(aem, fragment.id, { abortController });
     const kept = items.filter((item) => !isExcludedReference(item, openFragmentTokens));
-
-    const itemsByType = new Map(REFERENCE_TYPES.map((type) => [type.key, []]));
-    for (const item of kept) {
-        itemsByType.get(classifyReference(item)).push(item);
-    }
-    const promotionProject = await findPromotionProjectForVariation(fragment, loadPromotionProjects);
-    if (promotionProject) itemsByType.get('promoProjects').push(promotionProject);
-
-    const buckets = [];
-    for (const type of REFERENCE_TYPES) {
-        const typeItems = itemsByType.get(type.key);
-        if (!typeItems.length) continue;
-        const rows =
-            type.grouping === 'locale'
-                ? groupReferencesByCollection(typeItems, openFragmentTokens, openLocale)
-                : groupFlatReferences(typeItems, type.buildLink);
-        if (rows.length) buckets.push({ key: type.key, label: type.label, rows });
-    }
-    return buckets;
+    const promotion = await findPromotionProjectForVariation(fragment, loadPromotionProjects);
+    return {
+        buckets: bucketReferences(
+            kept,
+            openFragmentTokens,
+            fragment?.locale ?? openFragmentTokens.parsedLocale,
+            promotion.project,
+        ),
+        promotionLookupFailed: promotion.failed,
+    };
 }

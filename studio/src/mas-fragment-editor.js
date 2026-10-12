@@ -606,6 +606,7 @@ export default class MasFragmentEditor extends LitElement {
         referencingFragments: { type: Object, state: true },
         isLoadingReferencingFragments: { type: Boolean, state: true },
         referencingFragmentsError: { type: Boolean, state: true },
+        promotionLookupFailed: { type: Boolean, state: true },
         artifactsDialogOpen: { type: Boolean, state: true },
     };
 
@@ -672,6 +673,7 @@ export default class MasFragmentEditor extends LitElement {
         this.referencingFragments = null;
         this.isLoadingReferencingFragments = false;
         this.referencingFragmentsError = false;
+        this.promotionLookupFailed = false;
         this.artifactsDialogOpen = false;
 
         this.updateFragment = this.updateFragment.bind(this);
@@ -727,6 +729,7 @@ export default class MasFragmentEditor extends LitElement {
         this.#referencingAbortController = abortController;
         this.referencingFragments = null;
         this.referencingFragmentsError = false;
+        this.promotionLookupFailed = false;
         this.isLoadingReferencingFragments = true;
         try {
             const result = await getReferencingFragments(this.repository.aem, fragment, {
@@ -735,7 +738,8 @@ export default class MasFragmentEditor extends LitElement {
                     promotionsRepository.getPromotionProjectsForProbe(() => this.repository.loadPromotions()),
             });
             if (token !== this.#referencingLoadToken) return;
-            this.referencingFragments = result;
+            this.referencingFragments = result.buckets;
+            this.promotionLookupFailed = result.promotionLookupFailed;
         } catch (error) {
             if (token !== this.#referencingLoadToken) return;
             if (error?.name === 'AbortError') return;
@@ -2291,21 +2295,31 @@ export default class MasFragmentEditor extends LitElement {
         }
         const bucketsByKey = new Map(this.referencingBuckets.map((bucket) => [bucket.key, bucket]));
         const displayBuckets = ARTIFACT_TYPE_KEYS.map((key) => bucketsByKey.get(key)).filter((bucket) => bucket?.rows.length);
-        if (!displayBuckets.length) return nothing;
+        if (!displayBuckets.length && !this.promotionLookupFailed) return nothing;
         return html`
             <div class="references-container">
                 <div class="artifacts-header">
                     ${title}
-                    <sp-action-button class="artifacts-view-link" quiet size="s" @click=${() => this.#openArtifactsDialog()}>
-                        View artifacts
-                        <sp-icon-open-in size="s"></sp-icon-open-in>
-                    </sp-action-button>
+                    ${displayBuckets.length
+                        ? html`<sp-action-button
+                              class="artifacts-view-link"
+                              quiet
+                              size="s"
+                              @click=${() => this.#openArtifactsDialog()}
+                          >
+                              View artifacts
+                              <sp-icon-open-in size="s"></sp-icon-open-in>
+                          </sp-action-button>`
+                        : nothing}
                 </div>
                 <div class="artifacts-counts">
                     ${displayBuckets.map(
                         (bucket) => html`<div class="artifacts-count-line">${bucket.rows.length} ${bucket.label}</div>`,
                     )}
                 </div>
+                ${this.promotionLookupFailed
+                    ? html`<div class="referencing-message">Promo project lookup unavailable</div>`
+                    : nothing}
             </div>
         `;
     }

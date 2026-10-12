@@ -2135,6 +2135,22 @@ describe('MasFragmentEditor', () => {
             expect(renderSection(editor).textContent.trim()).to.equal('');
         });
 
+        it('notes a failed promotion-project lookup alongside the counts', () => {
+            const editor = withCard();
+            editor.referencingFragments = [{ key: 'collections', label: 'Collections', rows: [collRow()] }];
+            editor.promotionLookupFailed = true;
+            const host = renderSection(editor);
+            expect(host.textContent).to.include('1 Collections');
+            expect(host.textContent).to.include('Promo project lookup unavailable');
+        });
+
+        it('shows the box for a failed promotion-project lookup even with no other references', () => {
+            const editor = withCard();
+            editor.referencingFragments = [];
+            editor.promotionLookupFailed = true;
+            expect(renderSection(editor).textContent).to.include('Promo project lookup unavailable');
+        });
+
         it('shows one count line per type plus a View artifacts link, with no inline rows', () => {
             const editor = withCard();
             editor.referencingFragments = [

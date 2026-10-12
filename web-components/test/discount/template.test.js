@@ -111,6 +111,18 @@ describe('discount template', () => {
             price: 27,
             priceWithoutDiscount: 30,
             formatString: '#0',
+            promotion: {
+                id: 'abc',
+                promotionCode: 'TEST-PROMO',
+                start: '2026-01-16T08:01:00.000Z',
+                end: '2226-01-16T08:01:00.000Z',
+                displaySummary: {
+                    amount: 50,
+                    duration: 'P3M',
+                    minProductQuantity: 1,
+                    outcomeType: 'PERCENTAGE_DISCOUNT',
+                },
+            },
         });
         expect(htmlToText(templateHtml)).to.equal('3');
     });

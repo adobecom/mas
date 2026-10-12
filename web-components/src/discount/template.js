@@ -60,11 +60,20 @@ const createDiscountTemplate = () => (context, value) => {
 
 const createDiscountAmountTemplate = () => (context, value, attributes) => {
     const { price, priceWithoutDiscount } = value;
-    const discount = getDiscount(price, priceWithoutDiscount);
-    const discountAmount = discount ? priceWithoutDiscount - price : 0;
+    const hasDiscount =
+        isPositiveFiniteNumber(price) &&
+        isPositiveFiniteNumber(priceWithoutDiscount) &&
+        priceWithoutDiscount > price;
+    const discountAmount = hasDiscount ? priceWithoutDiscount - price : 0;
     return createPriceTemplate()(
         context,
-        { ...value, price: discountAmount },
+        {
+            ...value,
+            price: discountAmount,
+            priceWithoutDiscount: undefined,
+            priceInfo: undefined,
+            promotion: undefined,
+        },
         attributes,
     );
 };

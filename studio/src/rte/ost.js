@@ -84,7 +84,6 @@ const OST_TYPE_MAPPING = {
     priceAnnual: 'annual',
     priceOptical: 'optical',
     discount: 'discount',
-    discountAmount: 'discount-amount',
     checkoutUrl: null,
 };
 

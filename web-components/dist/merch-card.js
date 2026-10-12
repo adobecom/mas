@@ -3319,9 +3319,8 @@ merch-card[variant^="plans"] [slot="heading-m"] p {
 }
 
 merch-card[variant^='plans'] [slot="heading-m"] span[data-template="legal"] span[is="inline-price"][data-template] .price {
-   font-size: var(--consonant-merch-card-heading-xxxs-font-size);
-   line-height: var(--consonant-merch-card-body-s-line-height);
-   font-weight: 400;
+   font-size: inherit;
+   line-height: inherit;
 }
 
 merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {

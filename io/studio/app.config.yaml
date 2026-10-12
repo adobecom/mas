@@ -13,6 +13,26 @@ application:
                     translationJobPayloadTtl: $TRANSLATION_JOB_PAYLOAD_TTL
                     translationProjectSummaryTtl: $TRANSLATION_PROJECT_SUMMARY_TTL
                 actions:
+                    ai-chat:
+                        function: src/ai-chat/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AI_FOUNDRY_API_KEY: $AI_FOUNDRY_API_KEY
+                            AI_FOUNDRY_BASE_URL: $AI_FOUNDRY_BASE_URL
+                            AI_FOUNDRY_MODEL_ID: $AI_FOUNDRY_MODEL_ID
+                            AI_FOUNDRY_FAST_MODEL_ID: $AI_FOUNDRY_FAST_MODEL_ID
+                            AI_FOUNDRY_FALLBACK_MODEL_ID: $AI_FOUNDRY_FALLBACK_MODEL_ID
+                            AI_FOUNDRY_THINKING: $AI_FOUNDRY_THINKING
+                            RAG_ENABLED: $RAG_ENABLED
+                            USE_LLM_CLASSIFIER: $USE_LLM_CLASSIFIER
+                            NATIVE_ENVELOPE: $NATIVE_ENVELOPE
+                            TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
+                            NATIVE_GUIDED: $NATIVE_GUIDED
+                            DEAD_END_RETRY: $DEAD_END_RETRY
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     ost-products-write:
                         function: src/ost-products/write.js
                         web: 'yes'

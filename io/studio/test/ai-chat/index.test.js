@@ -1,0 +1,562 @@
+const { expect } = require('chai');
+const sinon = require('sinon');
+
+const PARSE_ERROR_MESSAGE = 'I had trouble formatting that response. Please try asking again.';
+
+let main;
+let FoundryClient;
+let Ims;
+
+function makeParams(overrides = {}) {
+    return {
+        __ow_method: 'post',
+        __ow_headers: { authorization: 'Bearer test-token' },
+        message: 'hello there',
+        conversationHistory: [],
+        RAG_ENABLED: 'false',
+        // The Foundry client is constructed before any request path runs (even the
+        // no-LLM bypasses), so main() needs a key or the constructor throws a 500.
+        // The send is stubbed in every test, so the value is never used — this only
+        // keeps the suite hermetic on a runner that has no .env.
+        AI_FOUNDRY_API_KEY: 'test-key-not-real',
+        ...overrides,
+    };
+}
+
+function textResponse(message) {
+    return { success: true, message, usage: { inputTokens: 10, outputTokens: 5 } };
+}
+
+function toolResponse(input) {
+    return {
+        success: true,
+        message: null,
+        toolUse: { name: 'emit_envelope', input },
+        usage: { inputTokens: 10, outputTokens: 5 },
+    };
+}
+
+describe('ai-chat/index main handler', () => {
+    let sendStub;
+
+    before(async () => {
+        ({ main } = await import('../../src/ai-chat/index.js'));
+        ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
+        ({ Ims } = await import('@adobe/aio-lib-ims'));
+    });
+
+    beforeEach(() => {
+        sinon.stub(Ims.prototype, 'validateTokenAllowList').resolves({ valid: true });
+        sendStub = sinon.stub(FoundryClient.prototype, 'sendWithContext');
+        sinon.stub(console, 'log');
+        sinon.stub(console, 'error');
+        sinon.stub(console, 'warn');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    describe('request gating', () => {
+        it('answers OPTIONS preflight with 200 and no body work', async () => {
+            const result = await main({ __ow_method: 'options' });
+            expect(result.statusCode).to.equal(200);
+            expect(sendStub.called).to.equal(false);
+        });
+
+        it('rejects an invalid bearer token with 401', async () => {
+            Ims.prototype.validateTokenAllowList.resolves({ valid: false });
+            const result = await main(makeParams());
+            expect(result.statusCode).to.equal(401);
+            expect(result.body.error).to.include('Unauthorized');
+        });
+
+        it('rejects a missing message with 400', async () => {
+            const result = await main(makeParams({ message: undefined }));
+            expect(result.statusCode).to.equal(400);
+            expect(result.body.error).to.include('Message is required');
+        });
+    });
+
+    describe('deterministic bypasses (no LLM call)', () => {
+        it('routes a bare fragment UUID straight to get_card', async () => {
+            const uuid = 'F2F0A049-4B13-4592-9A1C-A0E6C962E21B';
+            const result = await main(makeParams({ message: uuid }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('mcp_operation');
+            expect(result.body.mcpTool).to.equal('get_card');
+            expect(result.body.mcpParams.id).to.equal(uuid.toLowerCase());
+            expect(result.body.envelope.intent).to.equal('get_card');
+            expect(result.body.envelope.confidence).to.equal('high');
+            expect(sendStub.called).to.equal(false);
+        });
+
+        it('routes a quoted title search straight to search_cards with titleSearch', async () => {
+            const result = await main(makeParams({ message: 'show cards titled "Photoshop Pro plan"' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal('search_cards');
+            expect(result.body.mcpParams.query).to.equal('Photoshop Pro plan');
+            expect(result.body.mcpParams.titleSearch).to.equal(true);
+            expect(result.body.envelope.intent).to.equal('search_cards');
+            expect(sendStub.called).to.equal(false);
+        });
+
+        it('routes a bare 32-hex offer id to get_offer_by_id inside a release turn', async () => {
+            const offerId = '0123456789abcdef0123456789ABCDEF';
+            const result = await main(
+                makeParams({
+                    message: offerId,
+                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal('get_offer_by_id');
+            expect(result.body.mcpParams.offerId).to.equal(offerId);
+            expect(result.body.envelope.intent).to.equal('get_offer_by_id');
+            expect(sendStub.called).to.equal(false);
+        });
+
+        it('routes a bare arrangement slug to get_product_by_arrangement_code inside a release turn', async () => {
+            const result = await main(
+                makeParams({
+                    message: 'phsp_direct_individual',
+                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal('get_product_by_arrangement_code');
+            expect(result.body.mcpParams.arrangementCode).to.equal('phsp_direct_individual');
+            expect(sendStub.called).to.equal(false);
+        });
+
+        it('falls through to the model when the bypass envelope is illegal for the active flow', async () => {
+            sendStub.resolves(textResponse('Let me help with the current flow instead.'));
+            const result = await main(
+                makeParams({
+                    message: 'f2f0a049-4b13-4592-9a1c-a0e6c962e21b',
+                    context: { flow: { active: 'release_create', step: 'confirming' } },
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal(undefined);
+            expect(sendStub.called).to.equal(true);
+            const bypassLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"bypass-validation-failed"'));
+            expect(bypassLine).to.be.a('string');
+        });
+
+        it('routes a bare mixed-case OSI to resolve_offer_selector inside a release turn', async () => {
+            const osi = 'AbC123xYz456QrS7uVw8';
+            const result = await main(
+                makeParams({
+                    message: osi,
+                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.mcpTool).to.equal('resolve_offer_selector');
+            expect(result.body.mcpParams.offerSelectorId).to.equal(osi);
+            expect(sendStub.called).to.equal(false);
+        });
+    });
+
+    describe('Adobe AI Foundry failure', () => {
+        it('returns 502 with a generic error when the model call fails', async () => {
+            sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(502);
+            expect(result.body.error).to.equal('Failed to get AI response');
+        });
+
+        it('carries the requestId and errorType in the 502 body', async () => {
+            sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
+            const result = await main(makeParams({ message: 'tell me about yourself', requestId: 'req-1' }));
+            expect(result.body.requestId).to.equal('req-1');
+            expect(result.body.errorType).to.equal('ThrottlingException');
+        });
+
+        it('falls back to the activation id when no requestId param is given', async () => {
+            process.env.__OW_ACTIVATION_ID = 'activation-42';
+            try {
+                sendStub.resolves({ success: false, errorType: 'ThrottlingException', error: 'throttled' });
+                const result = await main(makeParams({ message: 'tell me about yourself' }));
+                expect(result.body.requestId).to.equal('activation-42');
+            } finally {
+                delete process.env.__OW_ACTIVATION_ID;
+            }
+        });
+    });
+
+    describe('native envelope path', () => {
+        it('returns a validated envelope response for a meta intent', async () => {
+            sendStub.onCall(0).resolves(
+                toolResponse({
+                    intent: 'SHOW_HELP',
+                    slots: {},
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: 'Here is what I can do.',
+                }),
+            );
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.envelope.intent).to.equal('SHOW_HELP');
+            expect(sendStub.callCount).to.equal(1);
+        });
+
+        it('retries once with a corrective prompt when the envelope is invalid', async () => {
+            sendStub.onCall(0).resolves(toolResponse({ intent: 'bogus_intent', slots: {}, confidence: 'high' }));
+            sendStub.onCall(1).resolves(
+                toolResponse({
+                    intent: 'SHOW_HELP',
+                    slots: {},
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: 'Here is what I can do.',
+                }),
+            );
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.envelope.intent).to.equal('SHOW_HELP');
+            expect(sendStub.callCount).to.equal(2);
+            const correctiveMessage = sendStub.secondCall.args[1];
+            expect(correctiveMessage).to.include('previous envelope was invalid');
+        });
+
+        it('coerces to ASK_USER when the corrective retry also fails validation', async () => {
+            sendStub.onCall(0).resolves(toolResponse({ intent: 'bogus_intent', slots: {}, confidence: 'high' }));
+            sendStub.onCall(1).resolves(toolResponse({ intent: 'still_bogus', slots: {}, confidence: 'high' }));
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.envelope.intent).to.equal('ASK_USER');
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('captures the rejected envelope payload when both validations fail', async () => {
+            sendStub.onCall(0).resolves(toolResponse({ intent: 'bogus_intent', slots: {}, confidence: 'high' }));
+            sendStub.onCall(1).resolves(toolResponse({ intent: 'still_bogus', slots: {}, confidence: 'high' }));
+            await main(makeParams({ message: 'tell me about yourself', requestId: 'req-env' }));
+            const parseFailureLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"parse-failure"'));
+            expect(parseFailureLine).to.be.a('string');
+            const logged = JSON.parse(parseFailureLine);
+            expect(logged.req).to.equal('req-env');
+            expect(logged.raw).to.include('still_bogus');
+        });
+
+        it('hands a guided-flow intent off to the guided card-creation prompt', async () => {
+            sendStub.onCall(0).resolves(
+                toolResponse({
+                    intent: 'release_create.start',
+                    slots: {},
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: null,
+                }),
+            );
+            sendStub.onCall(1).resolves(textResponse('Which product is this release for? You can provide a name.'));
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.include('Which product is this release for');
+            expect(sendStub.callCount).to.equal(2);
+            const handoffSystemPrompt = sendStub.secondCall.args[2];
+            expect(handoffSystemPrompt).to.include('GUIDED CARD CREATION FLOW');
+        });
+    });
+
+    describe('text path', () => {
+        it('returns plain prose as a message response', async () => {
+            sendStub.resolves(textResponse('Happy to help with your cards.'));
+            const result = await main(makeParams({ message: 'thanks for the info', NATIVE_ENVELOPE: 'off' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.equal('Happy to help with your cards.');
+            expect(sendStub.callCount).to.equal(1);
+        });
+
+        it('retries a card config once through the corrective prompt when validation fails', async () => {
+            const invalidCard = '```json\n{"variant": "plans", "title": ""}\n```';
+            sendStub.resolves(textResponse(invalidCard));
+            const result = await main(makeParams({ message: 'make me a plans card', intentHint: 'card' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('card');
+            expect(result.body.validation.valid).to.equal(false);
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('recovers a guided_step whose strings embed unescaped quotes and arrays', async () => {
+            const guidedStep = [
+                '```json',
+                '{"type": "guided_step", "flowId": "release", "message": "I found multiple products matching "creative cloud pro". Select one:", "productCards": [{"label": "Creative Cloud Pro", "value": "PA-1636", "segments": ["INDIVIDUAL", "TEAM"]}]}',
+                '```',
+            ].join('\n');
+            sendStub.resolves(textResponse(guidedStep));
+            const result = await main(
+                makeParams({
+                    message: 'creative cloud pro',
+                    intentHint: 'release',
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
+                }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.productCards).to.have.length(1);
+            expect(result.body.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
+        });
+
+        it('recovers a broken guided_step through one corrective parse retry', async () => {
+            sendStub.onCall(0).resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "guided_step", "flowId": "release", "message": "Select one:", "productCards": [{"label": "Creative Cloud Pro", "value": "PA-1636"}]}\n```',
+                    ),
+                );
+            const result = await main(makeParams({ message: 'please continue from before' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.productCards).to.have.length(1);
+            expect(sendStub.callCount).to.equal(2);
+            const correctiveMessage = sendStub.secondCall.args[1];
+            expect(correctiveMessage).to.include('could not be parsed');
+        });
+
+        it('executes an mcp_operation produced by the corrective parse retry', async () => {
+            sendStub.onCall(0).resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "mcp_operation", "mcpTool": "list_products", "mcpParams": {"searchText": "creative cloud pro"}, "message": "Looking up creative cloud pro in the catalog..."}\n```',
+                    ),
+                );
+            const result = await main(makeParams({ message: 'please continue from before' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('mcp_operation');
+            expect(result.body.mcpTool).to.equal('list_products');
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('retries once and still surfaces the parse-error message when the retry also fails', async () => {
+            sendStub.resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            const result = await main(makeParams({ message: 'please continue from before' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.equal(PARSE_ERROR_MESSAGE);
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('does not retry parse failures when TEXT_PARSE_RETRY is off', async () => {
+            sendStub.resolves(textResponse('```json\n{"type": guided_step broken here}\n```'));
+            const result = await main(makeParams({ message: 'please continue from before', TEXT_PARSE_RETRY: 'off' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.message).to.equal(PARSE_ERROR_MESSAGE);
+            expect(sendStub.callCount).to.equal(1);
+        });
+
+        it('captures the raw model output and requestId when the parse retry also fails', async () => {
+            const brokenText = '```json\n{"type": guided_step broken here}\n```';
+            sendStub.resolves(textResponse(brokenText));
+            const result = await main(makeParams({ message: 'please continue from before', requestId: 'req-9' }));
+            expect(result.body.requestId).to.equal('req-9');
+            const parseFailureLine = console.log.args
+                .map((args) => args[0])
+                .filter((arg) => typeof arg === 'string')
+                .find((arg) => arg.includes('"phase":"parse-failure"'));
+            expect(parseFailureLine).to.be.a('string');
+            const logged = JSON.parse(parseFailureLine);
+            expect(logged.req).to.equal('req-9');
+            expect(logged.raw).to.include('guided_step broken here');
+            expect(logged.retried).to.equal(true);
+            expect(logged.recovered).to.equal(false);
+        });
+    });
+
+    describe('dead-end operation recovery', () => {
+        for (const nativeGuided of ['on', 'off']) {
+            it(`returns the retry operation through the ${nativeGuided === 'on' ? 'native' : 'text'} guided path`, async () => {
+                const step = { type: 'guided_step', flowId: 'release', message: 'Let me look that up.' };
+                const operation = {
+                    type: 'mcp_operation',
+                    flowId: 'release',
+                    mcpTool: 'list_products',
+                    mcpParams: { searchText: 'creative cloud pro' },
+                    message: 'Looking up the product.',
+                };
+                if (nativeGuided === 'on') {
+                    sendStub.onCall(0).resolves({ ...textResponse(''), toolUse: { name: 'emit_guided_step', input: step } });
+                    sendStub
+                        .onCall(1)
+                        .resolves({ ...textResponse(''), toolUse: { name: 'emit_mcp_operation', input: operation } });
+                } else {
+                    sendStub.onCall(0).resolves(textResponse(JSON.stringify(step)));
+                    sendStub.onCall(1).resolves(textResponse(JSON.stringify(operation)));
+                }
+
+                const result = await main(
+                    makeParams({
+                        message: 'create cards for creative cloud pro',
+                        intentHint: 'release',
+                        NATIVE_GUIDED: nativeGuided,
+                    }),
+                );
+
+                expect(result.body).to.include({ type: 'mcp_operation', flowId: 'release', mcpTool: 'list_products' });
+                expect(result.body.mcpParams).to.deep.equal({ searchText: 'creative cloud pro' });
+                expect(sendStub.callCount).to.equal(2);
+            });
+        }
+
+        it('validates an operation returned by the dead-end retry', async () => {
+            sendStub.onCall(0).resolves(
+                textResponse(
+                    JSON.stringify({
+                        type: 'guided_step',
+                        flowId: 'release',
+                        message: 'Let me look that up.',
+                    }),
+                ),
+            );
+            sendStub.onCall(1).resolves(
+                textResponse(
+                    JSON.stringify({
+                        type: 'mcp_operation',
+                        flowId: 'release',
+                        mcpTool: 'unsupported_tool',
+                        mcpParams: {},
+                        message: 'Running.',
+                    }),
+                ),
+            );
+
+            const result = await main(makeParams({ message: 'create cards', intentHint: 'release', NATIVE_GUIDED: 'off' }));
+
+            expect(result.body.type).to.equal('error');
+            expect(result.body.message).to.include('Invalid MCP tool');
+        });
+    });
+
+    describe('native guided tools (release flow)', () => {
+        function guidedToolResponse(name, input) {
+            return {
+                success: true,
+                message: '',
+                toolUse: { name, input },
+                usage: { inputTokens: 10, outputTokens: 5 },
+            };
+        }
+
+        it('answers a release turn through a guided tool and renders it as a guided_step', async () => {
+            sendStub.resolves(
+                guidedToolResponse('emit_guided_step', {
+                    flowId: 'release',
+                    message: 'I found multiple products matching "creative cloud pro". Select one:',
+                    productCards: [
+                        { label: 'Creative Cloud Pro', value: 'ccpro_direct_indirect', segments: ['INDIVIDUAL', 'TEAM'] },
+                    ],
+                }),
+            );
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.productCards[0].segments).to.deep.equal(['INDIVIDUAL', 'TEAM']);
+            const sendOptions = sendStub.firstCall.args[5];
+            expect(sendOptions.toolChoice).to.deep.equal({ type: 'any' });
+            expect(sendOptions.tools.map((tool) => tool.name)).to.include('emit_guided_step');
+            const historyTail = result.body.conversationHistory.at(-1);
+            expect(historyTail.role).to.equal('assistant');
+            expect(historyTail.content).to.include('"flowId": "release"');
+            expect(historyTail.content).to.include('```json');
+        });
+
+        it('executes an mcp_operation emitted through a guided tool', async () => {
+            sendStub.resolves(
+                guidedToolResponse('emit_mcp_operation', {
+                    mcpTool: 'list_products',
+                    mcpParams: { searchText: 'creative cloud pro' },
+                    message: 'Looking up creative cloud pro in the catalog...',
+                }),
+            );
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('mcp_operation');
+            expect(result.body.mcpTool).to.equal('list_products');
+            expect(result.body.mcpParams.searchText).to.equal('creative cloud pro');
+        });
+
+        it('stays on the plain text path when NATIVE_GUIDED is off', async () => {
+            sendStub.resolves(
+                textResponse('```json\n{"type": "guided_step", "message": "Select one:", "productCards": []}\n```'),
+            );
+            const result = await main(
+                makeParams({ message: 'creative cloud pro', intentHint: 'release', NATIVE_GUIDED: 'off' }),
+            );
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            const sendOptions = sendStub.firstCall.args[5];
+            expect(sendOptions?.tools).to.equal(undefined);
+        });
+
+        it('recovers through the parse retry when the model calls an unknown tool', async () => {
+            sendStub.onCall(0).resolves(guidedToolResponse('emit_envelope', { intent: 'get_card', slots: {} }));
+            sendStub.onCall(1).resolves(textResponse('```json\n{"type": "guided_step", "message": "Select one:"}\n```'));
+            const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(sendStub.callCount).to.equal(2);
+        });
+
+        it('hands an envelope-classified release intent off to the guided tools', async () => {
+            sendStub.onCall(0).resolves(
+                toolResponse({
+                    intent: 'release_create.start',
+                    slots: {},
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: null,
+                }),
+            );
+            sendStub.onCall(1).resolves(
+                guidedToolResponse('emit_guided_step', {
+                    flowId: 'release',
+                    message: 'Which product is this release for?',
+                    buttonGroup: { label: 'Product', inputHint: 'Type a product name...' },
+                }),
+            );
+            const result = await main(makeParams({ message: 'tell me about yourself' }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.type).to.equal('guided_step');
+            expect(result.body.message).to.include('Which product is this release for');
+            const handoffOptions = sendStub.secondCall.args[5];
+            expect(handoffOptions.toolChoice).to.deep.equal({ type: 'any' });
+        });
+    });
+
+    describe('error containment', () => {
+        it('turns an unexpected handler throw into a 500 with a generic body', async () => {
+            const result = await main(makeParams({ conversationHistory: 42 }));
+            expect(result.statusCode).to.equal(500);
+            expect(result.body.error).to.equal('Internal server error');
+        });
+
+        it('includes the requestId in the 500 body without leaking the error detail', async () => {
+            const result = await main(makeParams({ conversationHistory: 42, requestId: 'req-500' }));
+            expect(result.statusCode).to.equal(500);
+            expect(result.body.requestId).to.equal('req-500');
+            expect(JSON.stringify(result.body)).to.not.include('is not iterable');
+        });
+    });
+});

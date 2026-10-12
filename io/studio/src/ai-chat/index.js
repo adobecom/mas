@@ -1,0 +1,1747 @@
+/**
+ * AI Chat Action for MAS Studio
+ *
+ * Adobe I/O Runtime action that handles AI-powered card creation conversations.
+ * Uses Adobe AI Foundry (Qwen) to generate merch card configurations.
+ *
+ * Expected parameters:
+ * - message: User's message
+ * - conversationHistory: Array of previous messages [{role, content}]
+ * - context: Optional context (current card being edited, etc.)
+ */
+
+import { Ims } from '@adobe/aio-lib-ims';
+import { FoundryClient, sumUsage } from './foundry-client.js';
+import {
+    GUIDED_CARD_CREATION_PROMPT,
+    GUIDED_CARD_CREATION_TOOL_PROMPT,
+    GUIDED_SEARCH_PROMPT,
+    GUIDED_OFFER_SEARCH_PROMPT,
+    GUIDED_HELP_PROMPT,
+} from './prompt-templates.js';
+import { buildOperationsPrompt } from './operations-prompt.js';
+import { buildDocumentationPrompt } from './docs/documentation-prompt.js';
+import { parseAIResponse, extractJSON, flowIdField, isDeadEndGuidedStep, withDeadEndRecovery } from './response-parser.js';
+import { handleOperation, withResolvedArrangementCode } from './operations-handler.js';
+import { validateAIConfig } from './validation.js';
+import { getVariantConfig } from './variant-configs.js';
+import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
+import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
+import { classifyIntent, createClassifierClient } from './intent-classifier.js';
+import { buildPrompt, buildFlowContext } from './prompt-builder.js';
+import { buildEnvelopeTool, ENVELOPE_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
+import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
+import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
+import { getFlowForIntent } from './intent-registry.js';
+import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
+import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
+import { validateEnvelope, collectObservedIds } from './envelope-validator.js';
+
+/**
+ * IMS client_id allowlist for the AI Chat action.
+ *
+ * Adobe IMS validates that a token is authentic but does NOT tell us which
+ * Adobe app the token was issued to. Without an allowlist, any valid IMS
+ * token from any Adobe app (Photoshop, Creative Cloud desktop, Experience
+ * Platform, etc.) would be accepted by this action. We restrict access to
+ * tokens issued specifically to MAS Studio (audit finding M4).
+ *
+ * The frontend studio.html declares `client_id: 'mas-studio'`. If new
+ * deployment environments use different IMS clients, add them here.
+ */
+const MAS_CLIENT_IDS = ['mas-studio'];
+
+/**
+ * Get response headers for web action
+ * Note: CORS headers are handled automatically by OpenWhisk gateway for web actions
+ * @returns {Object} - Response headers
+ */
+export function getResponseHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        // The activation id is the key to a turn's whole server-side trace, and
+        // the browser cannot read it off the response unless CORS says so.
+        'Access-Control-Expose-Headers': 'x-openwhisk-activation-id',
+    };
+}
+
+/**
+ * Put the activation id in the body so a user report can be traced.
+ *
+ * Every log line this action writes carries `req`, which is the activation id,
+ * so one id retrieves the entire trace of a turn. Until now the id only reached
+ * the caller when the response failed to parse — never for a response that
+ * parsed and was simply wrong, which is what gets reported. An id the user can
+ * quote is the difference between reading the trace and reconstructing the turn
+ * from a screenshot.
+ */
+export function attachRequestId(result, requestId) {
+    if (!requestId || !result?.body || typeof result.body !== 'object' || Array.isArray(result.body)) {
+        return result;
+    }
+    if (result.body.requestId) return result;
+    return { ...result, body: { ...result.body, requestId } };
+}
+
+/**
+ * Record a chat feedback signal (thumbs up/down) on a specific assistant message.
+ * Writes a structured log entry so the signals are queryable via `aio runtime activation logs`.
+ * A durable store (e.g. Application State or a dedicated DB) can be layered on top later
+ * without changing this request shape.
+ * @param {Object} params - Action params with { rating, messageId, sessionId, content, timestamp }.
+ * @returns {Promise<Object>} - { statusCode, headers, body }
+ */
+async function recordChatFeedback(params) {
+    const { rating, messageId = null, sessionId = null, content = '', timestamp = null } = params;
+
+    if (rating !== 'up' && rating !== 'down') {
+        return {
+            statusCode: 400,
+            headers: { ...getResponseHeaders() },
+            body: { error: "rating must be 'up' or 'down'" },
+        };
+    }
+
+    const snippet = typeof content === 'string' ? content.slice(0, 500) : '';
+
+    console.log(
+        '[ai-chat feedback]',
+        JSON.stringify({
+            rating,
+            sessionId,
+            messageId,
+            timestamp,
+            contentSnippet: snippet,
+            receivedAt: Date.now(),
+        }),
+    );
+
+    let stored = false;
+    try {
+        const stateLib = await import('@adobe/aio-lib-state');
+        const state = await stateLib.init();
+        const now = Date.now();
+        await appendFeedbackEntry(state, buildFeedbackEntry(params, now), now);
+        stored = true;
+    } catch (error) {
+        console.warn('[ai-chat feedback] state write failed:', error.message);
+    }
+
+    return {
+        statusCode: 200,
+        headers: { ...getResponseHeaders() },
+        body: { ok: true, stored },
+    };
+}
+
+/**
+ * Generate a short (3-5 word) title for a chat session based on the first turn.
+ * Intentionally skips RAG / knowledge / variant detection so it stays cheap and fast.
+ * @param {Object} params - Action params. Expects `userMessage` and optional `assistantMessage`.
+ * @returns {Promise<Object>} - { statusCode, headers, body: { title } | { error } }
+ */
+async function generateSessionTitle(params) {
+    const { userMessage, assistantMessage = '' } = params;
+
+    if (!userMessage || typeof userMessage !== 'string') {
+        return {
+            statusCode: 400,
+            headers: { ...getResponseHeaders() },
+            body: { error: 'userMessage is required for requestType=title' },
+        };
+    }
+
+    try {
+        const { AI_FOUNDRY_API_KEY, AI_FOUNDRY_BASE_URL, AI_FOUNDRY_MODEL_ID, AI_FOUNDRY_FAST_MODEL_ID } = params;
+
+        // Session titles are a 40-token completion — cheap-tier work. Fall
+        // back to the default model when no fast model is configured.
+        const foundryClient = new FoundryClient({
+            apiKey: AI_FOUNDRY_API_KEY,
+            baseUrl: AI_FOUNDRY_BASE_URL,
+            modelId: AI_FOUNDRY_FAST_MODEL_ID || AI_FOUNDRY_MODEL_ID,
+            fallbackModelId: params.AI_FOUNDRY_FALLBACK_MODEL_ID,
+        });
+
+        const systemPrompt =
+            'You title chat sessions about Adobe merch card creation. ' +
+            'Given the first user message and optional assistant reply, ' +
+            'return a concise 3 to 5 word title in Title Case that captures the topic. ' +
+            'Return only the title text — no quotes, no trailing punctuation, no commentary.';
+
+        const userContent = assistantMessage
+            ? `First user message:\n${userMessage}\n\nAssistant reply:\n${assistantMessage}`
+            : `First user message:\n${userMessage}`;
+
+        const result = await foundryClient.sendMessage([{ role: 'user', content: userContent }], systemPrompt, 40, {
+            thinking: false,
+        });
+        logShadowValidation(result, params);
+        logUsageMetric(result, params, foundryClient.modelId);
+
+        if (!result.success) {
+            return {
+                statusCode: 502,
+                headers: { ...getResponseHeaders() },
+                body: { error: result.error || 'Title generation failed' },
+            };
+        }
+
+        const rawTitle = (result.message || '').trim().replace(/^["'`]+|["'`.]+$/g, '');
+        if (!rawTitle) {
+            return {
+                statusCode: 502,
+                headers: { ...getResponseHeaders() },
+                body: { error: 'Empty title returned by model' },
+            };
+        }
+
+        const title = rawTitle.split(/\s+/).slice(0, 6).join(' ').slice(0, 60);
+
+        return {
+            statusCode: 200,
+            headers: { ...getResponseHeaders() },
+            body: { title },
+        };
+    } catch (error) {
+        console.error('generateSessionTitle error:', error);
+        return {
+            statusCode: 502,
+            headers: { ...getResponseHeaders() },
+            body: { error: 'Title generation failed' },
+        };
+    }
+}
+
+/**
+ * Extract surface from AEM path
+ * @param {string} path - AEM content path (e.g., /content/dam/mas/commerce/...)
+ * @returns {string|null} - Surface name (acom, ccd, commerce, adobe-home) or null
+ */
+function extractSurfaceFromPath(path) {
+    if (!path || typeof path !== 'string') return null;
+
+    const pathParts = path.split('/');
+    const surfaceIndex = pathParts.indexOf('mas') + 1;
+
+    if (surfaceIndex === 0 || surfaceIndex >= pathParts.length) return null;
+
+    const pathSegment = pathParts[surfaceIndex];
+
+    const surfaceMap = {
+        acom: 'acom',
+        ccd: 'ccd',
+        commerce: 'commerce',
+        ahome: 'adobe-home',
+        sandbox: 'sandbox',
+        express: 'express',
+        docs: 'docs',
+        nala: 'nala',
+    };
+
+    return surfaceMap[pathSegment] || null;
+}
+
+/**
+ * Detect release/NPI intent in user message
+ * @param {string} message - User message
+ * @returns {boolean} - True if message contains release/NPI intent
+ */
+/**
+ * Note on the `[MCS product data retrieved ...]` marker: it is deliberately not
+ * a release signal. The client emits it only from continueWithMCPResult, which
+ * runs only when the active flow is NOT release — the release flow renders its
+ * product selection locally. Treating it as a release loaded the guided release
+ * prompt and tools onto a turn needing neither, pushing it past the budget.
+ * A release still wins here when the history says so.
+ */
+export function isReleaseIntent(message, conversationHistory = []) {
+    const releaseKeywords = [
+        'release',
+        'npi',
+        'new product',
+        'kickstart cards',
+        'new launch',
+        'product launch',
+        'create cards',
+        'help me create',
+    ];
+    const lowerMessage = message.toLowerCase();
+    if (releaseKeywords.some((keyword) => lowerMessage.includes(keyword))) return true;
+    if (
+        conversationHistory.some(
+            (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),
+        )
+    ) {
+        return true;
+    }
+    // Mid-flow fallback: if the previous assistant turn asked which product this
+    // release is for (the guided Step 1 prompt), subsequent user turns are part
+    // of the release flow even though they don't carry keywords.
+    const lastAssistant = [...conversationHistory].reverse().find((m) => m.role === 'assistant');
+    if (lastAssistant?.content?.includes('Which product is this release for')) return true;
+    return false;
+}
+
+/**
+ * Enrich context with surface-specific and locale information
+ * @param {Object} context - Original context from frontend
+ * @returns {Object} - Enriched context
+ */
+function enrichContextWithSurface(context) {
+    if (!context) return null;
+
+    const enrichedContext = { ...context };
+
+    if (context.currentPath) {
+        const surface = extractSurfaceFromPath(context.currentPath);
+
+        if (surface) {
+            enrichedContext.surface = surface;
+        }
+    }
+
+    if (context.currentLocale) {
+        enrichedContext.locale = context.currentLocale;
+    }
+
+    return enrichedContext;
+}
+
+/**
+ * Validate Adobe IMS Bearer token
+ * @param {Object} headers - Request headers from __ow_headers
+ * @returns {Promise<boolean>} - True if token is valid
+ */
+async function authorize(headers) {
+    if (!headers) {
+        console.error('authorize: headers is undefined');
+        return false;
+    }
+    const authHeader = headers['authorization'] || headers['Authorization'];
+    if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        if (token) {
+            // validateTokenAllowList rejects tokens whose client_id is not in
+            // MAS_CLIENT_IDS (audit finding M4 — prevents non-MAS Adobe apps
+            // from invoking this action and burning Foundry budget).
+            const imsValidation = await new Ims('prod').validateTokenAllowList(token, MAS_CLIENT_IDS);
+            return imsValidation.valid;
+        }
+    }
+    return false;
+}
+
+/**
+ * Knowledge retrieval runs in-process over the bundled corpus — zero
+ * external infrastructure, so it is on by default. RAG_ENABLED=false is
+ * the opt-out.
+ * @param {Object} params - Action parameters
+ * @returns {LocalKnowledgeRetriever|null}
+ */
+function createKnowledgeClient(params) {
+    if (params.RAG_ENABLED === 'false') {
+        return null;
+    }
+    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
+}
+
+/**
+ * Enhance system prompt with RAG knowledge if applicable
+ * @param {string} systemPrompt - Base system prompt
+ * @param {string} message - User message
+ * @param {KnowledgeClient|null} knowledgeClient - Knowledge service client
+ * @param {Object} options - Enhancement options
+ * @param {boolean} options.isDocumentation - Whether this is a documentation query
+ * @returns {Promise<{prompt: string, sources: Array}>} - Enhanced system prompt and sources
+ */
+export function isQuestionShaped(message) {
+    if (typeof message !== 'string') return false;
+    const lower = message.toLowerCase().trim();
+    if (!lower) return false;
+    return (
+        lower.endsWith('?') ||
+        /^(what|how|why|where|when|which|who|can|does|do|is|are|should|could|explain|tell me)\b/.test(lower)
+    );
+}
+
+/**
+ * Shape test for "could this text be a query against the docs corpus?".
+ *
+ * Two shapes never are, whatever the keyword classifier decided:
+ *   1. Machine-generated markers — the frontend continues a tool call by
+ *      sending `[MCS product data retrieved via <tool>]` plus a product list.
+ *      Retrieving product documentation for that text is wasted work.
+ *   2. Bare acknowledgements — "yes" alone scores full coverage against any
+ *      chunk containing it and injects ~400 tokens of unrelated docs.
+ *
+ * Deliberately shape-only: a bare topic word ("collections") still retrieves,
+ * because ungrounded feature answers contradict the docs.
+ */
+const ACKNOWLEDGEMENTS = new Set([
+    'yes',
+    'yep',
+    'yeah',
+    'no',
+    'nope',
+    'ok',
+    'okay',
+    'sure',
+    'thanks',
+    'thank you',
+    'done',
+    'next',
+    'back',
+    'stop',
+    'cancel',
+    'continue',
+    'go ahead',
+]);
+
+export function isRetrievableQuery(message) {
+    if (typeof message !== 'string') return false;
+    const trimmed = message.trim();
+    if (!trimmed) return false;
+    // A bracketed marker that owns its whole first line, not a message that
+    // merely opens with a bracket ("[urgent] how do I ...").
+    if (/^\[[^\]\n]*\]\s*(\n|$)/.test(trimmed)) return false;
+    return !ACKNOWLEDGEMENTS.has(trimmed.toLowerCase().replace(/[.!,]+$/, ''));
+}
+
+export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
+    const { isDocumentation = false } = options;
+
+    if (!knowledgeClient || !isRetrievableQuery(message)) {
+        return { ragContext: '', sources: [] };
+    }
+
+    const allSources = [];
+    let ragContext = '';
+
+    if (isDocumentation) {
+        try {
+            const { context, sources } = await knowledgeClient.queryWithSources(message, {
+                topK: 3,
+                minScore: 0.7,
+            });
+
+            if (context) {
+                console.log('[RAG] Retrieved documentation knowledge, sources:', sources.length);
+                ragContext += `${context}\n`;
+                allSources.push(...sources);
+            }
+        } catch (error) {
+            console.warn('[RAG] Failed to retrieve documentation knowledge:', error.message);
+        }
+    }
+
+    return { ragContext, sources: allSources };
+}
+
+/**
+ * Main action handler
+ * @param {Object} params - Action parameters
+ * @returns {Promise<Object>} - Action response
+ */
+async function main(params) {
+    console.log('AI Chat Action called with method:', params.__ow_method);
+
+    if (params.__ow_method?.toLowerCase() === 'options') {
+        console.log('Handling OPTIONS preflight request');
+        return {
+            statusCode: 200,
+            headers: {
+                ...getResponseHeaders(),
+            },
+        };
+    }
+
+    if (!(await authorize(params.__ow_headers))) {
+        return {
+            statusCode: 401,
+            headers: {
+                ...getResponseHeaders(),
+            },
+            body: {
+                error: 'Unauthorized: Bearer token is missing or invalid',
+            },
+        };
+    }
+
+    const { conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+    // Pasted Studio card links carry the fragment UUID in their hash; the
+    // UUID is what every downstream identifier path understands.
+    const message = replaceStudioLinksWithFragmentIds(params.message);
+
+    if (requestType === 'title') {
+        return generateSessionTitle(params);
+    }
+
+    if (requestType === 'feedback') {
+        return recordChatFeedback(params);
+    }
+
+    if (!message || typeof message !== 'string') {
+        return {
+            statusCode: 400,
+            headers: {
+                ...getResponseHeaders(),
+            },
+            body: {
+                error: 'Message is required and must be a string',
+            },
+        };
+    }
+
+    // Correlates user-facing errors with activation logs: surfaced in error
+    // bodies (the client shows it as "Reference: <id>") and stamped on every
+    // parse-failure capture so field reports are greppable.
+    const requestId = params.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
+
+    // Ids the request actually saw, so a state-changing envelope cannot act on
+    // ones the model invented. Covers the deterministic bypasses too, whose
+    // ids are regex captures from the user's own message.
+    const observedIds = collectObservedIds(params.context, conversationHistory, message);
+
+    // Deterministic bypasses build envelopes from regex captures; run them
+    // through the same validator as model output. A failure means either a
+    // code bug or an active flow where the shortcut is illegal — the normal
+    // LLM path is the safe degradation, never a malformed envelope.
+    const bypassEnvelopeValid = (envelope) => {
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, observedIds });
+        if (!validation.ok) {
+            console.log(
+                JSON.stringify({
+                    phase: 'bypass-validation-failed',
+                    req: requestId,
+                    reason: validation.reason,
+                    intent: envelope?.intent ?? null,
+                }),
+            );
+        }
+        return validation.ok;
+    };
+
+    try {
+        const { AI_FOUNDRY_API_KEY, AI_FOUNDRY_BASE_URL, AI_FOUNDRY_MODEL_ID } = params;
+
+        // Reasoning is worth its latency on the main chat turn, which has a
+        // 4096 token budget. The classifier and title tiers opt out explicitly
+        // because their budgets are too small to spend on thinking.
+        const thinking = params.AI_FOUNDRY_THINKING === 'on';
+
+        const foundryClient = new FoundryClient({
+            apiKey: AI_FOUNDRY_API_KEY,
+            baseUrl: AI_FOUNDRY_BASE_URL,
+            modelId: AI_FOUNDRY_MODEL_ID,
+            fallbackModelId: params.AI_FOUNDRY_FALLBACK_MODEL_ID,
+        });
+
+        const knowledgeClient = createKnowledgeClient(params);
+        const enrichedContext = enrichContextWithSurface(context);
+
+        const {
+            prompt: basePrompt,
+            isDocumentation,
+            isCardCreation,
+        } = await determineSystemPromptWithMetaAsync({
+            intentHint,
+            conversationHistory,
+            message,
+            context: enrichedContext,
+            params,
+        });
+
+        // The guided prompt must stand alone: basePrompt carries the envelope
+        // output contract, and combining the two makes the model emit
+        // envelope JSON that the guided flow cannot execute.
+        const releaseIntent = isReleaseIntent(message, conversationHistory);
+        const effectivePrompt = releaseIntent ? GUIDED_CARD_CREATION_PROMPT : basePrompt;
+
+        // Native envelope routing applies only to the free-routing surface.
+        // Guided flows, release, and card creation stay on the text path —
+        // their rich UI payloads (buttonGroup, productCards, cardConfigs)
+        // are emitted as JSON in prose, which forced tool use would suppress.
+        // Rollback: set NATIVE_ENVELOPE=off.
+        const nativeEnvelopeEligible =
+            params.NATIVE_ENVELOPE !== 'off' &&
+            !intentHint &&
+            !releaseIntent &&
+            !isCardCreation &&
+            !params.context?.flow?.active &&
+            !inferGuidedFlowFromHistory(conversationHistory);
+        let toolOptions = nativeEnvelopeEligible
+            ? { thinking, tools: [buildEnvelopeTool()], toolChoice: ENVELOPE_TOOL_CHOICE }
+            : { thinking };
+
+        // Deterministic identifier shortcut: when the user message is a bare
+        // identifier, classify it by shape and emit the correct MCP operation
+        // without consulting the LLM. The LLM misroutes ~all of these because
+        // the shapes are visually similar. Precedence (narrowest first):
+        //   1. Offer ID          — exactly 32 hex chars.
+        //   2. Arrangement code  — lowercase alnum with one or more `_`
+        //                          segments (e.g. `cptv_direct_individual`,
+        //                          `phsp_direct_individual`, or the canonical
+        //                          `PA-\d+`). Route to list_products.
+        //   3. OSI               — URL-safe token with mixed case OR length
+        //                          >=22 (real OSIs are base64-shaped and
+        //                          ~32–48 chars, not short lowercase names).
+        //                          Route to resolve_offer_selector.
+        // Bare fragment UUID (typically a pasted Studio card link) — fetch the
+        // card deterministically; the LLM adds nothing to an exact identifier.
+        const bareFragmentId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.exec(message.trim());
+        if (bareFragmentId) {
+            const fragmentId = bareFragmentId[0].toLowerCase();
+            const envelope = buildDeterministicEnvelope('get_card', { id: fragmentId });
+            if (bypassEnvelopeValid(envelope)) {
+                console.log(`[Backend] Deterministic fragment-link bypass: ${fragmentId}`);
+                return {
+                    statusCode: 200,
+                    headers: { ...getResponseHeaders() },
+                    body: {
+                        type: 'mcp_operation',
+                        mcpTool: 'get_card',
+                        mcpParams: { id: fragmentId },
+                        message: 'Fetching that card...',
+                        confirmationRequired: false,
+                        envelope,
+                        conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                    },
+                };
+            }
+        }
+
+        const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
+
+        // Abstain from the deterministic title-search bypass when the message starts with a
+        // mutation verb. Otherwise the colon-or-quote fallback regex on the next branch matches
+        // possessive apostrophes ("the card's description to say: …") and captures the wrong
+        // span — routing a mutation request to a title search using gibberish as the query.
+        const mutationVerb =
+            /\b(?:edit|change|update|modify|set|replace|rename|delete|remove|publish|unpublish|create|add|copy|duplicate|tag|link)\b/i.test(
+                message,
+            );
+
+        // Deterministic title search: detect "fragment title" or "title" followed by a quoted or
+        // colon-containing title string. Bypass the LLM entirely.
+        if (searchIntent && !mutationVerb) {
+            const titleMatch =
+                message.match(
+                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+(?:all\s+locales?|\w+))?$/i,
+                ) || message.match(/[""']([^""']+:[^""']+)[""']/);
+            if (titleMatch) {
+                const titleQuery = titleMatch[1].trim();
+                const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
+                console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
+                const titleSearchBody = {
+                    type: 'mcp_operation',
+                    mcpTool: 'search_cards',
+                    mcpParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
+                    message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
+                    confirmationRequired: false,
+                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                };
+                titleSearchBody.envelope = {
+                    intent: 'search_cards',
+                    slots: {
+                        query: titleQuery,
+                        surface: enrichedContext?.surface ?? null,
+                        titleSearch: true,
+                        locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
+                    },
+                    confidence: 'high',
+                    missing_slots: [],
+                    clarification_question: null,
+                    user_message: null,
+                };
+                if (bypassEnvelopeValid(titleSearchBody.envelope)) {
+                    return {
+                        statusCode: 200,
+                        headers: { ...getResponseHeaders() },
+                        body: titleSearchBody,
+                    };
+                }
+            }
+        }
+
+        if (releaseIntent || searchIntent) {
+            const trimmed = (message || '').trim();
+            const bareOfferId = /^(?:(?:offer\s*id|osi|selected\s*offer)\s*[:=]\s*)?([a-fA-F0-9]{32})$/i.exec(trimmed);
+            const barePaCode = /^(?:arrangement\s*code\s*[:=]\s*)?(PA-\d+)$/i.exec(trimmed);
+            const bareArrangementSlug = /^(?:arrangement\s*code\s*[:=]\s*)?([a-z0-9]+(?:_[a-z0-9]+)+)$/.exec(trimmed);
+            const bareOsi = /^(?:(?:osi|selected\s*offer)\s*[:=]\s*)?([A-Za-z0-9_-]{15,})$/i.exec(trimmed);
+            const looksLikeOfferId = bareOfferId && /^[a-fA-F0-9]{32}$/.test(bareOfferId[1]);
+            const looksLikeArrangement = !looksLikeOfferId && (barePaCode || bareArrangementSlug);
+            const arrangementCode = looksLikeArrangement
+                ? barePaCode
+                    ? barePaCode[1].toUpperCase()
+                    : bareArrangementSlug[1]
+                : null;
+            const osiCandidate = bareOsi ? bareOsi[1] : null;
+            const osiHasMixedCase = osiCandidate && /[A-Z]/.test(osiCandidate) && /[a-z]/.test(osiCandidate);
+            const looksLikeOsi =
+                !looksLikeOfferId &&
+                !looksLikeArrangement &&
+                osiCandidate &&
+                !/^[a-fA-F0-9]{32}$/.test(osiCandidate) &&
+                (osiHasMixedCase || osiCandidate.length >= 22);
+            const identifierBypass = looksLikeOfferId
+                ? {
+                      intent: 'get_offer_by_id',
+                      slots: { offerId: bareOfferId[1] },
+                      mcpParams: { offerId: bareOfferId[1] },
+                      message: `Resolving offer ${bareOfferId[1]} to its product...`,
+                  }
+                : looksLikeArrangement
+                  ? {
+                        intent: 'get_product_by_arrangement_code',
+                        slots: { arrangementCode },
+                        mcpParams: { arrangementCode },
+                        message: `Looking up product for arrangement code ${arrangementCode}...`,
+                    }
+                  : looksLikeOsi
+                    ? /\b(cards?|find|show|which|search|using)\b/i.test(trimmed)
+                        ? {
+                              intent: 'search_cards',
+                              slots: { osi: osiCandidate },
+                              mcpParams: { osi: osiCandidate },
+                              message: `Searching for all cards using OSI ${osiCandidate}...`,
+                          }
+                        : {
+                              intent: 'resolve_offer_selector',
+                              slots: { offerSelectorId: osiCandidate },
+                              mcpParams: { offerSelectorId: osiCandidate },
+                              message: `Resolving OSI ${osiCandidate} to its product...`,
+                          }
+                    : null;
+            if (identifierBypass) {
+                // This bypass answers without consulting the model, so it is the
+                // one path that cannot be fixed by prompting. An offer lookup
+                // still needs the product: AOS does not filter by offer id. OST
+                // sends "Offer ID: <hex>", which lands here, and on that flow the
+                // transcript names no product at all. The offer payload does.
+                const bypassBody = withResolvedArrangementCode(
+                    {
+                        type: 'mcp_operation',
+                        mcpTool: identifierBypass.intent,
+                        mcpParams: identifierBypass.mcpParams,
+                        message: identifierBypass.message,
+                        confirmationRequired: false,
+                    },
+                    conversationHistory,
+                    context,
+                );
+                // The client dispatches from envelope.slots, not from mcpParams,
+                // so the product has to be in the slots or it never reaches the
+                // lookup. Enrich before the envelope is built from them.
+                if (bypassBody.mcpParams?.arrangementCode && !identifierBypass.slots.arrangementCode) {
+                    identifierBypass.slots = {
+                        ...identifierBypass.slots,
+                        arrangementCode: bypassBody.mcpParams.arrangementCode,
+                    };
+                }
+                const envelope = buildDeterministicEnvelope(identifierBypass.intent, identifierBypass.slots);
+                if (bypassEnvelopeValid(envelope)) {
+                    return {
+                        statusCode: 200,
+                        headers: { ...getResponseHeaders() },
+                        body: {
+                            envelope,
+                            ...bypassBody,
+                            conversationHistory: [...conversationHistory, { role: 'user', content: message }],
+                        },
+                    };
+                }
+            }
+        }
+
+        if (releaseIntent) {
+            console.log('[Backend] Release/NPI intent detected, appending release workflow instructions');
+        }
+
+        // Retrieved knowledge rides in the dynamic (uncached) context block —
+        // appending it to the system prompt would invalidate the prompt cache
+        // on every distinct documentation query.
+        // Question-shaped messages get documentation context even when the
+        // keyword classifier routes them operationally ("How does bulk
+        // publishing work?" contains 'publish'): the native envelope path
+        // classifies the real intent, but retrieval runs before the model
+        // and ungrounded feature answers contradict the docs.
+        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
+            isDocumentation: isDocumentation || isQuestionShaped(message),
+        });
+        if (ragContext) {
+            enrichedContext.ragContext = ragContext;
+        }
+
+        const flowContext = buildFlowContext(params.context?.flow ?? null);
+        if (flowContext) {
+            enrichedContext.flowContext = flowContext;
+        }
+
+        let registryPrompt = null;
+        try {
+            registryPrompt = buildPrompt();
+            console.log(
+                JSON.stringify({
+                    phase: 'shadow-prompt',
+                    req: requestId,
+                    newPromptLength: registryPrompt.length,
+                    oldPromptLength: typeof effectivePrompt === 'string' ? effectivePrompt.length : null,
+                }),
+            );
+        } catch (shadowErr) {
+            console.log(JSON.stringify({ phase: 'shadow-prompt', req: requestId, error: shadowErr.message }));
+        }
+
+        // The registry prompt carries the envelope output contract, so it is
+        // only the right system prompt when the turn actually runs in
+        // envelope mode. Text-path turns (guided flows, release, card
+        // creation, any intentHint) keep their specialized prompt —
+        // overriding those makes the model emit envelopes the text path
+        // cannot execute.
+        const useRegistryPrompt = nativeEnvelopeEligible && registryPrompt !== null;
+        let effectiveSystemPrompt = useRegistryPrompt ? registryPrompt : effectivePrompt;
+        if (useRegistryPrompt) {
+            console.log(JSON.stringify({ phase: 'shadow-primary', req: requestId, used: true }));
+        }
+
+        // Native guided tools: release-flow turns swap hand-written fenced
+        // JSON for schema-validated tool calls. Mutually exclusive with the
+        // envelope path by construction — nativeEnvelopeEligible already
+        // excludes every release turn. Rollback: NATIVE_GUIDED=off.
+        const nativeGuidedEnabled = params.NATIVE_GUIDED !== 'off';
+        let guidedToolMode = nativeGuidedEnabled && effectiveSystemPrompt === GUIDED_CARD_CREATION_PROMPT;
+        if (guidedToolMode) {
+            effectiveSystemPrompt = GUIDED_CARD_CREATION_TOOL_PROMPT;
+            toolOptions = { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE };
+        }
+
+        const maxTokens = isDocumentation ? 2048 : isCardCreation ? 2048 : 1024;
+
+        let response = await foundryClient.sendWithContext(
+            conversationHistory,
+            message,
+            effectiveSystemPrompt,
+            enrichedContext,
+            maxTokens,
+            toolOptions,
+        );
+        logUsageMetric(response, params, foundryClient.modelId);
+
+        if (!response.success) {
+            console.error('Adobe AI Foundry request failed', { errorType: response.errorType, error: response.error });
+            return {
+                statusCode: 502,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    error: 'Failed to get AI response',
+                    errorType: response.errorType ?? null,
+                    requestId,
+                },
+            };
+        }
+
+        if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
+            const flow = params.context?.flow ?? null;
+            let usage = response.usage;
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow, observedIds });
+            let retried = false;
+            let rejectedRaw = null;
+
+            if (!validation.ok) {
+                retried = true;
+                rejectedRaw = JSON.stringify(response.toolUse?.input ?? response.message ?? '');
+                const debugDetail = validation.coerced?.debug ?? {};
+                const detail = debugDetail.slot
+                    ? ` — slot "${debugDetail.slot}" had invalid value ${JSON.stringify(debugDetail.value)}`
+                    : debugDetail.attempted
+                      ? ` — intent "${debugDetail.attempted}" is not registered`
+                      : '';
+                const corrective = `Your previous envelope was invalid (${validation.reason}${detail}). Call ${ENVELOPE_TOOL_NAME} again with a corrected envelope for the same user request, using the exact slot names and types from the system prompt.`;
+                const retryResponse = await foundryClient.sendWithContext(
+                    [...conversationHistory, { role: 'user', content: message }],
+                    corrective,
+                    effectiveSystemPrompt,
+                    enrichedContext,
+                    maxTokens,
+                    toolOptions,
+                );
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
+                if (retryResponse.success) {
+                    usage = retryResponse.usage;
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, observedIds });
+                    if (retryValidation.ok) {
+                        validation = retryValidation;
+                    } else {
+                        rejectedRaw = JSON.stringify(retryResponse.toolUse?.input ?? retryResponse.message ?? '');
+                    }
+                }
+            }
+
+            if (!validation.ok) {
+                logParseFailure(requestId, `envelope-${validation.reason}`, rejectedRaw, {
+                    retried,
+                    recovered: false,
+                });
+            }
+
+            const finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
+            console.log(
+                JSON.stringify({
+                    phase: 'envelope-validation',
+                    req: requestId,
+                    native: true,
+                    ok: validation.ok,
+                    reason: validation.reason ?? null,
+                    intent: finalEnvelope?.intent ?? null,
+                    retried,
+                }),
+            );
+
+            // When the envelope classifies a guided-flow intent, hand the
+            // turn to the guided text prompt instead of returning the
+            // envelope: guided flows carry rich UI payloads (guided_step,
+            // productCards) the envelope cannot express, and stringified
+            // envelopes in history teach later turns the wrong format.
+            let handedOff = false;
+            if (getFlowForIntent(finalEnvelope?.intent) === 'release_create') {
+                const guidedResponse = await foundryClient.sendWithContext(
+                    conversationHistory,
+                    message,
+                    nativeGuidedEnabled ? GUIDED_CARD_CREATION_TOOL_PROMPT : GUIDED_CARD_CREATION_PROMPT,
+                    enrichedContext,
+                    2048,
+                    nativeGuidedEnabled
+                        ? { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE }
+                        : { thinking },
+                );
+                logUsageMetric(guidedResponse, params, foundryClient.modelId);
+                if (guidedResponse.success && (guidedResponse.message || guidedResponse.toolUse)) {
+                    console.log(
+                        JSON.stringify({
+                            phase: 'flow-handoff',
+                            req: requestId,
+                            intent: finalEnvelope.intent,
+                        }),
+                    );
+                    response = guidedResponse;
+                    handedOff = true;
+                    guidedToolMode = guidedToolMode || nativeGuidedEnabled;
+                }
+            }
+
+            if (!handedOff) {
+                // The envelope path builds its own operation and never reaches
+                // handleOperation, so it needs the same product fill-in: an
+                // offer lookup without the arrangement code is a scan.
+                const envelopeBody = withResolvedArrangementCode(
+                    buildEnvelopeResponseBody(finalEnvelope),
+                    conversationHistory,
+                    context,
+                );
+                // The client dispatches from envelope.slots, so carry the product
+                // back into them rather than leaving it only on the body.
+                if (
+                    finalEnvelope?.intent === 'get_offer_by_id' &&
+                    finalEnvelope.slots &&
+                    !finalEnvelope.slots.arrangementCode &&
+                    envelopeBody.mcpParams?.arrangementCode
+                ) {
+                    finalEnvelope.slots = {
+                        ...finalEnvelope.slots,
+                        arrangementCode: envelopeBody.mcpParams.arrangementCode,
+                    };
+                }
+                return {
+                    statusCode: 200,
+                    headers: {
+                        ...getResponseHeaders(),
+                    },
+                    body: {
+                        envelope: finalEnvelope,
+                        ...envelopeBody,
+                        sources: ragSources,
+                        usage,
+                        conversationHistory: [
+                            ...conversationHistory,
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: JSON.stringify(finalEnvelope) },
+                        ],
+                    },
+                };
+            }
+        }
+
+        // A guided tool call carries a schema-validated payload. Serialize it
+        // back into the message as fenced JSON — guaranteed parseable — so the
+        // whole existing text pipeline (operation validation, parsing, history,
+        // flow inference) consumes it unchanged. An unmapped tool name falls
+        // through as its raw input, where the parse retry picks it up.
+        if (guidedToolMode && response.toolUse) {
+            const guidedPayload = extractGuidedTool(response);
+            console.log(
+                JSON.stringify({
+                    phase: 'guided-tool',
+                    req: requestId,
+                    tool: response.toolUse.name,
+                    mapped: Boolean(guidedPayload),
+                }),
+            );
+            const payload = guidedPayload ?? response.toolUse.input ?? {};
+            response = { ...response, message: `\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\`` };
+        }
+
+        let parsedResponse = parseAIResponse(response.message);
+        let totalUsage = response.usage;
+
+        // Text-path parity with the envelope and card-config corrective
+        // retries: when the model's JSON is broken beyond the in-parser
+        // repair, re-ask once with the concrete parse error instead of
+        // surfacing the failure to the user. The retry always runs in text
+        // mode, so guided tool turns fall back to the plain guided prompt.
+        // Rollback: TEXT_PARSE_RETRY=off.
+        if (parsedResponse.parseError) {
+            const failureMode = parsedResponse.parseFailureMode ?? 'unparseable-json';
+            const originalRaw = response.message;
+            const retryEnabled = params.TEXT_PARSE_RETRY !== 'off';
+            if (retryEnabled) {
+                const retryResponse = await foundryClient.sendWithContext(
+                    [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                    buildParseCorrectivePrompt(failureMode, parsedResponse.parseErrorDetail),
+                    guidedToolMode ? GUIDED_CARD_CREATION_PROMPT : effectiveSystemPrompt,
+                    enrichedContext,
+                    maxTokens,
+                    { thinking },
+                );
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
+                let recovered = false;
+                if (retryResponse.success && retryResponse.message) {
+                    const retryParsed = parseAIResponse(retryResponse.message);
+                    if (!retryParsed.parseError) {
+                        parsedResponse = retryParsed;
+                        response = retryResponse;
+                        recovered = true;
+                        totalUsage = sumUsage(totalUsage, retryResponse.usage);
+                    }
+                }
+                console.log(
+                    JSON.stringify({
+                        phase: 'text-parse-retry',
+                        req: requestId,
+                        mode: failureMode,
+                        recovered,
+                    }),
+                );
+            }
+            if (parsedResponse.parseError) {
+                logParseFailure(requestId, failureMode, originalRaw, { retried: retryEnabled, recovered: false });
+            }
+        }
+
+        // Recover before operation handling so a retry uses the same validation
+        // and dispatch path as the initial response.
+        // A guided step offering nothing to do ends the flow where it stands.
+        // Asking the model not to narrate has failed repeatedly, so re-ask once
+        // naming the failure, and if that narrates too, attach a control. The
+        // user is never left with a sentence and no way to answer it.
+        // Rollback: DEAD_END_RETRY=off.
+        if (isDeadEndGuidedStep(parsedResponse) && releaseIntent && params.DEAD_END_RETRY !== 'off') {
+            console.log(JSON.stringify({ phase: 'dead-end-step', req: requestId, retrying: true }));
+            const retry = await foundryClient.sendWithContext(
+                [...conversationHistory, { role: 'user', content: message }, { role: 'assistant', content: response.message }],
+                'That reply gave the user nothing to act on: no operation ran and there was no button, ' +
+                    'product list or input prompt. Do not describe an action you can take — take it. ' +
+                    'Emit the mcp_operation for the step you are on, or a guided_step whose buttonGroup ' +
+                    'carries options or an inputHint, or open_ost if the Offer Selector Tool is needed.',
+                guidedToolMode ? GUIDED_CARD_CREATION_TOOL_PROMPT : effectiveSystemPrompt,
+                enrichedContext,
+                maxTokens,
+                guidedToolMode ? { thinking, tools: buildGuidedTools(), toolChoice: GUIDED_TOOL_CHOICE } : { thinking },
+            );
+            logUsageMetric(retry, params, foundryClient.modelId);
+            if (retry.success && (retry.message || retry.toolUse)) {
+                const retryPayload = guidedToolMode && retry.toolUse ? extractGuidedTool(retry) : null;
+                const retryText = retryPayload ? `\`\`\`json\n${JSON.stringify(retryPayload, null, 2)}\n\`\`\`` : retry.message;
+                const retryParsed = parseAIResponse(retryText);
+                if (!retryParsed.parseError) {
+                    parsedResponse = retryParsed;
+                    response = { ...response, message: retryText };
+                }
+            }
+            // Whatever came back, the user gets something to press.
+            parsedResponse = withDeadEndRecovery(parsedResponse);
+        }
+
+        // Attach the shadow envelope only when the text actually contained a
+        // valid one: guided-flow JSON has no intent field, so its coerced
+        // ASK_USER fallback must never ship — the frontend dispatcher would
+        // prefer it over the real guided payload and hijack the turn.
+        const shadowValidation = logShadowValidation(response, params);
+        const envelopePayload = shadowValidation?.ok ? { envelope: shadowValidation.envelope } : {};
+
+        let operationResult = handleOperation(response.message, enrichedContext);
+        // An offer lookup without the product is a scan, not a lookup. The
+        // conversation already names the product by this point, so fill it in
+        // rather than depending on the model to have remembered.
+        operationResult = withResolvedArrangementCode(operationResult, conversationHistory, context);
+
+        if (operationResult) {
+            if (operationResult.type === 'mcp_operation') {
+                return {
+                    statusCode: 200,
+                    headers: {
+                        ...getResponseHeaders(),
+                    },
+                    body: {
+                        ...envelopePayload,
+                        type: 'mcp_operation',
+                        ...(operationResult.flowId ? { flowId: operationResult.flowId } : {}),
+                        mcpTool: operationResult.mcpTool,
+                        mcpParams: operationResult.mcpParams,
+                        message: operationResult.message,
+                        confirmationRequired: operationResult.confirmationRequired,
+                        usage: totalUsage,
+                        conversationHistory: [
+                            ...conversationHistory,
+                            { role: 'user', content: message },
+                            { role: 'assistant', content: response.message },
+                        ],
+                    },
+                };
+            }
+
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    ...operationResult,
+                    usage: totalUsage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'card' && parsedResponse.cardConfig) {
+            const variantConfig = getVariantConfig(parsedResponse.cardConfig.variant);
+            let validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
+
+            if (!validation.valid) {
+                const correctiveMessage = buildCorrectivePrompt(parsedResponse.cardConfig, validation.errors);
+                const retryResponse = await foundryClient.sendWithContext(
+                    [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                    correctiveMessage,
+                    effectiveSystemPrompt,
+                    enrichedContext,
+                    2048,
+                    { thinking },
+                );
+                logShadowValidation(retryResponse, params);
+                logUsageMetric(retryResponse, params, foundryClient.modelId);
+
+                if (retryResponse.success) {
+                    const retryParsed = parseAIResponse(retryResponse.message);
+                    if (retryParsed.type === 'card' && retryParsed.cardConfig) {
+                        parsedResponse = retryParsed;
+                        validation = validateAIConfig(parsedResponse.cardConfig, variantConfig);
+                        totalUsage = sumUsage(totalUsage, retryResponse.usage);
+                    }
+                }
+            }
+
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'card',
+                    message: parsedResponse.message,
+                    cardConfig: parsedResponse.cardConfig,
+                    isDocumentation,
+                    validation: {
+                        valid: validation.valid,
+                        errors: validation.errors,
+                        warnings: validation.warnings,
+                    },
+                    usage: totalUsage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'collection-preview') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'collection-preview',
+                    message: parsedResponse.message,
+                    fragmentIds: parsedResponse.fragmentIds,
+                    suggestedTitle: parsedResponse.suggestedTitle,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'guided_step') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'guided_step',
+                    ...flowIdField(parsedResponse),
+                    message: parsedResponse.message,
+                    buttonGroup: parsedResponse.buttonGroup,
+                    productCards: parsedResponse.productCards,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'release_confirmation') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'release_confirmation',
+                    ...flowIdField(parsedResponse),
+                    message: parsedResponse.message,
+                    confirmationSummary: parsedResponse.confirmationSummary,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'release_cards') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'release_cards',
+                    ...flowIdField(parsedResponse),
+                    message: parsedResponse.message,
+                    parentPath: parsedResponse.parentPath,
+                    cardConfigs: parsedResponse.cardConfigs,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        if (parsedResponse.type === 'open_ost') {
+            return {
+                statusCode: 200,
+                headers: {
+                    ...getResponseHeaders(),
+                },
+                body: {
+                    ...envelopePayload,
+                    type: 'open_ost',
+                    ...flowIdField(parsedResponse),
+                    message: parsedResponse.message,
+                    searchParams: parsedResponse.searchParams,
+                    usage: response.usage,
+                    conversationHistory: [
+                        ...conversationHistory,
+                        { role: 'user', content: message },
+                        { role: 'assistant', content: response.message },
+                    ],
+                },
+            };
+        }
+
+        return {
+            statusCode: 200,
+            headers: {
+                ...getResponseHeaders(),
+            },
+            body: {
+                ...envelopePayload,
+                ...(parsedResponse.parseError ? { requestId } : {}),
+                type: 'message',
+                message: parsedResponse.message,
+                sources: ragSources,
+                usage: totalUsage,
+                conversationHistory: [
+                    ...conversationHistory,
+                    { role: 'user', content: message },
+                    { role: 'assistant', content: response.message },
+                ],
+            },
+        };
+    } catch (error) {
+        console.error('AI Chat Action Error:', error);
+        return {
+            statusCode: 500,
+            headers: {
+                ...getResponseHeaders(),
+            },
+            body: {
+                error: 'Internal server error',
+                requestId,
+            },
+        };
+    }
+}
+
+/**
+ * Build a high-confidence envelope for deterministic identifier-shortcut
+ * routes (offer-id, arrangement code, OSI). Mirrors the schema produced by
+ * the envelope validator so the frontend dispatcher can consume it the
+ * same way as LLM-produced envelopes.
+ */
+function buildDeterministicEnvelope(intent, slots) {
+    return {
+        intent,
+        slots,
+        confidence: 'high',
+        missing_slots: [],
+        clarification_question: null,
+        user_message: null,
+    };
+}
+
+/**
+ * Extract an envelope-shaped JSON object from raw LLM text.
+ * Looks for a fenced ```json``` block first, then tries the bare text.
+ * Returns null if no parseable JSON is found.
+ */
+export function tryExtractEnvelopeFromLLMText(text) {
+    if (!text || typeof text !== 'string') return null;
+    // extractJSON shares the same hardened recovery as parseAIResponse: it
+    // tolerates literal newlines and unescaped quotes the model leaves inside
+    // string values. Without it, a guided_step envelope whose message contains
+    // `"Photoshop"` throws on JSON.parse and is misread as ASK_USER prose —
+    // shipping a shadow envelope that hijacks the guided render on the client.
+    const parsed = extractJSON(text);
+    if (parsed && typeof parsed === 'object') return parsed;
+    // The model replied conversationally instead of emitting an envelope
+    // (common for greetings and small talk). Rather than surfacing a
+    // "trouble understanding" error, treat the prose as an ASK_USER turn
+    // and carry it through as the user-facing message.
+    const prose = text.trim();
+    if (!prose) return null;
+    return {
+        intent: 'ASK_USER',
+        slots: {},
+        confidence: 'low',
+        missing_slots: [],
+        clarification_question: null,
+        user_message: prose,
+    };
+}
+
+/**
+ * Full-fidelity capture of a model output that defeated both the parser and
+ * the corrective retry. The 8KB cap keeps the line within IO Runtime log
+ * limits while capturing whole envelopes — the old 500-char console.error
+ * prefix routinely cut off the defect.
+ */
+function logParseFailure(requestId, mode, rawText, { retried, recovered }) {
+    console.log(
+        JSON.stringify({
+            phase: 'parse-failure',
+            req: requestId,
+            mode,
+            retried,
+            recovered,
+            rawLength: rawText?.length ?? 0,
+            raw: (rawText ?? '').slice(0, 8000),
+        }),
+    );
+}
+
+/**
+ * Separate "this turn was not an envelope" from "an envelope failed to
+ * validate".
+ *
+ * Guided payloads carry a type and no intent, so the validator declines them
+ * with intent-missing — that is the guard which stops a coerced ASK_USER
+ * envelope hijacking a guided reply, and it fires on every healthy guided turn.
+ * Logging that as ok:false buried the failures that do matter. Query
+ * outcome=invalid for those.
+ */
+export function shadowValidationOutcome(validation) {
+    if (!validation) return null;
+    if (validation.ok) return 'valid';
+    return validation.reason === 'intent-missing' ? 'not-an-envelope' : 'invalid';
+}
+
+function logShadowValidation(foundryResponse, params) {
+    try {
+        const message = foundryResponse?.message;
+        if (typeof message !== 'string') return null;
+        const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
+        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null });
+        console.log(
+            JSON.stringify({
+                phase: 'shadow-validation',
+                req: resolveRequestId(params),
+                ok: validation.ok,
+                outcome: shadowValidationOutcome(validation),
+                reason: validation.reason ?? null,
+                intent: validation.envelope?.intent ?? validation.coerced?.intent ?? null,
+            }),
+        );
+        return validation;
+    } catch (shadowErr) {
+        console.log(JSON.stringify({ phase: 'shadow-validation', req: resolveRequestId(params), error: shadowErr.message }));
+        return null;
+    }
+}
+
+/**
+ * Builds a corrective follow-up message for a single-shot AI retry.
+ * Lists the specific validation errors so the AI can produce a corrected card.
+ *
+ * @param {Object} cardConfig - The invalid card config from the first AI response
+ * @param {string[]} errors - Validation errors from validateAIConfig
+ * @returns {string} - Corrective prompt to send as the next user turn
+ */
+/**
+ * The id that identifies this turn in the logs.
+ *
+ * main derived this into a local and the logging helpers read params.requestId
+ * instead, so the usage and shadow-validation lines came back with req null and
+ * could not be tied to the turn that produced them. One definition, used by
+ * both, keeps every line correlatable.
+ */
+export function resolveRequestId(params) {
+    return params?.requestId ?? process.env.__OW_ACTIVATION_ID ?? null;
+}
+
+export function logUsageMetric(response, params, modelId) {
+    const usage = response?.usage;
+    if (!usage) return;
+    console.log(
+        JSON.stringify({
+            phase: 'usage',
+            req: resolveRequestId(params),
+            model: modelId ?? null,
+            input_tokens: usage.input_tokens ?? 0,
+            output_tokens: usage.output_tokens ?? 0,
+            cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+            cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+        }),
+    );
+}
+
+/**
+ * Corrective prompt for text-path parse failures. Quotes the concrete
+ * parse reason so the model fixes the actual defect instead of guessing.
+ */
+function buildParseCorrectivePrompt(failureMode, detail) {
+    const reason = detail ? `${failureMode}: ${detail}` : failureMode;
+    return (
+        `Your previous reply could not be parsed as the required JSON (${reason}). ` +
+        'Re-emit the same content as exactly ONE valid JSON code block with no text outside it. ' +
+        'Escape every double quote inside string values as \\" and keep each string value on a single line.'
+    );
+}
+
+function buildCorrectivePrompt(cardConfig, errors) {
+    const errorList = errors.map((e) => `- ${e}`).join('\n');
+    return `Your previous card response for the "${cardConfig?.variant}" variant was missing required fields. Please generate a corrected card JSON that includes all required fields.\n\nMissing or invalid:\n${errorList}\n\nReturn only the corrected JSON code block, no additional explanation.`;
+}
+
+/**
+ * Inspect the most recent assistant message and extract its flowId if it
+ * was a guided_step. Returns one of the known flow ids or null.
+ *
+ * The frontend should pass intentHint explicitly during a guided flow,
+ * but this fallback keeps the flow alive when that propagation breaks
+ * (e.g. an older deployed frontend, or a future guided menu type that
+ * forgets to wire the hint through).
+ */
+export function inferGuidedFlowFromHistory(conversationHistory) {
+    if (!Array.isArray(conversationHistory) || conversationHistory.length === 0) {
+        return null;
+    }
+    const knownFlows = ['guided_search', 'guided_offer_search', 'guided_help', 'release'];
+    const terminalPattern = /"(?:mcpTool|cardConfigs?)"\s*:|"type"\s*:\s*"(?:mcp_operation|card|collection|release_cards)"/;
+    let scanned = 0;
+    for (let i = conversationHistory.length - 1; i >= 0 && scanned < 4; i -= 1) {
+        const msg = conversationHistory[i];
+        if (msg.role !== 'assistant' || typeof msg.content !== 'string') continue;
+        scanned += 1;
+        const match = msg.content.match(/"flowId"\s*:\s*"([a-z_]+)"/);
+        if (match && knownFlows.includes(match[1])) {
+            return match[1];
+        }
+        // A terminal response (operation/card/collection) means the flow
+        // concluded — do not resurrect an older guided step past it.
+        if (terminalPattern.test(msg.content)) return null;
+    }
+    return null;
+}
+
+/**
+ * Determine which system prompt to use based on conversation context
+ * @param {string} intentHint - Optional hint ('card', 'collection', or 'documentation')
+ * @param {Array} conversationHistory - Previous messages
+ * @param {string} message - Current user message
+ * @returns {Object} - { prompt: string, isDocumentation: boolean, isCardCreation: boolean }
+ */
+function determineSystemPromptWithMeta(intentHint, conversationHistory, message, context) {
+    if (intentHint === 'documentation') {
+        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
+    }
+
+    if (intentHint === 'release') {
+        return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
+    }
+
+    if (intentHint === 'guided_search') {
+        return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+
+    if (intentHint === 'guided_offer_search') {
+        return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+
+    if (intentHint === 'guided_help') {
+        return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+    }
+
+    // Defense in depth: if the previous assistant message was a guided_step
+    // with a known flowId, stay in that flow even when the frontend forgot
+    // to forward the intentHint. Without this, the user can drift from
+    // search into creation just by clicking a button (the frontend stripped
+    // intent before the fix on Layer 1; this guards against regressions).
+    const inferredFlow = inferGuidedFlowFromHistory(conversationHistory);
+    if (inferredFlow === 'guided_search') {
+        return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+    if (inferredFlow === 'guided_offer_search') {
+        return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+    }
+    if (inferredFlow === 'guided_help') {
+        return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+    }
+    if (inferredFlow === 'release') {
+        return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
+    }
+    const lowerMessage = message.toLowerCase();
+
+    const operationKeywords = [
+        // Read / mutate ops on existing cards
+        'publish',
+        'unpublish',
+        'get',
+        'find',
+        'search',
+        'delete',
+        'remove',
+        'copy',
+        'duplicate',
+        'update',
+        'modify',
+        'edit',
+        'change',
+        'show me',
+        'fetch',
+        'list',
+        'variation',
+        'variations',
+        'regional',
+        'locale',
+        'offer',
+        'pricing',
+        'price',
+        'cost',
+        'terms',
+        'commitment',
+        'osi',
+        // Card creation phrasings — these are operations, not docs questions.
+        // "make me a card", "create a card", "build a card", "I need a card" all
+        // mean "do something for me using the MCP tools", which is what the
+        // operations prompt enables (it includes create_release_cards).
+        'make me',
+        'make a card',
+        'make a custom card',
+        'create',
+        'build',
+        'build me',
+        'generate',
+        'add card',
+        'add a card',
+        'new card',
+        'i need a card',
+        'i want a card',
+        'release',
+        'merch card',
+        'custom card',
+        'adobe home card',
+    ];
+    const hasOperationKeyword = operationKeywords.some((keyword) => lowerMessage.includes(keyword));
+
+    if (hasOperationKeyword) {
+        return {
+            prompt: buildOperationsPrompt(message, context),
+            isDocumentation: false,
+            isCardCreation: false,
+        };
+    }
+
+    // No operation or guided-flow match: fall through to documentation.
+    return {
+        prompt: buildDocumentationPrompt(message),
+        isDocumentation: true,
+        isCardCreation: false,
+    };
+}
+
+/**
+ * Map an intent label from the LLM classifier back to a system prompt
+ * + metadata triple, mirroring determineSystemPromptWithMeta's contract.
+ *
+ * Returns null when the label is `unknown` or unrecognized — the caller
+ * should fall back to the keyword classifier in that case so the existing
+ * card-search and card-creation logic keeps working.
+ *
+ * @private
+ */
+function promptFromClassifierLabel(label, message, context) {
+    switch (label) {
+        case 'operations':
+            return {
+                prompt: buildOperationsPrompt(message, context),
+                isDocumentation: false,
+                isCardCreation: false,
+            };
+        case 'documentation':
+            return {
+                prompt: buildDocumentationPrompt(message),
+                isDocumentation: true,
+                isCardCreation: false,
+            };
+        case 'guided_search':
+            return { prompt: GUIDED_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+        case 'guided_offer_search':
+            return { prompt: GUIDED_OFFER_SEARCH_PROMPT, isDocumentation: false, isCardCreation: false };
+        case 'guided_help':
+            return { prompt: GUIDED_HELP_PROMPT, isDocumentation: true, isCardCreation: false };
+        case 'release':
+            return { prompt: GUIDED_CARD_CREATION_PROMPT, isDocumentation: false, isCardCreation: true };
+        case 'unknown':
+        default:
+            return null;
+    }
+}
+
+/**
+ * LLM-driven version of determineSystemPromptWithMeta — replaces the
+ * keyword cascade with one cheap classifier call grounded in the MAS glossary.
+ * Falls back to the keyword classifier on any failure so existing
+ * card-search and card-creation flows keep working.
+ *
+ * Gated by USE_LLM_CLASSIFIER (action input). When the flag is off, falls
+ * straight to the keyword path. When on, runs the classifier and only uses
+ * its label if the call succeeded AND the label is recognized — otherwise
+ * keyword fallback.
+ *
+ * @param {Object} args
+ * @param {string|null} args.intentHint - Frontend-supplied hint (highest priority)
+ * @param {Array} args.conversationHistory
+ * @param {string} args.message
+ * @param {Object} args.context
+ * @param {Object} args.params - IO Runtime action params (env vars)
+ */
+async function determineSystemPromptWithMetaAsync({ intentHint, conversationHistory, message, context, params }) {
+    // intentHint always wins — never re-classify when the frontend told us
+    // exactly which flow to use.
+    if (intentHint) {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    if (params?.USE_LLM_CLASSIFIER !== 'true') {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    let classifierClient;
+    try {
+        classifierClient = createClassifierClient(params);
+    } catch (err) {
+        console.warn('[classifier] could not create classifier client; falling back to keyword classifier:', err.message);
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    const result = await classifyIntent({ message, conversationHistory, client: classifierClient });
+    console.log(
+        `[classifier] intent=${result.intent} success=${result.success} latency=${result.latencyMs}ms${
+            result.error ? ` error="${result.error}"` : ''
+        }`,
+    );
+
+    if (!result.success) {
+        return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+    }
+
+    const fromLabel = promptFromClassifierLabel(result.intent, message, context);
+    if (fromLabel) return fromLabel;
+
+    // Label was 'unknown' or unrecognized — keyword fallback.
+    return determineSystemPromptWithMeta(intentHint, conversationHistory, message, context);
+}
+
+/** Every response carries the activation id; main returns from many places. */
+async function mainWithRequestId(params) {
+    const result = await main(params);
+    return attachRequestId(result, params?.requestId ?? process.env.__OW_ACTIVATION_ID ?? null);
+}
+
+export { mainWithRequestId as main };

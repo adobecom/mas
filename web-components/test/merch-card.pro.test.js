@@ -2042,6 +2042,26 @@ describe('pro CTAs', () => {
         }
     });
 
+    it('do not stack the row for a lone CTA with a long label', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                '<div slot="footer"><a href="#">Starta gratis provperiod nu och köp senare</a></div>',
+                footer('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
     it('stack every card in a row when one card must', async () => {
         const { wrap, cards } = await renderRow(
             [

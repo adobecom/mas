@@ -72,7 +72,12 @@ async function saveRemoval(fragments, updated, saves, timeoutMs) {
     assertSaveAvailable(saves, updated.id);
     const operation = Promise.resolve(fragments.save(updated, { refetchEtag: false })).finally(() => saves.delete(updated.id));
     saves.set(updated.id, operation);
-    return readFragment(() => operation, timeoutMs, 'Fragment save timed out.');
+    try {
+        return await readFragment(() => operation, timeoutMs, 'Fragment save timed out.');
+    } catch (error) {
+        if (error.message === 'Fragment save timed out.') error.pendingSave = operation;
+        throw error;
+    }
 }
 
 export async function removeMissingReferences(aem, issues, { hasUnsavedChanges = () => false, saveTimeoutMs = 10000 } = {}) {
@@ -96,11 +101,13 @@ export async function removeMissingReferences(aem, issues, { hasUnsavedChanges =
             result.savedFragments.push(saved);
             result.removedCount += ownerIssues.length;
         } catch (error) {
+            const pendingSave = error.pendingSave ?? saves.get(id);
             result.failures.push({
                 ownerId: id,
                 ownerPath: ownerIssues[0].ownerPath,
-                pending: saves.has(id),
-                detail: combineDetails(saves.has(id) ? PENDING_SAVE_MESSAGE : '', error.message),
+                pending: Boolean(pendingSave),
+                detail: combineDetails(pendingSave ? PENDING_SAVE_MESSAGE : '', error.message),
+                ...(pendingSave ? { pendingSave } : {}),
             });
         }
     }

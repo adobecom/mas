@@ -14,6 +14,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
         roots: { attribute: false },
         confirmingRemoval: { state: true },
         removing: { state: true },
+        waitingForSave: { state: true },
         cleanupMessage: { state: true },
         cleanupErrors: { state: true },
     };
@@ -129,12 +130,15 @@ class MasReferenceDiagnosisDialog extends LitElement {
         this.roots = [];
         this.confirmingRemoval = false;
         this.removing = false;
+        this.waitingForSave = false;
+        this.finished = false;
         this.cleanupMessage = '';
         this.cleanupErrors = [];
     }
 
     finish(confirmed) {
-        if (this.removing) return;
+        if (this.removing || this.finished || (confirmed && this.waitingForSave)) return;
+        this.finished = true;
         this.dispatchEvent(new CustomEvent('diagnosis-decided', { bubbles: true, composed: true, detail: { confirmed } }));
     }
 
@@ -219,6 +223,51 @@ class MasReferenceDiagnosisDialog extends LitElement {
         } finally {
             this.removing = false;
         }
+    }
+
+    async continuePublish() {
+        if (this.removing || this.waitingForSave) return;
+        const pendingFailures = this.cleanupErrors.filter((failure) => failure.pending && failure.pendingSave);
+        if (!pendingFailures.length) {
+            this.finish(true);
+            return;
+        }
+
+        this.waitingForSave = true;
+        this.cleanupMessage = 'Waiting for the pending cleanup save before publishing.';
+        try {
+            const outcomes = await Promise.all(
+                pendingFailures.map(({ ownerId, pendingSave }) =>
+                    pendingSave.then(
+                        () => ({ ownerId }),
+                        (error) => ({ ownerId, error }),
+                    ),
+                ),
+            );
+            const ownerIds = [...new Set(outcomes.map(({ ownerId }) => ownerId))];
+            const refreshedFragments = await Promise.all(ownerIds.map((id) => this.aem.sites.cf.fragments.getWithEtag(id)));
+            this.syncSavedFragments(refreshedFragments);
+            const outcomesByOwner = new Map(outcomes.map((outcome) => [outcome.ownerId, outcome]));
+            this.cleanupErrors = this.cleanupErrors.flatMap((failure) => {
+                const outcome = outcomesByOwner.get(failure.ownerId);
+                if (!outcome) return [failure];
+                if (!outcome.error) return [];
+                const { pendingSave, ...settledFailure } = failure;
+                return [{ ...settledFailure, pending: false, detail: outcome.error.message }];
+            });
+            if (this.isConnected) this.report = await inspectReferences(this.aem, this.roots);
+        } catch (error) {
+            this.cleanupErrors = [
+                ...this.cleanupErrors,
+                { ownerPath: '', detail: `Could not refresh fragments after cleanup save: ${error.message}` },
+            ];
+            this.cleanupMessage = '';
+            this.waitingForSave = false;
+            return;
+        }
+
+        this.waitingForSave = false;
+        if (!this.finished) this.finish(true);
     }
 
     willUpdate(changedProperties) {
@@ -394,7 +443,10 @@ class MasReferenceDiagnosisDialog extends LitElement {
                                             >Remove missing references (${this.removableIssues.length})</sp-button
                                         >`
                                       : nothing}
-                                  <sp-button variant="accent" ?disabled=${this.removing} @click=${() => this.finish(true)}
+                                  <sp-button
+                                      variant="accent"
+                                      ?disabled=${this.removing || this.waitingForSave}
+                                      @click=${() => this.continuePublish()}
                                       >Continue Publish</sp-button
                                   >
                               `}

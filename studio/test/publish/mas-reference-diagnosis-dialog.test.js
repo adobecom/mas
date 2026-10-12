@@ -110,6 +110,81 @@ describe('reference diagnosis dialog', () => {
         expect(context.fragments.publish.called).to.be.false;
     });
 
+    it('refreshes a timed-out cleanup save before continuing despite remaining diagnostic issues', async () => {
+        const context = removalContext();
+        const owner = context.roots[0];
+        let resolveSave;
+        context.fragments.save.returns(new Promise((resolve) => (resolveSave = resolve)));
+        context.fragments.getByPath.callsFake(async (path) => {
+            if (path.endsWith('/missing')) throw new Error('Fragment not found');
+            throw new Error('403 Forbidden');
+        });
+        const savedOwner = {
+            ...owner,
+            etag: 'late-save-etag',
+            fields: [{ ...owner.fields[0], values: ['/content/dam/mas/valid'] }],
+            validationStatus: [],
+        };
+        context.fragments.getWithEtag.onSecondCall().resolves(savedOwner);
+        context.fragments.getById.onSecondCall().resolves(savedOwner);
+        sinon.stub(Store.editor, 'hasChanges').get(() => false);
+        const dialog = await fixture(html`
+            <mas-reference-diagnosis-dialog .report=${context.report} .aem=${context.aem} .roots=${context.roots}>
+            </mas-reference-diagnosis-dialog>
+        `);
+        const decided = sinon.stub();
+        dialog.addEventListener('diagnosis-decided', decided);
+
+        await dialog.removeMissing({ saveTimeoutMs: 10 });
+        await dialog.updateComplete;
+        const continuing = dialog.continuePublish();
+
+        expect(decided.called).to.be.false;
+        expect(dialog.roots[0].fields[0].values).to.deep.equal(['/content/dam/mas/missing', '/content/dam/mas/valid']);
+
+        resolveSave({ ...context.fragments.save.firstCall.args[0], etag: 'late-save-etag' });
+        await continuing;
+
+        expect(decided.firstCall.args[0].detail.confirmed).to.be.true;
+        expect(dialog.roots[0].fields[0].values).to.deep.equal(['/content/dam/mas/valid']);
+        expect(dialog.roots[0].etag).to.equal('late-save-etag');
+        expect(dialog.report.complete).to.be.false;
+        expect(dialog.report.issues[0].detail).to.include('403 Forbidden');
+        expect(context.fragments.getWithEtag.calledTwice).to.be.true;
+    });
+
+    it('allows cancel while waiting for a timed-out cleanup save and still refreshes the owner after settlement', async () => {
+        const context = removalContext();
+        const owner = context.roots[0];
+        let resolveSave;
+        context.fragments.save.returns(new Promise((resolve) => (resolveSave = resolve)));
+        const savedOwner = {
+            ...owner,
+            etag: 'late-save-etag',
+            fields: [{ ...owner.fields[0], values: ['/content/dam/mas/valid'] }],
+            validationStatus: [],
+        };
+        context.fragments.getWithEtag.onSecondCall().resolves(savedOwner);
+        context.fragments.getById.onSecondCall().resolves(savedOwner);
+        sinon.stub(Store.editor, 'hasChanges').get(() => false);
+        const dialog = await fixture(html`
+            <mas-reference-diagnosis-dialog .report=${context.report} .aem=${context.aem} .roots=${context.roots}>
+            </mas-reference-diagnosis-dialog>
+        `);
+        const decided = sinon.stub();
+        dialog.addEventListener('diagnosis-decided', decided);
+
+        await dialog.removeMissing({ saveTimeoutMs: 10 });
+        const continuing = dialog.continuePublish();
+        dialog.finish(false);
+        resolveSave({ ...context.fragments.save.firstCall.args[0], etag: 'late-save-etag' });
+        await continuing;
+
+        expect(decided.firstCall.args[0].detail.confirmed).to.be.false;
+        expect(dialog.roots[0].fields[0].values).to.deep.equal(['/content/dam/mas/valid']);
+        expect(dialog.roots[0].etag).to.equal('late-save-etag');
+    });
+
     it('does not offer bulk removal for review-only or unconfirmed issues', async () => {
         const context = removalContext();
         const dialog = await fixture(

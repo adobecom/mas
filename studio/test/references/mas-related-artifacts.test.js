@@ -36,12 +36,17 @@ describe('mas-related-artifacts', () => {
             .buckets.find((bucket) => bucket.key === 'collections')
             .rows.map((row) => row.representative.id);
     // Closing the modal before it finishes opening strands Spectrum's focus trap, which then
-    // swallows every click on the page; wait until focus has moved into the dialog.
+    // swallows every click on the page; wait until focus has moved into the dialog. Opening runs a
+    // transition and a dynamic import first, which can take over a second on a loaded CI runner.
     const openArtifactsDialog = async (el) => {
         el.shadowRoot.querySelector('.artifacts-view-link').focus();
         el.shadowRoot.querySelector('.artifacts-view-link').click();
         await el.updateComplete;
-        await waitUntil(() => dialogOf(el).shadowRoot.querySelector('sp-dialog-wrapper')?.matches(':focus-within'));
+        await waitUntil(
+            () => dialogOf(el).shadowRoot.querySelector('sp-dialog-wrapper')?.matches(':focus-within'),
+            'Focus never moved into the artifacts dialog',
+            { timeout: 5000 },
+        );
     };
     const settled = async (el) => {
         await el.updateComplete;

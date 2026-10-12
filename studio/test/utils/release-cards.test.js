@@ -22,9 +22,28 @@ const ctasValue = (data) =>
 const pricesValue = (data) =>
     data.fields.map((f) => f.values?.[0]).find((v) => typeof v === 'string' && v.includes('inline-price'));
 
+const MOCK_FRAGMENT_MAPPING = {
+    title: { tag: 'h3', slot: 'heading-xs' },
+    description: { tag: 'div', slot: 'body-xs' },
+    ctas: { tag: 'div', slot: 'footer' },
+    prices: { tag: 'span', slot: 'price' },
+    mnemonics: {},
+    osi: {},
+};
+
+// getFragmentMapping resolves the variant->field map off the merch-card custom
+// element, which the test shell does not register. Stub it the way
+// ai-card-mapper.test.js does so the builder exercises the real mapping path.
+function stubMerchCard() {
+    sinon.stub(window.customElements, 'get').callsFake((name) =>
+        name === 'merch-card' ? { getFragmentMapping: () => MOCK_FRAGMENT_MAPPING } : undefined,
+    );
+}
+
 describe('release-cards buildReleaseFragmentData', () => {
     let fetchStub;
     beforeEach(() => {
+        stubMerchCard();
         fetchStub = sinon.stub(window, 'fetch');
     });
     afterEach(() => {
@@ -80,6 +99,7 @@ describe('release-cards buildReleaseFragmentData', () => {
 });
 
 describe('release-cards createReleaseCard', () => {
+    beforeEach(() => stubMerchCard());
     afterEach(() => sinon.restore());
 
     it('creates the fragment through the repository and returns it', async () => {

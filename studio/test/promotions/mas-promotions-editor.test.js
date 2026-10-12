@@ -2716,6 +2716,47 @@ describe('MasPromotionsEditor', () => {
                 expect(selector.shadowRoot.querySelector('.import-url-btn')).to.exist;
             });
 
+            it('opens with no pre-applied product filter and flags variation and tag matching', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.selectedOffers.set(['offer-1']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (f) => f.type === TABLE_TYPE.CARDS,
+                );
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+                expect(cardsFilter.matchVariationsAndTags).to.equal(true);
+            });
+
+            it('keeps a cleared filter cleared while typing', async () => {
+                const { el } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.selectedOffers.set(['offer-1']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (f) => f.type === TABLE_TYPE.CARDS,
+                );
+                cardsFilter.dispatchEvent(
+                    new CustomEvent('offer-filter-change', { detail: { value: 'offer-1' }, bubbles: true, composed: true }),
+                );
+                await el.updateComplete;
+                expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+
+                cardsFilter.productFilter = [];
+                for (const query of ['a', 'ab']) {
+                    selector.searchQuery = query;
+                    selector.requestUpdate();
+                    await selector.updateComplete;
+                }
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+            });
+
             it('keeps the offer-based product filter active after leaving and returning from Import via URL', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
@@ -2727,6 +2768,11 @@ describe('MasPromotionsEditor', () => {
                 const cardsFilterBefore = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
+                cardsFilterBefore.dispatchEvent(
+                    new CustomEvent('offer-filter-change', { detail: { value: 'offer-1' }, bubbles: true, composed: true }),
+                );
+                await el.updateComplete;
+                await selector.updateComplete;
                 expect(cardsFilterBefore.productFilter).to.deep.equal(['mas:product_code/phsp']);
 
                 selector.shadowRoot.querySelector('sp-button.import-url-btn').click();

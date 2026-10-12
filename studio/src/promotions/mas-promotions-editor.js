@@ -102,6 +102,7 @@ function getPromotionPickerFragmentLabel(data) {
 }
 
 const OFFER_FILTER_ALL = 'all';
+const EMPTY_PRODUCT_FILTER = Object.freeze([]);
 
 const PROMOTION_VIEW_TABS = [
     { value: TABLE_TYPE.OFFERS, label: 'Offers' },
@@ -1168,12 +1169,6 @@ class MasPromotionsEditor extends LitElement {
         this.selectedItemsViewTab = tab ?? TABLE_TYPE.OFFERS;
     };
 
-    get #activeOfferFilterIds() {
-        const s = getItemsSelectionStore({ allowUnset: true });
-        const all = s?.selectedOffers.value ?? [];
-        return this.activeFilterOfferId ? [this.activeFilterOfferId] : all;
-    }
-
     get #offerFilterOptions() {
         const s = getItemsSelectionStore({ allowUnset: true });
         return (s?.selectedOffers.value ?? []).map((id) => ({
@@ -1182,9 +1177,8 @@ class MasPromotionsEditor extends LitElement {
         }));
     }
 
-    get #offerProductTags() {
-        return collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
-    }
+    /** Stable reference across renders so a chip the user deleted is not re-applied on every keystroke. */
+    #pickerProductFilter = [];
 
     #onPromotionOffersFilterChange = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
@@ -1204,7 +1198,11 @@ class MasPromotionsEditor extends LitElement {
     #syncOfferProductTagsToFragmentSearch = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
+        const tags = applyPromotionOfferProductTagsToSearch(
+            Store.promotions.offerRecordsCache,
+            this.activeFilterOfferId ? [this.activeFilterOfferId] : [],
+        );
+        this.#pickerProductFilter = tags;
         const picker = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         picker?.searchFilterElements.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) el.productFilter = tags;
@@ -1284,7 +1282,8 @@ class MasPromotionsEditor extends LitElement {
                 .promotionSurfaceOptions=${promotionSurfaceOptions}
                 .promotionSurface=${surfacePickerValue ?? ''}
                 .externalProductFilter=${true}
-                .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#offerProductTags : []}
+                .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#pickerProductFilter : EMPTY_PRODUCT_FILTER}
+                .matchVariationsAndTags=${true}
                 .offerFilterOptions=${tab.value === TABLE_TYPE.CARDS ? this.#offerFilterOptions : []}
                 .offerFilterValue=${this.activeFilterOfferId}
                 @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
@@ -1392,6 +1391,7 @@ class MasPromotionsEditor extends LitElement {
         }
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
+        this.activeFilterOfferId = '';
         selector?.resetFilters();
         this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();

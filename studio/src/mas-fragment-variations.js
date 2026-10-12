@@ -230,7 +230,7 @@ class MasFragmentVariations extends LitElement {
                 if (promotionId) Store.promotions.promotionId.set(promotionId);
             }
         }
-        await router.navigateToFragmentEditor(fragment.id, { locale, fragmentStore });
+        await router.navigateToFragmentEditor(fragment.id, { locale });
     }
 
     #getPromotionIdForItem(fragment) {

@@ -1407,7 +1407,7 @@ class MerchCardCollectionEditor extends LitElement {
     get groupedVariationTagsTemplate() {
         if (!this.isGroupedVariation) return nothing;
         return html`
-            <div class="form-row">
+            <div class="form-row span-2">
                 <sp-field-group id="grouped-variation-tags">
                     <sp-field-label>Grouped variation tags</sp-field-label>
                     <aem-tag-picker-field
@@ -1630,6 +1630,7 @@ class MerchCardCollectionEditor extends LitElement {
                         ></aem-tag-picker-field>
                         ${this.#renderTagsStatusIndicator()}
                     </div>
+                    ${this.groupedVariationTagsTemplate}
                 </div>
             </div>
         `;
@@ -1690,7 +1691,7 @@ class MerchCardCollectionEditor extends LitElement {
             this.linkIcon,
             this.linkText,
         ];
-        return this.isGroupedVariation || values.some(Boolean);
+        return values.some(Boolean);
     }
 
     #toggleSidenav = () => {
@@ -1740,7 +1741,6 @@ class MerchCardCollectionEditor extends LitElement {
                             @change=${this.#handleTagFilterChange}
                         ></aem-tag-picker-field>
                     </div>
-                    ${this.groupedVariationTagsTemplate}
                 </div>
                 <div class="grid-column">
                     <div class="form-row">

@@ -154,7 +154,7 @@
                         };
                     }
 
-                    it('should render grouped variation tag picker in sidenav when path is a grouped variation', async () => {
+                    it('renders the grouped variation tag picker in General info, right below Tags', async () => {
                         const editor = document.createElement('merch-card-collection-editor');
                         editor.updateFragment = () => {};
                         const fragmentStore = new FragmentStore(new Fragment(groupedCollectionFragmentData()));
@@ -164,6 +164,10 @@
 
                         const groupedGroup = editor.shadowRoot.querySelector('#grouped-variation-tags');
                         expect(groupedGroup).to.exist;
+                        const tagsRow = editor.shadowRoot.querySelector('#collection-tags').closest('.form-row');
+                        expect(tagsRow.nextElementSibling?.querySelector('#grouped-variation-tags') === groupedGroup).to.be
+                            .true;
+                        expect(editor.shadowRoot.querySelector('#sidenav-fields #grouped-variation-tags')).to.not.exist;
                         const picker = groupedGroup.querySelector('aem-tag-picker-field');
                         expect(picker).to.exist;
                         expect(picker.getAttribute('value')).to.equal('mas:locale/fr_FR,mas:locale/de_DE');

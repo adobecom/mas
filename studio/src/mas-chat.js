@@ -108,6 +108,15 @@ export class MasChat extends LitElement {
 
     #session = {};
 
+    /**
+     * True only for the turn a user explicitly confirmed a release via the
+     * confirmation UI. `release_cards` responses are write-producing, so they
+     * are processed only when this is set — a model cannot create cards on its
+     * own by emitting the envelope. Set from the confirm action's context in
+     * handleSendMessage and consumed in handleReleaseCardsResponse.
+     */
+    #releaseConfirmed = false;
+
     captureWork() {
         return { session: this.#session, turn: this.#turn };
     }
@@ -512,6 +521,10 @@ export class MasChat extends LitElement {
                         // brand new release and replays the confirmation step
                         // instead of creating anything.
                         intentHint: 'release',
+                        // Marks this as the single turn allowed to create cards:
+                        // handleReleaseCardsResponse processes release_cards only
+                        // when the user confirmed here (see #releaseConfirmed).
+                        confirmedRelease: true,
                         osi: this.selectedReleaseOsi,
                         trialOsi: this.selectedReleaseTrialOsi,
                     },
@@ -526,6 +539,11 @@ export class MasChat extends LitElement {
         const { message, context } = event.detail;
 
         if (!message.trim()) return;
+
+        // Only a turn the user explicitly confirmed may create release cards.
+        // Every other send clears the flag so a stale confirmation cannot
+        // authorize a later model-emitted release_cards response.
+        this.#releaseConfirmed = context?.confirmedRelease === true;
 
         this.showPromptSuggestions = false;
         this.showWelcomeScreen = false;
@@ -725,7 +743,7 @@ export class MasChat extends LitElement {
                 ];
 
                 try {
-                    const draftFragment = await this.saveDraftToAEM(response.cardConfig);
+                    const draftFragment = await this.saveDraftToAEM(stripReleaseConfig(response.cardConfig));
                     if (!this.isCurrentWork(work)) return;
 
                     this.messages = [
@@ -1504,6 +1522,25 @@ export class MasChat extends LitElement {
 
     async handleReleaseCardsResponse(response) {
         const work = this.captureWork();
+
+        // release_cards writes fragments to AEM. Require that the user confirmed
+        // this release via the confirmation UI; a model cannot trigger creation
+        // on its own by emitting the envelope. Ask for confirmation instead of
+        // creating when the gate was not passed.
+        if (!this.#releaseConfirmed) {
+            this.messages = [
+                ...this.messages,
+                {
+                    role: 'assistant',
+                    content: 'Please confirm the card details before I create them.',
+                    timestamp: Date.now(),
+                    fresh: true,
+                },
+            ];
+            return;
+        }
+        this.#releaseConfirmed = false;
+
         const cardConfigs = Array.isArray(response.cardConfigs) ? response.cardConfigs : [];
         if (cardConfigs.length === 0) {
             this.messages = [
@@ -1534,10 +1571,12 @@ export class MasChat extends LitElement {
             },
         ];
 
-        const fallbackParentPath = `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`;
+        const currentSurface = Store.search.value.path;
+        const fallbackParentPath = `${getDamPath(currentSurface)}/${Store.filters.value.locale || 'en_US'}`;
         // response.parentPath is model-authored; only honor it when it is a real
-        // surface path, else a prompt injection could redirect where cards write.
-        const parentPath = isSafeSurfacePath(response.parentPath) ? response.parentPath : fallbackParentPath;
+        // surface path under the current surface, else a prompt injection could
+        // redirect where cards write.
+        const parentPath = isSafeSurfacePath(response.parentPath, currentSurface) ? response.parentPath : fallbackParentPath;
 
         const results = [];
         for (const cardConfig of cardConfigs) {

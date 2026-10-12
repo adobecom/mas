@@ -2411,10 +2411,6 @@ body.chat-resizing {
     --mas-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.chat-drawer-body {
-    background: var(--mas-chat-surface);
-}
-
 /* ==========================================================================
    FAB-to-drawer morph with blurred backdrop (MWPW-183572)
    ========================================================================== */

@@ -300,6 +300,9 @@ export const QUICK_ACTION = {
     LINK: 'link',
     REVERT: 'revert',
     CHECK_MODIFICATIONS: 'check-modifications',
+    CREATE_VARIATION: 'create-variation',
+    PREVIEW: 'preview',
+    HISTORY: 'history',
 };
 
 export const FILTER_TYPE = {

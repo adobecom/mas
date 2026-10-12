@@ -1,4 +1,5 @@
-import { expect, fixture, html, waitUntil } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
+import { sendKeys } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/references/mas-external-usage-dialog.js';
@@ -21,7 +22,19 @@ const usage = {
 };
 
 async function openDialog(data = usage) {
-    return fixture(html`<mas-external-usage-dialog .open=${true} .usage=${data}></mas-external-usage-dialog>`);
+    const element = await fixture(html`<mas-external-usage-dialog .usage=${data}></mas-external-usage-dialog>`);
+    element.open = true;
+    await element.updateComplete;
+    await waitUntil(() => element.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+    return element;
+}
+
+async function closeFixture() {
+    const overlay = document.querySelector('mas-external-usage-dialog')?.shadowRoot.querySelector('sp-overlay');
+    if (!overlay?.open) return;
+    const closed = oneEvent(overlay, 'sp-closed');
+    overlay.open = false;
+    await closed;
 }
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());
@@ -37,7 +50,8 @@ describe('mas-external-usage-dialog', () => {
         sandbox = sinon.createSandbox();
     });
 
-    afterEach(() => {
+    afterEach(async () => {
+        await closeFixture();
         sandbox.restore();
     });
 
@@ -264,6 +278,7 @@ describe('mas-external-usage-dialog', () => {
             closed = true;
         });
         element.shadowRoot.querySelector('.dialog-close').click();
+        await waitUntil(() => closed);
         expect(closed).to.equal(true);
     });
 
@@ -277,7 +292,31 @@ describe('mas-external-usage-dialog', () => {
         const underlay = element.shadowRoot.querySelector('sp-underlay');
         underlay.dispatchEvent(new PointerEvent('pointerdown'));
         underlay.dispatchEvent(new PointerEvent('pointerup'));
+        await waitUntil(() => closed);
         expect(closed).to.equal(true);
+    });
+
+    it('restores opener focus after Escape closes the related pages dialog', async () => {
+        const host = fixtureSync(html`
+            <div>
+                <button>View related pages</button>
+                <mas-external-usage-dialog .usage=${usage}></mas-external-usage-dialog>
+            </div>
+        `);
+        const opener = host.querySelector('button');
+        const dialog = host.querySelector('mas-external-usage-dialog');
+        dialog.addEventListener('close', (event) => {
+            event.currentTarget.open = false;
+        });
+        opener.focus();
+        dialog.open = true;
+        await dialog.updateComplete;
+        await waitUntil(() => dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+
+        await sendKeys({ press: 'Escape' });
+
+        await waitUntil(() => !dialog.open);
+        await waitUntil(() => document.activeElement === opener);
     });
 
     it('resets the sort order each time it reopens', async () => {

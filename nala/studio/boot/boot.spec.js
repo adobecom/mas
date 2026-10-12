@@ -125,4 +125,42 @@ export const features = [
         },
         tags: '@mas-studio @boot @regression',
     },
+    {
+        tcid: '14',
+        name: '@MAS-Studio-Boot-unrelated-syntax-error',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '15',
+        name: '@MAS-Studio-Boot-timeout',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            slowPath: '/studio/nala-slow-head.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '16',
+        name: '@MAS-Studio-Boot-early-script-failure',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            failingPath: '/studio/nala-early-fail.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
+    {
+        tcid: '17',
+        name: '@MAS-Studio-Boot-cache-salt-wraparound',
+        path: '/studio.html',
+        browserParams: '#locale=fr_FR&page=content&path=nala',
+        data: {
+            cb: '999999999',
+            failingPath: '/studio/src/studio.js',
+        },
+        tags: '@mas-studio @boot @regression',
+    },
 ];

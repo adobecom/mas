@@ -3,6 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { init, parse } from 'es-module-lexer';
 
 export const REPO_ROOT = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 export const GRAPH_ENTRIES = ['/studio/src/studio.js', '/studio/libs/fragment-client.js'];
@@ -68,6 +69,7 @@ export function replaceVersionsBlock(html, versions) {
  * @returns {Promise<string[]>}
  */
 export async function collectModuleGraph(rootDir, entries) {
+    await init;
     const result = await build({
         absWorkingDir: rootDir,
         entryPoints: entries.map((entry) => `.${entry}`),
@@ -81,7 +83,11 @@ export async function collectModuleGraph(rootDir, entries) {
         logLevel: 'silent',
         plugins: [externalizeBareSpecifiers],
     });
-    if (result.outputFiles.some((file) => /\bimport\(/.test(file.text))) {
+    const hasNonLiteralImport = result.outputFiles.some((file) => {
+        const [imports] = parse(file.text);
+        return imports.some(({ d: dynamic, n: specifier }) => dynamic >= 0 && specifier == null);
+    });
+    if (hasNonLiteralImport) {
         throw new Error(
             `${entries.join(', ')}: non-literal dynamic import() found; use import('./literal.js') so the module can be versioned`,
         );
@@ -96,9 +102,10 @@ export async function collectModuleGraph(rootDir, entries) {
  * Content hash for every boot-script asset and every module in Studio's graph.
  * @param {string} rootDir absolute repo root
  * @param {string} html contents of studio.html
+ * @param {(path: string) => Promise<Buffer|string>} [readAsset]
  * @returns {Promise<Record<string, string>>}
  */
-export async function computeVersions(rootDir, html) {
+export async function computeVersions(rootDir, html, readAsset = readFile) {
     const graph = await collectModuleGraph(rootDir, GRAPH_ENTRIES);
     const assetPaths = [...new Set([...extractAssetPaths(html), ...graph])].sort();
     const contents = await Promise.all(
@@ -107,7 +114,7 @@ export async function computeVersions(rootDir, html) {
             if (!absolute.startsWith(`${rootDir}${path.sep}`)) {
                 throw new Error(`studio.html references ${assetPath}, which is outside the repo`);
             }
-            return readFile(absolute).catch((error) => {
+            return readAsset(absolute).catch((error) => {
                 if (error.code !== 'ENOENT') throw error;
                 throw new Error(`studio.html references ${assetPath}, which does not exist`);
             });

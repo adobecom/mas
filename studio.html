@@ -252,7 +252,7 @@
                 "/studio/src/settings/mas-settings.js": "c93c8ce1",
                 "/studio/src/settings/settings-store.js": "ad944605",
                 "/studio/src/store.js": "b80cfa45",
-                "/studio/src/studio.js": "000f3e6c",
+                "/studio/src/studio.js": "a6eb0892",
                 "/studio/src/translation/mas-collapsible-table-row.css.js": "09521d8a",
                 "/studio/src/translation/mas-collapsible-table-row.js": "d48aebb9",
                 "/studio/src/translation/mas-translation-editor.css.js": "e90a911c",
@@ -287,6 +287,7 @@
         <!-- Boot: writes one import map and every Studio asset tag with a content version (?v=), so Akamai never mixes old and new files. studio/build-versions.mjs reads the quoted paths below. -->
         <script id="studio-boot">
             (function () {
+                const BOOT_TIMEOUT = 30000;
                 const params = new URLSearchParams(location.search);
                 const cacheSalt = /^\d{1,9}$/.test(params.get('cb') ?? '') ? params.get('cb') : '';
                 let versions = {};
@@ -316,33 +317,46 @@
                     document.querySelector('.studio-boot')?.remove();
                     document.querySelector('.studio-boot-error')?.removeAttribute('hidden');
                 };
-                const onBootError = (event) => {
-                    const { target } = event;
-                    const element = target instanceof HTMLScriptElement || target instanceof HTMLLinkElement ? target : null;
-                    const url = element ? element.src || element.href : event.filename;
-                    if (!isBootAsset(url) && event.error?.name !== 'SyntaxError') return;
-                    console.error('[M@S Studio] boot failed', url);
-                    if (target instanceof HTMLScriptElement && isBootAsset(url)) scriptLoadFailed = true;
+                const revealBootErrorWhenReady = () => {
                     if (document.readyState === 'loading') {
                         document.addEventListener('DOMContentLoaded', revealBootError, { once: true });
                     } else {
                         revealBootError();
                     }
                 };
+                const onBootError = (event) => {
+                    const { target } = event;
+                    const element = target instanceof HTMLScriptElement || target instanceof HTMLLinkElement ? target : null;
+                    const url = element ? element.src || element.href : event.filename;
+                    if (!isBootAsset(url) && !(event.error?.name === 'SyntaxError' && isBootAsset(event.filename))) return;
+                    console.error('[M@S Studio] boot failed', url);
+                    if (target instanceof HTMLScriptElement && isBootAsset(url)) scriptLoadFailed = true;
+                    revealBootErrorWhenReady();
+                };
                 const onReloadClick = (event) => {
                     if (!event.target.closest?.('.studio-boot-error button')) return;
                     const url = new URL(location.href);
-                    url.searchParams.set('cb', String(Number(cacheSalt || 0) + 1));
+                    url.searchParams.set('cb', String((Number(cacheSalt || 0) + 1) % 1e9));
                     location.assign(url.href);
                 };
                 window.addEventListener('error', onBootError, true);
                 document.addEventListener('click', onReloadClick);
+                const bootTimeout = setTimeout(() => {
+                    scriptLoadFailed = true;
+                    revealBootErrorWhenReady();
+                }, BOOT_TIMEOUT);
                 Promise.all(
                     ['mas-studio', 'mas-commerce-service', 'sp-theme'].map((name) => customElements.whenDefined(name)),
                 ).then(() => {
+                    clearTimeout(bootTimeout);
                     window.removeEventListener('error', onBootError, true);
+                    if (scriptLoadFailed) {
+                        revealBootErrorWhenReady();
+                        return;
+                    }
                     document.removeEventListener('DOMContentLoaded', revealBootError);
-                    if (!scriptLoadFailed) document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
+                    document.removeEventListener('click', onReloadClick);
+                    document.querySelector('.studio-boot-error')?.setAttribute('hidden', '');
                 });
 
                 const lit = '/web-components/dist/lit-all.min.js';

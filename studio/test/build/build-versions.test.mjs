@@ -1,4 +1,4 @@
-import { after, before, describe, test } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
@@ -114,8 +114,13 @@ const GRAPH_HTML = [
 ].join('\n');
 
 describe('collectModuleGraph', () => {
+    let graph;
+
+    before(async () => {
+        graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
+    });
+
     test('includes studio, io/www, and web-components source modules and the lazy editor', async () => {
-        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
         assert.ok(graph.includes('/studio/src/studio.js'));
         assert.ok(graph.includes('/studio/src/editors/merch-card-editor.js'));
         assert.ok(graph.includes('/studio/src/placeholders/mas-placeholders.js'));
@@ -131,7 +136,6 @@ describe('collectModuleGraph', () => {
     });
 
     test('leaves bare specifiers to the import map', async () => {
-        const graph = await collectModuleGraph(REPO_ROOT, GRAPH_ENTRIES);
         assert.ok(graph.every((assetPath) => !assetPath.includes('node_modules')));
     });
 });
@@ -158,6 +162,16 @@ describe('collectModuleGraph dynamic imports', () => {
         const graph = await collectModuleGraph(tmpDir, ['/entry.js']);
         assert.ok(graph.includes('/lazy.js'));
     });
+
+    test('ignores import( text inside a string', async () => {
+        await writeFile(path.join(tmpDir, 'entry.js'), "export const text = 'import(';\n");
+        assert.deepEqual(await collectModuleGraph(tmpDir, ['/entry.js']), ['/entry.js']);
+    });
+
+    test('ignores import( text inside a retained comment', async () => {
+        await writeFile(path.join(tmpDir, 'entry.js'), '/*! import( is documentation */\nexport const value = 1;\n');
+        assert.deepEqual(await collectModuleGraph(tmpDir, ['/entry.js']), ['/entry.js']);
+    });
 });
 
 describe('computeVersions', () => {
@@ -175,6 +189,15 @@ describe('computeVersions', () => {
             /\/web-components\/dist\/__missing__\.js, which does not exist/,
         );
     });
+
+    test('rethrows asset read errors other than ENOENT', async () => {
+        const error = Object.assign(new Error('permission denied'), { code: 'EACCES' });
+        const readAsset = async (assetPath) => {
+            if (assetPath.endsWith('/web-components/dist/lit-all.min.js')) throw error;
+            return readFile(assetPath);
+        };
+        await assert.rejects(computeVersions(REPO_ROOT, GRAPH_HTML, readAsset), (actual) => actual === error);
+    });
 });
 
 describe('computeVersions path guard', () => {
@@ -187,7 +210,7 @@ describe('computeVersions path guard', () => {
 describe('main', () => {
     let tmpDir;
 
-    before(async () => {
+    beforeEach(async () => {
         tmpDir = await mkdtemp(path.join(os.tmpdir(), 'studio-versions-main-'));
         await mkdir(path.join(tmpDir, 'studio/src'), { recursive: true });
         await mkdir(path.join(tmpDir, 'studio/libs'), { recursive: true });
@@ -209,11 +232,11 @@ describe('main', () => {
         );
     });
 
-    after(async () => {
+    afterEach(async () => {
         await rm(tmpDir, { recursive: true, force: true });
     });
 
-    test('writes the versions block, then leaves the file unchanged', async (t) => {
+    test('writes the versions block', async (t) => {
         t.mock.method(console, 'log', () => {});
         const htmlPath = path.join(tmpDir, 'studio.html');
         const original = await readFile(htmlPath, 'utf8');
@@ -228,8 +251,16 @@ describe('main', () => {
             '/studio/src/studio.js',
         ]);
         assert.equal(versions['/studio/src/helper.js'], hashContent('export const helper = 2;\n'));
+    });
+
+    test('leaves a current versions block unchanged', async (t) => {
+        const log = t.mock.method(console, 'log', () => {});
+        const htmlPath = path.join(tmpDir, 'studio.html');
+        await main(tmpDir);
+        const written = await readFile(htmlPath, 'utf8');
 
         await main(tmpDir);
         assert.equal(await readFile(htmlPath, 'utf8'), written);
+        assert.match(log.mock.calls.at(-1).arguments[0], /already current/);
     });
 });

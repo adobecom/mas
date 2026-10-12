@@ -4,6 +4,7 @@
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
+        "postbuild": "npm run build:versions",
         "build:versions": "node build-versions.mjs",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
         "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage && npm run test:node",
@@ -20,6 +21,7 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
+        "es-module-lexer": "^1.5.4",
         "sinon": "^13.0.1"
     }
 }

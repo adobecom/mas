@@ -209,7 +209,6 @@ class MasStudio extends LitElement {
                 this.#failedImports.add(elementName);
                 console.error(`Failed to load ${elementName}`, error);
                 Events.toast.emit({ variant: 'negative', content: 'Failed to load page' });
-                document.querySelector('.studio-boot-error')?.removeAttribute('hidden');
             });
             customElements.whenDefined(elementName).then(() => this.requestUpdate());
         }

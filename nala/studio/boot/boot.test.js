@@ -145,12 +145,13 @@ test.describe('M@S Studio Boot', () => {
         });
     });
 
-    // @MAS-Studio-Boot-failure-missing-module — a 404 on studio.js shows the error; Reload adds cb=1
+    // @MAS-Studio-Boot-failure-missing-module — recovery preserves and increments an existing cache salt
     test(`${features[5].name},${features[5].tags}`, async ({ page, baseURL }) => {
         const { data } = features[5];
-        const testPage = studioUrl(baseURL, features[5]);
+        const testPage = studioUrl(baseURL, features[5], { cb: '1' });
         setTestPage(testPage);
         const bootPage = new BootPage(page);
+        const assets = trackBootAssets(page, baseURL);
         await page.route(
             (url) => url.pathname === data.failingPath,
             (route) => route.fulfill({ status: 404, body: 'not found' }),
@@ -160,16 +161,26 @@ test.describe('M@S Studio Boot', () => {
             await page.goto(testPage);
         });
 
-        await test.step('step-2: Boot error replaces the spinner', async () => {
+        await test.step('step-2: Boot error replaces the spinner and preserves the supplied salt', async () => {
             await expect(bootPage.error).toBeVisible();
             await expect(bootPage.spinner).toHaveCount(0);
+            await page.waitForLoadState('networkidle');
+            expect(assetsNotMatching(assets, /^[0-9a-f]{8}-1$/)).toEqual([]);
         });
 
-        await test.step('step-3: Reload adds cb=1 and keeps the hash', async () => {
+        await test.step('step-3: Clicks outside Reload leave the URL unchanged', async () => {
+            await bootPage.error.click({ position: { x: 5, y: 5 } });
+            expect(new URL(page.url()).searchParams.get('cb')).toBe('1');
+        });
+
+        await test.step('step-4: Reload increments cb and keeps the hash', async () => {
+            const previousAssetCount = assets.length;
             await bootPage.reloadButton.click();
-            await page.waitForURL((url) => url.searchParams.get('cb') === '1');
+            await page.waitForURL((url) => url.searchParams.get('cb') === '2');
             expect(new URL(page.url()).hash).toBe(features[5].browserParams);
             await expect(bootPage.error).toBeVisible();
+            await page.waitForLoadState('networkidle');
+            expect(assetsNotMatching(assets.slice(previousAssetCount), /^[0-9a-f]{8}-2$/)).toEqual([]);
         });
     });
 
@@ -252,6 +263,10 @@ test.describe('M@S Studio Boot', () => {
         const testPage = studioUrl(baseURL, features[9]);
         setTestPage(testPage);
         const bootPage = new BootPage(page);
+        const consoleErrors = [];
+        page.on('console', (message) => {
+            if (message.type() === 'error') consoleErrors.push(message.text());
+        });
         await page.route(
             (url) => url.pathname === data.failingPath,
             (route) => route.fulfill({ status: 404, body: 'not found' }),
@@ -262,14 +277,9 @@ test.describe('M@S Studio Boot', () => {
             await waitForStudio(page);
         });
 
-        await test.step('step-2: Boot error is shown', async () => {
-            await expect(bootPage.error).toBeVisible();
-        });
-
-        await test.step('step-3: Reload adds cb=1 and keeps the hash', async () => {
-            await bootPage.reloadButton.click();
-            await page.waitForURL((url) => url.searchParams.get('cb') === '1');
-            expect(new URL(page.url()).hash).toBe(features[9].browserParams);
+        await test.step('step-2: The lazy-view toast does not trigger the page-wide boot recovery', async () => {
+            await expect.poll(() => consoleErrors.some((text) => text.includes('Failed to load mas-placeholders'))).toBe(true);
+            await expect(bootPage.error).toBeHidden();
         });
     });
 
@@ -294,6 +304,7 @@ test.describe('M@S Studio Boot', () => {
         });
     });
 
+    // @MAS-Studio-Boot-mas-evaluation-failure — a syntax error in the MAS bundle keeps recovery available
     test(`${features[11].name},${features[11].tags}`, async ({ page, baseURL }) => {
         const { data } = features[11];
         const testPage = studioUrl(baseURL, features[11]);
@@ -316,6 +327,7 @@ test.describe('M@S Studio Boot', () => {
         });
     });
 
+    // @MAS-Studio-Boot-spectrum-evaluation-failure — a syntax error in Spectrum keeps recovery available
     test(`${features[12].name},${features[12].tags}`, async ({ page, baseURL }) => {
         const { data } = features[12];
         const testPage = studioUrl(baseURL, features[12]);
@@ -336,5 +348,125 @@ test.describe('M@S Studio Boot', () => {
             await expect(bootPage.reloadButton).toBeVisible();
             await expect(bootPage.spinner).toHaveCount(0);
         });
+    });
+
+    // @MAS-Studio-Boot-unrelated-syntax-error — an inline SyntaxError does not disrupt a successful boot
+    test(`${features[13].name},${features[13].tags}`, async ({ page, baseURL }) => {
+        const testPage = studioUrl(baseURL, features[13]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        const consoleErrors = [];
+        page.on('console', (message) => {
+            if (message.type() === 'error') consoleErrors.push(message.text());
+        });
+        await page.route(
+            (url) => url.pathname === '/studio.html',
+            async (route) => {
+                const response = await route.fetch();
+                const html = await response.text();
+                const injected = html.replace(
+                    /(<script id="studio-boot">[\s\S]*?<\/script>)/,
+                    "$1<script>throw new SyntaxError('nala unrelated syntax error');</script>",
+                );
+                expect(injected).not.toBe(html);
+                await route.fulfill({ response, body: injected });
+            },
+        );
+
+        await page.goto(testPage);
+        await waitForStudio(page);
+        await expect(bootPage.spinner).toHaveCount(0);
+        await expect(bootPage.error).toBeHidden();
+        expect(consoleErrors.some((text) => text.includes('[M@S Studio] boot failed'))).toBe(false);
+    });
+
+    // @MAS-Studio-Boot-timeout — recovery appears when required components never register
+    test(`${features[14].name},${features[14].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[14];
+        const testPage = studioUrl(baseURL, features[14]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === '/studio.html',
+            async (route) => {
+                const response = await route.fetch();
+                const html = await response.text();
+                const shortenedTimeout = html.replace('const BOOT_TIMEOUT = 30000;', 'const BOOT_TIMEOUT = 100;');
+                expect(shortenedTimeout).not.toBe(html);
+                const body = shortenedTimeout.replace(
+                    /(<script id="studio-boot">[\s\S]*?<\/script>)/,
+                    `$1<script src="${data.slowPath}"></script>`,
+                );
+                expect(body).not.toBe(shortenedTimeout);
+                await route.fulfill({ response, body });
+            },
+        );
+        await page.route(
+            (url) => url.pathname === data.slowPath,
+            async (route) => {
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                await route.fulfill({ status: 200, contentType: 'text/javascript', body: '' });
+            },
+        );
+
+        await page.goto(testPage);
+        await expect(bootPage.error).toBeVisible();
+        await expect(bootPage.spinner).toHaveCount(0);
+    });
+
+    // @MAS-Studio-Boot-early-script-failure — a head-script error waits for DOM readiness before revealing recovery
+    test(`${features[15].name},${features[15].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[15];
+        const testPage = studioUrl(baseURL, features[15]);
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        await page.route(
+            (url) => url.pathname === '/studio.html',
+            async (route) => {
+                const response = await route.fetch();
+                const html = await response.text();
+                const body = html.replace(
+                    /(<script id="studio-boot">[\s\S]*?<\/script>)/,
+                    `$1<script src="${data.failingPath}"></script>`,
+                );
+                expect(body).not.toBe(html);
+                await route.fulfill({ response, body });
+            },
+        );
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await page.goto(testPage);
+        await expect(bootPage.error).toBeVisible();
+        await expect(bootPage.spinner).toHaveCount(0);
+        await page.evaluate(() => {
+            document.querySelector('.studio-boot-error').setAttribute('hidden', '');
+            document.dispatchEvent(new Event('DOMContentLoaded'));
+        });
+        await expect(bootPage.error).toBeHidden();
+    });
+
+    // @MAS-Studio-Boot-cache-salt-wraparound — the maximum salt wraps to zero on reload
+    test(`${features[16].name},${features[16].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[16];
+        const testPage = studioUrl(baseURL, features[16], { cb: data.cb });
+        setTestPage(testPage);
+        const bootPage = new BootPage(page);
+        const assets = trackBootAssets(page, baseURL);
+        await page.route(
+            (url) => url.pathname === data.failingPath,
+            (route) => route.fulfill({ status: 404, body: 'not found' }),
+        );
+
+        await page.goto(testPage);
+        await expect(bootPage.error).toBeVisible();
+        const previousAssetCount = assets.length;
+        await bootPage.reloadButton.click();
+        await page.waitForURL((url) => url.searchParams.get('cb') === '0');
+        await expect(bootPage.error).toBeVisible();
+        await page.waitForLoadState('networkidle');
+        expect(assetsNotMatching(assets.slice(previousAssetCount), /^[0-9a-f]{8}-0$/)).toEqual([]);
     });
 });

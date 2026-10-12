@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { transformer as promotionsTransformer, clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { createResponse } from './mocks/MockFetch.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 
 const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50';
 const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
@@ -802,6 +803,59 @@ describe('promotions', () => {
 
             const result = await promotionsTransformer.init(createContext());
             expect(result.activeProjects[0].defaultVariations).to.have.keys(['card-1']);
+        });
+
+        it('hydrates references of collection variations only', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const card = {
+                id: 'v-card',
+                path: '/content/dam/mas/acom/en_US/promotions/black-friday/card-1',
+                model: { id: CARD_MODEL_ID },
+                fields: {},
+            };
+            const collection = {
+                id: 'v-coll',
+                path: '/content/dam/mas/acom/en_US/promotions/black-friday/coll-1',
+                model: { id: COLLECTION_MODEL_ID },
+                fields: { cards: ['card-a', 'card-b'] },
+            };
+            const references = { 'card-b': { type: 'content-fragment', value: { id: 'card-b', fields: {} } } };
+            const referencesTree = [{ fieldName: 'cards', identifier: 'card-b', referencesTree: [] }];
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [card, collection] }));
+            fetchStub
+                .withArgs(hydrateUrl('v-coll'))
+                .returns(createResponse(200, { ...collection, fields: { hydrated: true }, references, referencesTree }));
+
+            const result = await promotionsTransformer.init(createContext());
+            const { defaultVariations } = result.activeProjects[0];
+            expect(defaultVariations['coll-1']).to.deep.equal({ ...collection, references, referencesTree });
+            expect(defaultVariations['card-1']).to.deep.equal(card);
+            expect(fetchStub.calledWith(hydrateUrl('v-card'))).to.be.false;
+        });
+
+        it('keeps the listed collection variation when its hydration fails', async () => {
+            const project = makeProject({ surfaces: ['acom'], geos: [] });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+
+            const varBase =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const collection = {
+                id: 'v-coll',
+                path: '/content/dam/mas/acom/en_US/promotions/black-friday/coll-1',
+                model: { id: COLLECTION_MODEL_ID },
+                fields: { cards: ['card-a'] },
+            };
+            fetchStub.withArgs(varBase).returns(createResponse(200, { items: [collection] }));
+            fetchStub.withArgs(hydrateUrl('v-coll')).returns(createResponse(500, null, 'Error'));
+
+            const result = await promotionsTransformer.init(createContext());
+            expect(result.activeProjects[0].defaultVariations['coll-1']).to.deep.equal(collection);
         });
 
         it('places seasonal promos (with endDate) before evergreen promos (no endDate)', async () => {

@@ -6,16 +6,9 @@ import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts-dialog.js';
 
 const collRow = (title, id) => ({
-    groupKey: id,
     title,
-    representative: {
-        id,
-        path: `/content/dam/mas/acom/en_US/${id}`,
-        status: 'PUBLISHED',
-        link: `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`,
-    },
-    locales: ['en_US'],
-    localeCount: 1,
+    path: `/content/dam/mas/acom/en_US/${id}`,
+    link: `https://mas.adobe.com/studio.html#content-type=merch-card-collection&query=${id}`,
 });
 
 // Only collections + bulk-publish carry rows here; promo/translation are intentionally empty.

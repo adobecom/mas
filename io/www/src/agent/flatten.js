@@ -72,17 +72,31 @@ function parseAttributes(source) {
     return attributes;
 }
 
+// Pairs each closing tag with its matching opening tag, so an element's text includes nested markup
+// such as a hydrated price inside an authored span. Elements are returned in document order.
 function extractElements(html, tagNames = 'span|a|button') {
+    const source = String(html);
     const elements = [];
-    const pattern = new RegExp(`<(${tagNames})\\b([^>]*)>([\\s\\S]*?)<\\/\\1>`, 'gi');
-    for (const match of String(html).matchAll(pattern)) {
-        elements.push({
-            tag: match[1].toLowerCase(),
-            attributes: parseAttributes(match[2]),
-            text: stripTags(match[3]) ?? '',
-        });
+    const open = [];
+    const pattern = new RegExp(`<(/?)(${tagNames})\\b([^>]*)>`, 'gi');
+    for (const match of source.matchAll(pattern)) {
+        const [markup, closing, name, attributeSource] = match;
+        const tag = name.toLowerCase();
+        if (!closing) {
+            open.push({
+                tag,
+                attributes: parseAttributes(attributeSource),
+                start: match.index,
+                contentStart: match.index + markup.length,
+            });
+            continue;
+        }
+        const index = open.findLastIndex((element) => element.tag === tag);
+        if (index === -1) continue;
+        const [{ start, contentStart, attributes }] = open.splice(index);
+        elements.push({ start, tag, attributes, text: stripTags(source.slice(contentStart, match.index)) ?? '' });
     }
-    return elements;
+    return elements.sort((a, b) => a.start - b.start);
 }
 
 function extractInlinePrices(html) {
@@ -219,29 +233,32 @@ async function hydrateInlinePrice(runtime, attributes) {
 }
 
 // Prices hydrate concurrently, so cold WCS lookups share the hydration budget instead of adding up.
-// A price that fails keeps its original span and is left out of the result, so one bad OSI does
-// not fail the whole card.
+// Rendered markup goes inside the authored inline-price span, as in the browser, so the HTML stays
+// balanced. A price that fails keeps its span empty and its OSI is reported in `priceErrors`, so one
+// bad OSI does not fail the whole card.
 async function hydrateInlinePrices(html, runtime) {
     const source = String(html);
     const elements = extractInlinePrices(source);
     const results = await Promise.allSettled(elements.map(({ attributes }) => hydrateInlinePrice(runtime, attributes)));
     const prices = [];
+    const priceErrors = [];
     let hydrated = '';
     let cursor = 0;
     for (const [index, { attributes, match }] of elements.entries()) {
         const result = results[index];
-        hydrated += source.slice(cursor, match.index);
+        const openingTagEnd = match.index + match[0].length;
+        hydrated += source.slice(cursor, openingTagEnd);
+        cursor = openingTagEnd;
         if (result.status === 'fulfilled') {
             hydrated += result.value.html;
             prices.push(result.value.price);
         } else {
-            hydrated += match[0];
+            priceErrors.push(attributes['data-wcs-osi']);
             runtime.onPriceError(result.reason, attributes['data-wcs-osi']);
         }
-        cursor = match.index + match[0].length;
     }
     hydrated += source.slice(cursor);
-    return { html: hydrated, prices };
+    return { html: hydrated, prices, priceErrors };
 }
 
 async function hydrateRecord(record, runtime) {
@@ -249,14 +266,20 @@ async function hydrateRecord(record, runtime) {
         Object.entries(record ?? {}).map(async ([name, value]) => {
             const isWrapped = value && typeof value === 'object' && !Array.isArray(value);
             const source = isWrapped ? value.value : value;
-            if (typeof source !== 'string' || !source.includes('<')) return { name, value, prices: [] };
+            if (typeof source !== 'string' || !source.includes('<')) return { name, value, prices: [], priceErrors: [] };
             const result = await hydrateInlinePrices(source, runtime);
-            return { name, value: isWrapped ? { ...value, value: result.html } : result.html, prices: result.prices };
+            return {
+                name,
+                value: isWrapped ? { ...value, value: result.html } : result.html,
+                prices: result.prices,
+                priceErrors: result.priceErrors,
+            };
         }),
     );
     return {
         record: Object.fromEntries(entries.map(({ name, value }) => [name, value])),
         prices: entries.flatMap(({ prices }) => prices),
+        priceErrors: entries.flatMap(({ priceErrors }) => priceErrors),
     };
 }
 
@@ -286,6 +309,7 @@ async function extractMerchCard(fragment, context) {
     const fields = hydratedFields.record;
     const settings = hydratedSettings.record;
     const prices = [...hydratedFields.prices, ...hydratedSettings.prices];
+    const priceErrors = [...new Set([...hydratedFields.priceErrors, ...hydratedSettings.priceErrors])];
     const hydratedFragment = { ...fragment, fields, settings };
     const elements = htmlSources(hydratedFragment).flatMap((source) => extractElements(source));
     const mainPrice = prices.find((price) => price.template === 'price');
@@ -314,6 +338,7 @@ async function extractMerchCard(fragment, context) {
         seeTermsInfo: ctaInfo(seeTerms),
         renewalText: authoredText(elements, 'renewal-text'),
         promoDurationText: authoredText(elements, 'promo-duration-text'),
+        priceErrors: priceErrors.length ? priceErrors : undefined,
     };
 }
 

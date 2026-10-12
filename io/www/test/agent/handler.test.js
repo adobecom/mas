@@ -520,6 +520,7 @@ describe('agent action main', () => {
         expect(res.statusCode).to.equal(200);
         expect(res.body).to.deep.include({ productName: 'Creative Cloud Pro', title: 'Creative Cloud Pro' });
         expect(res.body.regularPrice).to.be.undefined;
+        expect(res.body.priceErrors).to.be.an('array').that.is.not.empty;
         expect(errorLog.called).to.be.true;
         expect(errorLog.firstCall.args[0]).to.match(/\[agent\] Failed to hydrate price .+: Commerce offer not found$/);
         expect(clock.countTimers()).to.equal(0);

@@ -34,6 +34,9 @@ application:
                         function: src/agent/handler.js
                         web: 'yes'
                         runtime: nodejs:22
+                        limits:
+                            concurrency: 20
+                            memory: 1024
                         annotations:
                             require-adobe-auth: false
                             final: true

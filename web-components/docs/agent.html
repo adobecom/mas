@@ -287,9 +287,11 @@ they do not apply.</p>
 button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <p>Prices match the merch card: each OSI resolves to one offer, comma-joined OSIs
 are summed, and tax and per-unit labels default from the offer’s customer and
-market segments unless the price sets them explicitly. A price whose offer
-cannot be resolved is left out of the response, and the rest of the offer is
-still returned.</p>
+market segments unless the price sets them explicitly. Page-level feature flags
+such as <code>mas-ff-annual-price</code> are not available to the agent, so annual prices
+follow the fragment’s <code>displayAnnual</code> setting and the price’s own options. A
+price whose offer cannot be resolved is left out of the response and its OSI is
+listed in <code>priceErrors</code>; the rest of the offer is still returned.</p>
 <table>
 <thead>
 <tr>
@@ -418,6 +420,11 @@ still returned.</p>
 <td><code>promoDurationText</code></td>
 <td><code>string</code></td>
 <td>Authored promotion-duration text.</td>
+</tr>
+<tr>
+<td><code>priceErrors</code></td>
+<td><code>string[]</code></td>
+<td>OSIs of prices that could not be resolved and are missing from the response; omitted when every price resolved.</td>
 </tr>
 </tbody>
 </table>

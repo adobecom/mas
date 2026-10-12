@@ -35,6 +35,7 @@ describe('flattenOffer', () => {
         expect(onPriceError.firstCall.args[1]).to.equal('uncached');
         expect(offer.title).to.equal('Title');
         expect(offer.regularPrice).to.be.undefined;
+        expect(offer.priceErrors).to.deep.equal(['uncached']);
         expect(timeoutStub.calledOnceWithExactly(5000)).to.be.true;
         expect(fetchStub.calledOnce).to.be.true;
         expect(fetchStub.firstCall.args[1].signal).to.equal(controller.signal);
@@ -55,7 +56,7 @@ describe('flattenOffer', () => {
         expect(url.searchParams.get('api_key')).to.equal('wcms-commerce-ims-ro-user-milo');
     });
 
-    it('hydrates prices concurrently', async () => {
+    it('requests every uncached price before awaiting any of them', async () => {
         let release;
         const pending = new Promise((resolve) => {
             release = resolve;
@@ -70,36 +71,54 @@ describe('flattenOffer', () => {
             },
             { onPriceError: () => {} },
         );
-        await new Promise((resolve) => setTimeout(resolve, 50));
         expect(fetchStub.callCount).to.equal(2);
         release(new Response('{}', { status: 500 }));
-        await flattening;
+        expect((await flattening).priceErrors).to.deep.equal(['first', 'second']);
     });
 
-    it('flattens a real Creative Cloud Pro fragment payload', async () => {
-        const offer = await flattenOffer(ccPro);
-        expect(offer).to.deep.include({
-            fragment: '2c5cd672-1db8-409c-96ff-46b1a1dfb7dc',
-            productName: 'Creative Cloud Pro',
-            badge: 'Save 50%',
-            ctas: [{ label: 'Buy now' }],
-            terms_url: 'https://www.adobe.com/offer-terms/cc_full_special_offer.html',
-            customer_segment: 'individual',
-            title: 'Creative Cloud Pro',
-            subtitle: undefined,
-            promoText: undefined,
-            shortDescription: undefined,
-            description:
-                'Save 50%. Get 20+ apps, including Photoshop, Illustrator, and Premiere, plus Adobe Firefly creative AI. Pay US$34.99/mo for the first 3 months and US$69.99/mo after that. New subscribers only. See terms. See all plans & pricing details',
-            callout: undefined,
-            promoPrice: 'US$34.99',
-            regularPrice: 'US$69.99',
+    describe('real Creative Cloud Pro fragment payload', () => {
+        let offer;
+
+        before(async () => {
+            offer = await flattenOffer(ccPro);
         });
-        expect(offer.planTypeText).to.equal('Annual, billed monthly');
-        expect(offer.recurrenceText).to.equal('/mo');
-        expect(offer.description).to.be.a('string').and.not.empty;
-        expect(offer).to.have.property('shortDescription');
-        expect(offer).to.not.have.property('cta_label');
+
+        it('identifies the fragment, product, and segments', () => {
+            expect(offer).to.deep.include({
+                fragment: '2c5cd672-1db8-409c-96ff-46b1a1dfb7dc',
+                productName: 'Creative Cloud Pro',
+                title: 'Creative Cloud Pro',
+                customer_segment: 'individual',
+            });
+        });
+
+        it('exposes the badge, CTAs, and terms link', () => {
+            expect(offer).to.deep.include({
+                badge: 'Save 50%',
+                ctas: [{ label: 'Buy now' }],
+                terms_url: 'https://www.adobe.com/offer-terms/cc_full_special_offer.html',
+            });
+            expect(offer).to.not.have.property('cta_label');
+        });
+
+        it('strips authored text and keeps absent fields undefined', () => {
+            expect(offer.description).to.equal(
+                'Save 50%. Get 20+ apps, including Photoshop, Illustrator, and Premiere, plus Adobe Firefly creative AI. Pay US$34.99/mo for the first 3 months and US$69.99/mo after that. New subscribers only. See terms. See all plans & pricing details',
+            );
+            for (const field of ['subtitle', 'promoText', 'shortDescription', 'callout']) {
+                expect(offer).to.have.property(field, undefined);
+            }
+        });
+
+        it('hydrates the main price and its legal text', () => {
+            expect(offer).to.deep.include({
+                promoPrice: 'US$34.99',
+                regularPrice: 'US$69.99',
+                planTypeText: 'Annual, billed monthly',
+                recurrenceText: '/mo',
+            });
+            expect(offer.priceErrors).to.be.undefined;
+        });
     });
 
     it('uses the returned Egypt cache without fragment settings or additional WCS requests', async () => {
@@ -513,6 +532,34 @@ describe('flattenOffer', () => {
         expect(card.description).to.equal('$3.00');
     });
 
+    it('keeps authored text intact around a hydrated price', async () => {
+        const card = await extractMerchCard({
+            fields: {
+                callout: `
+                    <p>
+                        <span class="renewal-text">Renews at <span is="inline-price" data-template="price" data-wcs-osi="renewal"></span> after the promotion</span>
+                        </span>
+                        <span class="promo-duration-text">For 3 months</span>
+                    </p>
+                `,
+            },
+            wcs: {
+                prod: {
+                    'renewal-us-mult': [
+                        {
+                            ...offerSegments,
+                            offerSelectorIds: ['renewal'],
+                            priceDetails: { formatString: "'$'#,##0.00", price: 6 },
+                        },
+                    ],
+                },
+            },
+        });
+        expect(card.renewalText).to.equal('Renews at $6.00 after the promotion');
+        expect(card.promoDurationText).to.equal('For 3 months');
+        expect(card.regularPrice).to.equal('$6.00');
+    });
+
     it('reads the rendered text of a price template without a price element', async () => {
         const card = await extractMerchCard({
             fields: {
@@ -619,6 +666,7 @@ describe('flattenOffer', () => {
         expect(onPriceError.calledOnce).to.be.true;
         expect(onPriceError.firstCall.args[0].message).to.equal('Commerce offer not found');
         expect(onPriceError.firstCall.args[1]).to.equal('missing');
+        expect(card.priceErrors).to.deep.equal(['missing']);
 
         expect(
             (

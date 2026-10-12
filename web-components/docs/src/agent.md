@@ -145,9 +145,11 @@ button, in authored order, or `[]` when no CTAs exist.
 
 Prices match the merch card: each OSI resolves to one offer, comma-joined OSIs
 are summed, and tax and per-unit labels default from the offer's customer and
-market segments unless the price sets them explicitly. A price whose offer
-cannot be resolved is left out of the response, and the rest of the offer is
-still returned.
+market segments unless the price sets them explicitly. Page-level feature flags
+such as `mas-ff-annual-price` are not available to the agent, so annual prices
+follow the fragment's `displayAnnual` setting and the price's own options. A
+price whose offer cannot be resolved is left out of the response and its OSI is
+listed in `priceErrors`; the rest of the offer is still returned.
 
 | Property | Type | Description |
 | --- | --- | --- |
@@ -175,6 +177,7 @@ still returned.
 | `seeTermsInfo` | `object` | See-terms `analyticsId`, `href`, and `text`; `href` is omitted unless it is an absolute `https` URL. |
 | `renewalText` | `string` | Authored renewal text. |
 | `promoDurationText` | `string` | Authored promotion-duration text. |
+| `priceErrors` | `string[]` | OSIs of prices that could not be resolved and are missing from the response; omitted when every price resolved. |
 
 Other non-excluded authored MAS tags may add top-level fields.
 

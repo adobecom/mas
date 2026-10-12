@@ -96,7 +96,7 @@ describe('MasFragmentTable', () => {
             expect(event.stopPropagation.called).to.be.true;
         });
 
-        it('navigates with editFragmentStore when provided', async () => {
+        it('navigates to the editFragmentStore fragment when provided', async () => {
             const fragmentStore = createFragmentStore();
             const editFragmentStore = {
                 get: sandbox.stub().returns({
@@ -116,8 +116,7 @@ describe('MasFragmentTable', () => {
 
             el.handleEditFragment(event);
 
-            expect(navigateSpy.calledOnceWith('edit-fragment-1', { locale: 'fr_FR', fragmentStore: editFragmentStore })).to.be
-                .true;
+            expect(navigateSpy.calledOnceWith('edit-fragment-1', { locale: 'fr_FR' })).to.be.true;
         });
     });
 

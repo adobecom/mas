@@ -2,6 +2,10 @@ import { importMapsPlugin } from '@web/dev-server-import-maps';
 import { defaultReporter } from '@web/test-runner';
 import { chromeLauncher } from '@web/test-runner-chrome';
 
+// Pin the browser time zone to CI's (UTC), so time-of-day expectations, e.g.
+// test/price/__snapshots__/message-format.expected.json, match on any machine.
+process.env.TZ = 'UTC';
+
 export default {
     browsers: [
         chromeLauncher({

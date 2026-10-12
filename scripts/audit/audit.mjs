@@ -1,11 +1,19 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
+import {
+    formatAnnualPrice,
+    formatOpticalPrice,
+    formatRegularPrice,
+    selectPreformattedPrice,
+} from '../../web-components/src/price/utilities.js';
+import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 
 const AUDIT_TARGET = {
     ost: 'ost',
     modal: 'modal',
 };
 const BUFFER_SIZE = 100;
+const WCS_INTERVAL = 150; // ms between WCS-bound requests, WCS requires at least 100
 const EXCERPT_SIZE = 30;
 const LOC_REGEXP = '<loc>(?<url>[^<]+)</loc>';
 const PERSO_REGEXP = '<meta name="personalization" content="(?<urls>[^"]+)">';
@@ -15,6 +23,7 @@ const PARAMETER_REGEXP = '(?<left>\\w+)=(?<right>[^&]+)';
 const DOMAIN_REGEXP = '^https://[^/]+';
 // Constants for preventing hanging
 const MAX_FETCH_TIMEOUT = 5000; // 5 seconds timeout for fetch requests
+const USER_AGENT = 'adobecom-mas-audit-script';
 const MAX_RETRY_ATTEMPTS = 3; // Maximum number of retry attempts
 const MAX_RECURSION_DEPTH = 10; // Maximum recursion depth for fragment processing
 
@@ -22,6 +31,7 @@ const HREF_REGEXPS = {
     [AUDIT_TARGET.ost]: {
         fragment: '/fragments/',
         ost: 'https://milo.adobe.com/tools/ost?(?<parameters>.+)',
+        mas: 'mas\\.adobe\\.com/studio\\.html#(?<hash>.+)',
     },
     [AUDIT_TARGET.modal]: {
         fragment: '/fragments/',
@@ -197,9 +207,29 @@ const GeoMap = {
     ec: 'EC_es',
     pr: 'US_es',
 };
-const wcsUrl = (osi, locale) =>
-    `https://wcs.adobe.com/web_commerce_artifact?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=PUBLISHED`;
+// Same endpoints and landscapes as web-components (constants.js, wcs.js).
+const WCS_ENVS = {
+    prod: { url: 'https://wcs.adobe.com/web_commerce_artifact', landscape: 'PUBLISHED' },
+    stage: { url: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+};
+let wcsEnv = 'prod';
+const wcsUrl = (osi, locale, promotionCode) =>
+    `${WCS_ENVS[wcsEnv].url}?offer_selector_ids=${osi}&country=${locale.country}&language=${locale.country === 'GB' ? 'EN' : 'MULT'}&locale=${locale.locale}&api_key=wcms-commerce-ims-ro-user-milo&landscape=${WCS_ENVS[wcsEnv].landscape}${promotionCode ? `&promotion_code=${encodeURIComponent(promotionCode)}` : ''}`;
+const MAS_FETCH_TIMEOUT = 20000; // fragment pipeline main timeout is 15s
+const masUrl = (id, { locale, country }) =>
+    `https://www.adobe.com/mas/io/fragment?id=${id}&api_key=wcms-commerce-ims-ro-user-milo&locale=${locale}${locale.endsWith(`_${country}`) ? '' : `&country=${country}`}`;
 const mapWcs = {};
+
+// Start-to-start spacing for requests that reach WCS, directly (wcsUrl) or
+// through the fragment pipeline (masUrl). One slot queue for all batches, so
+// buffer size sets concurrency, not rate.
+let nextWcsSlot = 0;
+const throttleWcs = async () => {
+    const now = Date.now();
+    const slot = Math.max(now, nextWcsSlot);
+    nextWcsSlot = slot + wcsInterval;
+    if (slot > now) await new Promise((resolve) => setTimeout(resolve, slot - now));
+};
 const WCS_KEYS = [
     'offerId',
     'productArrangementCode',
@@ -222,7 +252,9 @@ const foundUsages = [];
 let file = '/tmp/audit.csv';
 let auditTarget = AUDIT_TARGET.ost;
 let defaultBufferSize = BUFFER_SIZE;
+let wcsInterval = WCS_INTERVAL;
 let isDebug = false;
+const surfaces = [];
 
 // Add this global cache for manifests
 const manifestCache = new Map();
@@ -266,7 +298,7 @@ const getUriAndDomain = (url) => {
     };
 };
 
-const fetchDocument = async (url) => {
+const fetchDocument = async (url, timeout = MAX_FETCH_TIMEOUT) => {
     if (!url) {
         console.log('Warning: Empty URL passed to fetchDocument');
         throw new Error('Empty URL passed to fetchDocument');
@@ -277,11 +309,12 @@ const fetchDocument = async (url) => {
 
     // Add timeout to fetch requests to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MAX_FETCH_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
         const response = await fetch(url, {
             signal: controller.signal,
+            headers: { 'User-Agent': USER_AGENT },
         });
         clearTimeout(timeoutId);
         return response;
@@ -513,7 +546,86 @@ const searchStringMatch = (pageContent, searchStrings) => {
 
 const prefixWcsKey = (key) => 'wcs ' + key;
 
-function getLocaleSettings(locale) {
+const wcsKeyOf = (osi, locale) => `${osi}|${locale ?? ''}`;
+
+const PRICE_NUMERIC = 'price numeric';
+const PRICE_PREFORMATTED = 'price preformatted';
+const PRICE_MATCH = 'price match';
+const PRICE_MISMATCH_MODES = 'price mismatch modes';
+const PRICE_COMPARED_MODES = 'price compared modes';
+const PRICE_KEYS = [PRICE_NUMERIC, PRICE_PREFORMATTED, PRICE_MATCH, PRICE_MISMATCH_MODES, PRICE_COMPARED_MODES];
+
+// One entry per value an inline-price can show. The strikethrough modes are the
+// pre-discount price shown beside a promo. Optical has none: template.js keeps
+// the discounted leaf under optical.
+const PRICE_MODES = {
+    regular: { render: formatRegularPrice },
+    annual: { render: formatAnnualPrice, displayAnnual: true },
+    optical: { render: formatOpticalPrice, displayOptical: true },
+    strikethrough: { render: formatRegularPrice, withoutDiscount: true },
+    'annual-strikethrough': { render: formatAnnualPrice, displayAnnual: true, withoutDiscount: true },
+};
+
+const renderedPrice = ({ currencySymbol, decimals, decimalsDelimiter, hasCurrencySpace, integer, isCurrencyFirst }) => {
+    const space = hasCurrencySpace ? ' ' : '';
+    const digits = `${integer}${decimalsDelimiter}${decimals}`;
+    return isCurrencyFirst ? `${currencySymbol}${space}${digits}` : `${digits}${space}${currencySymbol}`;
+};
+
+// Returns undefined when WCS carries no leaf for this mode, i.e. the numeric
+// path still owns it.
+const comparePriceMode = (
+    offer,
+    country,
+    { render, displayAnnual = false, displayOptical = false, withoutDiscount = false },
+) => {
+    const { priceDetails: details, commitment, term, priceInfo, promotion } = offer;
+    if (withoutDiscount && details.priceWithoutDiscount == null) return undefined;
+    const preformatted = selectPreformattedPrice({
+        priceInfo,
+        showWithoutDiscount: withoutDiscount,
+        displayAnnual,
+        displayOptical,
+        commitment,
+        term,
+        promotion,
+    });
+    if (!preformatted) return undefined;
+    const data = {
+        commitment,
+        term,
+        formatString: details.formatString,
+        price: withoutDiscount ? details.priceWithoutDiscount : details.price,
+        originalPrice: details.price,
+        priceWithoutDiscount: details.priceWithoutDiscount,
+        promotion,
+        usePrecision: details.usePrecision,
+        isIndianPrice: country === 'IN',
+    };
+    return {
+        numeric: renderedPrice(render(data)),
+        preformatted: renderedPrice(render({ ...data, preformatted, priceInfoFormat: priceInfo.format })),
+    };
+};
+
+const comparePrices = (offer, country) => {
+    if (!offer?.priceInfo || !offer.priceDetails) return {};
+    const compared = Object.entries(PRICE_MODES)
+        .map(([mode, options]) => ({ mode, ...comparePriceMode(offer, country, options) }))
+        .filter(({ numeric }) => numeric !== undefined);
+    if (compared.length === 0) return {};
+    const mismatched = compared.filter(({ numeric, preformatted }) => numeric !== preformatted);
+    const shown = compared.find(({ mode }) => mode === 'regular') ?? compared[0];
+    return {
+        [PRICE_NUMERIC]: shown.numeric,
+        [PRICE_PREFORMATTED]: shown.preformatted,
+        [PRICE_MATCH]: mismatched.length === 0,
+        [PRICE_MISMATCH_MODES]: mismatched.map(({ mode }) => mode).join(' '),
+        [PRICE_COMPARED_MODES]: compared.map(({ mode }) => mode).join(' '),
+    };
+};
+
+function getLocaleSettings(locale, geoMap = GeoMap) {
     if (!locale) {
         return {
             country: 'US',
@@ -521,7 +633,7 @@ function getLocaleSettings(locale) {
             locale: 'en_US',
         };
     }
-    let [country = 'US', language = 'en'] = (GeoMap[locale] ?? locale).split('_', 2);
+    let [country = 'US', language = 'en'] = (geoMap[locale] ?? locale).split('_', 2);
 
     country = country.toUpperCase();
     language = language.toLowerCase();
@@ -533,30 +645,49 @@ function getLocaleSettings(locale) {
     };
 }
 
-async function setCommerceData(osi, locale) {
-    const localeSettings = getLocaleSettings(locale);
-    const response = await fetchDocument(wcsUrl(osi, localeSettings));
+// /mas/io takes milo's locales, not WCS's (milo libs/blocks/merch/merch.js
+// GeoMap and EXTRA_MAS_LOCALES).
+const MAS_GEO_MAP = {
+    ...GeoMap,
+    africa: 'MU_en',
+    cn: 'CN_zh',
+    tw: 'TW_zh',
+    hk_zh: 'HK_zh',
+    id_id: 'ID_id',
+    il_he: 'IL_he',
+    cis_en: 'TM_en',
+    cis_ru: 'TM_ru',
+};
+const masLocaleSettings = (locale) => {
+    const settings = getLocaleSettings(locale, MAS_GEO_MAP);
+    return locale === 'pr' ? { ...settings, locale: 'es_PR' } : settings;
+};
+
+const offerData = (offer, country) => {
     const data = {};
+    WCS_KEYS.forEach((key) => {
+        data[prefixWcsKey(key)] = key.split('.').reduce((object, subkey) => object?.[subkey], offer);
+    });
+    Object.entries(comparePrices(offer, country)).forEach(([key, value]) => {
+        data[prefixWcsKey(key)] = value;
+    });
+    return data;
+};
+
+async function setCommerceData(wcsKey, osi, locale) {
+    const localeSettings = getLocaleSettings(locale);
+    await throttleWcs();
+    const response = await fetchDocument(wcsUrl(osi, localeSettings));
+    let data = {};
     if (response.ok) {
         const json = await response.json();
         const offer = json.resolvedOffers[0];
-        if (offer) {
-            WCS_KEYS.forEach((key) => {
-                let subkeys = key.split('.');
-                let object = offer;
-                while (subkeys?.length > 0) {
-                    const subkey = subkeys[0];
-                    subkeys = subkeys.slice(1);
-                    object = object[subkey];
-                }
-                data[prefixWcsKey(key)] = object;
-            });
-        }
+        if (offer) data = offerData(offer, localeSettings.country);
     }
     if (Object.keys(data).length == 0) {
-        console.log(`no data for osi ${osi}`);
+        console.log(`no data for osi ${osi} (${localeSettings.locale})`);
     }
-    mapWcs[osi] = data;
+    mapWcs[wcsKey] = { ...mapWcs[wcsKey], ...data };
 }
 
 function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
@@ -569,12 +700,21 @@ function extractOstUsage(ctx, parameterString, postExcerpt, collection) {
         keys.add(left);
     }
     if (entry.osi) {
-        mapWcs[entry.osi] = {};
+        entry.wcsKey = wcsKeyOf(entry.osi, ctx.localeRewrite);
+        mapWcs[entry.wcsKey] = { osi: entry.osi };
         if (ctx.localeRewrite) {
-            mapWcs[entry.osi].locale = ctx.localeRewrite;
+            mapWcs[entry.wcsKey].locale = ctx.localeRewrite;
         }
     }
     collection.push(entry);
+}
+
+// Card and collection links: milo autoblocks read the fragment id from the
+// `fragment` or `query` hash param (milo libs/blocks/merch/merch.js getOptions).
+function extractMasUsage(ctx, hash, collection) {
+    const params = new URLSearchParams(hash.replaceAll('&#x26;', '&').replaceAll('&amp;', '&'));
+    const fragmentId = params.get('fragment') ?? params.get('query');
+    if (fragmentId) collection.push(masUsage(ctx, fragmentId, masLocaleSettings(ctx.localeRewrite ?? undefined)));
 }
 
 async function extractUrlsFromSiteMap(sitemapUrl) {
@@ -600,6 +740,7 @@ const rewriteUrlLocale = (localeRewrite, url) => {
 };
 
 const ostUsages = [];
+const masUsages = [];
 const searchMatches = [];
 const keys = new Set();
 let searchFile;
@@ -700,6 +841,8 @@ async function auditPage(ctx, pageUrl, depth = 0) {
             console.log(`Error processing OST usage for ${url}: ${error.message}`);
         }
 
+        result?.mas?.forEach(({ patternMatch }) => extractMasUsage(ctx, patternMatch.groups.hash, masUsages));
+
         // Process iframe usages
         try {
             if (result?.iframes?.length) {
@@ -776,6 +919,14 @@ async function auditPage(ctx, pageUrl, depth = 0) {
     }
 }
 
+// Formatted prices contain the locale's grouping separator, which is a comma in
+// en-US, so cells have to be quoted.
+const csvCell = (value) => {
+    if (value === undefined || value === null || value === '') return '';
+    const text = String(value);
+    return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+};
+
 const writeIframeUsagesToFile = () => {
     console.log(`collected ${foundUsages.length} entries`);
     let headers = ['page URL', 'fragment URL', 'iFrame URL'];
@@ -792,21 +943,40 @@ const writeOstUsagesToFile = () => {
     headers.unshift('fragment');
     headers.unshift('origin');
     headers.push('postExcerpt');
-    headers = headers.concat(WCS_KEYS.map(prefixWcsKey));
+    headers = headers.concat(WCS_KEYS.concat(PRICE_KEYS).map(prefixWcsKey));
     fs.writeFileSync(
         file,
         `${headers.join(',')}\n${ostUsages
             .map((o) => {
-                if (mapWcs[o.osi]) {
-                    o = { ...o, ...mapWcs[o.osi] };
+                if (mapWcs[o.wcsKey]) {
+                    o = { ...o, ...mapWcs[o.wcsKey] };
                 }
-                return headers.map((k) => o?.[k] || '').join(',');
+                return headers.map((k) => csvCell(o?.[k])).join(',');
             })
             .join('\n')}`,
     );
     if (searchMatches.length > 0) {
         fs.writeFileSync(searchFile + '.matches', searchMatches.join('\n'));
     }
+    reportPriceMismatches();
+};
+
+const reportPriceMismatches = () => {
+    const compared = Object.entries(mapWcs).filter(([, data]) => data?.[prefixWcsKey(PRICE_MATCH)] !== undefined);
+    const mismatched = compared.filter(([, data]) => data[prefixWcsKey(PRICE_MATCH)] === false);
+    console.log(`price comparison: ${compared.length} osis compared, ${mismatched.length} mismatched`);
+    const modeCounts = {};
+    compared.forEach(([, data]) =>
+        data[prefixWcsKey(PRICE_COMPARED_MODES)].split(' ').forEach((mode) => {
+            modeCounts[mode] = (modeCounts[mode] ?? 0) + 1;
+        }),
+    );
+    console.log(`  by mode: ${JSON.stringify(modeCounts)}`);
+    mismatched.forEach(([, data]) => {
+        console.log(
+            `  ${data.osi} [${data.locale ?? 'us'}]${data.fragmentId ? ` fragment ${data.fragmentId}` : ''}: numeric ${data[prefixWcsKey(PRICE_NUMERIC)]} != preformatted ${data[prefixWcsKey(PRICE_PREFORMATTED)]} (${data[prefixWcsKey(PRICE_MISMATCH_MODES)]})`,
+        );
+    });
 };
 
 const collectOsiData = async () => {
@@ -818,21 +988,110 @@ const collectOsiData = async () => {
         const buffer = osisToFetch.slice(0, defaultBufferSize);
         osisToFetch = osisToFetch.length >= defaultBufferSize ? osisToFetch.slice(defaultBufferSize) : [];
 
-        // Add timeout for the entire batch
-        const batchPromise = Promise.allSettled(buffer.map((osi) => setCommerceData(osi, mapWcs[osi].locale)));
-        // Create a timeout promise
-        const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => {
-                reject(new Error(`Batch processing timeout after ${MAX_FETCH_TIMEOUT}ms`));
-            }, MAX_FETCH_TIMEOUT * 2); // Double the fetch timeout for the batch
-        });
-        // Race the batch against the timeout
-        try {
-            await Promise.race([batchPromise, timeoutPromise]);
-        } catch (error) {
-            console.error(`Error processing batch: ${error.message}`);
-        }
+        // No batch deadline: spacing alone puts a full batch past any fixed one, and
+        // fetchDocument already times out each request.
+        await Promise.allSettled(buffer.map((wcsKey) => setCommerceData(wcsKey, mapWcs[wcsKey].osi, mapWcs[wcsKey].locale)));
     }
+};
+
+// Fetches each referenced fragment once per locale and compares every offer in
+// its `wcs.prod` section: the resolved offers the fragment pipeline prefetched
+// (offer mappings and promo codes applied) and the browser renders from.
+// /mas/io only prefetches prod WCS, so off prod the browser asks WCS itself for
+// each offer and promo code; do the same. Memoized: offers repeat across
+// fragments. The promo comes from the prod offer, so a code prod did not apply
+// is not retried.
+const envOffers = new Map();
+const fetchEnvOffer = (prodOffer, locale, country) => {
+    const osi = prodOffer.offerSelectorIds?.[0];
+    const promotionCode = prodOffer.promotion?.promotionCode;
+    const key = [osi, locale, country, promotionCode].join('|');
+    if (!envOffers.has(key)) {
+        envOffers.set(
+            key,
+            (async () => {
+                await throttleWcs();
+                const response = await fetchDocument(wcsUrl(osi, { locale, country }, promotionCode));
+                return response.ok ? (await response.json()).resolvedOffers?.[0] : undefined;
+            })().catch((error) => console.log(`no ${wcsEnv} offer ${osi} (${locale}): ${error.message}`)),
+        );
+    }
+    return envOffers.get(key);
+};
+
+const fetchMasOffers = async (masKey) => {
+    const [fragmentId, locale, country] = masKey.split('|');
+    try {
+        await throttleWcs();
+        const response = await fetchDocument(masUrl(fragmentId, { locale, country }), MAS_FETCH_TIMEOUT);
+        if (!response.ok) {
+            console.log(`no fragment ${fragmentId} (${locale}): ${response.status}`);
+            return [masKey, []];
+        }
+        const { wcs } = await response.json();
+        const entries = Object.entries(wcs?.prod ?? {}).filter(([, resolvedOffers]) => resolvedOffers?.[0]);
+        const offers = await Promise.all(
+            entries.map(async ([masCacheKey, [prodOffer]]) => {
+                const offer = wcsEnv === 'prod' ? prodOffer : await fetchEnvOffer(prodOffer, locale, country);
+                return offer && { masCacheKey, osi: offer.offerSelectorIds?.[0], data: offerData(offer, country) };
+            }),
+        );
+        return [masKey, offers.filter(Boolean)];
+    } catch (error) {
+        console.log(`error fetching fragment ${fragmentId} (${locale}): ${error.message}`);
+        return [masKey, []];
+    }
+};
+
+const masUsage = (usage, fragmentId, { locale, country }) => ({
+    ...usage,
+    fragmentId,
+    masLocale: locale,
+    masKey: `${fragmentId}|${locale}|${country}`,
+});
+
+// Surfaces with no crawlable pages (CCD, Adobe Home) or whose pages live in
+// another repo (Express): every published en_US card, in every locale the
+// fragment pipeline serves for that surface.
+const ODIN_CARD_MODEL = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ';
+const listSurfaceCards = async (surface) => {
+    const ids = [];
+    let cursor;
+    do {
+        const url = `https://odin.adobe.com/adobe/contentFragments?path=/content/dam/mas/${surface}/en_US&limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+        const body = await (await fetchDocument(url, MAS_FETCH_TIMEOUT)).json();
+        (body.items ?? []).filter(({ model }) => (model?.id ?? model) === ODIN_CARD_MODEL).forEach(({ id }) => ids.push(id));
+        cursor = body.cursor;
+    } while (cursor);
+    return ids;
+};
+
+const addSurfaceUsages = async (surface) => {
+    const ids = await listSurfaceCards(surface);
+    const locales = getSurfaceLocales(surface).map(({ lang, country }) => ({ locale: `${lang}_${country}`, country }));
+    console.log(`${surface}: ${ids.length} cards x ${locales.length} locales`);
+    ids.forEach((id) => locales.forEach((locale) => masUsages.push(masUsage({ origin: `mas:${surface}` }, id, locale))));
+};
+
+const collectMasData = async () => {
+    console.log(`collected ${masUsages.length} fragment usages`);
+    const masKeys = [...new Set(masUsages.map(({ masKey }) => masKey))];
+    const masOffers = {};
+    for (let i = 0; i < masKeys.length; i += defaultBufferSize) {
+        console.log(`${masKeys.length - i} fragments remaining...`);
+        const settled = await Promise.all(masKeys.slice(i, i + defaultBufferSize).map(fetchMasOffers));
+        Object.assign(masOffers, Object.fromEntries(settled));
+    }
+    keys.add('osi');
+    keys.add('fragmentId');
+    keys.add('masCacheKey');
+    masUsages.forEach(({ masKey, ...usage }) => {
+        masOffers[masKey].forEach(({ masCacheKey, osi, data }) => {
+            const wcsKey = `mas|${masKey}|${masCacheKey}`;
+            mapWcs[wcsKey] ??= { osi, locale: usage.localeRewrite ?? usage.masLocale, fragmentId: usage.fragmentId, ...data };
+            ostUsages.push({ ...usage, osi, masCacheKey, wcsKey });
+        });
+    });
 };
 
 const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
@@ -865,16 +1124,48 @@ const processUrlBatchesWithRetries = async ({ urlsToFetch, searchStrings }) => {
     }
 };
 
+const USAGE = `Usage: node audit.mjs [OPTION]... [URL | SITEMAP]...
+
+Price every offer linked from the given pages both with the client formatter
+and with WCS priceInfo, and write one CSV row per offer link.
+
+  -m FILE     read URLs and sitemaps from FILE, one per line
+              (./audit-manifest.txt covers acom)
+  -S SURFACE  audit every published card of SURFACE in every locale it
+              serves, e.g. ccd, adobe-home, express; repeatable
+  -e ENV      price against ENV WCS: ${Object.keys(WCS_ENVS).join(' or ')} (default ${wcsEnv})
+  -f FILE     write the CSV to FILE (default ${file})
+  -b NUM      audit NUM pages in parallel (default ${BUFFER_SIZE})
+  -w MS       space WCS-bound requests MS apart, at least 100 (default ${WCS_INTERVAL})
+  -t TARGET   ${Object.values(AUDIT_TARGET).join(' or ')}; modal lists links that open commerce
+              modals instead of pricing offers (default ${auditTarget})
+  -s FILE     list pages containing any line of FILE in FILE.matches
+  -d          log debug details
+  -h, --help  print this help and exit
+
+Examples:
+  node audit.mjs -b 50 -f /tmp/acom.csv -m ./audit-manifest.txt
+  node audit.mjs -f /tmp/surfaces.csv -S adobe-home -S ccd -S express
+  node audit.mjs -e stage https://www.adobe.com/kr/creativecloud/plans.html`;
+
 const processArgs = async () => {
     const BUFFER_ARG = '-b';
+    const WCS_INTERVAL_ARG = '-w';
     const FILE_ARG = '-f';
     const MF_ARG = '-m';
     const SEARCH_ARG = '-s';
     const DEBUG_ARG = '-d';
     const TARGET_ARG = '-t';
+    const SURFACE_ARG = '-S';
+    const ENV_ARG = '-e';
     let args = process.argv.slice(2);
+    if (args.includes('-h') || args.includes('--help')) {
+        console.log(USAGE);
+        process.exit(0);
+    }
     if (!args.length) {
-        console.log('you should provide at least one URL to audit');
+        console.error(USAGE);
+        process.exit(2);
     }
     let searchStrings;
     let urlsToFetch = [];
@@ -884,6 +1175,15 @@ const processArgs = async () => {
             case BUFFER_ARG: {
                 defaultBufferSize = parseInt(args.splice(0, 1)[0]);
                 console.log(`will use bufferSize of ${defaultBufferSize}`);
+                break;
+            }
+            case WCS_INTERVAL_ARG: {
+                wcsInterval = parseInt(args.splice(0, 1)[0]);
+                if (!(wcsInterval >= 100)) {
+                    console.error(`${WCS_INTERVAL_ARG} must be at least 100 (ms), WCS requires it`);
+                    process.exit(2);
+                }
+                console.log(`will space WCS-bound requests ${wcsInterval}ms apart`);
                 break;
             }
             case FILE_ARG: {
@@ -915,6 +1215,19 @@ const processArgs = async () => {
                 isDebug = true;
                 break;
             }
+            case SURFACE_ARG: {
+                surfaces.push(args.splice(0, 1)[0]);
+                break;
+            }
+            case ENV_ARG: {
+                wcsEnv = args.splice(0, 1)[0];
+                if (!WCS_ENVS[wcsEnv]) {
+                    console.error(`${ENV_ARG} must be one of ${Object.keys(WCS_ENVS).join(', ')}`);
+                    process.exit(2);
+                }
+                console.log(`will price against ${wcsEnv} WCS`);
+                break;
+            }
             default: {
                 if (arg.endsWith('sitemap.xml')) {
                     console.log('looks like a sitemap, will use urls listed there...');
@@ -944,6 +1257,8 @@ async function main() {
                 break;
             case AUDIT_TARGET.ost:
                 await collectOsiData();
+                for (const surface of surfaces) await addSurfaceUsages(surface);
+                await collectMasData();
                 writeOstUsagesToFile();
                 break;
             default:
@@ -953,8 +1268,6 @@ async function main() {
         console.log(`finished in ${(Date.now() - startTime) / 1000}s`);
     } catch (error) {
         console.error(`Fatal error: ${error.message}`);
-    } finally {
-        clearTimeout(scriptTimeout);
     }
 }
 

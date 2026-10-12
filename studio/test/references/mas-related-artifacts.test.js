@@ -35,9 +35,11 @@ describe('mas-related-artifacts', () => {
         dialogOf(el)
             .buckets.find((bucket) => bucket.key === 'collections')
             .rows.map((row) => row.representative.id);
+    // Opening and closing the modal each run a Spectrum transition, which can take over a second on
+    // a loaded CI runner.
+    const modalTransition = { timeout: 5000 };
     // Closing the modal before it finishes opening strands Spectrum's focus trap, which then
-    // swallows every click on the page; wait until focus has moved into the dialog. Opening runs a
-    // transition and a dynamic import first, which can take over a second on a loaded CI runner.
+    // swallows every click on the page; wait until focus has moved into the dialog.
     const openArtifactsDialog = async (el) => {
         el.shadowRoot.querySelector('.artifacts-view-link').focus();
         el.shadowRoot.querySelector('.artifacts-view-link').click();
@@ -45,9 +47,10 @@ describe('mas-related-artifacts', () => {
         await waitUntil(
             () => dialogOf(el).shadowRoot.querySelector('sp-dialog-wrapper')?.matches(':focus-within'),
             'Focus never moved into the artifacts dialog',
-            { timeout: 5000 },
+            modalTransition,
         );
     };
+    const closedDialog = (el) => waitUntil(() => !dialogOf(el).open, 'The artifacts dialog never closed', modalTransition);
     const settled = async (el) => {
         await el.updateComplete;
         await waitUntil(() => !text(el).includes('Loading'));
@@ -132,7 +135,7 @@ describe('mas-related-artifacts', () => {
             await settled(el);
             await openArtifactsDialog(el);
             dialogOf(el).shadowRoot.querySelector('sp-overlay').open = false;
-            await waitUntil(() => !dialogOf(el).open);
+            await closedDialog(el);
             expect(dialogOf(el).open).to.equal(false);
         });
 
@@ -142,10 +145,11 @@ describe('mas-related-artifacts', () => {
             await settled(el);
             await openArtifactsDialog(el);
             await sendKeys({ press: 'Escape' });
-            await waitUntil(() => !dialogOf(el).open);
+            await closedDialog(el);
             await waitUntil(
                 () => el.shadowRoot.activeElement === el.shadowRoot.querySelector('.artifacts-view-link'),
                 'Closing must return focus to View artifacts',
+                modalTransition,
             );
         });
 

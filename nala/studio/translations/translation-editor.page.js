@@ -13,7 +13,7 @@ export default class TranslationEditorPage {
         this.titleField = page.locator('#title');
 
         // Selected languages section
-        this.addLanguagesButton = page.locator('#add-languages-overlay [slot="trigger"]').first();
+        this.addLanguagesButton = page.locator('mas-translation-editor mas-grouped-selector .add-button');
 
         this.selectedItemsHeader = page
             .locator('mas-translation-editor')
@@ -87,7 +87,7 @@ export default class TranslationEditorPage {
         this.viewOnlyCardsTab = page.getByRole('tabpanel', { name: /Fragments\s*\(\d+\)/ }).first();
 
         this.deleteButton = page.locator('mas-quick-actions sp-action-button[title="Delete"]');
-        this.editLanguagesButton = page.locator('.selected-langs-header sp-action-button', { hasText: 'Edit' });
+        this.editLanguagesButton = page.locator('mas-translation-editor mas-grouped-selector .edit-button');
         this.editItemsButton = page.locator('.selected-items-header sp-action-button', { hasText: 'Edit' });
 
         this.COLUMNS = {
@@ -113,7 +113,9 @@ export default class TranslationEditorPage {
         const selectLangsDialog = this.page.getByRole('dialog', { name: 'Select languages' });
         await expect(selectLangsDialog).toBeVisible({ timeout: 10000 });
         await this.page.locator('.select-all-row sp-checkbox').click();
-        await this.page.locator('sp-dialog-wrapper.add-langs-dialog sp-button[variant="accent"]').click();
+        await this.page
+            .locator('mas-translation-editor mas-grouped-selector .selector-dialog sp-button[variant="accent"]')
+            .click();
         await expect(selectLangsDialog).not.toBeVisible({ timeout: 5000 });
 
         // Add items

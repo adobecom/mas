@@ -1,5 +1,6 @@
 import { aTimeout, fixture, html, expect, oneEvent, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
+import { sendKeys } from '@web/test-runner-commands';
 import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts.js';
 import Store from '../../src/store.js';
@@ -37,6 +38,7 @@ describe('mas-related-artifacts', () => {
     // Closing the modal before it finishes opening strands Spectrum's focus trap, which then
     // swallows every click on the page; wait until focus has moved into the dialog.
     const openArtifactsDialog = async (el) => {
+        el.shadowRoot.querySelector('.artifacts-view-link').focus();
         el.shadowRoot.querySelector('.artifacts-view-link').click();
         await el.updateComplete;
         await waitUntil(() => dialogOf(el).shadowRoot.querySelector('sp-dialog-wrapper')?.matches(':focus-within'));
@@ -127,6 +129,19 @@ describe('mas-related-artifacts', () => {
             dialogOf(el).shadowRoot.querySelector('sp-overlay').open = false;
             await waitUntil(() => !dialogOf(el).open);
             expect(dialogOf(el).open).to.equal(false);
+        });
+
+        it('returns focus to View artifacts when the dialog is dismissed with Escape', async () => {
+            getReferencedByFragmentId.resolves({ items: [reference('coll-1')] });
+            const el = await mount(card('card-a'));
+            await settled(el);
+            await openArtifactsDialog(el);
+            await sendKeys({ press: 'Escape' });
+            await waitUntil(() => !dialogOf(el).open);
+            await waitUntil(
+                () => el.shadowRoot.activeElement === el.shadowRoot.querySelector('.artifacts-view-link'),
+                'Closing must return focus to View artifacts',
+            );
         });
 
         it('notes a failed promotion-project lookup', async () => {

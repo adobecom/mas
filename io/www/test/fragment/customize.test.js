@@ -1937,7 +1937,7 @@ describe('customize promo variation', function () {
     });
 });
 
-describe('customize promo variation vs. personalization (promo variation always wins)', function () {
+describe('customize promo variation vs. PZN precedence', function () {
     const PZN_VARIATION_ID = 'pzn-var-edu';
     const PROMO_VARIATION = {
         id: 'promo-var-id',
@@ -1959,7 +1959,7 @@ describe('customize promo variation vs. personalization (promo variation always 
                 [PZN_VARIATION_ID]: {
                     type: 'content-fragment',
                     value: {
-                        path: '/content/dam/mas/sandbox/en_US/PA-123/pzn/edu',
+                        path: '/content/dam/mas/sandbox/en_US/pzn-test-fragment/pzn/edu',
                         id: PZN_VARIATION_ID,
                         title: 'EDU pricing',
                         fields: {
@@ -1984,23 +1984,26 @@ describe('customize promo variation vs. personalization (promo variation always 
         return [{ project, promoMap: { '*': 'PROMO-CODE' }, fragmentPaths: new Set(project.fragmentPaths) }];
     }
 
-    it('renders the promo variation even when a matching pzn/personalization variation exists', async function () {
+    it('matches audience-prefixed EDU tags case-insensitively without inheriting the default promotion', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
                 fragmentPath: 'pzn-test-fragment',
                 locale: 'en_US',
                 parsedLocale: 'en_US',
-                pzn: 'EDU',
+                pzn: 'edu',
                 body: buildBodyWithPromoAndPzn(),
             },
             buildPromoProjectsEntry(),
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.equal('promo-var-id');
-        expect(result.body.fields.badge).to.equal('PROMO badge');
-        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.be.undefined;
+        expect(result.body.promoProject).to.be.undefined;
+        expect(result.body.promoVariationProject).to.be.undefined;
+        expect(result.promoScopeById).to.deep.equal({});
     });
 
     it('renders the promo variation when no personalization variation matches', async function () {
@@ -2020,6 +2023,308 @@ describe('customize promo variation vs. personalization (promo variation always 
         expect(result.body.fields.badge).to.equal('PROMO badge');
         expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
     });
+});
+
+describe('customize PZN-only promotion rules', function () {
+    const cases = [
+        {
+            name: 'rule 1: excluded SMB keeps its content without promo mapping',
+            pzn: 'SMB',
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: undefined,
+            expectedOsi: 'OSI-TEST',
+        },
+        {
+            name: 'rule 2: included SMB keeps its content instead of the default promo',
+            pzn: 'SMB',
+            groupedIncluded: true,
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
+            name: 'rule 3: included SMB uses its own promo instead of the default promo',
+            pzn: 'SMB',
+            groupedIncluded: true,
+            groupedPromo: true,
+            expectedVariation: 'grouped-promo',
+            expectedBadge: 'SMB promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'included SMB receives mapping even when the default is excluded',
+            pzn: 'SMB',
+            rootIncluded: false,
+            groupedIncluded: true,
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
+            name: 'a visitor without PZN keeps the default promo',
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'a root without variations keeps the default promo',
+            pzn: 'SMB',
+            variations: [],
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'an unmatched PZN token keeps the default promo',
+            pzn: 'EDU',
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'comma-separated case-insensitive PZN tokens still require explicit membership',
+            pzn: 'EDU, smb',
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: undefined,
+            expectedOsi: 'OSI-TEST',
+        },
+        {
+            name: 'matching SMB with geo tags still requires explicit membership',
+            pzn: 'SMB',
+            country: 'GR',
+            tags: ['mas:pzn/SMB', 'mas:locale/en_GR'],
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: undefined,
+            expectedOsi: 'OSI-TEST',
+        },
+        {
+            name: 'a geo-only match on a mixed-tag variation keeps the default promo',
+            pzn: 'EDU',
+            country: 'GR',
+            tags: ['mas:pzn/SMB', 'mas:locale/en_GR'],
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'geo-only grouped locale tags keep the default promo without explicit membership',
+            locale: 'en_GR',
+            tags: ['mas:locale/en_GR'],
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'geo-only grouped country tags keep promo mapping from the default',
+            country: 'GR',
+            tags: ['mas:pzn/country/GR'],
+            rootPromo: false,
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
+            name: 'geo-only grouped variations retain their own included promo',
+            country: 'GR',
+            tags: ['mas:locale/en_GR'],
+            groupedIncluded: true,
+            groupedPromo: true,
+            expectedVariation: 'grouped-promo',
+            expectedBadge: 'SMB promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'geo-only grouped exclusion remains unchanged when another card and its grouped variation are included',
+            country: 'GR',
+            tags: ['mas:locale/en_GR'],
+            rootPromo: false,
+            otherGroupedIncluded: true,
+            expectedBadge: 'Default badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
+            name: 'an ordinary regional variation keeps mapping from the default despite excluded SMB',
+            locale: 'en_KW',
+            pzn: 'SMB',
+            regional: true,
+            rootPromo: false,
+            expectedVariation: 'regional',
+            expectedBadge: 'Regional badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+        },
+        {
+            name: 'an ordinary regional match does not let SMB suppress the default promo',
+            locale: 'en_KW',
+            pzn: 'SMB',
+            regional: true,
+            expectedVariation: 'root-promo',
+            expectedBadge: 'Default promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'an ordinary regional match cannot use a project containing only unrendered SMB',
+            locale: 'en_KW',
+            pzn: 'SMB',
+            regional: true,
+            rootIncluded: false,
+            groupedIncluded: true,
+            rootPromo: false,
+            expectedVariation: 'regional',
+            expectedBadge: 'Regional badge',
+            expectedCode: undefined,
+            expectedOsi: 'OSI-TEST',
+        },
+        {
+            name: 'an included PZN-specific promo retains precedence over an ordinary regional match',
+            locale: 'en_KW',
+            pzn: 'SMB',
+            regional: true,
+            groupedIncluded: true,
+            groupedPromo: true,
+            expectedVariation: 'grouped-promo',
+            expectedBadge: 'SMB promo badge',
+            expectedCode: 'PROMO-CODE',
+            expectedOsi: 'OSI-PROMO',
+            expectedVariationProject: 'promo-project',
+        },
+        {
+            name: 'a regional locale without a regional variation still requires SMB membership',
+            locale: 'en_KW',
+            pzn: 'SMB',
+            expectedVariation: 'grouped',
+            expectedBadge: 'SMB badge',
+            expectedCode: undefined,
+            expectedOsi: 'OSI-TEST',
+        },
+    ];
+
+    function buildScenarioProject(scenario) {
+        const { locale = 'en_US', tags = ['mas:pzn/SMB'], rootIncluded = true, rootPromo = true } = scenario;
+        const grouped = {
+            id: 'grouped',
+            path: '/content/dam/mas/sandbox/en_US/card/pzn/grouped',
+            fields: { pznTags: tags, badge: 'SMB badge' },
+        };
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: { badge: 'Default badge', osi: 'OSI-TEST', variations: scenario.variations ?? ['grouped'] },
+            references: { grouped: { type: 'content-fragment', value: grouped } },
+            referencesTree: [],
+        };
+        if (scenario.regional) {
+            body.fields.variations.push('regional');
+            body.references.regional = {
+                type: 'content-fragment',
+                value: {
+                    id: 'regional',
+                    path: `/content/dam/mas/sandbox/${locale}/card`,
+                    fields: { badge: 'Regional badge' },
+                },
+            };
+        }
+        const groupedPaths = [
+            ...(scenario.groupedIncluded ? ['card/pzn/grouped'] : []),
+            ...(scenario.otherGroupedIncluded ? ['other/pzn/grouped'] : []),
+        ];
+        const fragmentPaths = [
+            ...(rootIncluded ? ['card'] : []),
+            ...(scenario.otherGroupedIncluded ? ['other'] : []),
+            ...groupedPaths,
+        ];
+        const groupedVariationReferences = new Map(scenario.groupedIncluded ? [['card/pzn/grouped', grouped]] : []);
+        if (scenario.otherGroupedIncluded) {
+            groupedVariationReferences.set('other/pzn/grouped', {
+                id: 'other-grouped',
+                path: '/content/dam/mas/sandbox/en_US/other/pzn/grouped',
+                fields: { pznTags: ['mas:locale/en_GR'] },
+            });
+        }
+        const defaultVariations = {};
+        if (rootPromo) {
+            defaultVariations.card = {
+                id: 'root-promo',
+                path: '/content/dam/mas/sandbox/en_US/promotions/bf/card',
+                fields: { badge: 'Default promo badge' },
+            };
+        }
+        if (scenario.groupedPromo) {
+            defaultVariations['card/pzn/grouped'] = {
+                id: 'grouped-promo',
+                path: '/content/dam/mas/sandbox/en_US/promotions/bf/card/pzn/grouped',
+                fields: { badge: 'SMB promo badge' },
+            };
+        }
+        return {
+            context: {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale,
+                parsedLocale: 'en_US',
+                country: scenario.country,
+                pzn: scenario.pzn,
+                body,
+            },
+            promoProjects: [
+                {
+                    project: { id: 'promo-project', fragmentPaths, defaultVariations, regionVariations: {} },
+                    fragmentPaths: new Set(fragmentPaths),
+                    groupedVariationPaths: new Set(groupedPaths),
+                    groupedVariationReferences,
+                    promoMap: { '*': 'PROMO-CODE' },
+                    substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
+                },
+            ],
+        };
+    }
+
+    for (const scenario of cases) {
+        it(scenario.name, async function () {
+            const { context, promoProjects } = buildScenarioProject(scenario);
+            const result = await processWithPromoProjects(context, promoProjects);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal(scenario.expectedVariation);
+            expect(result.body.fields.badge).to.equal(scenario.expectedBadge);
+            expect(result.body.fields.promoCode).to.equal(scenario.expectedCode);
+            expect(result.body.fields.osi).to.equal(scenario.expectedOsi);
+            expect(result.body.promoProject).to.equal(scenario.expectedCode ? 'promo-project' : undefined);
+            expect(result.body.promoVariationProject).to.equal(scenario.expectedVariationProject);
+            expect(result.promoScopeById).to.deep.equal(
+                scenario.expectedCode
+                    ? {
+                          card: {
+                              promoMap: { '*': 'PROMO-CODE' },
+                              substituteMap: { 'OSI-TEST': 'OSI-PROMO' },
+                          },
+                      }
+                    : {},
+            );
+        });
+    }
 });
 
 describe('customize grouped variation scoped to a promo project (no promo variation present)', function () {
@@ -2065,7 +2370,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
             {
                 project,
                 promoMap: { '*': 'PROMO-CODE' },
-                fragmentPaths: new Set(project.fragmentPaths),
+                fragmentPaths: new Set([...project.fragmentPaths, ...groupedVariationPaths]),
                 groupedVariationPaths: new Set(groupedVariationPaths),
             },
         ];
@@ -2091,7 +2396,7 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.body.promoProject).to.equal('promo-proj-id');
     });
 
-    it('renders the plain promo when the pzn variation is not curated into this project', async function () {
+    it('renders the matching PZN without promotion when only unrelated grouped variations are included', async function () {
         const result = await processWithPromoProjects(
             {
                 ...FAKE_CONTEXT,
@@ -2105,9 +2410,10 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         );
 
         expect(result.status).to.equal(200);
-        expect(result.body.variationId).to.be.undefined;
-        expect(result.body.fields.badge).to.equal('default badge');
-        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
+        expect(result.body.fields.badge).to.equal('EDU badge');
+        expect(result.body.fields.promoCode).to.be.undefined;
+        expect(result.body.promoProject).to.be.undefined;
     });
 
     it('does not stamp promoVariationProject when the pzn variation is not curated (no content was actually merged)', async function () {
@@ -2143,7 +2449,8 @@ describe('customize grouped variation scoped to a promo project (no promo variat
         expect(result.status).to.equal(200);
         expect(result.body.variationId).to.equal(PZN_VARIATION_ID);
         expect(result.body.fields.badge).to.equal('EDU badge');
-        expect(result.body.fields.promoCode).to.equal('PROMO-CODE');
+        expect(result.body.fields.promoCode).to.be.undefined;
+        expect(result.body.promoProject).to.be.undefined;
     });
 });
 
@@ -2206,7 +2513,7 @@ describe('customize grouped variation scoped to a promo project (promo variation
             {
                 project,
                 promoMap: { '*': 'PROMO-CODE' },
-                fragmentPaths: new Set(project.fragmentPaths),
+                fragmentPaths: new Set([...project.fragmentPaths, ...groupedVariationPaths]),
                 groupedVariationPaths: new Set(groupedVariationPaths),
                 groupedVariationReferences,
             },
@@ -2528,8 +2835,14 @@ describe('customize ignore promo variations per offer & geo', function () {
         const project = {
             id: 'promo-proj-id',
             path: '/content/dam/mas/promotions/black-friday',
-            fragmentPaths: ['pzn-test-fragment'],
-            defaultVariations: { 'pzn-test-fragment': PROMO_VARIATION },
+            fragmentPaths: ['pzn-test-fragment', 'PA-123/pzn/edu'],
+            defaultVariations: {
+                'pzn-test-fragment': PROMO_VARIATION,
+                'PA-123/pzn/edu': {
+                    ...PROMO_VARIATION,
+                    path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/PA-123/pzn/edu',
+                },
+            },
             regionVariations: {},
         };
         return [
@@ -2537,6 +2850,8 @@ describe('customize ignore promo variations per offer & geo', function () {
                 project,
                 promoMap: { '*': 'PROMO-CODE' },
                 fragmentPaths: new Set(project.fragmentPaths),
+                groupedVariationPaths: new Set(['PA-123/pzn/edu']),
+                groupedVariationReferences: new Map([['PA-123/pzn/edu', buildBody().references[PZN_VARIATION_ID].value]]),
                 ignoreVariationOsis,
             },
         ];

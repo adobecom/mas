@@ -1490,18 +1490,6 @@ export default class MasFragmentEditor extends LitElement {
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
 
-    getFragmentEditorUrl(fragmentId) {
-        // Preserve the current path parameter from the URL
-        const currentParams = new URLSearchParams(window.location.hash.slice(1));
-        const path = currentParams.get('path');
-
-        let url = `#page=fragment-editor&fragmentId=${fragmentId}`;
-        if (path) {
-            url += `&path=${path}`;
-        }
-        return url;
-    }
-
     promptDiscardChanges() {
         if (this.#pendingDiscardPromise) {
             return this.#pendingDiscardPromise;

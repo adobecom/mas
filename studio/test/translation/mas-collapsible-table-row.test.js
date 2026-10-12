@@ -1681,6 +1681,7 @@ describe('MasCollapsibleTableRow', () => {
                     .topLevelCard=${topLevelCard}
                     .isTopLevelExpanded=${true}
                     .renderActionsCell=${() => nothing}
+                    .openVariationOnActivate=${true}
                 ></mas-collapsible-table-row>`,
             );
             el.promoVariations = [makePromoVariation()];
@@ -1704,11 +1705,13 @@ describe('MasCollapsibleTableRow', () => {
             return el;
         };
 
-        it('wraps the row in a link to the fragment editor when renderActionsCell is provided (promotions context)', async () => {
+        it('renders a labelled fragment editor link in the title cell without wrapping the row', async () => {
             const el = await fixtureInPromotionsContext();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
-            const link = row.closest('a');
+            expect(row.parentElement.tagName).to.equal('SP-TABLE-BODY');
+            const link = row.querySelector('.title sp-link');
             expect(link).to.exist;
+            expect(link.getAttribute('aria-label')).to.equal('Open Promo Card in fragment editor (new tab)');
             expect(link.getAttribute('target')).to.equal('_blank');
             expect(link.getAttribute('rel')).to.equal('noopener');
             expect(link.getAttribute('href')).to.equal(
@@ -1722,7 +1725,7 @@ describe('MasCollapsibleTableRow', () => {
             try {
                 const el = await fixtureInPromotionsContext();
                 const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
-                const link = row.closest('a');
+                const link = row.querySelector('.title sp-link');
                 expect(link.getAttribute('href')).to.equal(
                     `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
                 );
@@ -1742,13 +1745,14 @@ describe('MasCollapsibleTableRow', () => {
                         .topLevelCard=${topLevelCard}
                         .isTopLevelExpanded=${true}
                         .renderActionsCell=${() => nothing}
+                        .openVariationOnActivate=${true}
                     ></mas-collapsible-table-row>`,
                 );
                 el.promoVariations = [makePromoVariation({ path: 'not-an-aem-path' })];
                 el.selectedTabKey = 'promotion';
                 await el.updateComplete;
                 const row = el.shadowRoot.querySelector(`sp-table-row[value="not-an-aem-path"]`);
-                const link = row.closest('a');
+                const link = row.querySelector('.title sp-link');
                 expect(link.getAttribute('href')).to.equal(
                     `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=sandbox`,
                 );
@@ -1762,7 +1766,7 @@ describe('MasCollapsibleTableRow', () => {
             try {
                 const el = await fixtureInPromotionsContext();
                 const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
-                const link = row.closest('a');
+                const link = row.querySelector('.title sp-link');
                 expect(link.getAttribute('href')).to.equal(
                     `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom&promotionId=promo-project-42`,
                 );
@@ -1775,6 +1779,50 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixtureInTranslationContext();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
             expect(row.closest('a')).to.not.exist;
+            expect(row.querySelector('.title sp-link')).to.not.exist;
+        });
+
+        it('does not enable fragment activation merely because an actions renderer is supplied', async () => {
+            const el = await fixtureInTranslationContext();
+            el.renderActionsCell = () => nothing;
+            await el.updateComplete;
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+            expect(row.querySelector('.title sp-link')).to.not.exist;
+        });
+
+        for (const modifiers of [{}, { metaKey: true }, { ctrlKey: true }, { shiftKey: true }]) {
+            it(`does not cancel title link clicks with modifiers ${JSON.stringify(modifiers)}`, async () => {
+                const el = await fixtureInPromotionsContext();
+                const link = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"] .title sp-link`);
+                expect(link).to.exist;
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    composed: true,
+                    cancelable: true,
+                    ...modifiers,
+                });
+                link.addEventListener(
+                    'click',
+                    (event) => {
+                        expect(event.defaultPrevented).to.be.false;
+                        event.preventDefault();
+                    },
+                    { once: true },
+                );
+                link.dispatchEvent(clickEvent);
+            });
+        }
+
+        it('does not open an additional editor tab when double-clicking the title link', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const link = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"] .title sp-link`);
+            expect(link).to.exist;
+            link.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
         });
 
         it('opens the fragment editor in a new tab on row double-click (promotions context)', async () => {
@@ -1804,7 +1852,7 @@ describe('MasCollapsibleTableRow', () => {
             expect(openStub.called).to.be.false;
         });
 
-        it('still copies the offer id to the clipboard when the copy button is clicked inside the wrapping link', async () => {
+        it('still copies the offer id to the clipboard when the copy button is clicked', async () => {
             const el = await fixtureInPromotionsContext();
             const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
@@ -1835,22 +1883,24 @@ describe('MasCollapsibleTableRow', () => {
             expect(detailsRow.closest('a')).to.not.exist;
         });
 
-        it('prevents default navigation when the copy-offer-id action button is clicked (single click)', async () => {
+        it('does not navigate when the copy-offer-id action button is clicked', async () => {
             const el = await fixtureInPromotionsContext();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
             const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
             const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
             copyButton.dispatchEvent(clickEvent);
-            expect(clickEvent.defaultPrevented).to.be.true;
+            expect(row.closest('a')).to.not.exist;
         });
 
-        it('prevents default navigation when the row expand button is clicked (single click)', async () => {
+        it('expands the row without cancelling the expand button click', async () => {
             const el = await fixtureInPromotionsContext();
             const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
             const expandButton = row.querySelector('.expand-button');
             const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
             expandButton.dispatchEvent(clickEvent);
-            expect(clickEvent.defaultPrevented).to.be.true;
+            expect(clickEvent.defaultPrevented).to.be.false;
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.variation-details-row')).to.exist;
         });
     });
 

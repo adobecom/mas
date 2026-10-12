@@ -261,30 +261,6 @@ export const styles = [
             }
         }
 
-        /* Promo variation rows in the promotions-editor table are wrapped in an anchor
-           (for native "open in new tab"), which makes each row an only-child of its own
-           anchor; :first-of-type/:last-of-type on sp-table-row above no longer reach them,
-           so the same corner rounding is re-applied relative to the anchor siblings. */
-        .nested-content sp-table-body a:first-of-type > sp-table-row {
-            sp-table-cell:first-of-type {
-                border-top-left-radius: 12px;
-            }
-
-            sp-table-cell:last-of-type {
-                border-top-right-radius: 12px;
-            }
-        }
-
-        .nested-content sp-table-body a:last-of-type > sp-table-row {
-            sp-table-cell:first-of-type {
-                border-bottom-left-radius: 12px;
-            }
-
-            sp-table-cell:last-of-type {
-                border-bottom-right-radius: 12px;
-            }
-        }
-
         .nested-content .promo-variations-table sp-table-body sp-table-row:first-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-top-left-radius: 0;

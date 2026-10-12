@@ -2505,6 +2505,17 @@ describe('MasPromotionsItemsTable', () => {
     });
 
     describe('cards table columns', () => {
+        let originalPromotionId;
+
+        beforeEach(() => {
+            originalPromotionId = Store.promotions.promotionId.get();
+            Store.promotions.promotionId.set('promo-project-id');
+        });
+
+        afterEach(() => {
+            Store.promotions.promotionId.set(originalPromotionId);
+        });
+
         const card = {
             path: '/content/dam/mas/card-cols',
             id: 'card-cols-id',
@@ -2680,6 +2691,50 @@ describe('MasPromotionsItemsTable', () => {
             const variationRow = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"]`);
             const menuItems = [...variationRow.querySelectorAll('sp-menu-item')].map((i) => i.textContent.trim());
             expect(menuItems).to.deep.equal(['View variation']);
+        });
+
+        it('does not cancel navigation from the View variation action menu link', async () => {
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card-cols';
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [card];
+            el.existingPromoVariationsByPath = new Map([
+                [card.path, [{ path: variationPath, id: 'bf-id', title: 'BF variation', fields: [], tags: [] }]],
+            ]);
+            await el.updateComplete;
+            const table = el.shadowRoot.querySelector('mas-select-items-table');
+            await table.updateComplete;
+            const row = table.shadowRoot.querySelector('mas-collapsible-table-row');
+            row.isTopLevelExpanded = true;
+            await row.updateComplete;
+            const link = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"] .actions-cell sp-link`);
+            expect(link).to.exist;
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            let preventedAtLink;
+            link.addEventListener(
+                'click',
+                (event) => {
+                    preventedAtLink = event.defaultPrevented;
+                    event.preventDefault();
+                },
+                { once: true },
+            );
+            link.dispatchEvent(clickEvent);
+            expect(preventedAtLink).to.be.false;
+        });
+
+        it('enables fragment editor links for promotion variation titles through the shared table', async () => {
+            const { row } = await renderCardsTable();
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card-cols';
+            row.promoVariations = [{ path: variationPath, id: 'bf-id', title: 'BF variation', fields: [], tags: [] }];
+            row.isTopLevelExpanded = true;
+            row.selectedTabKey = 'promotion';
+            await row.updateComplete;
+            const link = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"] .title sp-link`);
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                '#page=fragment-editor&fragmentId=bf-id&path=acom&promotionId=promo-project-id',
+            );
+            expect(row.shadowRoot.querySelector(`sp-table-row[value="${card.path}"] .title sp-link`)).to.not.exist;
         });
     });
 });

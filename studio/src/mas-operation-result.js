@@ -1,0 +1,905 @@
+import { LitElement, html, nothing } from 'lit';
+import { repeat } from 'lit/directives/repeat.js';
+import { openPreview, closePreview } from './mas-card-preview.js';
+import { buildStudioFragmentHref, buildStudioFolderHref, showToast, normalizeFragmentForCache } from './utils.js';
+
+const HTML_ESCAPE_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (c) => HTML_ESCAPE_MAP[c]);
+}
+
+/**
+ * Operation Result Display Component
+ * Shows results from AEM operations executed by AI
+ */
+export class MasOperationResult extends LitElement {
+    static properties = {
+        result: { type: Object },
+        operationType: { type: String },
+        displayCount: { type: Number },
+        displayContext: { type: Object },
+    };
+
+    constructor() {
+        super();
+        this.displayCount = 5;
+        this.displayContext = null;
+    }
+
+    createRenderRoot() {
+        return this;
+    }
+
+    cacheFragments(fragments) {
+        const AemFragmentElement = customElements.get('aem-fragment');
+        if (!AemFragmentElement || !fragments) return;
+
+        fragments.forEach((card) => {
+            const fragmentData = card.fragmentData || card;
+            AemFragmentElement.cache.add(normalizeFragmentForCache(fragmentData));
+        });
+    }
+
+    renderSearchResults() {
+        const { results = [] } = this.result;
+
+        if (results.length === 0) {
+            return html`
+                <div class="operation-result search-result empty">
+                    <sp-icon-magnify size="l"></sp-icon-magnify>
+                    <p>No cards found matching your criteria.</p>
+                </div>
+            `;
+        }
+
+        this.cacheFragments(results);
+
+        const displayResults = results.slice(0, this.displayCount);
+        const hasMore = results.length > displayResults.length;
+        const remainingCount = results.length - displayResults.length;
+        const surface = this.displayContext?.surface || this.extractSurfaceFromResults(results);
+        const locale = this.displayContext?.locale || 'en_US';
+        const allHref = surface ? buildStudioFolderHref({ surface, locale, query: this.displayContext?.query }) : null;
+
+        return html`
+            <div class="operation-result search-result">
+                <div class="result-header">
+                    <sp-icon-magnify size="m"></sp-icon-magnify>
+                    <span>${results.length} card${results.length !== 1 ? 's' : ''} found</span>
+                </div>
+
+                <sp-table size="m" class="chat-search-table">
+                    <sp-table-head>
+                        <sp-table-head-cell>Title</sp-table-head-cell>
+                        <sp-table-head-cell>Template</sp-table-head-cell>
+                        <sp-table-head-cell>Status</sp-table-head-cell>
+                        <sp-table-head-cell></sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body>
+                        ${repeat(
+                            displayResults,
+                            (fragment) => fragment.id,
+                            (fragment) => html`
+                                <sp-table-row value="${fragment.id}" @click=${() => this.handleOpenCard(fragment)}>
+                                    <sp-table-cell class="title-cell">${fragment.title}</sp-table-cell>
+                                    <sp-table-cell>
+                                        <sp-badge size="s">${this.extractVariant(fragment)}</sp-badge>
+                                    </sp-table-cell>
+                                    <sp-table-cell class="status-cell">${fragment.status}</sp-table-cell>
+                                    <sp-table-cell class="action-cell">
+                                        <sp-action-button
+                                            quiet
+                                            size="s"
+                                            class="preview-action"
+                                            @mouseenter=${() => this.handlePreview(fragment.id)}
+                                            @mouseleave=${closePreview}
+                                        >
+                                            <sp-icon-magnify slot="icon"></sp-icon-magnify>
+                                        </sp-action-button>
+                                        <sp-icon-open-in size="s" class="open-action"></sp-icon-open-in>
+                                    </sp-table-cell>
+                                </sp-table-row>
+                            `,
+                        )}
+                    </sp-table-body>
+                </sp-table>
+
+                <div class="search-results-actions">
+                    ${hasMore
+                        ? html`<sp-button
+                              size="m"
+                              variant="secondary"
+                              treatment="outline"
+                              @click=${() => this.handleShowMore(results.length)}
+                          >
+                              Show ${Math.min(5, remainingCount)} more (${remainingCount} remaining)
+                          </sp-button>`
+                        : nothing}
+                    <sp-button size="m" variant="secondary" @click=${() => this.copyAllCardLinks(results)}>
+                        Copy all links
+                    </sp-button>
+                    ${allHref
+                        ? html`<sp-button size="m" variant="primary" href=${allHref} target="_blank" rel="noopener">
+                              View all ${results.length} in Studio →
+                          </sp-button>`
+                        : nothing}
+                </div>
+            </div>
+        `;
+    }
+
+    handleShowMore(totalCount) {
+        const increment = 5;
+        this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
+    }
+
+    extractSurfaceFromResults(results) {
+        const path = results.find((card) => card.path)?.path;
+        if (!path) return null;
+        const match = path.match(/^\/content\/dam\/mas\/([\w-]+)/);
+        return match ? match[1] : null;
+    }
+
+    renderPublishResult() {
+        const { fragmentTitle, fragmentPath } = this.result;
+
+        return html`
+            <div class="operation-result publish-result success">
+                <div class="result-icon">
+                    <sp-icon-check-circle size="l"></sp-icon-check-circle>
+                </div>
+                <div class="result-content">
+                    <h4>Published Successfully</h4>
+                    <p>"${fragmentTitle}" is now live.</p>
+                    ${fragmentPath
+                        ? html`<p class="result-path">
+                              <a href="${fragmentPath}" target="_blank">${fragmentPath}</a>
+                          </p>`
+                        : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    renderCopyResult() {
+        const { newFragmentTitle, newFragmentPath } = this.result;
+
+        return html`
+            <div class="operation-result copy-result success">
+                <div class="result-icon">
+                    <sp-icon-copy size="l"></sp-icon-copy>
+                </div>
+                <div class="result-content">
+                    <h4>Card Duplicated</h4>
+                    <p>Created: "${newFragmentTitle}"</p>
+                    ${newFragmentPath ? html`<p class="result-path">${newFragmentPath}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    renderUpdateResult() {
+        const { fragmentTitle, updatedFields = [] } = this.result;
+
+        return html`
+            <div class="operation-result update-result success">
+                <div class="result-icon">
+                    <sp-icon-edit size="l"></sp-icon-edit>
+                </div>
+                <div class="result-content">
+                    <h4>Card Updated</h4>
+                    <p>"${fragmentTitle}" has been updated.</p>
+                    ${updatedFields.length > 0 ? html`<p class="updated-fields">Updated: ${updatedFields.join(', ')}</p>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    renderGetResult() {
+        const { fragment } = this.result;
+
+        if (!fragment) {
+            return html`<p>No fragment data available.</p>`;
+        }
+
+        return html`
+            <div class="operation-result get-result">
+                <div class="fragment-preview">
+                    <h4>${fragment.title}</h4>
+                    <p class="fragment-path">${fragment.path}</p>
+                    <div class="fragment-meta">
+                        <sp-badge>${this.extractVariant(fragment)}</sp-badge>
+                        <span class="fragment-status">${fragment.status}</span>
+                    </div>
+                    <sp-button size="s" variant="secondary" @click=${() => this.handleOpenCard(fragment)}>
+                        Open in Editor
+                    </sp-button>
+                </div>
+            </div>
+        `;
+    }
+
+    extractVariant(fragment) {
+        const variantTag = fragment.tags?.find((t) => t.id.includes('variant/'));
+        if (variantTag) {
+            return variantTag.id.split('/').pop();
+        }
+        const fields = fragment.fields;
+        if (Array.isArray(fields)) {
+            const variantField = fields.find((f) => f.name === 'variant');
+            return variantField?.values?.[0] || 'unknown';
+        }
+        if (fields && typeof fields === 'object') {
+            return fields.variant || 'unknown';
+        }
+        return 'unknown';
+    }
+
+    handleOpenCard(fragment) {
+        this.dispatchEvent(
+            new CustomEvent('open-card', {
+                detail: { fragment },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    async copyCardLink(card) {
+        if (!card?.id) {
+            showToast('Missing card id', 'negative');
+            return;
+        }
+        const url = buildStudioFragmentHref({
+            webComponentName: 'merch-card',
+            fragmentId: card.id,
+            page: 'content',
+        });
+        try {
+            await navigator.clipboard.writeText(url);
+            showToast('Card link copied', 'positive');
+        } catch {
+            showToast('Failed to copy link', 'negative');
+        }
+    }
+
+    async copyAllCardLinks(cards) {
+        const validCards = (cards || []).filter((card) => card?.id);
+        if (validCards.length === 0) {
+            showToast('No card links to copy', 'negative');
+            return;
+        }
+        const entries = validCards.map((card) => {
+            const url = buildStudioFragmentHref({
+                webComponentName: 'merch-card',
+                fragmentId: card.id,
+                page: 'content',
+                path: card.path,
+            });
+            const title = card.title || card.name || card.id;
+            return { url, title };
+        });
+        const html = `<ul>${entries
+            .map(({ url, title }) => `<li><a href="${url}">${escapeHtml(title)}</a></li>`)
+            .join('')}</ul>`;
+        const text = entries.map(({ url, title }) => `${title}\n${url}`).join('\n\n');
+        try {
+            if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        'text/html': new Blob([html], { type: 'text/html' }),
+                        'text/plain': new Blob([text], { type: 'text/plain' }),
+                    }),
+                ]);
+            } else {
+                await navigator.clipboard.writeText(text);
+            }
+            showToast(`${entries.length} card links copied`, 'positive');
+        } catch {
+            showToast('Failed to copy links', 'negative');
+        }
+    }
+
+    handlePreview(fragmentId) {
+        openPreview(fragmentId, { left: 'min(700px, 60%)' });
+    }
+
+    extractLocale(variation) {
+        const pathMatch = variation.path?.match(/\/content\/dam\/mas\/[^/]+\/([^/]+)\//);
+        return pathMatch?.[1] || 'unknown';
+    }
+
+    renderOfferSelectorResult() {
+        const { offerSelectorId, offers = [], checkoutUrl } = this.result;
+
+        if (!offers.length) {
+            return html`
+                <div class="operation-result offer-selector-result empty">
+                    <sp-icon-info size="l"></sp-icon-info>
+                    <p>No offers found for this offer selector.</p>
+                </div>
+            `;
+        }
+
+        const primaryOffer = offers[0];
+        const { offerId, productArrangementCode, commitment, term, planType, priceDetails = {} } = primaryOffer;
+
+        const price = priceDetails.price;
+        const annualizedPrice = priceDetails.annualized?.annualizedPrice;
+        const currency = priceDetails.currency || 'USD';
+
+        return html`
+            <div class="operation-result offer-selector-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>Offer Details</span>
+                </div>
+
+                <div class="offer-details">
+                    <div class="offer-info-grid">
+                        <div class="offer-field">
+                            <span class="field-label">Product</span>
+                            <span class="field-value">${productArrangementCode || 'N/A'}</span>
+                        </div>
+                        ${price !== undefined
+                            ? html`
+                                  <div class="offer-field">
+                                      <span class="field-label">Price</span>
+                                      <span class="field-value price"
+                                          >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                              price,
+                                          )}/${term === 'MONTHLY' ? 'mo' : 'yr'}</span
+                                      >
+                                  </div>
+                              `
+                            : ''}
+                        ${annualizedPrice !== undefined
+                            ? html`
+                                  <div class="offer-field">
+                                      <span class="field-label">Annual Total</span>
+                                      <span class="field-value"
+                                          >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                              annualizedPrice,
+                                          )}/yr</span
+                                      >
+                                  </div>
+                              `
+                            : ''}
+                        <div class="offer-field">
+                            <span class="field-label">Commitment</span>
+                            <span class="field-value">${commitment || 'N/A'}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Term</span>
+                            <span class="field-value">${term || 'N/A'}</span>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Plan Type</span>
+                            <sp-badge size="s">${planType || 'N/A'}</sp-badge>
+                        </div>
+                    </div>
+
+                    <details class="offer-ids">
+                        <summary>Technical Details</summary>
+                        <div class="offer-field">
+                            <span class="field-label">Offer Selector ID</span>
+                            <code class="field-value">${offerSelectorId}</code>
+                        </div>
+                        <div class="offer-field">
+                            <span class="field-label">Offer ID</span>
+                            <code class="field-value">${offerId}</code>
+                        </div>
+                    </details>
+
+                    ${checkoutUrl
+                        ? html`
+                              <div class="offer-actions">
+                                  <sp-button size="s" variant="secondary" @click=${() => window.open(checkoutUrl, '_blank')}>
+                                      <sp-icon-link-out slot="icon"></sp-icon-link-out>
+                                      Open Checkout
+                                  </sp-button>
+                              </div>
+                          `
+                        : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    renderVariationsResult() {
+        const { parent, variations = [], count = 0, isVariation, message, fragment } = this.result;
+
+        if (isVariation) {
+            return html`
+                <div class="operation-result variations-result">
+                    <div class="result-header">
+                        <sp-icon-translate size="m"></sp-icon-translate>
+                        <span>${message || 'This is a variation'}</span>
+                    </div>
+                    ${fragment ? html` <p>Current card: <strong>${fragment.title}</strong></p> ` : ''}
+                </div>
+            `;
+        }
+
+        if (count === 0) {
+            return html`
+                <div class="operation-result variations-result empty">
+                    <sp-icon-translate size="l"></sp-icon-translate>
+                    <p>${message || 'No variations found for this card.'}</p>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result variations-result">
+                <div class="result-header">
+                    <sp-icon-translate size="m"></sp-icon-translate>
+                    <span>${count} variation${count !== 1 ? 's' : ''} found</span>
+                </div>
+
+                ${parent ? html` <p class="parent-info">Parent: <strong>${parent.title}</strong></p> ` : ''}
+
+                <sp-table size="m" class="chat-search-table">
+                    <sp-table-head>
+                        <sp-table-head-cell>Title</sp-table-head-cell>
+                        <sp-table-head-cell>Locale</sp-table-head-cell>
+                        <sp-table-head-cell>Status</sp-table-head-cell>
+                        <sp-table-head-cell></sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body>
+                        ${repeat(
+                            variations,
+                            (v) => v.id,
+                            (v) => html`
+                                <sp-table-row value="${v.id}" @click=${() => this.handleOpenCard(v)}>
+                                    <sp-table-cell class="title-cell">${v.title}</sp-table-cell>
+                                    <sp-table-cell>
+                                        <sp-badge size="s">${this.extractLocale(v)}</sp-badge>
+                                    </sp-table-cell>
+                                    <sp-table-cell class="status-cell">${v.status}</sp-table-cell>
+                                    <sp-table-cell class="action-cell">
+                                        <sp-action-button
+                                            quiet
+                                            size="s"
+                                            class="preview-action"
+                                            @mouseenter=${() => this.handlePreview(v.id)}
+                                            @mouseleave=${closePreview}
+                                        >
+                                            <sp-icon-magnify slot="icon"></sp-icon-magnify>
+                                        </sp-action-button>
+                                        <sp-icon-open-in size="s" class="open-action"></sp-icon-open-in>
+                                    </sp-table-cell>
+                                </sp-table-row>
+                            `,
+                        )}
+                    </sp-table-body>
+                </sp-table>
+            </div>
+        `;
+    }
+
+    renderReleaseCardsResult() {
+        const rawResult = this.result.rawResult || {};
+        const cards = rawResult.cards || [];
+        const productName = rawResult.product?.name || '';
+        const successCount = cards.filter((c) => c.success).length;
+        const successCards = cards
+            .filter((c) => c.success)
+            .map((c) => c.card)
+            .filter(Boolean);
+        this.cacheFragments(successCards);
+
+        return html`
+            <div class="operation-result success">
+                <div class="result-header">
+                    <sp-icon-check-circle size="m"></sp-icon-check-circle>
+                    <span>
+                        Created ${successCount} card${successCount !== 1 ? 's' : ''}${productName ? ` for ${productName}` : ''}
+                    </span>
+                    ${successCards.length > 1
+                        ? html`
+                              <sp-action-button
+                                  quiet
+                                  size="s"
+                                  class="copy-all-links-button"
+                                  title="Copy all card links"
+                                  @click=${() => this.copyAllCardLinks(successCards)}
+                              >
+                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                  Copy all links
+                              </sp-action-button>
+                          `
+                        : nothing}
+                </div>
+                <div class="release-cards-list">
+                    ${cards.map((item) => {
+                        const card = item.card || {};
+                        if (!item.success) {
+                            return html`
+                                <div class="release-card-item error">
+                                    <sp-icon-alert size="s"></sp-icon-alert>
+                                    <span>${card.title || 'Unknown'} — ${item.error}</span>
+                                </div>
+                            `;
+                        }
+                        return html`
+                            <div class="release-card-item">
+                                <div class="release-card-info">
+                                    <sp-icon-check-circle size="s"></sp-icon-check-circle>
+                                    <span class="release-card-title">${card.title}</span>
+                                    <sp-action-button
+                                        quiet
+                                        size="s"
+                                        title="Copy link to share with stakeholders"
+                                        @click=${() => this.copyCardLink(card)}
+                                    >
+                                        <sp-icon-link slot="icon"></sp-icon-link>
+                                    </sp-action-button>
+                                    <sp-action-button quiet size="s" title="Edit" @click=${() => this.handleOpenCard(card)}>
+                                        <sp-icon-edit slot="icon"></sp-icon-edit>
+                                    </sp-action-button>
+                                </div>
+                                ${card.id
+                                    ? html`
+                                          <div class="release-card-preview">
+                                              <merch-card>
+                                                  <aem-fragment fragment="${card.id}" author ims></aem-fragment>
+                                              </merch-card>
+                                          </div>
+                                      `
+                                    : nothing}
+                            </div>
+                        `;
+                    })}
+                </div>
+            </div>
+        `;
+    }
+
+    normalizeOffer(offer) {
+        if (!offer || typeof offer !== 'object') return {};
+        return {
+            offerId: offer.offerId || offer.offer_id,
+            productArrangementCode: offer.productArrangementCode || offer.product_arrangement_code,
+            commitment: offer.commitment,
+            term: offer.term,
+            planType: offer.planType || offer.plan_type,
+            priceDetails: offer.priceDetails || offer.pricing || {},
+        };
+    }
+
+    handleOpenOfferInOst(offerRaw) {
+        if (!offerRaw) return;
+        const arrangementCode = offerRaw.product_arrangement_code || offerRaw.productArrangementCode;
+        if (!arrangementCode) return;
+        const searchParams = { arrangement_code: arrangementCode };
+        const commitment = offerRaw.commitment;
+        const term = offerRaw.term;
+        const customerSegment = offerRaw.customer_segment || offerRaw.customerSegment;
+        const marketSegment = Array.isArray(offerRaw.market_segments)
+            ? offerRaw.market_segments[0]
+            : offerRaw.market_segment || offerRaw.marketSegment;
+        const offerType = offerRaw.offer_type || offerRaw.offerType;
+        if (commitment) searchParams.commitment = commitment;
+        if (term) searchParams.term = term;
+        if (customerSegment) searchParams.customerSegment = customerSegment;
+        if (marketSegment) searchParams.marketSegment = marketSegment;
+        if (offerType) searchParams.offerType = offerType;
+        this.dispatchEvent(
+            new CustomEvent('open-ost-from-response', {
+                detail: { searchParams },
+                bubbles: true,
+                composed: true,
+            }),
+        );
+    }
+
+    renderOffersListResult() {
+        const { offers = [], count = 0, message } = this.result;
+
+        if (!offers.length) {
+            return html`
+                <div class="operation-result offers-list-result empty">
+                    <div class="result-header">
+                        <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                        <span>${message || 'No offers found matching your filters.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result offers-list-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>${message || `${count} offer${count !== 1 ? 's' : ''} found`}</span>
+                </div>
+                <div class="chat-offers-table-scroller">
+                    <sp-table size="m" class="chat-offers-table">
+                        <sp-table-head>
+                            <sp-table-head-cell class="col-product">Product</sp-table-head-cell>
+                            <sp-table-head-cell class="col-plan">Plan</sp-table-head-cell>
+                            <sp-table-head-cell class="col-term">Term</sp-table-head-cell>
+                            <sp-table-head-cell class="col-commitment">Commitment</sp-table-head-cell>
+                            <sp-table-head-cell class="col-offer-id">Offer ID</sp-table-head-cell>
+                            <sp-table-head-cell class="col-action"></sp-table-head-cell>
+                        </sp-table-head>
+                        <sp-table-body>
+                            ${offers.map((offerRaw) => {
+                                const offer = this.normalizeOffer(offerRaw);
+                                const { offerId, productArrangementCode, commitment, term, planType } = offer;
+                                return html`
+                                    <sp-table-row value="${offerId || ''}">
+                                        <sp-table-cell class="col-product">${productArrangementCode || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-plan">
+                                            ${planType ? html`<sp-badge size="s">${planType}</sp-badge>` : '—'}
+                                        </sp-table-cell>
+                                        <sp-table-cell class="col-term">${term || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-commitment">${commitment || '—'}</sp-table-cell>
+                                        <sp-table-cell class="col-offer-id">
+                                            ${offerId ? html`<code title="${offerId}">${offerId}</code>` : '—'}
+                                        </sp-table-cell>
+                                        <sp-table-cell class="col-action">
+                                            ${offerId
+                                                ? html`<sp-action-button
+                                                      quiet
+                                                      size="s"
+                                                      title="Open offer in OST"
+                                                      @click=${() => this.handleOpenOfferInOst(offerRaw)}
+                                                  >
+                                                      <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                                                  </sp-action-button>`
+                                                : nothing}
+                                        </sp-table-cell>
+                                    </sp-table-row>
+                                `;
+                            })}
+                        </sp-table-body>
+                    </sp-table>
+                </div>
+            </div>
+        `;
+    }
+
+    renderSingleOfferResult() {
+        const { offer: offerRaw, message } = this.result;
+
+        if (!offerRaw) {
+            return html`
+                <div class="operation-result offer-result empty">
+                    <div class="result-header">
+                        <sp-icon-info size="m"></sp-icon-info>
+                        <span>${message || 'Offer not found.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        const offer = this.normalizeOffer(offerRaw);
+        const { offerId, productArrangementCode, commitment, term, planType, priceDetails = {} } = offer;
+        const price = priceDetails.price;
+        const currency = priceDetails.currency || 'USD';
+
+        return html`
+            <div class="operation-result offer-result">
+                <div class="result-header">
+                    <sp-icon-shopping-cart size="m"></sp-icon-shopping-cart>
+                    <span>${message || 'Offer details'}</span>
+                </div>
+                <div class="offer-info-grid">
+                    <div class="offer-field">
+                        <span class="field-label">Offer ID</span>
+                        <code class="field-value">${offerId || 'N/A'}</code>
+                    </div>
+                    <div class="offer-field">
+                        <span class="field-label">Product</span>
+                        <span class="field-value">${productArrangementCode || 'N/A'}</span>
+                    </div>
+                    ${price !== undefined
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Price</span>
+                                  <span class="field-value price"
+                                      >${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(
+                                          price,
+                                      )}/${term === 'MONTHLY' ? 'mo' : 'yr'}</span
+                                  >
+                              </div>
+                          `
+                        : nothing}
+                    ${commitment
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Commitment</span>
+                                  <span class="field-value">${commitment}</span>
+                              </div>
+                          `
+                        : nothing}
+                    ${term
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Term</span>
+                                  <span class="field-value">${term}</span>
+                              </div>
+                          `
+                        : nothing}
+                    ${planType
+                        ? html`
+                              <div class="offer-field">
+                                  <span class="field-label">Plan Type</span>
+                                  <sp-badge size="s">${planType}</sp-badge>
+                              </div>
+                          `
+                        : nothing}
+                </div>
+                ${offerId
+                    ? html`<div class="offer-actions">
+                          <sp-button size="s" variant="secondary" @click=${() => this.handleOpenOfferInOst(offerRaw)}>
+                              <sp-icon-open-in slot="icon"></sp-icon-open-in>
+                              Open in OST
+                          </sp-button>
+                      </div>`
+                    : nothing}
+            </div>
+        `;
+    }
+
+    renderProductsListResult() {
+        const { products = [], count = 0, message } = this.result;
+
+        if (!products.length) {
+            return html`
+                <div class="operation-result products-list-result empty">
+                    <div class="result-header">
+                        <sp-icon-info size="m"></sp-icon-info>
+                        <span>${message || 'No products matched your search.'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        return html`
+            <div class="operation-result products-list-result">
+                <div class="result-header">
+                    <sp-icon-info size="m"></sp-icon-info>
+                    <span>${message || `${count} product${count !== 1 ? 's' : ''} found`}</span>
+                </div>
+                <div class="products-list">
+                    ${products.map((product) => {
+                        const productName = product?.name || product?.code || 'Product';
+                        const productCode = product?.code || '';
+                        const arrangementCode = product?.arrangement_code || '';
+                        return html`
+                            <div class="product-row">
+                                <div class="product-row-main">
+                                    <strong>${productName}</strong>
+                                </div>
+                                <div class="product-row-meta">
+                                    ${productCode ? html`<code>${productCode}</code>` : nothing}
+                                    ${arrangementCode ? html`<code>${arrangementCode}</code>` : nothing}
+                                </div>
+                            </div>
+                        `;
+                    })}
+                </div>
+            </div>
+        `;
+    }
+
+    renderDefaultResult() {
+        const { message, results = [], count = 0 } = this.result;
+
+        if (results.length > 0) {
+            this.cacheFragments(results);
+            const fragmentsWithId = results.filter((fragment) => fragment?.id);
+            return html`
+                <div class="operation-result success">
+                    <div class="result-header">
+                        <sp-icon-check-circle size="m"></sp-icon-check-circle>
+                        <span>${message || `${count} item${count !== 1 ? 's' : ''} processed`}</span>
+                        ${fragmentsWithId.length > 1
+                            ? html`
+                                  <sp-action-button
+                                      quiet
+                                      size="s"
+                                      class="copy-all-links-button"
+                                      title="Copy all card links"
+                                      @click=${() => this.copyAllCardLinks(fragmentsWithId)}
+                                  >
+                                      <sp-icon-link slot="icon"></sp-icon-link>
+                                      Copy all links
+                                  </sp-action-button>
+                              `
+                            : nothing}
+                    </div>
+                    <div class="default-result-cards">
+                        ${results.map(
+                            (fragment) => html`
+                                <div class="card-wrapper">
+                                    <merch-card>
+                                        <aem-fragment fragment="${fragment.id}" author ims></aem-fragment>
+                                    </merch-card>
+                                    ${fragment.id
+                                        ? html`
+                                              <sp-action-button
+                                                  quiet
+                                                  size="s"
+                                                  class="card-wrapper-copy-link"
+                                                  title="Copy link to share with stakeholders"
+                                                  @click=${() => this.copyCardLink(fragment)}
+                                              >
+                                                  <sp-icon-link slot="icon"></sp-icon-link>
+                                              </sp-action-button>
+                                          `
+                                        : nothing}
+                                </div>
+                            `,
+                        )}
+                    </div>
+                </div>
+            `;
+        }
+
+        const fallbackMessage =
+            message ||
+            (this.operationType ? `${String(this.operationType).replace(/_/g, ' ')} completed.` : 'Operation completed.');
+        return html`
+            <div class="operation-result info">
+                <div class="result-header">
+                    <sp-icon-info size="m"></sp-icon-info>
+                    <span>${fallbackMessage}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    render() {
+        if (!this.result) {
+            return nothing;
+        }
+
+        const effectiveType = this.operationType || this.result?.operation || null;
+
+        switch (effectiveType) {
+            case 'search':
+            case 'search_cards':
+                return this.renderSearchResults();
+            case 'publish':
+            case 'publish_card':
+                return this.renderPublishResult();
+            case 'copy':
+            case 'copy_card':
+                return this.renderCopyResult();
+            case 'update':
+            case 'update_card':
+                return this.renderUpdateResult();
+            case 'get':
+            case 'get_card':
+                return this.renderGetResult();
+            case 'get_variations':
+                return this.renderVariationsResult();
+            case 'resolve_offer_selector':
+                return this.renderOfferSelectorResult();
+            case 'create_release_cards':
+                return this.renderReleaseCardsResult();
+            case 'search_offers':
+                return this.renderOffersListResult();
+            case 'get_offer_by_id':
+                return this.renderSingleOfferResult();
+            case 'list_products':
+            case 'search_products':
+                return this.renderProductsListResult();
+            default:
+                return this.renderDefaultResult();
+        }
+    }
+}
+
+customElements.define('mas-operation-result', MasOperationResult);

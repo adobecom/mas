@@ -404,7 +404,7 @@ export class AEMClient {
             },
             body: JSON.stringify({
                 paths: [fragment.path],
-                filterReferencesByStatus: publishReferences ? ['DRAFT', 'UNPUBLISHED'] : [],
+                filterReferencesByStatus: publishReferences ? ['DRAFT', 'MODIFIED', 'UNPUBLISHED'] : [],
                 workflowModelId: '/var/workflow/models/scheduled_activation_with_references',
             }),
         });

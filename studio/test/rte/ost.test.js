@@ -74,6 +74,7 @@ describe('onPlaceholderSelect', () => {
             'data-template': type,
             is: 'inline-price',
             'data-promotion-code': promoOverride,
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -133,6 +134,7 @@ describe('onPlaceholderSelect', () => {
             'data-template': type,
             'data-display-per-unit': true,
             is: 'inline-price',
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -164,6 +166,7 @@ describe('onPlaceholderSelect', () => {
             'data-modal': 'twp',
             'data-entitlement': true,
             'data-upgrade': true,
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -207,6 +210,7 @@ describe('onPlaceholderSelect', () => {
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
             is: 'inline-price',
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;

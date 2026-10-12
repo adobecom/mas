@@ -13,23 +13,13 @@ export function confirmation(options) {
 
 class MasConfirmDialog extends LitElement {
     static styles = css`
-        .confirm-dialog-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1500;
+        :host {
+            display: contents;
         }
 
-        .confirm-dialog-overlay sp-dialog-wrapper {
-            max-width: 100vw;
-            background: var(--spectrum-white);
-            border-radius: 16px;
+        sp-dialog-wrapper {
+            --sp-overlay-background: rgba(0, 0, 0, 0.4);
+            z-index: 10000;
         }
     `;
 
@@ -51,11 +41,10 @@ class MasConfirmDialog extends LitElement {
     render() {
         if (!this.options) return nothing;
         const { variant, title, content, confirmLabel = 'Confirm', cancelLabel = 'Cancel' } = this.options;
-        return html`<div class="confirm-dialog-overlay">
+        return html`
             <sp-dialog-wrapper
                 open
                 underlay
-                id="global-confirm-dialog"
                 .headline=${title}
                 .variant=${variant || 'negative'}
                 .confirmLabel=${confirmLabel}
@@ -65,7 +54,7 @@ class MasConfirmDialog extends LitElement {
             >
                 <div>${content}</div>
             </sp-dialog-wrapper>
-        </div>`;
+        `;
     }
 }
 

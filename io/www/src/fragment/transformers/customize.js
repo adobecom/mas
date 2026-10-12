@@ -65,14 +65,13 @@ function _deepMerge(topLevel, ...objects) {
         }
     }
     // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
-    // concatenate parent + child into the freshly-built result instead of mutating `child`
+    // concatenate every layer's values into the freshly-built result instead of mutating a layer
     // (a shared reference reused by sibling merges).
     const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
     arraysToMerge?.forEach((field) => {
-        const parentValues = objects[0]?.fields?.[field]?.value || [];
-        const childValues = objects[1]?.fields?.[field]?.value || [];
-        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
-            result.fields[field].value = [...parentValues, ...childValues];
+        const values = objects.flatMap((obj) => obj?.fields?.[field]?.value || []);
+        if (result.fields?.[field] && values.length) {
+            result.fields[field].value = values;
         }
     });
     return result;

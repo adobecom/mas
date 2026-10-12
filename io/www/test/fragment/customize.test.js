@@ -172,6 +172,21 @@ describe('customize collections', function () {
         ]);
     });
 
+    it('should append features from every layer for compare-chart-column template', function () {
+        const root = { fields: { variant: 'compare-chart-column', features: { value: ['base'] } } };
+        const groupedVariation = { fields: { features: { value: ['pzn'] } } };
+        const promoVariation = { fields: { features: { value: ['promo'] } } };
+        const result = deepMerge(root, groupedVariation, promoVariation);
+        expect(result.fields.features.value).to.deep.equal(['base', 'pzn', 'promo']);
+    });
+
+    it('should keep promo features for compare-chart-column template when there is no grouped variation', function () {
+        const root = { fields: { variant: 'compare-chart-column', features: { value: ['base'] } } };
+        const promoVariation = { fields: { features: { value: ['promo'] } } };
+        const result = deepMerge(root, undefined, promoVariation);
+        expect(result.fields.features.value).to.deep.equal(['base', 'promo']);
+    });
+
     it('should customize subcollections and sub fragments', async function () {
         const result = await process({
             ...FAKE_CONTEXT,

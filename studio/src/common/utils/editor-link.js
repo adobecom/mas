@@ -38,7 +38,7 @@ export function buildEditorHref(fragment, options = {}) {
 }
 
 function isNativeLinkGesture(event) {
-    return event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
+    return event.button === 2 || (event.button === 0 && (event.ctrlKey || event.metaKey));
 }
 
 function handleLinkClick(event, options) {
@@ -58,6 +58,7 @@ function handleLinkDoubleClick(event) {
 }
 
 function stopLinkPropagation(event) {
+    if (event.button === 1) event.preventDefault();
     event.stopPropagation();
 }
 

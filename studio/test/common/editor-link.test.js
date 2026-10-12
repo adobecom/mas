@@ -274,9 +274,6 @@ describe('editor-link', () => {
             for (const [gesture, options] of [
                 ['Ctrl-click', { ctrlKey: true }],
                 ['Cmd-click', { metaKey: true }],
-                ['Shift-click', { shiftKey: true }],
-                ['Alt-click', { altKey: true }],
-                ['middle-button click', { button: 1 }],
                 ['secondary-button click', { button: 2 }],
             ]) {
                 it(`allows native ${gesture} without triggering the row click interaction`, () => {
@@ -284,6 +281,19 @@ describe('editor-link', () => {
 
                     expect(defaultPrevented).to.be.false;
                     expect(rowClick.called).to.be.false;
+                });
+            }
+
+            for (const [gesture, options] of [
+                ['Shift-click', { shiftKey: true }],
+                ['Alt-click', { altKey: true }],
+                ['middle-button click', { button: 1 }],
+            ]) {
+                it(`prevents native ${gesture} while preserving the row click interaction`, () => {
+                    const defaultPrevented = dispatchGesture(link, 'click', options);
+
+                    expect(defaultPrevented).to.be.true;
+                    expect(rowClick.calledOnce).to.be.true;
                 });
             }
 
@@ -302,7 +312,7 @@ describe('editor-link', () => {
                 expect(rowDoubleClick.calledOnce).to.be.true;
             });
 
-            for (const modifier of ['ctrlKey', 'metaKey', 'shiftKey', 'altKey']) {
+            for (const modifier of ['ctrlKey', 'metaKey']) {
                 it(`does not trigger row double-click handling when ${modifier} is pressed`, () => {
                     const defaultPrevented = dispatchGesture(link, 'dblclick', { detail: 2, [modifier]: true });
 
@@ -311,17 +321,34 @@ describe('editor-link', () => {
                 });
             }
 
-            for (const type of ['auxclick', 'contextmenu']) {
-                it(`preserves native ${type} without propagating it to the row`, () => {
-                    const rowEvent = sinon.spy();
-                    row.addEventListener(type, rowEvent);
-
-                    const defaultPrevented = dispatchGesture(link, type, { button: type === 'auxclick' ? 1 : 2 });
+            for (const modifier of ['shiftKey', 'altKey']) {
+                it(`preserves row double-click handling when ${modifier} is pressed`, () => {
+                    const defaultPrevented = dispatchGesture(link, 'dblclick', { detail: 2, [modifier]: true });
 
                     expect(defaultPrevented).to.be.false;
-                    expect(rowEvent.called).to.be.false;
+                    expect(rowDoubleClick.calledOnce).to.be.true;
                 });
             }
+
+            it('prevents middle-button navigation without propagating it to the row', () => {
+                const rowEvent = sinon.spy();
+                row.addEventListener('auxclick', rowEvent);
+
+                const defaultPrevented = dispatchGesture(link, 'auxclick', { button: 1 });
+
+                expect(defaultPrevented).to.be.true;
+                expect(rowEvent.called).to.be.false;
+            });
+
+            it('preserves the native context menu without propagating it to the row', () => {
+                const rowEvent = sinon.spy();
+                row.addEventListener('contextmenu', rowEvent);
+
+                const defaultPrevented = dispatchGesture(link, 'contextmenu', { button: 2 });
+
+                expect(defaultPrevented).to.be.false;
+                expect(rowEvent.called).to.be.false;
+            });
         });
     }
 

@@ -1587,7 +1587,6 @@ class MerchCardCollectionEditor extends LitElement {
                 <div class="general-info-grid">
                     <div class="form-row">
                         <sp-field-label for="collection-title">Collection title</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('label')}
                         <sp-textfield
                             id="collection-title"
                             data-field="label"
@@ -1595,6 +1594,7 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.label}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('label')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="fragment-title">Fragment title (not shown on the page)</sp-field-label>
@@ -1642,7 +1642,6 @@ class MerchCardCollectionEditor extends LitElement {
             <div class="form-container">
                 <div class="form-row">
                     <sp-field-label for="queryLabel">Query label</sp-field-label>
-                    ${this.#renderTextFieldStatusIndicator('queryLabel')}
                     <sp-textfield
                         id="queryLabel"
                         data-field="queryLabel"
@@ -1650,10 +1649,10 @@ class MerchCardCollectionEditor extends LitElement {
                         .value=${this.queryLabel}
                         @input=${this.updateFragment}
                     ></sp-textfield>
+                    ${this.#renderTextFieldStatusIndicator('queryLabel')}
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Default icon (dark, mandatory if you need icon)</sp-field-label>
-                    ${this.#renderTextFieldStatusIndicator('icon')}
                     <mas-mnemonic-field
                         id="icon"
                         data-field-state="${this.#getFieldState('icon')}"
@@ -1662,10 +1661,10 @@ class MerchCardCollectionEditor extends LitElement {
                         .variant="${VARIANT_NAMES.PLANS}"
                         @change=${(e) => this.#updateIcon(e, 'icon')}
                     ></mas-mnemonic-field>
+                    ${this.#renderTextFieldStatusIndicator('icon')}
                 </div>
                 <div class="form-row">
                     <sp-field-label for="icon">Selected Icon (light, optional)</sp-field-label>
-                    ${this.#renderTextFieldStatusIndicator('iconLight')}
                     <mas-mnemonic-field
                         id="iconLight"
                         data-field-state="${this.#getFieldState('iconLight')}"
@@ -1674,6 +1673,7 @@ class MerchCardCollectionEditor extends LitElement {
                         .variant="${VARIANT_NAMES.PLANS}"
                         @change=${(e) => this.#updateIcon(e, 'iconLight')}
                     ></mas-mnemonic-field>
+                    ${this.#renderTextFieldStatusIndicator('iconLight')}
                 </div>
             </div>
         `;
@@ -1708,7 +1708,6 @@ class MerchCardCollectionEditor extends LitElement {
                 <div class="grid-column">
                     <div class="form-row">
                         <sp-field-label for="searchText">Search Text</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('searchText')}
                         <sp-textfield
                             id="searchText"
                             data-field="searchText"
@@ -1716,10 +1715,10 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.searchText}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('searchText')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="tagFiltersTitle">Tag Filters Title</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('tagFiltersTitle')}
                         <sp-textfield
                             id="tagFiltersTitle"
                             data-field="tagFiltersTitle"
@@ -1727,10 +1726,10 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.tagFiltersTitle}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('tagFiltersTitle')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="tagFilters">Tag Filters</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('tagFilters')}
                         <aem-tag-picker-field
                             label="Tag Filters"
                             id="tagFilters"
@@ -1740,12 +1739,12 @@ class MerchCardCollectionEditor extends LitElement {
                             value="${this.tagFilters}"
                             @change=${this.#handleTagFilterChange}
                         ></aem-tag-picker-field>
+                        ${this.#renderTextFieldStatusIndicator('tagFilters')}
                     </div>
                 </div>
                 <div class="grid-column">
                     <div class="form-row">
                         <sp-field-label for="linksTitle">Links Title</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('linksTitle')}
                         <sp-textfield
                             id="linksTitle"
                             data-field="linksTitle"
@@ -1753,10 +1752,10 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.linksTitle}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('linksTitle')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="link">Link</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('link')}
                         <sp-textfield
                             id="link"
                             data-field="link"
@@ -1764,10 +1763,10 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.link}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('link')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="linkIcon">Link Icon</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('linkIcon')}
                         <sp-textfield
                             id="linkIcon"
                             data-field="linkIcon"
@@ -1775,10 +1774,10 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.linkIcon}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('linkIcon')}
                     </div>
                     <div class="form-row">
                         <sp-field-label for="linkText">Link Text</sp-field-label>
-                        ${this.#renderTextFieldStatusIndicator('linkText')}
                         <sp-textfield
                             id="linkText"
                             data-field="linkText"
@@ -1786,6 +1785,7 @@ class MerchCardCollectionEditor extends LitElement {
                             .value=${this.linkText}
                             @input=${this.updateFragment}
                         ></sp-textfield>
+                        ${this.#renderTextFieldStatusIndicator('linkText')}
                     </div>
                 </div>
             </div>

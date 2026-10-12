@@ -873,7 +873,13 @@
                     });
 
                     describe('confirming a picker on a variation', () => {
-                        async function mountVariation({ ownCards = [], references = [], tags = [], parentTags = [] } = {}) {
+                        async function mountVariation({
+                            ownCards = [],
+                            references = [],
+                            tags = [],
+                            parentTags = [],
+                            ownFields = [],
+                        } = {}) {
                             const editor = document.createElement('merch-card-collection-editor');
                             editor.updateFragment = spy();
                             editor.isVariation = true;
@@ -887,6 +893,7 @@
                                         fields: [
                                             { name: 'cards', type: 'content-reference', multiple: true, values: ownCards },
                                             { name: 'collections', type: 'content-reference', multiple: true, values: [] },
+                                            ...ownFields,
                                         ],
                                         references,
                                     }),
@@ -905,6 +912,19 @@
                             dialog.close = () => {};
                             dialog.dispatchEvent(new Event('confirm'));
                         };
+
+                        it('shows the restore link of an overridden field below the field, not above it', async () => {
+                            const editor = await mountVariation({
+                                ownFields: [{ name: 'label', type: 'text', multiple: false, values: ['Overridden label'] }],
+                            });
+                            const field = editor.shadowRoot.querySelector('#collection-title');
+                            expect(field.dataset.fieldState).to.equal('overridden');
+                            const row = field.closest('.form-row');
+                            const indicator = row.querySelector('.field-status-indicator');
+                            expect(indicator).to.exist;
+                            expect(field.nextElementSibling === indicator).to.be.true;
+                            expect(row.lastElementChild === indicator).to.be.true;
+                        });
 
                         it('keeps inherited cards inherited when the selection is unchanged', async () => {
                             const editor = await mountVariation();

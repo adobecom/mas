@@ -504,6 +504,7 @@ export const styles = css`
         gap: 6px;
         font-size: 14px;
         line-height: 18px;
+        margin-top: 4px;
         color: var(--spectrum-accent-content-color-default, #3b63fb);
     }
 

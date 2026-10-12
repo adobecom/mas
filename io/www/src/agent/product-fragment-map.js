@@ -8,6 +8,7 @@ const PRODUCT_FRAGMENT_MAP = {
         default: '128b6634-6631-4081-a6d9-9a2c7c003414',
         products: {
             'creative cloud pro': '128b6634-6631-4081-a6d9-9a2c7c003414',
+            'creative cloud standard': 'a77d8129-320f-4eeb-bf51-a0836d864118',
             photography: '42df425a-e020-469f-bf0f-5b83504dabce',
             photoshop: '9941bca0-5304-47f7-aeb3-4f638aeb8791',
             illustrator: 'd9f8b8e7-ff8a-4048-b11f-5e23a76f3d12',
@@ -25,6 +26,8 @@ const PRODUCT_FRAGMENT_MAP = {
             'adobe substance 3d collection': '99a79b2f-0fc0-44c6-822f-b5c3e3098ffc',
             'adobe substance 3d texturing': 'cab214a9-9f95-4308-aeb2-ff58ff177d06',
             'adobe firefly pro': '95c664e4-f605-41df-8f9c-4779d0ef58c5',
+            'adobe firefly standard': '25542a46-df3d-4b6c-83dc-8fe4b8bce22b',
+            'adobe express premium': 'b96244bb-9101-4b24-8f81-0808e7a815cf',
         },
     },
     team: {
@@ -47,11 +50,14 @@ const PRODUCT_FRAGMENT_MAP = {
             'ai assistant for acrobat': '9ac1751b-4b73-4e1e-bc92-797de6d93cf9',
             'adobe substance 3d collection': '6375d22a-bdf1-4d5b-8769-3e4ddc635e61',
             'frame.io': 'ee2636e6-0ecc-49df-9a01-69ffd0558f74',
+            'adobe express premium': 'e6df1626-22e1-440f-8b98-bdc8137d79f8',
         },
     },
     edu: {
         default: '2b1a6493-e03b-4803-a150-eed983094a05',
-        products: {},
+        products: {
+            'adobe express premium': '413ea6c9-a6ac-422a-90ff-0db9ad30b7e1',
+        },
     },
 };
 

@@ -273,6 +273,7 @@ class MasTranslation extends LitElement {
             Store.translationProjects.list.loading.set(true);
             showToast('Deleting translation project...');
             await this.repository.deleteFragment(translationProject, { startToast: false, endToast: false });
+            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(translationProject.id);
             const updatedTranslationProjects = this.#allTranslationProjectsData.filter(
                 (project) => project.get().id !== translationProject.get().id,
             );
@@ -315,7 +316,6 @@ class MasTranslation extends LitElement {
         this.duplicating = true;
         try {
             await duplicateTranslationProject(this.repository, sourceProject, title);
-            await this.repository.loadTranslationProjects();
             showToast('Project successfully duplicated.', 'positive');
         } catch (error) {
             console.error('Error duplicating translation project:', error);

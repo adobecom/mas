@@ -467,6 +467,7 @@ class MasTranslationEditor extends LitElement {
             },
         );
         if (!confirmed) return;
+        const projectId = this.translationProjectStore.id;
         try {
             this.isLoading = true;
             showToast('Deleting translation project...');
@@ -474,6 +475,7 @@ class MasTranslationEditor extends LitElement {
                 startToast: false,
                 endToast: false,
             });
+            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(projectId);
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             Store.translationProjects.showSelected.set(false);

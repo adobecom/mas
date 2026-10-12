@@ -1,6 +1,7 @@
 import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../constants.js';
 import Store from '../store.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey, UserFriendlyError } from '../utils.js';
 
 /** Field types for duplication; `title` is replaced and `status`, `submissionDate`, and `completedLocales` are reset. */
@@ -73,6 +74,7 @@ export function buildTranslationProjectDuplicatePayload(sourceFragment, title) {
 /**
  * Revalidates the latest source and duplicates it as a new Draft project with
  * the same fragments, placeholders, collections, and target locales.
+ * Registers the duplicate in the list until AEM search indexes it.
  * @param {{ aem: Object, createFragment: Function, getTranslationsPath: () => string }} repository
  * @param {Object} sourceProject
  * @param {string} title
@@ -95,7 +97,32 @@ export async function duplicateTranslationProject(repository, sourceProject, tit
         error.alreadyToasted = true;
         throw error;
     }
+    const projectStore = new FragmentStore(newProject);
+    const list = Store.translationProjects.list.data;
+    const pendingDuplicates = list.getMeta('pendingDuplicates') ?? new Map();
+    pendingDuplicates.set(newProject.id, projectStore);
+    list.setMeta('pendingDuplicates', pendingDuplicates);
+    if (repository.getTranslationsPath() === payload.parentPath) {
+        list.set((projects) => [projectStore, ...projects.filter((project) => project.id !== newProject.id)]);
+    }
     return newProject;
+}
+
+/**
+ * Keeps newly created duplicates visible for their surface until AEM search returns them.
+ * @param {FragmentStore[]} projects - Indexed projects in server sort order.
+ * @param {string} translationsPath - Active surface's translations folder.
+ * @returns {FragmentStore[]} Indexed projects preceded by unindexed duplicates, newest first.
+ */
+export function mergeTranslationProjectList(projects, translationsPath) {
+    const pendingDuplicates = Store.translationProjects.list.data.getMeta('pendingDuplicates') ?? new Map();
+    for (const project of projects) {
+        pendingDuplicates.delete(project.id);
+    }
+    return [
+        ...[...pendingDuplicates.values()].reverse().filter((project) => project.get().path.startsWith(`${translationsPath}/`)),
+        ...projects,
+    ];
 }
 
 export const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;

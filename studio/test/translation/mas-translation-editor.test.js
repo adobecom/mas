@@ -9,10 +9,12 @@ import router from '../../src/router.js';
 import Events from '../../src/events.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import { MasRepository } from '../../src/mas-repository.js';
 import { SURFACES } from '../../src/constants.js';
 import { UserFriendlyError } from '../../src/utils.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation-editor.js';
+import '../../src/translation/mas-translation.js';
 
 const mockFragmentCache = {
     get: () => null,
@@ -89,6 +91,8 @@ describe('MasTranslationEditor', () => {
     });
 
     const resetStores = () => {
+        Store.translationProjects.list.data.value = [];
+        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
         Store.translationProjects.selectedCards.value = [];
@@ -840,13 +844,17 @@ describe('MasTranslationEditor', () => {
             const mockFragment = new Fragment(createMockFragment({ id: 'delete-id' }));
             const fragmentStore = new FragmentStore(mockFragment);
             Store.translationProjects.inEdit.set(fragmentStore);
+            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['delete-id', fragmentStore]]));
+            Store.translationProjects.translationProjectId.set('delete-id');
             const mockRepository = createMockRepository();
+            mockRepository.aem.sites.cf.fragments.getById.resolves(mockFragment);
             querySelectorStub.callsFake((selector) => {
                 if (selector === 'mas-repository') return mockRepository;
                 return originalQuerySelector(selector);
             });
             const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await waitUntil(() => !el.isLoading && el.translationProject?.id === 'delete-id', 'project should load');
             el.isNewTranslationProject = false;
             el.disabledActions = new Set();
             await el.updateComplete;
@@ -859,6 +867,7 @@ describe('MasTranslationEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(mockRepository.deleteFragment.calledOnce).to.be.true;
             expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
+            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('delete-id')).to.be.false;
         });
 
         it('should navigate to translations page after successful delete', async () => {
@@ -2248,6 +2257,46 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.translationProjectId.get()).to.equal('new-id');
             expect(el.isNewTranslationProject).to.be.false;
             expect(el.translationProject.title).to.equal('Test-Translation-Project-copy');
+            expect(Store.translationProjects.list.data.get().map((project) => project.id)).to.deep.equal(['new-id']);
+        });
+
+        it('shows the editor duplicate first after returning to Translations while search is still stale', async () => {
+            const sourceData = withStatus(
+                createMockFragment({ path: '/content/dam/mas/acom/translations/test-project' }),
+                undefined,
+            );
+            Store.translationProjects.list.data.value = [new FragmentStore(new Fragment(sourceData))];
+            const el = await loadExistingProject(sourceData);
+            const duplicateData = withStatus(
+                createMockFragment({
+                    id: 'new-id',
+                    title: 'Test-Translation-Project-copy',
+                    path: '/content/dam/mas/acom/translations/test-project-copy',
+                }),
+                undefined,
+            );
+            mockRepository.getTranslationsPath.returns('/content/dam/mas/acom/translations');
+            mockRepository.createFragment.resolves(new Fragment(duplicateData));
+            mockRepository.aem.sites.cf.fragments.getById.withArgs('new-id').resolves(duplicateData);
+            el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent('duplicate'));
+            await waitUntil(() => el.duplicateDialogOpen, 'dialog should open');
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            await dialog.updateComplete;
+
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await router.navigateToPage(PAGE_NAMES.TRANSLATIONS)();
+            el.remove();
+            const repository = new MasRepository();
+            repository.search = { value: { path: 'acom' } };
+            repository.searchFragmentList = sandbox.stub().resolves([sourceData]);
+            await repository.loadTranslationProjects();
+            const listView = await fixture(html`<mas-translation></mas-translation>`);
+
+            expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
+            const rows = listView.shadowRoot.querySelectorAll('sp-table-row[data-id]');
+            expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-id', 'test-fragment-id']);
+            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Test-Translation-Project-copy');
         });
 
         it('shows a single error toast and does not switch project when duplication fails', async () => {

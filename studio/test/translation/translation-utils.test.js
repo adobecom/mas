@@ -26,12 +26,16 @@ describe('translation-utils', () => {
         sandbox = sinon.createSandbox();
         originalSearchValue = Store.search.get();
         Store.search.set({ path: 'acom' });
+        Store.translationProjects.list.data.value = [];
+        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
     });
 
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
         Store.search.set(originalSearchValue);
+        Store.translationProjects.list.data.value = [];
+        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
     });
 
     describe('canDuplicateTranslationProject', () => {
@@ -362,6 +366,7 @@ describe('translation-utils', () => {
             expect(payload.parentPath).to.equal('/content/dam/mas/acom/translations');
             expect(payload.modelId).to.equal(TRANSLATION_PROJECT_MODEL_ID);
             expect(payload.title).to.equal('Spring Campaign copy');
+            expect(Store.translationProjects.list.data.get().map((project) => project.id)).to.deep.equal(['new-1']);
         });
 
         it('throws when createFragment resolves falsy', async () => {

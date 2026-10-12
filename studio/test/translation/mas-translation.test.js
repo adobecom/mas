@@ -35,6 +35,7 @@ describe('MasTranslation', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         Store.translationProjects.list.data.value = [];
+        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
         Store.translationProjects.list.loading.value = false;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -44,6 +45,7 @@ describe('MasTranslation', () => {
         fixtureCleanup();
         sandbox.restore();
         Store.translationProjects.list.data.value = [];
+        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
         Store.translationProjects.list.loading.value = true;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -749,6 +751,7 @@ describe('MasTranslation', () => {
         it('should successfully delete translation project', async () => {
             const mockProject = createMockTranslationProject('del-123', 'Project to Delete');
             Store.translationProjects.list.data.value = [mockProject];
+            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['del-123', mockProject]]));
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
             const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
@@ -761,6 +764,7 @@ describe('MasTranslation', () => {
             await new Promise((resolve) => setTimeout(resolve, 10));
             expect(deleteFragmentStub.calledOnce).to.be.true;
             expect(deleteFragmentStub.firstCall.args[1]).to.deep.equal({ startToast: false, endToast: false });
+            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('del-123')).to.be.false;
         });
 
         it('should handle delete error gracefully', async () => {
@@ -852,7 +856,7 @@ describe('MasTranslation', () => {
 
         beforeEach(() => {
             toastEmitStub = sinon.stub(Events.toast, 'emit');
-            createFragmentStub = sinon.stub().resolves(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            createFragmentStub = sinon.stub().resolves(createMockTranslationProject('new-1', 'Project-1-copy').get());
             loadTranslationProjectsStub = sinon.stub().resolves();
             getByIdStub = sinon.stub().callsFake(async (id) =>
                 Store.translationProjects.list.data
@@ -894,7 +898,7 @@ describe('MasTranslation', () => {
             expect(dialog.isTitleInvalid).to.be.false;
         });
 
-        it('creates the duplicate with the proposed title unchanged and reloads the list', async () => {
+        it('renders the duplicate immediately alongside the original without reloading the list', async () => {
             const mockProject = createMockTranslationProject('dup-1', 'Project-1');
             Store.translationProjects.list.data.value = [mockProject];
             const el = await fixture(html`<mas-translation></mas-translation>`);
@@ -907,11 +911,41 @@ describe('MasTranslation', () => {
             await dialog.updateComplete;
             dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
             await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await el.updateComplete;
             expect(createFragmentStub.calledOnce).to.be.true;
             expect(createFragmentStub.firstCall.args[0].title).to.equal('Project-1-copy');
-            expect(loadTranslationProjectsStub.calledOnce).to.be.true;
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row[data-id]');
+            expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-1', 'dup-1']);
+            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Project-1-copy');
+            expect(Store.translationProjects.list.data.get()[1]).to.equal(mockProject);
+            expect(loadTranslationProjectsStub.called).to.be.false;
             expect(el.duplicateDialogOpen).to.be.false;
             expect(el.duplicating).to.be.false;
+        });
+
+        it('does not render a second row when the created project is already in the list', async () => {
+            const mockProject = createMockTranslationProject('dup-1', 'Project-1');
+            Store.translationProjects.list.data.value = [mockProject];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            const duplicateItem = Array.from(el.shadowRoot.querySelectorAll('sp-menu-item')).find((item) =>
+                item.textContent.trim().includes('Duplicate'),
+            );
+            duplicateItem.click();
+            await el.updateComplete;
+            const newProject = createMockTranslationProject('new-1', 'Project-1-copy');
+            createFragmentStub.callsFake(async () => {
+                Store.translationProjects.list.data.set([mockProject, newProject]);
+                return newProject.get();
+            });
+            const dialog = el.shadowRoot.querySelector('mas-translation-duplicate-dialog');
+            await dialog.updateComplete;
+
+            dialog.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
+            await el.updateComplete;
+
+            const rows = el.shadowRoot.querySelectorAll('sp-table-row[data-id]');
+            expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-1', 'dup-1']);
         });
 
         for (const status of ['QUEUED', 'RUNNING']) {
@@ -1062,7 +1096,7 @@ describe('MasTranslation', () => {
             );
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.exist;
-            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            resolveCreate(createMockTranslationProject('new-1', 'Project 1 copy').get());
             await waitUntil(() => !el.duplicating, 'duplication should finish');
             await el.updateComplete;
             expect(el.shadowRoot.querySelector('.duplicating-overlay')).to.not.exist;
@@ -1091,7 +1125,7 @@ describe('MasTranslation', () => {
             );
             await el.updateComplete;
             expect(duplicateItem.disabled).to.be.true;
-            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
+            resolveCreate(createMockTranslationProject('new-1', 'Project 1 copy').get());
             await waitUntil(() => !el.duplicating, 'duplication should finish');
             await el.updateComplete;
             expect(duplicateItem.disabled).to.be.false;
@@ -1140,8 +1174,8 @@ describe('MasTranslation', () => {
             await el.updateComplete;
             expect(el.duplicateDialogOpen).to.be.false;
 
-            resolveCreate(new Fragment({ id: 'new-1', title: 'Project 1 copy' }));
-            await waitUntil(() => createFragmentStub.calledOnce, 'duplication should finish');
+            resolveCreate(createMockTranslationProject('new-1', 'Project 1 copy').get());
+            await waitUntil(() => !el.duplicating, 'duplication should finish');
             expect(createFragmentStub.calledOnce).to.be.true;
         });
     });

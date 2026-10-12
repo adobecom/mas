@@ -59,6 +59,7 @@ export const tableColumnIconStyles = css`
 export const tableRowLinkStyles = css`
     sp-table-row {
         position: relative;
+        isolation: isolate;
     }
 
     a.fragment-editor-link {

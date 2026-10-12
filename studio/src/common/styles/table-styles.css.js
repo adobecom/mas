@@ -73,6 +73,7 @@ export const tableRowLinkStyles = css`
         z-index: 1;
     }
 
+    sp-table-row sp-table-checkbox-cell,
     sp-table-row sp-checkbox,
     sp-table-row sp-action-menu,
     sp-table-row sp-action-button,

@@ -905,8 +905,10 @@ runTests(async () => {
 
             it('does not refetch when pzn is re-set to the same value', async () => {
                 cache.clear();
-                const aemFragment = addFragment('fragment-cc-all-apps');
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
                 aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
                 await oneEvent(aemFragment, 'aem:load');
                 const count = aemMock.count;
 
@@ -927,6 +929,43 @@ runTests(async () => {
                 await oneEvent(aemFragment, 'aem:load');
 
                 expect(aemMock.count).to.equal(count + 1);
+                aemFragment.remove();
+            });
+
+            it('refetches with the new pzn when pzn changes during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('does not cache a pending response under a pzn set during the fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has('fragment-cc-all-apps-p_segment1')).to.be
+                    .false;
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
+
+            it('refetches once when pzn and mask both change during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                aemFragment.setAttribute('mask', 'story');
+                await oneEvent(aemFragment, 'aem:load');
+                await oneEvent(aemFragment, 'aem:load');
+
+                const fragmentCalls = fetch
+                    .getCalls()
+                    .filter((call) =>
+                        String(call.firstArg).includes('/fragment?'),
+                    );
+                expect(fragmentCalls).to.have.length(2);
                 aemFragment.remove();
             });
         });

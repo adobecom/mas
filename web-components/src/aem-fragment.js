@@ -193,6 +193,7 @@ export class AemFragment extends HTMLElement {
      * Internal promise to track if fetching is in progress.
      */
     #fetchPromise;
+    #refreshQueued = false;
 
     #author = false;
     #fetchCount = 0;
@@ -243,8 +244,20 @@ export class AemFragment extends HTMLElement {
             oldValue !== newValue &&
             this.#fetchPromise
         ) {
-            this.refresh(false);
+            this.#queueRefresh();
         }
+    }
+
+    // Refetches once the current fetch settles, so a change made mid-fetch is not dropped;
+    // changes made before then share that single refetch.
+    #queueRefresh() {
+        if (this.#refreshQueued) return;
+        this.#refreshQueued = true;
+        const run = () => {
+            this.#refreshQueued = false;
+            this.refresh(false);
+        };
+        this.#fetchPromise.then(run, run);
     }
 
     connectedCallback() {
@@ -409,7 +422,9 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.cacheKey());
+        // mask/pzn can change while the fetch is pending: cache under the key that was requested.
+        const cacheKey = this.cacheKey();
+        let fragment = cache.get(cacheKey);
         if (fragment) {
             this.#rawData = fragment;
             return true;
@@ -444,8 +459,8 @@ export class AemFragment extends HTMLElement {
 
         fragment = await this.#getFragment(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
-        if (this.#mask || this.#pzn) {
-            cache.set(this.cacheKey(), fragment);
+        if (cacheKey !== this.#fragmentId) {
+            cache.set(cacheKey, fragment);
         } else {
             cache.add(fragment);
         }

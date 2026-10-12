@@ -163,12 +163,19 @@ export function extractKnownSurfaceFromPath(path) {
 }
 
 // Guards a model-supplied parentPath before it decides where cards are written:
-// it must sit under /content/dam/mas/<surface>/ with no '..' traversal. Callers
-// fall back to the UI-derived path when this returns false.
-export function isSafeSurfacePath(path) {
-    if (typeof path !== 'string') return false;
+// it must sit under /content/dam/mas/<currentSurface>/ with no '..' traversal.
+// Restricting to the caller's current surface stops a model response from
+// redirecting writes into another surface. Callers fall back to the UI-derived
+// path when this returns false.
+export function isSafeSurfacePath(path, currentSurface) {
+    if (typeof path !== 'string' || !currentSurface) return false;
     if (path.split('/').includes('..')) return false;
-    return /^\/content\/dam\/mas\/[^/]+\/.+/.test(path);
+    const match = path.match(/^\/content\/dam\/mas\/([^/]+)\/.+/);
+    if (!match) return false;
+    const expectedSurface = String(currentSurface)
+        .replace(/^\/content\/dam\/mas\//, '')
+        .split('/')[0];
+    return match[1] === expectedSurface;
 }
 
 export const CHAT_REQUEST_TIMEOUT_MS = 55000;

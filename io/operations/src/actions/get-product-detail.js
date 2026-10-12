@@ -26,20 +26,29 @@ async function main(params) {
         }
 
         const baseUrl = aosUrl.endsWith('/offers') ? aosUrl : `${aosUrl}/offers`;
-        const endpoint = `${baseUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=PUBLISHED&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
 
-        const response = await fetch(endpoint, {
-            headers: { 'x-api-key': aosApiKey },
-        });
-        if (!response.ok) {
-            return {
-                statusCode: response.status,
-                body: { error: `AOS API error: ${response.status} ${response.statusText}` },
-            };
+        // Try PUBLISHED first, then DRAFT — a new product offering (NPI) exists
+        // only in DRAFT until it is published, so a PUBLISHED-only lookup 404s it.
+        // Mirrors aos-client's landscape fallback.
+        let offers = null;
+        for (const landscape of ['PUBLISHED', 'DRAFT']) {
+            const endpoint = `${baseUrl}?country=US&merchant=ADOBE&service_providers=MERCHANDISING,PRODUCT_ARRANGEMENT_V2&locale=en_US&landscape=${landscape}&arrangement_code=${encodeURIComponent(arrangementCode)}&page_size=200`;
+            const response = await fetch(endpoint, {
+                headers: { 'x-api-key': aosApiKey },
+            });
+            if (!response.ok) {
+                return {
+                    statusCode: response.status,
+                    body: { error: `AOS API error: ${response.status} ${response.statusText}` },
+                };
+            }
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                offers = data;
+                break;
+            }
         }
-
-        const offers = await response.json();
-        if (!offers || offers.length === 0) {
+        if (!offers) {
             return {
                 statusCode: 404,
                 body: { error: `No product found for arrangement code: ${arrangementCode}` },

@@ -318,19 +318,28 @@ describe('stripReleaseConfig', () => {
 });
 
 describe('isSafeSurfacePath', () => {
-    it('accepts a real surface path with a child segment', () => {
-        expect(isSafeSurfacePath('/content/dam/mas/acom/en_US/card-foo')).to.be.true;
-        expect(isSafeSurfacePath('/content/dam/mas/ccd/fr_FR')).to.be.true;
+    it('accepts a path under the current surface with a child segment', () => {
+        expect(isSafeSurfacePath('/content/dam/mas/acom/en_US/card-foo', 'acom')).to.be.true;
+        expect(isSafeSurfacePath('/content/dam/mas/ccd/fr_FR', 'ccd')).to.be.true;
+    });
+
+    it('rejects a path under a surface other than the current one', () => {
+        expect(isSafeSurfacePath('/content/dam/mas/ccd/en_US/card', 'acom')).to.be.false;
+    });
+
+    it('accepts when the current surface is supplied as a full dam path', () => {
+        expect(isSafeSurfacePath('/content/dam/mas/acom/en_US/card', '/content/dam/mas/acom')).to.be.true;
     });
 
     it('rejects a .. traversal', () => {
-        expect(isSafeSurfacePath('/content/dam/mas/acom/../ccd/en_US')).to.be.false;
+        expect(isSafeSurfacePath('/content/dam/mas/acom/../ccd/en_US', 'acom')).to.be.false;
     });
 
-    it('rejects paths outside /content/dam/mas and non-strings', () => {
-        expect(isSafeSurfacePath('/content/dam/other/acom/en_US')).to.be.false;
-        expect(isSafeSurfacePath('/content/dam/mas')).to.be.false;
-        expect(isSafeSurfacePath(null)).to.be.false;
-        expect(isSafeSurfacePath(42)).to.be.false;
+    it('rejects paths outside /content/dam/mas, non-strings, and a missing current surface', () => {
+        expect(isSafeSurfacePath('/content/dam/other/acom/en_US', 'acom')).to.be.false;
+        expect(isSafeSurfacePath('/content/dam/mas', 'acom')).to.be.false;
+        expect(isSafeSurfacePath(null, 'acom')).to.be.false;
+        expect(isSafeSurfacePath(42, 'acom')).to.be.false;
+        expect(isSafeSurfacePath('/content/dam/mas/acom/en_US/card')).to.be.false;
     });
 });

@@ -35,10 +35,10 @@ describe('AEMClient.publishFragment reference control', () => {
         globalThis.fetch = originalFetch;
     });
 
-    it('includes DRAFT and UNPUBLISHED references by default', async () => {
+    it('includes DRAFT, MODIFIED and UNPUBLISHED references by default', async () => {
         const bodies = capturePublishBody();
         await makeClient().publishFragment('frag-1');
-        expect(bodies[0].filterReferencesByStatus).to.deep.equal(['DRAFT', 'UNPUBLISHED']);
+        expect(bodies[0].filterReferencesByStatus).to.deep.equal(['DRAFT', 'MODIFIED', 'UNPUBLISHED']);
     });
 
     it('publishes with no references when publishReferences is false', async () => {

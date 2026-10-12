@@ -15,7 +15,11 @@ import {
     STAGED,
 } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
-import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
+import {
+    buildPromotionTagPath,
+    serializePromotionSurfacesForAem,
+    GROUP_BY,
+} from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
 import { resetTagCache } from '../helpers/tag-cache.js';
 import '@spectrum-web-components/tabs/sp-tab.js';
@@ -148,6 +152,7 @@ describe('MasPromotionsEditor', () => {
             getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
                     cf: {
@@ -675,6 +680,7 @@ describe('MasPromotionsEditor', () => {
                     },
                     getFragmentByPath: sandbox.stub().resolves(null),
                 },
+                clearStagedTag: sandbox.stub().resolves(null),
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Publish');
@@ -2964,6 +2970,28 @@ describe('MasPromotionsEditor', () => {
                 const toast = selector.shadowRoot.querySelector('sp-toast');
                 expect(toast.textContent).to.equal('Toast text');
                 expect(toast.variant).to.equal('positive');
+            });
+
+            it('updates promotionGroupBy when mas-group-by-select emits change', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                const groupBySelect = selector.shadowRoot.querySelector('mas-group-by-select');
+                expect(groupBySelect).to.not.be.null;
+                groupBySelect.dispatchEvent(new CustomEvent('change', { detail: { value: GROUP_BY.OFFER } }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.OFFER);
+            });
+
+            it('resets promotionGroupBy when the items table cancels a pending grouping', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                el.promotionGroupBy = GROUP_BY.TEMPLATE;
+                await el.updateComplete;
+                const table = viewSelector(el).shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.NONE);
             });
         });
     });

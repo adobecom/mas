@@ -135,8 +135,8 @@ describe('mas-bulk-publish-editor', () => {
         store.updateField('status', [BULK_PUBLISH_STATUS.PUBLISHING]);
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-bulk-publish-success-banner[variant="publishing"]')).to.exist;
-        expect(el.items[0].status).to.equal('error');
-        expect(el.items[0].reason).to.equal('staged');
+        expect(el.items[0].status).to.equal('valid');
+        expect(el.items[0].staged).to.equal(true);
     });
 
     it('does not update inEdit after disconnecting during async init', async () => {

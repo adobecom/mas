@@ -109,7 +109,7 @@ export const VARIANTS = [
     {
         label: 'Mini',
         value: VARIANT_NAMES.MINI,
-        surfaces: [SURFACES.CCD],
+        surfaces: [SURFACES.CCD, SURFACES.ADOBE_HOME],
     },
     {
         label: 'Image',

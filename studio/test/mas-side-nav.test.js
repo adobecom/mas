@@ -82,6 +82,7 @@ describe('MasSideNav – Copy Field', () => {
                 { name: 'shortDescription', values: ['Short summary'] },
                 { name: 'promoText', values: ['Save 50%'] },
                 { name: 'callout', values: ['Limited time'] },
+                { name: 'badge', values: ['Special offer'] },
                 { name: 'subtitle', values: ['For teams'] },
                 { name: 'ctas', values: ['<a>Buy</a>'] },
                 { name: 'cta', values: ['Buy now'] },
@@ -99,6 +100,7 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.include('shortDescription');
             expect(names).to.include('promoText');
             expect(names).to.include('callout');
+            expect(names).to.include('badge');
             expect(names).to.include('subtitle');
             expect(names).to.include('ctas');
             expect(names).to.not.include('cta');
@@ -106,6 +108,24 @@ describe('MasSideNav – Copy Field', () => {
             expect(names).to.not.include('perUnitLabel');
             expect(names).to.not.include('variant');
             expect(names).to.not.include('osi');
+        });
+
+        it('includes compare chart badges with a text preview or an empty placeholder', () => {
+            for (const value of [
+                '<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans" variant="compare-chart-column">Special offer</merch-badge>',
+                '',
+            ]) {
+                const fragment = mockFragment([
+                    { name: 'variant', values: ['compare-chart-column'] },
+                    { name: 'badge', values: [value] },
+                ]);
+                editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+                const badge = el.copyableFields.find((field) => field.name === 'badge');
+                expect(badge).to.exist;
+                expect(badge.displayName).to.equal('Badge');
+                expect(badge.preview).to.equal(value ? 'Special offer' : '');
+                expect(badge.sourceFragment).to.equal(fragment);
+            }
         });
 
         it('includes the image field with the source URL as preview', () => {
@@ -773,6 +793,36 @@ describe('MasSideNav – Copy Field', () => {
             expect(clipboardStub.write.calledOnce).to.be.true;
             expect(toastStub.calledOnce).to.be.true;
             expect(toastStub.firstCall.args[0].variant).to.equal('positive');
+        });
+
+        it('copies a badge field link from the compare chart Copy Field menu', async () => {
+            const fragment = mockFragment([
+                { name: 'variant', values: ['compare-chart-column'] },
+                {
+                    name: 'badge',
+                    values: ['<merch-badge background-color="spectrum-yellow-300-plans">Special offer</merch-badge>'],
+                },
+            ]);
+            editorStub.withArgs('mas-fragment-editor').returns(mockEditor(fragment));
+            const container = document.createElement('div');
+            render(el.copyFieldButton, container);
+            const badgeLabel = [...container.querySelectorAll('.field-label')].find((label) => label.textContent === 'Badge');
+            expect(badgeLabel).to.exist;
+            expect(badgeLabel.closest('sp-menu-item').querySelector('.field-value').textContent).to.equal('Special offer');
+            badgeLabel.closest('sp-menu-item').click();
+            await Promise.resolve();
+
+            expect(clipboardStub.write.calledOnce).to.be.true;
+            const [item] = clipboardStub.write.firstCall.args[0];
+            const text = await (await item.getType('text/plain')).text();
+            const html = await (await item.getType('text/html')).text();
+            expect(text).to.include('→ Badge');
+            expect(html).to.include('field=badge');
+            expect(html).to.include('query=frag-123');
+            expect(toastStub.firstCall.args[0]).to.deep.equal({
+                variant: 'positive',
+                content: 'Copied Badge field link',
+            });
         });
 
         it("should use the variant's editorLabel in the copied text and toast for FAQ", async () => {

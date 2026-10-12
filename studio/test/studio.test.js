@@ -159,30 +159,53 @@ describe('MasStudio – #lazyLoad failure path', () => {
         sandbox.restore();
     });
 
-    it('returns nothing after a failed import and does not retry', async () => {
-        let rejectImport;
+    const flushAttempt = async (clock, delay) => {
+        await Promise.resolve();
+        await Promise.resolve();
+        await clock.tickAsync(delay);
+    };
+
+    it('retries a failed import with a cache-busting URL', async () => {
+        const clock = sandbox.useFakeTimers();
         sandbox.stub(customElements, 'get').returns(undefined);
         sandbox.stub(customElements, 'whenDefined').returns(new Promise(() => {}));
-
-        // Spy on Events.toast before it's used
         const { default: Events } = await import('../src/events.js');
         const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const importStub = sandbox.stub(el, 'importModule');
+        importStub.onFirstCall().rejects(new Error('429'));
+        importStub.onSecondCall().resolves({});
 
         el.page.value = PAGE_NAMES.PLACEHOLDERS;
-
-        // First call starts the import (returns nothing because element not yet defined)
-        const first = el.placeholders;
-        expect(first).to.equal(nothing);
-
-        // The import for mas-placeholders will eventually resolve (real module exists).
-        // We can't force-fail it here without intercepting dynamic import().
-        // What we CAN test: the guard against #failedImports is wired to return nothing.
-        // Verify: calling the getter twice still returns nothing (element still pending).
         expect(el.placeholders).to.equal(nothing);
+        await flushAttempt(clock, 1000);
+        await flushAttempt(clock, 0);
 
-        // Toast should not have been emitted for a successful import
-        await new Promise((r) => setTimeout(r, 100));
+        expect(importStub.args.map(([path]) => path)).to.deep.equal([
+            './placeholders/mas-placeholders.js',
+            './placeholders/mas-placeholders.js?retry=1',
+        ]);
         expect(toastSpy.called).to.be.false;
+    });
+
+    it('shows a toast and stops loading once retries are exhausted', async () => {
+        const clock = sandbox.useFakeTimers();
+        sandbox.stub(customElements, 'get').returns(undefined);
+        sandbox.stub(customElements, 'whenDefined').returns(new Promise(() => {}));
+        sandbox.stub(console, 'error');
+        const { default: Events } = await import('../src/events.js');
+        const toastSpy = sandbox.spy(Events.toast, 'emit');
+        const importStub = sandbox.stub(el, 'importModule').rejects(new Error('429'));
+
+        el.page.value = PAGE_NAMES.PLACEHOLDERS;
+        el.placeholders;
+        await flushAttempt(clock, 1000);
+        await flushAttempt(clock, 2000);
+        await flushAttempt(clock, 0);
+
+        expect(importStub.callCount).to.equal(3);
+        expect(toastSpy.calledOnceWith({ variant: 'negative', content: 'Failed to load page' })).to.be.true;
+        expect(el.placeholders).to.equal(nothing);
+        expect(importStub.callCount).to.equal(3);
     });
 });
 

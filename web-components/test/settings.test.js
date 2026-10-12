@@ -69,10 +69,7 @@ describe('getSettings', () => {
         url.searchParams.set('commerce.env', 'STAGE');
         url.searchParams.set('quantity', '2');
         url.searchParams.set('wcsApiKey', 'testapikey');
-        url.searchParams.set(
-            'mas-io-url',
-            'https://custom.adobeioruntime.net/mas/io',
-        );
+        url.searchParams.set('mas-io-url', 'axel');
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
@@ -93,7 +90,8 @@ describe('getSettings', () => {
             quantity: [2],
             wcsApiKey: 'testapikey',
             locale: 'en_US',
-            masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
+            masIOUrl:
+                'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScale',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
             hasExplicitCountry: false,

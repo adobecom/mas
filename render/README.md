@@ -19,7 +19,7 @@ const options = {
     displayTax: true,
     forceTaxExclusive: false,
     quantity: [1],
-    // Same explicit instant in both runtimes for annual promo rendering.
+    // Used by the promo-with-annual path; see Time and diagnostics.
     instant: '2025-01-15T12:00:00.000Z',
 };
 
@@ -37,7 +37,7 @@ or fetching occurs here.
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `selectOffers(offers, options)`                        | Prefers offers without a term, then the preferred language (EN in GB, MULT elsewhere). Sorts input arrays in place. Preserves zero/single-array identity unless `forceTaxExclusive` is enabled, which always maps the array. Rewriting creates amended offers and clears stale gross `priceInfo`; already-exclusive offers retain identity.                                                                                       |
 | `sumOffers(offers, { logger }?)`                       | Returns null for absent/empty arrays and the same object for one offer. Combines OSIs and positive numeric/annualized sums rounded to two decimals; retains first-offer metadata and regular price fields where a sum is non-positive. Annualized output includes only positive sums. Clears `priceInfo` for bundles. Does not mutate offers. Warns on mismatched commitment, term, or currency format without rejecting the sum. |
-| `buildPriceHTML(offers, resolvedOptions, { logger }?)` | Dispatches the first offer to existing templates and flattens its `priceDetails`. Returns the exact markup string, including whitespace/entities/classes/accessibility labels. Returns `''` for absent/invalid/empty offer arrays or missing options; templates throw for missing required price inputs. Does not select/sum offers, merge service settings, or collect options.                                                  |
+| `buildPriceHTML(offers, resolvedOptions, { logger }?)` | Dispatches the first offer to existing templates and flattens its `priceDetails`. Returns the exact markup string, including whitespace/entities/classes/accessibility labels. Returns `''` for non-array/empty offers or missing options; invalid offer entries and missing required price inputs can throw. Does not select/sum offers, merge service settings, or collect options.                                             |
 
 Callers merge service settings with overrides **before** rendering, preserving
 the browser's `{ ...settings, ...options }` precedence. Supply resolved
@@ -51,11 +51,35 @@ Promotion dispatch is gated by both the supplied promotion code and the offer's
 own promotion. WCS preformatted price leaves are used where compatible; the
 original numeric formatting remains the fallback.
 
+### Markup, styles, and input trust
+
+The package returns markup, not CSS. Consumers must style the generated price
+classes and provide a visually-hidden rule for the **`sr-only` element**, as in
+[`web-components/src/global.css.js`](../web-components/src/global.css.js).
+Labels such as "Regularly at" and "Alternatively at" use `<sr-only>`, not a
+`.sr-only` class. Without that rule they appear as visible text; the rule must
+preserve their availability to assistive technology.
+
+Supply valid WCS offer data and string literals from trusted sources. The
+renderer is **not an HTML sanitizer**: price text and WCS preformatted leaves
+can be emitted verbatim, and links in formatted literals retain their authored
+attributes. Untrusted inputs require validation/sanitization at the consumer
+boundary before rendering or inserting the returned HTML.
+
 ### Time and diagnostics
 
-Annual promotional rendering accepts `resolvedOptions.instant`. The package
-never reads a query string; the later browser adapter must preserve that fallback.
-Regular promotional rendering retains the legacy
+The promo-with-annual path (`pricePromoWithAnnual`) uses
+`resolvedOptions.instant`. `buildPriceHTML` selects this path for an ABM offer
+with `displayAnnual`, a supplied promotion code, and an offer promotion, unless
+another template takes precedence. The ordinary `template: 'annual'` and
+non-promo `priceWithAnnual` paths do **not** use `resolvedOptions.instant`;
+the compatibility `createPriceTemplate` factory accepts `instant` in its
+factory options instead.
+
+The package never reads `?instant=` from a query string. The later browser
+adapter must preserve the original promo-with-annual fallback, with an explicit
+`options.instant` taking precedence over the query parameter, without extending
+it to other template paths. Regular promotional rendering retains the legacy
 `offer.promotion.displaySummary.instant` input. Where no applicable instant is
 provided, existing promotion calculations use current time. Use equivalent
 instants and clocks for deterministic Node/browser comparisons.
@@ -65,6 +89,10 @@ Pass a logger with `warn(message, details)` to summation and
 standalone diagnostics are visible. Literal-formatting errors retain the existing
 empty-literal behavior and report an error; other errors propagate. No global
 logger registration or cross-request mutable state is introduced.
+
+Consumer adapters must supply the required logger methods and forward
+diagnostics to the existing Lana-backed browser logging or IO request logging,
+rather than relying on the standalone console default.
 
 ### Compatibility subpaths
 

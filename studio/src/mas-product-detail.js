@@ -81,7 +81,8 @@ class MasProductDetail extends LitElement {
 
     openCreateDialog() {
         const surfaces = getUserSurfaces();
-        const surface = surfaces[0] || 'sandbox';
+        const currentSurface = Store.search?.value?.path;
+        const surface = (currentSurface && surfaces.includes(currentSurface) && currentSurface) || surfaces[0] || 'sandbox';
         const locale = Store.filters?.value?.locale || 'en_US';
         this.createDialog = {
             product: this.product,

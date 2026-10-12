@@ -67,6 +67,13 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
     const country = requestedCountry?.toUpperCase();
     const fragmentParams = { id: fragmentId, locale, api_key: apiKey };
     if (country) fragmentParams.country = country;
+    const logContext = {
+        api_key: apiKey,
+        requestId: params.__ow_headers?.['x-request-id'] || `mas-${performance.now()}`,
+        id: fragmentId,
+        locale,
+        loggedTransformer: 'agent',
+    };
 
     let result;
     try {
@@ -87,7 +94,10 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             'fragment invoke',
         );
     } catch (error) {
-        return response(error.isTimeout ? 504 : 502, { message: `failed to invoke fragment action: ${error.message}` });
+        logError(`Failed to invoke fragment action: ${error.message}`, logContext);
+        return error.isTimeout
+            ? response(504, { message: 'fragment action timed out' })
+            : response(502, { message: 'failed to invoke fragment action' });
     }
 
     if (result.statusCode !== 200) {
@@ -96,11 +106,7 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
             try {
                 message = parseFragmentBody(result)?.message;
             } catch (error) {
-                logError(`Failed to decode fragment action error response: ${error.message}`, {
-                    ...params,
-                    id: fragmentId,
-                    loggedTransformer: 'agent',
-                });
+                logError(`Failed to decode fragment action error response: ${error.message}`, logContext);
             }
         }
         return response(result.statusCode, { message: message ?? `fragment action returned ${result.statusCode}` });
@@ -108,13 +114,21 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
 
     try {
         const flat = await withTimeout(
-            () => flattenOffer(parseFragmentBody(result), { locale, country }),
+            () =>
+                flattenOffer(parseFragmentBody(result), {
+                    locale,
+                    country,
+                    onPriceError: (error, osi) => logError(`Failed to hydrate price ${osi}: ${error.message}`, logContext),
+                }),
             15000,
             'price hydration',
         );
         return response(200, { ...flat, fragment: fragmentId, pzn: pzn ?? null });
     } catch (error) {
-        return response(error.isTimeout ? 504 : 502, { message: `failed to hydrate fragment offer: ${error.message}` });
+        logError(`Failed to hydrate fragment offer: ${error.message}`, logContext);
+        return error.isTimeout
+            ? response(504, { message: 'price hydration timed out' })
+            : response(502, { message: 'failed to hydrate fragment offer' });
     }
 }
 

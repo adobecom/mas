@@ -5,6 +5,8 @@ import { extractMerchCard, flattenOffer } from '../../src/agent/flatten.js';
 
 const ccPro = JSON.parse(readFileSync(new URL('./mocks/fragment-cc-pro.json', import.meta.url)));
 const photoshopEg = JSON.parse(readFileSync(new URL('./mocks/fragment-photoshop-eg.json', import.meta.url)));
+// WCS returns both on every offer; the card's tax and per-unit defaults read them.
+const offerSegments = { customerSegment: 'INDIVIDUAL', marketSegments: ['COM'] };
 
 describe('flattenOffer', () => {
     afterEach(() => {
@@ -17,20 +19,61 @@ describe('flattenOffer', () => {
         controller.abort(timeout);
         const timeoutStub = sinon.stub(AbortSignal, 'timeout').returns(controller.signal);
         const fetchStub = sinon.stub(globalThis, 'fetch').rejects(timeout);
+        const onPriceError = sinon.spy();
 
-        try {
-            await flattenOffer({
+        const offer = await flattenOffer(
+            {
                 fields: {
+                    cardTitle: 'Title',
                     prices: '<span is="inline-price" data-wcs-osi="uncached"></span>',
                 },
-            });
-            expect.fail('Expected WCS hydration to fail');
-        } catch (error) {
-            expect(error.message).to.equal('Network error: WCS request timed out');
-            expect(timeoutStub.calledOnceWithExactly(5000)).to.be.true;
-            expect(fetchStub.calledOnce).to.be.true;
-            expect(fetchStub.firstCall.args[1].signal).to.equal(controller.signal);
-        }
+            },
+            { onPriceError },
+        );
+        expect(onPriceError.calledOnce).to.be.true;
+        expect(onPriceError.firstCall.args[0].message).to.equal('Network error: WCS request timed out');
+        expect(onPriceError.firstCall.args[1]).to.equal('uncached');
+        expect(offer.title).to.equal('Title');
+        expect(offer.regularPrice).to.be.undefined;
+        expect(timeoutStub.calledOnceWithExactly(5000)).to.be.true;
+        expect(fetchStub.calledOnce).to.be.true;
+        expect(fetchStub.firstCall.args[1].signal).to.equal(controller.signal);
+    });
+
+    it('requests WCS from the default service, whatever the fragment settings say', async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('offline'));
+        await flattenOffer(
+            {
+                settings: { wcsURL: 'https://attacker.example/wcs', env: 'STAGE', landscape: 'DRAFT', wcsApiKey: 'other' },
+                fields: { prices: '<span is="inline-price" data-wcs-osi="uncached"></span>' },
+            },
+            { onPriceError: () => {} },
+        );
+        const url = new URL(fetchStub.firstCall.args[0]);
+        expect(url.origin + url.pathname).to.equal('https://www.adobe.com/web_commerce_artifact');
+        expect(url.searchParams.get('landscape')).to.equal('PUBLISHED');
+        expect(url.searchParams.get('api_key')).to.equal('wcms-commerce-ims-ro-user-milo');
+    });
+
+    it('hydrates prices concurrently', async () => {
+        let release;
+        const pending = new Promise((resolve) => {
+            release = resolve;
+        });
+        const fetchStub = sinon.stub(globalThis, 'fetch').returns(pending);
+        const flattening = flattenOffer(
+            {
+                fields: {
+                    prices: '<span is="inline-price" data-wcs-osi="first"></span>',
+                    description: '<span is="inline-price" data-wcs-osi="second"></span>',
+                },
+            },
+            { onPriceError: () => {} },
+        );
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(fetchStub.callCount).to.equal(2);
+        release(new Response('{}', { status: 500 }));
+        await flattening;
     });
 
     it('flattens a real Creative Cloud Pro fragment payload', async () => {
@@ -96,6 +139,7 @@ describe('flattenOffer', () => {
                         prod: {
                             [`regional-${cacheCountry.toLowerCase()}-mult`]: [
                                 {
+                                    ...offerSegments,
                                     offerSelectorIds: ['regional'],
                                     priceDetails: { formatString: "'$'#,##0.00", price: 1 },
                                 },
@@ -121,10 +165,18 @@ describe('flattenOffer', () => {
             wcs: {
                 prod: {
                     'regional-eg-mult': [
-                        { offerSelectorIds: ['regional'], priceDetails: { formatString: "'$'#,##0.00", price: 2 } },
+                        {
+                            ...offerSegments,
+                            offerSelectorIds: ['regional'],
+                            priceDetails: { formatString: "'$'#,##0.00", price: 2 },
+                        },
                     ],
                     'regional-fr-mult': [
-                        { offerSelectorIds: ['regional'], priceDetails: { formatString: "'$'#,##0.00", price: 3 } },
+                        {
+                            ...offerSegments,
+                            offerSelectorIds: ['regional'],
+                            priceDetails: { formatString: "'$'#,##0.00", price: 3 },
+                        },
                     ],
                 },
             },
@@ -193,6 +245,7 @@ describe('flattenOffer', () => {
                 prod: {
                     'single-us-mult': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['single'],
                             priceDetails: {
                                 formatString: "'$'#,##0.00",
@@ -270,6 +323,7 @@ describe('flattenOffer', () => {
             },
         };
         const offer = {
+            ...offerSegments,
             offerSelectorIds: ['single'],
             priceDetails: {
                 formatString: "'$'#,##0.00",
@@ -344,6 +398,7 @@ describe('flattenOffer', () => {
                 prod: {
                     'outer-us-mult-global_promo': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['outer'],
                             priceDetails: {
                                 formatString: "'$'#,##0.00",
@@ -354,6 +409,7 @@ describe('flattenOffer', () => {
                     ],
                     'inner-us-mult-inner_promo': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['inner'],
                             priceDetails: {
                                 formatString: "'$'#,##0.00",
@@ -367,6 +423,7 @@ describe('flattenOffer', () => {
                     ],
                     'description-us-mult-global_promo': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['description'],
                             priceDetails: {
                                 formatString: "'$'#,##0.00",
@@ -377,6 +434,7 @@ describe('flattenOffer', () => {
                     ],
                     'cancel-us-mult': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['cancel'],
                             priceDetails: {
                                 formatString: "'$'#,##0.00",
@@ -402,11 +460,104 @@ describe('flattenOffer', () => {
         expect(card.regularPrice).to.equal('$1.00');
         expect(card.seeTermsInfo).to.deep.equal({
             analyticsId: 'terms',
-            href: '/terms',
+            href: undefined,
             text: 'See terms',
         });
         expect(card.renewalText).to.equal('Renews automatically');
     });
+
+    for (const [href, expected] of [
+        ['https://www.adobe.com/offer-terms/x.html', 'https://www.adobe.com/offer-terms/x.html'],
+        ['javascript:alert(1)//offer-terms', null],
+        ['http://www.adobe.com/offer-terms/x.html', null],
+        ['/offer-terms/x.html', null],
+    ]) {
+        it(`returns only absolute https terms links: ${href}`, async () => {
+            const offer = await flattenOffer({
+                fields: {
+                    description: `<a href="${href}">Terms</a>`,
+                    callout: `<a is="upt-link" href="${href}">See terms</a>`,
+                },
+            });
+            expect(offer.terms_url).to.equal(expected);
+            expect(offer.seeTermsInfo.href).to.equal(expected ?? undefined);
+        });
+    }
+
+    it('decodes an encoded ampersand entity once', async () => {
+        const offer = await flattenOffer({ fields: { badge: 'Say &amp;quot;hi&amp;quot; &amp; save &quot;now&quot;' } });
+        expect(offer.badge).to.equal('Say &quot;hi&quot; & save "now"');
+    });
+
+    it('selects one offer per OSI and sums comma-joined OSIs like the card', async () => {
+        const offer = (osi, price, extra = {}) => ({
+            ...offerSegments,
+            offerSelectorIds: [osi],
+            priceDetails: { formatString: "'$'#,##0.00", price },
+            ...extra,
+        });
+        const card = await extractMerchCard({
+            fields: {
+                prices: '<span is="inline-price" data-template="price" data-wcs-osi="multi"></span>',
+                description: '<span is="inline-price" data-template="price" data-wcs-osi="first,second"></span>',
+            },
+            wcs: {
+                prod: {
+                    'multi-us-mult': [offer('multi', 9, { term: 'ANNUAL' }), offer('multi', 4)],
+                    'first-us-mult': [offer('first', 1)],
+                    'second-us-mult': [offer('second', 2)],
+                },
+            },
+        });
+        expect(card.regularPrice).to.equal('$4.00');
+        expect(card.description).to.equal('$3.00');
+    });
+
+    it('reads the rendered text of a price template without a price element', async () => {
+        const card = await extractMerchCard({
+            fields: {
+                callout: '<p>Save <span is="inline-price" data-template="discount" data-wcs-osi="sale"></span></p>',
+            },
+            wcs: {
+                prod: {
+                    'sale-us-mult': [
+                        {
+                            ...offerSegments,
+                            offerSelectorIds: ['sale'],
+                            priceDetails: { formatString: "'$'#,##0.00", price: 5, priceWithoutDiscount: 10 },
+                        },
+                    ],
+                },
+            },
+        });
+        expect(card.callout).to.equal('Save 50%');
+        expect(card.regularPrice).to.be.undefined;
+    });
+
+    for (const [customerSegment, unitText] of [
+        ['TEAM', 'per license'],
+        ['INDIVIDUAL', undefined],
+    ]) {
+        it(`applies the card's per-unit default for ${customerSegment} offers`, async () => {
+            const card = await extractMerchCard({
+                fields: { prices: '<span is="inline-price" data-template="price" data-wcs-osi="seat"></span>' },
+                wcs: {
+                    prod: {
+                        'seat-us-mult': [
+                            {
+                                ...offerSegments,
+                                customerSegment,
+                                offerSelectorIds: ['seat'],
+                                priceDetails: { formatString: "'$'#,##0.00", price: 7, perUnit: 'LICENSE' },
+                            },
+                        ],
+                    },
+                },
+            });
+            expect(card.regularPrice).to.equal('$7.00');
+            expect(card.unitText).to.equal(unitText);
+        });
+    }
 
     it('hydrates promotional and missing inline prices', async () => {
         const fragment = {
@@ -437,6 +588,7 @@ describe('flattenOffer', () => {
                 prod: {
                     'promo-gb-en': [
                         {
+                            ...offerSegments,
                             offerSelectorIds: ['promo'],
                             offerId: 'offer-promo',
                             priceDetails: {
@@ -457,12 +609,16 @@ describe('flattenOffer', () => {
             },
         };
 
-        const card = await extractMerchCard(fragment);
+        const onPriceError = sinon.spy();
+        const card = await extractMerchCard(fragment, { onPriceError });
         expect(card.regularPrice).to.equal('$5.00');
         expect(card.recurrenceText).to.be.undefined;
         expect(card.taxText).to.equal('excl. GST');
         expect(card.unitText).to.equal('per license');
         expect(card.planTypeText).to.be.undefined;
+        expect(onPriceError.calledOnce).to.be.true;
+        expect(onPriceError.firstCall.args[0].message).to.equal('Commerce offer not found');
+        expect(onPriceError.firstCall.args[1]).to.equal('missing');
 
         expect(
             (

@@ -441,11 +441,19 @@ describe('agent action main', () => {
         });
     }
 
-    it('returns 502 when the fragment action invocation fails', async () => {
-        const invoke = sinon.stub().rejects(new Error('runtime down'));
-        const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
+    it('returns a generic 502 and logs the cause when the fragment action invocation fails', async () => {
+        const errorLog = sinon.stub(console, 'error');
+        const invoke = sinon.stub().rejects(new Error('runtime down at https://internal.example'));
+        const res = await main(
+            { ...requestParams, __ow_headers: { 'x-request-id': 'req-1' } },
+            { openwhiskFactory: fakeFactory(invoke) },
+        );
         expect(res.statusCode).to.equal(502);
-        expect(res.body.message).to.equal('failed to invoke fragment action: runtime down');
+        expect(res.body.message).to.equal('failed to invoke fragment action');
+        expect(errorLog.calledOnce).to.be.true;
+        expect(errorLog.firstCall.args[0]).to.equal(
+            `[error][test-api-key][req-1][${CC_PRO_INDIVIDUAL_ID}][en_US][agent] Failed to invoke fragment action: runtime down at https://internal.example`,
+        );
         expect(clock.countTimers()).to.equal(0);
     });
 
@@ -472,16 +480,20 @@ describe('agent action main', () => {
     });
 
     it('returns a JSON 502 for malformed fragment JSON', async () => {
+        const errorLog = sinon.stub(console, 'error');
         const invoke = sinon.stub().resolves({ statusCode: 200, body: '{' });
         const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
         expect(res.statusCode).to.equal(502);
         expect(res.headers['Content-Type']).to.equal('application/json');
-        expect(res.body.message).to.include('failed to hydrate fragment offer:');
-        expect(res.body.message).to.include('JSON');
+        expect(res.body.message).to.equal('failed to hydrate fragment offer');
+        expect(errorLog.firstCall.args[0]).to.match(
+            /\[error\]\[test-api-key\]\[mas-[\d.]+\].*Failed to hydrate fragment offer: .*JSON/,
+        );
         expect(clock.countTimers()).to.equal(0);
     });
 
     it('returns a JSON 502 for invalid Brotli data', async () => {
+        const errorLog = sinon.stub(console, 'error');
         const invoke = sinon.stub().resolves({
             statusCode: 200,
             headers: { 'Content-Encoding': 'br' },
@@ -490,11 +502,13 @@ describe('agent action main', () => {
         const res = await main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
         expect(res.statusCode).to.equal(502);
         expect(res.headers['Content-Type']).to.equal('application/json');
-        expect(res.body.message).to.include('failed to hydrate fragment offer:');
+        expect(res.body.message).to.equal('failed to hydrate fragment offer');
+        expect(errorLog.calledOnce).to.be.true;
         expect(clock.countTimers()).to.equal(0);
     });
 
-    it('returns a JSON 502 when WCS cannot hydrate an offer', async () => {
+    it('omits and logs a price WCS cannot resolve while returning the rest of the offer', async () => {
+        const errorLog = sinon.stub(console, 'error');
         sinon.stub(globalThis, 'fetch').resolves(new Response(JSON.stringify({ resolvedOffers: [] }), { status: 200 }));
         const invoke = sinon.stub().resolves({
             statusCode: 200,
@@ -503,13 +517,16 @@ describe('agent action main', () => {
         const pending = main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
         await clock.tickAsync(1000);
         const res = await pending;
-        expect(res.statusCode).to.equal(502);
-        expect(res.headers['Content-Type']).to.equal('application/json');
-        expect(res.body.message).to.equal('failed to hydrate fragment offer: Commerce offer not found');
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.deep.include({ productName: 'Creative Cloud Pro', title: 'Creative Cloud Pro' });
+        expect(res.body.regularPrice).to.be.undefined;
+        expect(errorLog.called).to.be.true;
+        expect(errorLog.firstCall.args[0]).to.match(/\[agent\] Failed to hydrate price .+: Commerce offer not found$/);
         expect(clock.countTimers()).to.equal(0);
     });
 
     it('returns a JSON 504 when the fragment invocation exceeds 20 seconds', async () => {
+        const errorLog = sinon.stub(console, 'error');
         const invoke = sinon.stub().returns(new Promise(() => {}));
         const pending = main(requestParams, { openwhiskFactory: fakeFactory(invoke) });
         await clock.tickAsync(19999);
@@ -519,12 +536,14 @@ describe('agent action main', () => {
         expect(res).to.deep.equal({
             statusCode: 504,
             headers: { 'Content-Type': 'application/json' },
-            body: { message: 'failed to invoke fragment action: fragment invoke exceeded 20000ms' },
+            body: { message: 'fragment action timed out' },
         });
+        expect(errorLog.firstCall.args[0]).to.include('Failed to invoke fragment action: fragment invoke exceeded 20000ms');
         expect(clock.countTimers()).to.equal(0);
     });
 
     it('returns a JSON 504 when price hydration exceeds 15 seconds', async () => {
+        const errorLog = sinon.stub(console, 'error');
         const fetchStub = sinon.stub(globalThis, 'fetch').returns(new Promise(() => {}));
         const invoke = sinon.stub().resolves({
             statusCode: 200,
@@ -539,8 +558,9 @@ describe('agent action main', () => {
         expect(res).to.deep.equal({
             statusCode: 504,
             headers: { 'Content-Type': 'application/json' },
-            body: { message: 'failed to hydrate fragment offer: price hydration exceeded 15000ms' },
+            body: { message: 'price hydration timed out' },
         });
+        expect(errorLog.firstCall.args[0]).to.include('Failed to hydrate fragment offer: price hydration exceeded 15000ms');
         expect(clock.countTimers()).to.equal(0);
     });
 });

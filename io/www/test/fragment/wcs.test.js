@@ -1151,6 +1151,54 @@ describe('wcs OSI helpers', function () {
         });
         expect(elements.map((element) => element.osi)).to.include('ADDON');
     });
+
+    it("applies the root fragment's promo project to settings OSIs, keeping inline promotion codes", function () {
+        const context = {
+            body: {
+                id: 'root',
+                fields: { osi: 'OWN' },
+                settings: {
+                    addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>',
+                    promoted: '<span is="inline-price" data-wcs-osi="PROMOTED"></span>',
+                    authored: '<span is="inline-price" data-wcs-osi="AUTHORED" data-promotion-code="INLINE"></span>',
+                },
+            },
+            promoScopeById: {
+                root: {
+                    substituteMap: { ADDON: 'ADDON-SUB' },
+                    promoMap: { PROMOTED: 'PROJECT_PROMO', AUTHORED: 'PROJECT_PROMO' },
+                },
+            },
+        };
+        expect(updateOffers(context)).to.deep.include.members([
+            { osi: 'ADDON-SUB', promotionCode: undefined },
+            { osi: 'PROMOTED', promotionCode: 'PROJECT_PROMO' },
+            { osi: 'AUTHORED', promotionCode: 'INLINE' },
+        ]);
+        expect(context.body.settings.addon).to.include('data-wcs-osi="ADDON-SUB" data-replaced-osi="ADDON"');
+        expect(context.body.settings.promoted).to.include('data-promotion-code="PROJECT_PROMO"');
+        expect(context.body.settings.authored).to.include('data-promotion-code="INLINE"');
+    });
+
+    it('applies the offer-mapping fallback to settings OSIs', function () {
+        const context = {
+            body: {
+                fields: {},
+                settings: { addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
+            },
+        };
+        expect(updateOffers(context, { ADDON: { osi: 'MAPPED', promotionCode: 'MAP_PROMO' } })).to.deep.equal([
+            { osi: 'MAPPED', promotionCode: 'MAP_PROMO' },
+        ]);
+        expect(context.body.settings.addon).to.include('data-wcs-osi="MAPPED" data-promotion-code="MAP_PROMO"');
+    });
+
+    it('collects only field OSIs when the fragment has no settings', function () {
+        const elements = updateOffers({
+            body: { fields: { prices: '<span is="inline-price" data-wcs-osi="FIELD"></span>' } },
+        });
+        expect(elements).to.deep.equal([{ osi: 'FIELD', promotionCode: undefined }]);
+    });
 });
 
 describe('offer-mapping fallback (MWPW-203764)', function () {

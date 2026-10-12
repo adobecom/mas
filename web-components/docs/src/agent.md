@@ -143,6 +143,12 @@ they do not apply.
 `ctas` contains one `{ "label": "..." }` object per non-empty authored link or
 button, in authored order, or `[]` when no CTAs exist.
 
+Prices match the merch card: each OSI resolves to one offer, comma-joined OSIs
+are summed, and tax and per-unit labels default from the offer's customer and
+market segments unless the price sets them explicitly. A price whose offer
+cannot be resolved is left out of the response, and the rest of the offer is
+still returned.
+
 | Property | Type | Description |
 | --- | --- | --- |
 | `fragment` | `string` | Exact fragment UUID passed to the fragment action. |
@@ -152,7 +158,7 @@ button, in authored order, or `[]` when no CTAs exist.
 | `pzn` | `string \| null` | Requested audience selector for product lookup; `null` when omitted or selecting a fragment by UUID. |
 | `badge` | `string \| null` | Card badge text. |
 | `ctas` | `object[]` | Ordered `{ label: string }` CTA entries; `[]` when none exist. |
-| `terms_url` | `string \| null` | Authored offer terms URL. |
+| `terms_url` | `string \| null` | Authored offer terms URL; `null` unless it is an absolute `https` URL. |
 | `title` | `string` | Card title. |
 | `subtitle` | `string` | Card subtitle. |
 | `promoText` | `string` | Promotional text. |
@@ -166,7 +172,7 @@ button, in authored order, or `[]` when no CTAs exist.
 | `taxText` | `string` | Tax text, for example `excl. GST`. |
 | `recurrenceText` | `string` | Billing frequency, for example `/mo`. |
 | `unitText` | `string` | Offer unit, for example `per license`. |
-| `seeTermsInfo` | `object` | See-terms `analyticsId`, `href`, and `text`. |
+| `seeTermsInfo` | `object` | See-terms `analyticsId`, `href`, and `text`; `href` is omitted unless it is an absolute `https` URL. |
 | `renewalText` | `string` | Authored renewal text. |
 | `promoDurationText` | `string` | Authored promotion-duration text. |
 
@@ -180,8 +186,8 @@ Errors return JSON with a `message` field.
 | --- | --- |
 | 400 | Invalid fragment path, neither a path UUID nor `productName`, missing `locale` or `api_key`, or a supplied `pzn` other than `edu` or `team` for product lookup. |
 | Upstream status | The fragment action returns a non-200 response; its message is preserved when supplied. |
-| 502 | Fragment invocation, decoding, parsing, or hydration fails. |
-| 504 | Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds. |
+| 502 | Fragment invocation, decoding, or parsing fails. The message is generic; the cause is logged. |
+| 504 | Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds. The message is generic; the cause is logged. |
 
-Uncached WCS requests time out after 5 seconds. Fragment invocation is limited
-to 20 seconds and hydration to 15 seconds.
+Uncached WCS requests time out after 5 seconds and run in parallel. Fragment
+invocation is limited to 20 seconds and hydration to 15 seconds.

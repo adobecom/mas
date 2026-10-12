@@ -285,6 +285,11 @@ Locale and country are not echoed. Other optional properties are omitted when
 they do not apply.</p>
 <p><code>ctas</code> contains one <code>{ &quot;label&quot;: &quot;...&quot; }</code> object per non-empty authored link or
 button, in authored order, or <code>[]</code> when no CTAs exist.</p>
+<p>Prices match the merch card: each OSI resolves to one offer, comma-joined OSIs
+are summed, and tax and per-unit labels default from the offer’s customer and
+market segments unless the price sets them explicitly. A price whose offer
+cannot be resolved is left out of the response, and the rest of the offer is
+still returned.</p>
 <table>
 <thead>
 <tr>
@@ -332,7 +337,7 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <tr>
 <td><code>terms_url</code></td>
 <td><code>string | null</code></td>
-<td>Authored offer terms URL.</td>
+<td>Authored offer terms URL; <code>null</code> unless it is an absolute <code>https</code> URL.</td>
 </tr>
 <tr>
 <td><code>title</code></td>
@@ -402,7 +407,7 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 <tr>
 <td><code>seeTermsInfo</code></td>
 <td><code>object</code></td>
-<td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>.</td>
+<td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>; <code>href</code> is omitted unless it is an absolute <code>https</code> URL.</td>
 </tr>
 <tr>
 <td><code>renewalText</code></td>
@@ -437,16 +442,16 @@ button, in authored order, or <code>[]</code> when no CTAs exist.</p>
 </tr>
 <tr>
 <td>502</td>
-<td>Fragment invocation, decoding, parsing, or hydration fails.</td>
+<td>Fragment invocation, decoding, or parsing fails. The message is generic; the cause is logged.</td>
 </tr>
 <tr>
 <td>504</td>
-<td>Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds.</td>
+<td>Fragment invocation exceeds 20 seconds or price hydration exceeds 15 seconds. The message is generic; the cause is logged.</td>
 </tr>
 </tbody>
 </table>
-<p>Uncached WCS requests time out after 5 seconds. Fragment invocation is limited
-to 20 seconds and hydration to 15 seconds.</p>
+<p>Uncached WCS requests time out after 5 seconds and run in parallel. Fragment
+invocation is limited to 20 seconds and hydration to 15 seconds.</p>
 
 </sp-theme>
 </main>

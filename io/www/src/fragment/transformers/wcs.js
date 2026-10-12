@@ -280,35 +280,41 @@ function substituteOwnOsi(fields, substituteMap) {
  */
 function updateOffers(context, offerMap = {}) {
     const scopeById = context.promoScopeById ?? {};
-    const masElements = [];
-    for (const fragment of fragmentsOf(context.body)) {
+    // Offer-mapping (`{ osi, promotionCode }` values) is the surface-level, geo-scoped fallback; a
+    // promo project's own substitutions (plain osi strings) win — normalize them into the same
+    // `{ osi }` shape and overlay. Overriding a source also drops its offer-mapping promo, since the
+    // normalized scope entry carries no promotionCode (MWPW-203764).
+    const scopeOf = (fragment) => {
         const scope = fragment.id != null ? scopeById[fragment.id] : undefined;
-        const { fields } = fragment;
-        // Offer-mapping (`{ osi, promotionCode }` values) is the surface-level, geo-scoped fallback; a
-        // promo project's own substitutions (plain osi strings) win — normalize them into the same
-        // `{ osi }` shape and overlay. Overriding a source also drops its offer-mapping promo, since the
-        // normalized scope entry carries no promotionCode (MWPW-203764).
         const substituteMap = { ...offerMap };
         for (const [source, osi] of Object.entries(scope?.substituteMap ?? {})) {
             substituteMap[source] = { osi };
         }
         const hasSubstitutions = Object.keys(substituteMap).length > 0;
-        const elements = scanMasElements(fields, hasSubstitutions ? substituteMap : undefined, context, scope?.promoMap);
+        return { scope, substituteMap: hasSubstitutions ? substituteMap : undefined };
+    };
+    const masElements = [];
+    for (const fragment of fragmentsOf(context.body)) {
+        const { scope, substituteMap } = scopeOf(fragment);
+        const { fields } = fragment;
+        const elements = scanMasElements(fields, substituteMap, context, scope?.promoMap);
         if (scope && fields) {
             resolvePromoCode(fields, elements.length > 0, scope, context);
         }
-        if (fields && hasSubstitutions) {
+        if (fields && substituteMap) {
             substituteOwnOsi(fields, substituteMap);
         }
         for (const { osi, promotionCode } of elements) masElements.push({ osi, promotionCode });
     }
-    // An addon applied via a settings override (rather than authored as a card field) carries
-    // inline-price OSIs but lands on body.settings, which the per-fragment fields scan above never
-    // reaches. Scan it too, otherwise those offers are absent from the cache and the agent must
-    // fetch them live. Bare settings OSIs inherit the fragment's contextual promoCode downstream,
-    // exactly like bare field OSIs.
-    for (const { osi, promotionCode } of scanMasElements(context.body?.settings, undefined, context)) {
-        masElements.push({ osi, promotionCode });
+    // body.settings belongs to the root fragment. A settings override can carry inline prices (e.g. an
+    // addon) that the fields scan above never reaches, so scan it with the root's offer mapping and
+    // promo project, as its fields are. Otherwise those offers are absent from body.wcs and every
+    // consumer that prefills its WCS cache from it (aem-fragment, the agent action) fetches them live.
+    if (context.body?.settings) {
+        const { scope, substituteMap } = scopeOf(context.body);
+        for (const { osi, promotionCode } of scanMasElements(context.body.settings, substituteMap, context, scope?.promoMap)) {
+            masElements.push({ osi, promotionCode });
+        }
     }
     return masElements;
 }

@@ -1,8 +1,10 @@
 import { Defaults } from '../../../../web-components/src/defaults.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../../../web-components/src/compat-version.js';
+import { FF_DEFAULTS } from '../../../../web-components/src/constants.js';
+import { resolvePriceOffers } from '../../../../web-components/src/inline-price.js';
 import { Price } from '../../../../web-components/src/price.js';
 import { Wcs } from '../../../../web-components/src/wcs.js';
-import { parseLocaleCode, resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../fragment/locales.js';
+import { parseLocaleCode, resolveCommerceCountries } from '../fragment/locales.js';
 import { PATH_TOKENS } from '../fragment/utils/paths.js';
 
 function fieldValue(fields, name) {
@@ -11,24 +13,31 @@ function fieldValue(fields, name) {
     return value;
 }
 
+// Node has no DOMParser (web-components/src/json-ld.js stripHtml needs one), so markup is stripped
+// with a regex. `&amp;` is decoded last so an encoded entity such as `&amp;quot;` stays `&quot;`.
 function stripTags(html) {
     if (!html) return null;
     return (
         String(html)
             .replace(/<[^>]*>/g, ' ')
             .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
             .replace(/&quot;/g, '"')
             .replace(/&#39;|&apos;/g, "'")
+            .replace(/&amp;/g, '&')
             .replace(/\s+/g, ' ')
             .trim() || null
     );
 }
 
+// Authored links reach external consumers as-is, so only absolute https URLs are passed on.
+function httpsUrl(href) {
+    return URL.canParse(href) && new URL(href).protocol === 'https:' ? href : null;
+}
+
 function extractTermsUrl(html) {
     if (!html) return null;
     const match = String(html).match(/href="([^"]*offer-terms[^"]*)"/i);
-    return match ? match[1] : null;
+    return match ? httpsUrl(match[1]) : null;
 }
 
 function parseTags(tags) {
@@ -81,13 +90,9 @@ function extractInlinePrices(html) {
     const pattern = /<span\b([^>]*)>/gi;
     for (const match of String(html).matchAll(pattern)) {
         const attributes = parseAttributes(match[1]);
-        if (attributes.is !== 'inline-price') continue;
-        elements.push({
-            tag: 'span',
-            attributes,
-            match,
-            text: '',
-        });
+        // Like InlinePrice.render, a price without an OSI is left as authored.
+        if (attributes.is !== 'inline-price' || !attributes['data-wcs-osi']) continue;
+        elements.push({ attributes, match });
     }
     return elements;
 }
@@ -106,17 +111,21 @@ function toDataset(attributes) {
     );
 }
 
-function createPriceRuntime(fragment, { locale, country } = {}) {
+function createPriceRuntime(fragment, { locale, country, onPriceError } = {}) {
+    const { env, landscape, wcsApiKey, wcsURL } = Defaults;
     const settings = {
         ...Defaults,
         ...(fragment?.settings ?? {}),
+        // Fragment settings are authored content: they must not redirect or widen WCS requests.
+        env,
+        landscape,
+        wcsApiKey,
+        wcsURL,
     };
     if (locale) {
         const [language, localeCountry] = parseLocaleCode(locale);
         const surface = fragment?.path?.match(PATH_TOKENS)?.groups.surface;
-        const territory = resolveTerritoryCountries(locale, country || localeCountry);
-        const fixedCountry = restrictCountryToLocaleMarket(surface, locale, territory.country);
-        const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+        const { wcsCountry } = resolveCommerceCountries(surface, locale, country || localeCountry);
         Object.assign(settings, { locale, language, country: wcsCountry.toUpperCase() });
     }
     const startup = {
@@ -132,6 +141,7 @@ function createPriceRuntime(fragment, { locale, country } = {}) {
     const wcs = Wcs({ ...startup, fetchTimeout: 5000 });
     if (fragment?.wcs) wcs.prefillWcsCache(fragment.wcs);
     return {
+        onPriceError,
         price,
         promotionCode: fieldValue(fragment?.fields, 'promoCode') ?? undefined,
         settings,
@@ -143,25 +153,20 @@ function createPriceRuntime(fragment, { locale, country } = {}) {
 }
 
 function renderedPriceInfo(html, valueHtml, legalHtml) {
+    const text = (source) => stripTags(source) ?? undefined;
     const textForClass = (source, className) => {
         const pattern = new RegExp(
             `<span\\b[^>]*class\\s*=\\s*(?:"[^"]*\\b${className}\\b[^"]*"|'[^']*\\b${className}\\b[^']*')[^>]*>([\\s\\S]*?)<\\/span>`,
             'i',
         );
-        return stripTags(String(source).match(pattern)?.[1]) ?? undefined;
+        return text(String(source).match(pattern)?.[1]);
     };
-    const priceTextForClass = (source, className) => textForClass(source, className);
     const legalTextForClass = (className) => textForClass(legalHtml, className);
-    const taxText = legalTextForClass('price-tax-inclusivity') ?? priceTextForClass(html, 'price-tax-inclusivity');
-    const unitText = legalTextForClass('price-unit-type') ?? priceTextForClass(html, 'price-unit-type');
-    const strikethrough = priceTextForClass(valueHtml, 'price-strikethrough');
-    const primary =
-        priceTextForClass(valueHtml, 'price-alternative') ??
-        priceTextForClass(valueHtml, 'price') ??
-        stripTags(valueHtml) ??
-        undefined;
-    const renderedPrimary =
-        priceTextForClass(html, 'price-alternative') ?? priceTextForClass(html, 'price') ?? stripTags(html) ?? undefined;
+    const taxText = legalTextForClass('price-tax-inclusivity') ?? textForClass(html, 'price-tax-inclusivity');
+    const unitText = legalTextForClass('price-unit-type') ?? textForClass(html, 'price-unit-type');
+    const strikethrough = textForClass(valueHtml, 'price-strikethrough');
+    const primary = textForClass(valueHtml, 'price-alternative') ?? textForClass(valueHtml, 'price') ?? text(valueHtml);
+    const renderedPrimary = textForClass(html, 'price-alternative') ?? textForClass(html, 'price') ?? text(html);
     const recurrenceText = renderedPrimary
         ?.replace(primary, '')
         .replace(taxText ?? '', '')
@@ -169,10 +174,9 @@ function renderedPriceInfo(html, valueHtml, legalHtml) {
         .trim();
 
     return {
-        value: primary,
         promoPrice: strikethrough && primary !== strikethrough ? primary : undefined,
         regularPrice: strikethrough ?? primary,
-        annualPrice: priceTextForClass(valueHtml, 'price-annual'),
+        annualPrice: textForClass(valueHtml, 'price-annual'),
         planTypeText: legalTextForClass('price-plan-type'),
         taxText,
         recurrenceText: recurrenceText || undefined,
@@ -180,16 +184,20 @@ function renderedPriceInfo(html, valueHtml, legalHtml) {
     };
 }
 
+// Mirrors InlinePrice.render for a fragment-backed merch card, which always opts its prices into
+// FF_DEFAULTS: only explicitly authored options go through collectPriceOptions, so the per-unit
+// and tax defaults resolve from the offer's segments exactly as they do on the card.
 async function hydrateInlinePrice(runtime, attributes) {
     const dataset = toDataset(attributes);
-    const options = runtime.price.collectPriceOptions({
-        ...runtime.settings,
+    const priceOptions = runtime.price.collectPriceOptions({
         ...dataset,
         promotionCode: dataset.promotionCode || (runtime.useGlobalPromotionCode ? runtime.promotionCode : undefined),
         displayFormatted: false,
+        [FF_DEFAULTS]: true,
     });
+    const options = { ...runtime.settings, ...priceOptions };
     const offerGroups = await Promise.all(runtime.wcs.resolveOfferSelectors(options));
-    const offers = offerGroups.flat();
+    const offers = await resolvePriceOffers(offerGroups, options, priceOptions);
     const html = runtime.price.buildPriceHTML(offers, options);
     const valueHtml = runtime.price.buildPriceHTML(offers, {
         ...options,
@@ -205,43 +213,51 @@ async function hydrateInlinePrice(runtime, attributes) {
         html,
         price: {
             template: options.template ?? 'price',
-            wcsOsi: attributes['data-wcs-osi'],
-            promotionCode: options.promotionCode ?? offers[0]?.promotion?.promotionCode,
             ...renderedPriceInfo(html, valueHtml, legalHtml),
         },
     };
 }
 
+// Prices hydrate concurrently, so cold WCS lookups share the hydration budget instead of adding up.
+// A price that fails keeps its original span and is left out of the result, so one bad OSI does
+// not fail the whole card.
 async function hydrateInlinePrices(html, runtime) {
+    const source = String(html);
+    const elements = extractInlinePrices(source);
+    const results = await Promise.allSettled(elements.map(({ attributes }) => hydrateInlinePrice(runtime, attributes)));
     const prices = [];
     let hydrated = '';
     let cursor = 0;
-    for (const element of extractInlinePrices(html)) {
-        const match = element.match;
-        const result = await hydrateInlinePrice(runtime, element.attributes);
-        hydrated += String(html).slice(cursor, match.index);
-        hydrated += result.html;
+    for (const [index, { attributes, match }] of elements.entries()) {
+        const result = results[index];
+        hydrated += source.slice(cursor, match.index);
+        if (result.status === 'fulfilled') {
+            hydrated += result.value.html;
+            prices.push(result.value.price);
+        } else {
+            hydrated += match[0];
+            runtime.onPriceError(result.reason, attributes['data-wcs-osi']);
+        }
         cursor = match.index + match[0].length;
-        prices.push(result.price);
     }
-    hydrated += String(html).slice(cursor);
+    hydrated += source.slice(cursor);
     return { html: hydrated, prices };
 }
 
-async function hydrateRecord(record, runtime, prices) {
-    const hydrated = {};
-    for (const [name, value] of Object.entries(record ?? {})) {
-        const source = value && typeof value === 'object' && !Array.isArray(value) ? value.value : value;
-        if (typeof source !== 'string' || !source.includes('<')) {
-            hydrated[name] = value;
-            continue;
-        }
-        const result = await hydrateInlinePrices(source, runtime);
-        prices.push(...result.prices);
-        hydrated[name] =
-            value && typeof value === 'object' && !Array.isArray(value) ? { ...value, value: result.html } : result.html;
-    }
-    return hydrated;
+async function hydrateRecord(record, runtime) {
+    const entries = await Promise.all(
+        Object.entries(record ?? {}).map(async ([name, value]) => {
+            const isWrapped = value && typeof value === 'object' && !Array.isArray(value);
+            const source = isWrapped ? value.value : value;
+            if (typeof source !== 'string' || !source.includes('<')) return { name, value, prices: [] };
+            const result = await hydrateInlinePrices(source, runtime);
+            return { name, value: isWrapped ? { ...value, value: result.html } : result.html, prices: result.prices };
+        }),
+    );
+    return {
+        record: Object.fromEntries(entries.map(({ name, value }) => [name, value])),
+        prices: entries.flatMap(({ prices }) => prices),
+    };
 }
 
 function ctaInfo(element) {
@@ -252,7 +268,7 @@ function ctaInfo(element) {
     };
     return {
         analyticsId: attributes['data-analytics-id'],
-        href: attributes.href,
+        href: httpsUrl(attributes.href) ?? undefined,
         text: element.text,
     };
 }
@@ -263,9 +279,13 @@ function authoredText(elements, className) {
 
 async function extractMerchCard(fragment, context) {
     const runtime = createPriceRuntime(fragment, context);
-    const prices = [];
-    const fields = await hydrateRecord(fragment?.fields, runtime, prices);
-    const settings = await hydrateRecord(fragment?.settings, runtime, prices);
+    const [hydratedFields, hydratedSettings] = await Promise.all([
+        hydrateRecord(fragment?.fields, runtime),
+        hydrateRecord(fragment?.settings, runtime),
+    ]);
+    const fields = hydratedFields.record;
+    const settings = hydratedSettings.record;
+    const prices = [...hydratedFields.prices, ...hydratedSettings.prices];
     const hydratedFragment = { ...fragment, fields, settings };
     const elements = htmlSources(hydratedFragment).flatMap((source) => extractElements(source));
     const mainPrice = prices.find((price) => price.template === 'price');

@@ -17,6 +17,9 @@ const buckets = () => [
     { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow('Launch', 'b-1')] },
 ];
 
+// Opening and closing the modal each run a Spectrum transition, which can take over a second on a
+// loaded CI runner.
+const modalTransition = { timeout: 5000 };
 const wrapperOf = (el) => el.shadowRoot.querySelector('sp-dialog-wrapper');
 const closeButtonOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
 const headCellOf = (el) => el.shadowRoot.querySelector('sp-table-head-cell');
@@ -26,7 +29,7 @@ const openDialog = async (bucketData = buckets()) => {
     el.buckets = bucketData;
     el.open = true;
     await el.updateComplete;
-    await waitUntil(() => wrapperOf(el)?.matches(':focus-within'));
+    await waitUntil(() => wrapperOf(el)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
     return el;
 };
 
@@ -50,7 +53,7 @@ describe('mas-related-artifacts-dialog', () => {
         const underlay = wrapperOf(el).shadowRoot.querySelector('sp-underlay');
         underlay.dispatchEvent(new PointerEvent('pointerdown'));
         underlay.dispatchEvent(new PointerEvent('pointerup'));
-        await waitUntil(() => closed);
+        await waitUntil(() => closed, 'The dialog never emitted close', modalTransition);
         expect(closed).to.equal(true);
     });
 
@@ -130,7 +133,7 @@ describe('mas-related-artifacts-dialog', () => {
             closed = true;
         });
         closeButtonOf(el).click();
-        await waitUntil(() => closed);
+        await waitUntil(() => closed, 'The dialog never emitted close', modalTransition);
         expect(closed).to.equal(true);
     });
 });
@@ -159,11 +162,15 @@ describe('related artifacts modal keyboard lifecycle', () => {
         opener.focus();
         opener.click();
         await dialog.updateComplete;
-        await waitUntil(() => wrapperOf(dialog)?.matches(':focus-within'));
+        await waitUntil(
+            () => wrapperOf(dialog)?.matches(':focus-within'),
+            'Focus never moved into the dialog',
+            modalTransition,
+        );
     });
 
     it('moves focus from the opener into the dialog', async () => {
-        await waitUntil(() => document.activeElement === dialog, 'Opening must move focus into the modal');
+        await waitUntil(() => document.activeElement === dialog, 'Opening must move focus into the modal', modalTransition);
         expect(wrapperOf(dialog).matches(':focus-within')).to.equal(true);
     });
 
@@ -177,7 +184,7 @@ describe('related artifacts modal keyboard lifecycle', () => {
     it('dismisses on Escape and restores focus to the opener', async () => {
         closeButtonOf(dialog).focus();
         await sendKeys({ press: 'Escape' });
-        await waitUntil(() => !dialog.open, 'Escape must close the modal');
-        await waitUntil(() => document.activeElement === opener, 'Closing must restore focus to the opener');
+        await waitUntil(() => !dialog.open, 'Escape must close the modal', modalTransition);
+        await waitUntil(() => document.activeElement === opener, 'Closing must restore focus to the opener', modalTransition);
     });
 });

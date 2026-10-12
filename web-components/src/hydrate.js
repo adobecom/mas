@@ -1116,8 +1116,6 @@ export function cleanup(merchCard) {
         'badge-text',
         'gradient-border',
         'size',
-        'data-promotion-project',
-        'data-promotion-variation-project',
         ANALYTICS_SECTION_ATTR,
     ];
     attributesToRemove.forEach((attr) => merchCard.removeAttribute(attr));

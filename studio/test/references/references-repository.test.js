@@ -3,7 +3,9 @@ import sinon from 'sinon';
 import {
     BULK_PUBLISH_PROJECT_MODEL_PATH,
     BULK_PUBLISH_PROJECTS_FOLDER,
+    CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    PAGE_NAMES,
     PROMOTION_MODEL_PATH,
     PROMOTIONS_PATH_PREFIX,
     PZN_FOLDER,
@@ -14,18 +16,21 @@ import {
     REFERENCED_BY_MAX_PAGES,
     REFERENCED_BY_PAGE_LIMIT,
     REFERENCE_TYPES,
+    bucketReferences,
     chooseRepresentative,
+    classifyReference,
     fetchAllReferencingItems,
     getReferencingFragments,
     groupFlatReferences,
     groupReferencesByCollection,
     isCrossSurfaceReference,
     isExcludedReference,
-    isGroupedVariationReference,
     isPromoVariationReference,
     isSelfLocaleVariationReference,
     parsePathTokens,
 } from '../../src/references/references-repository.js';
+
+const hashParams = (link) => Object.fromEntries(new URLSearchParams(new URL(link).hash.slice(1)));
 
 describe('references-repository', () => {
     let sandbox;
@@ -58,15 +63,9 @@ describe('references-repository', () => {
         });
     });
 
-    describe('isGroupedVariationReference (pzn predicate)', () => {
-        it('excludes a pzn grouped-variation path', () => {
-            const path = `/content/dam/mas/sandbox/en_US/${PZN_FOLDER}/black-friday/my-card`;
-            expect(isGroupedVariationReference(path)).to.be.true;
-        });
-
-        it('keeps a plain collection path even when the fragment name contains "pzn"', () => {
-            const path = '/content/dam/mas/sandbox/en_US/pzn-template-collection';
-            expect(isGroupedVariationReference(path)).to.be.false;
+    describe('classifyReference', () => {
+        it('classifies a reference with an unknown model as other', () => {
+            expect(classifyReference({ model: { path: '/conf/mas/settings/dam/cfm/models/unknown' } })).to.equal('other');
         });
     });
 
@@ -121,40 +120,39 @@ describe('references-repository', () => {
         it('returns null for a missing path', () => {
             expect(parsePathTokens(undefined)).to.equal(null);
         });
-
-        it(`suppresses the bogus "${BULK_PUBLISH_PROJECTS_FOLDER}" locale segment`, () => {
-            const tokens = parsePathTokens(`/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`);
-            expect(tokens.surface).to.equal('acom');
-            expect(tokens.parsedLocale).to.equal(null);
-            expect(tokens.fragmentPath).to.equal('holiday-push');
-        });
     });
 
     describe('isExcludedReference', () => {
         const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'my-card' };
+        const collection = (path) => ({ path, model: { path: COLLECTION_MODEL_PATH } });
 
         it('excludes pzn parents', () => {
-            const reference = { path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection` };
+            const reference = collection(`/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`);
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
         });
 
+        it('keeps a collection whose name contains "pzn"', () => {
+            const reference = collection('/content/dam/mas/acom/en_US/pzn-template-collection');
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
+        });
+
         it('excludes promo variation parents', () => {
-            const reference = { path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection` };
+            const reference = collection(`/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`);
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
         });
 
         it('excludes the self locale variation', () => {
-            const reference = { path: '/content/dam/mas/acom/fr_FR/my-card' };
+            const reference = { path: '/content/dam/mas/acom/fr_FR/my-card', model: { path: CARD_MODEL_PATH } };
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
         });
 
         it('excludes cross-surface clones', () => {
-            const reference = { path: '/content/dam/mas/nala/en_US/my-collection' };
+            const reference = collection('/content/dam/mas/nala/en_US/my-collection');
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
         });
 
         it('keeps a legitimate same-surface collection parent', () => {
-            const reference = { path: '/content/dam/mas/acom/en_US/plans-two-wide-reflow-all' };
+            const reference = collection('/content/dam/mas/acom/en_US/plans-two-wide-reflow-all');
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
@@ -163,8 +161,32 @@ describe('references-repository', () => {
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
+        it('keeps a bulk-publish project named like the open card', () => {
+            const reference = {
+                path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/my-card`,
+                model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
+            };
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
+        });
+
+        it('keeps a translation project named like the open card', () => {
+            const reference = {
+                path: '/content/dam/mas/acom/translations/my-card',
+                model: { path: TRANSLATION_PROJECT_MODEL_PATH },
+            };
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
+        });
+
+        it('excludes a cross-surface bulk-publish project', () => {
+            const reference = {
+                path: `/content/dam/mas/nala/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
+                model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
+            };
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
+        });
+
         it('keeps an unparseable path rather than excluding it', () => {
-            const reference = { path: '/content/dam/mas/acom/weird-path' };
+            const reference = collection('/content/dam/mas/acom/weird-path');
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
     });
@@ -351,11 +373,60 @@ describe('references-repository', () => {
         });
     });
 
+    describe('bucketReferences', () => {
+        const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'my-card' };
+        const reference = (id, modelPath) => ({ id, path: `/content/dam/mas/acom/en_US/${id}`, model: { path: modelPath } });
+
+        it('returns only non-empty buckets in display order', () => {
+            const items = [
+                reference('translation', TRANSLATION_PROJECT_MODEL_PATH),
+                reference('collection', COLLECTION_MODEL_PATH),
+            ];
+
+            const buckets = bucketReferences(items, openFragmentTokens, 'en_US');
+
+            expect(buckets.map((b) => b.key)).to.deep.equal(['collections', 'localizationProjects']);
+        });
+
+        it('adds the resolved promotion project to the promo bucket', () => {
+            const promotionProject = { id: 'promo-id', path: '/content/dam/mas/promotions/augdemo', title: 'AugDemo' };
+
+            const [promoBucket] = bucketReferences([], openFragmentTokens, 'en_US', promotionProject);
+
+            expect(promoBucket.key).to.equal('promoProjects');
+            expect(promoBucket.rows[0].representative.id).to.equal('promo-id');
+        });
+
+        [
+            ['bulkPublishProjects', BULK_PUBLISH_PROJECT_MODEL_PATH, PAGE_NAMES.BULK_PUBLISH_EDITOR, 'bulkPublishProjectId'],
+            ['promoProjects', PROMOTION_MODEL_PATH, PAGE_NAMES.PROMOTIONS_EDITOR, 'promotionId'],
+            ['localizationProjects', TRANSLATION_PROJECT_MODEL_PATH, PAGE_NAMES.TRANSLATION_EDITOR, 'translationProjectId'],
+        ].forEach(([key, modelPath, page, param]) => {
+            it(`links a ${key} row to ${page} on the open fragment surface`, () => {
+                const [projectBucket] = bucketReferences([reference('proj-1', modelPath)], openFragmentTokens, 'en_US');
+
+                expect(projectBucket.key).to.equal(key);
+                expect(hashParams(projectBucket.rows[0].representative.link)).to.deep.equal({
+                    page,
+                    [param]: 'proj-1',
+                    path: 'acom',
+                });
+            });
+        });
+
+        it('leaves other references unlinked', () => {
+            const [otherBucket] = bucketReferences([reference('unknown', '/conf/x')], openFragmentTokens, 'en_US');
+
+            expect(otherBucket.key).to.equal('other');
+            expect(otherBucket.rows[0].representative.link).to.equal(null);
+        });
+    });
+
     describe('getReferencingFragments', () => {
         const fragment = { id: 'card-id', path: '/content/dam/mas/acom/en_US/my-card', locale: 'en_US' };
-        const bucket = (result, key) => result.find((b) => b.key === key);
-        const coll = (locale, id, title, status) => ({
-            path: `/content/dam/mas/acom/${locale}/plans-two-wide-reflow-all`,
+        const bucket = (result, key) => result.buckets.find((b) => b.key === key);
+        const coll = (locale, id, title, status, surface = 'acom') => ({
+            path: `/content/dam/mas/${surface}/${locale}/plans-two-wide-reflow-all`,
             id,
             title,
             status,
@@ -366,10 +437,18 @@ describe('references-repository', () => {
             const referencedBy = [
                 coll('en_US', 'coll-en', 'Plans', 'PUBLISHED'),
                 coll('fr_FR', 'coll-fr', 'Plans FR', 'DRAFT'),
-                { path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`, id: 'pzn-parent' },
-                { path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`, id: 'promo-parent' },
-                { path: '/content/dam/mas/acom/fr_FR/my-card', id: 'self-locale-variation' },
-                { path: '/content/dam/mas/nala/en_US/plans-two-wide-reflow-all', id: 'cross-surface' },
+                {
+                    path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`,
+                    id: 'pzn-parent',
+                    model: { path: COLLECTION_MODEL_PATH },
+                },
+                {
+                    path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`,
+                    id: 'promo-parent',
+                    model: { path: COLLECTION_MODEL_PATH },
+                },
+                { path: '/content/dam/mas/acom/fr_FR/my-card', id: 'self-locale-variation', model: { path: CARD_MODEL_PATH } },
+                coll('en_US', 'cross-surface', 'Plans', 'PUBLISHED', 'nala'),
                 {
                     path: `/content/dam/mas/acom/${BULK_PUBLISH_PROJECTS_FOLDER}/holiday-push`,
                     id: 'project-1',
@@ -384,7 +463,7 @@ describe('references-repository', () => {
                     model: { path: PROMOTION_MODEL_PATH },
                 },
                 {
-                    path: '/content/dam/mas/acom/en_US/loc-1',
+                    path: '/content/dam/mas/acom/translations/loc-1',
                     id: 'loc-proj',
                     title: 'Loc',
                     model: { path: TRANSLATION_PROJECT_MODEL_PATH },
@@ -396,8 +475,7 @@ describe('references-repository', () => {
             const result = await getReferencingFragments(aem, fragment);
 
             expect(getReferencedByFragmentId.calledWith('card-id')).to.be.true;
-            // ordered, non-empty buckets
-            expect(result.map((b) => b.key)).to.deep.equal([
+            expect(result.buckets.map((b) => b.key)).to.deep.equal([
                 'collections',
                 'promoProjects',
                 'bulkPublishProjects',
@@ -451,12 +529,47 @@ describe('references-repository', () => {
 
                 expect(loadPromotionProjects.called).to.be.false;
             });
+
+            describe('when the promotion-project lookup rejects', () => {
+                const withCollection = () => ({
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getReferencedByFragmentId: sandbox
+                                    .stub()
+                                    .resolves({ items: [coll('en_US', 'coll-en', 'Plans', 'PUBLISHED', 'sandbox')] }),
+                            },
+                        },
+                    },
+                });
+                const rejectingLoader = () => sandbox.stub().rejects(new Error('promotions 500'));
+
+                beforeEach(() => {
+                    sandbox.stub(console, 'error');
+                });
+
+                it('keeps the references that were already fetched', async () => {
+                    const result = await getReferencingFragments(withCollection(), promoVariation, {
+                        loadPromotionProjects: rejectingLoader(),
+                    });
+
+                    expect(result.buckets.map((b) => b.key)).to.deep.equal(['collections']);
+                });
+
+                it('flags the lookup failure', async () => {
+                    const result = await getReferencingFragments(withCollection(), promoVariation, {
+                        loadPromotionProjects: rejectingLoader(),
+                    });
+
+                    expect(result.promotionLookupFailed).to.be.true;
+                });
+            });
         });
 
-        it('returns an empty array when there are no references', async () => {
+        it('returns no buckets and no lookup failure when there are no references', async () => {
             const getReferencedByFragmentId = sandbox.stub().resolves({ items: [] });
             const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
-            expect(await getReferencingFragments(aem, fragment)).to.deep.equal([]);
+            expect(await getReferencingFragments(aem, fragment)).to.deep.equal({ buckets: [], promotionLookupFailed: false });
         });
 
         it('assembles references across multiple pages before filtering and grouping', async () => {
@@ -499,22 +612,10 @@ describe('references-repository', () => {
             expect(group.representative.link).to.include('fr1');
         });
 
-        it('links a bulk-publish-project row to the bulk-publish editor (not a card deep link)', () => {
-            const project = {
-                type: 'content-fragment',
-                title: 'Launch EMEA',
-                path: '/content/dam/mas/acom/bulk-publish-projects/launch-emea',
-                status: 'PUBLISHED',
-                id: 'proj1',
-                model: { path: BULK_PUBLISH_PROJECT_MODEL_PATH },
-            };
-            const { buildLink } = REFERENCE_TYPES.find((type) => type.key === 'bulkPublishProjects');
-            const [row] = groupFlatReferences([project], buildLink);
-            expect(row.representative.link).to.be.a('string');
-            expect(row.representative.link).to.include('bulkPublishProjectId=proj1');
-            expect(row.representative.link).to.not.include('content-type=');
-            expect(row.locales).to.deep.equal([]);
-            expect(row.localeCount).to.equal(0);
+        it('links a collection row on its surface, not its DAM path', () => {
+            const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'some-card' };
+            const [group] = groupReferencesByCollection([collItem('en_US', 'en1')], openFragmentTokens, 'en_US');
+            expect(hashParams(group.representative.link).path).to.equal('acom');
         });
 
         it('propagates an error from getReferencedByFragmentId (never swallows to empty)', async () => {

@@ -1,6 +1,4 @@
-import { html, nothing } from 'lit';
-import { MasDialogShell } from './mas-dialog-shell.js';
-import { dialogShellStyles } from './mas-dialog-shell.css.js';
+import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-related-artifacts-dialog.css.js';
 import { ARTIFACT_TYPE_KEYS, REFERENCE_TYPES } from './references-repository.js';
 
@@ -9,11 +7,13 @@ const LABEL_BY_KEY = new Map(REFERENCE_TYPES.map((type) => [type.key, type.label
 // Modal listing the internal Studio artifacts (collections + projects) that reference the open
 // fragment, one tab per type, each a sortable table of deep links. Data comes from
 // getReferencingFragments; visibility is controlled by the `open` property from the parent editor.
-class MasRelatedArtifactsDialog extends MasDialogShell {
-    static styles = [dialogShellStyles, styles];
+// The modal sp-overlay owns focus entry, Tab containment, Escape and focus restoration; the dialog
+// wrapper owns the frame, headline, close button and underlay.
+class MasRelatedArtifactsDialog extends LitElement {
+    static styles = styles;
 
     static properties = {
-        ...MasDialogShell.properties,
+        open: { type: Boolean },
         buckets: { type: Array },
         selectedTab: { state: true },
         sortDirection: { state: true },
@@ -21,6 +21,7 @@ class MasRelatedArtifactsDialog extends MasDialogShell {
 
     constructor() {
         super();
+        this.open = false;
         this.buckets = [];
         this.selectedTab = ARTIFACT_TYPE_KEYS[0];
         this.sortDirection = 'asc';
@@ -52,8 +53,13 @@ class MasRelatedArtifactsDialog extends MasDialogShell {
         this.selectedTab = event.target.selected;
     }
 
-    #toggleSort() {
-        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    #handleSorted(event) {
+        this.sortDirection = event.detail.sortDirection;
+    }
+
+    #handleOverlayClosed(event) {
+        if (event.target !== event.currentTarget) return;
+        this.dispatchEvent(new CustomEvent('close', { bubbles: true, composed: true }));
     }
 
     #renderRow(row) {
@@ -79,15 +85,9 @@ class MasRelatedArtifactsDialog extends MasDialogShell {
             return html`<div class="empty-tab-message">No ${LABEL_BY_KEY.get(this.selectedTab)} references</div>`;
         }
         return html`
-            <sp-table emphasized class="dialog-table">
+            <sp-table emphasized class="dialog-table" @sorted=${this.#handleSorted}>
                 <sp-table-head>
-                    <sp-table-head-cell
-                        sortable
-                        sort-direction=${this.sortDirection === 'desc' ? 'descending' : 'ascending'}
-                        @click=${() => this.#toggleSort()}
-                    >
-                        Page
-                    </sp-table-head-cell>
+                    <sp-table-head-cell sortable sort-direction=${this.sortDirection}>Page</sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body class="dialog-table-body">${rows.map((row) => this.#renderRow(row))}</sp-table-body>
             </sp-table>
@@ -96,18 +96,22 @@ class MasRelatedArtifactsDialog extends MasDialogShell {
 
     render() {
         if (!this.open) return nothing;
-        return this.renderShell(
-            'Related studio artifacts',
-            html`
-                <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
-                    ${ARTIFACT_TYPE_KEYS.map(
-                        (key) => html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
-                    )}
-                </sp-tabs>
-                <sp-divider size="s"></sp-divider>
-                <div class="table-wrapper">${this.#renderTable()}</div>
-            `,
-        );
+        return html`
+            <sp-overlay type="modal" open @sp-closed=${this.#handleOverlayClosed}>
+                <sp-dialog-wrapper headline="Related studio artifacts" dismissable underlay no-divider size="l">
+                    <div class="dialog-content">
+                        <sp-tabs class="tabs-row" quiet .selected=${this.selectedTab} @change=${this.#handleTabChange}>
+                            ${ARTIFACT_TYPE_KEYS.map(
+                                (key) =>
+                                    html`<sp-tab value=${key} label=${LABEL_BY_KEY.get(key)}>${LABEL_BY_KEY.get(key)}</sp-tab>`,
+                            )}
+                        </sp-tabs>
+                        <sp-divider size="s"></sp-divider>
+                        <div class="table-wrapper">${this.#renderTable()}</div>
+                    </div>
+                </sp-dialog-wrapper>
+            </sp-overlay>
+        `;
     }
 }
 

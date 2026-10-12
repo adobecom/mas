@@ -1,7 +1,7 @@
 import { expect } from '@open-wc/testing';
 import {
-    buildBulkPublishProjectDeepLink,
     buildCardsDeepLink,
+    buildProjectDeepLink,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -278,17 +278,21 @@ describe('buildCardsDeepLink', () => {
     });
 });
 
-describe('buildBulkPublishProjectDeepLink', () => {
-    it('builds a bulk-publish editor URL by project id', () => {
-        const href = buildBulkPublishProjectDeepLink('proj-123');
-        expect(href).to.include('page=bulkPublishEditor');
-        expect(href).to.include('bulkPublishProjectId=proj-123');
-        expect(href).to.not.include('content-type=');
+describe('buildProjectDeepLink', () => {
+    it('builds a Studio editor URL from page, id param and surface', () => {
+        const href = buildProjectDeepLink('bulkPublishEditor', 'bulkPublishProjectId', 'proj-123', 'acom');
+        expect(href).to.equal(
+            'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=proj-123&path=acom',
+        );
+    });
+
+    it('omits the surface when it is unknown', () => {
+        const href = buildProjectDeepLink('promotions-editor', 'promotionId', 'promo-1');
+        expect(href).to.equal('https://mas.adobe.com/studio.html#page=promotions-editor&promotionId=promo-1');
     });
 
     it('returns null when id is missing', () => {
-        expect(buildBulkPublishProjectDeepLink()).to.be.null;
-        expect(buildBulkPublishProjectDeepLink('')).to.be.null;
+        expect(buildProjectDeepLink('translation-editor', 'translationProjectId', null, 'acom')).to.be.null;
     });
 });
 

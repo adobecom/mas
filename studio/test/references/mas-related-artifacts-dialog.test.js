@@ -24,12 +24,16 @@ const buckets = () => [
     { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow('Launch', 'b-1')] },
 ];
 
+const wrapperOf = (el) => el.shadowRoot.querySelector('sp-dialog-wrapper');
+const closeButtonOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
+const headCellOf = (el) => el.shadowRoot.querySelector('sp-table-head-cell');
+
 const openDialog = async (bucketData = buckets()) => {
     const el = await fixture(html`<mas-related-artifacts-dialog></mas-related-artifacts-dialog>`);
     el.buckets = bucketData;
     el.open = true;
     await el.updateComplete;
-    await waitUntil(() => el.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+    await waitUntil(() => wrapperOf(el)?.matches(':focus-within'));
     return el;
 };
 
@@ -50,7 +54,7 @@ describe('mas-related-artifacts-dialog', () => {
             closed = true;
         });
         // sp-underlay turns a real pointer press into its own close event; it never emits click.
-        const underlay = el.shadowRoot.querySelector('sp-underlay');
+        const underlay = wrapperOf(el).shadowRoot.querySelector('sp-underlay');
         underlay.dispatchEvent(new PointerEvent('pointerdown'));
         underlay.dispatchEvent(new PointerEvent('pointerup'));
         await waitUntil(() => closed);
@@ -72,8 +76,12 @@ describe('mas-related-artifacts-dialog', () => {
         const el = await fixture(html`<mas-related-artifacts-dialog></mas-related-artifacts-dialog>`);
         el.buckets = buckets();
         await el.updateComplete;
-        expect(el.shadowRoot.querySelector('sp-dialog')).to.equal(null);
-        expect(el.shadowRoot.querySelector('sp-underlay')).to.equal(null);
+        expect(wrapperOf(el)).to.equal(null);
+    });
+
+    it('frames the content in a Spectrum dialog wrapper with a headline', async () => {
+        const el = await openDialog();
+        expect(wrapperOf(el).headline).to.equal('Related studio artifacts');
     });
 
     it('renders one tab per artifact type in order', async () => {
@@ -93,11 +101,25 @@ describe('mas-related-artifacts-dialog', () => {
 
     it('reverses the row order when the Page header is clicked', async () => {
         const el = await openDialog();
-        el.shadowRoot.querySelector('sp-table-head-cell').click();
+        headCellOf(el).click();
         await el.updateComplete;
-        expect(el.sortDirection).to.equal('desc');
         const titles = [...el.shadowRoot.querySelectorAll('.artifact-link')].map((a) => a.textContent.trim());
         expect(titles).to.deep.equal(['Zeta', 'Alpha']);
+    });
+
+    it('announces an ascending sort on the Page header when opened', async () => {
+        const el = await openDialog();
+        expect(headCellOf(el).getAttribute('sort-direction')).to.equal('asc');
+        expect(headCellOf(el).getAttribute('aria-sort')).to.equal('ascending');
+    });
+
+    it('announces a descending sort on the Page header after it is clicked', async () => {
+        const el = await openDialog();
+        headCellOf(el).click();
+        await el.updateComplete;
+        await headCellOf(el).updateComplete;
+        expect(headCellOf(el).getAttribute('sort-direction')).to.equal('desc');
+        expect(headCellOf(el).getAttribute('aria-sort')).to.equal('descending');
     });
 
     it('shows an empty message for a type with no references', async () => {
@@ -114,7 +136,7 @@ describe('mas-related-artifacts-dialog', () => {
         el.addEventListener('close', () => {
             closed = true;
         });
-        el.shadowRoot.querySelector('.dialog-close').click();
+        closeButtonOf(el).click();
         await waitUntil(() => closed);
         expect(closed).to.equal(true);
     });
@@ -144,23 +166,23 @@ describe('related artifacts modal keyboard lifecycle', () => {
         opener.focus();
         opener.click();
         await dialog.updateComplete;
-        await waitUntil(() => dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within'));
+        await waitUntil(() => wrapperOf(dialog)?.matches(':focus-within'));
     });
 
     it('moves focus from the opener into the dialog', async () => {
         await waitUntil(() => document.activeElement === dialog, 'Opening must move focus into the modal');
-        expect(dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within')).to.equal(true);
+        expect(wrapperOf(dialog).matches(':focus-within')).to.equal(true);
     });
 
     it('keeps Tab inside the dialog after the last link', async () => {
         const links = dialog.shadowRoot.querySelectorAll('.artifact-link');
         links[links.length - 1].focus();
         await sendKeys({ press: 'Tab' });
-        expect(dialog.shadowRoot.querySelector('.dialog-close').matches(':focus-within')).to.equal(true);
+        expect(wrapperOf(dialog).matches(':focus-within')).to.equal(true);
     });
 
     it('dismisses on Escape and restores focus to the opener', async () => {
-        dialog.shadowRoot.querySelector('.dialog-close').focus();
+        closeButtonOf(dialog).focus();
         await sendKeys({ press: 'Escape' });
         await waitUntil(() => !dialog.open, 'Escape must close the modal');
         await waitUntil(() => document.activeElement === opener, 'Closing must restore focus to the opener');

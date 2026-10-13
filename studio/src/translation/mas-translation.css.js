@@ -10,6 +10,7 @@ export const styles = [
     css`
         .translation-container {
             padding: 32px;
+            position: relative;
 
             .translation-header {
                 display: flex;
@@ -44,6 +45,16 @@ export const styles = [
                 display: flex;
                 justify-content: center;
                 --system-action-button-background-color-default: transparent;
+            }
+
+            .duplicating-overlay {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.7);
+                z-index: 10;
             }
         }
     `,

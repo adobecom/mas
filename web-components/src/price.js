@@ -1,27 +1,16 @@
 import { Defaults } from './defaults.js';
-import {
-    price,
-    pricePromo,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-    priceAlternative,
-    priceOpticalAlternative,
-    legal,
-} from './price/index.js';
-
-import { discount } from './discount/index.js';
+import { buildPriceHTML as renderPrice } from '@adobecom/mas-price';
 
 import {
     omitProperties,
     computePromoStatus,
     toBoolean,
+    createLog,
 } from '@dexter/tacocat-core';
 import { InlinePrice } from './inline-price.js';
 import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
+
+const log = createLog('ConsonantTemplates/price');
 
 export function Price({ literals, providers, settings }) {
     function collectPriceOptions(overrides, placeholder = null) {
@@ -86,57 +75,36 @@ export function Price({ literals, providers, settings }) {
         if (!Array.isArray(offers) || !offers.length || !options) {
             return '';
         }
-        /* c8 ignore next 20 */
-        const { template } = options;
-        let method;
-        switch (template) {
-            // TODO: use price template name constants, export them from `consonant-templates`
-            case 'discount':
-                method = discount;
-                break;
-            case 'strikethrough':
-                method = priceStrikethrough;
-                break;
-            case 'promo-strikethrough':
-                method = pricePromoStrikethrough;
-                break;
-            case 'annual':
-                method = priceAnnual;
-                break;
-            case 'legal':
-                method = legal;
-                break;
-            default:
-                if (
-                    options.template === 'optical' &&
-                    options.alternativePrice
-                ) {
-                    method = priceOpticalAlternative;
-                } else if (options.template === 'optical') {
-                    method = priceOptical;
-                } else if (
-                    options.displayAnnual &&
-                    offers[0].planType === 'ABM'
-                ) {
-                    // gate on the offer's own promotion: a card-level promotionCode
-                    // may be in scope for an unrelated offer (e.g. an addon).
-                    method =
-                        options.promotionCode && offers[0].promotion
-                            ? pricePromoWithAnnual
-                            : priceWithAnnual;
-                } else if (options.alternativePrice) {
-                    method = priceAlternative;
-                } else {
-                    method =
-                        options.promotionCode && offers[0].promotion
-                            ? pricePromo
-                            : price;
-                }
+        // Settings supply rendering defaults, but template selection is per price.
+        const resolvedOptions = {
+            ...settings,
+            ...options,
+            template: options.template,
+            displayAnnual: options.displayAnnual,
+            alternativePrice: options.alternativePrice,
+            promotionCode: options.promotionCode,
+        };
+        // Only the promo-with-annual template historically reads the query string.
+        if (
+            options.displayAnnual &&
+            offers[0].planType === 'ABM' &&
+            options.promotionCode &&
+            offers[0].promotion &&
+            ![
+                'discount',
+                'strikethrough',
+                'promo-strikethrough',
+                'annual',
+                'legal',
+                'optical',
+            ].includes(options.template) &&
+            !resolvedOptions.instant
+        ) {
+            resolvedOptions.instant = new URLSearchParams(
+                document.location.search,
+            ).get('instant');
         }
-
-        let [offer] = offers;
-        offer = { ...offer, ...offer.priceDetails };
-        return method({ ...settings, ...options }, offer);
+        return renderPrice(offers, resolvedOptions, { logger: log });
     }
 
     const createInlinePrice = InlinePrice.createInlinePrice;

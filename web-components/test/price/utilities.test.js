@@ -4,7 +4,7 @@ import {
     formatAnnualPrice,
     formatOpticalPrice,
     isPromotionActive,
-} from '../../src/price/utilities.js';
+} from '@adobecom/mas-price/price/utilities';
 import { Commitment, Term } from '../../src/constants.js';
 
 const OPTICAL_TEST_CASES = [

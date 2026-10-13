@@ -10,7 +10,7 @@ import {
     priceAnnual,
     priceWithAnnual,
     pricePromoWithAnnual,
-} from '../../src/price/index.js';
+} from '@adobecom/mas-price/price';
 
 const globals = { country: 'US', language: 'en' };
 

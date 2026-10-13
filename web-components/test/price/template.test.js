@@ -8,8 +8,8 @@ import {
     createPromoPriceTemplate,
     createPriceWithAnnualTemplate,
     createPromoPriceWithAnnualTemplate,
-    formatLiteral,
-} from '../../src/price/template.js';
+} from '@adobecom/mas-price/price/template';
+import { formatLiteral } from '../../src/price/template.js';
 
 const context = {
     country: 'US',

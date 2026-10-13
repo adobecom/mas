@@ -4,9 +4,9 @@ Framework-free, source-ESM price rendering extracted from M@S web-components.
 Runs natively in Node 22+ and browsers, with **no runtime dependencies**, DOM,
 network calls, or import-time browser configuration.
 
-This private workspace is not published. Consumer integration is intentionally
-separate: this change does **not** switch web-components or io/www to the package.
-The original browser implementation remains in place until its integration PR.
+This private workspace is not published. Web-components consumes this package
+through browser option/diagnostic adapters; its former renderer has been removed.
+io/www integration and activation are separate work.
 
 ## API
 
@@ -76,8 +76,8 @@ non-promo `priceWithAnnual` paths do **not** use `resolvedOptions.instant`;
 the compatibility `createPriceTemplate` factory accepts `instant` in its
 factory options instead.
 
-The package never reads `?instant=` from a query string. The later browser
-adapter must preserve the original promo-with-annual fallback, with an explicit
+The package never reads `?instant=` from a query string. The browser
+adapter preserves the original promo-with-annual fallback, with an explicit
 `options.instant` taking precedence over the query parameter, without extending
 it to other template paths. Regular promotional rendering retains the legacy
 `offer.promotion.displaySummary.instant` input. Where no applicable instant is
@@ -96,8 +96,8 @@ rather than relying on the standalone console default.
 
 ### Compatibility subpaths
 
-Explicit subpaths preserve the extracted formatting APIs needed by the later
-browser refactor: `/constants`, `/price`, `/price/template`, `/price/utilities`,
+Explicit subpaths preserve the extracted formatting APIs used by browser
+integration: `/constants`, `/price`, `/price/template`, `/price/utilities`,
 `/price/legal`, and `/discount`. They point to the same implementation, not
 alternate browser/Node versions. All imports use `.js` extensions.
 

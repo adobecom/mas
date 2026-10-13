@@ -85,6 +85,9 @@ describe('ProductPricing.syncHeights across a collection', () => {
                         ? { __h: heights.fine }
                         : null,
             },
+            querySelectorAll: () => [],
+            removeAttribute: () => {},
+            toggleAttribute: () => {},
             style: {
                 setProperty: (k, v) => (styles[k] = v),
                 removeProperty: (k) => delete styles[k],
@@ -522,14 +525,19 @@ describe('ProductPricing price row collapse', () => {
     });
 });
 
+// First link is filled, the rest outlined.
+const links = (labels) =>
+    labels
+        .map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`)
+        .join('');
+
 describe('ProductPricing row alignment', () => {
     before(() => initMasCommerceService());
     after(() => removeMasCommerceService());
 
-    const renderRow = async (cardsHtml) => {
+    const renderRow = async (cardsHtml, column = '261px') => {
         const wrap = document.createElement('div');
-        wrap.style.cssText =
-            'display:grid;grid-template-columns:repeat(2,261px);width:600px;';
+        wrap.style.cssText = `display:grid;grid-template-columns:repeat(2,${column});gap:8px;`;
         wrap.innerHTML = cardsHtml
             .map(
                 (inner) => `<merch-card variant="product-pricing">
@@ -564,7 +572,95 @@ describe('ProductPricing row alignment', () => {
         }
     });
 
-    it('keeps price and fine print aligned when one CTA wraps', async () => {
+    const ctas = (...labels) =>
+        `<p slot="heading-xs">US$10</p><div slot="footer">${links(labels)}</div>`;
+
+    it('stacks every card in a row when one card must', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                ctas('Buy', 'Try'),
+                ctas('Jetzt kaufen und sparen', 'Kostenlos testen und mehr'),
+            ],
+            '340px',
+        );
+        try {
+            cards.forEach((card) => {
+                expect(card.hasAttribute('stacked')).to.be.true;
+                const [a, b] = [...card.querySelectorAll('[slot="footer"] a')];
+                expect(b.getBoundingClientRect().top).to.be.above(
+                    a.getBoundingClientRect().bottom,
+                );
+            });
+            const [fa, fb] = cards.map((c) =>
+                c.shadowRoot.querySelector('footer').getBoundingClientRect(),
+            );
+            expect(fa.height).to.equal(fb.height);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('does not stack a row for a single CTA whose label wraps', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                ctas('Buy', 'Try'),
+                ctas('Ein sehr langes Angebot jetzt sofort kostenlos testen'),
+            ],
+            '261px',
+        );
+        try {
+            const [, long] = cards;
+            expect(
+                long.querySelector('[slot="footer"] a').offsetHeight,
+            ).to.be.above(40);
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('leaves siblings alone when an opted-out card syncs', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                ctas('Jetzt kaufen und sparen', 'Kostenlos testen und mehr'),
+                ctas('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        try {
+            expect(cards[1].hasAttribute('stacked')).to.be.true;
+            cards[0].heightSync = false;
+            cards[0].variantLayout.syncHeights();
+            expect(cards[1].hasAttribute('stacked')).to.be.true;
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('drops the row stacking when the layout narrows', async () => {
+        const { wrap, cards } = await renderRow(
+            [ctas('Jetzt kaufen und sparen', 'Kostenlos testen und mehr')],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: false });
+        try {
+            expect(cards[0].hasAttribute('stacked')).to.be.true;
+            cards[0].variantLayout.syncHeights();
+            expect(cards[0].hasAttribute('stacked')).to.be.false;
+            expect(
+                cards[0].style.getPropertyValue(
+                    '--consonant-merch-card-product-pricing-footer-height',
+                ),
+            ).to.equal('');
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('keeps price and fine print aligned when one card stacks its CTAs', async () => {
         const { wrap, cards } = await renderRow([
             `<p slot="heading-xs">US$10</p>
              <div slot="footer"><a href="#">Buy</a></div>`,
@@ -590,25 +686,63 @@ describe('ProductPricing CTAs', () => {
     before(() => initMasCommerceService());
     after(() => removeMasCommerceService());
 
-    it('wrap a long label instead of overflowing the pill', async () => {
+    const render = async (labels, width = '261px') => {
         const card = document.createElement('merch-card');
         card.setAttribute('variant', 'product-pricing');
-        card.style.width = '261px';
+        card.style.width = width;
         card.innerHTML = `
             <h3 slot="heading-s">Title</h3>
             <div slot="footer">
-                <a href="#">Kostenlos testen</a>
-                <a href="#" class="outline">Jetzt kaufen und sparen</a>
+                ${links(labels)}
             </div>`;
         document.body.appendChild(card);
         await card.updateComplete;
+        return card;
+    };
+
+    const rects = (card) =>
+        [...card.querySelectorAll('[slot="footer"] a')].map((el) =>
+            el.getBoundingClientRect(),
+        );
+
+    it('share a row while both labels fit on one line', async () => {
+        const card = await render(['Free trial', 'Buy now'], '340px');
         try {
-            const [short, long] = card.querySelectorAll('[slot="footer"] a');
-            expect(short.scrollWidth, 'fits').to.be.at.most(short.clientWidth);
-            expect(long.scrollWidth, 'no overflow').to.be.at.most(
-                long.clientWidth,
-            );
-            expect(long.offsetHeight, 'grew to a second line').to.be.above(40);
+            const [a, b] = rects(card);
+            expect(b.top).to.equal(a.top);
+            expect(b.width).to.be.closeTo(a.width, 1);
+            expect(a.height).to.equal(40);
+        } finally {
+            card.remove();
+        }
+    });
+
+    [
+        ['261px', ['Kostenlos testen', 'Jetzt kaufen und sparen']],
+        ['420px', ['Kostenlos testen', 'Jetzt kaufen und sparen sofort']],
+    ].forEach(([width, labels]) => {
+        it(`stack, full width, when a label outgrows its half at ${width}`, async () => {
+            const card = await render(labels, width);
+            try {
+                const [a, b] = rects(card);
+                expect(b.top).to.be.at.least(a.bottom);
+                expect(b.left).to.equal(a.left);
+                expect(b.width).to.equal(a.width);
+                expect(a.height).to.equal(40);
+            } finally {
+                card.remove();
+            }
+        });
+    });
+
+    it('wrap a label wider than the whole footer instead of overflowing', async () => {
+        const card = await render([
+            'Ein sehr langes Angebot jetzt sofort kostenlos testen',
+        ]);
+        try {
+            const link = card.querySelector('[slot="footer"] a');
+            expect(link.scrollWidth).to.be.at.most(link.clientWidth);
+            expect(link.offsetHeight).to.be.above(40);
         } finally {
             card.remove();
         }
@@ -626,6 +760,29 @@ describe('product-pricing collection footer', () => {
             const style = getComputedStyle(footer);
             expect(style.paddingTop).to.equal('4px');
             expect(style.paddingBottom).to.equal('4px');
+        } finally {
+            collection.remove();
+        }
+    });
+
+    it('styles "Show more" like the outlined CTAs', async () => {
+        const collection = document.createElement('merch-card-collection');
+        collection.classList.add('product-pricing');
+        collection.hasMore = true;
+        document.body.appendChild(collection);
+        await collection.updateComplete;
+        try {
+            const button = collection.shadowRoot.querySelector('sp-button');
+            const style = getComputedStyle(button);
+            expect(style.getPropertyValue('--mod-button-height')).to.equal(
+                '40px',
+            );
+            expect(
+                style.getPropertyValue('--mod-button-border-width'),
+            ).to.equal('2px');
+            expect(
+                style.getPropertyValue('--mod-button-border-color-default'),
+            ).to.equal('#000');
         } finally {
             collection.remove();
         }

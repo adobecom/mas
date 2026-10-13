@@ -252,6 +252,32 @@ describe('processCTAs', async () => {
         expect(link.getAttribute('data-replaced-osi')).to.equal('original-abm');
     });
 
+    const OUTLINE_FIRST =
+        '<a is="checkout-link" data-wcs-osi="a" class="primary-outline">Try</a><a is="checkout-link" data-wcs-osi="b" class="accent">Buy</a>';
+
+    it('should put the filled CTA first on product-pricing cards', async () => {
+        merchCard.consonant = true;
+        merchCard.variant = 'product-pricing';
+        const fields = { ctas: OUTLINE_FIRST };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const [first, second] = getFooterElement(merchCard).children;
+        expect(first.classList.contains('blue')).to.be.true;
+        expect(second.classList.contains('blue')).to.be.false;
+    });
+
+    it('should keep the authored CTA order on other variants', async () => {
+        merchCard.consonant = true;
+        merchCard.variant = 'plans';
+        const fields = { ctas: OUTLINE_FIRST };
+
+        processCTAs(fields, merchCard, aemFragmentMapping);
+
+        const [first] = getFooterElement(merchCard).children;
+        expect(first.classList.contains('blue')).to.be.false;
+    });
+
     it('should preserve authored aria-label on consonant checkout links', async () => {
         merchCard.consonant = true;
         const fields = {
@@ -1078,6 +1104,92 @@ describe('hydrate', () => {
         expect(cardB.promotionCode).to.equal('PROMO_B');
         cardA.remove();
         cardB.remove();
+    });
+});
+
+describe('hydrate rendering mode (consonant vs spectrum)', () => {
+    let card;
+
+    const ctas = '<a href="#" class="accent">Buy now</a>';
+    const brandConciergeFragment = () => ({
+        id: 'bc-card',
+        fields: {
+            variant: 'brand-concierge-product',
+            cardTitle: 'Photoshop',
+            ctas,
+        },
+    });
+    const ccdSliceFragment = () => ({
+        id: 'ccd-slice-card',
+        fields: {
+            variant: 'ccd-slice',
+            mnemonicIcon: [],
+            mnemonicAlt: [],
+            mnemonicLink: [],
+            ctas,
+        },
+    });
+
+    const createCard = async (attributes = {}) => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        for (const [name, value] of Object.entries(attributes)) {
+            card.setAttribute(name, value);
+        }
+        document.body.append(card);
+        return card;
+    };
+
+    const footerCta = () =>
+        card.querySelector('[slot="footer"]').firstElementChild;
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets consonant from the metadata of a consonant variant', async () => {
+        await createCard();
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.getAttribute('consonant')).to.equal('true');
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(footerCta().classList.contains('con-button')).to.be.true;
+    });
+
+    it('leaves a non-consonant variant without consonant or spectrum attributes', async () => {
+        await createCard();
+        await hydrate(ccdSliceFragment(), card);
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
+    });
+
+    it('renders SWC CTAs for spectrum="swc" on a consonant variant', async () => {
+        await createCard({ spectrum: 'swc' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(card.getAttribute('spectrum')).to.equal('swc');
+        expect(footerCta().tagName).to.equal('SP-BUTTON');
+    });
+
+    it('renders Spectrum CSS CTAs for spectrum="css" on a consonant variant', async () => {
+        await createCard({ spectrum: 'css' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
+    });
+
+    it('keeps an explicit consonant on a non-consonant variant', async () => {
+        await createCard({ consonant: '' });
+        await hydrate(ccdSliceFragment(), card);
+        expect(card.getAttribute('consonant')).to.equal('');
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(footerCta().classList.contains('con-button')).to.be.true;
+    });
+
+    it('lets an explicit consonant win over spectrum', async () => {
+        await createCard({ consonant: '', spectrum: 'swc' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(footerCta().classList.contains('con-button')).to.be.true;
     });
 });
 

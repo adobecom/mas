@@ -143,6 +143,7 @@ export default class EditorPage {
 
         // Regional variation
         this.localeVariationHeader = page.locator('.locale-variation-header');
+        this.localeVariationDeprecationNotice = page.locator('mas-fragment-editor .locale-variation-deprecation-notice');
         this.derivedFromContainer = page.locator('mas-fragment-editor .derived-from-container');
         this.fragmentTitle = page.locator('sp-textfield#fragment-title input');
         // Missing variation panel (locale switching)

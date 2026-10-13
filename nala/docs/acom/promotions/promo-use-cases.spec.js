@@ -1,0 +1,51 @@
+export const FeatureName = 'Merch Acom Promotion and PZN Use Cases';
+export const features = [
+    {
+        tcid: '0',
+        name: '@MAS-DOCS-Promo-PZN-SMB-Excluded',
+        path: '/web-components/docs/promo-use-cases.html?country=LU&instant=2026-10-13',
+        data: {
+            id: '6908817e-8cfd-4f8b-9fc8-89f01da635fb',
+            variationId: 'a864a187-5e99-4199-bcf1-f758bf95bfb6',
+            title: '#1 SMB',
+            price: /^76,68\s€\/mo$/,
+            osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
+            promotionProject: null,
+            promoCode: null,
+            promoVariationProject: null,
+        },
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promo-pzn @commerce @regression',
+    },
+    {
+        tcid: '1',
+        name: '@MAS-DOCS-Promo-PZN-SMB-Included',
+        path: '/web-components/docs/promo-use-cases.html?country=LU&instant=2026-10-13',
+        data: {
+            id: 'a9fd0a11-a81d-4b4f-bfda-d77e393ce023',
+            variationId: 'a07ac5da-8fad-44a9-8242-a29de77cbfcd',
+            title: '#2 SMB',
+            price: /^5,89\s€\/mo$/,
+            osi: 'nIy-IPGnALw3KNncaqMjOJsMUrqElWi8sdGnBFBAgTw',
+            promotionProject: 'NalaPromoPZNRules',
+            promoCode: 'promoPZNrules',
+            promoVariationProject: null,
+        },
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promo-pzn @commerce @regression',
+    },
+    {
+        tcid: '2',
+        name: '@MAS-DOCS-Promo-PZN-SMB-Promo-Variation',
+        path: '/web-components/docs/promo-use-cases.html?country=LU&instant=2026-10-13',
+        data: {
+            id: 'a841a6df-c9b9-4cfc-b156-b4cee7b45f91',
+            variationId: '6e3be019-a277-4b7f-9521-15d1d7afc8d5',
+            title: '#3 SMB + BF',
+            price: /^5,89\s€\/mo$/,
+            osi: 'nIy-IPGnALw3KNncaqMjOJsMUrqElWi8sdGnBFBAgTw',
+            promotionProject: 'NalaPromoPZNRules',
+            promoCode: 'promoPZNrules',
+            promoVariationProject: 'NalaPromoPZNRules',
+        },
+        tags: '@mas-docs @mas-acom @mas-promotions @mas-promo-pzn @commerce @regression',
+    },
+];

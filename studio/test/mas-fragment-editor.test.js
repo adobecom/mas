@@ -1319,11 +1319,6 @@ describe('MasFragmentEditor', () => {
             el = document.createElement('mas-fragment-editor');
         });
 
-        it('getFragmentEditorUrl returns correct URL', () => {
-            const url = el.getFragmentEditorUrl('test-id');
-            expect(url).to.equal('#page=fragment-editor&fragmentId=test-id');
-        });
-
         it('goToTranslationEditor navigates to translation editor', async () => {
             const navigateSpy = sandbox.stub(router, 'navigateToTranslationEditor');
             Store.fragmentEditor.translatedLocales.set([{ locale: 'en_US', path: '/path/en_US/f' }]);

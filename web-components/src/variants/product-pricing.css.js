@@ -151,15 +151,20 @@ merch-card[variant="product-pricing"] [slot="short-description"] a.spectrum-Link
     color: inherit;
 }
 
+/* CTAs share a row while both labels fit on one line, else they stack. */
 merch-card[variant="product-pricing"] [slot="footer"] {
     display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
     gap: 4px;
     width: 100%;
 }
 
 merch-card[variant="product-pricing"] [slot="footer"] a {
-    flex: 1 0 0;
-    min-width: 0;
+    flex: 1 1 calc(50% - 2px);
+    /* One-line label width, capped at the footer: past half the row the CTAs
+       stack, past the whole row the label wraps. */
+    min-width: fit-content;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -171,7 +176,6 @@ merch-card[variant="product-pricing"] [slot="footer"] a {
     font-weight: 700;
     text-align: center;
     text-decoration: none;
-    /* Wraps only when the label can't fit (narrow cards, long translations). */
     overflow-wrap: anywhere;
     background: #3B63FB;
     color: #fff;
@@ -184,5 +188,9 @@ merch-card[variant="product-pricing"] [slot="footer"] a.outline {
     background: transparent;
     color: #000;
     border: 2px solid #000;
+}
+
+merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
+    flex-basis: 100%;
 }
 `;

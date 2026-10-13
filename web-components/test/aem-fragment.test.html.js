@@ -189,6 +189,76 @@ runTests(async () => {
                 expect(cache.has('ref456')).to.false;
                 cache.clear();
             });
+
+            describe('regional and default ids (MWPW-210111)', () => {
+                const regional = {
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id' },
+                };
+
+                it('resolves both ids when the regional id is cached first', () => {
+                    cache.add({ id: 'kr-id' });
+                    cache.add(regional);
+                    expect(cache.has('kr-id')).to.true;
+                    expect(cache.has('default-id')).to.true;
+                    expect(cache.get('default-id')).to.equal(regional);
+                });
+
+                it('resolves both ids when the default id is cached first', () => {
+                    cache.add({ id: 'default-id' });
+                    cache.add(regional);
+                    expect(cache.has('default-id')).to.true;
+                    expect(cache.has('kr-id')).to.true;
+                    expect(cache.get('kr-id')).to.equal(regional);
+                });
+
+                it('resolves a pending default-id waiter without the timeout', async () => {
+                    cache.add({ id: 'kr-id' });
+                    const waiter = cache
+                        .getAsPromise('default-id')
+                        .then(() => 'resolved');
+                    cache.add(regional);
+                    const outcome = await Promise.race([
+                        waiter,
+                        delay(200).then(() => 'timeout'),
+                    ]);
+                    expect(outcome).to.equal('resolved');
+                });
+
+                it('resolves a pending regional-id waiter without the timeout', async () => {
+                    cache.add({ id: 'default-id' });
+                    const waiter = cache
+                        .getAsPromise('kr-id')
+                        .then(() => 'resolved');
+                    cache.add(regional);
+                    const outcome = await Promise.race([
+                        waiter,
+                        delay(200).then(() => 'timeout'),
+                    ]);
+                    expect(outcome).to.equal('resolved');
+                });
+
+                it('keeps the first fragment when both ids are already cached', () => {
+                    const first = {
+                        id: 'kr-id',
+                        fields: { originalId: 'default-id' },
+                    };
+                    cache.add(first);
+                    cache.add({ ...first });
+                    expect(cache.get('kr-id')).to.equal(first);
+                    expect(cache.get('default-id')).to.equal(first);
+                });
+
+                it('terminates on reference cycles', () => {
+                    const a = { id: 'a', references: {} };
+                    const b = { id: 'b', references: {} };
+                    a.references.b = { type: 'content-fragment', value: b };
+                    b.references.a = { type: 'content-fragment', value: a };
+                    cache.add(a);
+                    expect(cache.has('a')).to.true;
+                    expect(cache.has('b')).to.true;
+                });
+            });
         });
 
         describe('aem-fragment with merch-card', () => {

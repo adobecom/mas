@@ -1039,29 +1039,36 @@ export function processCTAs(
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
-            ctas.forEach((cta) => {
-                const checkout = cta.source ?? cta;
-                if (!checkout.onceSettled) return;
-                cta.hidden = true;
-                checkout
-                    .onceSettled()
-                    .then(() => {
-                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
-                            const othersVisible = ctas.some(
-                                (c) => c !== cta && !c.hidden,
-                            );
-                            if (othersVisible) {
-                                cta.remove();
+            // Trials stay hidden until every CTA settled, so the outcome
+            // does not depend on the order in which CTAs settle.
+            const trials = new Set();
+            const settled = ctas
+                .filter((cta) => (cta.source ?? cta).onceSettled)
+                .map((cta) => {
+                    const checkout = cta.source ?? cta;
+                    cta.hidden = true;
+                    return checkout
+                        .onceSettled()
+                        .then(() => {
+                            if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                                trials.add(cta);
                             } else {
                                 cta.hidden = false;
                             }
-                        } else {
+                        })
+                        .catch(() => {
                             cta.hidden = false;
-                        }
-                    })
-                    .catch(() => {
+                        });
+                });
+            Promise.allSettled(settled).then(() => {
+                const hasNonTrial = ctas.some((cta) => !trials.has(cta));
+                trials.forEach((cta) => {
+                    if (hasNonTrial) {
+                        cta.remove();
+                    } else {
                         cta.hidden = false;
-                    });
+                    }
+                });
             });
         }
     }

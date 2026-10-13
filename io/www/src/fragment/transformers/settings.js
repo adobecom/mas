@@ -180,11 +180,16 @@ async function init(initContext) {
     return await getSettings(initContext);
 }
 
+// TODO(MWPW-200587): remove once legacy 'bizpro' fragments are migrated to 'pro'
+const normalizeTemplate = (template) => (template === 'bizpro' ? 'pro' : template);
+
+const includesTemplate = (templates, template) => templates.some((entry) => normalizeTemplate(entry) === template);
+
 export function resolveSettingEntry(fragment, locale, setting, country) {
     const defaultEntry = setting.default;
     if (!defaultEntry) return null;
-    const template = fragment.fields?.variant;
-    if (defaultEntry.templates?.length > 0 && !defaultEntry.templates.includes(template)) {
+    const template = normalizeTemplate(fragment.fields?.variant);
+    if (defaultEntry.templates?.length > 0 && !includesTemplate(defaultEntry.templates, template)) {
         const definition = SETTING_NAME_BY_VALUE.get(defaultEntry.name);
         const fragmentValue = fragment.fields[definition?.propertyName || definition?.name];
         if (typeof fragmentValue !== 'undefined') {
@@ -213,7 +218,7 @@ export function resolveSettingEntry(fragment, locale, setting, country) {
             const templateOk =
                 !overrideSetting.templates ||
                 overrideSetting.templates.length === 0 ||
-                overrideSetting.templates.includes(template);
+                includesTemplate(overrideSetting.templates, template);
             return hasOverrideScope(overrideSetting) && geo !== null && tagsOk && templateOk;
         });
     if (filtered.length === 0) return defaultEntry;

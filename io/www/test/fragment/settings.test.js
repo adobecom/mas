@@ -1042,6 +1042,44 @@ describe('settings', () => {
             expect(result.body.settings.hideTrialCTAs).to.be.true;
         });
 
+        ['pro', 'bizpro'].forEach((variant) => {
+            [
+                ['KR', true],
+                ['US', false],
+            ].forEach(([country, expected]) => {
+                it(`resolves pro-scoped hideTrialCTAs for ${variant} in ${country}`, async () => {
+                    const context = {
+                        locale: 'en_US',
+                        country,
+                        body: { fields: { variant } },
+                        promises: {
+                            settings: Promise.resolve({
+                                hideTrialCTAs: {
+                                    default: {
+                                        name: 'hideTrialCTAs',
+                                        valuetype: 'boolean',
+                                        booleanValue: false,
+                                        templates: ['pro'],
+                                    },
+                                    override: [
+                                        {
+                                            name: 'hideTrialCTAs',
+                                            valuetype: 'boolean',
+                                            booleanValue: true,
+                                            geos: ['mas:pzn/country/KR'],
+                                            templates: ['pro'],
+                                        },
+                                    ],
+                                },
+                            }),
+                        },
+                    };
+                    const result = await settings.process(context);
+                    expect(result.body.settings.hideTrialCTAs).to.equal(expected);
+                });
+            });
+        });
+
         it('uses default when country does not match override', async () => {
             const context = {
                 locale: 'en_US',

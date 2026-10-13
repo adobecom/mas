@@ -79,7 +79,6 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-link-page.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-link.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-lock-closed.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-lock-open.js';
-import '@spectrum-web-components/icons-workflow/icons/sp-icon-magic-wand.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-magnify.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-market.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-money.js';

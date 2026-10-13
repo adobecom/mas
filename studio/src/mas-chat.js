@@ -6,6 +6,7 @@ import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
 import Store from './store.js';
 import router from './router.js';
+import { masaAvatar } from './img/masa-avatar.js';
 import {
     createFragmentFromAIConfig,
     createFragmentDataForAEM,
@@ -2722,9 +2723,7 @@ export class MasChat extends LitElement {
 
                 <div class="welcome-content">
                     <div class="welcome-greeting">
-                        <div class="masa-avatar">
-                            <sp-icon-magic-wand></sp-icon-magic-wand>
-                        </div>
+                        <div class="masa-avatar">${masaAvatar}</div>
                         <h1>Hi, I'm MASA</h1>
                         <p class="welcome-subtitle">
                             Your Merch at Scale assistant. I can create release cards, find offers and products, and answer
@@ -2794,7 +2793,7 @@ export class MasChat extends LitElement {
                         ${this.isLoading
                             ? html`
                                   <div class="typing-indicator-row">
-                                      <div class="message-avatar">✦</div>
+                                      <div class="message-avatar">${masaAvatar}</div>
                                       <div class="typing-indicator">
                                           <div class="typing-dot"></div>
                                           <div class="typing-dot"></div>

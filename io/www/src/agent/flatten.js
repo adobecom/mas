@@ -1,7 +1,8 @@
 import { Defaults } from '../../../../web-components/src/defaults.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../../../../web-components/src/compat-version.js';
-import { FF_DEFAULTS } from '../../../../web-components/src/constants.js';
+import { FF_DEFAULTS, PLACEHOLDER_PLAN_TYPE_TEXT } from '../../../../web-components/src/constants.js';
 import { resolvePriceOffers } from '../../../../web-components/src/inline-price.js';
+import { planTypeCaseForPrecedingChar } from '../../../../web-components/src/plan-type-text.js';
 import { Price } from '../../../../web-components/src/price.js';
 import { Wcs } from '../../../../web-components/src/wcs.js';
 import { parseLocaleCode, resolveCommerceCountries } from '../fragment/locales.js';
@@ -99,14 +100,54 @@ function extractElements(html, tagNames = 'span|a|button') {
     return elements.sort((a, b) => a.start - b.start);
 }
 
-function extractInlinePrices(html) {
+function inlinePriceSpans(html) {
+    return [...String(html ?? '').matchAll(/<span\b([^>]*)>/gi)]
+        .map((match) => ({ match, attributes: parseAttributes(match[1]) }))
+        .filter(({ attributes }) => attributes.is === 'inline-price');
+}
+
+const BLOCK_START = /<(?:p|div|li|td|th|h[1-6]|section|article|blockquote)\b[^>]*>/gi;
+
+// Mirrors precedingChar in plan-type-text.js: the copy before the token within its block.
+function planTypeCase(source, index) {
+    const before = source.slice(0, index);
+    const blockStart = [...before.matchAll(BLOCK_START)].at(-1);
+    const copy = stripTags(before.slice(blockStart ? blockStart.index + blockStart[0].length : 0)) ?? '';
+    return planTypeCaseForPrecedingChar(copy.slice(-1));
+}
+
+// The card renders the `prices` field as its price slot, so it leads; other fields follow in order.
+function fieldNamesInCardOrder(fields) {
+    const names = Object.keys(fields ?? {});
+    return names.includes('prices') ? ['prices', ...names.filter((name) => name !== 'prices')] : names;
+}
+
+// Mirrors hostOsi in plan-type-text.js. An addon lives in settings, so only the card's fields count.
+function hostOsi(fields) {
+    const prices = fieldNamesInCardOrder(fields)
+        .flatMap((name) => inlinePriceSpans(fieldValue(fields, name)))
+        .map(({ attributes }) => attributes)
+        .filter((attributes) => attributes['data-template'] === 'price' && attributes['data-wcs-osi']);
+    const promo = prices.find(
+        (attributes) => attributes['data-promotion-code'] && attributes['data-promotion-code'] !== 'cancel-context',
+    );
+    return (promo ?? prices[0])?.['data-wcs-osi'] ?? fieldValue(fields, 'osi') ?? undefined;
+}
+
+// Like InlinePrice.render, a price without an OSI is left as authored. The {{plan-type-text}}
+// placeholder is the exception: as planTypeTextOptionsProvider does on the card, it takes the
+// card's OSI and its casing from the copy before it.
+function extractInlinePrices(html, cardOsi) {
+    const source = String(html);
     const elements = [];
-    const pattern = /<span\b([^>]*)>/gi;
-    for (const match of String(html).matchAll(pattern)) {
-        const attributes = parseAttributes(match[1]);
-        // Like InlinePrice.render, a price without an OSI is left as authored.
-        if (attributes.is !== 'inline-price' || !attributes['data-wcs-osi']) continue;
-        elements.push({ attributes, match });
+    for (const { match, attributes } of inlinePriceSpans(source)) {
+        const placeholder = attributes['data-placeholder'] === PLACEHOLDER_PLAN_TYPE_TEXT;
+        if (placeholder) {
+            attributes['data-wcs-osi'] ||= cardOsi;
+            attributes['data-plan-type-case'] ??= planTypeCase(source, match.index);
+        }
+        if (!attributes['data-wcs-osi']) continue;
+        elements.push({ attributes, match, placeholder });
     }
     return elements;
 }
@@ -155,6 +196,7 @@ function createPriceRuntime(fragment, { locale, country, onPriceError } = {}) {
     const wcs = Wcs({ ...startup, fetchTimeout: 5000 });
     if (fragment?.wcs) wcs.prefillWcsCache(fragment.wcs);
     return {
+        cardOsi: hostOsi(fragment?.fields),
         onPriceError,
         price,
         promotionCode: fieldValue(fragment?.fields, 'promoCode') ?? undefined,
@@ -223,42 +265,37 @@ async function hydrateInlinePrice(runtime, attributes) {
         ...options,
         template: 'legal',
     });
-    return {
-        html,
-        price: {
-            template: options.template ?? 'price',
-            ...renderedPriceInfo(html, valueHtml, legalHtml),
-        },
-    };
+    return { html, info: renderedPriceInfo(html, valueHtml, legalHtml) };
 }
 
 // Prices hydrate concurrently, so cold WCS lookups share the hydration budget instead of adding up.
 // Rendered markup goes inside the authored inline-price span, as in the browser, so the HTML stays
-// balanced. A price that fails keeps its span empty and its OSI is reported in `priceErrors`, so one
-// bad OSI does not fail the whole card.
+// balanced. A price that fails keeps its span empty and is returned as failed, so one bad OSI does
+// not fail the whole card. Prices are returned in authored order with their template.
 async function hydrateInlinePrices(html, runtime) {
     const source = String(html);
-    const elements = extractInlinePrices(source);
+    const elements = extractInlinePrices(source, runtime.cardOsi);
     const results = await Promise.allSettled(elements.map(({ attributes }) => hydrateInlinePrice(runtime, attributes)));
     const prices = [];
-    const priceErrors = [];
     let hydrated = '';
     let cursor = 0;
-    for (const [index, { attributes, match }] of elements.entries()) {
+    for (const [index, { attributes, match, placeholder }] of elements.entries()) {
         const result = results[index];
+        const osi = attributes['data-wcs-osi'];
         const openingTagEnd = match.index + match[0].length;
         hydrated += source.slice(cursor, openingTagEnd);
         cursor = openingTagEnd;
+        const price = { template: attributes['data-template'] ?? 'price', placeholder, osi };
         if (result.status === 'fulfilled') {
             hydrated += result.value.html;
-            prices.push(result.value.price);
+            prices.push({ ...price, ...result.value.info });
         } else {
-            priceErrors.push(attributes['data-wcs-osi']);
-            runtime.onPriceError(result.reason, attributes['data-wcs-osi']);
+            prices.push({ ...price, failed: true });
+            runtime.onPriceError(result.reason, osi);
         }
     }
     hydrated += source.slice(cursor);
-    return { html: hydrated, prices, priceErrors };
+    return { html: hydrated, prices };
 }
 
 async function hydrateRecord(record, runtime) {
@@ -266,20 +303,14 @@ async function hydrateRecord(record, runtime) {
         Object.entries(record ?? {}).map(async ([name, value]) => {
             const isWrapped = value && typeof value === 'object' && !Array.isArray(value);
             const source = isWrapped ? value.value : value;
-            if (typeof source !== 'string' || !source.includes('<')) return { name, value, prices: [], priceErrors: [] };
+            if (typeof source !== 'string' || !source.includes('<')) return { name, value, prices: [] };
             const result = await hydrateInlinePrices(source, runtime);
-            return {
-                name,
-                value: isWrapped ? { ...value, value: result.html } : result.html,
-                prices: result.prices,
-                priceErrors: result.priceErrors,
-            };
+            return { name, value: isWrapped ? { ...value, value: result.html } : result.html, prices: result.prices };
         }),
     );
     return {
         record: Object.fromEntries(entries.map(({ name, value }) => [name, value])),
-        prices: entries.flatMap(({ prices }) => prices),
-        priceErrors: entries.flatMap(({ priceErrors }) => priceErrors),
+        pricesByField: Object.fromEntries(entries.map(({ name, prices }) => [name, prices])),
     };
 }
 
@@ -308,11 +339,18 @@ async function extractMerchCard(fragment, context) {
     ]);
     const fields = hydratedFields.record;
     const settings = hydratedSettings.record;
-    const prices = [...hydratedFields.prices, ...hydratedSettings.prices];
-    const priceErrors = [...new Set([...hydratedFields.priceErrors, ...hydratedSettings.priceErrors])];
+    // The advertised price comes from the card's own fields, never from settings such as an addon.
+    const cardPrices = fieldNamesInCardOrder(fields).flatMap((name) => hydratedFields.pricesByField[name]);
+    const allPrices = [...cardPrices, ...Object.values(hydratedSettings.pricesByField).flat()];
+    const priceErrors = [...new Set(allPrices.filter(({ failed }) => failed).map(({ osi }) => osi))];
     const hydratedFragment = { ...fragment, fields, settings };
     const elements = htmlSources(hydratedFragment).flatMap((source) => extractElements(source));
-    const mainPrice = prices.find((price) => price.template === 'price');
+    const cardElements = htmlSources({ fields, settings: {} }).flatMap((source) => extractElements(source));
+    const mainPrice = cardPrices.find(({ template }) => template === 'price');
+    // Like the card's getters, an authored legal element (not the inline plan-type token) supplies
+    // the legal text with its own display options; otherwise it derives from the main price.
+    const legal = cardPrices.find(({ template, placeholder }) => template === 'legal' && !placeholder);
+    const legalText = (key, className) => (legal ? legal[key] : (mainPrice?.[key] ?? authoredText(cardElements, className)));
     const seeTerms = elements.find(
         (element) =>
             element.tag === 'a' &&
@@ -331,10 +369,10 @@ async function extractMerchCard(fragment, context) {
         promoPrice: mainPrice?.promoPrice,
         regularPrice: mainPrice?.regularPrice,
         annualPrice: mainPrice?.annualPrice,
-        planTypeText: mainPrice?.planTypeText ?? authoredText(elements, 'price-plan-type'),
-        taxText: mainPrice?.taxText ?? authoredText(elements, 'price-tax-inclusivity'),
-        recurrenceText: mainPrice?.recurrenceText ?? authoredText(elements, 'price-recurrence'),
-        unitText: mainPrice?.unitText ?? authoredText(elements, 'price-unit-type'),
+        planTypeText: legalText('planTypeText', 'price-plan-type'),
+        taxText: legalText('taxText', 'price-tax-inclusivity'),
+        recurrenceText: mainPrice?.recurrenceText ?? authoredText(cardElements, 'price-recurrence'),
+        unitText: legal?.unitText ?? mainPrice?.unitText ?? authoredText(cardElements, 'price-unit-type'),
         seeTermsInfo: ctaInfo(seeTerms),
         renewalText: authoredText(elements, 'renewal-text'),
         promoDurationText: authoredText(elements, 'promo-duration-text'),

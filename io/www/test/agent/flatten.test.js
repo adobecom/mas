@@ -532,6 +532,108 @@ describe('flattenOffer', () => {
         expect(card.description).to.equal('$3.00');
     });
 
+    it('does not advertise a settings addon price when the product price fails', async () => {
+        const fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('offline'));
+        const mainOsi = 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8';
+        const wcs = { prod: Object.fromEntries(Object.entries(ccPro.wcs.prod).filter(([key]) => !key.startsWith(mainOsi))) };
+        const offer = await flattenOffer({ ...ccPro, wcs }, { onPriceError: () => {} });
+        expect(fetchStub.called).to.be.true;
+        expect(offer.priceErrors).to.deep.equal([mainOsi]);
+        for (const field of ['promoPrice', 'regularPrice', 'annualPrice', 'recurrenceText', 'taxText', 'unitText']) {
+            expect(offer, field).to.have.property(field, undefined);
+        }
+    });
+
+    describe('legal text', () => {
+        const gbFragment = (prices) => ({
+            fields: { prices },
+            settings: { country: 'GB', language: 'en', locale: 'en_GB' },
+            wcs: {
+                prod: {
+                    'gb-gb-en': [
+                        {
+                            ...offerSegments,
+                            commitment: 'YEAR',
+                            term: 'MONTHLY',
+                            offerSelectorIds: ['gb'],
+                            priceDetails: {
+                                formatString: "'£'#,##0.00",
+                                price: 5,
+                                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                                taxTerm: 'VAT',
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+        const mainPrice = '<span is="inline-price" data-template="price" data-wcs-osi="gb" data-display-tax="true"></span>';
+
+        it('derives from the main price when no legal element is authored', async () => {
+            const card = await extractMerchCard(gbFragment(mainPrice));
+            expect(card.regularPrice).to.equal('£5.00');
+            expect(card.taxText).to.equal('incl. VAT');
+        });
+
+        it("follows an authored legal element's own display options and casing", async () => {
+            const card = await extractMerchCard(
+                gbFragment(
+                    `${mainPrice}<span is="inline-price" data-template="legal" data-wcs-osi="gb" data-display-tax="false" data-display-plan-type="true" data-plan-type-case="lower"></span>`,
+                ),
+            );
+            expect(card.regularPrice).to.equal('£5.00');
+            expect(card.taxText).to.be.undefined;
+            expect(card.planTypeText).to.equal('annual, billed monthly');
+        });
+    });
+
+    describe('plan-type-text token', () => {
+        const token =
+            '<span is="inline-price" data-template="legal" data-placeholder="plan-type-text" data-display-plan-type="true" data-display-per-unit="false" data-display-tax="false"></span>';
+        // The WCS cache derives planType from commitment and term: YEAR+MONTHLY is ABM, YEAR+ANNUAL is PUF.
+        const offer = (osi, term) => ({
+            ...offerSegments,
+            commitment: 'YEAR',
+            term,
+            offerSelectorIds: [osi],
+            priceDetails: { formatString: "'$'#,##0.00", price: 5 },
+        });
+
+        it("renders with the card's promo price OSI and the casing of the copy before it", async () => {
+            const card = await extractMerchCard({
+                fields: {
+                    prices: `<span is="inline-price" data-template="price" data-wcs-osi="other"></span><span is="inline-price" data-template="price" data-wcs-osi="plan" data-promotion-code="SAVE"></span>`,
+                    description: `<p>Billed yearly. ${token}</p><p>Pay <strong>monthly</strong>, ${token}</p>`,
+                },
+                wcs: {
+                    prod: {
+                        'other-us-mult': [offer('other', 'ANNUAL')],
+                        'plan-us-mult-save': [offer('plan', 'MONTHLY')],
+                        'plan-us-mult': [offer('plan', 'MONTHLY')],
+                    },
+                },
+            });
+            expect(card.description).to.include('Billed yearly. Annual, billed monthly');
+            expect(card.description).to.include(', annual, billed monthly');
+            expect(card.priceErrors).to.be.undefined;
+        });
+
+        it("falls back to the fragment's own OSI and is skipped without one", async () => {
+            const withOsi = await extractMerchCard({
+                fields: { osi: 'own', description: `<p>${token}</p>`, callout: `Billed ${token}` },
+                wcs: { prod: { 'own-us-mult': [offer('own', 'MONTHLY')] } },
+            });
+            expect(withOsi.description).to.equal('Annual, billed monthly');
+            expect(withOsi.callout).to.equal('Billed annual, billed monthly');
+
+            const fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('Unexpected WCS request'));
+            const withoutOsi = await extractMerchCard({ fields: { description: `<p>Plan: ${token}</p>` } });
+            expect(withoutOsi.description).to.equal('Plan:');
+            expect(withoutOsi.priceErrors).to.be.undefined;
+            expect(fetchStub.called).to.be.false;
+        });
+    });
+
     it('keeps authored text intact around a hydrated price', async () => {
         const card = await extractMerchCard({
             fields: {

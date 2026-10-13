@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/common/components/mas-grouped-selector.js';
@@ -21,6 +21,14 @@ const render = (selected = [], { readonly = false, required = true } = {}) =>
     `);
 
 const query = (el, selector) => el.shadowRoot.querySelector(selector);
+
+// A modal left open blocks clicks in later tests, so close it and wait until it is gone.
+const closeDialog = async (el) => {
+    const overlay = query(el, 'overlay-trigger').shadowRoot.querySelector('sp-overlay');
+    await waitUntil(() => overlay.state === 'opened', 'dialog did not open');
+    query(el, '.selector-dialog').dispatchEvent(new Event('cancel'));
+    await waitUntil(() => overlay.state === 'closed', 'dialog did not close');
+};
 
 describe('MasGroupedSelector', () => {
     afterEach(() => {
@@ -95,6 +103,7 @@ describe('MasGroupedSelector', () => {
         query(el, '.edit-button').click();
         await el.updateComplete;
         expect(el.expanded).to.be.false;
+        await closeDialog(el);
     });
 
     it('projects slotted picker content into the dialog', async () => {
@@ -109,6 +118,7 @@ describe('MasGroupedSelector', () => {
         el.addEventListener('open', onOpen);
         query(el, '.add-button').click();
         expect(onOpen.calledOnce).to.be.true;
+        await closeDialog(el);
     });
 
     it('dispatches confirm and closes the dialog on confirm', async () => {

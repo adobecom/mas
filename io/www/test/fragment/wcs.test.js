@@ -1171,9 +1171,9 @@ describe('wcs OSI helpers', function () {
             },
         };
         expect(updateOffers(context)).to.deep.include.members([
-            { osi: 'ADDON-SUB', promotionCode: undefined },
-            { osi: 'PROMOTED', promotionCode: 'PROJECT_PROMO' },
-            { osi: 'AUTHORED', promotionCode: 'INLINE' },
+            { osi: 'ADDON-SUB', promotionCode: undefined, optional: true },
+            { osi: 'PROMOTED', promotionCode: 'PROJECT_PROMO', optional: true },
+            { osi: 'AUTHORED', promotionCode: 'INLINE', optional: true },
         ]);
         expect(context.body.settings.addon).to.include('data-wcs-osi="ADDON-SUB" data-replaced-osi="ADDON"');
         expect(context.body.settings.promoted).to.include('data-promotion-code="PROJECT_PROMO"');
@@ -1188,7 +1188,7 @@ describe('wcs OSI helpers', function () {
             },
         };
         expect(updateOffers(context, { ADDON: { osi: 'MAPPED', promotionCode: 'MAP_PROMO' } })).to.deep.equal([
-            { osi: 'MAPPED', promotionCode: 'MAP_PROMO' },
+            { osi: 'MAPPED', promotionCode: 'MAP_PROMO', optional: true },
         ]);
         expect(context.body.settings.addon).to.include('data-wcs-osi="MAPPED" data-promotion-code="MAP_PROMO"');
     });
@@ -1198,6 +1198,87 @@ describe('wcs OSI helpers', function () {
             body: { fields: { prices: '<span is="inline-price" data-wcs-osi="FIELD"></span>' } },
         });
         expect(elements).to.deep.equal([{ osi: 'FIELD', promotionCode: undefined }]);
+    });
+});
+
+describe('optional settings WCS lookups', function () {
+    let clock;
+    let fetchStub;
+    const offer = (name) => createResponse(200, { resolvedOffers: [{ name }] });
+    const isOsi = (osi) =>
+        sinon.match((url) => url.includes(`offer_selector_ids=${osi}&`) || url.endsWith(`offer_selector_ids=${osi}`));
+    const process = (fields, settings) => {
+        let done = false;
+        const pending = wcs
+            .process({
+                api_key: 'k',
+                locale: 'en_US',
+                wcsConfiguration: CONFIGURATION(),
+                promises: { wcs: Promise.resolve([]) },
+                body: { fields, settings },
+            })
+            .then((context) => {
+                done = true;
+                return context;
+            });
+        return { pending, isDone: () => done };
+    };
+
+    beforeEach(function () {
+        clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        fetchStub = sinon.stub(globalThis, 'fetch');
+    });
+
+    afterEach(function () {
+        clock.restore();
+        fetchStub.restore();
+    });
+
+    it('stops waiting for a slow settings-only lookup after one second and keeps the required offers', async function () {
+        fetchStub.withArgs(isOsi('MAIN')).returns(offer('main'));
+        fetchStub.withArgs(isOsi('ADDON')).returns(new Promise(() => {}));
+        const { pending, isDone } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="MAIN"></span>' },
+            { addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
+        );
+        await clock.tickAsync(999);
+        expect(isDone()).to.be.false;
+        await clock.tickAsync(1);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({ 'MAIN-us-mult': [{ name: 'main' }] });
+    });
+
+    it('caches a settings-only offer that resolves in time and skips one that fails', async function () {
+        fetchStub.withArgs(isOsi('MAIN')).returns(offer('main'));
+        fetchStub.withArgs(isOsi('ADDON')).returns(offer('addon'));
+        fetchStub.withArgs(isOsi('BROKEN')).returns(createResponse(404, {}, 'Not Found'));
+        const { pending } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="MAIN"></span>' },
+            {
+                addon: '<span is="inline-price" data-wcs-osi="ADDON"></span><span is="inline-price" data-wcs-osi="BROKEN"></span>',
+            },
+        );
+        await clock.tickAsync(0);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({
+            'MAIN-us-mult': [{ name: 'main' }],
+            'ADDON-us-mult': [{ name: 'addon' }],
+        });
+    });
+
+    it('keeps waiting for an OSI that a card field also uses', async function () {
+        fetchStub
+            .withArgs(isOsi('SHARED'))
+            .callsFake(() => new Promise((resolve) => setTimeout(() => resolve(offer('shared')), 1500)));
+        const { pending, isDone } = process(
+            { prices: '<span is="inline-price" data-wcs-osi="SHARED"></span>' },
+            { addon: '<span is="inline-price" data-wcs-osi="SHARED"></span>' },
+        );
+        await clock.tickAsync(1000);
+        expect(isDone()).to.be.false;
+        await clock.tickAsync(500);
+        const context = await pending;
+        expect(context.body.wcs.prod).to.deep.equal({ 'SHARED-us-mult': [{ name: 'shared' }] });
     });
 });
 

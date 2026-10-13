@@ -8,8 +8,9 @@ function response(statusCode, body) {
     return { statusCode, headers: { 'Content-Type': 'application/json' }, body };
 }
 
-function fragmentActionName(params) {
-    const current = params.__ow_action_name;
+// The runtime sets __OW_ACTION_NAME; request parameters never choose which action is invoked.
+function fragmentActionName() {
+    const current = process.env.__OW_ACTION_NAME;
     return current ? current.replace(/[^/]+$/, 'fragment') : 'MerchAtScale/fragment';
 }
 
@@ -77,15 +78,13 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
 
     let result;
     try {
-        const client = openwhiskFactory({
-            api_key: params.__ow_api_key,
-            apihost: params.__ow_api_host,
-            namespace: params.__ow_namespace,
-        });
+        // Without options the client reads __OW_API_HOST, __OW_API_KEY, and __OW_NAMESPACE from the
+        // runtime environment, never from request parameters.
+        const client = openwhiskFactory();
         result = await withTimeout(
             () =>
                 client.actions.invoke({
-                    name: fragmentActionName(params),
+                    name: fragmentActionName(),
                     params: fragmentParams,
                     blocking: true,
                     result: true,

@@ -36,6 +36,7 @@ describe('agent action main', () => {
     afterEach(() => {
         clock.restore();
         sinon.restore();
+        delete process.env.__OW_ACTION_NAME;
     });
 
     it('hydrates Photoshop for Egypt from the prefetched cache without a WCS request', async () => {
@@ -106,13 +107,13 @@ describe('agent action main', () => {
     });
 
     it('hydrates a fragment selected by path without a product name', async () => {
+        process.env.__OW_ACTION_NAME = '/ns/MerchAtScale/agent';
         const fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('Unexpected WCS request'));
         const fragmentId = '9941bca0-5304-47f7-aeb3-4f638aeb8791';
         const invoke = sinon.stub().resolves({ statusCode: 200, body: photoshopEgBody });
         const pending = main(
             {
                 __ow_path: `/${fragmentId}`,
-                __ow_action_name: '/ns/MerchAtScale/agent',
                 locale: 'en_US',
                 country: 'eg',
                 api_key: 'test-api-key',
@@ -282,6 +283,7 @@ describe('agent action main', () => {
     }
 
     it('selects the team offer without forwarding pzn and echoes the audience', async () => {
+        process.env.__OW_ACTION_NAME = '/ns/MerchAtScale/agent';
         const invoke = sinon.stub().resolves({ statusCode: 200, body: bodyWithSegments('team', 'com') });
         const res = await main(
             {
@@ -290,7 +292,6 @@ describe('agent action main', () => {
                 pzn: 'team',
                 country: 'US',
                 api_key: 'key',
-                __ow_action_name: '/ns/MerchAtScale/agent',
             },
             { openwhiskFactory: fakeFactory(invoke) },
         );
@@ -440,6 +441,23 @@ describe('agent action main', () => {
             expect(clock.countTimers()).to.equal(0);
         });
     }
+
+    it('builds the client and action name from the runtime, ignoring request-supplied __ow_ parameters', async () => {
+        const invoke = sinon.stub().resolves({ statusCode: 403, message: 'stop' });
+        const factory = sinon.spy(fakeFactory(invoke));
+        await main(
+            {
+                ...requestParams,
+                __ow_api_host: 'http://127.0.0.1:8080',
+                __ow_api_key: 'attacker:key',
+                __ow_namespace: 'other',
+                __ow_action_name: '/other/pkg/agent',
+            },
+            { openwhiskFactory: factory },
+        );
+        expect(factory.calledOnceWithExactly()).to.be.true;
+        expect(invoke.firstCall.args[0].name).to.equal('MerchAtScale/fragment');
+    });
 
     it('returns a generic 502 and logs the cause when the fragment action invocation fails', async () => {
         const errorLog = sinon.stub(console, 'error');

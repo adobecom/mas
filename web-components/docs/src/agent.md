@@ -145,7 +145,13 @@ button, in authored order, or `[]` when no CTAs exist.
 
 Prices match the merch card: each OSI resolves to one offer, comma-joined OSIs
 are summed, and tax and per-unit labels default from the offer's customer and
-market segments unless the price sets them explicitly. Page-level feature flags
+market segments unless the price sets them explicitly. The top-level price
+properties come from the card's own main price (the first price in `prices`),
+never from settings such as an addon. Legal text (`planTypeText`, `taxText`,
+`unitText`) comes from an authored legal price when the card has one, with its
+own display options, and otherwise from the main price. The
+`{{plan-type-text}}` token takes the card's OSI and is cased for its position in
+the sentence. Page-level feature flags
 such as `mas-ff-annual-price` are not available to the agent, so annual prices
 follow the fragment's `displayAnnual` setting and the price's own options. A
 price whose offer cannot be resolved is left out of the response and its OSI is

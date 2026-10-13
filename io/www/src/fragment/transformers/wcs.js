@@ -310,10 +310,11 @@ function updateOffers(context, offerMap = {}) {
     // addon) that the fields scan above never reaches, so scan it with the root's offer mapping and
     // promo project, as its fields are. Otherwise those offers are absent from body.wcs and every
     // consumer that prefills its WCS cache from it (aem-fragment, the agent action) fetches them live.
+    // They are optional: their lookups are bounded and best-effort (see computeCache).
     if (context.body?.settings) {
         const { scope, substituteMap } = scopeOf(context.body);
         for (const { osi, promotionCode } of scanMasElements(context.body.settings, substituteMap, context, scope?.promoMap)) {
-            masElements.push({ osi, promotionCode });
+            masElements.push({ osi, promotionCode, optional: true });
         }
     }
     return masElements;
@@ -339,32 +340,44 @@ async function fetchArtifact(osi, promotionCode, wcsContext, idx) {
     return null;
 }
 
+// Optional lookups (settings-only OSIs such as an addon) get at most this long. Their failure or
+// timeout only leaves them out of the cache, so they can neither fail nor noticeably slow the fragment.
+const OPTIONAL_WCS_TIMEOUT = 1000;
+
+function withDeadline(promise, ms) {
+    let timer;
+    const deadline = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`optional WCS request exceeded ${ms}ms`)), ms);
+    });
+    return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+}
+
 async function computeCache(tokens, wcsContext) {
     const cache = {};
     let idx = 0;
-    const promises = tokens.map(
-        ({ osi, promotionCode }) =>
-            new Promise(async (resolve, reject) => {
-                const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
-                if (response) {
-                    const { resolvedOffers } = response;
-                    const cacheKey = [
-                        osi,
-                        wcsContext.country.toLowerCase(),
-                        wcsContext.language?.toLowerCase(),
-                        promotionCode?.toLowerCase(),
-                    ]
-                        .filter((val) => val)
-                        .join('-');
-                    resolve({
-                        cacheKey,
-                        resolvedOffers,
-                    });
-                } else {
-                    reject('failed wcs request');
-                }
-            }),
-    );
+    const promises = tokens.map(({ osi, promotionCode, optional }) => {
+        const lookup = new Promise(async (resolve, reject) => {
+            const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
+            if (response) {
+                const { resolvedOffers } = response;
+                const cacheKey = [
+                    osi,
+                    wcsContext.country.toLowerCase(),
+                    wcsContext.language?.toLowerCase(),
+                    promotionCode?.toLowerCase(),
+                ]
+                    .filter((val) => val)
+                    .join('-');
+                resolve({
+                    cacheKey,
+                    resolvedOffers,
+                });
+            } else {
+                reject('failed wcs request');
+            }
+        });
+        return optional ? withDeadline(lookup, OPTIONAL_WCS_TIMEOUT) : lookup;
+    });
     const responses = await Promise.allSettled(promises);
     responses.forEach((response) => {
         if (response.status === 'fulfilled') {
@@ -409,31 +422,34 @@ async function wcs(context) {
             }
         }
         const tokenMap = new Map();
+        // A token is optional only when every element that needs it is optional.
+        const requiredKeys = new Set();
         const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
-        const addToken = (token) => {
+        const addToken = (token, optional) => {
             const key = tokenKey(token);
             if (!tokenMap.has(key)) tokenMap.set(key, token);
+            if (!optional) requiredKeys.add(key);
         };
-        masElements.forEach(({ osi, promotionCode }) => {
+        masElements.forEach(({ osi, promotionCode, optional }) => {
             // OSIs and inline promo codes are already final (substituted) from updateOffers above.
             // An inline cancel-context sentinel means "no promotion for this element": cache the plain
             // offer and never inherit the fragment/collection promo, so the client's no-promo request
             // (computePromoStatus strips cancel-context) hits the prefilled cache. MWPW-203600.
             if (promotionCode === PROMO_CONTEXT_CANCEL_VALUE) {
-                addToken({ osi });
+                addToken({ osi }, optional);
                 return;
             }
             if (promotionCode) {
-                addToken({ osi, promotionCode });
+                addToken({ osi, promotionCode }, optional);
                 return;
             }
             // Bare markup OSIs (no own data-promotion-code, no matching reference) belong to the
             // top-level fragment itself — fall back to its own fields.promoCode (set by updateOffers).
             const promoCode = promoCodeByOsi[osi] ?? context.body.fields?.promoCode;
-            if (promoCode) addToken({ osi, promotionCode: promoCode });
+            if (promoCode) addToken({ osi, promotionCode: promoCode }, optional);
             // Cache the plain (no promo) offer when no card promotes this osi, or when a card shares
             // this osi without a promo of its own (mixed case) — otherwise that card would miss the cache.
-            if (!promoCode || noPromoOsis.has(osi)) addToken({ osi });
+            if (!promoCode || noPromoOsis.has(osi)) addToken({ osi }, optional);
         });
 
         if (context.body.fields?.osi) {
@@ -442,10 +458,10 @@ async function wcs(context) {
                 promotionCode: context.body.fields.promoCode,
             };
             tokenMap.set(tokenKey(token), token);
+            requiredKeys.add(tokenKey(token));
         }
 
-        // Convert Map values back to array
-        const tokens = Array.from(tokenMap.values());
+        const tokens = Array.from(tokenMap, ([key, token]) => ({ ...token, optional: !requiredKeys.has(key) }));
         const country = context.wcsCountry ?? getCountry(context);
         const wcsContext = {
             locale: getRegionalLocale(context),

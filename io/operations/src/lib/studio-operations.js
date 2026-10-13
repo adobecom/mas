@@ -54,6 +54,24 @@ function classifyVariationPath(path) {
     return null;
 }
 
+// Join a caller-supplied relative subfolder onto a surface base path, used to
+// scope a card search to e.g. a promo project (promotions/<project>) or the
+// personalization folder (pzn). Surrounding slashes are stripped so an absolute
+// look-alike stays relative; any '.' or '..' segment is rejected so the search
+// can never climb out of the caller's surface. Empty input returns the base.
+export function safeJoinPath(base, relativePath) {
+    if (relativePath == null || relativePath === '') return base;
+    const clean = String(relativePath)
+        .trim()
+        .replace(/^\/+|\/+$/g, '');
+    if (!clean) return base;
+    const segments = clean.split('/');
+    if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
+        throw new Error(`Invalid search path: ${relativePath}`);
+    }
+    return `${base}/${clean}`;
+}
+
 /**
  * Strip HTML tags from text while preserving the content
  * Used for searching text in HTML-formatted fields
@@ -397,6 +415,7 @@ export class StudioOperations {
             variationType = 'all',
             osi,
             titleSearch,
+            path: scopePath,
         } = params;
 
         if (osi && !surface) {
@@ -427,6 +446,26 @@ export class StudioOperations {
         const surfacePath = this.getSurfacePath(surface, locale);
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
 
+        // Optional subfolder scope (e.g. a promo project `promotions/<project>`
+        // or the pzn folder). safeJoinPath keeps the search strictly under the
+        // caller's surface; an escaping path is rejected rather than widening it.
+        let searchPath;
+        try {
+            searchPath = safeJoinPath(surfacePath, scopePath);
+        } catch (error) {
+            return {
+                success: false,
+                error: 'INVALID_PATH',
+                operation: 'search',
+                results: [],
+                count: 0,
+                message: error.message,
+            };
+        }
+        if (searchPath !== surfacePath) {
+            console.log(`[StudioOperations] scoped search path: ${searchPath}`);
+        }
+
         // Title search: deterministic path used by the AI assistant search router.
         // Two-stage: AEM full-text (EDGES) using the user's full query narrows
         // to candidate fragments, then a local case-insensitive substring filter
@@ -443,7 +482,7 @@ export class StudioOperations {
             const MAX_PAGES = 40;
             for (let page = 0; page < MAX_PAGES; page += 1) {
                 const response = await this.aemClient.searchFragments({
-                    path: surfacePath,
+                    path: searchPath,
                     query,
                     modelIds: [CARD_MODEL_ID],
                     limit: 50,
@@ -500,7 +539,7 @@ export class StudioOperations {
         const isTagOnlySearch = !query && Array.isArray(tags) && tags.length > 0;
         if (isTagOnlySearch) {
             console.log('[StudioOperations] Tag-only search (bounded cursor):', {
-                path: surfacePath,
+                path: searchPath,
                 tags,
                 modelIds: [CARD_MODEL_ID],
                 limit,
@@ -512,7 +551,7 @@ export class StudioOperations {
             const TAG_MAX_PAGES = 8;
             for (let page = 0; page < TAG_MAX_PAGES; page += 1) {
                 const response = await this.aemClient.searchFragments({
-                    path: surfacePath,
+                    path: searchPath,
                     tags,
                     modelIds: [CARD_MODEL_ID],
                     limit: 50,
@@ -551,7 +590,7 @@ export class StudioOperations {
         // MAX_PAGES so a dilute query can't run forever; the action layer
         // also wraps this in its own timeout.
         console.log('[StudioOperations] Cursor-paginated search:', {
-            path: surfacePath,
+            path: searchPath,
             query,
             modelIds: [CARD_MODEL_ID],
         });
@@ -561,7 +600,7 @@ export class StudioOperations {
         const MAX_PAGES = 40;
         for (let page = 0; page < MAX_PAGES; page += 1) {
             const response = await this.aemClient.searchFragments({
-                path: surfacePath,
+                path: searchPath,
                 query,
                 tags,
                 modelIds: [CARD_MODEL_ID],

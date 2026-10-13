@@ -138,6 +138,24 @@ describe('ai-chat/operations-handler', () => {
             expect(result.valid).to.equal(true);
         });
 
+        it('accepts search_cards scoped to a relative subfolder path', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'sandbox', path: 'promotions/summer-sale' },
+            });
+            expect(result.valid).to.equal(true);
+        });
+
+        it('rejects a search_cards path that climbs out of the surface', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'search_cards',
+                operationParams: { surface: 'sandbox', path: '../acom' },
+            });
+            expect(result.valid).to.equal(false);
+        });
+
         it('rejects operation with invalid tool name', () => {
             const result = validateOperation({
                 type: 'studio_operation',

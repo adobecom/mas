@@ -78,6 +78,16 @@ describe('search-cards action', () => {
         expect(result.body.truncated).to.not.equal(true);
     });
 
+    it('forwards the subfolder path scope to searchCards', async () => {
+        let received;
+        StudioOperations.prototype.searchCards = async (p) => {
+            received = p;
+            return { success: true, operation: 'search', results: [], count: 0, message: 'none' };
+        };
+        await main({ ...baseParams, query: 'x', path: 'promotions/summer-sale' });
+        expect(received.path).to.equal('promotions/summer-sale');
+    });
+
     it('truncates results when total payload exceeds 900 KB', async () => {
         // Each card with fragmentData containing 20 KB of bloat = ~20 KB per card.
         // 60 of them = ~1.2 MB, well over the 900 KB budget.

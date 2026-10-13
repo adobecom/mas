@@ -33,7 +33,7 @@ export const INTENTS = [
         name: 'search_cards',
         category: 'read-only',
         description:
-            'Search the card catalog. Filters combine: variant (template, e.g. "plans"), variationType (cards that HAVE grouped/promo/locale variations), query/titleSearch (free text), tags, surface/surfaces, locale.',
+            'Search the card catalog. Filters combine: variant (template, e.g. "plans"), variationType (cards that HAVE grouped/promo/locale variations), query/titleSearch (free text), tags, surface/surfaces, locale, path. To list the cards INSIDE a promo project or the personalization folder, pass path (e.g. "promotions/<project>" or "pzn") — that returns the cards in that folder, whereas variationType:"promo" returns the parent cards that have a promo variation.',
         required_slots: [],
         optional_slots: [
             'query',
@@ -45,6 +45,7 @@ export const INTENTS = [
             'tags',
             'osi',
             'variationType',
+            'path',
             'limit',
             'offset',
         ],
@@ -58,6 +59,7 @@ export const INTENTS = [
             tags: 'string[]',
             osi: 'osi',
             variationType: 'variationType',
+            path: 'relativePath',
         },
         tool_target: 'search_cards',
         confirmation_template: null,
@@ -396,6 +398,14 @@ export const SLOT_VALIDATORS = {
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),
     paCode: (v) => typeof v === 'string' && /^PA-?\d+$/.test(v),
     boolean: (v) => typeof v === 'boolean',
+    // A subfolder path under the surface (e.g. "promotions/<project>", "pzn").
+    // Surrounding slashes are tolerated; '.'/'..' segments are rejected so the
+    // scoped search can never climb out of the caller's surface.
+    relativePath: (v) => {
+        if (typeof v !== 'string' || !v.trim()) return false;
+        const clean = v.trim().replace(/^\/+|\/+$/g, '');
+        return clean.length > 0 && clean.split('/').every((s) => s && s !== '.' && s !== '..');
+    },
     object: (v) => v !== null && typeof v === 'object' && !Array.isArray(v),
     'object[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => x !== null && typeof x === 'object'),
 };

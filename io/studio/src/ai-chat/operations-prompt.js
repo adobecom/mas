@@ -269,6 +269,7 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
   - tags: Tag array (optional) — see "Tag Taxonomy" below
   - variant: Card **template** name (optional). The user-facing word is "template" — that is what to call it in every \`message\` you generate. Old synonyms users may type: "variant", "type". Pass the canonical lowercased name in this \`variant\` param (e.g. \`"plans"\`, \`"plans-students"\`, \`"ccd-suggested"\`, \`"fries"\`). The operation param is named \`variant\` for legacy reasons — do NOT rename it in the JSON, but in user-facing copy always say "template". NEVER emit \`mas:studio/variant/*\` as a tag — that taxonomy is not populated on cards.
   - titleSearch: true when the user wants to match card titles specifically (optional)
+  - path: Optional subfolder under the surface to scope the search to — e.g. \`"promotions/<project>"\` for one promo project, \`"promotions"\` for all promo variation cards, or \`"pzn"\` for personalization cards. To LIST the cards INSIDE a promo project, pass \`path\` — NOT \`variationType:"promo"\` (that returns the parent cards that HAVE a promo variation, not the cards in the project).
   - limit: Max results (optional, default 10)
 - message: User-friendly explanation
 

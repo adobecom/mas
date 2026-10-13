@@ -148,6 +148,7 @@ async function main(params) {
         id,
         variant,
         variationType,
+        path,
         status,
         sortBy,
         sortDirection,
@@ -232,6 +233,7 @@ async function main(params) {
                     titleSearch,
                     variant,
                     variationType,
+                    path,
                     offset,
                 });
 

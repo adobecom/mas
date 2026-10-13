@@ -441,10 +441,12 @@ merch-card[variant="pro"] [slot="whats-included"] .section:first-child h4 > merc
 /* CTA styling — pill-shaped buttons, accent solid + outlined */
 merch-card[variant="pro"] [slot="footer"] a,
 merch-card[variant="pro"] [slot="footer"] button {
-    flex: 1 0 0;
-    min-width: 0;
-    height: 40px;
-    padding: 14px 24px;
+    flex: 1 1 calc(50% - 4px);
+    /* One-line label width, capped at the footer: past half the row the CTAs
+       stack, past the whole row the label wraps. */
+    min-width: fit-content;
+    min-height: 40px;
+    padding: 8px 24px;
     /* S2A spacing-xs between an icon and the label; inert without one */
     gap: 8px;
     border-radius: 999px;
@@ -459,7 +461,7 @@ merch-card[variant="pro"] [slot="footer"] button {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 merch-card[variant="pro"] [slot="footer"] .con-button.blue,
@@ -489,6 +491,11 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
             --consonant-merch-card-pro-cta-outline-border-color,
             var(--consonant-merch-card-pro-text-color)
         );
+}
+
+merch-card[variant="pro"][stacked] [slot="footer"] a,
+merch-card[variant="pro"][stacked] [slot="footer"] button {
+    flex-basis: 100%;
 }
 
 /* S2A outlined button (2161:54613): black@8% wash on light, white@64% on dark,

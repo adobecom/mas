@@ -50,17 +50,24 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
 }
 
 /**
+ * Shares the initial promotion project load across callers and reuses the fetched list.
  * @param {() => Promise<void>} loadPromotions
  * @returns {Promise<Array<Object>>}
  */
-export async function getPromotionProjectsForProbe(loadPromotions) {
-    let projects = readPromotionProjectsFromStore();
-    if (!projects.length && !Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META)) {
-        await loadPromotions();
-        projects = readPromotionProjectsFromStore();
-    }
-    return projects;
-}
+export const getPromotionProjectsForProbe = (() => {
+    let promotionProjectsLoad;
+    return async (loadPromotions) => {
+        let projects = readPromotionProjectsFromStore();
+        if (!projects.length && !Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META)) {
+            promotionProjectsLoad ??= Promise.resolve(loadPromotions()).finally(() => {
+                promotionProjectsLoad = null;
+            });
+            await promotionProjectsLoad;
+            projects = readPromotionProjectsFromStore();
+        }
+        return projects;
+    };
+})();
 
 /**
  * @param {import('../aem/aem.js').AEM} aem

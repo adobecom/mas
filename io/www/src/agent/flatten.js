@@ -210,13 +210,8 @@ function createPriceRuntime(fragment, { locale, country, onPriceError } = {}) {
 
 function renderedPriceInfo(html, valueHtml, legalHtml) {
     const text = (source) => stripTags(source) ?? undefined;
-    const textForClass = (source, className) => {
-        const pattern = new RegExp(
-            `<span\\b[^>]*class\\s*=\\s*(?:"[^"]*\\b${className}\\b[^"]*"|'[^']*\\b${className}\\b[^']*')[^>]*>([\\s\\S]*?)<\\/span>`,
-            'i',
-        );
-        return text(String(source).match(pattern)?.[1]);
-    };
+    // Exact class tokens on paired tags: `price-annual` must not match `price-annual-prefix`.
+    const textForClass = (source, className) => authoredText(extractElements(source, 'span'), className) || undefined;
     const legalTextForClass = (className) => textForClass(legalHtml, className);
     const taxText = legalTextForClass('price-tax-inclusivity') ?? textForClass(html, 'price-tax-inclusivity');
     const unitText = legalTextForClass('price-unit-type') ?? textForClass(html, 'price-unit-type');
@@ -348,9 +343,13 @@ async function extractMerchCard(fragment, context) {
     const cardElements = htmlSources({ fields, settings: {} }).flatMap((source) => extractElements(source));
     const mainPrice = cardPrices.find(({ template }) => template === 'price');
     // Like the card's getters, an authored legal element (not the inline plan-type token) supplies
-    // the legal text with its own display options; otherwise it derives from the main price.
+    // the legal text with its own display options, so text it hides stays hidden; otherwise it
+    // derives from the main price. As on the card, only the unit label falls back to the main price,
+    // and only when the legal price rendered nothing.
     const legal = cardPrices.find(({ template, placeholder }) => template === 'legal' && !placeholder);
     const legalText = (key, className) => (legal ? legal[key] : (mainPrice?.[key] ?? authoredText(cardElements, className)));
+    const unitText =
+        legal && !legal.failed ? legal.unitText : (mainPrice?.unitText ?? authoredText(cardElements, 'price-unit-type'));
     const seeTerms = elements.find(
         (element) =>
             element.tag === 'a' &&
@@ -372,7 +371,7 @@ async function extractMerchCard(fragment, context) {
         planTypeText: legalText('planTypeText', 'price-plan-type'),
         taxText: legalText('taxText', 'price-tax-inclusivity'),
         recurrenceText: mainPrice?.recurrenceText ?? authoredText(cardElements, 'price-recurrence'),
-        unitText: legal?.unitText ?? mainPrice?.unitText ?? authoredText(cardElements, 'price-unit-type'),
+        unitText,
         seeTermsInfo: ctaInfo(seeTerms),
         renewalText: authoredText(elements, 'renewal-text'),
         promoDurationText: authoredText(elements, 'promo-duration-text'),

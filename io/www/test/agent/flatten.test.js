@@ -585,6 +585,84 @@ describe('flattenOffer', () => {
             expect(card.taxText).to.be.undefined;
             expect(card.planTypeText).to.equal('annual, billed monthly');
         });
+
+        describe('unit label', () => {
+            const teamFragment = (prices, wcs = {}) => ({
+                fields: { prices },
+                wcs: {
+                    prod: {
+                        'team-us-mult': [
+                            {
+                                ...offerSegments,
+                                customerSegment: 'TEAM',
+                                commitment: 'YEAR',
+                                term: 'MONTHLY',
+                                offerSelectorIds: ['team'],
+                                priceDetails: { formatString: "'US$'#,##0.00", price: 30 },
+                            },
+                        ],
+                        ...wcs,
+                    },
+                },
+            });
+            const teamPrice = '<span is="inline-price" data-template="price" data-wcs-osi="team"></span>';
+
+            it('defaults from the main price of a team offer', async () => {
+                const card = await extractMerchCard(teamFragment(teamPrice));
+                expect(card.unitText).to.equal('per license');
+            });
+
+            it('stays hidden when an authored legal element hides it', async () => {
+                const card = await extractMerchCard(
+                    teamFragment(
+                        `${teamPrice}<span is="inline-price" data-template="legal" data-wcs-osi="team" data-display-per-unit="false"></span>`,
+                    ),
+                );
+                expect(card.regularPrice).to.equal('US$30.00');
+                expect(card.unitText).to.be.undefined;
+            });
+
+            it('falls back to the main price when the authored legal element fails', async () => {
+                sinon.stub(globalThis, 'fetch').rejects(new Error('offline'));
+                const card = await extractMerchCard(
+                    teamFragment(
+                        `${teamPrice}<span is="inline-price" data-template="legal" data-wcs-osi="missing" data-display-per-unit="false"></span>`,
+                    ),
+                    { onPriceError: () => {} },
+                );
+                expect(card.priceErrors).to.deep.equal(['missing']);
+                expect(card.unitText).to.equal('per license');
+                expect(card.taxText).to.be.undefined;
+            });
+        });
+    });
+
+    it('returns the annual amount, not its opening parenthesis, for an annual ABM price', async () => {
+        const card = await extractMerchCard({
+            fields: {
+                prices: '<span is="inline-price" data-template="price" data-wcs-osi="abm" data-display-annual="true"></span>',
+            },
+            wcs: {
+                prod: {
+                    'abm-us-mult': [
+                        {
+                            ...offerSegments,
+                            commitment: 'YEAR',
+                            term: 'MONTHLY',
+                            offerSelectorIds: ['abm'],
+                            priceDetails: {
+                                formatString: "'US$'#,##0.00",
+                                price: 20,
+                                annualized: { annualizedPrice: 240 },
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+        expect(card.regularPrice).to.equal('US$20.00');
+        expect(card.annualPrice).to.equal('US$240.00');
+        expect(card.recurrenceText).to.equal('/mo');
     });
 
     describe('plan-type-text token', () => {

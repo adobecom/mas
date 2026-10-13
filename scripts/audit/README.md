@@ -3,18 +3,19 @@
 `audit.mjs` prices every offer on adobe.com and MAS surfaces two ways and
 reports where the results differ.
 
-| Rendering    | Source                                        |
-| ------------ | --------------------------------------------- |
-| numeric      | the client formatter, from `priceDetails`     |
-| preformatted | WCS `priceInfo`, as `inline-price` renders it |
+| Rendering    | Source                                                          |
+| ------------ | --------------------------------------------------------------- |
+| numeric      | the shared `@adobecom/mas-price` formatter, from `priceDetails` |
+| preformatted | WCS `priceInfo`, as `inline-price` renders it                   |
 
 It compares up to five prices per offer: regular, annual, optical,
 strikethrough and annual strikethrough.
 
 ## Setting up
 
-Run `npm install` at the repo root. The script imports `web-components/src`,
-so it audits the branch you have checked out.
+Use Node 22 or newer and run `npm install` at the repo root. The script imports
+`@adobecom/mas-price/price/utilities` from the linked workspace, so it audits
+the same price formatters used by web-components on the checked-out branch.
 
 ```sh
 cd scripts/audit

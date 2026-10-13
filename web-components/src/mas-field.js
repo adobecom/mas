@@ -1,4 +1,5 @@
 import {
+    EVENT_AEM_ERROR,
     EVENT_AEM_LOAD,
     EVENT_MAS_READY,
     FF_DEFAULTS,
@@ -400,13 +401,27 @@ class MasField extends HTMLElement {
         this.removeEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
     }
 
-    /** Resolves when the fragment data has loaded. Used by the autoblock timeout race. */
+    /**
+     * Resolves true when the fragment data has loaded and false when the fragment
+     * failed (including a failure that happened before this call), so callers never
+     * wait on a fragment that can no longer load. Used by the autoblock timeout race.
+     */
     checkReady() {
         if (this.#loaded) return Promise.resolve(true);
+        if (this.aemFragment?.classList.contains('error')) {
+            return Promise.resolve(false);
+        }
         return new Promise((resolve) => {
-            this.addEventListener(EVENT_AEM_LOAD, () => resolve(true), {
-                once: true,
-            });
+            const onLoad = () => {
+                this.removeEventListener(EVENT_AEM_ERROR, onError);
+                resolve(true);
+            };
+            const onError = () => {
+                this.removeEventListener(EVENT_AEM_LOAD, onLoad);
+                resolve(false);
+            };
+            this.addEventListener(EVENT_AEM_LOAD, onLoad, { once: true });
+            this.addEventListener(EVENT_AEM_ERROR, onError, { once: true });
         });
     }
 

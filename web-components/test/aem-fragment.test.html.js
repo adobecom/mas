@@ -1075,6 +1075,9 @@ runTests(async () => {
                 const fragment = document.createElement('aem-fragment');
                 masField.append(fragment);
                 spTheme.append(masField);
+                // A bare aem-fragment has no id and fails on connect; clear that
+                // so the test exercises a fragment that is still loading.
+                fragment.classList.remove('error');
 
                 const readyPromise = masField.checkReady();
                 fragment.dispatchEvent(

@@ -459,6 +459,108 @@ describe('mas-field – checkReady()', () => {
         const result = await readyPromise;
         expect(result).to.be.true;
     });
+
+    it('resolves false when aem:error fires while waiting', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        expect(await readyPromise).to.be.false;
+    });
+
+    it('resolves false when the fragment already failed', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+
+        expect(await el.checkReady()).to.be.false;
+    });
+
+    it('ignores aem:error events that do not come from its own aem-fragment', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        const other = document.createElement('div');
+        el.append(fragment, other);
+        document.body.append(el);
+
+        other.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        const readyPromise = el.checkReady();
+        other.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+
+        expect(await readyPromise).to.be.true;
+    });
+
+    it('does not leave stale listeners after a successful load', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { title: 'Creative Cloud' } },
+            }),
+        );
+        expect(await readyPromise).to.be.true;
+        expect(removeSpy.calledWith('aem:load')).to.be.true;
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
+
+    it('does not leave stale listeners after a failure', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        const readyPromise = el.checkReady();
+        fragment.dispatchEvent(
+            new CustomEvent('aem:error', { bubbles: true, detail: {} }),
+        );
+        expect(await readyPromise).to.be.false;
+        expect(removeSpy.calledWith('aem:load')).to.be.true;
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
+
+    it('stops tracking aem:error once disconnected', () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'title');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        const removeSpy = sinon.spy(el, 'removeEventListener');
+
+        el.remove();
+
+        expect(removeSpy.calledWith('aem:error')).to.be.true;
+    });
 });
 
 describe('mas-field – normalized field values', () => {

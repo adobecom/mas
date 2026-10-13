@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, nothing } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -49,6 +49,9 @@ describe('MasCollapsibleTableRow', () => {
     const createMockRepository = () => {
         const repo = document.createElement('mas-repository');
         repo.setAttribute('base-url', 'http://test');
+        repo.loadPromotions = sandbox.stub().callsFake(async () => {
+            Store.promotions.list.data.setMeta('listFetched', true);
+        });
         document.body.appendChild(repo);
         return repo;
     };
@@ -71,9 +74,233 @@ describe('MasCollapsibleTableRow', () => {
         resetStore();
         removeMockRepository();
         setItemsSelectionStore(null);
+        Store.promotions.list.data.set([]);
+        Store.promotions.list.data.removeMeta('listFetched');
     });
 
     describe('initialization', () => {
+        it('withholds prefetched promotion variation links until their project context is loaded', async () => {
+            const card = createMockTopLevelCard();
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${card}
+                    .isTopLevelExpanded=${true}
+                    .selectedTabKey=${VARIATION_TAB_NAME.PROMOTION}
+                    .promoVariationsFetchedByParent=${new Map([[card.path, [variation]]])}
+                ></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${variation.path}"]`);
+
+            try {
+                expect(row.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(row.querySelector('a.row-link-overlay')).to.be.null;
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => {
+                const link = row.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+        });
+
+        it('withholds promotion title, path, and overlay links while project context is pending', async () => {
+            const card = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            try {
+                expect(el.shadowRoot.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(el.shadowRoot.querySelector('a.row-link-overlay')).to.be.null;
+                expect(el.shadowRoot.querySelector('.title').textContent).to.include(card.title);
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => el.shadowRoot.querySelectorAll('a.fragment-editor-link').length === 2);
+            for (const link of el.shadowRoot.querySelectorAll('a')) {
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('promotionId')).to.equal('promo-project-1');
+            }
+        });
+
+        it('retries an unsuccessful promotion context load on a later render', async () => {
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'promo-var-1',
+            };
+            const loadPromotions = sandbox.stub();
+            loadPromotions.onFirstCall().resolves();
+            loadPromotions.onSecondCall().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            document.querySelector('mas-repository').loadPromotions = loadPromotions;
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            await waitUntil(() => loadPromotions.calledOnce);
+            await el.updateComplete;
+
+            el.requestUpdate();
+
+            await waitUntil(() => {
+                const link = el.shadowRoot.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+            expect(loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('selects the card without navigating when its title link is activated with Enter', async () => {
+            const card = { ...createMockTopLevelCard(), id: 'card-1' };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+            el.shadowRoot.querySelector('.title a').dispatchEvent(event);
+
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([card.path]);
+        });
+
+        it('shares promotion context between the row overlay, title, and path links', async () => {
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'promotion-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+            ]);
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'card-1',
+            };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            for (const selector of ['a.row-link-overlay', '.title a', '.path a']) {
+                const link = el.shadowRoot.querySelector(selector);
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal('card-1');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
+        for (const source of ['top-level card', 'prefetched variations']) {
+            it(`loads promotion context for links from ${source} without opening the editor`, async () => {
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+                const variation = {
+                    ...createMockTopLevelCard({
+                        path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                    }),
+                    id: 'promo-var-1',
+                };
+                const topLevelCard = source === 'top-level card' ? variation : createMockTopLevelCard();
+                const loadPromotions = sandbox.stub().callsFake(async () => {
+                    Store.promotions.list.data.set([
+                        { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                    ]);
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                });
+                document.querySelector('mas-repository').loadPromotions = loadPromotions;
+                const el = await fixture(
+                    html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                );
+                if (source === 'prefetched variations') {
+                    el.isTopLevelExpanded = true;
+                    el.promoVariationsFetchedByParent = new Map([[topLevelCard.path, [variation]]]);
+                }
+
+                await waitUntil(
+                    () =>
+                        [...el.shadowRoot.querySelectorAll('a.row-link-overlay')].some(
+                            (link) =>
+                                new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1',
+                        ),
+                    'The promotion variation link should include its project',
+                );
+                el.requestUpdate();
+                await el.updateComplete;
+
+                expect(loadPromotions.calledOnce).to.be.true;
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+            });
+        }
+
+        for (const type of ['locale', 'promotion', 'grouped']) {
+            it(`exposes the ${type} variation's own editor link`, async () => {
+                const path =
+                    type === 'locale'
+                        ? '/content/dam/mas/acom/en_CA/cards/test'
+                        : `/content/dam/mas/acom/en_US/cards/test/${type === 'grouped' ? 'pzn' : 'promotions'}/example`;
+                const variation = {
+                    ...createMockTopLevelCard({ path, title: `${type} variation` }),
+                    id: `${type}-1`,
+                };
+                const topLevelCard = {
+                    ...createMockTopLevelCard({ variationPaths: [path], references: [variation] }),
+                    id: 'parent-1',
+                };
+                setupCardVariationsInStore(topLevelCard.path, [variation]);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                if (type === 'promotion') {
+                    el.promoVariations = [variation];
+                    el.requestUpdate();
+                }
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector(`sp-tab-panel[value="${type}"]`);
+                const link = panel.querySelector('sp-table-row a');
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal(`${type}-1`);
+                expect(params.get('region')).to.equal(type === 'locale' ? 'en_CA' : 'en_US');
+            });
+        }
+
+        it('renders native fragment-editor links in translation and promotion title cells', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'top-level-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('sp-table-row a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('top-level-1');
+        });
+
         it('should initialize with default values', async () => {
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(
@@ -248,6 +475,54 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('title and path link hover', () => {
+        for (const [cell, selector, field] of [
+            ['Title', '.title', 'title'],
+            ['StudioPath', '.path', 'studioPath'],
+        ]) {
+            it(`keeps the full ${field} tooltip accessible above the row link overlay`, async () => {
+                const value = 'Full fragment value for the row overlay hover regression';
+                const topLevelCard = { ...createMockTopLevelCard({ [field]: value }), id: 'hover-card-1' };
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .cellsOverride=${[cell]}
+                        .viewOnly=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                const overlay = el.shadowRoot.querySelector(`${selector} overlay-trigger`);
+                const trigger = overlay.querySelector('[slot="trigger"]');
+                await overlay.updateComplete;
+                const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+                await hoverOverlay.updateComplete;
+                await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'The hover trigger should be visible');
+                trigger.scrollIntoView({ block: 'center', inline: 'center' });
+                const { x, y, width, height } = trigger.getBoundingClientRect();
+                const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+                expect(trigger.contains(target), 'The tooltip trigger should receive hover instead of the row link').to.be.true;
+                trigger.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+                await waitUntil(() => hoverOverlay.open, 'The full value tooltip should open on hover');
+                expect(overlay.querySelector('sp-tooltip').textContent.trim()).to.equal(value);
+                trigger.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+            });
+        }
+
+        it('keeps a native editor link on the path text above the row overlay', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'path-card-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('.path [slot="trigger"] a');
+
+            expect(link).to.exist;
+            expect(link.textContent).to.equal(topLevelCard.studioPath);
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('path-card-1');
+        });
+    });
+
     describe('renderTitle', () => {
         it('should render item title', async () => {
             const topLevelCard = createMockTopLevelCard({ title: 'My Title' });
@@ -294,6 +569,35 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderOfferId', () => {
+        it('keeps the locale variation Offer ID hover trigger accessible above the row link overlay', async () => {
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_CA/cards/test',
+                    offerData: { offerId: '68C33F4BD35E1D1CD843BBD90D526D2A' },
+                }),
+                id: 'locale-variation-1',
+            };
+            const topLevelCard = {
+                ...createMockTopLevelCard({ variationPaths: [variation.path], references: [variation] }),
+                id: 'parent-1',
+            };
+            setupCardVariationsInStore(topLevelCard.path, [variation]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const panel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const trigger = panel.querySelector('.offer-id [slot="trigger"]');
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'Offer ID text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+            expect(target === trigger, 'Offer ID text should receive hover instead of the row link').to.be.true;
+        });
+
         it('should render offer ID when offerData is present', async () => {
             const topLevelCard = createMockTopLevelCard({
                 offerData: { offerId: 'ABC-123' },
@@ -369,6 +673,38 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderOsi', () => {
+        it('shows the full OSI tooltip on hover above the row link overlay', async () => {
+            const osi = 'OSI-FULL-VALUE-FOR-HOVER-REGRESSION';
+            const topLevelCard = {
+                ...createMockTopLevelCard({ fields: [{ name: 'osi', values: [osi] }] }),
+                id: 'osi-card-1',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                    .viewOnly=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const overlay = el.shadowRoot.querySelector('.osi overlay-trigger');
+            const trigger = overlay.querySelector('[slot="trigger"]');
+            const tooltip = overlay.querySelector('sp-tooltip');
+            await overlay.updateComplete;
+            const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+            await hoverOverlay.updateComplete;
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'OSI text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const position = [Math.round(x + width / 2), Math.round(y + height / 2)];
+            const target = el.shadowRoot.elementFromPoint(...position);
+
+            expect(target === trigger, 'OSI text should receive hover instead of the row link').to.be.true;
+            target.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+            await waitUntil(() => hoverOverlay.open, 'The full OSI tooltip should open on hover');
+            expect(tooltip.textContent.trim()).to.equal(osi);
+            target.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+        });
+
         it('should render osi from the osi field', async () => {
             const topLevelCard = createMockTopLevelCard({
                 fields: [{ name: 'osi', values: ['OSI-FIELD-1'] }],

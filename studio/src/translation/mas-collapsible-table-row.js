@@ -11,7 +11,7 @@ import {
 import { loadCardVariations, fetchVariationByPath, enrichPromoVariations } from '../common/utils/items-loader.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
-import { mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
+import { getPromotionProjectsForProbe, mergePromoReferencesIntoFragmentData } from '../promotions/promotions-repository.js';
 import {
     getPromotionInfo,
     getPromotionTagFromFragment,
@@ -24,6 +24,7 @@ import {
     getPromoVariationPersonalizationTagLabels,
 } from '../editors/variation-utils.js';
 import Store from '../store.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import { PAGE_NAMES, VARIATION_TAB_NAME } from '../constants.js';
 import '../aem/aem-tag-picker-field.js';
 
@@ -60,7 +61,9 @@ export class MasCollapsibleTableRow extends LitElement {
     #promoLoadInProgress = false;
     #loadToken = 0;
     #referencesLoaded = false;
+    #promotionProjectsRequested = false;
     itemsSelection = new ItemsSelectionController(this);
+    promotionProjectsController = new ReactiveController(this, [Store.promotions.list.data]);
     variationsController = null;
     selectedCardsController = null;
 
@@ -133,6 +136,37 @@ export class MasCollapsibleTableRow extends LitElement {
                 this.isLoadingPromoVariations = false;
             }
         }
+        if (
+            !this.#promotionProjectsRequested &&
+            !this.promotionProjectsReady &&
+            this.repository &&
+            (getPromotionTagFromFragment(this.topLevelCard) ||
+                this.promoVariations.some((variation) => getPromotionTagFromFragment(variation)))
+        ) {
+            void this.#loadPromotionProjects();
+        }
+    }
+
+    get promotionProjectsReady() {
+        return Store.promotions.list.data.hasMeta('listFetched') || Store.promotions.list.data.get().length > 0;
+    }
+
+    async #loadPromotionProjects() {
+        this.#promotionProjectsRequested = true;
+        try {
+            await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            if (this.promotionProjectsReady) this.requestUpdate();
+        } finally {
+            this.#promotionProjectsRequested = false;
+        }
+    }
+
+    #getEditorLinkOptions(item) {
+        const promotionId = this.#getPromotionIdForItem(item);
+        return {
+            promotionId,
+            disabled: Boolean(getPromotionTagFromFragment(item) && !promotionId && !this.promotionProjectsReady),
+        };
     }
 
     get topLevelCardFragment() {
@@ -232,6 +266,11 @@ export class MasCollapsibleTableRow extends LitElement {
                     const variation = this.topLevelCardVariationsByPaths.get(variationPath);
                     const isSelected = this.selectedCards.includes(variationPath);
                     const isExpanded = this.expandedVariationsPaths.has(variationPath);
+                    const linkOptions = {
+                        ...this.#getEditorLinkOptions(variation),
+                        selectionOnly: isSelectable,
+                        nativeKeyboard: !isSelectable,
+                    };
                     let actionsCell = nothing;
                     if (!this.cells.includes('Actions')) {
                         if (this.renderActionsCell) {
@@ -255,6 +294,7 @@ export class MasCollapsibleTableRow extends LitElement {
                             aria-selected=${isSelected ? 'true' : 'false'}
                             @click=${isSelectable ? (event) => this.#onRowClickForSelection(event, variationPath) : null}
                         >
+                            ${renderRowLinkOverlay(variation, linkOptions)}
                             <sp-table-cell class="table-icon-cell">
                                 <sp-button
                                     class="ghost-button"
@@ -277,7 +317,8 @@ export class MasCollapsibleTableRow extends LitElement {
                                       ></sp-checkbox>
                                   </sp-table-cell>`
                                 : nothing}
-                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation) ?? nothing)} ${actionsCell}
+                            ${repeat(this.cells, (cell) => this[`render${cell}`](variation, linkOptions) ?? nothing)}
+                            ${actionsCell}
                         </sp-table-row>
 
                         ${isExpanded ? this.renderGroupedVariationDetailsRow(variationPath) : nothing}`;
@@ -296,11 +337,17 @@ export class MasCollapsibleTableRow extends LitElement {
                 ${repeat(
                     localeVariations,
                     (variation) => variation.path,
-                    (variation) =>
-                        html`<sp-table-row value=${variation.path}>
-                            ${this.renderOfferName(variation)} ${this.renderTitle(variation)} ${this.renderOfferId(variation)}
-                            ${this.renderStudioPath(variation)} ${this.renderStatus(variation)}
-                        </sp-table-row>`,
+                    (variation) => {
+                        const linkOptions = {
+                            ...this.#getEditorLinkOptions(variation),
+                            nativeKeyboard: true,
+                        };
+                        return html`<sp-table-row value=${variation.path}>
+                            ${renderRowLinkOverlay(variation, linkOptions)} ${this.renderOfferName(variation)}
+                            ${this.renderTitle(variation, linkOptions)} ${this.renderOfferId(variation)}
+                            ${this.renderStudioPath(variation, linkOptions)} ${this.renderStatus(variation)}
+                        </sp-table-row>`;
+                    },
                 )}
             </sp-table-body>
         </sp-table>`;
@@ -351,12 +398,18 @@ export class MasCollapsibleTableRow extends LitElement {
                               const { path } = variation;
                               const isSelected = this.selectedCards.includes(path);
                               const isExpanded = showExpand && this.expandedVariationsPaths.has(path);
+                              const linkOptions = {
+                                  ...this.#getEditorLinkOptions(variation),
+                                  selectionOnly: isSelectable,
+                                  nativeKeyboard: !isSelectable,
+                              };
                               return html` <sp-table-row
                                       value=${path}
                                       ?selected=${isSelected}
                                       aria-selected=${isSelected ? 'true' : 'false'}
                                       @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
                                   >
+                                      ${renderRowLinkOverlay(variation, linkOptions)}
                                       ${showExpand
                                           ? html`<sp-table-cell class="table-icon-cell">
                                                 <sp-button
@@ -380,7 +433,10 @@ export class MasCollapsibleTableRow extends LitElement {
                                                 ></sp-checkbox>
                                             </sp-table-cell>`
                                           : nothing}
-                                      ${repeat(this.variationCellNames, (cell) => this[`render${cell}`](variation) ?? nothing)}
+                                      ${repeat(
+                                          this.variationCellNames,
+                                          (cell) => this[`render${cell}`](variation, linkOptions) ?? nothing,
+                                      )}
                                   </sp-table-row>
 
                                   ${isExpanded ? this.renderPromoVariationDetailsRow(variation) : nothing}`;
@@ -392,7 +448,9 @@ export class MasCollapsibleTableRow extends LitElement {
 
     get viewOnlyTemplate() {
         const cells = this.cells;
+        const linkOptions = { ...this.#getEditorLinkOptions(this.topLevelCard), nativeKeyboard: true };
         const topLevelRow = html`<sp-table-row value=${this.topLevelCard.path}>
+            ${renderRowLinkOverlay(this.topLevelCard, linkOptions)}
             ${this.isGroupedVariation || this.viewOnlyTabs?.length
                 ? html`<sp-table-cell class="table-icon-cell">
                       <sp-button class="ghost-button" icon-only variant="secondary" @click=${this.#toggleExpandTopLevel}>
@@ -402,7 +460,7 @@ export class MasCollapsibleTableRow extends LitElement {
                       </sp-button>
                   </sp-table-cell>`
                 : html`<sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>`}
-            ${repeat(cells, (cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
+            ${repeat(cells, (cell) => this[`render${cell}`](this.topLevelCard, linkOptions) ?? nothing)}
             ${cells.includes('Preview') ? nothing : this.renderPreviewCell?.(this.topLevelCard)}
             ${cells.includes('Actions') ? nothing : this.renderActionsCell?.(this.topLevelCard)}
         </sp-table-row>`;
@@ -437,11 +495,11 @@ export class MasCollapsibleTableRow extends LitElement {
         return html`${topLevelRow}${nestedContent}`;
     }
 
-    renderTitle(item) {
+    renderTitle(item, linkOptions = {}) {
         const title = item.title || 'no title';
         return html`<sp-table-cell class="title">
             <overlay-trigger triggered-by="hover">
-                <div slot="trigger"><div>${title}</div></div>
+                <div slot="trigger">${renderEditorLink(item, title, linkOptions)}</div>
                 <sp-tooltip slot="hover-content" placement="bottom">${title}</sp-tooltip>
             </overlay-trigger>
         </sp-table-cell>`;
@@ -457,11 +515,11 @@ export class MasCollapsibleTableRow extends LitElement {
         </sp-table-cell>`;
     }
 
-    renderStudioPath(item) {
+    renderStudioPath(item, linkOptions = {}) {
         const path = item?.studioPath || 'no path';
         return html`<sp-table-cell class="path">
             <overlay-trigger triggered-by="hover">
-                <div slot="trigger"><div>${path}</div></div>
+                <div slot="trigger"><div>${renderEditorLink(item, path, linkOptions)}</div></div>
                 <sp-tooltip slot="hover-content" placement="bottom">${path}</sp-tooltip>
             </overlay-trigger>
         </sp-table-cell>`;
@@ -730,7 +788,7 @@ export class MasCollapsibleTableRow extends LitElement {
               </sp-table-row>`;
     }
 
-    #getPromoProjectUrl(variation) {
+    #getPromotionIdForItem(variation) {
         const promotionTagId = getPromotionTagFromFragment(variation);
         if (!promotionTagId) return null;
         const projects =
@@ -740,7 +798,11 @@ export class MasCollapsibleTableRow extends LitElement {
                 .filter(Boolean) || [];
         const inEditProject = Store.promotions.inEdit.get()?.value;
         const allProjects = inEditProject ? [...projects, inEditProject] : projects;
-        const id = findPromotionProjectIdByTag(promotionTagId, allProjects);
+        return findPromotionProjectIdByTag(promotionTagId, allProjects) || null;
+    }
+
+    #getPromoProjectUrl(variation) {
+        const id = this.#getPromotionIdForItem(variation);
         if (!id) return null;
         return `#page=${PAGE_NAMES.PROMOTIONS_EDITOR}&promotionId=${encodeURIComponent(id)}`;
     }
@@ -790,6 +852,7 @@ export class MasCollapsibleTableRow extends LitElement {
     render() {
         if (this.viewOnly) return this.viewOnlyTemplate;
         const isSelected = this.selectedCards.includes(this.topLevelCard.path);
+        const linkOptions = { ...this.#getEditorLinkOptions(this.topLevelCard), selectionOnly: true };
         return html`
             <sp-table-row
                 value=${this.topLevelCard.path}
@@ -797,6 +860,7 @@ export class MasCollapsibleTableRow extends LitElement {
                 aria-selected=${isSelected ? 'true' : 'false'}
                 @click=${(e) => this.#onRowClickForSelection(e, this.topLevelCard.path)}
             >
+                ${renderRowLinkOverlay(this.topLevelCard, linkOptions)}
                 <sp-table-cell class="table-icon-cell">
                     <sp-button class="ghost-button" icon-only variant="secondary" @click=${this.#toggleExpandTopLevel}>
                         ${this.isTopLevelExpanded
@@ -811,7 +875,7 @@ export class MasCollapsibleTableRow extends LitElement {
                         @change=${(e) => this.#toggleSelect(e, this.topLevelCard.path)}
                     ></sp-checkbox>
                 </sp-table-cell>
-                ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard) ?? nothing)}
+                ${this.cells.map((cell) => this[`render${cell}`](this.topLevelCard, linkOptions) ?? nothing)}
             </sp-table-row>
 
             ${this.isTopLevelExpanded

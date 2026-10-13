@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { waitUntil } from '@open-wc/testing-helpers/pure';
+import { setViewport } from '@web/test-runner-commands';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import '../../src/promotions/mas-promotions.js';
@@ -136,6 +137,54 @@ describe('MasPromotions', () => {
     });
 
     describe('rendering and guards', () => {
+        it('renders promotion editor links on the project title and row overlay', async () => {
+            const { el } = await mountWithRepo(makePromotion({ id: 'promotion-1', title: 'Promotion' }));
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            for (const selector of ['a.fragment-editor-link', 'a.row-link-overlay']) {
+                const link = row.querySelector(selector);
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('page')).to.equal('promotions-editor');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
+        describe('promotion badge layout', () => {
+            let viewport;
+
+            beforeEach(async () => {
+                viewport = { width: window.innerWidth, height: window.innerHeight };
+                await setViewport({ width: 1920, height: 1080 });
+            });
+
+            afterEach(async () => {
+                await setViewport(viewport);
+            });
+
+            for (const { label, selector, column } of [
+                { label: 'Evergreen', selector: '.evergreen-badge', column: 1 },
+                { label: 'Staged', selector: '.staged-badge', column: 2 },
+            ]) {
+                it(`keeps the ${label} badge visible in its own column without hover`, async () => {
+                    const promotion = stagePromotion(makePromotion({ id: 'promo-1', title: 'Evergreen', endDate: '' }));
+                    const { el } = await mountWithRepo(promotion);
+                    const row = el.shadowRoot.querySelector('sp-table-row');
+                    const badge = row.querySelector(selector);
+                    await waitUntil(() => badge.getBoundingClientRect().width > 0, 'The badge should have visible bounds');
+                    const cell = row.querySelectorAll('sp-table-cell')[column];
+                    const header = el.shadowRoot.querySelectorAll('sp-table-head-cell')[column];
+                    const cellBounds = cell.getBoundingClientRect();
+                    const badgeBounds = badge.getBoundingClientRect();
+                    const headerBounds = header.getBoundingClientRect();
+
+                    expect(badgeBounds.left).to.be.at.least(cellBounds.left);
+                    expect(badgeBounds.right).to.be.at.most(cellBounds.right);
+                    expect(cellBounds.left).to.be.closeTo(headerBounds.left, 1);
+                    expect(cellBounds.right).to.be.closeTo(headerBounds.right, 1);
+                });
+            }
+        });
+
         it('sets an error when connected without a repository', async () => {
             const el = document.createElement('mas-promotions');
             sandbox.stub(el, 'repository').get(() => null);

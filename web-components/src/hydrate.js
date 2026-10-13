@@ -1032,7 +1032,7 @@ export function processCTAs(
 
         footer.textContent = '';
         footer.append(
-            ...(merchCard.variant === 'product-pricing'
+            ...(['pro', 'product-pricing'].includes(merchCard.variant)
                 ? filledFirst(ctas)
                 : ctas),
         );

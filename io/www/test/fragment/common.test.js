@@ -240,11 +240,56 @@ describe('common utils', () => {
             expect(fetchStub.callCount).to.equal(3);
         });
 
+        it('does not share requests whose headers differ', async () => {
+            fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
+            await Promise.all([
+                odinFetch(URL_A, { ...previewContext(), DEFAULT_HEADERS: { Authorization: 'one' } }, 'fragment'),
+                odinFetch(URL_A, { ...previewContext(), DEFAULT_HEADERS: { Authorization: 'two' } }, 'fragment'),
+                odinFetch(URL_A, previewContext(), 'fragment'),
+            ]);
+            expect(fetchStub.callCount).to.equal(3);
+            expect(fetchStub.args.map(([, { headers }]) => headers.Authorization)).to.have.members(['one', 'two', undefined]);
+        });
+
+        it('shares requests whose headers and network policy match', async () => {
+            fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
+            const context = () => ({ ...previewContext(), DEFAULT_HEADERS: { Accept: 'application/json' } });
+            await Promise.all([odinFetch(URL_A, context(), 'fragment'), odinFetch(URL_A, context(), 'fragment')]);
+            expect(fetchStub.callCount).to.equal(1);
+        });
+
+        it('does not share requests whose network policy differs', async () => {
+            fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
+            const withConfig = (config) => ({ preview: { url: 'https://odinpreview.corp.adobe.com' }, networkConfig: config });
+            await Promise.all([
+                odinFetch(URL_A, withConfig({ retries: 1, retryDelay: 1, fetchTimeout: 50 }), 'fragment'),
+                odinFetch(URL_A, withConfig({ retries: 3, retryDelay: 1, fetchTimeout: 50 }), 'fragment'),
+                odinFetch(URL_A, withConfig({ retries: 1, retryDelay: 1, fetchTimeout: 5000 }), 'fragment'),
+                odinFetch(URL_A, withConfig({ retries: 1, retryDelay: 9, fetchTimeout: 50 }), 'fragment'),
+                odinFetch(URL_A, withConfig(undefined), 'fragment'),
+            ]);
+            expect(fetchStub.callCount).to.equal(5);
+        });
+
+        it('treats a missing network config like the defaults', async () => {
+            fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
+            const withConfig = (networkConfig) => ({ preview: { url: 'https://odinpreview.corp.adobe.com' }, networkConfig });
+            await Promise.all([
+                odinFetch(URL_A, withConfig(undefined), 'fragment'),
+                odinFetch(URL_A, withConfig({}), 'fragment'),
+                odinFetch(URL_A, withConfig({ retries: 3, fetchTimeout: 2000, retryDelay: 100 }), 'fragment'),
+            ]);
+            expect(fetchStub.callCount).to.equal(1);
+        });
+
         it('does not poison later reads when the shared request rejects', async () => {
             const context = previewContext();
+            let reads = 0;
             Object.defineProperty(context, 'networkConfig', {
                 get: () => {
-                    throw new Error('bad config');
+                    // 1st read builds the share key, 2nd runs inside the shared request and throws
+                    if (++reads === 2) throw new Error('bad config');
+                    return networkConfig;
                 },
             });
             const readers = await Promise.allSettled([
@@ -252,6 +297,7 @@ describe('common utils', () => {
                 odinFetch(URL_A, context, 'fragment'),
             ]);
             readers.forEach((reader) => expect(reader.status).to.equal('rejected'));
+            expect(reads).to.equal(3);
             fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
             expect((await odinFetch(URL_A, previewContext(), 'fragment')).status).to.equal(200);
         });

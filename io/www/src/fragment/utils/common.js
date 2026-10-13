@@ -143,6 +143,11 @@ async function fetchAttempt(path, context, timeout, marker) {
     }
 }
 
+const networkPolicy = ({ networkConfig }) => {
+    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = networkConfig || {};
+    return { retries, fetchTimeout, retryDelay };
+};
+
 /**
  * fetches a path with retries and timeout
  * @param {*} path
@@ -152,7 +157,7 @@ async function fetchAttempt(path, context, timeout, marker) {
  */
 async function fetchWithRetries(path, context, marker) {
     mark(context, `${marker}`);
-    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    const { retries, fetchTimeout, retryDelay } = networkPolicy(context);
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -174,8 +179,9 @@ async function fetchWithRetries(path, context, marker) {
 }
 
 // Preview pipelines run in the browser, one per aem-fragment, so identical Odin GETs overlap.
-// Concurrent reads of one URL share a single request (retries included). An entry lives only while
-// its request is pending: any later read goes to Odin, so author edits are never served stale.
+// Concurrent reads share a single request (retries included) only when URL, request headers and
+// network policy (retries, timeout, delay) all match. An entry lives only while its request is
+// pending: any later read goes to Odin, so author edits are never served stale.
 // Published (server) reads are not shared.
 let pendingFetches = new Map();
 
@@ -190,18 +196,19 @@ const ownResponse = (response) =>
         : { status: response.status, message: response.message };
 
 /**
- * fetches a path with retries and timeout; in preview, concurrent calls for the same path share one request
+ * fetches a path with retries and timeout; in preview, concurrent calls with the same path, headers and network policy share one request
  * @param {*} path
  * @param {*} context
  * @param {*} marker
  */
 async function internalFetch(path, context, marker) {
     if (!context.preview) return fetchWithRetries(path, context, marker);
-    let pending = pendingFetches.get(path);
+    const key = JSON.stringify([path, context.DEFAULT_HEADERS ?? {}, networkPolicy(context)]);
+    let pending = pendingFetches.get(key);
     if (!pending) {
         const requests = pendingFetches;
-        pending = fetchWithRetries(path, context, marker).finally(() => requests.delete(path));
-        requests.set(path, pending);
+        pending = fetchWithRetries(path, context, marker).finally(() => requests.delete(key));
+        requests.set(key, pending);
     }
     return ownResponse(await pending);
 }

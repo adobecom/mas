@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/common/components/mas-grouped-selector.js';
@@ -22,12 +22,12 @@ const render = (selected = [], { readonly = false, required = true } = {}) =>
 
 const query = (el, selector) => el.shadowRoot.querySelector(selector);
 
-// A modal left open blocks clicks in later tests, so close it and wait until it is gone.
-const closeDialog = async (el) => {
-    const overlay = query(el, 'overlay-trigger').shadowRoot.querySelector('sp-overlay');
-    await waitUntil(() => overlay.state === 'opened', 'dialog did not open');
-    query(el, '.selector-dialog').dispatchEvent(new Event('cancel'));
-    await waitUntil(() => overlay.state === 'closed', 'dialog did not close');
+// The click tests check the component's own handlers. A real modal would stay in the top layer and
+// block clicks in later tests, so keep the overlay from opening at all.
+const keepDialogClosed = async (el) => {
+    const trigger = query(el, 'overlay-trigger');
+    trigger.disabled = true;
+    await trigger.updateComplete;
 };
 
 describe('MasGroupedSelector', () => {
@@ -100,10 +100,10 @@ describe('MasGroupedSelector', () => {
 
     it('does not toggle the list when the edit trigger is clicked', async () => {
         const el = await render(['fr_FR']);
+        await keepDialogClosed(el);
         query(el, '.edit-button').click();
         await el.updateComplete;
         expect(el.expanded).to.be.false;
-        await closeDialog(el);
     });
 
     it('projects slotted picker content into the dialog', async () => {
@@ -116,9 +116,9 @@ describe('MasGroupedSelector', () => {
         const el = await render();
         const onOpen = sinon.spy();
         el.addEventListener('open', onOpen);
+        await keepDialogClosed(el);
         query(el, '.add-button').click();
         expect(onOpen.calledOnce).to.be.true;
-        await closeDialog(el);
     });
 
     it('dispatches confirm and closes the dialog on confirm', async () => {

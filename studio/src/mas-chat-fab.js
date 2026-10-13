@@ -1,6 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import Store from './store.js';
 import { PAGE_NAMES } from './constants.js';
+import { masaWorking } from './img/masa-working.js';
 
 export class MasChatFab extends LitElement {
     static properties = {
@@ -51,9 +52,7 @@ export class MasChatFab extends LitElement {
                 @click=${this.toggleDrawer}
                 title="${this.open ? 'Close MASA' : 'Open MASA'}"
             >
-                ${this.open
-                    ? html`<sp-icon-close slot="icon"></sp-icon-close>`
-                    : html`<sp-icon-chat slot="icon"></sp-icon-chat>`}
+                ${this.open ? html`<sp-icon-close slot="icon"></sp-icon-close>` : html`<span slot="icon">${masaWorking}</span>`}
             </sp-action-button>
         `;
     }

@@ -1807,9 +1807,26 @@ mas-chat-input .input-row {
     transform: scale(0.95);
 }
 
-.chat-fab sp-icon-chat,
 .chat-fab sp-icon-close {
     color: white;
+}
+
+.chat-fab {
+    overflow: hidden;
+}
+
+.chat-fab span[slot='icon'] {
+    display: flex;
+    width: 48px;
+    height: 48px;
+}
+
+.chat-fab .masa-working-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
 }
 
 .chat-fab-active {

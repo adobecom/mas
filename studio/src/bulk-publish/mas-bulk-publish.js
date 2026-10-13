@@ -9,6 +9,7 @@ import { startReverting, resetToDraft } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
 import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
 import { removeFromFragmentCache } from '../mas-repository.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-bulk-publish-duplicate-dialog.js';
 import './mas-bulk-publish-delete-dialog.js';
 import './mas-bulk-publish-revert-dialog.js';
@@ -320,7 +321,12 @@ class MasBulkPublish extends LitElement {
                 class=${isDisabled ? 'disabled' : ''}
                 @dblclick=${() => this.openProject(projectStore)}
             >
-                <sp-table-cell class="project-name">${title || 'Untitled project'}</sp-table-cell>
+                ${renderRowLinkOverlay({ id: data.id }, { page: PAGE_NAMES.BULK_PUBLISH_EDITOR })}
+                <sp-table-cell class="project-name"
+                    >${renderEditorLink({ id: data.id }, title || 'Untitled project', {
+                        page: PAGE_NAMES.BULK_PUBLISH_EDITOR,
+                    })}</sp-table-cell
+                >
                 <sp-table-cell class="center">${counts.fragment}</sp-table-cell>
                 <sp-table-cell class="center">${counts.collection}</sp-table-cell>
                 <sp-table-cell class="center">${counts.placeholder}</sp-table-cell>

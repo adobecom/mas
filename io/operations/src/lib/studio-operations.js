@@ -131,74 +131,6 @@ export class StudioOperations {
     }
 
     /**
-     * Publish a card to production
-     * @param {Object} params - { id: string, publishReferences?: boolean }
-     */
-    async publishCard(params) {
-        const { id, publishReferences = true } = params;
-
-        if (!id) {
-            throw new Error('Card ID is required for publish operation');
-        }
-
-        const fragment = await this.aemClient.getFragment(id);
-
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
-        }
-
-        await this.aemClient.publishFragment(fragment.id, publishReferences);
-
-        const card = this.formatCard(fragment);
-        const studioLinks = this.urlBuilder.createCardLinks(card);
-
-        return {
-            success: true,
-            operation: 'publish',
-            card,
-            message: `✓ "${fragment.title}" has been published to production.`,
-            studioLinks: {
-                viewInStudio: studioLinks.view,
-                viewFolder: studioLinks.folder,
-            },
-        };
-    }
-
-    /**
-     * Unpublish a card from production
-     * @param {Object} params - { id: string }
-     */
-    async unpublishCard(params) {
-        const { id } = params;
-
-        if (!id) {
-            throw new Error('Card ID is required for unpublish operation');
-        }
-
-        const fragment = await this.aemClient.getFragment(id);
-
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
-        }
-
-        await this.aemClient.unpublishFragment(fragment.id);
-
-        const card = this.formatCard(fragment);
-        const studioLinks = this.urlBuilder.createCardLinks(card);
-
-        return {
-            success: true,
-            operation: 'unpublish',
-            card,
-            message: `✓ "${fragment.title}" has been unpublished from production.`,
-            studioLinks: {
-                viewInStudio: studioLinks.view,
-                viewFolder: studioLinks.folder,
-            },
-        };
-    }
-
-    /**
      * Get a card by ID
      * @param {Object} params - { id: string }
      */
@@ -1240,61 +1172,6 @@ export class StudioOperations {
             count: results.length,
             errors: errors.length > 0 ? errors : undefined,
             message: `Showing ${results.length} card${results.length !== 1 ? 's' : ''} from ${operationLabel}`,
-        };
-    }
-
-    async createLocaleVariation(params) {
-        const { id, targetLocale } = params;
-        if (!id) throw new Error('Card ID is required');
-        if (!targetLocale) throw new Error('Target locale is required');
-
-        const parentFragment = await this.aemClient.getFragment(id);
-        if (!parentFragment) throw new Error(`Card not found: ${id}`);
-
-        const match = parentFragment.path.match(PATH_TOKENS);
-        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
-
-        const { surface, locale: parentLocale, fragmentPath } = match.groups;
-        if (parentLocale !== 'en_US') {
-            throw new Error('Variations can only be created from en_US (default locale) cards');
-        }
-
-        const targetFolderPath = `/content/dam/mas/${surface}/${targetLocale}`;
-        const targetFragmentPath = `${targetFolderPath}/${fragmentPath}`;
-
-        try {
-            const existing = await this.aemClient.getFragmentByPath(targetFragmentPath);
-            if (existing) throw new Error(`Variation already exists at ${targetFragmentPath}`);
-        } catch (e) {
-            if (!e.message.includes('not found') && !e.message.includes('Failed to get')) throw e;
-        }
-
-        const folderParts = targetFragmentPath.split('/');
-        folderParts.pop();
-        const folderPath = folderParts.join('/');
-        await this.aemClient.createFolder(folderPath);
-
-        const fragmentData = {
-            title: parentFragment.title,
-            description: parentFragment.description || `Variation: ${targetLocale}`,
-            modelId: parentFragment.model?.id || parentFragment.modelId,
-            parentPath: folderPath,
-            fields: [],
-            tags: (parentFragment.tags || []).map((t) => t.id || t),
-        };
-
-        const newFragment = await this.aemClient.createFragment(fragmentData);
-
-        await this.updateParentVariations(parentFragment, newFragment.path || targetFragmentPath);
-
-        const card = this.formatCard(newFragment);
-        return {
-            success: true,
-            operation: 'create_locale_variation',
-            card,
-            parentId: id,
-            targetLocale,
-            message: `Created ${targetLocale} variation of "${parentFragment.title}"`,
         };
     }
 

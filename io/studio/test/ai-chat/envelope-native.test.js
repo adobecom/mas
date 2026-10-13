@@ -71,7 +71,7 @@ describe('ai-chat/envelope-native', () => {
 
         it('forces confirmation for state-changing intents regardless of the envelope', () => {
             const body = buildEnvelopeResponseBody({
-                intent: 'publish_card',
+                intent: 'copy_card',
                 slots: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
                 confidence: 0.99,
                 confirmationRequired: false,

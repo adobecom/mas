@@ -72,7 +72,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeOperation('publish_card', { id: 'frag-1' });
+            await executeOperation('copy_card', { id: 'frag-1' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers['Authorization']).to.equal('Bearer test-token-123');
@@ -85,7 +85,7 @@ describe('mcp-client', () => {
                 json: () => Promise.resolve({ success: true }),
             });
 
-            await executeOperation('publish_card', { id: 'frag-1' });
+            await executeOperation('copy_card', { id: 'frag-1' });
 
             const [, options] = fetchStub.firstCall.args;
             expect(options.headers['x-gw-ims-org-id']).to.equal('test-org-id@AdobeOrg');
@@ -129,11 +129,11 @@ describe('mcp-client', () => {
             });
 
             try {
-                await executeOperation('publish_card', { id: 'frag-1' });
+                await executeOperation('copy_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
-                expect(error.message).to.include('publish_card');
+                expect(error.message).to.include('copy_card');
             }
         });
 
@@ -145,7 +145,7 @@ describe('mcp-client', () => {
             });
 
             try {
-                await executeOperation('publish_card', { id: 'frag-1' });
+                await executeOperation('copy_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
@@ -157,7 +157,7 @@ describe('mcp-client', () => {
             fetchStub.rejects(new Error('Network error'));
 
             try {
-                await executeOperation('publish_card', { id: 'frag-1' });
+                await executeOperation('copy_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Failed to execute');
@@ -206,7 +206,7 @@ describe('mcp-client', () => {
             };
 
             try {
-                await executeOperation('publish_card', { id: 'frag-1' });
+                await executeOperation('copy_card', { id: 'frag-1' });
                 expect.fail('Should have thrown');
             } catch (error) {
                 expect(error.message).to.include('Not authenticated');
@@ -253,31 +253,6 @@ describe('mcp-client', () => {
             const result = await executeStudioOperation('create_release_cards', {});
 
             expect(result.success).to.equal(false);
-        });
-
-        it('maps publish_card result correctly', async () => {
-            fetchStub.resolves({
-                ok: true,
-                json: () =>
-                    Promise.resolve({
-                        id: 'frag-1',
-                        title: 'My Card',
-                        path: '/content/dam/mas/cards/my-card',
-                        deepLink: 'https://example.com/link',
-                    }),
-            });
-
-            const result = await executeStudioOperation('publish_card', {
-                id: 'frag-1',
-            });
-
-            expect(result.success).to.be.true;
-            expect(result.operation).to.equal('publish');
-            expect(result.fragmentId).to.equal('frag-1');
-            expect(result.fragmentTitle).to.equal('My Card');
-            expect(result.fragmentPath).to.equal('/content/dam/mas/cards/my-card');
-            expect(result.message).to.include('published');
-            expect(result.deepLink).to.equal('https://example.com/link');
         });
 
         it('maps search_cards result correctly', async () => {
@@ -447,24 +422,6 @@ describe('mcp-client', () => {
         });
 
         describe('defensive guards on response shape drift', () => {
-            it('publish_card falls back when result.id is missing', async () => {
-                fetchStub.resolves({
-                    ok: true,
-                    json: () => Promise.resolve({ card: { id: 'nested-id', title: 'From card' } }),
-                });
-                const result = await executeStudioOperation('publish_card', { id: 'param-id' });
-                expect(result.fragmentId).to.equal('nested-id');
-                expect(result.fragmentTitle).to.equal('From card');
-                expect(result.message).to.equal('✓ "From card" has been published to production.');
-            });
-
-            it('publish_card falls back to operationParams.id when result is empty', async () => {
-                fetchStub.resolves({ ok: true, json: () => Promise.resolve({}) });
-                const result = await executeStudioOperation('publish_card', { id: 'param-id' });
-                expect(result.fragmentId).to.equal('param-id');
-                expect(result.message).to.equal('✓ Card published to production.');
-            });
-
             it('get_card returns null fragment and safe message when result.card is missing', async () => {
                 fetchStub.resolves({ ok: true, json: () => Promise.resolve({}) });
                 const result = await executeStudioOperation('get_card', { id: 'frag-1' });

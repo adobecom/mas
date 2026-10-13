@@ -2293,9 +2293,6 @@ export class MasChat extends LitElement {
         const messages = {
             search_cards: 'Searching for cards...',
             search: 'Searching for cards...',
-            publish_card: 'Publishing card...',
-            publish: 'Publishing card...',
-            unpublish: 'Unpublishing card...',
             copy_card: 'Copying card...',
             copy: 'Copying card...',
             update_card: 'Updating card...',

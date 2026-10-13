@@ -227,7 +227,6 @@ const TOOL_NAME_ALIASES = {
     list_cards: 'search_cards',
     list_fragments: 'search_cards',
     get_fragment: 'get_card',
-    publish_fragment: 'publish_card',
     update_fragment: 'update_card',
     copy_fragment: 'copy_card',
 };
@@ -291,7 +290,6 @@ function validateStudioOperation(operation) {
     }
 
     switch (operation.operationName) {
-        case 'publish_card':
         case 'get_card':
         case 'copy_card':
         case 'update_card':
@@ -379,12 +377,6 @@ function validateStudioOperation(operation) {
         case 'create_tags':
             if (!operation.operationParams.tags || !Array.isArray(operation.operationParams.tags)) {
                 return { valid: false, error: 'create_tags requires operationParams.tags array' };
-            }
-            break;
-
-        case 'create_offer_selector':
-            if (!operation.operationParams.productArrangementCode) {
-                return { valid: false, error: 'create_offer_selector requires operationParams.productArrangementCode' };
             }
             break;
 

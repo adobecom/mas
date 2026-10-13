@@ -36,6 +36,6 @@ A grouped variation is a personalization variation created under a parent fragme
 
 ## Which variation operations can MASA perform?
 
-Read-only: get_variations returns the variation graph for a fragment. State-changing, and always requiring confirmation: create_locale_variation creates a new locale variation given the parent card's UUID and a target locale, with an optional title; create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags.
+Read-only: get_variations returns the variation graph for a fragment. State-changing, and always requiring confirmation: create_grouped_variation creates a grouped (pzn) variation under a parent, with optional title and tags. Locale variations are created in Studio's fragment editor, not by the assistant.
 
 The narrower lookups that used to sit alongside get_variations — a card plus its full tree, the locales a card has variations for, and a variation's parent — were removed. The assistant offered them but nothing could execute them, so picking one ended the turn with no answer. Use get_variations, or the fragment editor's variations panel in Studio.

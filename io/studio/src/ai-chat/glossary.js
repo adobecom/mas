@@ -143,7 +143,7 @@ OST (Offer Selector Tool) = authoring UI in M@S Studio that lets authors search/
   Connects to: WCS/AOS so authors can attach offer IDs, dynamic prices, checkout URLs to cards.
   Distinct from: OSI (the ID); offer selector (the query object).
 
-Operations service = the MAS I/O Runtime backend that runs the card, offer, and product actions (search_cards, publish_card, etc.) the assistant requests.
+Operations service = the MAS I/O Runtime backend that runs the card, offer, and product actions (search_cards, update_card, etc.) the assistant requests.
   Distinct from: the assistant, which only decides which action to run; the operations service executes it.
 
 RAG = Retrieval-Augmented Generation. AI pattern where the LLM retrieves relevant docs at query time.

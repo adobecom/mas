@@ -63,16 +63,6 @@ export const INTENTS = [
         confirmation_template: null,
     },
     {
-        name: 'publish_card',
-        category: 'state-changing',
-        description: 'Publish a single card to production.',
-        required_slots: ['id'],
-        optional_slots: [],
-        slot_validators: { id: 'uuid' },
-        tool_target: 'publish_card',
-        confirmation_template: 'Publish card {{id}} to production?',
-    },
-    {
         name: 'update_card',
         category: 'state-changing',
         // `fields`, not `updates`: update-card.js reads { id, fields, title,
@@ -107,16 +97,6 @@ export const INTENTS = [
         slot_validators: { id: 'uuid' },
         tool_target: 'get_variations',
         confirmation_template: null,
-    },
-    {
-        name: 'create_locale_variation',
-        category: 'state-changing',
-        description: 'Create a new locale variation of an existing fragment.',
-        required_slots: ['parentId', 'locale'],
-        optional_slots: ['title'],
-        slot_validators: { parentId: 'uuid', locale: 'locale', title: 'string' },
-        tool_target: 'create_locale_variation',
-        confirmation_template: 'Create {{locale}} variation of card {{parentId}}?',
     },
     {
         name: 'create_grouped_variation',
@@ -196,22 +176,6 @@ export const INTENTS = [
         slot_validators: { arrangementCode: 'string' },
         tool_target: 'get_product_by_arrangement_code',
         confirmation_template: null,
-    },
-    {
-        name: 'create_offer_selector',
-        category: 'state-changing',
-        description: 'Create a new AOS offer selector and return its OSI.',
-        required_slots: ['productArrangementCode', 'customerSegment', 'marketSegment', 'offerType'],
-        optional_slots: ['commitment', 'term', 'pricePoint'],
-        slot_validators: {
-            productArrangementCode: 'string',
-            customerSegment: 'string',
-            marketSegment: 'string',
-            offerType: 'string',
-        },
-        tool_target: 'create_offer_selector',
-        confirmation_template:
-            'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
     },
     // ===== Collections & tagging =====
     {

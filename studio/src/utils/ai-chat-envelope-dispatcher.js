@@ -42,12 +42,9 @@ export const NON_OPERATION_INTENTS = new Set([
  * tool_target is an actual operation.
  */
 export const STATE_CHANGING_INTENTS = new Set([
-    'publish_card',
     'update_card',
     'copy_card',
-    'create_locale_variation',
     'create_grouped_variation',
-    'create_offer_selector',
     'link_card_to_offer',
 ]);
 
@@ -61,13 +58,9 @@ export const STATE_CHANGING_INTENTS = new Set([
  * confirmation — so a template keyed to one can never be looked up.
  */
 const CONFIRMATION_TEMPLATES = {
-    publish_card: 'Publish card {{id}} to production?',
     update_card: 'Update card {{id}}?',
     copy_card: 'Duplicate card {{id}}?',
-    create_locale_variation: 'Create {{locale}} variation of card {{parentId}}?',
     create_grouped_variation: 'Create grouped variation of card {{parentId}}?',
-    create_offer_selector:
-        'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
     link_card_to_offer: 'Link card {{cardId}} to offer {{offerSelectorId}}?',
 };
 

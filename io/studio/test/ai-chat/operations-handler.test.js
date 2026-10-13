@@ -16,7 +16,6 @@ describe('ai-chat/operations-handler', () => {
 
     describe('registry-derived operation allowlist', () => {
         const LEGACY_HARDCODED_TOOLS = [
-            'publish_card',
             'get_card',
             'search_cards',
             'copy_card',
@@ -28,12 +27,12 @@ describe('ai-chat/operations-handler', () => {
             'list_products',
             'get_product_by_arrangement_code',
             'create_release_cards',
-            'create_offer_selector',
         ];
         // create_tags was on the hardcoded list and in the registry, but no
-        // action ever backed it, so a confirmed request 404'd. It left the
-        // registry with the seven translation intents, and the allowlist is
-        // derived from the registry, so it is gone from here too.
+        // action ever backed it, so a confirmed request 404'd. publish_card,
+        // create_offer_selector and create_locale_variation were later removed
+        // from the registry too. The allowlist is derived from the registry, so
+        // all four are gone from here.
 
         function toolNameVerdict(operationName) {
             const result = validateOperation({ type: 'studio_operation', operationName, operationParams: { any: true } });
@@ -53,7 +52,6 @@ describe('ai-chat/operations-handler', () => {
             // the bulk/collection removal.
             const REGISTRY_ONLY_TOOLS = [
                 'create_grouped_variation',
-                'create_locale_variation',
                 'link_card_to_offer',
                 'list_context_cards',
             ];
@@ -77,11 +75,11 @@ describe('ai-chat/operations-handler', () => {
 
         it('parses a JSON code block containing an operation', () => {
             const text =
-                '```json\n{"type":"studio_operation","operationName":"publish_card","operationParams":{"id":"frag-1"}}\n```';
+                '```json\n{"type":"studio_operation","operationName":"copy_card","operationParams":{"id":"frag-1"}}\n```';
             const result = parseOperationRequest(text);
             expect(result).to.not.equal(null);
             expect(result.type).to.equal('studio_operation');
-            expect(result.operationName).to.equal('publish_card');
+            expect(result.operationName).to.equal('copy_card');
             expect(result.operationParams.id).to.equal('frag-1');
         });
 
@@ -134,7 +132,7 @@ describe('ai-chat/operations-handler', () => {
         it('accepts a valid operation', () => {
             const result = validateOperation({
                 type: 'studio_operation',
-                operationName: 'publish_card',
+                operationName: 'copy_card',
                 operationParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             });
             expect(result.valid).to.equal(true);
@@ -181,12 +179,12 @@ describe('ai-chat/operations-handler', () => {
         it('strips studio_ prefix from operation names', () => {
             const op = {
                 type: 'studio_operation',
-                operationName: 'studio_publish_card',
+                operationName: 'studio_copy_card',
                 operationParams: { id: '0a0eed5c-cb62-4cfa-b7bf-d45b0b5845cf' },
             };
             const result = validateOperation(op);
             expect(result.valid).to.equal(true);
-            expect(op.operationName).to.equal('publish_card');
+            expect(op.operationName).to.equal('copy_card');
         });
 
         it('canonicalizes the surface to lowercase so model-echoed casing (ACOM) passes', () => {
@@ -345,8 +343,8 @@ describe('ai-chat/operations-handler server-authoritative hardening', () => {
         expect(result.confirmationRequired).to.equal(true);
     });
 
-    it('forces confirmation for publish_card', () => {
-        const result = handleOperationFn(opText('publish_card', { id: UUID }));
+    it('forces confirmation for copy_card', () => {
+        const result = handleOperationFn(opText('copy_card', { id: UUID }));
         expect(result.confirmationRequired).to.equal(true);
     });
 

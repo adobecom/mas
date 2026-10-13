@@ -18,7 +18,7 @@ describe('model validation regressions', () => {
     });
     for (const slots of [null, 7, 'slots', []]) {
         it(`coerces malformed slots ${JSON.stringify(slots)}`, () => {
-            expect(envelope.validateEnvelope({ intent: 'publish_card', confidence: 'high', slots }).coerced.intent).to.equal(
+            expect(envelope.validateEnvelope({ intent: 'copy_card', confidence: 'high', slots }).coerced.intent).to.equal(
                 'ASK_USER',
             );
         });
@@ -26,14 +26,14 @@ describe('model validation regressions', () => {
     for (const missing_slots of [null, 7, 'missing', {}]) {
         it(`coerces malformed missing_slots ${JSON.stringify(missing_slots)}`, () => {
             expect(
-                envelope.validateEnvelope({ intent: 'publish_card', confidence: 'high', slots: {}, missing_slots }).coerced
+                envelope.validateEnvelope({ intent: 'copy_card', confidence: 'high', slots: {}, missing_slots }).coerced
                     .intent,
             ).to.equal('ASK_USER');
         });
     }
     it('does not mutate missing_slots', () => {
         const missing_slots = [];
-        envelope.validateEnvelope({ intent: 'publish_card', confidence: 'high', slots: {}, missing_slots });
+        envelope.validateEnvelope({ intent: 'copy_card', confidence: 'high', slots: {}, missing_slots });
         expect(missing_slots).to.deep.equal([]);
     });
     it('does not trust assistant narrative ids', () => {
@@ -214,7 +214,7 @@ describe('model validation regressions', () => {
             send.resolves({
                 success: true,
                 message: JSON.stringify({
-                    intent: 'publish_card',
+                    intent: 'copy_card',
                     slots: null,
                     confidence: 'high',
                     user_message: 'Publishing',
@@ -228,7 +228,7 @@ describe('model validation regressions', () => {
             send.resolves({
                 success: true,
                 message: null,
-                toolUse: { name: 'emit_envelope', input: { intent: 'publish_card', slots: null, confidence: 'high' } },
+                toolUse: { name: 'emit_envelope', input: { intent: 'copy_card', slots: null, confidence: 'high' } },
                 usage: { inputTokens: 10, outputTokens: 5 },
             });
             const result = await main({ ...params, ENVELOPE_MODE: undefined, message: 'tell me about yourself' });
@@ -250,17 +250,17 @@ describe('model validation regressions', () => {
             expect(result.body.operationName).to.equal('update_card');
             expect(result.body.confirmationRequired).to.equal(true);
         });
-        it('keeps publish targets from structured tool results', async () => {
+        it('keeps operation targets from structured tool results', async () => {
             send.resolves({
                 success: true,
-                message: JSON.stringify({ type: 'studio_operation', operationName: 'publish_card', operationParams: { id } }),
+                message: JSON.stringify({ type: 'studio_operation', operationName: 'copy_card', operationParams: { id } }),
                 usage: { inputTokens: 10, outputTokens: 5 },
             });
             const result = await main({
                 ...params,
                 conversationHistory: [{ role: 'assistant', operationResult: { success: true, results: [{ id }] } }],
             });
-            expect(result.body.operationName).to.equal('publish_card');
+            expect(result.body.operationName).to.equal('copy_card');
             expect(result.body.confirmationRequired).to.equal(true);
         });
         it('accepts an OSI from a successful tool-role JSON result', async () => {
@@ -328,10 +328,10 @@ describe('model validation regressions', () => {
                 expect(result.body.confirmationRequired).to.equal(true);
             });
         }
-        it('publishes a copied card from the frontend newFragmentId result', async () => {
+        it('keeps an operation target from the frontend newFragmentId result', async () => {
             send.resolves({
                 success: true,
-                message: JSON.stringify({ type: 'studio_operation', operationName: 'publish_card', operationParams: { id } }),
+                message: JSON.stringify({ type: 'studio_operation', operationName: 'copy_card', operationParams: { id } }),
                 usage: { inputTokens: 10, outputTokens: 5 },
             });
             const result = await main({
@@ -349,7 +349,7 @@ describe('model validation regressions', () => {
                     },
                 ],
             });
-            expect(result.body.operationName).to.equal('publish_card');
+            expect(result.body.operationName).to.equal('copy_card');
             expect(result.body.confirmationRequired).to.equal(true);
         });
         it('accepts an exact OSI from structured selected offer context', async () => {
@@ -366,8 +366,8 @@ describe('model validation regressions', () => {
             expect(result.body.operationName).to.equal('update_card');
         });
         for (const payload of [
-            { type: 'studio_operation', operationName: 'publish_card', operationParams: { id } },
-            { intent: 'publish_card', slots: { id }, confidence: 'high', user_message: 'Publishing' },
+            { type: 'studio_operation', operationName: 'copy_card', operationParams: { id } },
+            { intent: 'copy_card', slots: { id }, confidence: 'high', user_message: 'Publishing' },
             {
                 type: 'studio_operation',
                 operationName: 'update_card',
@@ -387,7 +387,7 @@ describe('model validation regressions', () => {
                 });
                 expect(result.statusCode).to.equal(200);
                 expect(result.body.operationName).to.equal(undefined);
-                expect(result.body.envelope?.intent).to.not.equal('publish_card');
+                expect(result.body.envelope?.intent).to.not.equal('copy_card');
             });
         }
     });

@@ -13,6 +13,7 @@ import {
     getTranslationProjectTitles,
 } from './translation-utils.js';
 import './mas-translation-duplicate-dialog.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 
 const translationSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -151,7 +152,12 @@ class MasTranslation extends LitElement {
                                 value=${translationProject.get().path}
                                 data-id=${translationProject.get().id}
                             >
-                                <sp-table-cell>${translationProject.get().title}</sp-table-cell>
+                                ${renderRowLinkOverlay(translationProject.get(), { page: PAGE_NAMES.TRANSLATION_EDITOR })}
+                                <sp-table-cell
+                                    >${renderEditorLink(translationProject.get(), translationProject.get().title, {
+                                        page: PAGE_NAMES.TRANSLATION_EDITOR,
+                                    })}</sp-table-cell
+                                >
                                 <sp-table-cell>${this.#formatProjectStatus(translationProject)}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>

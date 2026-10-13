@@ -50,7 +50,7 @@ import {
 } from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
-import { getFragmentName } from './translation/translation-utils.js';
+import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,
@@ -1269,7 +1269,7 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.translationProjects.list.data.set(translationProjects);
+            Store.translationProjects.list.data.set(mergeTranslationProjectList(translationProjects, translationsPath));
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');
         } finally {

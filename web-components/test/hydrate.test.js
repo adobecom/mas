@@ -252,6 +252,23 @@ describe('processCTAs', async () => {
         expect(link.getAttribute('data-replaced-osi')).to.equal('original-abm');
     });
 
+    const OUTLINE_FIRST =
+        '<a is="checkout-link" data-wcs-osi="a" class="primary-outline">Try</a><a is="checkout-link" data-wcs-osi="b" class="accent">Buy</a>';
+
+    ['pro', 'product-pricing', 'plans'].forEach((variant) => {
+        it(`should ${variant === 'plans' ? 'keep the authored CTA order' : 'put the filled CTA first'} on ${variant} cards`, async () => {
+            merchCard.consonant = true;
+            merchCard.variant = variant;
+
+            processCTAs({ ctas: OUTLINE_FIRST }, merchCard, aemFragmentMapping);
+
+            const [first] = getFooterElement(merchCard).children;
+            expect(first.classList.contains('blue')).to.equal(
+                variant !== 'plans',
+            );
+        });
+    });
+
     it('should preserve authored aria-label on consonant checkout links', async () => {
         merchCard.consonant = true;
         const fields = {

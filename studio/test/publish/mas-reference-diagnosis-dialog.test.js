@@ -185,6 +185,57 @@ describe('reference diagnosis dialog', () => {
         expect(dialog.roots[0].etag).to.equal('late-save-etag');
     });
 
+    it('refreshes the owner after a timed-out save settles even when the dialog was closed', async () => {
+        const context = removalContext();
+        const owner = context.roots[0];
+        let resolveSave;
+        context.fragments.save.returns(new Promise((resolve) => (resolveSave = resolve)));
+        const savedOwner = {
+            ...owner,
+            etag: 'late-save-etag',
+            fields: [{ ...owner.fields[0], values: ['/content/dam/mas/valid'] }],
+            validationStatus: [],
+        };
+        context.fragments.getWithEtag.onSecondCall().resolves(savedOwner);
+        context.fragments.getById.onSecondCall().resolves(savedOwner);
+        sinon.stub(Store.editor, 'hasChanges').get(() => false);
+        const decision = MasReferenceDiagnosisDialog.show(context.report, { aem: context.aem, roots: context.roots });
+        await waitUntil(() => !!document.querySelector('mas-reference-diagnosis-dialog'));
+        const dialog = document.querySelector('mas-reference-diagnosis-dialog');
+
+        await dialog.removeMissing({ saveTimeoutMs: 10 });
+        dialog.finish(false);
+        expect(await decision).to.be.false;
+        resolveSave({ ...context.fragments.save.firstCall.args[0], etag: 'late-save-etag' });
+        await waitUntil(() => context.roots[0].etag === 'late-save-etag');
+
+        expect(context.roots[0].fields[0].values).to.deep.equal(['/content/dam/mas/valid']);
+    });
+
+    it('keeps the dialog open when a pending cleanup save fails', async () => {
+        const context = removalContext();
+        let rejectSave;
+        context.fragments.save.returns(new Promise((resolve, reject) => (rejectSave = reject)));
+        sinon.stub(Store.editor, 'hasChanges').get(() => false);
+        const dialog = await fixture(html`
+            <mas-reference-diagnosis-dialog .report=${context.report} .aem=${context.aem} .roots=${context.roots}>
+            </mas-reference-diagnosis-dialog>
+        `);
+        const decided = sinon.stub();
+        dialog.addEventListener('diagnosis-decided', decided);
+
+        await dialog.removeMissing({ saveTimeoutMs: 10 });
+        const continuing = dialog.continuePublish();
+        rejectSave(new Error('Save failed'));
+        await continuing;
+
+        expect(decided.called).to.be.false;
+        expect(dialog.waitingForSave).to.be.false;
+        expect(dialog.isConnected).to.be.true;
+        expect(dialog.cleanupErrors.some((error) => error.detail === 'Save failed')).to.be.true;
+        expect(context.fragments.save.calledOnce).to.be.true;
+    });
+
     it('does not offer bulk removal for review-only or unconfirmed issues', async () => {
         const context = removalContext();
         const dialog = await fixture(
@@ -422,6 +473,31 @@ describe('reference diagnosis dialog', () => {
         expect(owner.textContent).to.include('Collection');
         expect(owner.textContent).to.include('/content/dam/mas/collection');
         expect(owner.textContent).not.to.include('<strong>');
+    });
+
+    it('does not assign list semantics to owner groups without list items', async () => {
+        const dialog = await fixture(html`<mas-reference-diagnosis-dialog .report=${report}></mas-reference-diagnosis-dialog>`);
+
+        expect(dialog.shadowRoot.querySelector('.issues').getAttribute('role')).to.be.null;
+        expect(dialog.shadowRoot.querySelector('.issue').getAttribute('role')).to.be.null;
+    });
+
+    it('does not restore focus to a trigger removed while the dialog is open', async () => {
+        const trigger = document.createElement('button');
+        document.body.append(trigger);
+        trigger.focus();
+        let focusedAfterRemoval = false;
+        trigger.focus = () => {
+            if (!trigger.isConnected) focusedAfterRemoval = true;
+        };
+        const decision = MasReferenceDiagnosisDialog.show({ complete: false, issues: [], coverageGaps: [] });
+        await waitUntil(() => !!document.querySelector('mas-reference-diagnosis-dialog'));
+
+        trigger.remove();
+        document.querySelector('mas-reference-diagnosis-dialog').finish(false);
+
+        expect(await decision).to.be.false;
+        expect(focusedAfterRemoval).to.be.false;
     });
 
     it('keeps the missing target path visible without inventing a title or edit action', async () => {

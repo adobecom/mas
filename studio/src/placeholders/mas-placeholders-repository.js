@@ -345,12 +345,10 @@ export async function createPlaceholder(placeholder) {
         const newPlaceholder = new Placeholder(fragment);
         newPlaceholder.updateField('tags', [TAG_STATUS_DRAFT]);
         await repo.aem.saveTags(newPlaceholder);
+        Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
 
         const addedToIndex = await addToIndexFragment(newPlaceholder);
-        if (!addedToIndex) throw new Error('Failed to update index fragment with new placeholder reference');
-
-        Store.placeholders.list.data.set((prev) => [...prev, new FragmentStore(newPlaceholder)]);
-        return true;
+        return { created: true, indexed: addedToIndex };
     } catch (error) {
         repo.processError(error, 'Failed to create placeholder.');
         return false;

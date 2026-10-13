@@ -234,7 +234,7 @@ export async function inspectReferences(
         const results = await Promise.all(batch.map(loadJob));
         for (const [index, job] of batch.entries()) {
             const { fragment, error, limited } = results[index];
-            if (error || job.validation) {
+            if (job.validation || (error && !job.root)) {
                 report.issues.push(makeIssue(job, error, fragment));
             }
             if (limited) {

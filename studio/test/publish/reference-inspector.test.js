@@ -411,6 +411,17 @@ describe('publish reference inspector', () => {
         expect(report.complete).to.be.false;
     });
 
+    it('reports a failed root lookup once as an incomplete coverage gap', async () => {
+        const fragments = { getById: sinon.stub().rejects(new Error('403 Forbidden')) };
+
+        const report = await inspectReferences({ sites: { cf: { fragments } } }, [{ id: 'root', path: ROOT_PATH }]);
+
+        expect(report.complete).to.be.false;
+        expect(report.issues).to.have.length(0);
+        expect(report.coverageGaps).to.have.length(1);
+        expect(report.coverageGaps[0].ownerPath).to.equal(ROOT_PATH);
+    });
+
     it('runs four target lookups concurrently without exceeding the default limit', async () => {
         const values = Array.from({ length: 12 }, (value, index) => `/content/dam/mas/sandbox/en_US/parallel-${index}`);
         const root = makeFragment('root', ROOT_PATH, values);

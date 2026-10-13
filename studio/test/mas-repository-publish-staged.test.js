@@ -99,6 +99,21 @@ describe('MasRepository — staged tag auto-clear on publish', () => {
             expect(fragment.fields[0].values).to.deep.equal([STAGED.TAG, 'other-tag']);
         });
 
+        it('does not open a second diagnosis while a publish attempt is being confirmed', async () => {
+            const repo = makeRepo();
+            let decide;
+            MasReferenceDiagnosisDialog.confirmFor.onFirstCall().returns(new Promise((resolve) => (decide = resolve)));
+            MasReferenceDiagnosisDialog.confirmFor.onSecondCall().resolves(false);
+
+            const firstPublish = repo.publishFragment(nonStagedCardFragment());
+            const secondPublish = await repo.bulkPublishFragments(['card-2']);
+            decide(false);
+            await firstPublish;
+
+            expect(secondPublish).to.be.false;
+            expect(MasReferenceDiagnosisDialog.confirmFor.calledOnce).to.be.true;
+        });
+
         it('clears and persists the staged tag after a successful publish', async () => {
             const repo = makeRepo();
             const fragment = stagedCardFragment();

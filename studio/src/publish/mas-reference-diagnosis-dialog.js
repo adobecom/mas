@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import router from '../router.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
+import { stripHtml } from '../utils.js';
 import { inspectReferences, removeMissingReferences } from './reference-inspector.js';
 
 class MasReferenceDiagnosisDialog extends LitElement {
@@ -128,6 +129,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
         this.expanded = new Set();
         this.groups = [];
         this.roots = [];
+        this.pendingSaveRefreshes = new Map();
         this.confirmingRemoval = false;
         this.removing = false;
         this.waitingForSave = false;
@@ -157,10 +159,6 @@ class MasReferenceDiagnosisDialog extends LitElement {
         if (this.removing) return;
         this.finish(false);
         return router.navigateToFragmentEditor(id, { viewPage: true });
-    }
-
-    plainText(value) {
-        return new DOMParser().parseFromString(value ?? '', 'text/html').body.textContent;
     }
 
     get removableIssues() {
@@ -207,6 +205,24 @@ class MasReferenceDiagnosisDialog extends LitElement {
                     ),
                 };
             }
+            for (const failure of result.failures.filter((entry) => entry.pending && entry.pendingSave)) {
+                if (this.pendingSaveRefreshes.has(failure.ownerId)) continue;
+                const refresh = failure.pendingSave
+                    .then(
+                        () => undefined,
+                        () => undefined,
+                    )
+                    .then(async () => {
+                        try {
+                            const fragment = await this.aem.sites.cf.fragments.getWithEtag(failure.ownerId);
+                            this.syncSavedFragments([fragment]);
+                            return { success: true };
+                        } catch (error) {
+                            return { success: false, error };
+                        }
+                    });
+                this.pendingSaveRefreshes.set(failure.ownerId, refresh);
+            }
             if (result.removedCount) {
                 this.cleanupMessage =
                     this.report.complete && !this.report.issues.length && !result.failures.length
@@ -245,8 +261,9 @@ class MasReferenceDiagnosisDialog extends LitElement {
                 ),
             );
             const ownerIds = [...new Set(outcomes.map(({ ownerId }) => ownerId))];
-            const refreshedFragments = await Promise.all(ownerIds.map((id) => this.aem.sites.cf.fragments.getWithEtag(id)));
-            this.syncSavedFragments(refreshedFragments);
+            const failedOwners = new Set(outcomes.filter((outcome) => outcome.error).map((outcome) => outcome.ownerId));
+            const refreshResults = await Promise.all(ownerIds.map((id) => this.pendingSaveRefreshes.get(id)));
+            const failedRefreshes = refreshResults.filter((result) => !result.success);
             const outcomesByOwner = new Map(outcomes.map((outcome) => [outcome.ownerId, outcome]));
             this.cleanupErrors = this.cleanupErrors.flatMap((failure) => {
                 const outcome = outcomesByOwner.get(failure.ownerId);
@@ -255,7 +272,24 @@ class MasReferenceDiagnosisDialog extends LitElement {
                 const { pendingSave, ...settledFailure } = failure;
                 return [{ ...settledFailure, pending: false, detail: outcome.error.message }];
             });
+            if (failedRefreshes.length) {
+                this.cleanupErrors = [
+                    ...this.cleanupErrors,
+                    ...failedRefreshes.map(({ error }) => ({
+                        ownerPath: '',
+                        detail: `Could not refresh the fragment after cleanup save: ${error.message}`,
+                    })),
+                ];
+                this.cleanupMessage = '';
+                this.waitingForSave = false;
+                return;
+            }
             if (this.isConnected) this.report = await inspectReferences(this.aem, this.roots);
+            if (failedOwners.size) {
+                this.cleanupMessage = 'A cleanup save failed. Review the result before deciding whether to publish.';
+                this.waitingForSave = false;
+                return;
+            }
         } catch (error) {
             this.cleanupErrors = [
                 ...this.cleanupErrors,
@@ -288,7 +322,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                 ${role === 'owner' ? html`<div class="caption">Referenced by</div>` : nothing}
                 <div class="heading">
                     <strong
-                        >${this.plainText(
+                        >${stripHtml(
                             label || (role === 'owner' ? 'Fragment title unavailable' : 'Reference unavailable'),
                         )}</strong
                     >
@@ -306,7 +340,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                         : nothing}
                 </div>
                 ${fragment.label && fragment.title
-                    ? html`<div class="subtitle">${this.plainText(role === 'owner' ? fragment.label : fragment.title)}</div>`
+                    ? html`<div class="subtitle">${stripHtml(role === 'owner' ? fragment.label : fragment.title)}</div>`
                     : nothing}
                 <div class="path">${fragment.path}</div>
             </div>
@@ -316,7 +350,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
     renderIssue(issue, index) {
         const problem = issue.category === 'confirmed-problem';
         return html`
-            <div class="issue" role="listitem">
+            <div class="issue">
                 <div class="heading">
                     <span class="status ${problem ? 'problem' : 'review'}">${problem ? 'Problem' : 'Needs review'}</span>
                     <span class="field"
@@ -381,7 +415,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                               Content will not be published.
                           </p>`
                         : nothing}
-                    <div class="issues" role="list">
+                    <div class="issues">
                         ${repeat(
                             this.groups,
                             (group, index) => group.owner.ownerId || group.owner.ownerPath || index,
@@ -473,7 +507,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                 'diagnosis-decided',
                 (event) => {
                     dialog.remove();
-                    previousFocus.focus();
+                    if (previousFocus.isConnected) previousFocus.focus();
                     resolve(event.detail.confirmed);
                 },
                 { once: true },

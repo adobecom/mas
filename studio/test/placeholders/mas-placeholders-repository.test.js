@@ -514,7 +514,7 @@ describe('mas-placeholders-repository', () => {
             try {
                 const result = await createPlaceholder({ key: 'save-today', value: 'Save today', isRichText: false });
 
-                expect(result).to.be.true;
+                expect(result).to.deep.equal({ created: true, indexed: true });
                 expect(repo.createFragment.calledOnce).to.be.true;
                 expect(repo.aem.saveTags.calledOnce).to.be.true;
                 expect(Store.placeholders.list.data.get()).to.have.lengthOf(previousList.length + 1);
@@ -527,6 +527,34 @@ describe('mas-placeholders-repository', () => {
             repo.search = { value: { path: '' } };
             repo.filters = { value: { locale: 'en_US' } };
             expect(await createPlaceholder({ key: 'x', value: 'y', isRichText: false })).to.be.false;
+        });
+
+        it('keeps a saved placeholder in the list when index publishing fails', async () => {
+            const previousList = Store.placeholders.list.data.get();
+            repo.search = { value: { path: 'acom' } };
+            repo.filters = { value: { locale: 'en_US' } };
+            sandbox.stub(repo, 'getDictionaryPath').returns(dictPath('acom'));
+            repo.createFragment = sandbox
+                .stub()
+                .resolves(createFragment({ id: 'created', path: `${dictPath('acom')}/save-today`, fields: [] }));
+            repo.aem.sites.cf.fragments.getByPath.resolves(
+                createFragment({
+                    id: 'idx',
+                    path: indexPath(dictPath('acom')),
+                    fields: [{ name: 'entries', type: 'content-fragment', multiple: true, values: [] }],
+                }),
+            );
+            repo.aem.sites.cf.fragments.save.callsFake(async (fragment) => fragment);
+            repo.publishFragment.resolves(false);
+
+            try {
+                const result = await createPlaceholder({ key: 'save-today', value: 'Save today', isRichText: false });
+
+                expect(result).to.deep.equal({ created: true, indexed: false });
+                expect(Store.placeholders.list.data.get()).to.have.lengthOf(previousList.length + 1);
+            } finally {
+                Store.placeholders.list.data.set(previousList);
+            }
         });
     });
 

@@ -355,6 +355,7 @@ export function renderImageMarkup(inner, location = globalThis.location) {
 class MasField extends HTMLElement {
     #field = null;
     #loaded = false;
+    #failed = false;
     #fields = null;
     settings = null;
     #contentElement = null;
@@ -388,9 +389,10 @@ class MasField extends HTMLElement {
         }
     }
 
-    /** Starts listening for aem:load events bubbling from child aem-fragment. */
+    /** Starts listening for aem:load and aem:error events bubbling from child aem-fragment. */
     connectedCallback() {
         this.addEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
+        this.addEventListener(EVENT_AEM_ERROR, this.#onFragmentError);
         this.#ensureContentElement();
         this.aemFragment?.setAttribute('hidden', '');
         registerOptionsProviders(getService());
@@ -399,31 +401,36 @@ class MasField extends HTMLElement {
     /** Cleans up the event listener when removed from the DOM. */
     disconnectedCallback() {
         this.removeEventListener(EVENT_AEM_LOAD, this.#onFragmentLoad);
+        this.removeEventListener(EVENT_AEM_ERROR, this.#onFragmentError);
     }
 
     /**
      * Resolves true when the fragment data has loaded and false when the fragment
      * failed (including a failure that happened before this call), so callers never
-     * wait on a fragment that can no longer load. Used by the autoblock timeout race.
+     * wait on a fragment that can no longer load. Unlike merch-card, which resolves
+     * undefined on failure, the failure value is an explicit false.
+     * Used by the autoblock timeout race.
      */
     checkReady() {
         if (this.#loaded) return Promise.resolve(true);
-        if (this.aemFragment?.classList.contains('error')) {
-            return Promise.resolve(false);
-        }
+        if (this.#failed) return Promise.resolve(false);
         return new Promise((resolve) => {
-            const onLoad = () => {
-                this.removeEventListener(EVENT_AEM_ERROR, onError);
-                resolve(true);
+            const settle = (event) => {
+                if (event.target !== this.aemFragment) return;
+                this.removeEventListener(EVENT_AEM_LOAD, settle);
+                this.removeEventListener(EVENT_AEM_ERROR, settle);
+                resolve(event.type === EVENT_AEM_LOAD);
             };
-            const onError = () => {
-                this.removeEventListener(EVENT_AEM_LOAD, onLoad);
-                resolve(false);
-            };
-            this.addEventListener(EVENT_AEM_LOAD, onLoad, { once: true });
-            this.addEventListener(EVENT_AEM_ERROR, onError, { once: true });
+            this.addEventListener(EVENT_AEM_LOAD, settle);
+            this.addEventListener(EVENT_AEM_ERROR, settle);
         });
     }
+
+    /** Remembers that the fragment failed, so checkReady() can settle without waiting. */
+    #onFragmentError = (event) => {
+        if (event.target !== this.aemFragment) return;
+        this.#failed = true;
+    };
 
     /** Extracts the target field from the fragment data and renders it as innerHTML. */
     #onFragmentLoad = (event) => {

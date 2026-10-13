@@ -65,6 +65,19 @@ const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
 const projectsCache = createSwrCache({ name: 'promotions' });
 let promoVariationsCache = {};
 
+// One request per key at a time. In preview every aem-fragment runs its own pipeline in the browser,
+// so concurrent runs share the pending request instead of each downloading the same project.
+// Entries live only while the request is pending, so there is no staleness to manage.
+const inFlight = new Map();
+function shared(key, load) {
+    if (!inFlight.has(key))
+        inFlight.set(
+            key,
+            load().finally(() => inFlight.delete(key)),
+        );
+    return inFlight.get(key);
+}
+
 export function clearPromoCache(preview = false) {
     projectsCache.clear(preview);
     if (preview) {
@@ -403,12 +416,15 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoTag = project.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
+    const variations = (locale) =>
+        shared(`variations|${baseUrl}|${surface}|${promoName}|${locale}`, () =>
+            fetchPromoVariations(baseUrl, surface, locale, promoName, context),
+        );
+    const hydrateUrl = odinReferences(project.id, context.preview, REFERENCES.ALL);
     const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(project.id, context.preview, REFERENCES.ALL), context, `promotions-hydrate-${project.id}`),
-        fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
-        resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
-            ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
-            : {},
+        shared(hydrateUrl, () => fetch(hydrateUrl, context, `promotions-hydrate-${project.id}`)),
+        variations(defaultLocale),
+        resolvedRegionLocale && resolvedRegionLocale !== defaultLocale ? variations(resolvedRegionLocale) : {},
     ]);
 
     if (hydrateResponse.status !== 200) {

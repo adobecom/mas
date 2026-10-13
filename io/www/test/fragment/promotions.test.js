@@ -172,6 +172,37 @@ describe('promotions', () => {
             expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
         });
 
+        describe('concurrent pipeline runs (MWPW-210111)', () => {
+            const listingUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+
+            beforeEach(() => {
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [project] }));
+                fetchStub
+                    .withArgs(hydrateUrl('proj-1'))
+                    .callsFake(() => createResponse(200, makeHydratedProject({ promoCode: 'SAVE20' })));
+            });
+
+            it('downloads a project and its variation listing once for runs that start together', async () => {
+                const results = await Promise.all(
+                    [1, 2, 3].map(() => promotionsTransformer.init(createContext({ regionLocale: 'en_US' }))),
+                );
+                expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(1);
+                expect(fetchStub.withArgs(listingUrl).callCount).to.equal(1);
+                results.forEach((result) => {
+                    expect(result.activeProjects).to.have.length(1);
+                    expect(result.activeProjects[0].promoCode).to.equal('SAVE20');
+                });
+            });
+
+            it('downloads the project again for a later run, so edits show up', async () => {
+                await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+                await promotionsTransformer.init(createContext({ regionLocale: 'en_US' }));
+                expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(2);
+            });
+        });
+
         it('derives groupedVariationPaths from fragments under a /pzn/ folder', async () => {
             const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject({ fragmentPath: '/content/dam/mas/acom/en_US/PA-123/pzn/edu' });

@@ -1,0 +1,34 @@
+name: Shared Price Tests
+on:
+    pull_request:
+        paths:
+            - 'price/**'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'eslint.config.mjs'
+            - '.github/workflows/price-tests.yaml'
+    push:
+        branches:
+            - main
+        paths:
+            - 'price/**'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'eslint.config.mjs'
+            - '.github/workflows/price-tests.yaml'
+    workflow_dispatch:
+jobs:
+    price:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                node-version: [22.x, 24.x]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ matrix.node-version }}
+            - run: npm ci
+            - run: npm run test:ci --workspace=@adobecom/mas-price
+            - run: npx eslint price eslint.config.mjs
+            - run: npx prettier --check price package.json .github/workflows/price-tests.yaml

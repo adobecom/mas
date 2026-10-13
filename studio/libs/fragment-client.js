@@ -17,7 +17,7 @@ import { transformer as mask } from '../../io/www/src/fragment/transformers/mask
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
-import { mark } from '../../io/www/src/fragment/utils/common.js';
+import { clearPendingFetches, mark } from '../../io/www/src/fragment/utils/common.js';
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
@@ -70,6 +70,7 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    clearPendingFetches();
 }
 
 function getPageWcsConfiguration(serviceElement) {

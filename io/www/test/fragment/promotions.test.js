@@ -1117,6 +1117,24 @@ describe('promotions', () => {
             expect(storage['promotions-acom']).to.be.undefined;
         });
 
+        it('downloads a project and its variation listing once for preview runs that start together', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const listingUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            fetchStub.withArgs(FOLDER_URL).callsFake(() => createResponse(200, { items: [project] }));
+            fetchStub
+                .withArgs(hydrateUrl('proj-1'))
+                .callsFake(() => createResponse(200, makeHydratedProject({ promoCode: 'SAVE20' })));
+            const previewCtx = () =>
+                createContext({ regionLocale: 'en_US', preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+
+            const results = await Promise.all([1, 2, 3].map(() => promotionsTransformer.init(previewCtx())));
+
+            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(1);
+            expect(fetchStub.withArgs(listingUrl).callCount).to.equal(1);
+            results.forEach((result) => expect(result.activeProjects[0].promoCode).to.equal('SAVE20'));
+        });
+
         it('retains blocking refetch in preview mode: an expired entry refetches fresh, never served stale', async () => {
             const T0 = new Date('2026-01-01T00:00:00Z').getTime();
             const clock = sinon.stub(Date, 'now').returns(T0);

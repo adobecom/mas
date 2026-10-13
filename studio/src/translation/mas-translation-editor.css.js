@@ -9,6 +9,17 @@ export const styles = [
     css`
         .translation-editor-form {
             padding: 32px;
+            position: relative;
+        }
+
+        .duplicating-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 10;
         }
 
         .header {

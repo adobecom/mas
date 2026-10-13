@@ -989,18 +989,14 @@ export class StudioOperations {
      * @private
      */
     getSurfacePath(surface, locale = 'en_US') {
-        const surfaceMap = {
-            commerce: '/content/dam/mas/commerce',
-            acom: '/content/dam/mas/acom',
-            ccd: '/content/dam/mas/ccd',
-            'adobe-home': '/content/dam/mas/adobe-home',
-            express: '/content/dam/mas/express',
-            sandbox: '/content/dam/mas/sandbox',
-            docs: '/content/dam/mas/docs',
-            nala: '/content/dam/mas/nala',
-        };
-
-        const basePath = surfaceMap[surface] || '/content/dam/mas';
+        // Surfaces map 1:1 to /content/dam/mas/<surface>, so resolve generically
+        // rather than from a hardcoded list that drifts behind the frontend's
+        // SURFACES. acom-cc, acom-dc and brand-concierge were missing, so a
+        // search on those surfaces fell through to the dam root and returned
+        // nothing. The segment guard stops an unexpected value from building a
+        // traversing path.
+        const safeSurface = typeof surface === 'string' && /^[\w-]+$/.test(surface) ? surface : null;
+        const basePath = safeSurface ? `/content/dam/mas/${safeSurface}` : '/content/dam/mas';
         return locale && locale !== 'all' ? `${basePath}/${locale}` : basePath;
     }
 

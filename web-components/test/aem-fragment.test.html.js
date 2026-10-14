@@ -190,7 +190,7 @@ runTests(async () => {
                 cache.clear();
             });
 
-            describe('regional and default ids (MWPW-210111)', () => {
+            describe('regional and default ids', () => {
                 const regional = {
                     id: 'kr-id',
                     fields: { originalId: 'default-id' },

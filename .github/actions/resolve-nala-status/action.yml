@@ -87,6 +87,8 @@ runs:
                       pull_number: Number(process.env.PR_NUMBER),
                   });
                   const hasLabel = pr.labels.some((label) => label.name === 'run nala');
+                  const isFork = pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`;
+                  if (isFork) core.info('Fork PRs cannot run Nala: required authentication secrets are unavailable.');
 
                   const reviews = await github.paginate(github.rest.pulls.listReviews, {
                       owner: context.repo.owner,
@@ -132,14 +134,14 @@ runs:
                           );
                       }
                   };
-                  const permissions = await Promise.all(
+                  const permissions = isFork ? [] : await Promise.all(
                       approvers.map((review) => canWrite(review.login)),
                   );
                   const approvals = permissions.filter(Boolean).length;
 
                   const isCurrentHead = pr.head.sha === context.payload.pull_request.head.sha;
                   if (!isCurrentHead) core.warning('This workflow belongs to an older PR commit; use the current commit run.');
-                  const canRun = isCurrentHead && hasLabel && approvals >= required;
+                  const canRun = !isFork && isCurrentHead && hasLabel && approvals >= required;
 
                   // Keep in sync with the E2E job names in run-nala.yml.
                   const studioShards = ['mixed-1', 'mixed-2', 'mixed-3'];

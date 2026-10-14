@@ -170,10 +170,8 @@ export function throttleEdsGap(maxRps, url, { signal, owner } = {}) {
         lastRequestAt = Date.now();
     });
 
-    throttleChain = next.catch((error) => {
-        if (signal?.aborted && error.name === 'AbortError') return;
-        throw error;
-    });
+    // Recover the scheduling tail; the request caller still receives next's rejection.
+    throttleChain = next.catch(() => {});
     return next;
 }
 

@@ -47,6 +47,7 @@ class OriginRateLimits {
             recoveredAt: 0,
             successes: 0,
             leases: new Map(),
+            expiredLeases: new Set(),
             recentStarts: [],
             userAgents: new Set(),
             paths: new Map(),
@@ -123,6 +124,7 @@ class OriginRateLimits {
             for (const [id, lease] of state.leases) {
                 if (now - lease.started < LEASE_MS) continue;
                 state.leases.delete(id);
+                state.expiredLeases.add(id);
                 console.warn(`[NALA] Expired Odin read permit for ${this.preview}${lease.path}; releasing abandoned capacity.`);
             }
             state.owners = state.owners.filter((owner) => state.queue.some((entry) => entry.owner === owner));
@@ -184,7 +186,11 @@ class OriginRateLimits {
     release(origin, id, status, latencyMs, cancelled = false) {
         origin = this.budgetOrigin(origin);
         const state = this.origins.get(origin);
-        if (!state?.leases.delete(id)) throw new Error('Unknown or expired Odin read permit');
+        if (!state?.leases.delete(id)) {
+            if (!state?.expiredLeases.delete(id)) throw new Error('Unknown Odin read permit');
+            console.warn('[NALA] Ignoring late release of an expired Odin read permit; capacity was already released.');
+            return;
+        }
         state.stats.completed++;
         state.stats.latencyMs += latencyMs;
         state.stats.maxLatencyMs = Math.max(state.stats.maxLatencyMs, latencyMs);

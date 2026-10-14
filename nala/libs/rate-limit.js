@@ -46,16 +46,25 @@ export function isReadOnlyRequest(request) {
 export function retryAfterMs(value, now = Date.now()) {
     if (!value?.trim()) return 10000;
     const seconds = Number(value);
-    if (Number.isFinite(seconds)) return seconds >= 0 ? seconds * 1000 : 10000;
     const date = Date.parse(value);
-    return Number.isFinite(date) ? Math.max(0, date - now) : 10000;
+    const waitMs = Number.isFinite(seconds)
+        ? seconds >= 0
+            ? seconds * 1000
+            : 10000
+        : Number.isFinite(date)
+          ? Math.max(0, date - now)
+          : 10000;
+    if (waitMs > 60000) {
+        throw new Error(`Retry-After cooldown ${waitMs / 1000}s exceeds Nala's 60s limit; refusing to retry early.`);
+    }
+    return waitMs;
 }
 
 async function logRateLimit(request, headers, applyCooldown = true, status = 429) {
     const { origin, pathname } = new URL(request.url());
-    const delay = retryAfterMs(headers['retry-after']);
     originMetrics(request.url())[`responses${status}`]++;
     loggedRequests.add(request);
+    const delay = applyCooldown ? retryAfterMs(headers['retry-after']) : 0;
     console.warn(
         `[NALA] HTTP ${status} ${request.method()} ${origin}${pathname}; time: ${new Date().toISOString()}; ` +
             `worker: ${process.env.TEST_WORKER_INDEX ?? 'setup'}; ` +
@@ -141,7 +150,10 @@ export async function fetchWithRateLimitRetry(route, beforeFetch, { signal, owne
         let response;
         let reconnect = false;
         try {
-            response = await route.fetch({ maxRedirects: 0, timeout: isPreviewOrigin(request.url()) ? 60000 : undefined });
+            response = await route.fetch({
+                maxRedirects: 0,
+                timeout: isPreviewOrigin(request.url()) ? 60000 : isOdinOrigin(request.url()) ? 30000 : undefined,
+            });
             finished = Date.now();
             if (response.status() === 429) await logRateLimit(route.request(), response.headers());
         } catch (error) {

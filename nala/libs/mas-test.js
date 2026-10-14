@@ -114,9 +114,7 @@ const masTest = base.extend({
         const resourcesBefore = getResourceMetrics();
         const bootstrapBefore = { ...editorBootstrapCache.metrics };
         const cloneSourcesBefore = { ...cloneSourceCache.metrics };
-        if (reuseEditor) {
-            await editorBootstrapCache.install(page);
-        }
+        await editorBootstrapCache.install(page);
 
         try {
             await use(page);

@@ -30,7 +30,9 @@ env:
 jobs:
     cancel-superseded-runs:
         name: Cancel Superseded Nala Runs
-        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+        if: |
+            github.event_name == 'pull_request' && github.event.action == 'synchronize' &&
+            github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-latest
         timeout-minutes: 5
         permissions:
@@ -181,15 +183,12 @@ jobs:
                     - shard: mixed-1
                       runner: nala-studio-sj
                       workers: 4
-                      node-version: 20.x
                     - shard: mixed-2
                       runner: nala-studio-or
                       workers: 4
-                      node-version: 20.x
                     - shard: mixed-3
                       runner: nala-studio-no
                       workers: 3
-                      node-version: 20.x
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -366,8 +365,8 @@ jobs:
                   pr-number: ${{ github.event.pull_request.number }}
                   required-approvals: ${{ env.REQUIRED_APPROVALS }}
                   consult-prior-runs: 'true'
-                  # A superseded run would otherwise report a false 'running' failure.
-                  wait-for-in-flight: 'true'
+                  # Duplicate review/label gates return immediately; completion refresh resolves them later.
+                  wait-for-in-flight: ${{ !(needs.run-nala-studio-tests.result == 'skipped' && needs.run-nala-docs-tests.result == 'skipped') }}
                   # Skipped jobs never executed and may still have pending API check records.
                   ignore-current-run: ${{ needs.run-nala-studio-tests.result == 'skipped' && needs.run-nala-docs-tests.result == 'skipped' }}
                   superseded-runs: ${{ needs.cancel-superseded-runs.outputs.superseded-runs || '[]' }}
@@ -377,6 +376,7 @@ jobs:
                   CANCELLATION_RESULT: ${{ needs.cancel-superseded-runs.result }}
                   PATHS_RESULT: ${{ needs.check-paths.result }}
                   IS_TRIVIAL: ${{ needs.check-paths.outputs.is-trivial }}
+                  IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
                   IS_CURRENT_HEAD: ${{ steps.status.outputs.is-current-head }}
                   HAS_LABEL: ${{ steps.status.outputs.has-label }}
                   CAN_RUN: ${{ steps.status.outputs.can-run }}
@@ -394,6 +394,10 @@ jobs:
                   if [ "$IS_TRIVIAL" = "true" ]; then
                       echo "Trivial PR — Nala not required"
                       exit 0
+                  fi
+                  if [ "$IS_FORK" = "true" ]; then
+                      echo "::error::Nala cannot run on fork PRs because required authentication secrets are unavailable"
+                      exit 1
                   fi
                   if [ "$IS_CURRENT_HEAD" != "true" ]; then
                       echo "::error::This workflow belongs to an older PR commit; use the current commit run"

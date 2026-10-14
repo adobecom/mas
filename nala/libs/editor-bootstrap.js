@@ -95,6 +95,7 @@ function requestKey(request) {
  */
 export class EditorBootstrapCache {
     snapshots = new Map();
+    generations = new Map();
     pages = new WeakMap();
     metrics = { coldLoads: 0, reusedLoads: 0, replayedReads: 0 };
 
@@ -114,6 +115,19 @@ export class EditorBootstrapCache {
             await route.fallback();
         });
         page.on('response', (response) => {
+            const request = response.request();
+            const url = new URL(request.url());
+            if (response.ok() && url.hostname.endsWith('.adobeaemcloud.com') && !isReadOnlyRequest(request)) {
+                const id = url.pathname.match(/^\/adobe\/sites\/cf\/fragments\/([^/]+)(?:\/|$)/)?.[1];
+                if (id) {
+                    this.generations.set(id, (this.generations.get(id) ?? 0) + 1);
+                    for (const [key, snapshot] of this.snapshots) {
+                        if (new URLSearchParams(new URL(key).hash.slice(1)).get('fragmentId') !== id) continue;
+                        snapshot.clear();
+                        this.snapshots.delete(key);
+                    }
+                }
+            }
             const active = state.active;
             if (!active || active.snapshot || !isBootstrapRead(response.request()) || response.status() !== 200) return;
             active.pending.push(
@@ -141,6 +155,7 @@ export class EditorBootstrapCache {
         }
         const state = this.pages.get(page);
         const key = target.href;
+        const generation = this.generations.get(fragmentId) ?? 0;
         const active = { snapshot: this.snapshots.get(key), recorded: new Map(), pending: [], errors: [] };
         state.active = active;
         this.metrics[active.snapshot ? 'reusedLoads' : 'coldLoads']++;
@@ -150,7 +165,9 @@ export class EditorBootstrapCache {
             state.active = null;
             await Promise.all(active.pending);
             if (active.errors.length) throw new AggregateError(active.errors, 'Failed to capture editor bootstrap');
-            if (!active.snapshot) this.snapshots.set(key, new Map(active.recorded));
+            if (!active.snapshot && generation === (this.generations.get(fragmentId) ?? 0)) {
+                this.snapshots.set(key, new Map(active.recorded));
+            }
         } finally {
             state.active = null;
         }

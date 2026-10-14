@@ -64,6 +64,13 @@ jobs:
                               core.warning(`PR ${pr.number}: legacy preflight gate cannot be refreshed without rerunning tests.`);
                               continue;
                           }
+                          const { data: gateRun } = await github.rest.actions.getWorkflowRun({
+                              ...context.repo, run_id: gateJob.run_id,
+                          });
+                          if (gateRun.run_attempt >= 3) {
+                              core.warning(`PR ${pr.number}: automatic gate refresh limit reached; retry the gate manually.`);
+                              continue;
+                          }
                           await github.rest.actions.reRunJobForWorkflowRun({
                               ...context.repo, job_id: jobId,
                           });

@@ -5,7 +5,8 @@ automation account. Existing UI clone/create/save/delete flows are unchanged.
 
 ## Creation ledger
 
-Global setup creates a durable ledger at `nala/.runs/<NALA_RUN_ID>/`, outside Playwright's cleared results directory.
+Global setup creates a filesystem ledger at `nala/.runs/<NALA_RUN_ID>/`, outside Playwright's cleared results directory
+but inside the checkout.
 Workers write independent JSON files, avoiding shared-file update races. Titles contain the run marker, test name,
 worker index and retry attempt.
 
@@ -30,13 +31,21 @@ The Playwright teardown project and existing GitHub `if: always()` steps use `gl
    the existing teardown project retains its overall six-minute budget.
 
 Cleanup removes confirmed fragment/intent entries and retains a small `run.json` marker. Accepted-but-unconfirmed
-deletions retain their exact ownership records until a subsequent cleanup observes a 404. Pending deletion is not an error;
-cleanup adds no polling or extra requests and preserves its existing time budget. Failed cleanup retains the ledger for recovery.
-The ledger directory is gitignored; ownership records and completion markers are local artifacts, not shared caches.
+deletions retain their exact ownership records for a subsequent cleanup to observe a 404. Pending deletion is not an error;
+cleanup adds no polling or extra requests and preserves its existing time budget. Failed cleanup retains the ledger
+within the current checkout. The ledger directory is gitignored; ownership records and completion markers are local artifacts,
+not shared caches.
+
+**CI limitation:** `actions/checkout` with its default cleaning removes ignored/untracked ledgers on the next checkout.
+No independent persistence, restoration or automatic cross-job recovery is configured. Retention therefore supports
+follow-up cleanup in the same checkout, not guaranteed recovery after a later CI job. The original run ID is logged and stored
+in `run.json`; clearing the process's run ID does not remove the records, but it does not protect them from checkout cleaning.
+Run-marker searches cover only the documented folders and cannot reconstruct lost exact IDs or accepted-deletion state.
 
 ## Recovering a failed execution
 
-Use its original run marker and the matching authoring environment; do not invent a new run ID:
+While its original ledger is still available, use the original run marker and matching authoring environment;
+do not invent a new run ID:
 
 ```sh
 NALA_RUN_ID=nala-run-<timestamp>-<suffix> \
@@ -51,7 +60,9 @@ GitHub cleanup remains in the separate `Cleanup cloned cards` workflow step; loc
 The test summary and test-only request totals print immediately after the suite. Cleanup prints its own outcomes
 and maintenance-only request totals after its work completes; it never reprints or combines the test report.
 CI cleanup is explicitly non-blocking (`continue-on-error: true`): errors and failed counts remain visible,
-and the command exits unsuccessfully while leaving the test job result unchanged. Failed cleanup retains its ledger.
+and the command exits unsuccessfully while leaving the test job result unchanged. Failed cleanup retains its ledger
+only for the remaining lifetime of that checkout. Any separately arranged recovery storage must preserve ownership JSON
+records only, never authentication state or HAR caches.
 Test pressure (`test-results/odin-pressure.json`) and standalone cleanup pressure
 (`test-results/odin-pressure-cleanup.json`) are measured with separate fresh coordinators and labelled by phase.
 

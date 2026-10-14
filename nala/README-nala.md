@@ -46,8 +46,9 @@ Next test -> fresh context -> replay setup -> editor/preview ready -> LIVE test 
 
 Replay ends before assertions/actions: discard, refresh, navigation, searches, saves and deletes remain live.
 Editor setup waits for the selected fragment and preview markup, not successful live price/checkout resolution.
-It also waits for source-fragment refreshes to finish before edits, including overlapping reads for that ID,
-so refreshed data cannot overwrite test input. New fragments wait for editor initialization before template selection;
+It also waits for observed author reads, source-store loading and the native fragment-loaded signal before edits.
+These guards cannot prevent an application-side initialization race from starting another refresh after readiness.
+New fragments wait for editor initialization before template selection;
 their preview is checked after a template exists.
 Each test retains its own commerce assertions. Save completion uses the live response and refreshed editor state,
 not the lifetime of a transient toast. Cached routes finish before their owning page/context closes.
@@ -57,6 +58,9 @@ and use keyboard selection; only opening the menu can be retried, never the edit
 Rich-text badge deletion verifies the editor selection and stored field, not just transient DOM text.
 Different fragment IDs, locales and URL overrides have separate snapshots. Writer and dedicated navigation/editor
 coverage stays cold; no writable fragment or loaded editor tab is shared across tests or executions.
+Successful author fragment writes invalidate that fragment's snapshots, including locale/URL variants, so reopening it
+does not replay an old body or ETag. Writes to a private clone do not invalidate its unchanged source's bootstrap.
+All Studio test pages observe these writes, even when bootstrap replay is disabled for the writing test.
 
 ### Docs pages
 
@@ -100,7 +104,9 @@ block unrelated tests or conceal missing dependencies. Seed navigation, readines
 ### Cooldowns and Odin scheduling
 
 Nala logs observed HTTP 429s with the method, origin/path and `Retry-After`. `Retry-After` seconds or HTTP dates take priority;
-missing or invalid values use 10 seconds. A fresh loopback coordinator shares origin cooldowns across this invocation's workers;
+missing or invalid values use 10 seconds. Nala-applied cooldowns above 60 seconds fail explicitly instead of parking the shared budget
+past test deadlines or retrying earlier than the server permits.
+A fresh loopback coordinator shares origin cooldowns across this invocation's workers;
 it stops at teardown and is never reused between runs or PRs. Subsequent requests to the same origin wait for the cooldown,
 including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
@@ -127,8 +133,9 @@ Priority changes neither the request-start budget nor the in-flight limit. Press
 and their maximum queue wait; per-test attachments distinguish application cancellations from teardown cancellations.
 Other origins retain their existing recovery spacing.
 Permits cover the upstream fetch only: they are released on success or transport failure and before retry waiting.
-Intercepted preview fetches are bounded at 60 seconds; other hosts keep their existing fetch timeout.
-Abandoned permits expire with a logged warning after 90 seconds.
+Intercepted preview fetches are bounded at 60 seconds and author fetches at 30 seconds; other hosts keep their existing fetch timeout.
+Abandoned permits expire with a logged warning after 90 seconds. A known expired permit's late release is logged and ignored;
+unknown permits still fail explicitly.
 Native documents, writes and streaming/range requests remain browser-managed and are start-paced rather than buffered
 to enforce the read-concurrency limit. Writes are never automatically retried.
 
@@ -268,16 +275,22 @@ The fixed 4/4/3 Studio and 1 Docs allocation and invocation-owned HARs remain un
 `Nala Gate` resolves the latest result for each of the three Studio shards and Docs.
 Missing, failed or started-and-cancelled tests cannot pass; an in-flight retry takes precedence over an earlier failure.
 Retrying a failed shard can reuse the other shards' and Docs' passing results for the same commit.
-Only the gate waits for in-flight tests, not the label/approval check.
+The label/approval check never waits for tests. A duplicate review/label gate whose own E2E jobs skipped also returns
+immediately with the current verdict; completion refresh or a manual gate-only retry resolves it after the tests finish.
 Launch deduplication excludes this workflow's own checks by suite and workflow-run URL.
 When both E2E jobs were skipped, the gate also excludes those own check records instead of waiting on jobs that never executed.
 Resolver logs identify each selected check's status and job URL, including checks from another workflow.
 If a recheck skips E2E jobs because another run is queued or running, follow those URLs to inspect the owning run.
 The gate reports waiting progress every minute and prints updated per-check results when they change.
+Fork PRs cannot launch Nala or cancel runs because authentication secrets are unavailable; nontrivial fork PRs receive
+an explicit gate error rather than a misleading cancellation failure.
 
 `Refresh Nala Gate` responds to completed Nala workflows and retries the latest failed gate job after an E2E attempt.
 It only retries a terminal gate, never an older preflight gate with downstream tests; gate-only retries do not trigger another refresh.
+Automatic refresh stops when the target workflow reaches attempt 3, independently of per-job attempt metadata.
+Further gate retries must be requested manually.
 Closed PRs and runs for an older head are ignored. The refresh workflow executes no PR-authored code.
+The scheduled/manual `Nala Daily Run` workflow is deprecated and removed; it no longer competes for the PR shard runners.
 
 **Deployment:** GitHub only runs the completion-triggered refresh after its workflow file is on the default branch.
 Before that, a gate from a separate review-triggered workflow may need a manual gate-only retry after Nala passes.
@@ -302,9 +315,11 @@ Studio CI prints the styled Nala summary and test-only request/pressure totals i
 The independent cleanup step prints its own outcomes and maintenance-only request/pressure totals.
 CI cleanup uses its own fresh coordinator and records `test-results/odin-pressure-cleanup.json`; pressure measurements
 are labelled by phase, so the completed test snapshot is not presented as cleanup traffic.
-Cleanup errors remain visible and retain the run ledger for recovery, but cannot fail an otherwise passing CI job.
+Cleanup errors remain visible and retain the run ledger within the current checkout, but cannot fail an otherwise passing CI job.
 Accepted asynchronous deletions are reported as pending and retain their ownership records; cleanup adds no polling or
-extra requests, and a later cleanup checks for absence without resubmitting an already accepted deletion.
+extra requests, and a later cleanup with those records checks for absence without resubmitting an already accepted deletion.
+CI does not persist or restore these records across jobs: a subsequent clean checkout removes them.
+Recovery is manual while the original ledger remains available; a run-marker search cannot reconstruct lost pending-deletion state.
 Docs and local runs keep their existing end-of-test reporting.
 
 ## Clone isolation and editor readiness

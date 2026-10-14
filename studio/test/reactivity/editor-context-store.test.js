@@ -137,6 +137,51 @@ describe('Reactivity Stores', () => {
             });
         });
 
+        describe('loadFragmentContext pipeline scope', () => {
+            let requestedUrls;
+
+            const respondWith = (fragmentsByUrlPart) => {
+                requestedUrls = [];
+                sandbox.stub(window, 'fetch').callsFake(async (url) => {
+                    const href = decodeURIComponent(String(url));
+                    requestedUrls.push(href);
+                    const match = Object.keys(fragmentsByUrlPart).find((part) => href.includes(part));
+                    if (!match) return new Response(JSON.stringify({ detail: 'not found' }), { status: 404 });
+                    return new Response(JSON.stringify(fragmentsByUrlPart[match]), { status: 200 });
+                });
+            };
+
+            beforeEach(() => {
+                sandbox.stub(Store, 'surface').returns('acom');
+                localStorage.removeItem('promotions-acom');
+                localStorage.removeItem('promo-variations');
+            });
+
+            it('does not request promotions while resolving the editor context', async () => {
+                respondWith({
+                    '/card-id': { id: 'card-id', path: '/content/dam/mas/acom/en_US/card', fields: {} },
+                });
+                store = new EditorContextStore(null);
+
+                await store.loadFragmentContext('card-id', '/content/dam/mas/acom/en_US/card');
+
+                expect(requestedUrls.filter((url) => url.includes('promotions'))).to.be.empty;
+            });
+
+            it('resolves the default locale id of a regional variation', async () => {
+                respondWith({
+                    '/byPath?path=/content/dam/mas/acom/en_US/card': { id: 'parent-id' },
+                    '/parent-id': { id: 'parent-id', path: '/content/dam/mas/acom/en_US/card', fields: {} },
+                    '/variation-id': { id: 'variation-id', path: '/content/dam/mas/acom/fr_CA/card', fields: {} },
+                });
+                store = new EditorContextStore(null);
+
+                await store.loadFragmentContext('variation-id', '/content/dam/mas/acom/fr_CA/card');
+
+                expect(store.getDefaultLocaleId()).to.equal('parent-id');
+            });
+        });
+
         describe('Locale Default Fragment Methods', () => {
             beforeEach(() => {
                 store = new EditorContextStore(null);

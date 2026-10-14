@@ -21,6 +21,8 @@ import { mark } from '../../io/www/src/fragment/utils/common.js';
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
+// Enough to resolve the fragment and its default-locale id; skips promotions, customize and wcs.
+const CONTEXT_PIPELINE = [fetchFragment, defaultLanguage];
 class LocaleStorageState {
     constructor() {        
     }
@@ -79,7 +81,7 @@ function getPageWcsConfiguration(serviceElement) {
     return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
 }
 
-async function previewFragment(id, options) {
+async function previewFragment(id, options, pipeline = PIPELINE) {
     const serviceElement = document.head.querySelector('mas-commerce-service');
     const locale = serviceElement?.getAttribute('locale');
     const country = serviceElement?.getAttribute('country');
@@ -98,7 +100,7 @@ async function previewFragment(id, options) {
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     try {    
-        for (const transformer of PIPELINE) {
+        for (const transformer of pipeline) {
             if (transformer.init) {
                 //we fork context to avoid init to override any context property
                 const initContext = {
@@ -112,7 +114,7 @@ async function previewFragment(id, options) {
             }
         }
         context.promises = initPromises;
-        for (const transformer of PIPELINE) {
+        for (const transformer of pipeline) {
             if (context.status != 200) {
                 break;
             }
@@ -133,6 +135,10 @@ async function previewFragment(id, options) {
         await storeRequestMetadata(context, cachedMetadata, 'nohash');
     }
     return options.fullContext ? context : context.body;
+}
+
+function previewFragmentContext(id, options) {
+    return previewFragment(id, { ...options, fullContext: true }, CONTEXT_PIPELINE);
 }
 
 /* c8 ignore next 38 */
@@ -185,4 +191,4 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewFragmentContext, previewStudioFragment, customize, settings, replace, getDictionary, corrector };

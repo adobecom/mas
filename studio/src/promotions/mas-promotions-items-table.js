@@ -100,6 +100,35 @@ export const promoVariationCells = [
     'Status',
 ];
 
+export const groupedPromoVariationColumns = [
+    { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
+    { label: 'Path', key: 'path', class: 'path-head-cell' },
+    { label: 'Personalization tags', key: 'personalizationTags', class: 'personalization-tags-head-cell' },
+    { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
+    { label: 'OSI', key: 'osi', class: 'osi-head-cell' },
+    { label: 'Status', key: 'status', class: 'status-head-cell' },
+    { label: 'Related pages', key: 'relatedPages', class: 'related-pages-head-cell' },
+];
+
+export const groupedVariationColumns = [
+    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+    ...groupedPromoVariationColumns,
+];
+
+export const groupedVariationCells = [
+    'OfferName',
+    'Actions',
+    'Title',
+    'StudioPath',
+    'PersonalizationTags',
+    'OfferId',
+    'Osi',
+    'Status',
+    'RelatedPages',
+];
+
 class MasPromotionsItemsTable extends LitElement {
     static styles = [tableStyles, promotionsItemsTableStyles];
 
@@ -1145,6 +1174,9 @@ class MasPromotionsItemsTable extends LitElement {
             .cellsOverride=${cardsTableCells}
             .variationColumns=${promoVariationColumns}
             .variationCells=${promoVariationCells}
+            .groupedVariationColumns=${groupedVariationColumns}
+            .groupedPromoVariationColumns=${groupedPromoVariationColumns}
+            .groupedVariationCells=${groupedVariationCells}
             .hideVariationExpand=${true}
             .openVariationOnActivate=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}

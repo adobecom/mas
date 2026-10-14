@@ -1304,6 +1304,116 @@ describe('MasCollapsibleTableRow', () => {
             expect(renderActionsCell.getCalls().filter(({ args }) => args[0] === mockVariation)).to.have.length(1);
         });
 
+        describe('grouped variations nested promotion variations (promotions)', () => {
+            const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';
+            const promoRoot = '/content/dam/mas/acom/en_US/promotions/summer/cards/parent';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath1, varPath2],
+            });
+            const columns = [
+                { label: 'Offer', key: 'offer' },
+                { label: 'Actions', key: 'actions' },
+                { label: 'Fragment title', key: 'fragmentTitle' },
+                { label: 'Path', key: 'path' },
+                { label: 'Personalization tags', key: 'personalizationTags' },
+                { label: 'Offer ID', key: 'offerId' },
+                { label: 'OSI', key: 'osi' },
+                { label: 'Status', key: 'status' },
+                { label: 'Related pages', key: 'relatedPages' },
+            ];
+            const cells = [
+                'OfferName',
+                'Actions',
+                'Title',
+                'StudioPath',
+                'PersonalizationTags',
+                'OfferId',
+                'Osi',
+                'Status',
+                'RelatedPages',
+            ];
+            const promoVariationsByParent = new Map([
+                [
+                    topLevelCard.path,
+                    [
+                        { path: promoRoot, title: 'Default promo' },
+                        { path: `${promoRoot}/pzn/var1`, title: 'Promo of var1' },
+                    ],
+                ],
+            ]);
+
+            beforeEach(() => {
+                setupCardVariationsInStore(topLevelCard.path, [
+                    { path: varPath1, title: 'Variation 1' },
+                    { path: varPath2, title: 'Variation 2' },
+                ]);
+                Store.translationProjects.selectedCards.set([varPath1, varPath2]);
+            });
+
+            const nestedFixture = (withNested = true) =>
+                fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .viewOnly=${true}
+                        .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                        .tabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
+                        .groupedVariationsManageOnly=${true}
+                        .promoVariationsFetchedByParent=${promoVariationsByParent}
+                        .groupedVariationColumns=${withNested ? [{ label: '', key: 'chevron' }, ...columns] : null}
+                        .groupedPromoVariationColumns=${withNested ? columns : null}
+                        .groupedVariationCells=${withNested ? cells : null}
+                    ></mas-collapsible-table-row>`,
+                );
+
+            it('renders the grouped table head with the requested columns', async () => {
+                const el = await nestedFixture();
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const labels = [...panel.querySelectorAll('.grouped-variations-table > sp-table-head > sp-table-head-cell')].map(
+                    (cell) => cell.textContent.trim(),
+                );
+                expect(labels).to.deep.equal(['', ...columns.map(({ label }) => label)]);
+            });
+
+            it('shows only the matching promo variations under an expanded grouped row', async () => {
+                const el = await nestedFixture();
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const row1 = panel.querySelector(`sp-table-row[value="${varPath1}"]`);
+                const nested = row1.nextElementSibling;
+                expect(nested.classList.contains('grouped-promo-variations')).to.be.true;
+                const nestedRows = [...nested.querySelectorAll('sp-table-body > sp-table-row[value]')];
+                expect(nestedRows.map((row) => row.getAttribute('value'))).to.deep.equal([`${promoRoot}/pzn/var1`]);
+                const nestedLabels = [...nested.querySelectorAll('sp-table-head-cell')].map((cell) => cell.textContent.trim());
+                expect(nestedLabels).to.deep.equal(columns.map(({ label }) => label));
+            });
+
+            it('shows an empty message for a grouped variation without promo variations', async () => {
+                const el = await nestedFixture();
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                const row2 = panel.querySelector(`sp-table-row[value="${varPath2}"]`);
+                expect(row2.nextElementSibling.querySelector('.empty-promotion-variations').textContent.trim()).to.equal(
+                    'No promotion variations found',
+                );
+            });
+
+            it('removes the nested block when the row is collapsed', async () => {
+                const el = await nestedFixture();
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                panel.querySelector(`sp-table-row[value="${varPath1}"] .ghost-button`).click();
+                await el.updateComplete;
+                expect(panel.querySelectorAll('.grouped-promo-variations')).to.have.length(1);
+            });
+
+            it('keeps the details row and no nested block without the grouped properties', async () => {
+                const el = await nestedFixture(false);
+                const panel = el.shadowRoot.querySelector('sp-tab-panel[value="grouped"]');
+                expect(panel.querySelector('.variation-details-row')).to.exist;
+                expect(panel.querySelector('.grouped-promo-variations')).to.be.null;
+            });
+        });
+
         describe('groupedVariationsManageOnly', () => {
             const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
             const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';

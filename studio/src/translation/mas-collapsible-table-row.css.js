@@ -171,8 +171,15 @@ export const styles = [
             .osi-head-cell,
             .osi,
             .applies-to-head-cell,
-            .applies-to-cell {
+            .applies-to-cell,
+            .personalization-tags-head-cell,
+            .personalization-tags {
                 flex: 1 0 var(--column-width);
+            }
+
+            .personalization-tags {
+                min-width: 0;
+                overflow-wrap: anywhere;
             }
 
             sp-table-head {
@@ -198,6 +205,65 @@ export const styles = [
             .select-all-row {
                 border-top-right-radius: 12px;
             }
+        }
+
+        .grouped-variations-table {
+            --column-width: 10rem;
+            --actions-column-width: 6rem;
+            --status-column-width: 7rem;
+
+            .actions-head-cell,
+            .actions-cell {
+                flex: 1 0 var(--actions-column-width);
+            }
+
+            .status-head-cell,
+            .status-cell {
+                flex: 1 0 var(--status-column-width);
+            }
+
+            .offer-head-cell,
+            .offer-cell,
+            .title-head-cell,
+            .title,
+            .path-head-cell,
+            .path,
+            .related-pages-head-cell,
+            .related-pages,
+            .offer-id-head-cell,
+            .offer-id,
+            .osi-head-cell,
+            .osi,
+            .personalization-tags-head-cell,
+            .personalization-tags {
+                flex: 1 0 var(--column-width);
+            }
+
+            .personalization-tags {
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
+
+            sp-table-head {
+                background: var(--spectrum-gray-75);
+            }
+
+            sp-table-head-cell {
+                display: flex;
+                align-items: center;
+                border-bottom: 1px solid var(--spectrum-gray-300);
+            }
+        }
+
+        .grouped-promo-variations {
+            margin-left: 30px;
+            padding: 12px 20px 12px 0;
+            background-color: var(--spectrum-gray-50);
+        }
+
+        .grouped-promo-variations-label {
+            padding-bottom: 8px;
+            color: var(--spectrum-gray-700);
         }
 
         .related-pages sp-action-button {

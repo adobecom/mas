@@ -2770,6 +2770,30 @@ describe('MasPromotionsItemsTable', () => {
                 'Osi',
                 'Status',
             ]);
+            const groupedKeys = [
+                'offer',
+                'actions',
+                'fragmentTitle',
+                'path',
+                'personalizationTags',
+                'offerId',
+                'osi',
+                'status',
+                'relatedPages',
+            ];
+            expect(selectItemsTable.groupedVariationColumns.map(({ key }) => key)).to.deep.equal(['chevron', ...groupedKeys]);
+            expect(selectItemsTable.groupedPromoVariationColumns.map(({ key }) => key)).to.deep.equal(groupedKeys);
+            expect(selectItemsTable.groupedVariationCells).to.deep.equal([
+                'OfferName',
+                'Actions',
+                'Title',
+                'StudioPath',
+                'PersonalizationTags',
+                'OfferId',
+                'Osi',
+                'Status',
+                'RelatedPages',
+            ]);
             expect(selectItemsTable.variationColumns.map(({ key }) => key)).to.deep.equal([
                 'offer',
                 'actions',

@@ -214,6 +214,7 @@ class CardOverlay {
             window.MASStudioLinker.openInStudio(sourceFragmentId, {
                 variant: cardData.variant,
                 locale: cardData.locale,
+                elementType: cardData.elementType,
             });
         });
 

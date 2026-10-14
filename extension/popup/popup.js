@@ -225,7 +225,7 @@ function createCardItem(card) {
 
     item.addEventListener('click', (e) => {
         if (canEdit && e.target.closest('.card-row-edit')) {
-            openInStudio(card.sourceFragmentId, card.variant, card.locale);
+            openInStudio(card.sourceFragmentId, card.variant, card.locale, card.elementType);
             return;
         }
         highlightCardInPage(card.fragmentId);
@@ -262,7 +262,16 @@ function updateVariantFilter() {
     }
 }
 
-function openInStudio(fragmentId, variant, locale) {
+function openInStudio(fragmentId, variant, locale, elementType) {
+    if (elementType === 'field') {
+        chrome.runtime.sendMessage({
+            type: 'OPEN_STUDIO_LINK',
+            view: 'fragment-editor',
+            fragmentId,
+            locale,
+        });
+        return;
+    }
     chrome.runtime.sendMessage({
         type: 'OPEN_STUDIO_LINK',
         view: 'content',

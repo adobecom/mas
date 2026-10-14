@@ -255,6 +255,13 @@ A workflow for an older PR commit does not run tests against the newer head.
 
 Reviews and unrelated label changes do not restart tests that are already running or have a result for the same commit.
 New commits, deliberately re-adding `run nala`, and manual workflow retries request execution explicitly.
+On a new commit, `Cancel Superseded Nala Runs` requests cancellation of older active Nala workflows for that PR before
+the label/approval check. This does not depend on approvals or the new E2E jobs being eligible to start.
+It does not cancel other PRs or newer workflows, and an already superseded push cannot cancel the current head's runs.
+The cancellation job executes no PR checkout and is the only job in this workflow with Actions write permission.
+The API acknowledges the cancellation request; previous cleanup may still be running.
+The job passes superseded workflow identities to the resolver, which excludes their checks immediately, even for the same SHA.
+The gate waits only for relevant current-commit checks. A cancellation API failure blocks launch and fails the gate explicitly.
 Concurrency is scoped to the heavy jobs, separately for each Studio shard and Docs: incidental reviews do not cancel an active suite.
 The fixed 4/4/3 Studio and 1 Docs allocation and invocation-owned HARs remain unchanged.
 
@@ -262,6 +269,11 @@ The fixed 4/4/3 Studio and 1 Docs allocation and invocation-owned HARs remain un
 Missing, failed or started-and-cancelled tests cannot pass; an in-flight retry takes precedence over an earlier failure.
 Retrying a failed shard can reuse the other shards' and Docs' passing results for the same commit.
 Only the gate waits for in-flight tests, not the label/approval check.
+Launch deduplication excludes this workflow's own checks by suite and workflow-run URL.
+When both E2E jobs were skipped, the gate also excludes those own check records instead of waiting on jobs that never executed.
+Resolver logs identify each selected check's status and job URL, including checks from another workflow.
+If a recheck skips E2E jobs because another run is queued or running, follow those URLs to inspect the owning run.
+The gate reports waiting progress every minute and prints updated per-check results when they change.
 
 `Refresh Nala Gate` responds to completed Nala workflows and retries the latest failed gate job after an E2E attempt.
 It only retries a terminal gate, never an older preflight gate with downstream tests; gate-only retries do not trigger another refresh.

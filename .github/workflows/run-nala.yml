@@ -24,11 +24,63 @@ env:
     # The workflow defines the fixed Studio + Docs infrastructure allocation.
     NALA_TOTAL_WORKERS: 12
 
-# Concurrency is declared per job rather than workflow-wide: the cheap jobs must
-# run for every trigger so the gate always reports, and only the heavy E2E jobs
-# are worth cancelling.
+# Job-level concurrency lets reviews report without waiting for or cancelling tests.
+# A new commit explicitly cancels superseded workflows before evaluating launch eligibility.
 
 jobs:
+    cancel-superseded-runs:
+        name: Cancel Superseded Nala Runs
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        permissions:
+            actions: write
+            pull-requests: read
+        outputs:
+            superseded-runs: ${{ steps.cancel.outputs.superseded-runs }}
+        steps:
+            - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+              id: cancel
+              with:
+                  script: |
+                      const eventPr = context.payload.pull_request;
+                      const { data: pr } = await github.rest.pulls.get({
+                          ...context.repo, pull_number: eventPr.number,
+                      });
+                      if (pr.head.sha !== eventPr.head.sha) {
+                          core.info('This push has already been superseded; leaving newer workflows untouched.');
+                          return;
+                      }
+                      const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                          ...context.repo, workflow_id: 'run-nala.yml',
+                          branch: pr.head.ref, per_page: 100,
+                      });
+                      const supersededRuns = [];
+                      for (const run of runs) {
+                          if (run.id >= context.runId || run.status === 'completed') continue;
+                          if (!['pull_request', 'pull_request_review'].includes(run.event)) continue;
+                          const references = run.pull_requests ?? [];
+                          const samePr = references.some((reference) => reference.number === pr.number) ||
+                              (references.length === 0 && run.head_branch === pr.head.ref &&
+                                  run.head_repository?.full_name === pr.head.repo.full_name);
+                          if (!samePr) continue;
+                          try {
+                              await github.rest.actions.cancelWorkflowRun({
+                                  ...context.repo, run_id: run.id,
+                              });
+                              core.info(`Requested cancellation of superseded Nala workflow: ${run.html_url}`);
+                          } catch (error) {
+                              if (error.status !== 409) throw error;
+                              const { data: latest } = await github.rest.actions.getWorkflowRun({
+                                  ...context.repo, run_id: run.id,
+                              });
+                              if (latest.status !== 'completed') throw error;
+                              core.info(`Superseded Nala workflow already completed: ${run.html_url}`);
+                          }
+                          supersededRuns.push({ id: run.id, check_suite_id: run.check_suite_id });
+                      }
+                      core.setOutput('superseded-runs', JSON.stringify(supersededRuns));
+
     identity:
         uses: ./.github/workflows/resolve-aio-identity.yaml
         with:
@@ -56,6 +108,8 @@ jobs:
 
     check-approvals:
         name: Check Label and Approvals
+        needs: cancel-superseded-runs
+        if: ${{ !cancelled() && (needs.cancel-superseded-runs.result == 'success' || needs.cancel-superseded-runs.result == 'skipped') }}
         runs-on: ubuntu-latest
         # Explicit requests (new commit, 're-added run nala') get their own group so an
         # incidental review or label change cannot cancel them before Nala starts.
@@ -95,6 +149,7 @@ jobs:
                   # Approval reporting must not wait for tests; only the gate waits.
                   wait-for-in-flight: 'false'
                   ignore-current-run: 'true'
+                  superseded-runs: ${{ needs.cancel-superseded-runs.outputs.superseded-runs || '[]' }}
                   github-token: ${{ github.token }}
 
     run-nala-studio-tests:
@@ -289,7 +344,7 @@ jobs:
         # that did not happen — unlike the E2E jobs, which skip while approvals are
         # still pending.
         name: Nala Gate
-        needs: [check-paths, check-approvals, run-nala-studio-tests, run-nala-docs-tests]
+        needs: [cancel-superseded-runs, check-paths, check-approvals, run-nala-studio-tests, run-nala-docs-tests]
         if: always()
         runs-on: ubuntu-latest
         timeout-minutes: 55
@@ -302,7 +357,9 @@ jobs:
             # while approvals were still pending could never turn green without
             # replaying the whole workflow and the whole Nala suite with it.
             - name: Resolve live PR and Nala state
-              if: needs.check-paths.result == 'success' && needs.check-paths.outputs.is-trivial != 'true'
+              if: |
+                  (needs.cancel-superseded-runs.result == 'success' || needs.cancel-superseded-runs.result == 'skipped') &&
+                  needs.check-paths.result == 'success' && needs.check-paths.outputs.is-trivial != 'true'
               id: status
               uses: ./.github/actions/resolve-nala-status
               with:
@@ -311,9 +368,13 @@ jobs:
                   consult-prior-runs: 'true'
                   # A superseded run would otherwise report a false 'running' failure.
                   wait-for-in-flight: 'true'
+                  # Skipped jobs never executed and may still have pending API check records.
+                  ignore-current-run: ${{ needs.run-nala-studio-tests.result == 'skipped' && needs.run-nala-docs-tests.result == 'skipped' }}
+                  superseded-runs: ${{ needs.cancel-superseded-runs.outputs.superseded-runs || '[]' }}
                   github-token: ${{ github.token }}
             - name: Resolve Nala status
               env:
+                  CANCELLATION_RESULT: ${{ needs.cancel-superseded-runs.result }}
                   PATHS_RESULT: ${{ needs.check-paths.result }}
                   IS_TRIVIAL: ${{ needs.check-paths.outputs.is-trivial }}
                   IS_CURRENT_HEAD: ${{ steps.status.outputs.is-current-head }}
@@ -321,6 +382,10 @@ jobs:
                   CAN_RUN: ${{ steps.status.outputs.can-run }}
                   NALA_CONCLUSION: ${{ steps.status.outputs.nala-conclusion }}
               run: |
+                  if [ "$CANCELLATION_RESULT" != "success" ] && [ "$CANCELLATION_RESULT" != "skipped" ]; then
+                      echo "::error::Superseded-run cancellation did not succeed (${CANCELLATION_RESULT}); new E2E jobs were not started"
+                      exit 1
+                  fi
                   if [ "$PATHS_RESULT" != "success" ]; then
                       echo "::error::check-paths did not succeed (${PATHS_RESULT})"
                       exit 1

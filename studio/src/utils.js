@@ -18,6 +18,7 @@ import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
+import { Fragment } from './aem/fragment.js';
 import { stripRenditionParams } from '../../web-components/src/image-markup.js';
 
 /**
@@ -541,7 +542,7 @@ export async function resolveHydratedParentFragment(aem, fragmentPath) {
  * @returns {Promise<Object|null>}
  */
 export async function resolvePromoVariationDefaultCard(aem, sourceFragment) {
-    if (!sourceFragment?.path?.includes(`/${PZN_FOLDER}/`)) return sourceFragment;
+    if (!Fragment.isGroupedVariationPath(sourceFragment?.path)) return sourceFragment;
     return resolveHydratedParentFragment(aem, sourceFragment.path);
 }
 

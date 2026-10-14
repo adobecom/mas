@@ -825,6 +825,11 @@ describe('resolvePromoVariationDefaultCard', () => {
         const result = await resolvePromoVariationDefaultCard(aem, defaultCard);
         expect(result).to.equal(defaultCard);
     });
+
+    it('returns a null source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, null);
+        expect(result).to.be.null;
+    });
 });
 
 describe('extractImageUrl', () => {

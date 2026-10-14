@@ -20,8 +20,6 @@ const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_MASK = 'mask';
 const ATTRIBUTE_PZN = 'pzn';
 const ATTRIBUTE_TIMEOUT = 'timeout';
-// Attributes that take part in the fragment endpoint & cache key. Changing any of them
-// on a live element (e.g. from a Target/MEP activity) has to trigger a refetch.
 const ENDPOINT_ATTRIBUTES = [ATTRIBUTE_FRAGMENT, ATTRIBUTE_MASK, ATTRIBUTE_PZN];
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
@@ -249,8 +247,9 @@ export class AemFragment extends HTMLElement {
         }
     }
 
-    // Refetches once the current fetch settles, so a change made mid-fetch is not dropped;
-    // changes made before then share that single refetch.
+    /**
+     * Refetches once the current fetch settles; changes made before then share that refetch.
+     */
     #queueRefresh() {
         if (this.#refreshQueued) return;
         this.#refreshQueued = true;
@@ -425,9 +424,9 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        // mask/pzn can change while the fetch is pending: cache under the key that was requested.
-        const cacheKey = this.cacheKey();
-        let fragment = cache.get(cacheKey);
+        const requestedCacheKey = this.cacheKey();
+        const fragmentId = this.#fragmentId;
+        let fragment = cache.get(requestedCacheKey);
         if (fragment) {
             this.#rawData = fragment;
             return true;
@@ -461,10 +460,11 @@ export class AemFragment extends HTMLElement {
         }
 
         fragment = await this.#getFragment(endpoint);
-        if (fragment === this.#rawData) return true;
-        fragment.fields.originalId ??= this.#fragmentId;
-        if (cacheKey !== this.#fragmentId) {
-            cache.set(cacheKey, fragment);
+        const servedStale = fragment === this.#rawData;
+        if (servedStale) return true;
+        fragment.fields.originalId ??= fragmentId;
+        if (requestedCacheKey !== fragmentId) {
+            cache.set(requestedCacheKey, fragment);
         } else {
             cache.add(fragment);
         }

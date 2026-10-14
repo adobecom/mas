@@ -991,6 +991,28 @@ runTests(async () => {
                 expect(aemFragment.classList.contains('error')).to.be.false;
                 aemFragment.remove();
             });
+
+            it('keeps the requested id as originalId when the fragment changes during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('fragment', 'fragment-segment');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(
+                    cache.get('fragment-cc-all-apps').fields.originalId,
+                ).to.equal('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
+
+            it('caches a pending response by its own id when the fragment changes during the fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('fragment', 'fragment-segment');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has(cc.id)).to.be.true;
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
         });
 
         describe('getFragmentClientUrl', () => {

@@ -1,0 +1,89 @@
+{
+    "path": "/content/dam/mas/brand-concierge/en_US/brand-concierge-product-card-photoshop-individuals",
+    "id": "9941bca0-5304-47f7-aeb3-4f638aeb8791",
+    "fields": {
+        "osi": "A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M",
+        "cardTitle": "Photoshop",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-quantity=\"true\" data-template=\"price\" data-wcs-osi=\"A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M\"></span></p>",
+            "mimeType": "text/html"
+        }
+    },
+    "priceLiterals": {
+        "strikethroughAriaLabel": "Regularly at {strikethroughPrice}",
+        "planTypeLabel": "{planType, select, ABM {Annual, billed monthly} other {}}",
+        "priceUnavailableLabel": "no price available"
+    },
+    "wcs": {
+        "prod": {
+            "A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M-eg-mult": [
+                {
+                    "offerSelectorIds": ["A1xn6EL4pK93bWjM8flffQpfEL-bnvtoQKQAvkx574M"],
+                    "priceDetails": {
+                        "price": 552.9,
+                        "priceWithoutTax": 485,
+                        "annualized": {
+                            "annualizedPrice": 6634.8,
+                            "annualizedPriceWithoutTax": 5820
+                        },
+                        "usePrecision": true,
+                        "formatString": "'LE' #,##0.00",
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    },
+                    "priceInfo": {
+                        "format": {
+                            "currencySymbol": "LE",
+                            "decimalsDelimiter": ".",
+                            "usePrecision": true,
+                            "isCurrencyFirst": true,
+                            "hasCurrencySpace": true
+                        },
+                        "tax": {
+                            "display": "TAX_INCLUSIVE_DETAILS",
+                            "term": "VAT"
+                        },
+                        "recurrence": {
+                            "term": "MONTHLY"
+                        },
+                        "asIs": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "552",
+                                    "decimals": "90",
+                                    "full": "LE 552.90"
+                                },
+                                "withoutTax": {
+                                    "integer": "485",
+                                    "decimals": "00",
+                                    "full": "LE 485.00"
+                                }
+                            }
+                        },
+                        "annualized": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "6,634",
+                                    "decimals": "80",
+                                    "full": "LE 6,634.80"
+                                },
+                                "withoutTax": {
+                                    "integer": "5,820",
+                                    "decimals": "00",
+                                    "full": "LE 5,820.00"
+                                }
+                            }
+                        }
+                    },
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "customerSegment": "INDIVIDUAL",
+                    "marketSegments": ["COM"],
+                    "offerType": "BASE",
+                    "pricePoint": "REGULAR",
+                    "language": "MULT"
+                }
+            ]
+        }
+    }
+}

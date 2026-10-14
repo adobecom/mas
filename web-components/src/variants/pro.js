@@ -891,6 +891,7 @@ export class Pro extends VariantLayout {
 
         /* dark theme — background-color="dark" comes from the #1093 Theme picker */
         :host([variant='pro'][background-color='dark']) {
+            --merch-countdown-color: #ff9999;
             --consonant-merch-card-pro-bg-default: #000;
             --consonant-merch-card-pro-bg-subtle: #131313;
             --consonant-merch-card-pro-frame-bg: #131313;

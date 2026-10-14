@@ -203,6 +203,7 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         divider: { type: Boolean, attribute: 'divider' },
+        countdown: { type: Boolean, attribute: 'countdown' },
         emoji: { type: Boolean, attribute: 'emoji' },
         marks: {
             type: Array,
@@ -1075,6 +1076,7 @@ class RteField extends LitElement {
                 attrs: {
                     class: { default: null },
                     href: { default: '' },
+                    translate: { default: null },
                     'data-key': { default: null },
                     'data-checkout-workflow': { default: null },
                     'data-checkout-workflow-step': { default: null },
@@ -1193,7 +1195,7 @@ class RteField extends LitElement {
     #collectDataAttributes(dom) {
         const attrs = {};
         for (const name of dom.getAttributeNames()) {
-            if (attributeFilter(name) || name === 'src' || name === 'alt' || name === 'size') {
+            if (attributeFilter(name) || name === 'src' || name === 'alt' || name === 'size' || name === 'translate') {
                 const value = dom.getAttribute(name);
                 if (value === null) continue;
                 attrs[name] = value;
@@ -2145,7 +2147,8 @@ class RteField extends LitElement {
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                       ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#emojiButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#countdownButton}
+                      ${this.#emojiButton}
                   </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
@@ -2185,6 +2188,17 @@ class RteField extends LitElement {
                 <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
         `;
+    }
+
+    get #countdownButton() {
+        if (!this.countdown) return nothing;
+        return html`<sp-action-button
+            id="addCountdownButton"
+            ?disabled=${this.readOnly}
+            @click=${this.addCountdown}
+            title="Add countdown timer (uses the promotion's UTC dates)"
+            >Countdown</sp-action-button
+        >`;
     }
 
     get #emojiButton() {
@@ -2380,6 +2394,13 @@ class RteField extends LitElement {
         const { selection } = state;
         const tr = state.tr.insertText(emoji, selection.from, selection.to);
         dispatch(tr);
+        this.editorView.focus();
+    }
+
+    addCountdown() {
+        const { state, dispatch } = this.editorView;
+        const node = state.schema.nodes.link.create({ href: '#', translate: 'no' }, state.schema.text('countdown-timer'));
+        dispatch(state.tr.replaceSelectionWith(node, false));
         this.editorView.focus();
     }
 

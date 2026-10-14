@@ -131,6 +131,18 @@
                         expect(rte.shadowRoot).exist;
                     });
 
+                    it('inserts a non-translatable countdown link without changing surrounding copy', async function () {
+                        const rte = await createFromTemplate('rte-countdown', this.test.title);
+                        rte.shadowRoot.querySelector('#addCountdownButton').click();
+                        const anchor = rte.shadowRoot.querySelector('#editor a');
+                        expect(anchor.textContent).to.equal('countdown-timer');
+                        expect(anchor.getAttribute('href')).to.equal('#');
+                        expect(anchor.getAttribute('translate')).to.equal('no');
+                        expect(rte.value).to.include('Existing description');
+                        rte.updateContent(rte.value);
+                        expect(rte.shadowRoot.querySelector('#editor a').getAttribute('translate')).to.equal('no');
+                    });
+
                     it('should not emit change when syncing an external value update', async function () {
                         const rte = await createFromTemplate('rte-link', this.test.title);
                         let changeCount = 0;
@@ -1099,6 +1111,9 @@
         </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
+        </template>
+        <template id="rte-countdown">
+            <rte-field link countdown><p>Existing description</p></rte-field>
         </template>
         <template id="rte-mnemonic">
             <rte-field mnemonic><p></p></rte-field>

@@ -76,7 +76,8 @@ function anchorText(innerHtml) {
         .toLowerCase();
 }
 
-function hasCountdownTimerLink(fields) {
+/** True when a rich-text field contains the fixed countdown sentinel link. */
+export function hasCountdownTimerLink(fields) {
     if (!fields) return false;
     for (const field of Object.values(fields)) {
         // text/html fields arrive as { mimeType, value } objects (odinSchemaTransform).
@@ -90,44 +91,57 @@ function hasCountdownTimerLink(fields) {
 }
 
 /**
- * Finds the first fragment rendering a countdown-timer link: the main body first, then its
- * references in document order (depth first). Search stops at the first match.
+ * Lists the fragments rendering a countdown-timer link: the main body first, then its
+ * referenced cards and collections, depth first.
  * @param {Object} fragment
  * @param {Array} referencesTree
  * @param {Object} references
- * @returns {Object|null} the fragment, or null when no countdown timer is authored
+ * @returns {Object[]} the fragments, empty when no countdown timer is authored
  */
-function findCountdownTimerFragment(fragment, referencesTree = [], references = {}) {
-    if (hasCountdownTimerLink(fragment?.fields)) return fragment;
+function findCountdownTimerFragments(fragment, referencesTree = [], references = {}) {
+    const found = hasCountdownTimerLink(fragment?.fields) ? [fragment] : [];
     for (const reference of referencesTree) {
         if (reference.fieldName !== 'cards' && reference.fieldName !== 'collections') continue;
         const child = references[reference.identifier]?.value;
         if (!child) continue;
-        const found = findCountdownTimerFragment(child, reference.referencesTree, references);
-        if (found) return found;
+        found.push(...findCountdownTimerFragments(child, reference.referencesTree, references));
     }
-    return null;
+    return found;
+}
+
+/**
+ * Stamps `cdtStart` / `cdtEnd` on `target` from the promo project `fragment` carries.
+ * Both dates are required: a lone start or end is meaningless and ignored.
+ */
+function stampCountdownTimer(target, fragment, context) {
+    const timerProject = (context.promoProjects ?? []).find(({ label }) => label === fragment.promoProject)?.project;
+    if (!timerProject?.cdtStart || !timerProject?.cdtEnd) return;
+    logDebug(() => `countdown timer dates taken from promo project ${timerProject.id}`, context);
+    target.cdtStart = timerProject.cdtStart;
+    target.cdtEnd = timerProject.cdtEnd;
 }
 
 /**
  * Surfaces `cdtStart` / `cdtEnd` on the final payload: the first fragment rendering a
- * countdown-timer link gives, via the promo project it carries, the timer dates. Resolved here,
+ * countdown-timer link gives, via the promo project it carries, the timer dates (kept for
+ * consumers reading the root). Every fragment rendering a countdown-timer link also gets the
+ * dates of its own promo project, so cards of a collection can differ. Resolved here,
  * at the end of the pipeline, so a timer link supplied by a dictionary placeholder (expanded by
- * `replace`, which runs after `customize`) is seen too. Both dates are required: a lone start or
- * end is meaningless and ignored.
+ * `replace`, which runs after `customize`) is seen too. Dates left over from an earlier
+ * resolution are cleared first.
  * @param {Object} context
  */
 export function resolveCountdownTimer(context) {
     const { body } = context;
-    const countdownTimerFragment = findCountdownTimerFragment(body, body.referencesTree, body.references);
-    if (!countdownTimerFragment) return;
-    const timerProject = (context.promoProjects ?? []).find(
-        ({ label }) => label === countdownTimerFragment.promoProject,
-    )?.project;
-    if (timerProject?.cdtStart && timerProject?.cdtEnd) {
-        logDebug(() => `countdown timer dates taken from promo project ${timerProject.id}`, context);
-        body.cdtStart = timerProject.cdtStart;
-        body.cdtEnd = timerProject.cdtEnd;
+    for (const fragment of [body, ...Object.values(body.references ?? {}).map(({ value }) => value)]) {
+        delete fragment?.cdtStart;
+        delete fragment?.cdtEnd;
+    }
+    const fragments = findCountdownTimerFragments(body, body.referencesTree, body.references);
+    if (!fragments.length) return;
+    stampCountdownTimer(body, fragments[0], context);
+    for (const fragment of fragments) {
+        if (fragment !== body) stampCountdownTimer(fragment, fragment, context);
     }
 }
 

@@ -1,9 +1,42 @@
 import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
-import { previewStudioFragment } from '../../libs/fragment-client.js';
+import { previewFragment, previewStudioFragment } from '../../libs/fragment-client.js';
 import { Fragment } from '../aem/fragment.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
+import {
+    countdownDatesOfProvenance,
+    countdownDatesOfTag,
+    hasCountdownSentinel,
+    toCountdownProject,
+} from '../promotions/countdown-preview.js';
+import { getService } from '../utils.js';
+
+const COUNTDOWN_PROJECTS_TTL = 30000;
+const countdownProjectsByRepository = new WeakMap();
+
+/**
+ * Reads the promotion projects without side effects: the loaded list when available, otherwise
+ * a (briefly cached) search. Never repository.loadPromotions(): it unpublishes expired projects.
+ */
+async function readCountdownProjects() {
+    const list = Store.promotions.list.data;
+    if (list.get()?.length || list.hasMeta('listFetched'))
+        return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
+    const repository = document.querySelector('mas-repository');
+    const cached = countdownProjectsByRepository.get(repository);
+    if (cached && Date.now() - cached.at < COUNTDOWN_PROJECTS_TTL) return cached.projects;
+    const projects = repository
+        .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
+        .then((fragments) => fragments.map(toCountdownProject))
+        .catch((error) => {
+            countdownProjectsByRepository.delete(repository);
+            throw error;
+        });
+    countdownProjectsByRepository.set(repository, { at: Date.now(), projects });
+    return projects;
+}
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
 
@@ -264,7 +297,43 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         }
 
+        // Preview payload only: the source fragment never carries these.
+        result.previewLocale = this.previewLocale;
+        Object.assign(result, await this.getCountdownDates(result.fields));
+
         return result;
+    }
+
+    /**
+     * Countdown dates for the preview payload; keys are always present so stale dates get cleared.
+     * An authored promo variation takes its tagged project (draft preview intended). A default card
+     * takes the project the production pipeline selects for its saved version, which exists even when
+     * the saved description has no sentinel. Unsaved authored content is never sent anywhere.
+     */
+    async getCountdownDates(fields) {
+        const none = { cdtStart: undefined, cdtEnd: undefined };
+        if (!hasCountdownSentinel(fields)) return none;
+        try {
+            const tag = getPromotionTagFromFragment(this.value);
+            if (tag) return { ...none, ...countdownDatesOfTag(await readCountdownProjects(), tag) };
+            if (!canProbePromoVariationsForFragment(this.value)) return none;
+            const instant = getService()?.settings?.instant;
+            const provenance = await this.previewPublishedFragment(this.value.id, {
+                locale: this.previewLocale,
+                country: this.previewLocale.split('_')[1],
+                ...(instant && { instant }),
+                fullContext: true,
+            });
+            return { ...none, ...countdownDatesOfProvenance(provenance) };
+        } catch (error) {
+            console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
+            return none;
+        }
+    }
+
+    /** Edge: the production pipeline over the saved fragment (reads only, shares its caches). */
+    previewPublishedFragment(id, options) {
+        return previewFragment(id, options);
     }
 
     replaceFrom(value) {

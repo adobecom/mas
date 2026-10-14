@@ -373,6 +373,14 @@ function applyEduPlaceholders(body) {
     }
 }
 
+// Full-sentence templates preserve word order across languages. replace resolves the dictionary token.
+function applyCountdownPlaceholders(body) {
+    const variant = body?.fields?.variant;
+    if (!['pro', 'bizpro'].includes(variant) && !variant?.startsWith('plans') && body?.model?.id !== COLLECTION_MODEL_ID)
+        return;
+    body.placeholders = { ...body.placeholders, countdownTimerText: '{{countdown-timer-text}}' };
+}
+
 function applyPriceLiterals(fragment) {
     if (fragment) {
         fragment.priceLiterals = {
@@ -412,6 +420,7 @@ async function settings(context) {
     }
 
     applyEduPlaceholders(body);
+    applyCountdownPlaceholders(body);
 
     return context;
 }

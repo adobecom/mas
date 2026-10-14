@@ -1990,6 +1990,8 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="description"
                         ?styling=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?countdown=${normalizeVariantName(variantValue) === VARIANT_NAMES.PRO ||
+                        variantValue?.startsWith('plans')}
                         link
                         upt-link
                         list

@@ -470,6 +470,9 @@ export class AemFragment extends HTMLElement {
             id,
             maskId,
             tags,
+            previewLocale,
+            cdtStart,
+            cdtEnd,
             variationId,
             promoProject,
             promoVariationProject,
@@ -496,6 +499,9 @@ export class AemFragment extends HTMLElement {
                 variationId,
                 promoProject,
                 promoVariationProject,
+                cdtStart,
+                cdtEnd,
+                previewLocale,
             },
         );
     }
@@ -511,6 +517,9 @@ export class AemFragment extends HTMLElement {
             dictionary = {},
             maskId,
             placeholders = {},
+            previewLocale,
+            cdtStart,
+            cdtEnd,
             variationId,
             promoProject,
             promoVariationProject,
@@ -532,6 +541,9 @@ export class AemFragment extends HTMLElement {
                 variationId,
                 promoProject,
                 promoVariationProject,
+                cdtStart,
+                cdtEnd,
+                previewLocale,
             },
         );
     }

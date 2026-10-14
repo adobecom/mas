@@ -14,6 +14,7 @@ import {
 } from '../../src/fragment/transformers/settings.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import { createResponse } from './mocks/MockFetch.js';
+import { transformer as replace } from '../../src/fragment/transformers/replace.js';
 
 const DEFAULT_SURFACE = 'sandbox';
 const DEFAULT_LOCALE = 'fr_FR';
@@ -744,6 +745,35 @@ describe('settings', () => {
             expect(result.body.settings.additionalModalTriggers).to.be.true;
         });
 
+        it('publishes and resolves full-sentence countdown copy for Plans, Pro and collections', async () => {
+            const copy = 'Fin dans {days} jours, {hours} heures, {minutes} minutes';
+            for (const body of [
+                { fields: { variant: 'pro' } },
+                { fields: { variant: 'bizpro' } },
+                { fields: { variant: 'plans-students' } },
+                { model: { id: COLLECTION_MODEL_ID }, fields: {} },
+            ]) {
+                const context = {
+                    locale: 'fr_FR',
+                    body,
+                    promises: {
+                        settings: Promise.resolve({}),
+                        replace: Promise.resolve({ 'countdown-timer-text': copy }),
+                    },
+                };
+                await settings.process(context);
+                expect(context.body.placeholders.countdownTimerText).to.equal('{{countdown-timer-text}}');
+                const resolved = await replace.process(context);
+                expect(resolved.body.placeholders.countdownTimerText).to.equal(copy);
+            }
+        });
+
+        it('does not publish countdown copy for other variants', async () => {
+            const context = { locale: 'en_US', body: { fields: { variant: 'mini' } } };
+            await settings.process(context);
+            expect(context.body.placeholders).to.be.undefined;
+        });
+
         it('publishes edu whats-included placeholders for pro/edu cards', async () => {
             const context = {
                 locale: 'en_US',
@@ -776,7 +806,8 @@ describe('settings', () => {
                 promises: { settings: Promise.resolve({}) },
             };
             const result = await settings.process(context);
-            expect(result.body.placeholders).to.be.undefined;
+            expect(result.body.placeholders.whatsIncludedLabel).to.be.undefined;
+            expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
         });
 
         it('handles missing body', async () => {

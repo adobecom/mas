@@ -1,6 +1,7 @@
 import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
-import { createTag } from './utils.js';
+import { createTag, getService } from './utils.js';
+import './merch-countdown.js';
 import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
@@ -706,6 +707,24 @@ export function processDescription(fields, merchCard, mapping, settings) {
     );
 }
 
+function processCountdown(merchCard, mapping, fragment) {
+    const description = merchCard.querySelector(
+        `[slot="${mapping.description?.slot}"]`,
+    );
+    const settings = getService()?.settings;
+    for (const anchor of description?.querySelectorAll('a') ?? []) {
+        if (anchor.textContent.trim().toLowerCase() !== 'countdown-timer')
+            continue;
+        const timer = document.createElement('merch-countdown');
+        timer.start = fragment.cdtStart;
+        timer.end = fragment.cdtEnd;
+        timer.locale = fragment.previewLocale ?? settings?.locale ?? 'en_US';
+        timer.instant = settings?.instant;
+        timer.template = fragment.placeholders?.countdownTimerText;
+        anchor.replaceWith(timer);
+    }
+}
+
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
     if (!mapping.quantitySelect) return;
     if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
@@ -1213,6 +1232,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processCountdown(merchCard, mapping, fragment);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);

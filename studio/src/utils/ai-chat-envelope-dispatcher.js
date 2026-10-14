@@ -41,12 +41,7 @@ export const NON_OPERATION_INTENTS = new Set([
  * Mirrors `category: 'state-changing'` entries in intent-registry.js whose
  * tool_target is an actual operation.
  */
-export const STATE_CHANGING_INTENTS = new Set([
-    'update_card',
-    'copy_card',
-    'create_grouped_variation',
-    'link_card_to_offer',
-]);
+export const STATE_CHANGING_INTENTS = new Set(['update_card', 'copy_card', 'create_grouped_variation', 'link_card_to_offer']);
 
 /**
  * Confirmation templates for state-changing intents. Mirrors the

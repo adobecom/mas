@@ -50,11 +50,7 @@ describe('ai-chat/operations-handler', () => {
             // removes it here too. Emptying this list would make the test pass
             // by asserting nothing, which is how it read for a moment during
             // the bulk/collection removal.
-            const REGISTRY_ONLY_TOOLS = [
-                'create_grouped_variation',
-                'link_card_to_offer',
-                'list_context_cards',
-            ];
+            const REGISTRY_ONLY_TOOLS = ['create_grouped_variation', 'link_card_to_offer', 'list_context_cards'];
             expect(REGISTRY_ONLY_TOOLS.length, 'this test is worthless with an empty list').to.be.above(0);
             for (const tool of REGISTRY_ONLY_TOOLS) {
                 expect(toolNameVerdict(tool), tool).to.not.include('Invalid operation');

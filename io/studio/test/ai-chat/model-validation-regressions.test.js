@@ -26,8 +26,7 @@ describe('model validation regressions', () => {
     for (const missing_slots of [null, 7, 'missing', {}]) {
         it(`coerces malformed missing_slots ${JSON.stringify(missing_slots)}`, () => {
             expect(
-                envelope.validateEnvelope({ intent: 'copy_card', confidence: 'high', slots: {}, missing_slots }).coerced
-                    .intent,
+                envelope.validateEnvelope({ intent: 'copy_card', confidence: 'high', slots: {}, missing_slots }).coerced.intent,
             ).to.equal('ASK_USER');
         });
     }

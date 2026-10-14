@@ -1,6 +1,7 @@
 import { PATH_TOKENS } from '../utils/paths.js';
 import {
     CARD_MODEL_ID,
+    COLLECTION_MODEL_ID,
     geoMatchScore,
     getRequestInfos,
     hasGeoTag,
@@ -172,6 +173,20 @@ function findPersonalizationVariation(variations, customizeContext) {
     return null;
 }
 
+function findPznVariationForPromotion(root, customizeContext) {
+    const variations = root.fields?.variations;
+    const tokens = parsePznTokens(customizeContext.pzn);
+    if (
+        !tokens.length ||
+        !variations?.length ||
+        (customizeContext.isRegionLocale && findRegionalVariation(variations, customizeContext))
+    ) {
+        return null;
+    }
+    const variation = findPersonalizationVariation(variations, customizeContext);
+    return variation && countMatchedPznTokens(variation.fields.pznTags, tokens) ? variation : null;
+}
+
 // Upper bound for probing suffixed promo variation paths (`-2`, `-3`, ...) per fragment.
 // Kept in sync by hand with the same constant + `-N` suffix convention in
 // studio/src/promotions/promotion-variations.js (separate runtime, no shared import).
@@ -243,9 +258,9 @@ function resolvePromoVariationForPath(project, fragmentPath, { regionLocale, cou
     return defaultVar && regionVar ? deepMerge(defaultVar, regionVar) : defaultVar || regionVar;
 }
 
-// If a promo variation for the pzn variation was added to the promo project, it wins over the
-// default fragment's promo variation. When this OSI opted out of promo variations, no promo
-// variation is looked up at all — only the pzn variation is resolved.
+// A matching audience PZN uses its own promo variation when available, otherwise it suppresses
+// the default promo. Geo-only and regional precedence stay unchanged. Offers flagged to ignore
+// promo variations retain regional or grouped content without merging promo content.
 function findPromoVariation(root, customizeContext, selectedPromoProject) {
     if (!selectedPromoProject || isPromoVariationIgnored(root, selectedPromoProject)) {
         return {};
@@ -284,9 +299,8 @@ function findPromoVariation(root, customizeContext, selectedPromoProject) {
             }
         }
     }
+    if (findPznVariationForPromotion(root, customizeContext)) return {};
     const variation = resolvePromoVariationForPath(project, fragmentPath, { regionLocale, country });
-    // No promo variation for the default fragment.
-    // If the visitor's pzn variation was not added to this promo project, then variation is empty.
     if (!variation) {
         if (rawMatchPath && groupedVariationPaths?.size && !groupedVariationPaths.has(rawMatchPath)) {
             return { variation: {}, label };
@@ -302,7 +316,8 @@ function findPromoMapsForFragment(root, customizeContext) {
     if (!promoProjects?.length) return [];
     const match = PATH_TOKENS.exec(root.path);
     if (!match?.groups) return [];
-    const { fragmentPath } = match.groups;
+    const pznVariation = findPznVariationForPromotion(root, customizeContext);
+    const { fragmentPath } = pznVariation ? PATH_TOKENS.exec(pznVariation.path).groups : match.groups;
     return promoProjects.filter(({ fragmentPaths }) => fragmentPaths.has(fragmentPath));
 }
 
@@ -326,20 +341,34 @@ function hasExplicitMapping(osis, customizeContext, { project, label, promoMap, 
  * evergreen without a mapping doesn't apply.
  * there should be no fallback to mapping-less evergreen promo project
  *
+ * Collections carry no offer, so mappings don't apply to them: any targeting project is taken,
+ * seasonal first. Ties go to the first entry, i.e. the most recently started project, since the
+ * promotions transformer sorts projects by startDate (newest first) before seasonal ones are floated up.
+ *
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
  */
 function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
-    const osis = fragmentOsis(root);
-    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
 
     const seasonalEntries = [];
     const evergreenEntries = [];
     for (const entry of promoEntries) {
         (entry.project.seasonal ? seasonalEntries : evergreenEntries).push(entry);
     }
+
+    if (root.model?.id === COLLECTION_MODEL_ID) {
+        const selected = seasonalEntries[0] ?? evergreenEntries[0];
+        logDebug(
+            () => `Selected promo project ${selected.project.id} for collection ${root.id} out of ${promoEntries.length}`,
+            customizeContext,
+        );
+        return selected;
+    }
+
+    const osis = fragmentOsis(root);
+    logDebug(() => `selectPromoProjectForFragment osis: ${JSON.stringify(osis)}`, customizeContext);
 
     const selected =
         seasonalEntries.find((entry) => hasExplicitMapping(osis, customizeContext, entry)) ??
@@ -358,10 +387,6 @@ function selectPromoProjectForFragment(root, customizeContext) {
 }
 
 function mergeVariations(root, customizeContext, selectedPromoProject) {
-    // Promo variation (checking the pzn variation first, see `findPromoVariation`) takes
-    // priority, independent of fields.variations — unless the fragment's offer is flagged
-    // "ignore variations" for this geo, in which case we fall through so regional and pzn
-    // variations still apply.
     const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);
@@ -401,12 +426,14 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
 /**
  * Rebuilds the referencesTree to match the cards/collections order and membership
  * of the customized root fragment. Non-cards/collections entries (tags, variations)
- * are preserved. New IDs not present in the original tree get a stub entry.
+ * are preserved. New IDs not present in the original tree take their entry from the promo
+ * variation's hydrated tree (so their own subtree is customized too), or a stub entry otherwise.
  * @param {Array} referencesTree
  * @param {Object} customizedRoot
+ * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation
  * @returns {Array}
  */
-function adaptReferencesTree(referencesTree, customizedRoot) {
+function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
     const customizedCards = customizedRoot.fields?.cards;
     const customizedCollections = customizedRoot.fields?.collections;
     if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
@@ -415,6 +442,13 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
     const cardTreeMap = new Map();
     const collectionTreeMap = new Map();
     const otherEntries = [];
+    for (const entry of variationReferencesTree) {
+        if (entry.fieldName === 'cards') {
+            cardTreeMap.set(entry.identifier, entry);
+        } else if (entry.fieldName === 'collections') {
+            collectionTreeMap.set(entry.identifier, entry);
+        }
+    }
     for (const entry of referencesTree) {
         if (entry.fieldName === 'cards') {
             cardTreeMap.set(entry.identifier, entry);
@@ -448,7 +482,16 @@ function adaptReferencesTree(referencesTree, customizedRoot) {
 function customizeTree(root, referencesTree = [], customizeContext) {
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
-    const customizedRoot = mergeVariations(root, customizeContext, selectedPromoProject);
+    const {
+        references: variationReferences,
+        referencesTree: variationReferencesTree,
+        ...customizedRoot
+    } = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (variationReferences) {
+        // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
+        // win, since they may already hold customized values.
+        customizeContext.references = { ...variationReferences, ...customizeContext.references };
+    }
     customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
@@ -465,7 +508,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
     }
 
     //adapt referencesTree to match the customized root's cards/collections
-    const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot);
+    const adaptedTree = adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree);
 
     //now we look into referenced fragments to customize them as well
     for (let i = 0; i < adaptedTree.length; i++) {

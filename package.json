@@ -9,11 +9,12 @@
         "web-components",
         "io/studio",
         "ost",
-        "scripts/content"
+        "scripts/content",
+        "price"
     ],
     "scripts": {
-        "lint": "eslint --fix web-components studio",
-        "format": "prettier web-components studio --write",
+        "lint": "eslint --fix web-components studio price",
+        "format": "prettier web-components studio price --write",
         "test": "npm run test:ci --workspaces",
         "build": "npm run build --workspaces --if-present",
         "studio": "cd studio && npm run proxy & aem up",
@@ -78,7 +79,7 @@
         "prosemirror-schema-basic": "^1.2.3",
         "prosemirror-schema-list": "^1.4.1",
         "prosemirror-state": "^1.4.3",
-        "prosemirror-view": "^1.34.3"
+        "prosemirror-view": "^1.42.6"
     },
     "devDependencies": {
         "@axe-core/playwright": "^4.11.0",

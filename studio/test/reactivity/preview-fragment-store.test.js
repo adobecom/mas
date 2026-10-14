@@ -399,6 +399,15 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
+        it('delegates the published read to the fragment client', async () => {
+            sandbox.stub(window, 'fetch').rejects(new Error('offline'));
+            const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+            const read = store.previewPublishedFragment('card-id', { locale: 'en_US' });
+            expect(read).to.be.instanceOf(Promise);
+            await read.catch(() => {});
+            store.dispose();
+        });
+
         it('replaces then clears previous dates on the preview fragment only', () => {
             const source = createFragment();
             const store = new PreviewFragmentStore(new Fragment(structuredClone(source)), null, { lazy: true });

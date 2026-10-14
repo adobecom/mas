@@ -2400,7 +2400,7 @@ class RteField extends LitElement {
     addCountdown() {
         const { state, dispatch } = this.editorView;
         const node = state.schema.nodes.link.create({ href: '#', translate: 'no' }, state.schema.text('countdown-timer'));
-        dispatch(state.tr.replaceSelectionWith(node, false));
+        dispatch(state.tr.insert(state.selection.to, node));
         this.editorView.focus();
     }
 

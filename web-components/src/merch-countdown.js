@@ -46,7 +46,7 @@ export class MerchCountdown extends LitElement {
         }
     `;
 
-    #interval;
+    #timer;
 
     constructor() {
         super();
@@ -64,7 +64,7 @@ export class MerchCountdown extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        clearInterval(this.#interval);
+        clearTimeout(this.#timer);
     }
 
     willUpdate(changed) {
@@ -78,18 +78,10 @@ export class MerchCountdown extends LitElement {
     }
 
     #startClock() {
-        clearInterval(this.#interval);
+        clearTimeout(this.#timer);
         if (!this.isConnected) return;
         this.lang = this.locale.replace('_', '-');
         this.#tick();
-        // ponytail: minute precision matches the copy; instant freezes author previews.
-        if (
-            !this.instant &&
-            Date.parse(this.start) < Date.parse(this.end) &&
-            Date.now() < Date.parse(this.end)
-        ) {
-            this.#interval = setInterval(() => this.#tick(), MINUTE);
-        }
     }
 
     #tick() {
@@ -102,7 +94,16 @@ export class MerchCountdown extends LitElement {
             this.template,
         );
         this.hidden = !this.text;
-        if (now >= Date.parse(this.end)) clearInterval(this.#interval);
+        const start = Date.parse(this.start);
+        const end = Date.parse(this.end);
+        // A fixed instant freezes author previews.
+        if (this.instant || !(start < end) || now >= end) return;
+        // Wake just after the minute count changes (or at start), so text and expiry never lag.
+        const untilChange = ((end - now) % MINUTE) + 1;
+        this.#timer = setTimeout(
+            () => this.#tick(),
+            now < start ? Math.min(untilChange, start - now) : untilChange,
+        );
     }
 
     render() {

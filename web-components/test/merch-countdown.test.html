@@ -129,7 +129,7 @@
                     beforeEach(() => {
                         clock = sinon.useFakeTimers({
                             now: NOW,
-                            toFake: ['Date', 'setInterval', 'clearInterval'],
+                            toFake: ['Date', 'setTimeout', 'clearTimeout'],
                         });
                     });
                     afterEach(() => {
@@ -145,17 +145,27 @@
                         await timer.updateComplete;
                         return timer;
                     };
-                    it('updates once a minute and hides at exact expiry', async () => {
+                    it('updates when the minute count changes and hides at expiry', async () => {
                         const timer = await renderTimer('2026-11-01T00:02:00Z');
                         expect(timer.text).to.include('2 minutes');
                         expect(timer.getAttribute('role')).to.equal('timer');
                         expect(timer.getAttribute('aria-live')).to.equal('off');
-                        clock.tick(60000);
+                        clock.tick(1);
                         expect(timer.text).to.include('1 minutes');
+                        clock.tick(60000);
+                        expect(timer.text).to.include('0 minutes');
                         clock.tick(60000);
                         expect(timer.hidden).to.equal(true);
                         expect(timer.text).to.equal('');
                         expect(clock.countTimers()).to.equal(0);
+                    });
+                    it('wakes at the next minute change, not a minute after mount', async () => {
+                        const timer = await renderTimer('2026-11-01T00:01:30Z');
+                        expect(timer.text).to.include('1 minutes');
+                        clock.tick(30001);
+                        expect(timer.text).to.include('0 minutes');
+                        clock.tick(60000);
+                        expect(timer.hidden).to.equal(true);
                     });
                     it('starts a scheduled timer and reads the clock after a suspended tab resumes', async () => {
                         const timer = await renderTimer(
@@ -166,7 +176,7 @@
                         clock.tick(60000);
                         expect(timer.text).to.include('9 minutes');
                         clock.setSystemTime(NOW + 9 * 60000);
-                        clock.tick(60000);
+                        clock.tick(61000);
                         expect(timer.hidden).to.equal(true);
                     });
                     it('stops on disconnect and restarts on reconnect', async () => {

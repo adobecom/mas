@@ -306,9 +306,9 @@ export class PreviewFragmentStore extends FragmentStore {
 
     /**
      * Countdown dates for the preview payload; keys are always present so stale dates get cleared.
-     * An authored promo variation takes its tagged project (draft preview intended). A default card
-     * takes the project the production pipeline selects for its saved version, which exists even when
-     * the saved description has no sentinel. Unsaved authored content is never sent anywhere.
+     * A promo variation takes its tagged project (drafts included). A default card takes the project
+     * the production pipeline selects for its saved version, even if the saved description has no
+     * sentinel. Unsaved authored content is never sent anywhere.
      */
     async getCountdownDates(fields) {
         const none = { cdtStart: undefined, cdtEnd: undefined };

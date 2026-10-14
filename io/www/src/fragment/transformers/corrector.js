@@ -122,13 +122,9 @@ function stampCountdownTimer(target, fragment, context) {
 }
 
 /**
- * Surfaces `cdtStart` / `cdtEnd` on the final payload: the first fragment rendering a
- * countdown-timer link gives, via the promo project it carries, the timer dates (kept for
- * consumers reading the root). Every fragment rendering a countdown-timer link also gets the
- * dates of its own promo project, so cards of a collection can differ. Resolved here,
- * at the end of the pipeline, so a timer link supplied by a dictionary placeholder (expanded by
- * `replace`, which runs after `customize`) is seen too. Dates left over from an earlier
- * resolution are cleared first.
+ * Stamps `cdtStart` / `cdtEnd` from each timer fragment's own promo project, so cards of a
+ * collection can differ. The first timer fragment also stamps the root. Runs last in the pipeline
+ * so a timer link from a dictionary placeholder (expanded by `replace`) is seen. Stale dates are cleared first.
  * @param {Object} context
  */
 export function resolveCountdownTimer(context) {

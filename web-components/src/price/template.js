@@ -1,4 +1,4 @@
-import { createLog } from '@dexter/tacocat-core';
+import { createLog } from '../log.js';
 import { formatLiteral as renderLiteral } from '@adobecom/mas-price/price/template';
 
 export {

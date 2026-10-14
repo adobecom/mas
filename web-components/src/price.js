@@ -3,10 +3,10 @@ import { buildPriceHTML as renderPrice } from '@adobecom/mas-price';
 
 import {
     omitProperties,
-    computePromoStatus,
     toBoolean,
-    createLog,
-} from '@dexter/tacocat-core';
+} from '@dexter/tacocat-core/src/utilities.js';
+import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
+import { createLog } from './log.js';
 import { InlinePrice } from './inline-price.js';
 import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
 

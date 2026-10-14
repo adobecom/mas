@@ -1,5 +1,4 @@
 import { expect, sinon } from './utilities.js';
-import { registerLogger } from '@dexter/tacocat-core';
 import {
     buildPriceHTML as sharedBuildPriceHTML,
     selectOffers as sharedSelectOffers,
@@ -154,42 +153,58 @@ describe('shared price browser integration', () => {
         ]);
     });
 
-    it('forwards rendered literal errors to the existing template logger', () => {
-        const error = sinon.spy();
-        const unregister = registerLogger(error, () => {});
-        try {
-            service().buildPriceHTML([baseOffer], {
-                literals: { recurrenceLabel: '{invalid' },
-            });
-            sinon.assert.calledWith(
-                error,
-                '[tacocat.js/ConsonantTemplates/price] Failed to format literal:',
-                '{invalid',
-            );
-        } finally {
-            unregister();
-        }
+    it('forwards rendered literal errors to M@S logging', () => {
+        const entries = [];
+        Log.use({ append: (entry) => entries.push(entry) });
+
+        service().buildPriceHTML([baseOffer], {
+            literals: { recurrenceLabel: '{invalid' },
+        });
+
+        expect(
+            entries.map(({ level, namespace, message, params }) => ({
+                level,
+                namespace,
+                message,
+                params,
+            })),
+        ).to.deep.equal([
+            {
+                level: 'error',
+                namespace: 'ConsonantTemplates/price',
+                message: 'Failed to format literal:',
+                params: ['{invalid'],
+            },
+        ]);
     });
 
-    it('forwards unavailable-price literal errors to the existing template logger', () => {
-        const error = sinon.spy();
-        const unregister = registerLogger(error, () => {});
-        try {
-            expect(
-                formatLiteral(
-                    { priceUnavailableLabel: '{invalid' },
-                    'en-US',
-                    'priceUnavailableLabel',
-                    {},
-                ),
-            ).to.equal('');
-            sinon.assert.calledWith(
-                error,
-                '[tacocat.js/ConsonantTemplates/price] Failed to format literal:',
-                '{invalid',
-            );
-        } finally {
-            unregister();
-        }
+    it('forwards unavailable-price literal errors to M@S logging', () => {
+        const entries = [];
+        Log.use({ append: (entry) => entries.push(entry) });
+
+        expect(
+            formatLiteral(
+                { priceUnavailableLabel: '{invalid' },
+                'en-US',
+                'priceUnavailableLabel',
+                {},
+            ),
+        ).to.equal('');
+
+        expect(
+            entries.map(({ level, namespace, message, params }) => ({
+                level,
+                namespace,
+                message,
+                params,
+            })),
+        ).to.deep.equal([
+            {
+                level: 'error',
+                namespace: 'ConsonantTemplates/price',
+                message: 'Failed to format literal:',
+                params: ['{invalid'],
+            },
+        ]);
     });
 });

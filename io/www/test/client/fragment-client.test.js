@@ -7,16 +7,7 @@ import mockCollectionData from '../fragment/mocks/preview-collection.json' with 
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
 import mockCardFragment from '../fragment/mocks/preview-fragment.json' with { type: 'json' };
 import mockPlaceholders from '../fragment/mocks/preview-placeholders.json' with { type: 'json' };
-
-// Helper function to create mock Response objects
-function createResponse(status, data, statusText = 'OK') {
-    return Promise.resolve({
-        ok: status >= 200 && status < 300,
-        status,
-        statusText,
-        json: async () => data,
-    });
-}
+import { createResponse } from '../fragment/mocks/MockFetch.js';
 
 // Create a mock localStorage
 const storage = {};
@@ -108,6 +99,16 @@ describe('FragmentClient', () => {
             locale: 'en_US',
         });
         expect(result?.fields?.variant).to.equal('plans');
+    });
+
+    it('includes init fetch measurements in the returned preview context', async () => {
+        const context = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect(context.measures.some(({ label, duration }) => label === 'main-fetch-fragment' && Number(duration) >= 0)).to.be
+            .true;
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
@@ -315,13 +316,22 @@ describe('FragmentClient', () => {
 
     it('clears caches on load when mas.cache=off is present in the URL', async () => {
         localStorageStub.setItem('dictionary-sandbox-en_US', 'stale-value');
+        localStorageStub.setItem('promotions-acom', 'stale-value');
+        localStorageStub.setItem('offer-mapping-acom', 'stale-value');
+        localStorageStub.setItem('promo-variations', 'stale-value');
+        localStorageStub.setItem('unrelated', 'keep');
         const previousLocation = globalThis.window.location;
         globalThis.window.location = { search: '?mas.cache=off' };
         try {
             await import(`../../../../studio/libs/fragment-client.js?cachebust=${Date.now()}-${Math.random()}`);
             expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+            expect(localStorageStub.getItem('promotions-acom')).to.be.null;
+            expect(localStorageStub.getItem('offer-mapping-acom')).to.be.null;
+            expect(localStorageStub.getItem('promo-variations')).to.be.null;
+            expect(localStorageStub.getItem('unrelated')).to.equal('keep');
         } finally {
             globalThis.window.location = previousLocation;
+            delete storage.unrelated;
         }
     });
 

@@ -70,6 +70,11 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    for (const key of Object.keys(localStorage)) {
+        if (key === 'promo-variations' || key.startsWith('promotions-')) {
+            localStorage.removeItem(key);
+        }
+    }
 }
 
 function getPageWcsConfiguration(serviceElement) {
@@ -97,6 +102,7 @@ async function previewFragment(id, options) {
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
+    context.measures = context.measures || [];
     try {    
         for (const transformer of PIPELINE) {
             if (transformer.init) {
@@ -105,6 +111,7 @@ async function previewFragment(id, options) {
                     ...structuredClone(context),
                     promises: initPromises,
                     fragmentsIds: context.fragmentsIds,
+                    measures: context.measures,
                 };
                 initContext.loggedTransformer = `${transformer.name}-init`;
                 logDebug(() => `Initializing transformer ${transformer.name}`, initContext);
@@ -157,6 +164,7 @@ async function previewStudioFragment(body, options) {
         }),
     };
     context.fragmentsIds = context.fragmentsIds || {};
+    context.measures = context.measures || [];
     context.hasExternalDictionary = Boolean(context.dictionary);
     for (const transformer of [settings, replace, corrector]) {
         if (transformer.init) {
@@ -164,6 +172,7 @@ async function previewStudioFragment(body, options) {
                 ...structuredClone(context),
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
+                measures: context.measures,
             };
             initContext.loggedTransformer = `${transformer.name}-init`;
             initPromises[transformer.name] = transformer.init(initContext);

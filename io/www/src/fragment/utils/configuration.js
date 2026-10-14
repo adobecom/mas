@@ -7,6 +7,7 @@ const HARDCODED_API_KEYS = [
     'AdobeExpressWeb',
     'unified_checkout_client_v3',
     'concierge-conversation-service',
+    'acom-bc-service',
 ];
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];

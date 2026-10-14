@@ -120,6 +120,7 @@ const OST_IS_MAPPING = {
     checkoutUrl: 'checkout-link',
     legal: 'inline-price',
     'promo-strikethrough': 'inline-price',
+    'discount-amount': 'inline-price',
 };
 
 const OST_OPTION_ATTRIBUTE_MAPPING = {
@@ -280,7 +281,7 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
                 searchParameters.append('text', offerElement.innerText);
             }
             const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
-            const isDiscount = offerElement.getAttribute('data-template') === 'discount';
+            const isDiscount = template === 'discount' || template === 'discount-amount';
             // A soft-bundle placeholder carries every bundled OSI comma-joined
             // (and is not a discount, whose second OSI is a reference price).
             // Reopen it in bundle mode with all offers so the author edits the

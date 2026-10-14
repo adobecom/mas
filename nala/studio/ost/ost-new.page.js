@@ -101,6 +101,8 @@ export default class OSTNewPage {
         );
         this.priceAnnual = preview('annual').locator('span[is="inline-price"][data-template="annual"]');
         this.legalDisclaimer = preview('legal').locator('span[is="inline-price"][data-template="legal"]');
+        this.discount = preview('discount').locator('span[is="inline-price"][data-template="discount"]');
+        this.discountAmount = preview('discount-amount').locator('span[is="inline-price"][data-template="discount-amount"]');
 
         // Placeholder option checkboxes (legacy "Disable" group). A box is
         // checked when its option is OFF (disabled); see ost-placeholder-options.
@@ -132,6 +134,8 @@ export default class OSTNewPage {
         this.promoField = this.page.locator('[data-testid="ost-promo-override-input"] input');
         this.promoLabel = this.page.locator('[data-testid="ost-promo-label"]');
         this.cancelPromo = this.page.locator('[data-testid="ost-promo-clear"]');
+
+        this.discountReference = this.page.locator('[data-testid="ost-reference-osi-input"] input').first();
     }
 
     // On the offer step, select the first offer card. The placeholder panel

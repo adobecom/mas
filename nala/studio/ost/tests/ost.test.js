@@ -341,6 +341,22 @@ test.describe('M@S Studio OST test suite', () => {
             await expect(await ost.price).toContainText(data.expectedPerUnit);
         });
     });
+    // @studio-ost-discount-amount - Show discount amount
+    test(`${features[18].name},${features[18].tags}`, async ({ page, baseURL }) => {
+        const { data } = features[18];
+        const ost = await openEditorAndOST(page, baseURL, features[18]);
+
+        await test.step('step-1: Search the OSI and advance to the offer step', async () => {
+            await expect(await ost.searchField).toBeVisible();
+            await ost.searchField.fill(data.osi);
+            await ost.nextButton.click();
+            await expect(await ost.price).toBeVisible();
+            await expect(await ost.discountReference).toBeVisible();
+            await ost.discountReference.fill(data.refOsi);
+            await expect(await ost.discountAmount).toContainText(data.expectedPrice);
+            await expect(await ost.discount).toContainText(data.expectedPercentage);
+        });
+    });
 });
 
 async function openEditorAndOST(page, baseURL, feature, fragmentId = OST_FR_FRAGMENT) {

@@ -13,7 +13,7 @@ import {
     legal,
 } from './price/index.js';
 
-import { discount } from './discount/index.js';
+import { discount, discountAmount } from './discount/index.js';
 
 import {
     omitProperties,
@@ -93,6 +93,9 @@ export function Price({ literals, providers, settings }) {
             // TODO: use price template name constants, export them from `consonant-templates`
             case 'discount':
                 method = discount;
+                break;
+            case 'discount-amount':
+                method = discountAmount;
                 break;
             case 'strikethrough':
                 method = priceStrikethrough;

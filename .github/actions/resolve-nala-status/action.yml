@@ -163,9 +163,11 @@ runs:
                   if (canRun && process.env.CONSULT_PRIOR_RUNS === 'true') {
                       const wait = process.env.WAIT_FOR_IN_FLIGHT === 'true';
                       const supersededRuns = JSON.parse(process.env.SUPERSEDED_RUNS);
-                      const belongsToRun = (check, run) =>
-                          (run.check_suite_id != null && check.check_suite?.id === run.check_suite_id) ||
-                          check.details_url?.includes(`/actions/runs/${run.id}/`);
+                      const belongsToRun = (check, run) => {
+                          const workflowId = check.details_url?.match(/\/actions\/runs\/(\d+)\//)?.[1];
+                          if (workflowId) return workflowId === String(run.id);
+                          return run.check_suite_id != null && check.check_suite?.id === run.check_suite_id;
+                      };
                       const deadline = Date.now() + 50 * 60 * 1000;
                       let lastCheckSummary = '';
                       const { data: currentRun } = await github.rest.actions.getWorkflowRun({

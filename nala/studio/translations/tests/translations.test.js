@@ -156,8 +156,7 @@ test.describe('M@S Studio Translations Test Suite', () => {
 
         // @translation-editor-search
         await test.step('step-2: Enter search term, verify results update', async () => {
-            const searchTerm = await translationEditor.getSearchSourceTitle();
-            expect(searchTerm, 'The immutable source fixture must have a searchable title').toBeTruthy();
+            const { searchTerm } = data;
             await translationEditor.searchInput.fill(searchTerm);
             await expect(translationEditor.addItemsSelector).toHaveJSProperty('searchQuery', searchTerm);
             await expect(translationEditor.cardsTable).toHaveJSProperty('isLoading', false);

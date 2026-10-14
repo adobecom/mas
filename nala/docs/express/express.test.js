@@ -118,7 +118,6 @@ test.describe('MAS Express Cards test suite', () => {
                 if (await card.chevronButton.isVisible()) {
                     await card.chevronButton.click();
                     await expect(card.card).toHaveAttribute('data-expanded', 'false');
-                    expect(await card.isExpanded()).toBe('false');
                 }
             } finally {
                 try {

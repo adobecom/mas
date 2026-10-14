@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { getCurrentRunId, getTitle } from '../../utils/fragment-tracker.js';
+import { getTitle } from '../../utils/fragment-tracker.js';
 import { beginFragmentCreation, completeFragmentCreation } from '../../utils/fragment-ledger.js';
 
 export default class TranslationEditorPage {
@@ -163,21 +163,6 @@ export default class TranslationEditorPage {
             await expect.poll(() => picker.evaluate((field) => field.value)).toContain(selectedPath);
         }
         await expect(popover).toBeHidden();
-    }
-
-    async getSearchSourceTitle() {
-        const table = await this.cardsTable.elementHandle();
-        const title = await this.page.waitForFunction(
-            ({ table, runId }) =>
-                table.itemsToDisplay.find(
-                    ({ title }) =>
-                        title &&
-                        (!title.startsWith('MAS.Nala.Automation.') ||
-                            (runId && title.startsWith(`MAS.Nala.Automation.${runId}.source.`))),
-                )?.title,
-            { table, runId: getCurrentRunId() },
-        );
-        return (await title.jsonValue()).trim();
     }
 
     async expectCardRowsMatchSearchTerm(term) {

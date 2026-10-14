@@ -232,7 +232,7 @@ Private clone-source tag writes consume their response body before navigating aw
 does not mean the browser transport has finished; navigating earlier can cancel that write response and falsely fail teardown.
 Accessibility scans wait for finite animations in the tested section to finish, so accordion fades are not
 mistaken for permanent contrast failures. Infinite animations do not block scans; accessibility thresholds are unchanged.
-Translation search uses an already-loaded baseline card or this run's immutable source, never another run's temporary cards.
+Translation search uses the ordinary product search term defined in its spec and waits for the committed query and results.
 Filter checks verify both pending and committed picker selections, rather than treating a closed popover as success.
 Inventory updates that reset selections still fail these checks; application behavior is not changed or retried.
 

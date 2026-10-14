@@ -144,16 +144,28 @@ export default class PlaceholdersPage {
     async getPlaceholderRowData(rowIndex = 0) {
         const row = this.placeholderRows.nth(rowIndex);
         const cells = row.locator('sp-table-cell');
-        await expect(cells).toHaveCount(7);
+        await expect(this.tableHeaders.key).toBeVisible();
+        await expect(cells).toHaveCount(await this.placeholdersTable.locator('sp-table-head-cell').count());
         await expect(row.locator('mas-fragment-status')).toHaveAttribute('variant', /.+/);
 
+        const readCell = async (column) => {
+            const header = this.tableHeaders[column];
+            await expect(header).toBeVisible();
+            const index = await header.evaluate((element) =>
+                Array.from(element.parentElement.querySelectorAll('sp-table-head-cell')).indexOf(element),
+            );
+            const cell = cells.nth(index);
+            await expect(cell).toBeVisible();
+            return cell.textContent();
+        };
+
         return {
-            key: await cells.nth(0).textContent(),
-            value: await cells.nth(1).textContent(),
+            key: await readCell('key'),
+            value: await readCell('value'),
             status: await row.locator('mas-fragment-status').getAttribute('variant'),
-            locale: await cells.nth(3).textContent(),
-            updatedBy: await cells.nth(4).textContent(),
-            updatedAt: await cells.nth(5).textContent(),
+            locale: await readCell('locale'),
+            updatedBy: await readCell('updatedBy'),
+            updatedAt: await readCell('updatedAt'),
         };
     }
 

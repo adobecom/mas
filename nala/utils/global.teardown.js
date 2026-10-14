@@ -1,6 +1,6 @@
 import { chromium, devices } from '@playwright/test';
 import { getCurrentRunId, clearRunId } from './fragment-tracker.js';
-import { readFragmentLedger, completeFragmentLedger } from './fragment-ledger.js';
+import { readFragmentLedger, recordCreatedFragment, finalizeFragmentLedger } from './fragment-ledger.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
 import RequestCountingReporter, { drainReporterOutput } from './request-counting-reporter.js';
@@ -16,6 +16,7 @@ export async function deleteOwnedFragments({ fragments, runId }) {
     const repo = document.querySelector('mas-repository');
     const deletedIds = [];
     const alreadyDeletedIds = [];
+    const pendingIds = [];
     const failures = [];
     for (const entry of fragments) {
         try {
@@ -29,15 +30,20 @@ export async function deleteOwnedFragments({ fragments, runId }) {
             if (!fragment.title.includes(runId) || fragment.path !== entry.path) {
                 throw new Error(`Refusing to delete fragment not owned by this run: ${entry.id}`);
             }
+            if (entry.pendingDeletion) {
+                pendingIds.push(entry.id);
+                continue;
+            }
             fragment.etag = response.headers.get('etag');
             if (!fragment.etag) throw new Error(`Missing live ETag for cleanup fragment ${entry.id}`);
-            await repo.aem.sites.cf.fragments.delete(fragment);
-            deletedIds.push(entry.id);
+            const deletion = await repo.aem.sites.cf.fragments.delete(fragment);
+            if (deletion.status === 202) pendingIds.push(entry.id);
+            else deletedIds.push(entry.id);
         } catch (error) {
             failures.push({ id: entry.id, message: error.message });
         }
     }
-    return { deletedIds, alreadyDeletedIds, failures };
+    return { deletedIds, alreadyDeletedIds, pendingIds, failures };
 }
 
 async function evaluateCleanup(page, operation, payload) {
@@ -97,6 +103,11 @@ export function printCleanupSummary() {
     } else if (results.totalFound === 0) {
         lines.push('    \x1b[1m\x1b[33m  ➖ No fragments found to clean up\x1b[0m');
     }
+    if (results.totalPending > 0) {
+        lines.push(
+            `    \x1b[33m# Deletion accepted/pending : ${results.totalPending}; records retained in nala/.runs/${results.runId}/\x1b[0m`,
+        );
+    }
     if (results.totalFailed > 0) {
         lines.push(
             `    \x1b[31m✘\x1b[0m \x1b[1m\x1b[33m Failed to delete         :\x1b[0m \x1b[31m${results.totalFailed}/${results.totalFound}\x1b[0m`,
@@ -104,7 +115,7 @@ export function printCleanupSummary() {
     }
     for (const result of results.paths ?? []) {
         lines.push(
-            `    \x1b[36m${result.path}\x1b[0m — found: ${result.found}, deleted/already absent: \x1b[32m${result.deleted}\x1b[0m, failed: \x1b[${result.failed ? '31' : '32'}m${result.failed}\x1b[0m`,
+            `    \x1b[36m${result.path}\x1b[0m — found: ${result.found}, deleted/already absent: \x1b[32m${result.deleted}\x1b[0m, pending: \x1b[33m${result.pending}\x1b[0m, failed: \x1b[${result.failed ? '31' : '32'}m${result.failed}\x1b[0m`,
         );
         if (result.searchError) lines.push(`      \x1b[31m✘ Recovery search failed: ${result.searchError}\x1b[0m`);
     }
@@ -131,11 +142,17 @@ async function cleanupRun() {
     console.info(
         `[NALA teardown] ${ledger.fragments.length} recorded fragments; recovery search ${ledger.recover ? 'required' : 'not required'}.`,
     );
-    global.nalaCleanupResults = { totalFound: ledger.fragments.length, totalDeleted: 0, totalFailed: 0 };
+    global.nalaCleanupResults = {
+        runId,
+        totalFound: ledger.fragments.length,
+        totalDeleted: 0,
+        totalPending: 0,
+        totalFailed: 0,
+    };
     if (!ledger.fragments.length && !ledger.recover) {
         console.info('[NALA teardown] No pending fragments; skipping browser startup.');
         if (!ci) printCleanupSummary();
-        completeFragmentLedger();
+        finalizeFragmentLedger();
         clearRunId();
         return;
     }
@@ -183,7 +200,7 @@ async function cleanupRun() {
             for (const locale of ['en_US', 'fr_FR', 'en_CA', 'en_GB', 'en_AU', 'translations']) {
                 const path = `/content/dam/mas/nala/${locale}`;
                 console.info(`📍 Checking path: \x1b[33m${path}\x1b[0m`);
-                paths.set(path, { path, found: 0, deleted: 0, failed: 0 });
+                paths.set(path, { path, found: 0, deleted: 0, pending: 0, failed: 0 });
                 try {
                     const recovered = await evaluateCleanup(page, findRunFragments, {
                         runId,
@@ -204,7 +221,7 @@ async function cleanupRun() {
         }
         for (const fragment of fragments) {
             const path = fragment.path.slice(0, fragment.path.lastIndexOf('/'));
-            if (!paths.has(path)) paths.set(path, { path, found: 0, deleted: 0, failed: 0 });
+            if (!paths.has(path)) paths.set(path, { path, found: 0, deleted: 0, pending: 0, failed: 0 });
             paths.get(path).found++;
         }
         global.nalaCleanupResults.paths = [...paths.values()];
@@ -212,6 +229,7 @@ async function cleanupRun() {
         const fragmentsUrl = await page.locator('mas-repository').evaluate((repo) => repo.aem.cfFragmentsUrl);
         for (const { id } of fragments) expectedMissingUrls.add(`${fragmentsUrl}/${id}`);
         const failures = [];
+        const pendingIds = [];
         for (let start = 0; start < fragments.length; start += 10) {
             console.info(
                 `[NALA teardown] Deleting batch ${Math.floor(start / 10) + 1}/${Math.ceil(fragments.length / 10)} (${Math.min(10, fragments.length - start)} fragments).`,
@@ -221,10 +239,17 @@ async function cleanupRun() {
                 runId,
             });
             global.nalaCleanupResults.totalDeleted += result.deletedIds.length + result.alreadyDeletedIds.length;
+            global.nalaCleanupResults.totalPending += result.pendingIds.length;
             for (const id of [...result.deletedIds, ...result.alreadyDeletedIds]) {
                 const fragment = fragments.find((entry) => entry.id === id);
                 paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).deleted++;
             }
+            for (const id of result.pendingIds) {
+                const fragment = fragments.find((entry) => entry.id === id);
+                recordCreatedFragment({ ...fragment, pendingDeletion: true });
+                paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).pending++;
+            }
+            pendingIds.push(...result.pendingIds);
             for (const { id } of result.failures) {
                 const fragment = fragments.find((entry) => entry.id === id);
                 paths.get(fragment.path.slice(0, fragment.path.lastIndexOf('/'))).failed++;
@@ -239,11 +264,14 @@ async function cleanupRun() {
                 'Fragment cleanup failed',
             );
         }
-        completeFragmentLedger();
+        finalizeFragmentLedger(pendingIds);
         clearRunId();
     } catch (error) {
-        global.nalaCleanupResults.totalFailed = global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
-        for (const path of global.nalaCleanupResults.paths ?? []) path.failed = path.found - path.deleted;
+        global.nalaCleanupResults.totalFailed =
+            global.nalaCleanupResults.totalFound -
+            global.nalaCleanupResults.totalDeleted -
+            global.nalaCleanupResults.totalPending;
+        for (const path of global.nalaCleanupResults.paths ?? []) path.failed = path.found - path.deleted - path.pending;
         throw error;
     } finally {
         try {
@@ -278,7 +306,9 @@ async function globalTeardown() {
     } catch (error) {
         if (global.nalaCleanupResults) {
             global.nalaCleanupResults.totalFailed =
-                global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
+                global.nalaCleanupResults.totalFound -
+                global.nalaCleanupResults.totalDeleted -
+                global.nalaCleanupResults.totalPending;
         }
         throw error;
     } finally {

@@ -3,6 +3,18 @@ import { installEdsThrottleOnPage, removePageRoutes, getPageRouteMetrics } from 
 import GlobalRequestCounter from './global-request-counter.js';
 import { getResourceMetrics } from './static-resource-cache.js';
 
+export async function reportStaticResourceRequests(testInfo, before, routeMetrics = {}) {
+    const after = getResourceMetrics();
+    await testInfo.attach('Static resource requests', {
+        body: JSON.stringify({
+            cacheHits: after.cacheHits - before.cacheHits,
+            upstreamRequests: after.upstreamRequests - before.upstreamRequests,
+            ...routeMetrics,
+        }),
+        contentType: 'application/json',
+    });
+}
+
 export const test = base.extend({
     page: async ({ page, context }, use, testInfo) => {
         await installEdsThrottleOnPage(page);
@@ -16,15 +28,7 @@ export const test = base.extend({
             } finally {
                 stopCounting();
                 GlobalRequestCounter.saveCountToFileSync();
-                const after = getResourceMetrics();
-                await testInfo.attach('Static resource requests', {
-                    body: JSON.stringify({
-                        cacheHits: after.cacheHits - before.cacheHits,
-                        upstreamRequests: after.upstreamRequests - before.upstreamRequests,
-                        ...getPageRouteMetrics(page),
-                    }),
-                    contentType: 'application/json',
-                });
+                await reportStaticResourceRequests(testInfo, before, getPageRouteMetrics(page));
             }
         }
     },

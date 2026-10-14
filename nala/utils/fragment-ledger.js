@@ -47,6 +47,7 @@ export function recordCreatedFragment(fragment) {
         id: fragment.id,
         path: fragment.path,
         title: fragment.title,
+        pendingDeletion: fragment.pendingDeletion,
     });
 }
 
@@ -97,12 +98,13 @@ export function readFragmentLedger() {
     };
 }
 
-export function completeFragmentLedger() {
+export function finalizeFragmentLedger(pendingIds = []) {
     readFragmentLedger();
+    const retained = new Set(pendingIds.map((id) => `fragment-${id}.json`));
     for (const name of readdirSync(ledgerDirectory())) {
-        if (name !== 'run.json' && name.endsWith('.json')) unlinkSync(join(ledgerDirectory(), name));
+        if (name !== 'run.json' && name.endsWith('.json') && !retained.has(name)) unlinkSync(join(ledgerDirectory(), name));
     }
-    writeEntry('run', { type: 'run', complete: true });
+    writeEntry('run', { type: 'run', complete: pendingIds.length === 0 });
 }
 
 /**

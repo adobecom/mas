@@ -21,16 +21,18 @@ The Playwright teardown project and existing GitHub `if: always()` steps use `gl
 2. Otherwise, one authenticated Studio welcome page initializes the repository, using the same Nala browser identity
    and Chromium headers as the tests so IMS initializes consistently.
 3. Each recorded ID is fetched live. Cleanup verifies the run marker and exact path, then deletes using the live ETag.
-   A 404 means the test already deleted its fragment.
+   A 404 confirms absence. AEM's `202 Accepted` deletion workflow is reported as pending, not as confirmed deletion.
+   Previously accepted deletions are inspected but never resubmitted while their fragment still exists.
 4. Only missing ledgers or unfinished intents trigger recovery searches. Searches filter by the current run marker
    in `nala/en_US`, `nala/fr_FR`, `nala/en_CA`, `nala/en_GB`, `nala/en_AU` and `nala/translations`;
    pagination is deduplicated. Recorded IDs are deleted regardless of their locale or folder.
 5. Failures are reported with partial progress and fail teardown. Maintenance operations have a 90-second bound;
    the existing teardown project retains its overall six-minute budget.
 
-Successful cleanup removes fragment/intent entries and retains a small `run.json` completion marker, so a subsequent
-workflow cleanup step does not search again. Failed cleanup retains the ledger for recovery. The ledger directory is
-gitignored; completion markers are local artifacts, not shared caches.
+Cleanup removes confirmed fragment/intent entries and retains a small `run.json` marker. Accepted-but-unconfirmed
+deletions retain their exact ownership records until a subsequent cleanup observes a 404. Pending deletion is not an error;
+cleanup adds no polling or extra requests and preserves its existing time budget. Failed cleanup retains the ledger for recovery.
+The ledger directory is gitignored; ownership records and completion markers are local artifacts, not shared caches.
 
 ## Recovering a failed execution
 
@@ -54,9 +56,9 @@ Test pressure (`test-results/odin-pressure.json`) and standalone cleanup pressur
 (`test-results/odin-pressure-cleanup.json`) are measured with separate fresh coordinators and labelled by phase.
 
 Cleanup logs its start, run ID, repository initialization, recovery searches and deletion batches, followed by
-the colored summary with per-path found/deleted/failed counts. Successful deletion IDs and expected already-absent
-404s are not printed. Failures retain their IDs in diagnostics and the recovery ledger. Cleaned totals include already-absent fragments,
-not just successful DELETE calls. Recovery logs each path being searched.
+the colored summary with per-path found/deleted/pending/failed counts. Successful deletion IDs and expected already-absent
+404s are not printed. Failures retain their IDs in diagnostics and the recovery ledger. Confirmed cleaned totals include
+already-absent fragments; accepted asynchronous deletions are counted separately. Recovery logs each path being searched.
 Browser script errors, failed requests and unexpected HTTP errors are collected and printed after the browser closes,
 before the final cleanup summary. The summary is emitted as one block; both output streams are drained before final
 reporting and before the command returns. The test reporter also drains its output before the test command finishes.

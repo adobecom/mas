@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './specialofferdocs.spec.js';
 import MasSpecialoffer from './specialoffer.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';

@@ -6,9 +6,10 @@ import OSTPage from './ost.page';
 import EditorPage from './editor.page';
 
 export default class StudioPage {
-    constructor(page, cloneSourceCache) {
+    constructor(page, cloneSourceCache, editorBootstrapCache) {
         this.page = page;
         this.cloneSourceCache = cloneSourceCache;
+        this.editorBootstrapCache = editorBootstrapCache;
         trackEditorReads(page);
         this.ost = new OSTPage(page);
         this.editor = new EditorPage(page);
@@ -124,9 +125,10 @@ export default class StudioPage {
     }
 
     /**
-     * Open a test's starting route; eligible editor suites override only setup.
+     * Open a test's starting route, reusing initial reads only for eligible editor suites.
      */
     async openPage(url) {
+        if (this.editorBootstrapCache) return this.editorBootstrapCache.open(this.page, url);
         const fragmentId = new URLSearchParams(new URL(url).hash.slice(1)).get('fragmentId');
         if (fragmentId) {
             await loadEditorDocument(this.page, url);
@@ -350,16 +352,10 @@ export default class StudioPage {
         };
         const before = await this.page.evaluate(navigationState);
         await this.fragmentsTable.click();
-        await expect
-            .poll(
-                async () =>
-                    JSON.stringify({
-                        ...(await this.page.evaluate(navigationState)),
-                        confirmationVisible: await this.confirmationDialog.isVisible(),
-                    }),
-                { message: `Discard confirmation must open after navigation; before: ${JSON.stringify(before)}` },
-            )
-            .toContain('"confirmationVisible":true');
+        await expect(
+            this.confirmationDialog,
+            `Discard confirmation must open after navigation; before: ${JSON.stringify(before)}`,
+        ).toBeVisible();
         await this.discardDialog.click();
         await expect(await editor.panel).not.toBeVisible();
         await expect(this.page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');

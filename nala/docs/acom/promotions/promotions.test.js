@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../libs/docs-test.js';
 import { features } from './promotions.spec.js';
 import MasPlans from '../plans.page.js';
 import { addUrlQueryParams, createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../../utils/commerce.js';

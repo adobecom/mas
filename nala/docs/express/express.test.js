@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './express.spec.js';
 import ExpressCard from './express.page.js';
 import { runAccessibilityTest } from '../../libs/accessibility.js';

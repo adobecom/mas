@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../libs/docs-test.js';
 import { features } from './plansdocs.spec.js';
 import MasPlans from '../plans.page.js';
 import WebUtil from '../../../libs/webutil.js';

@@ -2,6 +2,7 @@ import { test } from '@playwright/test';
 import { drainPageRoutes, installEdsThrottleOnPage, removePageRoutes } from '../libs/eds-throttle.js';
 import GlobalRequestCounter from '../libs/global-request-counter.js';
 import { getResourceMetrics } from '../libs/static-resource-cache.js';
+import { reportStaticResourceRequests } from '../libs/docs-test.js';
 
 const MILO_LIBS = process.env.MILO_LIBS || '';
 const MAS_LIBS = process.env.MAS_LIBS || '';
@@ -481,14 +482,7 @@ function createWorkerPageSetup(config = {}) {
         attachWorkerErrorsToFailure(testInfo);
         stopCounting?.();
         GlobalRequestCounter.saveCountToFileSync();
-        const metrics = getResourceMetrics();
-        await testInfo.attach('Static resource requests', {
-            body: JSON.stringify({
-                cacheHits: metrics.cacheHits - resourceMetrics.cacheHits,
-                upstreamRequests: metrics.upstreamRequests - resourceMetrics.upstreamRequests,
-            }),
-            contentType: 'application/json',
-        });
+        await reportStaticResourceRequests(testInfo, resourceMetrics);
     }
 
     /**

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './masadobehome.spec.js';
 import WebUtil from '../../libs/webutil.js';
 import AdobeHomePage from './masadobehome.page.js';

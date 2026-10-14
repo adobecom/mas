@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features, MINICOMPARE_MWEB_FRAGMENT_IDS } from './minicomparemwebdocs.spec.js';
 import MasMinicompareMweb from './minicomparemweb.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';

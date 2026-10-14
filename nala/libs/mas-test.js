@@ -89,7 +89,7 @@ const masTest = base.extend({
         setCurrentTestAttempt(testInfo.workerIndex, testInfo.retry);
 
         // Create fresh page objects for every test
-        studio = new StudioPage(page, cloneSourceCache);
+        studio = new StudioPage(page, cloneSourceCache, reuseEditor ? editorBootstrapCache : null);
         editor = new EditorPage(page);
         slice = new CCDSlicePage(page);
         suggested = new CCDSuggestedPage(page);
@@ -116,7 +116,6 @@ const masTest = base.extend({
         const cloneSourcesBefore = { ...cloneSourceCache.metrics };
         if (reuseEditor) {
             await editorBootstrapCache.install(page);
-            studio.openPage = (url) => editorBootstrapCache.open(page, url);
         }
 
         try {

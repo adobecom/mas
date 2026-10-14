@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { CATALOG_FRAGMENT_IDS, features } from './catalogdocs.spec.js';
 import MasCatalog from './catalog.page.js';
 import { createWorkerPageSetup, DOCS_GALLERY_PATH } from '../../utils/commerce.js';

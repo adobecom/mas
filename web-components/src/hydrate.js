@@ -1,7 +1,7 @@
 import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
 import { createTag, getService } from './utils.js';
-import './merch-countdown.js';
+import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
 import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
@@ -716,6 +716,9 @@ function processCountdown(merchCard, mapping, fragment) {
         if (anchor.textContent.trim().toLowerCase() !== 'countdown-timer')
             continue;
         const timer = document.createElement('merch-countdown');
+        timer.className = [...anchor.classList]
+            .filter((name) => COUNTDOWN_COLOR_CLASSES.includes(name))
+            .join(' ');
         timer.start = fragment.cdtStart;
         timer.end = fragment.cdtEnd;
         timer.locale = fragment.previewLocale ?? settings?.locale ?? 'en_US';

@@ -45,7 +45,6 @@ merch-card[variant="plans-v2"] .spacer {
 }
 
 .dark merch-card[variant="plans-v2"] {
-    --merch-countdown-color: #ff9999;
     --consonant-merch-card-background-color: rgb(20, 24, 38);
     --consonant-merch-card-border-color: #3D3D3D;
     --spectrum-gray-800: rgb(242, 242, 242);

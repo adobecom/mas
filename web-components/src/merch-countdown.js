@@ -1,6 +1,11 @@
 import { LitElement, css, html } from 'lit';
 
 const MINUTE = 60000;
+/** Classes an author can put on the sentinel link; each has a color rule in the styles below. */
+export const COUNTDOWN_COLOR_CLASSES = [
+    'spectrum-green-900',
+    'spectrum-red-700',
+];
 const TEMPLATES = {
     en: 'Ends in {days} days, {hours} hours, {minutes} minutes!',
     ko: '{days} 일 {hours} 시간 {minutes} 분 후 할인 종료!',
@@ -37,9 +42,12 @@ export class MerchCountdown extends LitElement {
     };
 
     static styles = css`
-        :host {
-            color: var(--merch-countdown-color, #b30000);
-            font-weight: 700;
+        /* Default inherits the description color; authors pick one of these in the RTE. */
+        :host(.spectrum-green-900) {
+            color: var(--spectrum-green-900, #05834e);
+        }
+        :host(.spectrum-red-700) {
+            color: var(--spectrum-red-700, #eb1000);
         }
         :host([hidden]) {
             display: none;

@@ -13,7 +13,7 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 
-const COUNTDOWN_PROJECTS_TTL = 30000;
+const COUNTDOWN_CACHE_TTL = 30000;
 const countdownProjectsByRepository = new WeakMap();
 
 /**
@@ -26,7 +26,7 @@ async function readCountdownProjects() {
         return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
     const repository = document.querySelector('mas-repository');
     const cached = countdownProjectsByRepository.get(repository);
-    if (cached && Date.now() - cached.at < COUNTDOWN_PROJECTS_TTL) return cached.projects;
+    if (cached && Date.now() - cached.at < COUNTDOWN_CACHE_TTL) return cached.projects;
     const projects = repository
         .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
         .then((fragments) => fragments.map(toCountdownProject))
@@ -102,6 +102,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
+    #publishedDates = null;
 
     /**
      * @param {Fragment} initialValue
@@ -318,13 +319,22 @@ export class PreviewFragmentStore extends FragmentStore {
             if (tag) return { ...none, ...countdownDatesOfTag(await readCountdownProjects(), tag) };
             if (!canProbePromoVariationsForFragment(this.value)) return none;
             const instant = getService()?.settings?.instant;
-            const provenance = await this.previewPublishedFragment(this.value.id, {
-                locale: this.previewLocale,
-                country: this.previewLocale.split('_')[1],
-                ...(instant && { instant }),
-                fullContext: true,
-            });
-            return { ...none, ...countdownDatesOfProvenance(provenance) };
+            const key = `${this.value.id}|${this.previewLocale}|${instant ?? ''}`;
+            if (this.#publishedDates?.key !== key || Date.now() - this.#publishedDates.at >= COUNTDOWN_CACHE_TTL) {
+                // The saved version's project does not change while the author types: reuse the pipeline result.
+                const promise = this.previewPublishedFragment(this.value.id, {
+                    locale: this.previewLocale,
+                    country: this.previewLocale.split('_')[1],
+                    ...(instant && { instant }),
+                    fullContext: true,
+                }).then(countdownDatesOfProvenance);
+                const entry = { key, at: Date.now(), promise };
+                promise.catch(() => {
+                    if (this.#publishedDates === entry) this.#publishedDates = null;
+                });
+                this.#publishedDates = entry;
+            }
+            return { ...none, ...(await this.#publishedDates.promise) };
         } catch (error) {
             console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
             return none;

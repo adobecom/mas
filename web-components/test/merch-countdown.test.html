@@ -308,17 +308,60 @@
                             'Fin dans 3 jours et 5 minutes',
                         );
                     });
-                    it('keeps the countdown readable on a dark Pro card', async () => {
+                    it('inherits the description color by default, including on a dark Pro card', async () => {
                         const card = document.createElement('merch-card');
                         fixtures.append(card);
                         const fragment = payload();
                         fragment.fields.backgroundColor = 'dark';
                         await hydrate(fragment, card);
+                        const timer = card.querySelector('merch-countdown');
+                        expect(timer.className).to.equal('');
+                        const color = getComputedStyle(timer).color;
+                        expect(color).to.equal(
+                            getComputedStyle(timer.parentElement).color,
+                        );
+                        // dark Pro card: the description text, and so the timer, is light
+                        const [r, g, b] = color.match(/\d+/g).map(Number);
+                        expect(Math.min(r, g, b)).to.be.above(200);
+                    });
+                    it('copies the sentinel color class to the timer and colors it from the token', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        const fragment = payload();
+                        fragment.fields.description =
+                            '<p><a href="#" class="spectrum-green-900">countdown-timer</a></p>';
+                        await hydrate(fragment, card);
+                        const timer = card.querySelector('merch-countdown');
+                        expect(timer.className).to.equal('spectrum-green-900');
+                        expect(getComputedStyle(timer).color).to.equal(
+                            'rgb(5, 131, 78)',
+                        );
+                    });
+                    it('copies only the known color classes from the sentinel link', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        const fragment = payload();
+                        fragment.fields.description =
+                            '<p><a href="#" class="secondary-link spectrum-red-700 other">countdown-timer</a></p>';
+                        await hydrate(fragment, card);
                         expect(
-                            getComputedStyle(
-                                card.querySelector('merch-countdown'),
-                            ).color,
-                        ).to.equal('rgb(255, 153, 153)');
+                            card.querySelector('merch-countdown').className,
+                        ).to.equal('spectrum-red-700');
+                    });
+                    it('maps every picker color class to its own color', async () => {
+                        for (const [name, color] of [
+                            ['spectrum-green-900', 'rgb(5, 131, 78)'],
+                            ['spectrum-red-700', 'rgb(235, 16, 0)'],
+                        ]) {
+                            const timer =
+                                document.createElement('merch-countdown');
+                            timer.className = name;
+                            fixtures.append(timer);
+                            await timer.updateComplete;
+                            expect(getComputedStyle(timer).color).to.equal(
+                                color,
+                            );
+                        }
                     });
                     it('hides missing dates and replaces the old timer on rehydration', async () => {
                         const card = document.createElement('merch-card');

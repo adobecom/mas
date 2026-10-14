@@ -371,6 +371,44 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
+        it('reuses the pipeline result across refreshes and re-asks when id, locale or instant change', async () => {
+            const store = createStore({ id: 'card-id' });
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(1);
+            store.previewLocaleOverride = 'ko_KR';
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            service.settings.instant = '2026-03-01T00:00:00Z';
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(3);
+            store.dispose();
+        });
+
+        it('asks again once the cached pipeline result is 30 seconds old', async () => {
+            const clock = sandbox.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            const store = createStore({ id: 'card-id' });
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            clock.tick(29000);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(1);
+            clock.tick(1000);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
+        it('does not cache a failed pipeline read', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.onFirstCall().rejects(new Error('boom'));
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
         it('requests the pipeline with the preview locale country and omits an unset instant', async () => {
             service.settings.instant = undefined;
             const store = createStore();

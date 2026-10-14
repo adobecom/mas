@@ -39,17 +39,20 @@ export function isMasAdmin() {
     return groups.includes(MAS_ADMIN_GROUP.toUpperCase());
 }
 
-export function canAccessBulkPublish() {
+function isAdminOrInGroup(group) {
     const groups = getCurrentUserNormalizedGroups();
     if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_BULK_PUBLISH_GROUP.toUpperCase());
+    return groups.includes(MAS_ADMIN_GROUP) || groups.includes(group);
+}
+
+/** Studio UI access across all surfaces; AEM publish permissions remain unchanged. */
+export function canAccessBulkPublish() {
+    return isAdminOrInGroup(MAS_BULK_PUBLISH_GROUP);
 }
 
 /** Promotions authoring is gated to a single global editors group (admins always allowed). */
 export function canEditPromotions() {
-    const groups = getCurrentUserNormalizedGroups();
-    if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_PROMO_EDITORS_GROUP.toUpperCase());
+    return isAdminOrInGroup(MAS_PROMO_EDITORS_GROUP);
 }
 
 export function canAccessSettings(surface) {

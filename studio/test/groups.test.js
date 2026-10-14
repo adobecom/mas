@@ -1,4 +1,6 @@
 import { expect } from '@esm-bundle/chai';
+import { html } from 'lit';
+import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import Store from '../src/store.js';
 import {
     canAccessSettings,
@@ -8,6 +10,8 @@ import {
     canEditPromotions,
     isMasAdmin,
 } from '../src/groups.js';
+import '../src/swc.js';
+import '../src/mas-advanced-tools.js';
 
 describe('groups', () => {
     let originalProfile;
@@ -19,6 +23,7 @@ describe('groups', () => {
     });
 
     afterEach(() => {
+        fixtureCleanup();
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
     });
@@ -46,16 +51,51 @@ describe('groups', () => {
         expect(canAccessSettings('ccd')).to.be.false;
     });
 
-    it('canAccessBulkPublish requires ACOM curators or MAS admins', () => {
+    it('canAccessBulkPublish allows ACOM curators', () => {
         Store.profile.set({ email: 'a@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
         expect(canAccessBulkPublish()).to.be.true;
+    });
 
+    it('canAccessBulkPublish denies non-members', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         expect(canAccessBulkPublish()).to.be.false;
+    });
 
+    it('canAccessBulkPublish allows MAS admins', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
         expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('canAccessBulkPublish denies users missing from the membership list', () => {
+        Store.profile.set({ email: 'unknown@adobe.com' });
+        Store.users.set([]);
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('shows the bulk publish card for a curator', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
+    });
+
+    it('hides the bulk publish card for a non-member', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).to.be.null;
+    });
+
+    it('updates the bulk publish card when membership changes', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        await element.updateComplete;
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
     });
 
     it('canAccessSettings denies sandbox for non-admin', () => {

@@ -36,5 +36,6 @@ export async function initUsers() {
         Store.users.set([]);
     } finally {
         Store.users.setMeta('loaded', true);
+        Store.users.notify();
     }
 }

@@ -295,7 +295,7 @@ export class Router extends EventTarget {
                         Store.masks.editing.set(null);
                         Store.masks.editingName.set('');
                     }
-                    if (options.bulkPublishProjectId !== undefined) {
+                    if (targetPage === PAGE_NAMES.BULK_PUBLISH_EDITOR && options.bulkPublishProjectId !== undefined) {
                         Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
                     }
                     if (options.translationProjectId !== undefined) {
@@ -779,6 +779,10 @@ export class Router extends EventTarget {
         }
         this.#stopWatchingRestrictedAccessRoute();
         if (canAccess(Store.surface())) return false;
+        if (this.#isBulkPublishPage(this.currentParams.get('page'))) {
+            this.currentParams.delete('bulkPublishProjectId');
+            Store.bulkPublishProjects.projectId.set(null);
+        }
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

@@ -79,7 +79,7 @@ export default class MasRelatedArtifacts extends LitElement {
             const result = await getReferencingFragments(this.repository.aem, fragment, {
                 abortController,
                 loadPromotionProjects: () =>
-                    promotionsRepository.getPromotionProjectsForProbe(() => this.repository.loadPromotions()),
+                    promotionsRepository.getPromotionProjectsForProbe(() => this.repository.loadPromotions({ rethrow: true })),
             });
             if (token !== this.#loadToken) return;
             this.buckets = result.buckets;

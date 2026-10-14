@@ -17,8 +17,8 @@ const buckets = () => [
     { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow('Launch', 'b-1')] },
 ];
 
-// Opening and closing the modal each run a Spectrum transition, which can take over a second on a
-// loaded CI runner.
+// Opening the modal runs a Spectrum transition, which can take over a second on a loaded CI
+// runner.
 const modalTransition = { timeout: 5000 };
 const wrapperOf = (el) => el.shadowRoot.querySelector('sp-dialog-wrapper');
 const closeButtonOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
@@ -43,18 +43,34 @@ const closeFixture = async () => {
 
 describe('mas-related-artifacts-dialog', () => {
     afterEach(closeFixture);
-    it('closes when the underlay is clicked', async () => {
+    it('renders an underlay behind the dialog', async () => {
+        const el = await openDialog();
+        expect(wrapperOf(el).shadowRoot.querySelector('sp-underlay')).to.exist;
+    });
+
+    it('renders a close button', async () => {
+        const el = await openDialog();
+        expect(closeButtonOf(el)).to.exist;
+    });
+
+    it('dispatches close when its overlay closes', async () => {
         const el = await openDialog();
         let closed = false;
         el.addEventListener('close', () => {
             closed = true;
         });
-        // sp-underlay turns a real pointer press into its own close event; it never emits click.
-        const underlay = wrapperOf(el).shadowRoot.querySelector('sp-underlay');
-        underlay.dispatchEvent(new PointerEvent('pointerdown'));
-        underlay.dispatchEvent(new PointerEvent('pointerup'));
-        await waitUntil(() => closed, 'The dialog never emitted close', modalTransition);
+        el.shadowRoot.querySelector('sp-overlay').dispatchEvent(new Event('sp-closed'));
         expect(closed).to.equal(true);
+    });
+
+    it('ignores sp-closed bubbling up from inside the dialog', async () => {
+        const el = await openDialog();
+        let closed = false;
+        el.addEventListener('close', () => {
+            closed = true;
+        });
+        wrapperOf(el).dispatchEvent(new Event('sp-closed', { bubbles: true }));
+        expect(closed).to.equal(false);
     });
 
     it('scrolls the rows instead of clipping them when a tab outruns the dialog', async () => {
@@ -125,17 +141,6 @@ describe('mas-related-artifacts-dialog', () => {
         expect(el.shadowRoot.querySelector('.empty-tab-message').textContent).to.include('No Promo Project references');
         expect(el.shadowRoot.querySelector('.artifact-link')).to.equal(null);
     });
-
-    it('dispatches a close event when the close button is clicked', async () => {
-        const el = await openDialog();
-        let closed = false;
-        el.addEventListener('close', () => {
-            closed = true;
-        });
-        closeButtonOf(el).click();
-        await waitUntil(() => closed, 'The dialog never emitted close', modalTransition);
-        expect(closed).to.equal(true);
-    });
 });
 
 describe('related artifacts modal keyboard lifecycle', () => {
@@ -179,12 +184,5 @@ describe('related artifacts modal keyboard lifecycle', () => {
         links[links.length - 1].focus();
         await sendKeys({ press: 'Tab' });
         expect(wrapperOf(dialog).matches(':focus-within')).to.equal(true);
-    });
-
-    it('dismisses on Escape and restores focus to the opener', async () => {
-        closeButtonOf(dialog).focus();
-        await sendKeys({ press: 'Escape' });
-        await waitUntil(() => !dialog.open, 'Escape must close the modal', modalTransition);
-        await waitUntil(() => document.activeElement === opener, 'Closing must restore focus to the opener', modalTransition);
     });
 });

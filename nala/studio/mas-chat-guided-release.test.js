@@ -3,7 +3,7 @@ import MasChatPage from './mas-chat.page.js';
 
 const PARSE_ERROR_TEXT = 'I had trouble formatting that response';
 
-test.describe('MAS Chat - Guided card creation (release flow)', () => {
+test.describe('MAS Chat - Guided card creation (release flow) @nopr', () => {
     let masChat;
 
     test.beforeEach(async ({ page }) => {

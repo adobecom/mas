@@ -60,7 +60,7 @@ function studioUrl(baseURL) {
     return url.toString();
 }
 
-test.describe('MAS Chat - Create cards with AI (NPI end-to-end)', () => {
+test.describe('MAS Chat - Create cards with AI (NPI end-to-end) @nopr', () => {
     let masChat;
 
     test.beforeEach(async ({ page }) => {

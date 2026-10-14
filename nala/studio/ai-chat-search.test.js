@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('MAS Studio AI Chat Search', () => {
-    test.beforeEach(async ({ page }) => {
-        await page.goto('http://localhost:3000/?path=acom#query=');
+test.describe('MAS Studio AI Chat Search @nopr', () => {
+    test.beforeEach(async ({ page, baseURL }) => {
+        await page.goto(`${baseURL}/?path=acom#query=`);
         await page.waitForSelector('mas-studio', { timeout: 10000 });
     });
 

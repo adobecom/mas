@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import MasChatPage from './mas-chat.page.js';
 
-test.describe('MAS Chat - AI Search Operations', () => {
+test.describe('MAS Chat - AI Search Operations @nopr', () => {
     let masChat;
 
     test.beforeEach(async ({ page }) => {

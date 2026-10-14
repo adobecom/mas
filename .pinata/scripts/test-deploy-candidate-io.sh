@@ -104,7 +104,7 @@ run_case() {
 
 # log_lacks <name> <substring>: the gh shim was never asked for <substring>
 log_lacks() {
-    if [ -e "$WORK/gh.log" ] && grep -qF -- "$2" "$WORK/gh.log"; then
+    if grep -qF -- "$2" "$WORK/gh.log" 2>/dev/null; then
         echo "FAIL: $1 (gh was called with '$2')" >&2
         failures=$((failures + 1))
     fi
@@ -193,8 +193,8 @@ for phase in ("watch", "poll"):
     for received_signal, expected_exit in ((signal.SIGTERM, 143), (signal.SIGINT, 130)):
         for name in ("gh.log", "dispatched", "watch_count", "blocked_pid"):
             (work / name).unlink(missing_ok=True)
-        for name in ("ready", "release"):
-            os.mkfifo(work / name)
+        for fifo in ("ready", "release"):
+            os.mkfifo(work / fifo)
         ready = os.open(work / "ready", os.O_RDWR | os.O_NONBLOCK)
         env = dict(os.environ, PATH=f'{os.environ["BIN"]}:{os.environ["PATH"]}',
                    FAKE_BLOCK_AT=phase, FAKE_WATCH_DROPS="99" if phase == "poll" else "0")
@@ -202,7 +202,7 @@ for phase in ("watch", "poll"):
             ["bash", os.environ["SCRIPT"], os.environ["IO_FILE"]],
             env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         )
-        name = f"interrupts blocked {phase} with {received_signal.name}"
+        label = f"interrupts blocked {phase} with {received_signal.name}"
         try:
             if not select.select([ready], [], [], 3)[0]:
                 raise AssertionError("child did not reach the readiness handshake")
@@ -216,10 +216,10 @@ for phase in ("watch", "poll"):
                 raise AssertionError(f"exit {actual_exit}, want {expected_exit}")
             if "run cancel 101" not in (work / "gh.log").read_text():
                 raise AssertionError("known remote run was not cancelled")
-            print(f"ok: {name}")
+            print(f"ok: {label}")
         except AssertionError as error:
             failures += 1
-            print(f"FAIL: {name}: {error}", file=sys.stderr)
+            print(f"FAIL: {label}: {error}", file=sys.stderr)
         finally:
             if (work / "blocked_pid").exists():
                 try:

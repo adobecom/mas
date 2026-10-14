@@ -85,21 +85,19 @@ class PreviewPolicyTests(unittest.TestCase):
         cls.gates = yaml.safe_load((CONTRACT / "gates.yaml").read_text())["gates"]
         cls.preview = yaml.safe_load((CONTRACT / "preview.yaml").read_text())
 
-    def test_pipeline_config_gate_is_first(self):
-        self.assertEqual(next(iter(self.gates)), "pipeline-config")
-        gate = self.gates["pipeline-config"]
+    def assert_human_review_gate(self, name, position, paths):
+        self.assertEqual(list(self.gates).index(name), position)
+        gate = self.gates[name]
         self.assertEqual(gate["template"], "protected_paths")
-        self.assertEqual(set(gate["paths"]), {".github", ".pinata"})
+        self.assertEqual(set(gate["paths"]), paths)
         self.assertIs(gate["blocking"], True)
         self.assertEqual(gate["failure_route"], "escalate_to_human")
 
+    def test_pipeline_config_gate_is_first(self):
+        self.assert_human_review_gate("pipeline-config", 0, {".github", ".pinata"})
+
     def test_io_www_still_requires_human_review(self):
-        self.assertEqual(list(self.gates).index("io-preview-support"), 1)
-        gate = self.gates["io-preview-support"]
-        self.assertEqual(gate["template"], "protected_paths")
-        self.assertEqual(set(gate["paths"]), {"io/www"})
-        self.assertIs(gate["blocking"], True)
-        self.assertEqual(gate["failure_route"], "escalate_to_human")
+        self.assert_human_review_gate("io-preview-support", 1, {"io/www"})
 
     def test_io_studio_candidate_deploys_before_visual(self):
         order = list(self.gates)

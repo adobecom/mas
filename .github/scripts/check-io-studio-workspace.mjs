@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url';
 
-const activeStatuses = ['queued', 'pending', 'waiting', 'in_progress'];
+const ACTIVE_STATUSES = ['queued', 'pending', 'waiting', 'in_progress'];
 const PER_PAGE = 100;
 
 function workspaceKey(login) {
@@ -10,7 +10,7 @@ function workspaceKey(login) {
 }
 
 function isCompetingRun(run, currentRunId) {
-    return String(run.id) !== String(currentRunId) && activeStatuses.includes(run.status);
+    return String(run.id) !== String(currentRunId) && ACTIVE_STATUSES.includes(run.status);
 }
 
 export function findWorkspaceConflict(runs, currentRunId, vaultLogin) {
@@ -82,7 +82,7 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
     };
 
     for (const [workflow, resolveIdentity] of Object.entries(identityResolvers)) {
-        for (const status of activeStatuses) {
+        for (const status of ACTIVE_STATUSES) {
             const runs = paginate(`/actions/workflows/${workflow}/runs`, { status }, (result) => {
                 if (!Array.isArray(result.workflow_runs)) throw new Error(`GitHub API returned no run list for ${workflow}.`);
                 return result.workflow_runs;

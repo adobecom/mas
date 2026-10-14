@@ -23,9 +23,12 @@ const DEFAULT_JITTER = 0.2;
  * A `loader` resolving to `null`/`undefined` signals "nothing to cache" (miss or fetch failure):
  * no entry is written, any existing stale entry survives untouched, and a later read retries.
  * `shouldCache` can also reject a loaded value without withholding it from awaiting readers.
+ * Returning `{ ttl }` instead applies a short retry TTL to incomplete results. Published reads
+ * keep an existing stale value during that backoff rather than replacing it with partial data.
  *
  * @param {{ name: string, ttl?: number, jitter?: number,
- *   previewTtl?: number, previewMemory?: boolean, shouldCache?: (value: *) => boolean }} options
+ *   previewTtl?: number, previewMemory?: boolean,
+ *   shouldCache?: (value: *) => (boolean | { ttl: number }) }} options
  */
 export function createSwrCache({
     name,
@@ -70,8 +73,14 @@ export function createSwrCache({
             if (!backend.refills.has(memoryKey)) {
                 let pending = (async () => {
                     const value = await loader();
-                    if (value == null || !shouldCache(value)) return value;
-                    const refreshed = { value, timestamp: Date.now(), ttl: jitteredTtl(context) };
+                    if (value == null) return value;
+                    const policy = shouldCache(value);
+                    if (!policy) return value;
+                    const refreshed = {
+                        value: stale && policy !== true ? entry.value : value,
+                        timestamp: Date.now(),
+                        ttl: policy.ttl ?? jitteredTtl(context),
+                    };
                     if (backends[mode] === backend) {
                         if (persistent) localStorage.setItem(storageKey(key), JSON.stringify(refreshed));
                         else backend.store.set(memoryKey, refreshed);
@@ -102,7 +111,13 @@ export function createSwrCache({
         clear(preview = false) {
             backends[preview ? 'preview' : 'published'] = createBackend();
             if (preview && previewMemory) {
-                localStorage.setItem(revisionKey, globalThis.crypto.randomUUID());
+                try {
+                    localStorage.setItem(revisionKey, globalThis.crypto.randomUUID());
+                } catch (error) {
+                    if (error.name !== 'QuotaExceededError') throw error;
+                    localStorage.removeItem(revisionKey);
+                    logError(`[${name}] preview revision write exceeded storage quota; local cache cleared`, {});
+                }
             } else if (preview) {
                 Object.keys(localStorage).forEach((k) => {
                     if (k.startsWith(`${name}-`)) localStorage.removeItem(k);

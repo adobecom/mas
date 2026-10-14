@@ -66,15 +66,15 @@ if (typeof window !== 'undefined') {
 }
 
 function clearCaches() {
+    for (const key of Object.keys(localStorage)) {
+        if (key === 'promo-variations' || key.startsWith('promotions-') || key.startsWith('promo-variations-')) {
+            localStorage.removeItem(key);
+        }
+    }
     clearDictionaryCache(true);
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
-    for (const key of Object.keys(localStorage)) {
-        if (key === 'promo-variations' || key.startsWith('promotions-')) {
-            localStorage.removeItem(key);
-        }
-    }
 }
 
 function getPageWcsConfiguration(serviceElement) {

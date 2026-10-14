@@ -263,43 +263,68 @@ describe('promotions', () => {
             }
         });
 
-        it('does not cache a failed first variation page as an empty successful result', async () => {
-            const variationUrl =
-                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
-            const variation = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card' };
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
-            fetchStub
-                .withArgs(variationUrl)
-                .onFirstCall()
-                .returns(createResponse(500, null, 'Error'));
-            fetchStub
-                .withArgs(variationUrl)
-                .onSecondCall()
-                .returns(createResponse(200, { items: [variation] }));
-            await promotionsTransformer.init(createContext());
-            const recovered = await promotionsTransformer.init(createContext());
-            expect(recovered.activeProjects[0].defaultVariations.card).to.deep.equal(variation);
+        it('backs off a failed first variation page before recovering', async () => {
+            const clock = sinon.stub(Date, 'now').callThrough();
+            const now = Date.now();
+            clock.returns(now);
+            try {
+                const variationUrl =
+                    'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+                const variation = { id: 'v1', path: '/content/dam/mas/acom/en_US/promotions/black-friday/card' };
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
+                fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub
+                    .withArgs(variationUrl)
+                    .onFirstCall()
+                    .returns(createResponse(500, null, 'Error'));
+                fetchStub
+                    .withArgs(variationUrl)
+                    .onSecondCall()
+                    .returns(createResponse(200, { items: [variation] }));
+                await promotionsTransformer.init(createContext());
+                await promotionsTransformer.init(createContext());
+                expect(fetchStub.withArgs(variationUrl).callCount).to.equal(1);
+                clock.returns(now + 12001);
+                await promotionsTransformer.init(createContext());
+                await new Promise((resolve) => setImmediate(resolve));
+                const recovered = await promotionsTransformer.init(createContext());
+                expect(recovered.activeProjects[0].defaultVariations.card).to.deep.equal(variation);
+            } finally {
+                clock.restore();
+            }
         });
 
-        it('does not cache partial variation pagination results', async () => {
-            const variationUrl =
-                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
-            const card = (id) => ({ id, path: `/content/dam/mas/acom/en_US/promotions/black-friday/${id}` });
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
-            fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [card('one')], cursor: 'next' }));
-            fetchStub
-                .withArgs(`${variationUrl}&cursor=next`)
-                .onFirstCall()
-                .returns(createResponse(500, null, 'Error'));
-            fetchStub
-                .withArgs(`${variationUrl}&cursor=next`)
-                .onSecondCall()
-                .returns(createResponse(200, { items: [card('two')] }));
-            await promotionsTransformer.init(createContext());
-            const recovered = await promotionsTransformer.init(createContext());
-            expect(recovered.activeProjects[0].defaultVariations).to.have.keys(['one', 'two']);
+        it('backs off partial variation pagination before recovering the complete set', async () => {
+            const clock = sinon.stub(Date, 'now').callThrough();
+            const now = Date.now();
+            clock.returns(now);
+            try {
+                const variationUrl =
+                    'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+                const card = (id) => ({ id, path: `/content/dam/mas/acom/en_US/promotions/black-friday/${id}` });
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
+                fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [card('one')], cursor: 'next' }));
+                fetchStub
+                    .withArgs(`${variationUrl}&cursor=next`)
+                    .onFirstCall()
+                    .returns(createResponse(500, null, 'Error'));
+                fetchStub
+                    .withArgs(`${variationUrl}&cursor=next`)
+                    .onSecondCall()
+                    .returns(createResponse(200, { items: [card('two')] }));
+                await promotionsTransformer.init(createContext());
+                const partial = await promotionsTransformer.init(createContext());
+                expect(partial.activeProjects[0].defaultVariations).to.have.keys(['one']);
+                expect(fetchStub.withArgs(`${variationUrl}&cursor=next`).callCount).to.equal(1);
+                clock.returns(now + 12001);
+                await promotionsTransformer.init(createContext());
+                await new Promise((resolve) => setImmediate(resolve));
+                const recovered = await promotionsTransformer.init(createContext());
+                expect(recovered.activeProjects[0].defaultVariations).to.have.keys(['one', 'two']);
+            } finally {
+                clock.restore();
+            }
         });
 
         for (const [mode, preview] of [
@@ -386,30 +411,43 @@ describe('promotions', () => {
             }
         });
 
-        it('retries failed collection hydration instead of caching the unhydrated result', async () => {
-            const variationUrl =
-                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
-            const collection = {
-                id: 'collection',
-                path: '/content/dam/mas/acom/en_US/promotions/black-friday/collection',
-                model: { id: COLLECTION_MODEL_ID },
-                fields: { cards: ['child'] },
-            };
-            const references = { child: { value: { id: 'child', fields: { title: 'Child' } } } };
-            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
-            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
-            fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [collection] }));
-            fetchStub
-                .withArgs(hydrateUrl('collection'))
-                .onFirstCall()
-                .returns(createResponse(500, null, 'Error'));
-            fetchStub
-                .withArgs(hydrateUrl('collection'))
-                .onSecondCall()
-                .returns(createResponse(200, { references, referencesTree: [] }));
-            await promotionsTransformer.init(createContext());
-            const recovered = await promotionsTransformer.init(createContext());
-            expect(recovered.activeProjects[0].defaultVariations.collection.references).to.deep.equal(references);
+        it('backs off failed collection hydration before recovering hydrated references', async () => {
+            const clock = sinon.stub(Date, 'now').callThrough();
+            const now = Date.now();
+            clock.returns(now);
+            try {
+                const variationUrl =
+                    'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+                const collection = {
+                    id: 'collection',
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/collection',
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: { cards: ['child'] },
+                };
+                const references = { child: { value: { id: 'child', fields: { title: 'Child' } } } };
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
+                fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+                fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [collection] }));
+                fetchStub
+                    .withArgs(hydrateUrl('collection'))
+                    .onFirstCall()
+                    .returns(createResponse(500, null, 'Error'));
+                fetchStub
+                    .withArgs(hydrateUrl('collection'))
+                    .onSecondCall()
+                    .returns(createResponse(200, { references, referencesTree: [] }));
+                await promotionsTransformer.init(createContext());
+                const partial = await promotionsTransformer.init(createContext());
+                expect(partial.activeProjects[0].defaultVariations.collection).to.deep.equal(collection);
+                expect(fetchStub.withArgs(hydrateUrl('collection')).callCount).to.equal(1);
+                clock.returns(now + 12001);
+                await promotionsTransformer.init(createContext());
+                await new Promise((resolve) => setImmediate(resolve));
+                const recovered = await promotionsTransformer.init(createContext());
+                expect(recovered.activeProjects[0].defaultVariations.collection.references).to.deep.equal(references);
+            } finally {
+                clock.restore();
+            }
         });
 
         it('returns no active projects when folder fetch fails', async () => {

@@ -8,6 +8,7 @@ import expectedOutput from '../fragment/mocks/preview-expected-collection-output
 import mockCardFragment from '../fragment/mocks/preview-fragment.json' with { type: 'json' };
 import mockPlaceholders from '../fragment/mocks/preview-placeholders.json' with { type: 'json' };
 import { createResponse } from '../fragment/mocks/MockFetch.js';
+import { mark, measureTiming } from '../../src/fragment/utils/common.js';
 
 // Create a mock localStorage
 const storage = {};
@@ -109,6 +110,29 @@ describe('FragmentClient', () => {
         });
         expect(context.measures.some(({ label, duration }) => label === 'main-fetch-fragment' && Number(duration) >= 0)).to.be
             .true;
+    });
+
+    it('shares transformer init measurements with the previewFragment caller', async () => {
+        const init = settingsTransformer.init;
+        const stub = sinon.stub(settingsTransformer, 'init').callsFake(async (context) => {
+            mark(context, 'test-settings-init');
+            measureTiming(context, 'test-settings-init');
+            return init(context);
+        });
+        const measures = [];
+        try {
+            const context = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+                measures,
+            });
+            expect(context.status).to.equal(200);
+            expect(context.measures).to.equal(measures);
+            expect(measures.some(({ label }) => label === 'test-settings-init')).to.be.true;
+        } finally {
+            stub.restore();
+        }
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
@@ -335,7 +359,55 @@ describe('FragmentClient', () => {
         }
     });
 
+    it('cleans legacy entries before revision writes even when storage quota is exceeded', () => {
+        for (const key of ['promotions-acom', 'promotions-hydrated-proj-1', 'promo-variations', 'promo-variations-acom']) {
+            storage[key] = 'legacy';
+        }
+        storage['dictionary-sandbox-en_US'] = 'legacy';
+        storage['offer-mapping-acom'] = 'legacy';
+        storage.unrelated = 'keep';
+        const errorLog = sinon.stub(console, 'error');
+        localStorageStub.setItem.callsFake(() => {
+            expect(Object.keys(storage).some((key) => key.startsWith('promotions-') || key.startsWith('promo-variations'))).to
+                .be.false;
+            throw new DOMException('Storage full', 'QuotaExceededError');
+        });
+        try {
+            expect(() => clearCaches()).not.to.throw();
+            expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+            expect(localStorageStub.getItem('offer-mapping-acom')).to.be.null;
+            expect(localStorageStub.getItem('unrelated')).to.equal('keep');
+            expect(errorLog.callCount).to.equal(3);
+        } finally {
+            localStorageStub.setItem.callsFake((key, value) => {
+                storage[key] = value.toString();
+            });
+            errorLog.restore();
+            delete storage.unrelated;
+        }
+    });
+
     describe('previewStudioFragment', () => {
+        it('shares transformer init measurements with the previewStudioFragment caller', async () => {
+            const init = settingsTransformer.init;
+            const stub = sinon.stub(settingsTransformer, 'init').callsFake(async (context) => {
+                mark(context, 'test-studio-settings-init');
+                measureTiming(context, 'test-studio-settings-init');
+                return init(context);
+            });
+            const measures = [];
+            try {
+                const result = await previewStudioFragment(
+                    { ...mockCardFragment },
+                    { locale: 'en_US', surface: 'sandbox', measures },
+                );
+                expect(result).to.have.property('fields');
+                expect(measures.some(({ label }) => label === 'test-studio-settings-init')).to.be.true;
+            } finally {
+                stub.restore();
+            }
+        });
+
         it('returns processed body with api_key mas-studio', async () => {
             const body = { ...mockCardFragment };
             const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });

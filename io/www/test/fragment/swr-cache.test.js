@@ -20,6 +20,7 @@ function installLocalStorageShim() {
     Object.defineProperties(storage, {
         getItem: { value: (key) => (Object.prototype.hasOwnProperty.call(storage, key) ? storage[key] : null) },
         setItem: {
+            configurable: true,
             value: (key, val) => {
                 storage[key] = String(val);
             },
@@ -137,6 +138,52 @@ describe('swr-cache', () => {
             expect(await cache.get(published, 'k', async () => null)).to.equal('published');
         });
 
+        it('invalidates local entries and pending loads when the revision write exceeds quota', async () => {
+            await cache.get(preview, 'k', async () => 'original');
+            const { loader, settle } = deferred('outdated');
+            const pending = cache.get(preview, 'pending', loader);
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw new DOMException('Storage full', 'QuotaExceededError');
+                },
+            });
+            const errorLog = sinon.stub(console, 'error');
+
+            expect(() => cache.clear(true)).not.to.throw();
+            settle();
+            await pending;
+
+            expect(await cache.get(preview, 'k', async () => 'edited')).to.equal('edited');
+            expect(await cache.get(preview, 'pending', async () => 'fresh')).to.equal('fresh');
+            expect(errorLog.calledWithMatch(/quota/i)).to.be.true;
+        });
+
+        it('removes the previous revision on quota failure to invalidate other instances', async () => {
+            cache.clear(true);
+            const other = createSwrCache({ name: 'test', previewMemory: true });
+            await other.get(preview, 'k', async () => 'original');
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw new DOMException('Storage full', 'QuotaExceededError');
+                },
+            });
+            sinon.stub(console, 'error');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'edited')).to.equal('edited');
+        });
+
+        it('propagates unexpected revision write failures', () => {
+            const error = new Error('Unexpected storage failure');
+            Object.defineProperty(storage, 'setItem', {
+                value: () => {
+                    throw error;
+                },
+            });
+            expect(() => cache.clear(true)).to.throw(error);
+        });
+
         it('invalidates preview entries in a separately loaded module before their TTL expires', async () => {
             const { createSwrCache: createOtherCache } = await import('../../src/fragment/utils/swr-cache.js?preview-consumer');
             const other = createOtherCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
@@ -241,6 +288,67 @@ describe('swr-cache', () => {
             expect(await cache.get(published, 'k', async () => 'partial')).to.equal('complete');
             await new Promise((resolve) => setImmediate(resolve));
             expect(await cache.get(published, 'k', async () => null)).to.equal('complete');
+        } finally {
+            clock.restore();
+        }
+    });
+
+    for (const [mode, context, previewMemory] of [
+        ['published', published, false],
+        ['memory preview', { preview: true }, true],
+        ['persistent preview', { preview: true }, false],
+    ]) {
+        it(`uses a short TTL override for incomplete ${mode} loads`, async () => {
+            installLocalStorageShim();
+            const clock = sinon.stub(Date, 'now').returns(1000);
+            try {
+                const cache = createSwrCache({
+                    name: 'test',
+                    ttl: 60000,
+                    previewMemory,
+                    jitter: 0,
+                    shouldCache: ({ complete }) => (complete ? true : { ttl: 10000 }),
+                });
+                const loader = sinon.stub().resolves({ complete: false, data: 'partial' });
+                await cache.get(context, 'k', loader);
+                clock.returns(11000);
+                expect(await cache.get(context, 'k', loader)).to.deep.equal({ complete: false, data: 'partial' });
+                expect(loader.callCount).to.equal(1);
+
+                clock.returns(11001);
+                await cache.get(context, 'k', loader);
+                await new Promise((resolve) => setImmediate(resolve));
+                expect(loader.callCount).to.equal(2);
+            } finally {
+                clock.restore();
+                delete globalThis.localStorage;
+            }
+        });
+    }
+
+    it('retains complete stale data and backs off after an incomplete published refill', async () => {
+        const clock = sinon.stub(Date, 'now').returns(1000);
+        try {
+            const cache = createSwrCache({
+                name: 'test',
+                ttl: 1000,
+                jitter: 0,
+                shouldCache: ({ complete }) => (complete ? true : { ttl: 10000 }),
+            });
+            const complete = { complete: true, data: 'complete' };
+            await cache.get(published, 'k', async () => complete);
+            clock.returns(2001);
+            const loader = sinon.stub().resolves({ complete: false, data: 'partial' });
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            await new Promise((resolve) => setImmediate(resolve));
+            clock.returns(12001);
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            expect(loader.callCount).to.equal(1);
+
+            clock.returns(12002);
+            expect(await cache.get(published, 'k', loader)).to.equal(complete);
+            await new Promise((resolve) => setImmediate(resolve));
+            expect(loader.callCount).to.equal(2);
         } finally {
             clock.restore();
         }

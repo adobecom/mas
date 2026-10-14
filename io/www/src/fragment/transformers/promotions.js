@@ -29,8 +29,11 @@
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
  *     Hydrated projects are cached by id; variations by surface/project/locale.
  *     Published reads use SWR with single-flight refills.
+ *     Project listings and hydration have independent jittered TTLs: a published edit can
+ *     temporarily combine refreshed dates/tags with older promoCode/offers for up to two TTLs.
  *     Preview uses a ~10-second in-memory TTL, cleared on promotion saves.
- *     Failed or partial loads do not overwrite cached data.
+ *     Incomplete variation loads back off for 10 seconds, retaining existing published data.
+ *     Failed listing or project hydration loads do not overwrite cached data.
  *   - Returns `{ activeProjects }` — array sorted most-recent-`startDate`-first, then stably
  *     re-sorted so seasonal (time-boxed, has an `endDate`) projects float above open-ended
  *     ones; that final order is the tie-break order. Each project carries its own
@@ -72,7 +75,7 @@ const promoVariationsCache = createSwrCache({
     name: 'promo-variations',
     previewTtl: PREVIEW_CACHE_TTL,
     previewMemory: true,
-    shouldCache: ({ complete }) => complete,
+    shouldCache: ({ complete }) => (complete ? true : { ttl: 10 * 1000 }),
 });
 
 export function clearPromoCache(preview = false) {
@@ -331,7 +334,8 @@ async function hydrateCollectionVariations(variations, context) {
 /**
  * Fetches all promo variation fragments from a locale-specific promotions folder.
  * Published reads use SWR by surface/projectName/locale; preview awaits a refill after ~10 seconds.
- * Partial results are shared by concurrent cold reads, but only a complete successful load is cached.
+ * Partial results are shared by cold reads for 10 seconds before retrying; existing published
+ * data survives incomplete refills with the same backoff.
  * Returns a map of fragmentPath → fragment item.
  */
 async function fetchPromoVariations(baseUrl, surface, locale, projectName, context) {
@@ -348,7 +352,7 @@ async function fetchPromoVariations(baseUrl, surface, locale, projectName, conte
             if (response.status !== 200) {
                 if (!fetchedAnyPage && response.status === 404) return { variations, complete: true };
                 logError(
-                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}); not caching partial results`,
+                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}); retrying after 10 seconds`,
                     context,
                 );
                 await hydrateCollectionVariations(variations, context);

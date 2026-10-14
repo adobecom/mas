@@ -1,0 +1,46 @@
+{
+    "title": {
+        "fieldLabel": "Title",
+        "type": "string"
+    },
+    "status": {
+        "fieldLabel": "Status",
+        "type": "string"
+    },
+    "urls": {
+        "fieldLabel": "URLs",
+        "type": "string"
+    },
+    "items": {
+        "fieldLabel": "Items",
+        "type": "string"
+    },
+    "fragments": {
+        "fieldLabel": "Fragments",
+        "type": "content-fragment[]"
+    },
+    "locales": {
+        "fieldLabel": "Locales",
+        "type": "string[]"
+    },
+    "publishedAt": {
+        "fieldLabel": "publishedAt",
+        "type": "string"
+    },
+    "publishedBy": {
+        "fieldLabel": "publishedBy",
+        "type": "string"
+    },
+    "lastResult": {
+        "fieldLabel": "lastResult",
+        "type": "string"
+    },
+    "lastError": {
+        "fieldLabel": "lastError",
+        "type": "string"
+    },
+    "snapshots": {
+        "fieldLabel": "snapshots",
+        "type": "string[]"
+    }
+}

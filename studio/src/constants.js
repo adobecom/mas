@@ -136,6 +136,8 @@ export const PAGE_NAMES = {
     TRANSLATION_EDITOR: 'translation-editor',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    BULK_EDIT: 'bulkEdit',
+    BULK_EDIT_EDITOR: 'bulkEditEditor',
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
@@ -363,6 +365,14 @@ export const BULK_PUBLISH_STATUS = {
 };
 
 export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
+
+export const BULK_EDIT_PROJECTS_FOLDER = 'bulk-edit-projects';
+
+export const BULK_EDIT_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstZWRpdC1wcm9qZWN0';
+
+export const BULK_EDIT_STATUS = {
+    DRAFT: 'Draft',
+};
 
 /**
  * Compat version of the card.

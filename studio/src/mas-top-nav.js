@@ -22,6 +22,7 @@ class MasTopNav extends LitElement {
     promotions = Store.promotions;
     translationProjects = Store.translationProjects;
     bulkPublishProjects = Store.bulkPublishProjects;
+    bulkEditProjects = Store.bulkEditProjects;
     masks = Store.masks;
 
     reactiveController = new ReactiveController(this, [
@@ -39,6 +40,8 @@ class MasTopNav extends LitElement {
         this.translationProjects.inEdit,
         this.bulkPublishProjects.inEdit,
         this.bulkPublishProjects.projectId,
+        this.bulkEditProjects.inEdit,
+        this.bulkEditProjects.projectId,
         this.masks.fragmentId,
         this.masks.creating,
     ]);
@@ -174,6 +177,10 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR;
     }
 
+    get isBulkEditEditorPage() {
+        return this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR;
+    }
+
     get isPromotionsPage() {
         return this.page.value === PAGE_NAMES.PROMOTIONS;
     }
@@ -297,6 +304,12 @@ class MasTopNav extends LitElement {
         return this.bulkPublishProjects.projectId.get() ? 'Edit project' : 'Create project';
     }
 
+    get bulkEditEditorBreadcrumbLabel() {
+        const title = this.bulkEditProjects.inEdit.get()?.get()?.getFieldValue('title');
+        if (title) return title;
+        return this.bulkEditProjects.projectId.get() ? 'Edit project' : 'Create project';
+    }
+
     get breadcrumbItems() {
         const handlers = {
             content: () => router.navigateToPage(PAGE_NAMES.CONTENT)(),
@@ -360,6 +373,18 @@ class MasTopNav extends LitElement {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
                 { label: 'Bulk publish' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_EDIT) {
+            return [
+                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Bulk edits' },
+            ];
+        }
+        if (this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR) {
+            return [
+                { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
+                { label: this.bulkEditEditorBreadcrumbLabel },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_PUBLISH_EDITOR) {
@@ -448,6 +473,7 @@ class MasTopNav extends LitElement {
                               this.isTranslationEditorPage ||
                               this.isSettingsEditorPage ||
                               this.isBulkPublishEditorPage ||
+                              this.isBulkEditEditorPage ||
                               this.isPromotionsPage ||
                               this.isPromotionsEditorPage}
                           ></mas-nav-folder-picker>`

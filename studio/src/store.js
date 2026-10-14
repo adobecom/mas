@@ -217,6 +217,14 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    bulkEditProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(false),
+        },
+        inEdit: new ReactiveStore(null),
+        projectId: new ReactiveStore(null),
+    },
     bulkPublishProjects: {
         list: {
             data: new ReactiveStore([]),
@@ -351,6 +359,8 @@ function pageValidator(value) {
         PAGE_NAMES.TRANSLATION_EDITOR,
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
+        PAGE_NAMES.BULK_EDIT,
+        PAGE_NAMES.BULK_EDIT_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,

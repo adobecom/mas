@@ -543,6 +543,21 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads bulk edit projects on BULK_EDIT_EDITOR page so duplicate-title check works on direct links', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.BULK_EDIT_EDITOR };
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                expect(repository.searchFragmentList.firstCall.args[0].path).to.include('/bulk-edit-projects/');
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {

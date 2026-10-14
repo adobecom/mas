@@ -246,6 +246,18 @@ class MasStudio extends LitElement {
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
     }
 
+    get bulkEdit() {
+        if (this.page.value !== PAGE_NAMES.BULK_EDIT) return nothing;
+        if (!this.#lazyLoad('mas-bulk-edit', './bulk-edit/mas-bulk-edit.js')) return nothing;
+        return html`<mas-bulk-edit></mas-bulk-edit>`;
+    }
+
+    get bulkEditEditor() {
+        if (this.page.value !== PAGE_NAMES.BULK_EDIT_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-bulk-edit-editor', './bulk-edit/mas-bulk-edit-editor.js')) return nothing;
+        return html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`;
+    }
+
     get advancedTools() {
         if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
         if (!this.#lazyLoad('mas-advanced-tools', './mas-advanced-tools.js')) return nothing;
@@ -321,6 +333,10 @@ class MasStudio extends LitElement {
                 return this.bulkPublish;
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
                 return this.bulkPublishEditor;
+            case PAGE_NAMES.BULK_EDIT:
+                return this.bulkEdit;
+            case PAGE_NAMES.BULK_EDIT_EDITOR:
+                return this.bulkEditEditor;
             case PAGE_NAMES.ADVANCED_TOOLS:
                 return this.advancedTools;
             case PAGE_NAMES.SETTINGS:

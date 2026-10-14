@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { transformer as promotionsTransformer, clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { createResponse } from './mocks/MockFetch.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
+import { clearCaches } from '../../../../studio/libs/fragment-client.js';
 
 const FOLDER_URL = 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50';
 const hydrateUrl = (id) => `https://odin.adobe.com/adobe/contentFragments/${id}?references=all-hydrated`;
@@ -97,6 +98,7 @@ describe('promotions', () => {
     describe('init', () => {
         beforeEach(() => {
             fetchStub = sinon.stub(globalThis, 'fetch');
+            installLocalStorageShim();
             // Default: any unmocked URL returns 404 (avoids TypeError on undefined response)
             fetchStub.returns(createResponse(404, null, 'Not Found'));
         });
@@ -105,6 +107,7 @@ describe('promotions', () => {
             fetchStub.restore();
             clearPromoCache();
             clearPromoCache(true);
+            delete globalThis.localStorage;
         });
 
         it('reuses parsed hydration across requests and surfaces for the same project id', async () => {
@@ -1497,6 +1500,39 @@ describe('promotions', () => {
             expect(refreshed.activeProjects[0].cdtStart).to.equal('UPDATED');
             expect(refreshed.activeProjects[0].promoCode).to.equal('EDITED');
             expect(refreshed.activeProjects[0].defaultVariations.card).to.deep.equal(variation);
+        });
+
+        it('invalidates a separately loaded preview consumer through the Studio save cache clear', async () => {
+            const consumer = await import('../../src/fragment/transformers/promotions.js?preview-consumer');
+            const variationUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            const previewCtx = () => createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+            fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
+            fetchStub.withArgs(hydrateUrl('proj-1')).returns(createResponse(200, makeHydratedProject()));
+            fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [] }));
+            try {
+                await consumer.transformer.init(previewCtx());
+                const variation = {
+                    id: 'variation',
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/card',
+                    model: { id: CARD_MODEL_ID },
+                    fields: { title: 'Edited variation' },
+                };
+                fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject({ cdtStart: 'UPDATED' })] }));
+                fetchStub
+                    .withArgs(hydrateUrl('proj-1'))
+                    .returns(createResponse(200, makeHydratedProject({ promoCode: 'EDITED' })));
+                fetchStub.withArgs(variationUrl).returns(createResponse(200, { items: [variation] }));
+
+                clearCaches();
+                const refreshed = await consumer.transformer.init(previewCtx());
+
+                expect(refreshed.activeProjects[0].cdtStart).to.equal('UPDATED');
+                expect(refreshed.activeProjects[0].promoCode).to.equal('EDITED');
+                expect(refreshed.activeProjects[0].defaultVariations.card).to.deep.equal(variation);
+            } finally {
+                consumer.clearPromoCache(true);
+            }
         });
 
         it('preserves grouped reference Maps in memory until the preview TTL expires', async () => {

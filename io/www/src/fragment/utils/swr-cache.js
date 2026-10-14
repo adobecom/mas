@@ -11,7 +11,9 @@ const DEFAULT_JITTER = 0.2;
  * `{ value, timestamp, ttl }`.
  *
  * Published reads use memory. Preview defaults to per-key localStorage (`<name>-<key>`)
- * unless `previewMemory` is enabled. The read path:
+ * unless `previewMemory` is enabled. Memory-only preview caches share an invalidation revision
+ * in localStorage, so clearing one instance also invalidates other clients on the same origin.
+ * Cached values remain in memory. The read path:
  *   - fresh entry         → return it;
  *   - expired, published  → serve stale, refill in the background (coalesced single-flight);
  *   - cold, or expired preview read → await the (coalesced) refill.
@@ -37,6 +39,7 @@ export function createSwrCache({
     const backends = { published: createBackend(), preview: createBackend() };
     const jitteredTtl = (context) => (context.preview ? previewTtl : ttl) * (1 + (Math.random() * 2 - 1) * jitter);
     const storageKey = (key) => `${name}-${key}`;
+    const revisionKey = `mas-preview-cache-revision:${name}`;
 
     return {
         /**
@@ -47,7 +50,13 @@ export function createSwrCache({
          */
         async get(context, key, loader) {
             const mode = context.preview ? 'preview' : 'published';
-            const backend = backends[mode];
+            let backend = backends[mode];
+            if (context.preview && previewMemory) {
+                const revision = localStorage.getItem(revisionKey);
+                if (backend.revision !== revision) {
+                    backend = backends[mode] = { ...createBackend(), revision };
+                }
+            }
             const memoryKey = context.preview ? `${context.preview.url ?? ''}:${key}` : key;
             const persistent = context.preview && !previewMemory;
             const entry = persistent
@@ -92,7 +101,9 @@ export function createSwrCache({
         /** Drops entries and refills; a pending refill cannot repopulate the cleared backend. */
         clear(preview = false) {
             backends[preview ? 'preview' : 'published'] = createBackend();
-            if (preview && !previewMemory) {
+            if (preview && previewMemory) {
+                localStorage.setItem(revisionKey, globalThis.crypto.randomUUID());
+            } else if (preview) {
                 Object.keys(localStorage).forEach((k) => {
                     if (k.startsWith(`${name}-`)) localStorage.removeItem(k);
                 });

@@ -136,6 +136,52 @@ describe('swr-cache', () => {
             expect(await cache.get(preview, 'k', async () => 'fresh')).to.equal('fresh');
             expect(await cache.get(published, 'k', async () => null)).to.equal('published');
         });
+
+        it('invalidates preview entries in a separately loaded module before their TTL expires', async () => {
+            const { createSwrCache: createOtherCache } = await import('../../src/fragment/utils/swr-cache.js?preview-consumer');
+            const other = createOtherCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            await other.get(preview, 'k', async () => 'original');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'edited')).to.equal('edited');
+        });
+
+        it('invalidates other instances on consecutive clears within the same millisecond', async () => {
+            const other = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            await other.get(preview, 'k', async () => 'original');
+            cache.clear(true);
+            await other.get(preview, 'k', async () => 'first edit');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'second edit')).to.equal('second edit');
+        });
+
+        it('does not reuse a pending preview load in another instance after invalidation', async () => {
+            const other = createSwrCache({ name: 'test', previewMemory: true, previewTtl: 1000, jitter: 0 });
+            const { loader, settle } = deferred('original');
+            const oldRead = other.get(preview, 'k', loader);
+
+            cache.clear(true);
+            const freshRead = other.get(preview, 'k', async () => 'edited');
+            settle();
+            await oldRead;
+
+            expect(await freshRead).to.equal('edited');
+            expect(await other.get(preview, 'k', async () => 'unexpected')).to.equal('edited');
+        });
+
+        it('leaves other namespaces and published entries intact when preview is invalidated', async () => {
+            const other = createSwrCache({ name: 'other', previewMemory: true });
+            await other.get(preview, 'k', async () => 'unrelated');
+            await cache.get(published, 'k', async () => 'published');
+
+            cache.clear(true);
+
+            expect(await other.get(preview, 'k', async () => 'unexpected')).to.equal('unrelated');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('published');
+        });
     });
 
     it('keeps stale data when a background loader rejects and retries later', async () => {

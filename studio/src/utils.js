@@ -532,6 +532,19 @@ export async function resolveHydratedParentFragment(aem, fragmentPath) {
     return null;
 }
 
+/**
+ * Resolves the fragment a promo variation inherits from. IO merges a promo variation onto the
+ * default card, also when it was forked from a grouped variation, so a grouped source resolves
+ * to its default card.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {Object|null} sourceFragment - the fragment the promo variation was created from
+ * @returns {Promise<Object|null>}
+ */
+export async function resolvePromoVariationDefaultCard(aem, sourceFragment) {
+    if (!sourceFragment?.path?.includes(`/${PZN_FOLDER}/`)) return sourceFragment;
+    return resolveHydratedParentFragment(aem, sourceFragment.path);
+}
+
 export function previewFragmentOnPage(fragment) {
     if (!fragment?.id) return;
 

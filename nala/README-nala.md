@@ -2,6 +2,7 @@
 
 Nala runs Playwright coverage for M@S Studio and Docs. Commands and code paths below are relative to the repository root.
 For run-owned fragment deletion and recovery commands, see the [cleanup guide](utils/README-cleanup.md).
+For new and updated tests, see the [test-authoring guide](README-test-authoring.md).
 
 ## Running tests
 

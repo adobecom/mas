@@ -1070,26 +1070,10 @@ runTests(async () => {
             });
 
             it('resolves checkReady after aem:load', async () => {
-                const masField = document.createElement('mas-field');
-                masField.setAttribute('field', 'promoText');
-                const fragment = document.createElement('aem-fragment');
-                masField.append(fragment);
+                const [masField] = getTemplateContent('mas-field-render-field');
                 spTheme.append(masField);
 
-                const readyPromise = masField.checkReady();
-                fragment.dispatchEvent(
-                    new CustomEvent(EVENT_AEM_LOAD, {
-                        bubbles: true,
-                        composed: true,
-                        detail: {
-                            fields: {
-                                promoText: '<p>Ready</p>',
-                            },
-                        },
-                    }),
-                );
-
-                await expect(readyPromise).to.eventually.equal(true);
+                await expect(masField.checkReady()).to.eventually.equal(true);
             });
 
             it('resolves checkReady immediately when already loaded', async () => {

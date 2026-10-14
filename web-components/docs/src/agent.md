@@ -166,7 +166,7 @@ listed in `priceErrors`; the rest of the offer is still returned.
 | `pzn` | `string \| null` | Requested audience selector for product lookup; `null` when omitted or selecting a fragment by UUID. |
 | `badge` | `string \| null` | Card badge text. |
 | `ctas` | `object[]` | Ordered `{ label: string }` CTA entries; `[]` when none exist. |
-| `terms_url` | `string \| null` | Authored offer terms URL; `null` unless it is an absolute `https` URL. |
+| `terms_url` | `string \| null` | Promo terms page for the card's offer, from its promo terms (UPT) link; `null` when the card has none or its offer can't be resolved. Regular links to offer-terms pages are ignored. |
 | `title` | `string` | Card title. |
 | `subtitle` | `string` | Card subtitle. |
 | `promoText` | `string` | Promotional text. |
@@ -180,7 +180,7 @@ listed in `priceErrors`; the rest of the offer is still returned.
 | `taxText` | `string` | Tax text, for example `excl. GST`. |
 | `recurrenceText` | `string` | Billing frequency, for example `/mo`. |
 | `unitText` | `string` | Offer unit, for example `per license`. |
-| `seeTermsInfo` | `object` | See-terms `analyticsId`, `href`, and `text`; `href` is omitted unless it is an absolute `https` URL. |
+| `seeTermsInfo` | `object` | The promo terms link's `analyticsId`, `href` (same as `terms_url`), and `text`. See [Adding a promo terms link](https://mas.adobe.com/docs/promotions/promo-terms-link). |
 | `renewalText` | `string` | Authored renewal text. |
 | `promoDurationText` | `string` | Authored promotion-duration text. |
 | `priceErrors` | `string[]` | OSIs of prices that could not be resolved and are missing from the response; omitted when every price resolved. |

@@ -117,7 +117,7 @@ async function main(params, { openwhiskFactory = openwhisk } = {}) {
                 flattenOffer(parseFragmentBody(result), {
                     locale,
                     country,
-                    onPriceError: (error, osi) => logError(`Failed to hydrate price ${osi}: ${error.message}`, logContext),
+                    onPriceError: (error, osi) => logError(`Failed to resolve offer ${osi}: ${error.message}`, logContext),
                 }),
             15000,
             'price hydration',

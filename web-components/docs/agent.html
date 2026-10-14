@@ -345,7 +345,7 @@ listed in <code>priceErrors</code>; the rest of the offer is still returned.</p>
 <tr>
 <td><code>terms_url</code></td>
 <td><code>string | null</code></td>
-<td>Authored offer terms URL; <code>null</code> unless it is an absolute <code>https</code> URL.</td>
+<td>Promo terms page for the card’s offer, from its promo terms (UPT) link; <code>null</code> when the card has none or its offer can’t be resolved. Regular links to offer-terms pages are ignored.</td>
 </tr>
 <tr>
 <td><code>title</code></td>
@@ -415,7 +415,7 @@ listed in <code>priceErrors</code>; the rest of the offer is still returned.</p>
 <tr>
 <td><code>seeTermsInfo</code></td>
 <td><code>object</code></td>
-<td>See-terms <code>analyticsId</code>, <code>href</code>, and <code>text</code>; <code>href</code> is omitted unless it is an absolute <code>https</code> URL.</td>
+<td>The promo terms link’s <code>analyticsId</code>, <code>href</code> (same as <code>terms_url</code>), and <code>text</code>. See <a href="https://mas.adobe.com/docs/promotions/promo-terms-link">Adding a promo terms link</a>.</td>
 </tr>
 <tr>
 <td><code>renewalText</code></td>

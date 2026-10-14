@@ -4,6 +4,7 @@ import { FF_DEFAULTS, PLACEHOLDER_PLAN_TYPE_TEXT } from '../../../../web-compone
 import { resolvePriceOffers } from '../../../../web-components/src/inline-price.js';
 import { planTypeCaseForPrecedingChar } from '../../../../web-components/src/plan-type-text.js';
 import { Price } from '../../../../web-components/src/price.js';
+import { getPromoTermsUrl } from '../../../../web-components/src/upt-link.js';
 import { Wcs } from '../../../../web-components/src/wcs.js';
 import { parseLocaleCode, resolveCommerceCountries } from '../fragment/locales.js';
 import { PATH_TOKENS } from '../fragment/utils/paths.js';
@@ -28,17 +29,6 @@ function stripTags(html) {
             .replace(/\s+/g, ' ')
             .trim() || null
     );
-}
-
-// Authored links reach external consumers as-is, so only absolute https URLs are passed on.
-function httpsUrl(href) {
-    return URL.canParse(href) && new URL(href).protocol === 'https:' ? href : null;
-}
-
-function extractTermsUrl(html) {
-    if (!html) return null;
-    const match = String(html).match(/href="([^"]*offer-terms[^"]*)"/i);
-    return match ? httpsUrl(match[1]) : null;
 }
 
 function parseTags(tags) {
@@ -177,11 +167,13 @@ function createPriceRuntime(fragment, { locale, country, onPriceError } = {}) {
         wcsApiKey,
         wcsURL,
     };
+    let contentCountry = settings.country;
     if (locale) {
         const [language, localeCountry] = parseLocaleCode(locale);
         const surface = fragment?.path?.match(PATH_TOKENS)?.groups.surface;
-        const { wcsCountry } = resolveCommerceCountries(surface, locale, country || localeCountry);
-        Object.assign(settings, { locale, language, country: wcsCountry.toUpperCase() });
+        const resolved = resolveCommerceCountries(surface, locale, country || localeCountry);
+        Object.assign(settings, { locale, language, country: resolved.wcsCountry.toUpperCase() });
+        contentCountry = resolved.country.toUpperCase();
     }
     const startup = {
         literals: {
@@ -197,6 +189,7 @@ function createPriceRuntime(fragment, { locale, country, onPriceError } = {}) {
     if (fragment?.wcs) wcs.prefillWcsCache(fragment.wcs);
     return {
         cardOsi: hostOsi(fragment?.fields),
+        contentCountry,
         onPriceError,
         price,
         promotionCode: fieldValue(fragment?.fields, 'promoCode') ?? undefined,
@@ -309,17 +302,28 @@ async function hydrateRecord(record, runtime) {
     };
 }
 
-function ctaInfo(element) {
+// Mirrors processUptLinks (hydrate.js) and UptLink.render. A Studio-authored `a.upt-link` takes the
+// card's OSI and promo code, while an `a[is="upt-link"]` carries its own. The link points to the
+// promo terms page of the OSI's first offer, in the page's (content) country.
+async function promoTermsInfo(element, fields, runtime) {
     if (!element) return;
-    const attributes = {
-        href: element.attributes['data-href'],
-        ...element.attributes,
-    };
-    return {
-        analyticsId: attributes['data-analytics-id'],
-        href: httpsUrl(attributes.href) ?? undefined,
-        text: element.text,
-    };
+    const { attributes } = element;
+    const isPlaceholder = attributes.class?.split(/\s+/).includes('upt-link');
+    const osi = isPlaceholder ? fieldValue(fields, 'osi') : attributes['data-wcs-osi'];
+    const promotionCode = (isPlaceholder && fieldValue(fields, 'promoCode')) || attributes['data-promotion-code'];
+    let href;
+    if (osi) {
+        const { env, language, country } = runtime.settings;
+        try {
+            const [[offer]] = await Promise.all(
+                runtime.wcs.resolveOfferSelectors({ wcsOsi: [osi], promotionCode, country, language }),
+            );
+            href = getPromoTermsUrl({ env, language, country: runtime.contentCountry, offerId: offer.offerId, promotionCode });
+        } catch (error) {
+            runtime.onPriceError(error, osi);
+        }
+    }
+    return { analyticsId: attributes['data-analytics-id'], href, text: element.text };
 }
 
 function authoredText(elements, className) {
@@ -372,7 +376,7 @@ async function extractMerchCard(fragment, context) {
         taxText: legalText('taxText', 'price-tax-inclusivity'),
         recurrenceText: mainPrice?.recurrenceText ?? authoredText(cardElements, 'price-recurrence'),
         unitText,
-        seeTermsInfo: ctaInfo(seeTerms),
+        seeTermsInfo: await promoTermsInfo(seeTerms, fields, runtime),
         renewalText: authoredText(elements, 'renewal-text'),
         promoDurationText: authoredText(elements, 'promo-duration-text'),
         priceErrors: priceErrors.length ? priceErrors : undefined,
@@ -386,7 +390,7 @@ async function flattenOffer(fragment, context) {
         fragment: fragment?.id ?? null,
         productName: (fieldValue(fields, 'cardTitle') || '').trim() || null,
         badge: stripTags(fieldValue(fields, 'badge')),
-        terms_url: extractTermsUrl(fieldValue(fields, 'description')),
+        terms_url: merchCard.seeTermsInfo?.href ?? null,
         ...parseTags(fields.tags),
         ...merchCard,
     };

@@ -92,12 +92,13 @@ describe('flattenOffer', () => {
             });
         });
 
-        it('exposes the badge, CTAs, and terms link', () => {
+        it('exposes the badge and CTAs, and ignores a hard-coded terms link', () => {
             expect(offer).to.deep.include({
                 badge: 'Save 50%',
                 ctas: [{ label: 'Buy now' }],
-                terms_url: 'https://www.adobe.com/offer-terms/cc_full_special_offer.html',
+                terms_url: null,
             });
+            expect(offer.seeTermsInfo).to.be.undefined;
             expect(offer).to.not.have.property('cta_label');
         });
 
@@ -485,23 +486,87 @@ describe('flattenOffer', () => {
         expect(card.renewalText).to.equal('Renews automatically');
     });
 
-    for (const [href, expected] of [
-        ['https://www.adobe.com/offer-terms/x.html', 'https://www.adobe.com/offer-terms/x.html'],
-        ['javascript:alert(1)//offer-terms', null],
-        ['http://www.adobe.com/offer-terms/x.html', null],
-        ['/offer-terms/x.html', null],
-    ]) {
-        it(`returns only absolute https terms links: ${href}`, async () => {
+    describe('promo terms link', () => {
+        const termsOffer = (osi, offerId) => ({
+            ...offerSegments,
+            offerSelectorIds: [osi],
+            offerId,
+            priceDetails: { formatString: "'$'#,##0.00", price: 1 },
+        });
+        const studioLink = '<a class="upt-link secondary-link" href="#" data-analytics-id="see-terms">See terms</a>';
+        const termsPage = 'https://www.adobe.com/offers/promo-terms.html';
+        let fetchStub;
+
+        beforeEach(() => {
+            fetchStub = sinon.stub(globalThis, 'fetch').rejects(new Error('Unexpected WCS request'));
+        });
+
+        it("points a Studio-authored link at the promo terms page of the card's offer and promo code", async () => {
+            const offer = await flattenOffer({
+                fields: { osi: 'card', promoCode: 'PROMO_1', description: `<p>Terms apply. ${studioLink}</p>` },
+                wcs: { prod: { 'card-us-mult-promo_1': [termsOffer('card', 'OFFER-PROMO')] } },
+            });
+            const href = `${termsPage}?locale=en_US&country=US&offer_id=OFFER-PROMO&promotion_code=PROMO_1`;
+            expect(offer.terms_url).to.equal(href);
+            expect(offer.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href, text: 'See terms' });
+        });
+
+        it('uses the request locale and the content country of a territory', async () => {
+            const offer = await flattenOffer(
+                {
+                    path: '/content/dam/mas/acom/es_PR/card',
+                    fields: { osi: 'card', description: studioLink },
+                    wcs: { prod: { 'card-us-mult': [termsOffer('card', 'OFFER-US')] } },
+                },
+                { locale: 'es_PR' },
+            );
+            expect(offer.terms_url).to.equal(`${termsPage}?locale=es_PR&country=PR&offer_id=OFFER-US`);
+        });
+
+        it("keeps an a[is=upt-link]'s own OSI and promo code", async () => {
             const offer = await flattenOffer({
                 fields: {
-                    description: `<a href="${href}">Terms</a>`,
-                    callout: `<a is="upt-link" href="${href}">See terms</a>`,
+                    osi: 'card',
+                    promoCode: 'CARD_PROMO',
+                    callout: '<a is="upt-link" data-wcs-osi="own" data-promotion-code="OWN">See terms</a>',
+                },
+                wcs: { prod: { 'own-us-mult-own': [termsOffer('own', 'OFFER-OWN')] } },
+            });
+            expect(offer.terms_url).to.equal(`${termsPage}?locale=en_US&country=US&offer_id=OFFER-OWN&promotion_code=OWN`);
+        });
+
+        it("falls back to the link's own promo code when the card has none", async () => {
+            const offer = await flattenOffer({
+                fields: { osi: 'card', description: studioLink.replace('href="#"', 'href="#" data-promotion-code="LINK"') },
+                wcs: { prod: { 'card-us-mult-link': [termsOffer('card', 'OFFER-LINK')] } },
+            });
+            expect(offer.terms_url).to.equal(`${termsPage}?locale=en_US&country=US&offer_id=OFFER-LINK&promotion_code=LINK`);
+        });
+
+        it('has no URL without an OSI or when the offer cannot be resolved', async () => {
+            const withoutOsi = await flattenOffer({ fields: { description: studioLink } });
+            expect(withoutOsi.terms_url).to.be.null;
+            expect(withoutOsi.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href: undefined, text: 'See terms' });
+
+            const onPriceError = sinon.spy();
+            const unresolved = await flattenOffer({ fields: { osi: 'gone', description: studioLink } }, { onPriceError });
+            expect(unresolved.terms_url).to.be.null;
+            expect(unresolved.seeTermsInfo.href).to.be.undefined;
+            expect(onPriceError.calledOnce).to.be.true;
+            expect(onPriceError.firstCall.args[1]).to.equal('gone');
+            expect(fetchStub.called).to.be.true;
+        });
+
+        it('ignores a regular link to an offer-terms page', async () => {
+            const offer = await flattenOffer({
+                fields: {
+                    description: '<a class="primary-link" href="https://www.adobe.com/offer-terms/x.html">See terms</a>',
                 },
             });
-            expect(offer.terms_url).to.equal(expected);
-            expect(offer.seeTermsInfo.href).to.equal(expected ?? undefined);
+            expect(offer.terms_url).to.be.null;
+            expect(offer.seeTermsInfo).to.be.undefined;
         });
-    }
+    });
 
     it('decodes an encoded ampersand entity once', async () => {
         const offer = await flattenOffer({ fields: { badge: 'Say &amp;quot;hi&amp;quot; &amp; save &quot;now&quot;' } });

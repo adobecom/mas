@@ -4,6 +4,8 @@ import { sendKeys } from '@web/test-runner-commands';
 import '../../src/swc.js';
 import '../../src/references/mas-related-artifacts.js';
 import Store from '../../src/store.js';
+import { MasRepository } from '../../src/mas-repository.js';
+import { AEM } from '../../src/aem/aem.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
 
 const card = (id, tags = []) => ({ id, path: `/content/dam/mas/acom/en_US/${id}`, model: { path: CARD_MODEL_PATH }, tags });
@@ -153,9 +155,17 @@ describe('mas-related-artifacts', () => {
             );
         });
 
-        it('notes a failed promotion-project lookup', async () => {
+        it('notes a failed promotion-project request instead of reporting no references', async () => {
             sandbox.stub(console, 'error');
-            repository.loadPromotions.rejects(new Error('promotions 500'));
+            sandbox
+                .stub(window, 'fetch')
+                .callsFake(async (url) =>
+                    String(url).includes('/referencedBy')
+                        ? new Response(JSON.stringify({ items: [] }))
+                        : new Response('', { status: 500, statusText: 'Internal Server Error' }),
+                );
+            repository = new MasRepository();
+            repository.aem = new AEM('test-bucket');
             const el = await mount(card('variation-a', promoTag('augdemo')));
             await settled(el);
             expect(text(el)).to.include('Promo project lookup unavailable');

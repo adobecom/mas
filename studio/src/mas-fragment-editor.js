@@ -192,14 +192,6 @@ export default class MasFragmentEditor extends LitElement {
             overflow: hidden;
         }
 
-        #editor-content.full-width-content {
-            grid-template-columns: 1fr;
-        }
-
-        #editor-content.full-width-content #form-column {
-            padding-right: 0;
-        }
-
         #form-column {
             padding-right: 16px;
         }
@@ -880,13 +872,6 @@ export default class MasFragmentEditor extends LitElement {
 
     get isCompareChart() {
         return this.fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(this.fragment);
-    }
-
-    /** Collections without a related-variations preview column (i.e. not grouped variations) render full width. */
-    get #isFullWidthContent() {
-        if (this.isCompareChart) return false;
-        if (this.fragment?.model?.path !== COLLECTION_MODEL_PATH) return false;
-        return this.previewColumn === nothing;
     }
 
     get fragmentStore() {
@@ -2319,8 +2304,13 @@ export default class MasFragmentEditor extends LitElement {
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
             const isGroupedVariation =
                 this.editorContextStore.isVariation(this.fragment.id) && Fragment.isGroupedVariationPath(this.fragment.path);
-            if (!isGroupedVariation) return nothing;
-            return html`<div id="preview-column">${this.relatedVariationsSection}</div>`;
+            // Pages request collections directly, so a collection -- compare charts included -- has
+            // external usage and internal references of its own; grouped variations also list their
+            // sibling variations.
+            return html`<div id="preview-column">
+                ${isGroupedVariation ? this.relatedVariationsSection : nothing} ${this.relatedArtifactsSection}
+                ${this.relatedPagesSection}
+            </div>`;
         }
         if (this.fragment.model.path !== CARD_MODEL_PATH) return nothing;
 
@@ -2479,14 +2469,7 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             ${this.styles}
             <div id="fragment-editor" class=${this.isCompareChart ? 'compare-chart-editor' : ''}>
-                <div
-                    id="editor-content"
-                    class=${this.isCompareChart
-                        ? 'compare-chart-content'
-                        : this.#isFullWidthContent
-                          ? 'full-width-content'
-                          : ''}
-                >
+                <div id="editor-content" class=${this.isCompareChart ? 'compare-chart-content' : ''}>
                     <div id="form-column" class=${this.isCompareChart ? 'compare-chart-column' : ''}>
                         ${this.fragmentEditor}
                     </div>

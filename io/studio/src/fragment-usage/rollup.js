@@ -54,6 +54,8 @@ async function main(params) {
         const pagesByFragment = await fetchHourlyPages(fromMs, toMs, {
             token,
             url: params.GRAFANA_SERVICE_URL,
+            datasourceUid: params.GRAFANA_DATASOURCE_UID,
+            orgId: params.GRAFANA_ORG_ID,
         });
 
         const nowHour = toEpochHour(toMs);

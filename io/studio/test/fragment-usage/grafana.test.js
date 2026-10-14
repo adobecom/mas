@@ -89,18 +89,18 @@ describe('fragment-usage grafana', () => {
             expect(sql).to.contain(') GROUP BY bucket, fragmentId, page, locale');
         });
 
-        it('returns each page total across every country, not only the kept ones', () => {
-            // The country arrays are sliced, so a total derived from them would undercount any page
-            // served in more countries than are kept.
+        it('returns each page total across every country', () => {
             expect(sql).to.contain('sum(hits) AS requests');
             expect(sql).to.match(/^SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM/);
         });
 
-        it('keeps the busiest countries rather than an arbitrary slice of them', () => {
-            // groupArray does not promise an order, so the arrays are sorted by request count
-            // before they are sliced.
-            expect(sql).to.contain('arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits))');
-            expect(sql).to.contain(`, 1, ${MAX_COUNTRIES_PER_PAGE})`);
+        it('returns every country, sorted by request count, without slicing in SQL', () => {
+            // groupArray does not promise an order, so the arrays are sorted by request count. They
+            // are no longer sliced here: the rollup folds the whole set into per-region totals and
+            // caps the countries it keeps for display itself.
+            expect(sql).to.contain('arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)) AS countries');
+            expect(sql).to.contain('arrayReverseSort(groupArray(hits)) AS counts');
+            expect(sql).to.not.contain(`, 1, ${MAX_COUNTRIES_PER_PAGE})`);
         });
 
         it('caps execution time so a slow scan cannot hang the action', () => {
@@ -175,11 +175,37 @@ describe('fragment-usage grafana', () => {
             expect(result).to.deep.equal({
                 [FRAGMENT]: {
                     472222: {
-                        'https://a.com': { url: 'https://a.com', locale: '', requests: 7, countries: { US: 5, CA: 2 } },
-                        'https://b.com': { url: 'https://b.com', locale: '', requests: 3, countries: { JP: 3 } },
+                        'https://a.com': {
+                            url: 'https://a.com',
+                            locale: '',
+                            requests: 7,
+                            countries: { US: 5, CA: 2 },
+                            regions: { 'LATAM/Americas': 7 },
+                        },
+                        'https://b.com': {
+                            url: 'https://b.com',
+                            locale: '',
+                            requests: 3,
+                            countries: { JP: 3 },
+                            regions: { JAPAC: 3 },
+                        },
                     },
                 },
             });
+        });
+
+        it('sums regions over every country, even those dropped from the capped display set', async () => {
+            // Thirteen LATAM/Americas countries: the thirteenth is dropped from the twelve-country
+            // display cap, but its requests must still land in the region total, or a page spread
+            // across a region's long tail would be misread as Global.
+            const latam = ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'];
+            stubFetch(frame([1700000000], [FRAGMENT], ['https://a.com'], [latam], [latam.map(() => 10)]));
+
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
+
+            const page = result[FRAGMENT][472222]['https://a.com'];
+            expect(Object.keys(page.countries)).to.have.length(MAX_COUNTRIES_PER_PAGE);
+            expect(page.regions).to.deep.equal({ 'LATAM/Americas': 130 });
         });
 
         it('takes a page total from the query rather than from its kept countries', async () => {
@@ -230,8 +256,20 @@ describe('fragment-usage grafana', () => {
             const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(result[FRAGMENT][472222]).to.deep.equal({
-                'https://a.com#en_US': { url: 'https://a.com', locale: 'en_US', requests: 5, countries: { US: 5 } },
-                'https://a.com#en_GB': { url: 'https://a.com', locale: 'en_GB', requests: 2, countries: { GB: 2 } },
+                'https://a.com#en_US': {
+                    url: 'https://a.com',
+                    locale: 'en_US',
+                    requests: 5,
+                    countries: { US: 5 },
+                    regions: { 'LATAM/Americas': 5 },
+                },
+                'https://a.com#en_GB': {
+                    url: 'https://a.com',
+                    locale: 'en_GB',
+                    requests: 2,
+                    countries: { GB: 2 },
+                    regions: { EMEA: 2 },
+                },
             });
         });
 
@@ -284,6 +322,27 @@ describe('fragment-usage grafana', () => {
             await fetchHourlyPages(...oneHour, { token: 't' });
 
             expect(fetchStub.firstCall.args[1].headers['X-Grafana-Org-Id']).to.equal('2');
+        });
+
+        it('uses the configured datasource uid and org id when they are provided', async () => {
+            stubFetch(frame([], [], [], [], []));
+
+            await fetchHourlyPages(...oneHour, { token: 't', datasourceUid: 'other-uid', orgId: '7' });
+
+            const [, options] = fetchStub.firstCall.args;
+            expect(options.headers['X-Grafana-Org-Id']).to.equal('7');
+            expect(JSON.parse(options.body).queries[0].datasource.uid).to.equal('other-uid');
+        });
+
+        it('falls back to the default datasource uid and org id when the inputs are empty strings', async () => {
+            // aio interpolates an unset input as '', not undefined, so the fallback is on falsiness.
+            stubFetch(frame([], [], [], [], []));
+
+            await fetchHourlyPages(...oneHour, { token: 't', datasourceUid: '', orgId: '' });
+
+            const [, options] = fetchStub.firstCall.args;
+            expect(options.headers['X-Grafana-Org-Id']).to.equal('2');
+            expect(JSON.parse(options.body).queries[0].datasource.uid).to.equal('ffmjsr3rpsrnkc');
         });
 
         it('throws on a non-ok response', async () => {

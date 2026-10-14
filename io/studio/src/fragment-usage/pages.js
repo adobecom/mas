@@ -84,37 +84,45 @@ function pageKey(url, locale) {
  *
  * @param {number|object} entry stored value
  * @param {string} [key] storage key the entry was read from
- * @returns {{ url: string, locale: string, requests: number, countries: object }} normalised entry
+ * @returns {{ url: string, locale: string, requests: number, countries: object, regions: object }} normalised entry
  */
 function readEntry(entry, key = '') {
-    if (typeof entry === 'number') return { url: key, locale: '', requests: entry, countries: {} };
+    if (typeof entry === 'number') return { url: key, locale: '', requests: entry, countries: {}, regions: {} };
     return {
         url: entry?.url || key,
         locale: entry?.locale ?? '',
         requests: Number(entry?.requests) || 0,
         countries: entry?.countries ?? {},
+        regions: entry?.regions ?? {},
     };
 }
 
 /**
- * Adds one page observation into a page map, summing both the total and the per-country counts.
+ * Adds one page observation into a page map, summing the total, the per-country counts, and the
+ * per-region counts.
  *
  * Sums rather than replaces so topPages can add a page up across hours. Whole-hour replacement is
- * mergePages' job.
+ * mergePages' job. Regions are summed over every country the rollup saw, so they outlast the display
+ * cap applied to countries.
  *
  * @param {object} byPage page map to add into, mutated
  * @param {string} url page url
  * @param {string} locale locale the page requested the fragment in
  * @param {number} requests request count to add
  * @param {object} countries country -> request count
+ * @param {object} regions region name -> request count
  */
-function addPage(byPage, url, locale, requests, countries = {}) {
+function addPage(byPage, url, locale, requests, countries = {}, regions = {}) {
     const key = pageKey(url, locale);
-    const current = byPage[key] ?? { url, locale: locale ?? '', requests: 0, countries: {} };
+    const current = byPage[key] ?? { url, locale: locale ?? '', requests: 0, countries: {}, regions: {} };
     current.requests += Number(requests) || 0;
     for (const [country, count] of Object.entries(countries)) {
         if (!country) continue;
         current.countries[country] = (current.countries[country] ?? 0) + (Number(count) || 0);
+    }
+    for (const [region, count] of Object.entries(regions)) {
+        if (!region) continue;
+        current.regions[region] = (current.regions[region] ?? 0) + (Number(count) || 0);
     }
     byPage[key] = current;
 }
@@ -163,24 +171,30 @@ function prunePages(pages, nowHour, retentionHours = PAGE_RETENTION_HOURS) {
  * Collapse the per-hour maps into one ranked list of pages.
  *
  * Totals are summed across the retained hours, so a page that is steadily busy outranks one that
- * spiked once -- which is the order a user scanning "where is this used" wants. Country counts are
- * summed the same way, so the caller can tell which region a page predominantly serves.
+ * spiked once -- which is the order a user scanning "where is this used" wants. Country and region
+ * counts are summed the same way, so the caller can tell which region a page predominantly serves.
  *
- * @param {object} pages epochHour -> { key: { url, locale, requests, countries } }
+ * @param {object} pages epochHour -> { key: { url, locale, requests, countries, regions } }
  * @param {number} [limit] maximum rows returned
- * @returns {Array<{ url: string, locale: string, requests: number, countries: object }>} ranked, busiest first
+ * @returns {Array<{ url: string, locale: string, requests: number, countries: object, regions: object }>} ranked, busiest first
  */
 function topPages(pages, limit = MAX_PAGES_RETURNED) {
     const totals = {};
     for (const byPage of Object.values(pages ?? {})) {
         for (const [key, entry] of Object.entries(byPage ?? {})) {
-            const { url, locale, requests, countries } = readEntry(entry, key);
-            addPage(totals, url, locale, requests, countries);
+            const { url, locale, requests, countries, regions } = readEntry(entry, key);
+            addPage(totals, url, locale, requests, countries, regions);
         }
     }
 
     return Object.values(totals)
-        .map(({ url, locale, requests, countries }) => ({ url, locale, requests, countries: capCountries(countries) }))
+        .map(({ url, locale, requests, countries, regions }) => ({
+            url,
+            locale,
+            requests,
+            countries: capCountries(countries),
+            regions,
+        }))
         .sort((a, b) => b.requests - a.requests || a.url.localeCompare(b.url) || a.locale.localeCompare(b.locale))
         .slice(0, limit);
 }
@@ -195,6 +209,7 @@ module.exports = {
     toEpochHour,
     readEntry,
     addPage,
+    capCountries,
     mergePages,
     prunePages,
     topPages,

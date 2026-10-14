@@ -198,6 +198,12 @@ class MasExternalUsageDialog extends LitElement {
                 <sp-dialog-wrapper headline="Related pages" dismissable underlay no-divider size="l">
                     <div class="dialog-content">
                         <div class="table-wrapper">${this.#renderBody()}</div>
+                        ${this.usage?.available
+                            ? html`<div class="usage-note">
+                                  Counts and page coverage are a bounded sample — the busiest pages over the last 7 days, up to
+                                  100 rows — not a complete request total.
+                              </div>`
+                            : nothing}
                         ${this.usage?.updatedAt
                             ? html`<div class="usage-freshness">
                                   Updated ${new Date(this.usage.updatedAt).toLocaleString()}

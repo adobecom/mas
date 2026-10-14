@@ -13,7 +13,8 @@
  * must be fully literal, which is why the time bounds are interpolated as explicit epoch seconds.
  */
 
-const { FRAGMENT_ID_PATTERN, HOUR_MS, MAX_PAGES_PER_HOUR, MAX_COUNTRIES_PER_PAGE, addPage } = require('./pages');
+const { FRAGMENT_ID_PATTERN, HOUR_MS, MAX_PAGES_PER_HOUR, addPage, capCountries } = require('./pages');
+const { sumRegions } = require('./regions');
 
 const DEFAULT_GRAFANA_URL = 'https://adobe-grafana.trafficpeak.live';
 const GRAFANA_DATASOURCE_UID = 'ffmjsr3rpsrnkc';
@@ -94,9 +95,10 @@ function buildKeptParamsSql() {
  * pairs, so a page serving six countries would consume six of the slots and the list would show
  * fewer pages than it does today.
  *
- * The country arrays are sorted by request count and sliced, so a page reached from a long tail of
- * countries keeps the ones that actually characterise it. The page total is summed separately,
- * before the slice, so that tail still counts towards it.
+ * Every country a page was served from is returned, sorted by request count. The rollup folds the
+ * full list into per-region totals before it caps the countries it keeps for display, so a region
+ * reached through a long tail of small countries is still measured whole rather than losing its
+ * tail to the display cap. The page total is summed here too, so it agrees with those totals.
  *
  * Only 2xx and 304 responses count. A made-up fragment id gets a 404, so this is what keeps junk
  * ids out of State; a 304 is a real page revalidating a fragment it already has.
@@ -114,8 +116,8 @@ function buildPagesQuery(fromSec, toSec) {
     return (
         'SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM (' +
         'SELECT bucket, fragmentId, page, locale, ' +
-        `arraySlice(arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)), 1, ${MAX_COUNTRIES_PER_PAGE}) AS countries, ` +
-        `arraySlice(arrayReverseSort(groupArray(hits)), 1, ${MAX_COUNTRIES_PER_PAGE}) AS counts, ` +
+        'arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)) AS countries, ' +
+        'arrayReverseSort(groupArray(hits)) AS counts, ' +
         'sum(hits) AS requests, ' +
         'row_number() OVER (PARTITION BY bucket, fragmentId ORDER BY sum(hits) DESC) AS rn FROM (' +
         'SELECT toUnixTimestamp(toStartOfHour(reqTimeSec)) AS bucket, ' +
@@ -149,16 +151,20 @@ function buildPagesQuery(fromSec, toSec) {
  * @param {object} options { token, url }
  * @returns {Promise<Array<Array<*>>>} column-oriented values
  */
-async function runQuery(rawSql, fromMs, toMs, { token, url }) {
-    // `|| DEFAULT` rather than a destructuring default: an unset $GRAFANA_SERVICE_URL is
-    // interpolated by aio as an empty string, not undefined, so a parameter default would not fire
-    // and the fetch would be issued against a relative URL.
+async function runQuery(rawSql, fromMs, toMs, { token, url, datasourceUid, orgId }) {
+    // `|| DEFAULT` rather than a destructuring default: an unset $GRAFANA_SERVICE_URL (and likewise
+    // the datasource uid and org id) is interpolated by aio as an empty string, not undefined, so a
+    // parameter default would not fire and the fetch would be issued against a relative URL. A URL
+    // override that does not also move the datasource and org would still hit the default instance's
+    // identifiers, so all three travel together.
     const base = url || DEFAULT_GRAFANA_URL;
+    const uid = datasourceUid || GRAFANA_DATASOURCE_UID;
+    const org = orgId || GRAFANA_ORG_ID;
     const response = await fetch(`${base}/api/ds/query`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Grafana-Org-Id': GRAFANA_ORG_ID,
+            'X-Grafana-Org-Id': org,
             Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -167,7 +173,7 @@ async function runQuery(rawSql, fromMs, toMs, { token, url }) {
             queries: [
                 {
                     refId: 'A',
-                    datasource: { type: 'grafana-clickhouse-datasource', uid: GRAFANA_DATASOURCE_UID },
+                    datasource: { type: 'grafana-clickhouse-datasource', uid },
                     format: 1,
                     queryType: 'table',
                     rawSql,
@@ -214,11 +220,13 @@ function collectPages(values, byFragment) {
         for (let position = 0; position < names.length; position += 1) {
             countries[names[position]] = Number(counts[position]) || 0;
         }
+        // Regions are summed over the full country set, before the display cap drops the tail.
+        const regions = sumRegions(countries);
 
         const epochHour = Math.floor(bucketSeconds[index] / HOUR_SECONDS);
         if (!byFragment[fragmentId]) byFragment[fragmentId] = {};
         if (!byFragment[fragmentId][epochHour]) byFragment[fragmentId][epochHour] = {};
-        addPage(byFragment[fragmentId][epochHour], page, locales[index], pageRequests[index], countries);
+        addPage(byFragment[fragmentId][epochHour], page, locales[index], pageRequests[index], capCountries(countries), regions);
     }
 }
 

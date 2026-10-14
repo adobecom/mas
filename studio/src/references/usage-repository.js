@@ -41,25 +41,40 @@ const COUNTRY_DISPLAY_ALIASES = { GB: 'uk' };
 /**
  * Region a page belongs to, or Global when no one region dominates its traffic.
  *
- * Countries outside REGION_GROUPS still count toward the total but vote for no region, so traffic
- * we cannot attribute pushes a page toward Global rather than toward a region it may not belong to.
- * The action lists only a page's busiest countries, so the page total is passed too: requests from
- * the unlisted countries count the same way.
+ * The action now sends per-region totals summed over every country a page was served from, so a
+ * region reached through a long tail of small countries is measured whole rather than losing its
+ * tail to the per-page country display cap. Those totals are used when present; a record stored
+ * before they existed falls back to the busiest countries it does carry.
+ *
+ * Either way, countries outside REGION_GROUPS still count toward the total but vote for no region,
+ * so traffic we cannot attribute pushes a page toward Global rather than toward a region it may not
+ * belong to. The page total is passed too, so requests from unlisted countries count the same way.
  *
  * @param {Object} countries country code -> request count
  * @param {number} [pageTotal] the page's requests across every country
+ * @param {Object} [regions] region name -> request count, summed before the country cap
  * @returns {string} region name, or GLOBAL_REGION
  */
-export function resolveRegion(countries, pageTotal = 0) {
+export function resolveRegion(countries, pageTotal = 0, regions = null) {
     let total = 0;
     const byRegion = new Map();
 
-    for (const [country, requests] of Object.entries(countries ?? {})) {
-        const count = Number(requests) || 0;
-        if (count <= 0) continue;
-        total += count;
-        const region = COUNTRY_REGIONS.get(String(country).toUpperCase());
-        if (region) byRegion.set(region, (byRegion.get(region) ?? 0) + count);
+    const storedRegions = regions && typeof regions === 'object' ? Object.entries(regions) : [];
+    if (storedRegions.length) {
+        for (const [region, requests] of storedRegions) {
+            const count = Number(requests) || 0;
+            if (count <= 0) continue;
+            total += count;
+            byRegion.set(region, (byRegion.get(region) ?? 0) + count);
+        }
+    } else {
+        for (const [country, requests] of Object.entries(countries ?? {})) {
+            const count = Number(requests) || 0;
+            if (count <= 0) continue;
+            total += count;
+            const region = COUNTRY_REGIONS.get(String(country).toUpperCase());
+            if (region) byRegion.set(region, (byRegion.get(region) ?? 0) + count);
+        }
     }
 
     total = Math.max(total, Number(pageTotal) || 0);
@@ -148,7 +163,7 @@ function normalizePages(raw) {
             locale: String(page.locale ?? ''),
             requests: Number(page.requests) || 0,
             countries: formatCountries(page.countries),
-            region: resolveRegion(page.countries, page.requests),
+            region: resolveRegion(page.countries, page.requests, page.regions),
         }));
 }
 

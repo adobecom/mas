@@ -98,6 +98,7 @@ export const styles = css`
         font-size: 14px;
     }
 
+    .usage-note,
     .usage-freshness {
         flex-shrink: 0;
         padding-top: 12px;

@@ -203,6 +203,8 @@ application:
                         inputs:
                             GRAFANA_SERVICE_TOKEN: $GRAFANA_SERVICE_TOKEN
                             GRAFANA_SERVICE_URL: $GRAFANA_SERVICE_URL
+                            GRAFANA_DATASOURCE_UID: $GRAFANA_DATASOURCE_UID
+                            GRAFANA_ORG_ID: $GRAFANA_ORG_ID
                         limits:
                             timeout: 300000 # ms — 5 min (two log scans, measured ~15 s)
                         annotations:

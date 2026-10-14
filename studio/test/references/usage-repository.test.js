@@ -63,6 +63,25 @@ describe('usage-repository', () => {
             expect(resolveRegion({})).to.equal(GLOBAL_REGION);
             expect(resolveRegion(undefined)).to.equal(GLOBAL_REGION);
         });
+
+        it('uses the stored region totals when present, over the capped countries', () => {
+            // The countries map is capped for display and here holds only the US, which would read
+            // as LATAM/Americas; the stored region totals say EMEA dominates, and they win.
+            expect(resolveRegion({ US: 10 }, 125, { EMEA: 110, 'LATAM/Americas': 15 })).to.equal('EMEA');
+        });
+
+        it('files a region-dominant page under its region even when its tail fell outside the country cap', () => {
+            // honstar's case: thirteen EMEA countries at ten requests each plus fifteen US. The
+            // display cap keeps only eleven EMEA countries, so a country-only read lands at ~76% and
+            // calls it Global; the uncapped region total is 130/145 ~ 90% and keeps it EMEA.
+            const cappedCountries = { US: 15 };
+            for (let index = 0; index < 11; index += 1) cappedCountries[`E${index}`] = 10;
+            expect(resolveRegion(cappedCountries, 145, { EMEA: 130, 'LATAM/Americas': 15 })).to.equal('EMEA');
+        });
+
+        it('still dilutes toward Global when stored regions do not cover the page total', () => {
+            expect(resolveRegion({}, 100, { EMEA: 70 })).to.equal(GLOBAL_REGION);
+        });
     });
 
     describe('formatCountries', () => {
@@ -207,6 +226,18 @@ describe('usage-repository', () => {
         it('weighs the region against the page total, not only its listed countries', () => {
             const result = parseWith([{ url: 'https://www.adobe.com/uk/', requests: 100, countries: { GB: 70 } }]);
             expect(result.pages[0].region).to.equal(GLOBAL_REGION);
+        });
+
+        it('resolves the region from the stored region totals when the action sends them', () => {
+            const result = parseWith([
+                {
+                    url: 'https://www.adobe.com/uk/',
+                    requests: 145,
+                    countries: { US: 15 },
+                    regions: { EMEA: 130, 'LATAM/Americas': 15 },
+                },
+            ]);
+            expect(result.pages[0].region).to.equal('EMEA');
         });
 
         it('falls back to Global for a page the action sent no countries for', () => {

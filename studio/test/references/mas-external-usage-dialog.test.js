@@ -281,6 +281,16 @@ describe('mas-external-usage-dialog', () => {
         expect(element.shadowRoot.querySelector('.usage-freshness').textContent).to.contain('Updated');
     });
 
+    it('tells the author the counts are a bounded sample rather than a complete total', async () => {
+        const element = await openDialog();
+        expect(element.shadowRoot.querySelector('.usage-note').textContent).to.contain('bounded sample');
+    });
+
+    it('omits the bounded-sample note when there is no data to qualify', async () => {
+        const element = await openDialog({ available: false });
+        expect(element.shadowRoot.querySelector('.usage-note')).to.equal(null);
+    });
+
     it('emits close when the close button is pressed', async () => {
         const element = await openDialog();
         let closed = false;

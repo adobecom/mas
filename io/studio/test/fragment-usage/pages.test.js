@@ -16,7 +16,13 @@ const {
 const NOW_HOUR = 500000;
 
 /** Builds a stored page entry in the shape the rollup writes. */
-const entry = (requests, countries = {}, url = '', locale = '') => ({ url, locale, requests, countries });
+const entry = (requests, countries = {}, url = '', locale = '', regions = {}) => ({
+    url,
+    locale,
+    requests,
+    countries,
+    regions,
+});
 
 describe('fragment-usage pages', () => {
     describe('readEntry', () => {
@@ -28,15 +34,17 @@ describe('fragment-usage pages', () => {
                 locale: '',
                 requests: 5,
                 countries: {},
+                regions: {},
             });
         });
 
         it('reads a current record unchanged', () => {
-            expect(readEntry(entry(5, { US: 5 }, 'https://a.com', 'en_US'))).to.deep.equal({
+            expect(readEntry(entry(5, { US: 5 }, 'https://a.com', 'en_US', { 'LATAM/Americas': 5 }))).to.deep.equal({
                 url: 'https://a.com',
                 locale: 'en_US',
                 requests: 5,
                 countries: { US: 5 },
+                regions: { 'LATAM/Americas': 5 },
             });
         });
 
@@ -45,20 +53,21 @@ describe('fragment-usage pages', () => {
         });
 
         it('treats a missing entry as no traffic rather than throwing', () => {
-            expect(readEntry(undefined)).to.deep.equal({ url: '', locale: '', requests: 0, countries: {} });
+            expect(readEntry(undefined)).to.deep.equal({ url: '', locale: '', requests: 0, countries: {}, regions: {} });
         });
     });
 
     describe('addPage', () => {
-        it('sums both the total and each country', () => {
+        it('sums the total, each country, and each region', () => {
             const byPage = {};
-            addPage(byPage, 'https://a.com', 'en_US', 3, { US: 2, CA: 1 });
-            addPage(byPage, 'https://a.com', 'en_US', 4, { US: 3, JP: 1 });
+            addPage(byPage, 'https://a.com', 'en_US', 3, { US: 2, CA: 1 }, { 'LATAM/Americas': 3 });
+            addPage(byPage, 'https://a.com', 'en_US', 4, { US: 3, JP: 1 }, { 'LATAM/Americas': 3, JAPAC: 1 });
             expect(byPage['https://a.com#en_US']).to.deep.equal({
                 url: 'https://a.com',
                 locale: 'en_US',
                 requests: 7,
                 countries: { US: 5, CA: 1, JP: 1 },
+                regions: { 'LATAM/Americas': 6, JAPAC: 1 },
             });
         });
 
@@ -70,6 +79,7 @@ describe('fragment-usage pages', () => {
                 locale: '',
                 requests: 3,
                 countries: {},
+                regions: {},
             });
         });
 
@@ -130,8 +140,16 @@ describe('fragment-usage pages', () => {
                 11: { 'https://a.com': entry(4, { US: 1, CA: 3 }) },
             };
             expect(topPages(pages)).to.deep.equal([
-                { url: 'https://a.com', locale: '', requests: 7, countries: { US: 4, CA: 3 } },
+                { url: 'https://a.com', locale: '', requests: 7, countries: { US: 4, CA: 3 }, regions: {} },
             ]);
+        });
+
+        it('sums region totals across hours, uncapped, alongside the capped countries', () => {
+            const pages = {
+                10: { 'https://a.com': entry(3, { US: 3 }, '', '', { 'LATAM/Americas': 3 }) },
+                11: { 'https://a.com': entry(4, { US: 1, CA: 3 }, '', '', { 'LATAM/Americas': 4 }) },
+            };
+            expect(topPages(pages)[0].regions).to.deep.equal({ 'LATAM/Americas': 7 });
         });
 
         it('keeps only the busiest countries once a page is summed across hours', () => {

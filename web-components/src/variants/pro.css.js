@@ -1,4 +1,9 @@
-import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import {
+    MOBILE_LANDSCAPE,
+    TABLET_UP,
+    C2_DESKTOP_UP,
+    XL_DESKTOP_UP,
+} from '../media.js';
 
 export const CSS = `
 :root {
@@ -30,8 +35,8 @@ export const CSS = `
     display: block;
 }
 
-/* Width is driven by the grid track, not a fixed value — cards fluidly fit
-   261px (1280 viewport) → 394px (1920 viewport) per Figma. */
+/* Standalone cards retain their cap; 3+ card collections fill their tracks
+   at MD and XL below. */
 merch-card[variant="pro"] {
     width: 100%;
     max-width: var(--consonant-merch-card-pro-max-width);
@@ -441,10 +446,12 @@ merch-card[variant="pro"] [slot="whats-included"] .section:first-child h4 > merc
 /* CTA styling — pill-shaped buttons, accent solid + outlined */
 merch-card[variant="pro"] [slot="footer"] a,
 merch-card[variant="pro"] [slot="footer"] button {
-    flex: 1 0 0;
-    min-width: 0;
-    height: 40px;
-    padding: 14px 24px;
+    flex: 1 1 calc(50% - 4px);
+    /* One-line label width, capped at the footer: past half the row the CTAs
+       stack, past the whole row the label wraps. */
+    min-width: fit-content;
+    min-height: 40px;
+    padding: 8px 24px;
     /* S2A spacing-xs between an icon and the label; inert without one */
     gap: 8px;
     border-radius: 999px;
@@ -459,7 +466,7 @@ merch-card[variant="pro"] [slot="footer"] button {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 }
 
 merch-card[variant="pro"] [slot="footer"] .con-button.blue,
@@ -489,6 +496,11 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"] {
             --consonant-merch-card-pro-cta-outline-border-color,
             var(--consonant-merch-card-pro-text-color)
         );
+}
+
+merch-card[variant="pro"][stacked] [slot="footer"] a,
+merch-card[variant="pro"][stacked] [slot="footer"] button {
+    flex-basis: 100%;
 }
 
 /* S2A outlined button (2161:54613): black@8% wash on light, white@64% on dark,
@@ -532,12 +544,6 @@ merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
     line-height: 21px;
     letter-spacing: -0.48px;
     color: var(--consonant-merch-card-pro-text-color);
-}
-
-/* WCS recurrence dictionary returns abbreviations uppercased ("/MO");
-   Figma's pricing typography presents it lowercase ("/mo"). */
-merch-card[variant="pro"] [slot="heading-m"] .price-recurrence {
-    text-transform: lowercase;
 }
 
 /* Strikethrough (regular) price — Figma 988:14784: 14px regular muted, struck,
@@ -641,13 +647,12 @@ merch-card[variant="pro"]
     content: none;
 }
 
-/* Collection grid — C2 breakpoints only (768, 1280).
+/* Collection grid — C2 column breakpoints (768, 1280).
    - Mobile: single column, full width.
    - Tablet (≥768): 2-column grid for 2/3/4 cards.
    - Desktop (≥1280): full column count.
    Cards stretch to equal height within a row (matches Figma row-equal layout)
-   and widths flow fluidly via 1fr tracks. Container max-width caps growth so
-   cards don't exceed the Figma xl (394px) width. */
+   and widths flow fluidly via 1fr tracks. */
 merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]) {
     display: grid;
     gap: 8px;
@@ -702,6 +707,24 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
     merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="pro"] {
         max-width: var(--consonant-merch-card-pro-2up-max-width);
+    }
+}
+
+@media screen and ${TABLET_UP} and (max-width: 1280px) {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 1280px;
+    }
+}
+
+@media screen and ${XL_DESKTOP_UP} {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 1920px;
+    }
+}
+
+@media screen and ${TABLET_UP} and (max-width: 1280px), screen and ${XL_DESKTOP_UP} {
+    merch-card-collection.plans:has(> merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) > merch-card[variant="pro"]:not([size="edu"]) {
+        max-width: none;
     }
 }
 

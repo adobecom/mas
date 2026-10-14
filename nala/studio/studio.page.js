@@ -65,7 +65,18 @@ export default class StudioPage {
         this.tableViewCreateVariationOption = (menu) => menu.locator('sp-menu-item:has-text("Create variation")');
         this.tableViewCopyLinkOption = (menu) => menu.locator('sp-menu-item:has-text("Copy Link")');
         this.variationDialog = page.locator('mas-variation-dialog > sp-dialog');
-        this.variationDialogLocalePicker = this.variationDialog.locator('sp-picker[placeholder="Select a locale"]');
+        this.variationDialogTypePicker = this.variationDialog.locator(
+            'sp-field-group:has(sp-field-label:has-text("Variation type")) sp-picker',
+        );
+        this.variationDialogTagPicker = this.variationDialog.locator('aem-tag-picker-field[label="Locale and PZN tags"]');
+        this.variationDialogTagPickerTrigger = this.variationDialogTagPicker.locator(
+            'sp-action-button[aria-label="Locale and PZN tags"]',
+        );
+        this.variationDialogTagCheckbox = (locale) =>
+            this.variationDialogTagPicker.locator(`sp-popover sp-checkbox[value="/content/cq:tags/mas/locale/${locale}"]`);
+        this.variationDialogSelectedTags = this.variationDialogTagPicker.locator('sp-tags > sp-tag');
+        this.variationDialogUnavailableMessage = this.variationDialog.locator('.unavailable-message');
+        this.variationDialogCancelButton = this.variationDialog.locator('sp-button:has-text("Cancel")');
         this.variationDialogCreateButton = this.variationDialog.locator('sp-button:has-text("Create variation")');
         this.quickActions = page.locator('.quick-actions');
         this.editorPanel = page.locator('mas-fragment-editor > #fragment-editor #editor-content');
@@ -504,15 +515,15 @@ export default class StudioPage {
     /**
      * Create a variation - supports both table view and editor sidenav
      * @param {string} fragmentId - The fragment ID to create variation for
-     * @param {string} locale - The regional locale (e.g., 'en_CA')
+     * @param {string[]} locales - Locale codes for the grouped variation (e.g., ['fr_FR'])
      * @returns {Promise<string>} The variation fragment ID
      */
-    async createVariation(fragmentId, locale) {
+    async createVariation(fragmentId, locales) {
         if (!fragmentId) {
             throw new Error('fragmentId is required parameter');
         }
-        if (!locale) {
-            throw new Error('locale is required parameter');
+        if (!locales?.length) {
+            throw new Error('locales is required parameter');
         }
 
         // Check if we're in the editor (editor panel is visible)
@@ -562,19 +573,35 @@ export default class StudioPage {
 
         await expect(this.variationDialog).toBeVisible();
 
-        await expect(this.variationDialogLocalePicker).toBeVisible();
-        await expect(this.variationDialogLocalePicker).toBeEnabled();
-        await this.variationDialogLocalePicker.scrollIntoViewIfNeeded();
-        await this.variationDialogLocalePicker.click({ force: true, timeout: 5000 });
-
-        const localeOption = this.page.locator(`sp-menu-item[value="${locale}"]:visible`).first();
-        await expect(localeOption).toBeVisible();
+        await expect(this.variationDialogTagPicker).toBeVisible();
+        await expect(this.variationDialogTagPickerTrigger).toBeEnabled();
+        await this.variationDialogTagPickerTrigger.scrollIntoViewIfNeeded();
         try {
-            await localeOption.click({ timeout: 5000 });
-        } catch (localeOptionClickError) {
-            await localeOption.click({ force: true });
+            await this.variationDialogTagPickerTrigger.click({ timeout: 5000 });
+        } catch (error) {
+            await this.variationDialogTagPickerTrigger.click({ force: true });
         }
-        await expect(this.variationDialogLocalePicker).toHaveJSProperty('value', locale);
+        const popover = this.variationDialogTagPicker.locator('sp-popover');
+        await expect(popover).toBeVisible();
+        for (const locale of locales) {
+            const option = this.variationDialogTagCheckbox(locale);
+            await expect(option).toBeVisible();
+            await option.scrollIntoViewIfNeeded();
+            const checkbox = option.getByRole('checkbox');
+            await expect(checkbox).toBeEnabled();
+            let force = false;
+            try {
+                await checkbox.check({ trial: true, timeout: 5000 });
+            } catch (error) {
+                await checkbox.check({ trial: true, force: true, timeout: 5000 });
+                force = true;
+            }
+            await checkbox.check({ force, timeout: 5000 });
+            await expect(checkbox).toBeChecked();
+        }
+        await this.page.keyboard.press('Escape');
+        await expect(popover).toBeHidden();
+        await expect(this.variationDialogSelectedTags).toHaveCount(locales.length);
 
         await expect(this.variationDialogCreateButton).toBeEnabled();
         const creation = beginFragmentCreation('variation');
@@ -597,5 +624,23 @@ export default class StudioPage {
         await waitForEditorReady(this.page, variationId);
         await completeFragmentCreation(creation, this.page);
         return variationId;
+    }
+
+    /**
+     * Open the "Create variation" dialog from the editor sidenav.
+     */
+    async openVariationDialog() {
+        const fragmentId = new URLSearchParams(new URL(this.page.url()).hash.slice(1)).get('fragmentId');
+        await waitForEditorReady(this.page, fragmentId);
+        await expect(this.createVariationButton).toBeVisible({ timeout: 10000 });
+        await expect(this.createVariationButton).toBeEnabled({ timeout: 15000 });
+        await this.createVariationButton.scrollIntoViewIfNeeded();
+        await this.createVariationButton.hover({ timeout: 5000 });
+        try {
+            await this.createVariationButton.click({ timeout: 5000 });
+        } catch (error) {
+            await this.createVariationButton.click({ force: true });
+        }
+        await expect(this.variationDialog).toBeVisible();
     }
 }

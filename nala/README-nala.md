@@ -235,6 +235,9 @@ mistaken for permanent contrast failures. Infinite animations do not block scans
 Translation search uses the ordinary product search term defined in its spec and waits for the committed query and results.
 Filter checks verify both pending and committed picker selections, rather than treating a closed popover as success.
 Inventory updates that reset selections still fail these checks; application behavior is not changed or retried.
+Variation tests follow Studio's grouped-only creation rules while retaining non-US rejection and legacy override/restore coverage.
+Each feature defines its own fixture data. Locale selection checks visibility, actionability, popover closure and committed tags;
+new variations still use one creation action and the ownership ledger.
 
 ## Concurrency boundaries
 
@@ -242,6 +245,30 @@ The coordinator is local to one invocation: separate machines do not share dynam
 Static CI allocations bound participating jobs because each pinned runner executes one job at a time, including when
 different PR shards overlap. This is not a deployed distributed coordinator: legacy workflows, external/local runs and
 additional runner instances are outside that bound and require adoption or a revised allocation.
+
+## PR approvals, retries and the required gate
+
+`Check Label and Approvals` reads the current PR label and write-access approvals without waiting for Nala.
+Both E2E jobs use the live PR head branch, owner, repository and SHA; review events never use a PR number as an EDS branch.
+A workflow for an older PR commit does not run tests against the newer head.
+
+Reviews and unrelated label changes do not restart tests that are already running or have a result for the same commit.
+New commits, deliberately re-adding `run nala`, and manual workflow retries request execution explicitly.
+Concurrency is scoped to the heavy jobs, separately for each Studio shard and Docs: incidental reviews do not cancel an active suite.
+The fixed 4/4/3 Studio and 1 Docs allocation and invocation-owned HARs remain unchanged.
+
+`Nala Gate` resolves the latest result for each of the three Studio shards and Docs.
+Missing, failed or started-and-cancelled tests cannot pass; an in-flight retry takes precedence over an earlier failure.
+Retrying a failed shard can reuse the other shards' and Docs' passing results for the same commit.
+Only the gate waits for in-flight tests, not the label/approval check.
+
+`Refresh Nala Gate` responds to completed Nala workflows and retries the latest failed gate job after an E2E attempt.
+It only retries a terminal gate, never an older preflight gate with downstream tests; gate-only retries do not trigger another refresh.
+Closed PRs and runs for an older head are ignored. The refresh workflow executes no PR-authored code.
+
+**Deployment:** GitHub only runs the completion-triggered refresh after its workflow file is on the default branch.
+Before that, a gate from a separate review-triggered workflow may need a manual gate-only retry after Nala passes.
+The main ruleset must require `Nala Gate`, not the old individual Studio/Docs check names.
 
 ## Reporting and cleanup
 

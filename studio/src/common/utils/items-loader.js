@@ -345,11 +345,11 @@ export function loadSelectedPlaceholders(selectedPaths, onItems) {
  * @param {Array<string>} selectedPaths - Paths of selected fragments
  * @param {string} type - TABLE_TYPE.CARDS or TABLE_TYPE.COLLECTIONS
  * @param {Object} repository - MasRepository instance
- * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName, store }
+ * @param {Object} options - { signal: AbortSignal, onItems: (items) => void, getDisplayName, store, prefetched: Map<path, fragmentData> }
  * @returns {Promise<void>}
  */
 export async function loadSelectedFragments(selectedPaths, type, repository, options = {}) {
-    const { signal, onItems, getDisplayName, store } = options;
+    const { signal, onItems, getDisplayName, store, prefetched } = options;
     if (!repository || !selectedPaths?.length || !getDisplayName) {
         if (onItems) onItems([]);
         return;
@@ -360,7 +360,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
             selectedPaths,
             async (path) => {
                 try {
-                    const fragmentData = await repository.aem.getFragmentByPath(path);
+                    const fragmentData = prefetched?.get(path) ?? (await repository.aem.getFragmentByPath(path));
                     const fragment = new Fragment(fragmentData);
                     return {
                         ...fragmentData,

@@ -69,10 +69,7 @@ describe('getSettings', () => {
         url.searchParams.set('commerce.env', 'STAGE');
         url.searchParams.set('quantity', '2');
         url.searchParams.set('wcsApiKey', 'testapikey');
-        url.searchParams.set(
-            'mas-io-url',
-            'https://custom.adobeioruntime.net/mas/io',
-        );
+        url.searchParams.set('mas-io-url', 'axel');
         window.history.replaceState({}, '', url.toString());
 
         const config = { commerce: { allowOverride: '' } };
@@ -93,7 +90,8 @@ describe('getSettings', () => {
             quantity: [2],
             wcsApiKey: 'testapikey',
             locale: 'en_US',
-            masIOUrl: 'https://custom.adobeioruntime.net/mas/io',
+            masIOUrl:
+                'https://14257-merchatscale-axel.adobeioruntime.net/api/v1/web/MerchAtScale',
             env: 'STAGE',
             wcsURL: WCS_STAGE_URL,
             hasExplicitCountry: false,
@@ -106,6 +104,49 @@ describe('getSettings', () => {
         window.history.replaceState({}, '', url.toString());
         const settings = getSettings({}, mockService);
         expect(settings.masIOUrl).to.equal('https://www.adobe.com/mas/io');
+    });
+
+    describe('aupSelect', () => {
+        let meta;
+
+        beforeEach(() => {
+            meta = document.createElement('meta');
+            meta.name = 'aup-select';
+        });
+
+        afterEach(() => {
+            meta.remove();
+        });
+
+        for (const value of ['on', 'ucv3_in_iframe']) {
+            it(`is enabled by "${value}" metadata`, () => {
+                meta.content = value;
+                document.head.append(meta);
+                expect(getSettings({}, mockService).aupSelect).to.be.true;
+            });
+
+            it(`is enabled by "${value}" query parameter`, () => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('aup-select', value);
+                window.history.replaceState({}, '', url.toString());
+                expect(getSettings({}, mockService).aupSelect).to.be.true;
+            });
+        }
+
+        for (const value of ['off', 'true', 'ON', 'UCV3_IN_IFRAME', '']) {
+            it(`is disabled by ${JSON.stringify(value)} metadata`, () => {
+                meta.content = value;
+                document.head.append(meta);
+                expect(getSettings({}, mockService).aupSelect).to.be.false;
+            });
+
+            it(`is disabled by ${JSON.stringify(value)} query parameter`, () => {
+                const url = new URL(window.location.href);
+                url.searchParams.set('aup-select', value);
+                window.history.replaceState({}, '', url.toString());
+                expect(getSettings({}, mockService).aupSelect).to.be.false;
+            });
+        }
     });
 
     it('uses document metadata and storage', () => {

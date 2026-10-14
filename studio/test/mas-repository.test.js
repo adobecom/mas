@@ -546,6 +546,72 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('loadTranslationProjects', () => {
+        beforeEach(() => {
+            Store.translationProjects.list.data.value = [];
+            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        });
+
+        afterEach(() => {
+            Store.translationProjects.list.data.value = [];
+            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        });
+
+        it('keeps a newly duplicated project first when search has not indexed it yet', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            const original = createFragment({ id: 'source', path: `${ROOT_PATH}/acom/translations/source` });
+            const duplicate = new FragmentStore(
+                new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` })),
+            );
+            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            repository.searchFragmentList = sandbox.stub().resolves([original]);
+
+            await repository.loadTranslationProjects();
+
+            expect(Store.translationProjects.list.data.get().map((project) => project.id)).to.deep.equal([
+                'duplicate',
+                'source',
+            ]);
+        });
+
+        it('stops retaining a duplicate once search returns it, allowing later deletion to remove it', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            const duplicate = createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` });
+            Store.translationProjects.list.data.setMeta(
+                'pendingDuplicates',
+                new Map([['duplicate', new FragmentStore(new Fragment(duplicate))]]),
+            );
+            const searchStub = sandbox.stub();
+            searchStub.onFirstCall().resolves([duplicate]);
+            searchStub.onSecondCall().resolves([]);
+            repository.searchFragmentList = searchStub;
+
+            await repository.loadTranslationProjects();
+            expect(Store.translationProjects.list.data.get().map((project) => project.id)).to.deep.equal(['duplicate']);
+            await repository.loadTranslationProjects();
+
+            expect(Store.translationProjects.list.data.get()).to.deep.equal([]);
+            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').size).to.equal(0);
+        });
+
+        it('does not mix pending duplicates from different surfaces', async () => {
+            const repository = createFullRepository();
+            repository.search = { value: { path: 'acom' } };
+            const duplicate = new FragmentStore(
+                new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/sandbox/translations/duplicate` })),
+            );
+            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+
+            await repository.loadTranslationProjects();
+            expect(Store.translationProjects.list.data.get()).to.deep.equal([]);
+            repository.search.value.path = 'sandbox';
+            await repository.loadTranslationProjects();
+
+            expect(Store.translationProjects.list.data.get().map((project) => project.id)).to.deep.equal(['duplicate']);
+        });
+
         it('returns early when translations path is null', async () => {
             const repository = createFullRepository();
             repository.search = { value: { path: '' } };
@@ -4750,6 +4816,7 @@ describe('MasRepository publishFragment', () => {
                 },
             },
         };
+        repo.clearStagedTag = sandbox.stub().resolves();
         // Silence processError to avoid noisy output in tests
         sandbox.stub(repo, 'processError');
         return repo;

@@ -63,7 +63,32 @@ export function appendSlot(fieldName, fields, el, mapping) {
 
         const tag = createTag(config.tag, attributes, content);
         el.append(tag);
+        return tag;
     }
+}
+
+// Splits `<li>` items made only of `<p>` children into one `<li>` per paragraph.
+export function splitParagraphListItems(root) {
+    if (!root) return;
+    root.querySelectorAll('li').forEach((li) => {
+        const elements = [...li.children];
+        if (!elements.length || elements.some((child) => child.tagName !== 'P'))
+            return;
+        const hasText = [...li.childNodes].some(
+            (node) =>
+                node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+        );
+        if (hasText) return;
+        const items = elements.map((p) => {
+            const item = document.createElement('li');
+            [...li.attributes].forEach(({ name, value }) =>
+                item.setAttribute(name, value),
+            );
+            item.append(...p.childNodes);
+            return item;
+        });
+        li.replaceWith(...items);
+    });
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
@@ -676,7 +701,9 @@ export function processDescription(fields, merchCard, mapping, settings) {
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
     processQuantitySelect(fields, merchCard, mapping, settings);
-    appendSlot('whatsIncluded', fields, merchCard, mapping);
+    splitParagraphListItems(
+        appendSlot('whatsIncluded', fields, merchCard, mapping),
+    );
 }
 
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
@@ -974,6 +1001,11 @@ function createConsonantButton(
     return button;
 }
 
+// Filled (accent) CTA first, so Tab and screen-reader order match what is shown.
+const isFilled = (cta) => cta.classList.contains('blue');
+const filledFirst = (ctas) =>
+    [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+
 export function processCTAs(
     fields,
     merchCard,
@@ -999,7 +1031,11 @@ export function processCTAs(
         );
 
         footer.textContent = '';
-        footer.append(...ctas);
+        footer.append(
+            ...(['pro', 'product-pricing'].includes(merchCard.variant)
+                ? filledFirst(ctas)
+                : ctas),
+        );
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
@@ -1150,7 +1186,12 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
-    if (mapping.style === 'consonant') {
+    // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
+    if (
+        mapping.style === 'consonant' &&
+        !merchCard.hasAttribute('consonant') &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);

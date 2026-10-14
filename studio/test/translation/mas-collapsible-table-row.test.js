@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html, nothing } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -49,6 +49,9 @@ describe('MasCollapsibleTableRow', () => {
     const createMockRepository = () => {
         const repo = document.createElement('mas-repository');
         repo.setAttribute('base-url', 'http://test');
+        repo.loadPromotions = sandbox.stub().callsFake(async () => {
+            Store.promotions.list.data.setMeta('listFetched', true);
+        });
         document.body.appendChild(repo);
         return repo;
     };
@@ -71,9 +74,233 @@ describe('MasCollapsibleTableRow', () => {
         resetStore();
         removeMockRepository();
         setItemsSelectionStore(null);
+        Store.promotions.list.data.set([]);
+        Store.promotions.list.data.removeMeta('listFetched');
     });
 
     describe('initialization', () => {
+        it('withholds prefetched promotion variation links until their project context is loaded', async () => {
+            const card = createMockTopLevelCard();
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${card}
+                    .isTopLevelExpanded=${true}
+                    .selectedTabKey=${VARIATION_TAB_NAME.PROMOTION}
+                    .promoVariationsFetchedByParent=${new Map([[card.path, [variation]]])}
+                ></mas-collapsible-table-row>`,
+            );
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${variation.path}"]`);
+
+            try {
+                expect(row.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(row.querySelector('a.row-link-overlay')).to.be.null;
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => {
+                const link = row.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+        });
+
+        it('withholds promotion title, path, and overlay links while project context is pending', async () => {
+            const card = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                }),
+                id: 'promo-var-1',
+            };
+            let completeLoad;
+            document.querySelector('mas-repository').loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            try {
+                expect(el.shadowRoot.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(el.shadowRoot.querySelector('a.row-link-overlay')).to.be.null;
+                expect(el.shadowRoot.querySelector('.title').textContent).to.include(card.title);
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => el.shadowRoot.querySelectorAll('a.fragment-editor-link').length === 2);
+            for (const link of el.shadowRoot.querySelectorAll('a')) {
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('promotionId')).to.equal('promo-project-1');
+            }
+        });
+
+        it('retries an unsuccessful promotion context load on a later render', async () => {
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'promo-var-1',
+            };
+            const loadPromotions = sandbox.stub();
+            loadPromotions.onFirstCall().resolves();
+            loadPromotions.onSecondCall().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            document.querySelector('mas-repository').loadPromotions = loadPromotions;
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            await waitUntil(() => loadPromotions.calledOnce);
+            await el.updateComplete;
+
+            el.requestUpdate();
+
+            await waitUntil(() => {
+                const link = el.shadowRoot.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+            expect(loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('selects the card without navigating when its title link is activated with Enter', async () => {
+            const card = { ...createMockTopLevelCard(), id: 'card-1' };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 });
+
+            el.shadowRoot.querySelector('.title a').dispatchEvent(event);
+
+            expect(event.defaultPrevented).to.be.true;
+            expect(Store.translationProjects.selectedCards.get()).to.deep.equal([card.path]);
+        });
+
+        it('shares promotion context between the row overlay, title, and path links', async () => {
+            Store.promotions.list.data.set([
+                { get: () => ({ id: 'promotion-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+            ]);
+            const card = {
+                ...createMockTopLevelCard({ tags: [{ id: 'mas:promotion/black-friday' }] }),
+                id: 'card-1',
+            };
+            const el = await fixture(html`<mas-collapsible-table-row .topLevelCard=${card}></mas-collapsible-table-row>`);
+
+            for (const selector of ['a.row-link-overlay', '.title a', '.path a']) {
+                const link = el.shadowRoot.querySelector(selector);
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal('card-1');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
+        for (const source of ['top-level card', 'prefetched variations']) {
+            it(`loads promotion context for links from ${source} without opening the editor`, async () => {
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+                const variation = {
+                    ...createMockTopLevelCard({
+                        path: '/content/dam/mas/acom/en_US/promotions/black-friday/test',
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                    }),
+                    id: 'promo-var-1',
+                };
+                const topLevelCard = source === 'top-level card' ? variation : createMockTopLevelCard();
+                const loadPromotions = sandbox.stub().callsFake(async () => {
+                    Store.promotions.list.data.set([
+                        { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/black-friday' }] }) },
+                    ]);
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                });
+                document.querySelector('mas-repository').loadPromotions = loadPromotions;
+                const el = await fixture(
+                    html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+                );
+                if (source === 'prefetched variations') {
+                    el.isTopLevelExpanded = true;
+                    el.promoVariationsFetchedByParent = new Map([[topLevelCard.path, [variation]]]);
+                }
+
+                await waitUntil(
+                    () =>
+                        [...el.shadowRoot.querySelectorAll('a.row-link-overlay')].some(
+                            (link) =>
+                                new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1',
+                        ),
+                    'The promotion variation link should include its project',
+                );
+                el.requestUpdate();
+                await el.updateComplete;
+
+                expect(loadPromotions.calledOnce).to.be.true;
+                Store.promotions.list.data.set([]);
+                Store.promotions.list.data.removeMeta('listFetched');
+            });
+        }
+
+        for (const type of ['locale', 'promotion', 'grouped']) {
+            it(`exposes the ${type} variation's own editor link`, async () => {
+                const path =
+                    type === 'locale'
+                        ? '/content/dam/mas/acom/en_CA/cards/test'
+                        : `/content/dam/mas/acom/en_US/cards/test/${type === 'grouped' ? 'pzn' : 'promotions'}/example`;
+                const variation = {
+                    ...createMockTopLevelCard({ path, title: `${type} variation` }),
+                    id: `${type}-1`,
+                };
+                const topLevelCard = {
+                    ...createMockTopLevelCard({ variationPaths: [path], references: [variation] }),
+                    id: 'parent-1',
+                };
+                setupCardVariationsInStore(topLevelCard.path, [variation]);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                if (type === 'promotion') {
+                    el.promoVariations = [variation];
+                    el.requestUpdate();
+                }
+                await el.updateComplete;
+                const panel = el.shadowRoot.querySelector(`sp-tab-panel[value="${type}"]`);
+                const link = panel.querySelector('sp-table-row a');
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('fragmentId')).to.equal(`${type}-1`);
+                expect(params.get('region')).to.equal(type === 'locale' ? 'en_CA' : 'en_US');
+            });
+        }
+
+        it('renders native fragment-editor links in translation and promotion title cells', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'top-level-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('sp-table-row a');
+            expect(link).to.exist;
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('top-level-1');
+        });
+
         it('should initialize with default values', async () => {
             const topLevelCard = createMockTopLevelCard();
             const el = await fixture(
@@ -189,7 +416,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.exist;
         });
 
@@ -198,7 +425,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.be.null;
         });
 
@@ -248,6 +475,54 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('title and path link hover', () => {
+        for (const [cell, selector, field] of [
+            ['Title', '.title', 'title'],
+            ['StudioPath', '.path', 'studioPath'],
+        ]) {
+            it(`keeps the full ${field} tooltip accessible above the row link overlay`, async () => {
+                const value = 'Full fragment value for the row overlay hover regression';
+                const topLevelCard = { ...createMockTopLevelCard({ [field]: value }), id: 'hover-card-1' };
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .cellsOverride=${[cell]}
+                        .viewOnly=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                const overlay = el.shadowRoot.querySelector(`${selector} overlay-trigger`);
+                const trigger = overlay.querySelector('[slot="trigger"]');
+                await overlay.updateComplete;
+                const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+                await hoverOverlay.updateComplete;
+                await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'The hover trigger should be visible');
+                trigger.scrollIntoView({ block: 'center', inline: 'center' });
+                const { x, y, width, height } = trigger.getBoundingClientRect();
+                const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+                expect(trigger.contains(target), 'The tooltip trigger should receive hover instead of the row link').to.be.true;
+                trigger.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+                await waitUntil(() => hoverOverlay.open, 'The full value tooltip should open on hover');
+                expect(overlay.querySelector('sp-tooltip').textContent.trim()).to.equal(value);
+                trigger.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+            });
+        }
+
+        it('keeps a native editor link on the path text above the row overlay', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'path-card-1' };
+            const el = await fixture(
+                html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
+            );
+            const link = el.shadowRoot.querySelector('.path [slot="trigger"] a');
+
+            expect(link).to.exist;
+            expect(link.textContent).to.equal(topLevelCard.studioPath);
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('fragment-editor');
+            expect(params.get('fragmentId')).to.equal('path-card-1');
+        });
+    });
+
     describe('renderTitle', () => {
         it('should render item title', async () => {
             const topLevelCard = createMockTopLevelCard({ title: 'My Title' });
@@ -255,7 +530,7 @@ describe('MasCollapsibleTableRow', () => {
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            const titleCell = [...cells].find((c) => c.textContent.trim() === 'My Title');
+            const titleCell = [...cells].find((c) => c.textContent.includes('My Title'));
             expect(titleCell).to.exist;
         });
 
@@ -294,6 +569,35 @@ describe('MasCollapsibleTableRow', () => {
     });
 
     describe('renderOfferId', () => {
+        it('keeps the locale variation Offer ID hover trigger accessible above the row link overlay', async () => {
+            const variation = {
+                ...createMockTopLevelCard({
+                    path: '/content/dam/mas/acom/en_CA/cards/test',
+                    offerData: { offerId: '68C33F4BD35E1D1CD843BBD90D526D2A' },
+                }),
+                id: 'locale-variation-1',
+            };
+            const topLevelCard = {
+                ...createMockTopLevelCard({ variationPaths: [variation.path], references: [variation] }),
+                id: 'parent-1',
+            };
+            setupCardVariationsInStore(topLevelCard.path, [variation]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const panel = el.shadowRoot.querySelector('sp-tab-panel[value="locale"]');
+            const trigger = panel.querySelector('.offer-id [slot="trigger"]');
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'Offer ID text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const target = el.shadowRoot.elementFromPoint(x + width / 2, y + height / 2);
+
+            expect(target === trigger, 'Offer ID text should receive hover instead of the row link').to.be.true;
+        });
+
         it('should render offer ID when offerData is present', async () => {
             const topLevelCard = createMockTopLevelCard({
                 offerData: { offerId: 'ABC-123' },
@@ -364,6 +668,140 @@ describe('MasCollapsibleTableRow', () => {
             copyBtn.click();
             const detail = await toastPromise;
             expect(detail.text).to.equal('Failed to copy Offer ID');
+            expect(detail.variant).to.equal('negative');
+        });
+    });
+
+    describe('renderOsi', () => {
+        it('shows the full OSI tooltip on hover above the row link overlay', async () => {
+            const osi = 'OSI-FULL-VALUE-FOR-HOVER-REGRESSION';
+            const topLevelCard = {
+                ...createMockTopLevelCard({ fields: [{ name: 'osi', values: [osi] }] }),
+                id: 'osi-card-1',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                    .viewOnly=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            const overlay = el.shadowRoot.querySelector('.osi overlay-trigger');
+            const trigger = overlay.querySelector('[slot="trigger"]');
+            const tooltip = overlay.querySelector('sp-tooltip');
+            await overlay.updateComplete;
+            const hoverOverlay = overlay.shadowRoot.querySelector('#hover-overlay');
+            await hoverOverlay.updateComplete;
+            await waitUntil(() => trigger.getBoundingClientRect().width > 0, 'OSI text should be visible');
+            trigger.scrollIntoView({ block: 'center', inline: 'center' });
+            const { x, y, width, height } = trigger.getBoundingClientRect();
+            const position = [Math.round(x + width / 2), Math.round(y + height / 2)];
+            const target = el.shadowRoot.elementFromPoint(...position);
+
+            expect(target === trigger, 'OSI text should receive hover instead of the row link').to.be.true;
+            target.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }));
+            await waitUntil(() => hoverOverlay.open, 'The full OSI tooltip should open on hover');
+            expect(tooltip.textContent.trim()).to.equal(osi);
+            target.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+        });
+
+        it('should render osi from the osi field', async () => {
+            const topLevelCard = createMockTopLevelCard({
+                fields: [{ name: 'osi', values: ['OSI-FIELD-1'] }],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                ></mas-collapsible-table-row>`,
+            );
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('OSI-FIELD-1');
+        });
+
+        it('should fall back to offerData.offerSelectorIds when no osi field', async () => {
+            const topLevelCard = createMockTopLevelCard({
+                fields: [],
+                offerData: { offerSelectorIds: ['OSI-FALLBACK'] },
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                ></mas-collapsible-table-row>`,
+            );
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('OSI-FALLBACK');
+        });
+
+        it('should render "no osi" when neither osi field nor offerSelectorIds are present', async () => {
+            const topLevelCard = createMockTopLevelCard({ fields: [], offerData: undefined });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                ></mas-collapsible-table-row>`,
+            );
+            const shadowText = el.shadowRoot?.textContent || '';
+            expect(shadowText).to.include('no osi');
+        });
+
+        it('should copy OSI to clipboard and dispatch show-toast labeled OSI when copy button is clicked', async () => {
+            const topLevelCard = createMockTopLevelCard({
+                fields: [{ name: 'osi', values: ['OSI-COPY'] }],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                ></mas-collapsible-table-row>`,
+            );
+            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const copyBtn = el.shadowRoot.querySelector('sp-action-button[aria-label="Copy OSI to clipboard"]');
+            expect(copyBtn).to.exist;
+
+            const toastPromise = new Promise((resolve) => {
+                el.addEventListener(
+                    'show-toast',
+                    (e) => {
+                        resolve(e.detail);
+                    },
+                    { once: true },
+                );
+            });
+            copyBtn.click();
+            const detail = await toastPromise;
+            expect(detail.text).to.equal('OSI copied to clipboard');
+            expect(detail.variant).to.equal('positive');
+            expect(writeTextStub.calledWith('OSI-COPY')).to.be.true;
+        });
+
+        it('should dispatch negative toast labeled OSI when clipboard copy fails', async () => {
+            const topLevelCard = createMockTopLevelCard({
+                fields: [{ name: 'osi', values: ['OSI-FAIL'] }],
+            });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Osi']}
+                ></mas-collapsible-table-row>`,
+            );
+            sandbox.stub(navigator.clipboard, 'writeText').rejects(new Error('Clipboard denied'));
+            const copyBtn = el.shadowRoot.querySelector('sp-action-button[aria-label="Copy OSI to clipboard"]');
+            expect(copyBtn).to.exist;
+
+            const toastPromise = new Promise((resolve) => {
+                el.addEventListener(
+                    'show-toast',
+                    (e) => {
+                        resolve(e.detail);
+                    },
+                    { once: true },
+                );
+            });
+            copyBtn.click();
+            const detail = await toastPromise;
+            expect(detail.text).to.equal('Failed to copy OSI');
             expect(detail.variant).to.equal('negative');
         });
     });
@@ -501,6 +939,35 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('renderAppliesTo', () => {
+        it('should render "Grouped variation" for a grouped variation path', async () => {
+            const groupedPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({ path: groupedPath });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['AppliesTo']}
+                ></mas-collapsible-table-row>`,
+            );
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            const cell = [...cells].find((c) => c.textContent.trim() === 'Grouped variation');
+            expect(cell).to.exist;
+        });
+
+        it('should render "Default fragment" for a non-grouped path', async () => {
+            const topLevelCard = createMockTopLevelCard({ path: '/content/dam/mas/acom/en_US/cards/parent' });
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['AppliesTo']}
+                ></mas-collapsible-table-row>`,
+            );
+            const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
+            const cell = [...cells].find((c) => c.textContent.trim() === 'Default fragment');
+            expect(cell).to.exist;
+        });
+    });
+
     describe('selected state', () => {
         it('should show row as selected when path is in selectedCards', async () => {
             const topLevelCard = createMockTopLevelCard();
@@ -532,7 +999,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             expect(el.isTopLevelExpanded).to.be.false;
 
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expandButton.click();
             await el.updateComplete;
             expect(el.isTopLevelExpanded).to.be.true;
@@ -551,7 +1018,7 @@ describe('MasCollapsibleTableRow', () => {
             el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
             expect(el.isLoadingGroupedVariations).to.not.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             expect(el.isLoadingGroupedVariations).to.be.true;
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
@@ -570,7 +1037,7 @@ describe('MasCollapsibleTableRow', () => {
             el.repository = { aem: { getFragmentByPath: sandbox.stub().resolves(null) } };
             expect(el.isLoadingGroupedVariations).to.not.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             expect(el.isLoadingGroupedVariations).to.be.true;
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
@@ -623,7 +1090,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expandButton.click();
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.value).to.deep.equal([]);
@@ -810,6 +1277,33 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.shadowRoot.querySelector('.mock-actions-cell')).to.exist;
         });
 
+        it('renders one actions cell for a grouped variation when cells already includes Actions', async () => {
+            const varPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
+            const topLevelCard = createMockTopLevelCard({
+                path: '/content/dam/mas/acom/en_US/cards/parent',
+                variationPaths: [varPath],
+            });
+            const mockVariation = { path: varPath, title: 'Variation 1' };
+            setupCardVariationsInStore(topLevelCard.path, [mockVariation]);
+            const renderActionsCell = sandbox.stub().returns(html`<sp-table-cell class="mock-actions-cell"></sp-table-cell>`);
+
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .cellsOverride=${['Title', 'Actions']}
+                    .renderActionsCell=${renderActionsCell}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+
+            const variationRow = [...el.shadowRoot.querySelectorAll('sp-table-row[value]')].find(
+                (row) => row.getAttribute('value') === varPath,
+            );
+            expect(variationRow.querySelectorAll('.mock-actions-cell')).to.have.length(1);
+            expect(renderActionsCell.getCalls().filter(({ args }) => args[0] === mockVariation)).to.have.length(1);
+        });
+
         describe('groupedVariationsManageOnly', () => {
             const varPath1 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var1';
             const varPath2 = '/content/dam/mas/acom/en_US/cards/parent/pzn/var2';
@@ -922,7 +1416,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             const getById = sandbox.stub().resolves({ ...topLevelCard, references: [] });
             el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             expect(getById.calledOnceWith('frag-1')).to.be.true;
         });
@@ -979,7 +1473,7 @@ describe('MasCollapsibleTableRow', () => {
             );
             await el.updateComplete;
 
-            const variationExpandButtons = el.shadowRoot.querySelectorAll('sp-table-row .expand-button');
+            const variationExpandButtons = el.shadowRoot.querySelectorAll('sp-table-row .ghost-button');
             const variationExpandBtn = [...variationExpandButtons].find((btn) => btn.closest('sp-table-row'));
             if (variationExpandBtn) {
                 variationExpandBtn.click();
@@ -1011,7 +1505,7 @@ describe('MasCollapsibleTableRow', () => {
             await el.updateComplete;
 
             const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            const variationBtn = variationRow?.querySelector('.expand-button');
+            const variationBtn = variationRow?.querySelector('.ghost-button');
             expect(variationBtn).to.exist;
             variationBtn.click(); // collapse (was expanded)
             await el.updateComplete;
@@ -1042,7 +1536,7 @@ describe('MasCollapsibleTableRow', () => {
             expect(el.expandedVariationsPaths.has(varPath)).to.be.false;
 
             const variationRow = el.shadowRoot.querySelector(`sp-table-row[value="${varPath}"]`);
-            const variationBtn = variationRow?.querySelector('.expand-button');
+            const variationBtn = variationRow?.querySelector('.ghost-button');
             expect(variationBtn).to.exist;
             variationBtn.click();
             await el.updateComplete;
@@ -1165,7 +1659,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            const expandButton = el.shadowRoot.querySelector('.expand-button');
+            const expandButton = el.shadowRoot.querySelector('.ghost-button');
             expect(expandButton).to.exist;
         });
 
@@ -1501,6 +1995,322 @@ describe('MasCollapsibleTableRow', () => {
         });
     });
 
+    describe('promo variation row open on double-click / link (promotions-editor only)', () => {
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
+        const promoId = 'urn:aaid:aem:promo-card-1';
+
+        const makePromoVariation = (overrides = {}) => ({
+            path: promoPath,
+            id: promoId,
+            title: 'Promo Card',
+            studioPath: 'promo/path',
+            tags: [],
+            offerData: { offerId: 'OFFER-1' },
+            ...overrides,
+        });
+
+        const fixtureInPromotionsContext = async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                    .renderActionsCell=${() => nothing}
+                    .openVariationOnActivate=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation()];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            return el;
+        };
+
+        const fixtureInTranslationContext = async () => {
+            const topLevelCard = createMockTopLevelCard();
+            setupCardVariationsInStore(topLevelCard.path, []);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .isTopLevelExpanded=${true}
+                ></mas-collapsible-table-row>`,
+            );
+            el.promoVariations = [makePromoVariation()];
+            el.selectedTabKey = 'promotion';
+            await el.updateComplete;
+            return el;
+        };
+
+        it('renders a labelled fragment editor link in the title cell without wrapping the row', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            expect(row.parentElement.tagName).to.equal('SP-TABLE-BODY');
+            const link = row.querySelector('.title sp-link');
+            expect(link).to.exist;
+            expect(link.getAttribute('aria-label')).to.equal('Open Promo Card in fragment editor (new tab)');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.getAttribute('rel')).to.equal('noopener');
+            expect(link.getAttribute('href')).to.equal(
+                `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+            );
+        });
+
+        it('derives the surface from the variation path rather than the currently active page path', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.querySelector('.title sp-link');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('falls back to the current page path when the variation path has no extractable surface', async () => {
+            const originalHash = window.location.hash;
+            window.location.hash = '#page=promotions-editor&path=sandbox';
+            try {
+                const topLevelCard = createMockTopLevelCard();
+                setupCardVariationsInStore(topLevelCard.path, []);
+                const el = await fixture(
+                    html`<mas-collapsible-table-row
+                        .topLevelCard=${topLevelCard}
+                        .isTopLevelExpanded=${true}
+                        .renderActionsCell=${() => nothing}
+                        .openVariationOnActivate=${true}
+                    ></mas-collapsible-table-row>`,
+                );
+                el.promoVariations = [makePromoVariation({ path: 'not-an-aem-path' })];
+                el.selectedTabKey = 'promotion';
+                await el.updateComplete;
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="not-an-aem-path"]`);
+                const link = row.querySelector('.title sp-link');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=sandbox`,
+                );
+            } finally {
+                window.location.hash = originalHash;
+            }
+        });
+
+        it('includes the in-edit promotion id in the fragment edit link when set', async () => {
+            Store.promotions.promotionId.set('promo-project-42');
+            try {
+                const el = await fixtureInPromotionsContext();
+                const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+                const link = row.querySelector('.title sp-link');
+                expect(link.getAttribute('href')).to.equal(
+                    `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom&promotionId=promo-project-42`,
+                );
+            } finally {
+                Store.promotions.promotionId.set(null);
+            }
+        });
+
+        it('does not wrap the row in a link when renderActionsCell is not provided (translation context)', async () => {
+            const el = await fixtureInTranslationContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            expect(row.closest('a')).to.not.exist;
+            expect(row.querySelector('.title sp-link')).to.not.exist;
+        });
+
+        it('does not enable fragment activation merely because an actions renderer is supplied', async () => {
+            const el = await fixtureInTranslationContext();
+            el.renderActionsCell = () => nothing;
+            await el.updateComplete;
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+            expect(row.querySelector('.title sp-link')).to.not.exist;
+        });
+
+        for (const modifiers of [{}, { metaKey: true }, { ctrlKey: true }, { shiftKey: true }]) {
+            it(`does not cancel title link clicks with modifiers ${JSON.stringify(modifiers)}`, async () => {
+                const el = await fixtureInPromotionsContext();
+                const link = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"] .title sp-link`);
+                expect(link).to.exist;
+                const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    composed: true,
+                    cancelable: true,
+                    ...modifiers,
+                });
+                link.addEventListener(
+                    'click',
+                    (event) => {
+                        expect(event.defaultPrevented).to.be.false;
+                        event.preventDefault();
+                    },
+                    { once: true },
+                );
+                link.dispatchEvent(clickEvent);
+            });
+        }
+
+        it('does not open an additional editor tab when double-clicking the title link', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const link = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"] .title sp-link`);
+            expect(link).to.exist;
+            link.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('opens the fragment editor in a new tab on row double-click (promotions context)', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            const editUrl = `#page=fragment-editor&fragmentId=${encodeURIComponent(promoId)}&path=acom`;
+            expect(openStub.calledOnceWith(editUrl, '_blank', 'noopener')).to.be.true;
+        });
+
+        it('does not open the fragment editor on double-click when renderActionsCell is not provided (translation context)', async () => {
+            const el = await fixtureInTranslationContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            row.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('does not open the fragment editor when double-clicking the copy-offer-id action button', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            expect(copyButton).to.exist;
+            copyButton.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('still copies the offer id to the clipboard when the copy button is clicked', async () => {
+            const el = await fixtureInPromotionsContext();
+            const writeTextStub = sandbox.stub(navigator.clipboard, 'writeText').resolves();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            const toastPromise = new Promise((resolve) => {
+                el.addEventListener('show-toast', (e) => resolve(e.detail), { once: true });
+            });
+            copyButton.click();
+            await toastPromise;
+            expect(writeTextStub.calledWith('OFFER-1')).to.be.true;
+        });
+
+        it('does not open the fragment editor when double-clicking the row expand button', async () => {
+            const el = await fixtureInPromotionsContext();
+            const openStub = sandbox.stub(window, 'open');
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const expandButton = row.querySelector('.expand-button');
+            expandButton.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
+            expect(openStub.called).to.be.false;
+        });
+
+        it('does not wrap the nested variation-details row in a link', async () => {
+            const el = await fixtureInPromotionsContext();
+            el.expandedVariationsPaths = new Set([promoPath]);
+            await el.updateComplete;
+            const detailsRow = el.shadowRoot.querySelector('.variation-details-row');
+            expect(detailsRow).to.exist;
+            expect(detailsRow.closest('a')).to.not.exist;
+        });
+
+        it('does not navigate when the copy-offer-id action button is clicked', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const copyButton = row.querySelector('sp-action-button[aria-label="Copy Offer ID to clipboard"]');
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            copyButton.dispatchEvent(clickEvent);
+            expect(row.closest('a')).to.not.exist;
+        });
+
+        it('expands the row without cancelling the expand button click', async () => {
+            const el = await fixtureInPromotionsContext();
+            const row = el.shadowRoot.querySelector(`sp-table-row[value="${promoPath}"]`);
+            const expandButton = row.querySelector('.expand-button');
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            expandButton.dispatchEvent(clickEvent);
+            expect(clickEvent.defaultPrevented).to.be.false;
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.variation-details-row')).to.exist;
+        });
+    });
+
+    describe('renderPreview', () => {
+        it('falls back to an empty preview cell when renderPreviewCell is not provided', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Preview']}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('sp-table-cell.preview-cell')).to.exist;
+        });
+
+        it('delegates to renderPreviewCell when provided', async () => {
+            const topLevelCard = createMockTopLevelCard();
+            const renderPreviewCell = sandbox
+                .stub()
+                .callsFake((item) => html`<sp-table-cell class="mock-preview-cell">${item.path}</sp-table-cell>`);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .cellsOverride=${['Preview']}
+                    .renderPreviewCell=${renderPreviewCell}
+                ></mas-collapsible-table-row>`,
+            );
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('.mock-preview-cell')).to.exist;
+            expect(renderPreviewCell.calledWith(topLevelCard)).to.be.true;
+        });
+    });
+
+    describe('promoVariations initialization from promoVariationsFetchedByParent', () => {
+        it('reseeds promoVariations from the parent-fetched map when topLevelCard.id changes', async () => {
+            const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+            const promoVar = { path: `${parentPath}/promo`, title: 'Promo' };
+            const fetchedMap = new Map([[parentPath, [promoVar]]]);
+            const topLevelCard = {
+                ...createMockTopLevelCard({ path: '/content/dam/mas/acom/en_US/cards/other' }),
+                id: 'card-other',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .promoVariationsFetchedByParent=${fetchedMap}
+                ></mas-collapsible-table-row>`,
+            );
+            el.topLevelCard = { ...createMockTopLevelCard({ path: parentPath }), id: 'card-parent' };
+            await el.updateComplete;
+            expect(el.promoVariations).to.deep.equal([promoVar]);
+        });
+
+        it('resets promoVariations to an empty array when the map has no entry for the new topLevelCard.id', async () => {
+            const topLevelCard = {
+                ...createMockTopLevelCard({ path: '/content/dam/mas/acom/en_US/cards/other' }),
+                id: 'card-other',
+            };
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .promoVariationsFetchedByParent=${new Map()}
+                ></mas-collapsible-table-row>`,
+            );
+            el.topLevelCard = {
+                ...createMockTopLevelCard({ path: '/content/dam/mas/acom/en_US/cards/unmapped' }),
+                id: 'card-unmapped',
+            };
+            await el.updateComplete;
+            expect(el.promoVariations).to.deep.equal([]);
+        });
+    });
+
     describe('#loadPromoVariations filter behavior', () => {
         const localeRefPath = '/content/dam/mas/acom/fr_FR/cards/test';
         const promoRefPath = '/content/dam/mas/acom/en_US/promotions/black-friday/promo-card';
@@ -1525,7 +2335,7 @@ describe('MasCollapsibleTableRow', () => {
 
         const triggerPromoLoad = async (el) => {
             el.selectedTabKey = 'promotion';
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 50));
             await el.updateComplete;
@@ -1614,14 +2424,14 @@ describe('MasCollapsibleTableRow', () => {
             getById.onSecondCall().resolves({ ...topLevelCard, references: [] });
             el.repository = { aem: { sites: { cf: { fragments: { getById } } } } };
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
             expect(getById.calledOnce).to.be.true;
 
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 20));
             expect(getById.calledTwice).to.be.true;
@@ -1641,7 +2451,7 @@ describe('MasCollapsibleTableRow', () => {
             el.addEventListener('show-toast', toastListener);
 
             el.selectedTabKey = 'promotion';
-            el.shadowRoot.querySelector('.expand-button').click();
+            el.shadowRoot.querySelector('.ghost-button').click();
             await el.updateComplete;
             await new Promise((resolve) => setTimeout(resolve, 50));
             await el.updateComplete;
@@ -2094,6 +2904,20 @@ describe('MasCollapsibleTableRow', () => {
             );
             expect(el.getAttribute('value')).to.equal('');
         });
+
+        it('keeps promo variations from a pre-populated parent map on first render', async () => {
+            const topLevelCard = { ...createMockTopLevelCard(), id: 'card-1' };
+            const variations = [{ path: '/content/dam/mas/acom/en_US/promo/test', id: 'promo-1' }];
+            const fetchedByParent = new Map([[topLevelCard.path, variations]]);
+            const el = await fixture(
+                html`<mas-collapsible-table-row
+                    .topLevelCard=${topLevelCard}
+                    .viewOnly=${true}
+                    .promoVariationsFetchedByParent=${fetchedByParent}
+                ></mas-collapsible-table-row>`,
+            );
+            expect(el.promoVariations).to.equal(variations);
+        });
     });
 });
 
@@ -2136,5 +2960,216 @@ describe('enrichPromoVariations', () => {
         expect(result).to.have.lengthOf(1);
         expect(result[0].path).to.equal(variations[0].path);
         expect(result[0].studioPath).to.equal('Custom Label');
+    });
+});
+
+describe('MasCollapsibleTableRow cell overrides', () => {
+    const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
+    const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card';
+
+    const createCard = (fields = []) => ({
+        path: cardPath,
+        title: 'Test Card',
+        studioPath: 'merch-card: ACOM / Test Card',
+        status: FRAGMENT_STATUS.PUBLISHED,
+        model: { path: CARD_MODEL_PATH },
+        tags: [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }],
+        fields,
+        offerData: { offerId: 'offer-123' },
+    });
+
+    beforeEach(() => {
+        setItemsSelectionStore(Store.translationProjects);
+        Store.translationProjects.selectedCards.set([]);
+    });
+
+    afterEach(() => {
+        fixtureCleanup();
+        setItemsSelectionStore(null);
+    });
+
+    it('keeps the default cells when no override is provided', async () => {
+        const el = await fixture(
+            html`<mas-collapsible-table-row .topLevelCard=${createCard()} .viewOnly=${true}></mas-collapsible-table-row>`,
+        );
+        expect(el.cells).to.deep.equal(['OfferName', 'Title', 'OfferId', 'StudioPath', 'ItemType', 'Status']);
+    });
+
+    it('uses cellsOverride when provided', async () => {
+        const cellsOverride = ['OfferName', 'Title'];
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .cellsOverride=${cellsOverride}
+            ></mas-collapsible-table-row>`,
+        );
+        expect(el.cells).to.deep.equal(cellsOverride);
+    });
+
+    it('renders the actions cell once when Actions is listed in the cells', async () => {
+        const renderActionsCell = (item) => html`<sp-table-cell class="mock-actions-cell">${item.path}</sp-table-cell>`;
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .cellsOverride=${['OfferName', 'Actions', 'Title']}
+                .renderActionsCell=${renderActionsCell}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelectorAll('.mock-actions-cell')).to.have.lengthOf(1);
+    });
+
+    it('renders the osi field, not the offer id, in the Osi cell', async () => {
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard([{ name: 'osi', values: ['osi-abc'] }])}
+                .viewOnly=${true}
+                .cellsOverride=${['Osi', 'OfferId']}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        const osiCell = el.shadowRoot.querySelector('.osi');
+        const offerIdCell = el.shadowRoot.querySelector('.offer-id');
+        expect(osiCell.textContent).to.include('osi-abc');
+        expect(osiCell.textContent).to.not.include('offer-123');
+        expect(offerIdCell.textContent).to.include('offer-123');
+    });
+
+    it('renders geo tag labels in the Country cell', async () => {
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard([{ name: 'pznTags', values: ['mas:locale/BE_en', 'mas:locale/CH_fr'] }])}
+                .viewOnly=${true}
+                .cellsOverride=${['Country']}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.country').textContent.trim()).to.equal('BE_en, CH_fr');
+    });
+
+    it('renders the baseline variation notice when the Country cell has no geo tags', async () => {
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard([{ name: 'pznTags', values: [] }])}
+                .viewOnly=${true}
+                .cellsOverride=${['Country']}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.country').textContent).to.include(BASELINE_VARIATION.TEXT);
+    });
+
+    it('dispatches view-related-pages when View pages is clicked', async () => {
+        const card = createCard();
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${card}
+                .viewOnly=${true}
+                .cellsOverride=${['RelatedPages']}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        const events = [];
+        el.addEventListener('view-related-pages', (e) => events.push(e.detail.item));
+        el.shadowRoot.querySelector('.related-pages sp-action-button').click();
+        expect(events).to.deep.equal([card]);
+    });
+
+    it('omits the expand chevron on promo variation rows when hideVariationExpand is set', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${['Title']}
+                .hideVariationExpand=${true}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"]`);
+        expect(row).to.exist;
+        expect(row.querySelector('.expand-button')).to.be.null;
+    });
+
+    it('renders the nested promotion variations header when variationColumns is set', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${Array(10).fill('Title')}
+                .variationColumns=${Array.from({ length: 10 }, (_, index) => ({
+                    label: `Column ${index + 1}`,
+                    key: `column-${index + 1}`,
+                }))}
+            ></mas-collapsible-table-row>`,
+        );
+        el.style.setProperty('--spectrum-gray-300', '#d5d5d5');
+        await el.updateComplete;
+        const headers = [...el.shadowRoot.querySelectorAll('.promo-variations-table sp-table-head-cell')];
+        expect(headers).to.have.length(10);
+        expect(getComputedStyle(headers.at(-1)).borderBottomWidth).to.equal('1px');
+        const tableHead = el.shadowRoot.querySelector('.promo-variations-table sp-table-head');
+        expect(tableHead.clientWidth).to.equal(tableHead.scrollWidth);
+    });
+
+    it('wraps the promotion variations table in a horizontal scroll container', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${['Title']}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.scrollable-table-container > .promo-variations-table')).to.exist;
+    });
+
+    it('allows promotion variation columns to overflow horizontally', async () => {
+        const variation = { path: variationPath, title: 'Promo variation', fields: [], tags: [] };
+        const el = await fixture(
+            html`<mas-collapsible-table-row
+                .topLevelCard=${createCard()}
+                .viewOnly=${true}
+                .isTopLevelExpanded=${true}
+                .viewOnlyTabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .tabs=${[VARIATION_TAB_NAME.PROMOTION]}
+                .selectableTabs=${[]}
+                .promoVariationsFetchedByParent=${new Map([[cardPath, [variation]]])}
+                .variationCells=${[
+                    'OfferName',
+                    'Actions',
+                    'Title',
+                    'StudioPath',
+                    'RelatedPages',
+                    'Country',
+                    'OfferId',
+                    'Osi',
+                    'AppliesTo',
+                    'Status',
+                ]}
+            ></mas-collapsible-table-row>`,
+        );
+        await el.updateComplete;
+        const container = el.shadowRoot.querySelector('.scrollable-table-container');
+        expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
     });
 });

@@ -7,6 +7,7 @@ node ./docs/src/build-docs.mjs upt-link.md ./docs/upt-link.html
 node ./docs/src/build-docs.mjs mas.md ./docs/mas.html
 node ./docs/src/build-docs.mjs step-by-step.md ./docs/step-by-step.html
 node ./docs/src/build-docs.mjs mas.js.md ./docs/mas.js.html
+node ./docs/src/build-docs.mjs agent.md ./docs/agent.html
 node ./docs/src/build-docs.mjs feature-flags.md ./docs/feature-flags.html
 node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
 node ./docs/src/build-docs.mjs masks.md ./docs/masks.html
@@ -21,6 +22,7 @@ node ./docs/src/build-docs.mjs brand-concierge.md ./docs/brand-concierge.html
 node ./docs/src/build-docs.mjs segment.md ./docs/segment.html
 node ./docs/src/build-docs.mjs specialoffer.md ./docs/specialoffer.html
 node ./docs/src/build-docs.mjs image.md ./docs/image.html
+node ./docs/src/build-docs.mjs promo-use-cases.md ./docs/promo-use-cases.html
 node ./docs/src/build-docs.mjs commerce.md ./docs/commerce.html
 node ./docs/src/build-docs.mjs ccd.md ./docs/ccd.html
 node ./docs/src/build-docs.mjs json-ld.md ./docs/json-ld.html

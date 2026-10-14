@@ -26,6 +26,7 @@ const CARD_SOURCE_SLOTS = [
     'price',
     'description',
     'detail',
+    'callout-content',
     'cta',
 ];
 
@@ -1109,6 +1110,9 @@ export class MasCompareChart extends LitElement {
             ${visibleSlots.has('detail')
                 ? this.#renderHeaderRow(cards, 'detail', row++, visibleSlots)
                 : nothing}
+            ${visibleSlots.has('callout-content')
+                ? this.#renderHeaderRow(cards, 'callout', row++, visibleSlots)
+                : nothing}
             ${visibleSlots.has('cta')
                 ? this.#renderHeaderRow(cards, 'cta', row++, visibleSlots)
                 : nothing}
@@ -1182,6 +1186,9 @@ export class MasCompareChart extends LitElement {
                 : nothing}
             ${segment === 'detail'
                 ? this.#renderCardSlot(card, 'detail', visibleSlots)
+                : nothing}
+            ${segment === 'callout'
+                ? this.#renderCardSlot(card, 'callout-content', visibleSlots)
                 : nothing}
             ${segment === 'cta'
                 ? this.#renderCardSlot(card, 'cta', visibleSlots)

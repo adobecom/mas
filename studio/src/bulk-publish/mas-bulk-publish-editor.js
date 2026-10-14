@@ -10,7 +10,6 @@ import {
     BULK_PUBLISH_PROJECT_MODEL_ID,
     PAGE_NAMES,
     STATUS_PUBLISHED,
-    STAGED,
 } from '../constants.js';
 import { Fragment } from '../aem/fragment.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -253,8 +252,7 @@ class MasBulkPublishEditor extends LitElement {
                 if (item.path === ref.path) {
                     const fragment = new Fragment(ref);
                     if (fragment.isStaged) {
-                        item.status = 'error';
-                        item.reason = STAGED.NAME;
+                        item.staged = true;
                     }
                 }
             });
@@ -482,7 +480,7 @@ class MasBulkPublishEditor extends LitElement {
     }
 
     handlePublish() {
-        const staged = this.items.some((item) => item.status !== 'valid');
+        const staged = this.items.some((item) => item.staged);
         if (staged) {
             this.stagedOpen = true;
         } else {
@@ -649,9 +647,7 @@ class MasBulkPublishEditor extends LitElement {
             this.ensureSurface();
             const surface = Store.search.get()?.path;
             try {
-                const validPaths = this.items
-                    .filter((i) => (i.status === 'valid' || i.reason === STAGED.NAME) && i.path)
-                    .map((i) => i.path);
+                const validPaths = this.items.filter((i) => i.status === 'valid' && i.path).map((i) => i.path);
                 if (this.isNewProject) {
                     const title = this.title || 'Untitled bulk publish project';
                     const payload = buildProjectPayload({
@@ -825,11 +821,11 @@ class MasBulkPublishEditor extends LitElement {
                                 authorPath: authorPath || null,
                                 locale: fragment.locale || null,
                                 href: href || null,
-                                status: fragment.isStaged ? 'error' : 'valid',
+                                status: 'valid',
                                 alreadyPublished: fragment.status === STATUS_PUBLISHED,
                             };
                             if (fragment.isStaged) {
-                                results[i].reason = STAGED.NAME;
+                                results[i].staged = true;
                             }
                         }
                     } catch (err) {

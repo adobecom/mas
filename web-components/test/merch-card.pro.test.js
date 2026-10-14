@@ -1,7 +1,9 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { setViewport } from '@web/test-runner-commands';
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
+import '../src/merch-card-collection.js';
 import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
@@ -35,6 +37,188 @@ async function renderCard(innerHTML) {
     await card.updateComplete;
     return card;
 }
+
+describe('pro collection responsive widths', () => {
+    const fixtures = [];
+    const wrapperStyle = document.createElement('style');
+    const initialViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+    };
+
+    before(() => {
+        wrapperStyle.textContent =
+            '.pro-layout-fixture { display: grid; grid-template-columns: min-content; }';
+        document.head.appendChild(wrapperStyle);
+    });
+
+    async function renderCollection(
+        count,
+        columns = count === 3 ? 'three' : 'four',
+        variant = 'pro',
+        sizes = [],
+    ) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'collection-container plans pro-layout-fixture';
+        wrapper.style.cssText =
+            'width: calc(100vw - 48px); margin-inline: auto;';
+        const collection = document.createElement('merch-card-collection');
+        collection.className = `plans ${columns}-merch-${count === 1 ? 'card' : 'cards'}`;
+        collection.setAttribute('filtered', 'all');
+        const cards = [];
+        for (let index = 0; index < count; index++) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            if (sizes[index]) card.setAttribute('size', sizes[index]);
+            card.filters = { all: { order: index, size: sizes[index] } };
+            card.innerHTML =
+                '<h3 slot="heading-xs">Plan</h3><div slot="body-xs">Plan description</div>';
+            cards.push(card);
+            collection.appendChild(card);
+        }
+        wrapper.appendChild(collection);
+        document.body.appendChild(wrapper);
+        fixtures.push(wrapper);
+        await collection.updateComplete;
+        await Promise.all(cards.map((card) => card.updateComplete));
+        return { wrapper, collection, cards };
+    }
+
+    afterEach(() => {
+        for (const fixture of fixtures) fixture.remove();
+        fixtures.length = 0;
+    });
+
+    after(async () => {
+        wrapperStyle.remove();
+        await setViewport(initialViewport);
+    });
+
+    for (const width of [
+        375, 767, 768, 1024, 1279, 1280, 1281, 1439, 1440, 1441, 1920, 2560,
+    ]) {
+        it(`fills the available tracks for 3+ authored cards at ${width}px`, async () => {
+            await setViewport({ width, height: 1000 });
+            for (const count of [3, 4, 5]) {
+                const { wrapper, collection, cards } =
+                    await renderCollection(count);
+                const availableWidth = wrapper.getBoundingClientRect().width;
+                const desktopCap = count === 3 ? 1192 : 1600;
+                const cap =
+                    width < 768
+                        ? availableWidth
+                        : width <= 1280
+                          ? 1280
+                          : width < 1440
+                            ? desktopCap
+                            : 1920;
+                const expectedWidth = Math.min(availableWidth, cap);
+                const columnCount =
+                    width < 768 ? 1 : width < 1280 ? 2 : Math.min(count, 4);
+                const expectedCardWidth =
+                    (expectedWidth - (columnCount - 1) * 8) / columnCount;
+                const rect = collection.getBoundingClientRect();
+                if (width >= 768 && width <= 1280) {
+                    expect(getComputedStyle(collection).maxWidth).to.equal(
+                        '1280px',
+                    );
+                }
+                expect(
+                    rect.width,
+                    `${count} cards: collection width`,
+                ).to.be.closeTo(expectedWidth, 1);
+                expect(
+                    rect.left - wrapper.getBoundingClientRect().left,
+                    `${count} cards: centered collection`,
+                ).to.be.closeTo((availableWidth - expectedWidth) / 2, 1);
+                for (const card of cards) {
+                    expect(
+                        card.getBoundingClientRect().width,
+                        `${count} cards: track width`,
+                    ).to.be.closeTo(expectedCardWidth, 1);
+                }
+                expect(cards[0].getBoundingClientRect().left).to.be.closeTo(
+                    rect.left,
+                    1,
+                );
+                expect(
+                    cards[columnCount - 1].getBoundingClientRect().right,
+                ).to.be.closeTo(rect.right, 1);
+                if (count > columnCount) {
+                    expect(
+                        cards[columnCount].getBoundingClientRect().top,
+                    ).to.be.greaterThan(cards[0].getBoundingClientRect().top);
+                    expect(
+                        cards[columnCount].getBoundingClientRect().left,
+                    ).to.be.closeTo(rect.left, 1);
+                }
+            }
+        });
+    }
+
+    for (const width of [1024, 2560]) {
+        it(`preserves standalone, one-card, two-card and EDU caps at ${width}px`, async () => {
+            await setViewport({ width, height: 1000 });
+            const single = await renderCollection(1, 'one');
+            expect(single.cards[0].getBoundingClientRect().width).to.be.closeTo(
+                394,
+                1,
+            );
+            for (const columns of ['two', 'four']) {
+                const { collection, cards } = await renderCollection(
+                    2,
+                    columns,
+                    'pro',
+                    ['wide', 'wide'],
+                );
+                const cardCap = width < 1280 ? 394 : 596;
+                expect(getComputedStyle(collection).maxWidth).to.equal(
+                    width < 1280 ? '720px' : '1204px',
+                );
+                for (const card of cards) {
+                    expect(getComputedStyle(card).maxWidth).to.equal(
+                        `${cardCap}px`,
+                    );
+                }
+            }
+            const standalone = await renderCard(
+                '<h3 slot="heading-xs">Standalone</h3>',
+            );
+            fixtures.push(standalone);
+            expect(standalone.getBoundingClientRect().width).to.be.closeTo(
+                394,
+                1,
+            );
+            const { cards } = await renderCollection(3, 'three', 'pro', [
+                'edu',
+            ]);
+            expect(getComputedStyle(cards[0]).maxWidth).to.equal('1068px');
+        });
+    }
+
+    it('does not apply pro width overrides to other plans variants', async () => {
+        await setViewport({ width: 2560, height: 1000 });
+        const { collection } = await renderCollection(3, 'three', 'plans');
+        expect(getComputedStyle(collection).maxWidth).to.not.equal('1920px');
+    });
+
+    it('keeps the authored-count layout when filtering hides cards', async () => {
+        await setViewport({ width: 2560, height: 1000 });
+        const { collection, cards } = await renderCollection(4);
+        for (const card of cards.slice(0, 2)) {
+            card.filters.selected = { order: 0 };
+        }
+        collection.filter = 'selected';
+        await collection.updateComplete;
+        expect(collection.resultCount).to.equal(2);
+        expect(getComputedStyle(collection).maxWidth).to.equal('1920px');
+        expect(getComputedStyle(cards[2]).display).to.equal('none');
+        expect(getComputedStyle(cards[3]).display).to.equal('none');
+        for (const card of cards.slice(0, 2)) {
+            expect(card.getBoundingClientRect().width).to.be.closeTo(474, 1);
+        }
+    });
+});
 
 describe('pro add-on slot', () => {
     let card;
@@ -1541,6 +1725,9 @@ describe('pro resize handling', () => {
                 getBoundingClientRect: () => ({ width: 300 }),
                 // no strikethrough authored, so no reserve is published
                 querySelector: () => null,
+                querySelectorAll: () => [],
+                removeAttribute: () => {},
+                toggleAttribute: () => {},
                 shadowRoot: { querySelector: () => topCard },
                 style: {
                     setProperty: (k, v) => (styles[k] = v),
@@ -1611,6 +1798,7 @@ describe('pro resize handling', () => {
             variant: 'pro',
             getBoundingClientRect: () => ({ width: 300 }),
             querySelector: () => null,
+            removeAttribute: () => {},
             shadowRoot: { querySelector: () => null },
             style: {
                 setProperty: (k, v) => (styles[k] = v),
@@ -1667,6 +1855,9 @@ describe('pro resize handling', () => {
             getBoundingClientRect: () => ({ width: 300 }),
             querySelector: (selector) =>
                 selector.includes('strikethrough') ? strike : null,
+            querySelectorAll: () => [],
+            removeAttribute: () => {},
+            toggleAttribute: () => {},
             shadowRoot: {
                 querySelector: (selector) => {
                     if (selector === '.top-card') return topCard;
@@ -1965,5 +2156,156 @@ describe('pro quantity selector repricing', () => {
         layout.updatePriceQuantity({});
         layout.updatePriceQuantity({ detail: {} });
         expect(price.dataset.quantity).to.be.undefined;
+    });
+});
+
+describe('pro CTAs', () => {
+    // Background test pages never fire animation frames, which syncHeights awaits.
+    let raf;
+    beforeEach(() => {
+        raf = sinon
+            .stub(window, 'requestAnimationFrame')
+            .callsFake((cb) => setTimeout(cb, 0));
+    });
+    afterEach(() => raf.restore());
+
+    const footer = (...labels) =>
+        `<div slot="footer">${labels
+            .map((l, i) => `<a href="#"${i ? ' class="outline"' : ''}>${l}</a>`)
+            .join('')}</div>`;
+
+    const renderRow = async (footers, column) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = `display:grid;grid-template-columns:repeat(${footers.length},${column});gap:8px;`;
+        document.body.appendChild(wrap);
+        const cards = [];
+        for (const html of footers) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', 'pro');
+            card.innerHTML = html;
+            wrap.appendChild(card);
+            cards.push(card);
+        }
+        await Promise.all(cards.map((c) => c.updateComplete));
+        return { wrap, cards };
+    };
+
+    const rects = (card) =>
+        [...card.querySelectorAll('[slot="footer"] a')].map((el) =>
+            el.getBoundingClientRect(),
+        );
+
+    it('share a row while both labels fit on one line', async () => {
+        const { wrap, cards } = await renderRow(
+            [footer('Free trial', 'Buy now')],
+            '340px',
+        );
+        try {
+            const [a, b] = rects(cards[0]);
+            expect(b.top).to.equal(a.top);
+            expect(a.height).to.equal(40);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('stack, full width, when a label outgrows its half', async () => {
+        const { wrap, cards } = await renderRow(
+            [footer('Starta gratis provperiod nu', 'Köp nu')],
+            '340px',
+        );
+        try {
+            const [a, b] = rects(cards[0]);
+            expect(b.top).to.be.at.least(a.bottom);
+            expect(b.width).to.equal(a.width);
+            expect(a.height).to.equal(40);
+        } finally {
+            wrap.remove();
+        }
+    });
+
+    it('ignore a hidden CTA when checking for wrapping', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                '<div slot="footer"><a href="#" style="display:none">Trial</a><a href="#">Buy now</a></div>',
+                footer('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('do not stack the row for a lone CTA with a long label', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                '<div slot="footer"><a href="#">Starta gratis provperiod nu och köp senare</a></div>',
+                footer('Buy', 'Try'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('stack every card in a row when one card must', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                footer('Buy', 'Try'),
+                footer('Starta gratis provperiod nu', 'Köp nu'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach((card) => {
+                expect(card.hasAttribute('stacked')).to.be.true;
+                const [a, b] = rects(card);
+                expect(b.top).to.be.at.least(a.bottom);
+            });
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
+    });
+
+    it('drop the row stacking when the layout narrows', async () => {
+        const { wrap, cards } = await renderRow(
+            [
+                footer('Buy', 'Try'),
+                footer('Starta gratis provperiod nu', 'Köp nu'),
+            ],
+            '340px',
+        );
+        const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
+        try {
+            await cards[0].variantLayout.syncHeights();
+            expect(cards[0].hasAttribute('stacked')).to.be.true;
+            mm.returns({ matches: false });
+            await cards[0].variantLayout.syncHeights();
+            cards.forEach(
+                (card) => expect(card.hasAttribute('stacked')).to.be.false,
+            );
+        } finally {
+            mm.restore();
+            wrap.remove();
+        }
     });
 });

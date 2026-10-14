@@ -524,7 +524,7 @@ runTests(async () => {
                 expect(aemFragment.fetchInfo).to.include({
                     'aem-fragment:status': 404,
                     'aem-fragment:url':
-                        'http://localhost:2023/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                        'https://www.adobe.com/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                     'aem-fragment:serverTiming':
                         'cdn-cache|desc=HIT|edge|dur=1|sis|desc=0|ak_p|desc="1748272422155_390603879_647296830_1088_9412_44_0_219"|dur=1',
                 });
@@ -543,7 +543,7 @@ runTests(async () => {
                 addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                 );
             });
             it('fetches fragment from freyja on publish with overriden country', async () => {
@@ -557,7 +557,7 @@ runTests(async () => {
                 const aemFragment = addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
             });
 
@@ -583,7 +583,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
                     );
                 } finally {
                     publishService.remove();
@@ -612,7 +612,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
                     );
                 } finally {
                     publishService.remove();
@@ -1070,26 +1070,10 @@ runTests(async () => {
             });
 
             it('resolves checkReady after aem:load', async () => {
-                const masField = document.createElement('mas-field');
-                masField.setAttribute('field', 'promoText');
-                const fragment = document.createElement('aem-fragment');
-                masField.append(fragment);
+                const [masField] = getTemplateContent('mas-field-render-field');
                 spTheme.append(masField);
 
-                const readyPromise = masField.checkReady();
-                fragment.dispatchEvent(
-                    new CustomEvent(EVENT_AEM_LOAD, {
-                        bubbles: true,
-                        composed: true,
-                        detail: {
-                            fields: {
-                                promoText: '<p>Ready</p>',
-                            },
-                        },
-                    }),
-                );
-
-                await expect(readyPromise).to.eventually.equal(true);
+                await expect(masField.checkReady()).to.eventually.equal(true);
             });
 
             it('resolves checkReady immediately when already loaded', async () => {

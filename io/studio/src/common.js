@@ -347,7 +347,9 @@ async function fetchOdin(
         }
     }
 
-    throw new Error(`${method} ${URI} failed with status ${lastErrorStatus}: ${lastErrorText}`);
+    const error = new Error(`${method} ${URI} failed with status ${lastErrorStatus}: ${lastErrorText}`);
+    error.status = lastErrorStatus;
+    throw error;
 }
 
 /**
@@ -462,6 +464,10 @@ async function deleteFragmentById(odinEndpoint, fragmentId, authToken, etag) {
 }
 
 function parseOdinHttpStatus(error) {
+    // fetchOdin attaches `status` directly to the errors it throws, so prefer
+    // that over parsing the message text, which is only kept as a fallback
+    // for errors thrown elsewhere that don't set this property.
+    if (typeof error?.status === 'number') return error.status;
     const text = String(error?.message || error || '');
     const statusMatch = text.match(/status (\d{3})/);
     if (statusMatch) return Number(statusMatch[1]);

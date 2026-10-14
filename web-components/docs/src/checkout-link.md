@@ -31,15 +31,23 @@ To route checkout links and buttons through the host's initialized `window.aupsd
 <meta name="aup-select" content="on" />
 ```
 
+Two values enable routing:
+
+- `on` routes CTAs through the AUP SDK for the true Select experience.
+- `ucv3_in_iframe` routes CTAs through the AUP SDK and keeps the current 3-in-1 modals. This value is temporary.
+- When the value is absent or anything else, AUP routing is disabled.
+
+M@S treats both values the same way; the difference is host-side. Milo adds `tmp_aupsdk_ucv3_in_iframe` to `miniAppContext.features` only for `ucv3_in_iframe`. The `ucv3_in_iframe` value will be removed once hosts switch fully to the true Select experience.
+
 The commerce service resolves `service.settings.aupSelect` during initialization from `aup-select` metadata, falling back to its `aup-select` attribute when metadata is absent:
 
 ```html
 <mas-commerce-service aup-select="on"></mas-commerce-service>
 ```
 
-When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
+When configuring the service through Milo, use `commerce['aup-select'] = 'on'` (or `'ucv3_in_iframe'`). Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
 
-Only exact `on` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
+Only exact, case-sensitive `on` or `ucv3_in_iframe` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
 
 AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Upgrade and perpetual offers, downloads, and links targeting another window retain their existing URLs.
 
@@ -51,7 +59,7 @@ Upgrade CTAs retain their existing checkout action. Perpetual offers also retain
 
 The main resolved offer supplies product arrangement, optional product code, and segments. Checkout options supply country, language, and segment overrides. Optional `svar`, `customerIntent`, and `sid` go in the recommendation context. All resolved offer IDs are passed in the checkout workflow's `items` format (`offerId|quantity,offerId|quantity`), preserving promotional offers and selected addons. Per-item quantities are used when supplied; otherwise the main quantity applies to each item. An explicit `q` overrides those quantities.
 
-Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `af`, and the workflow's supported tracking, subscription, authentication, and display parameters. M@S maps `checkoutWorkflowStep` to `step`, `promotionCode` to `apc`, `addonProductArrangementCode` to `ao`, and dotted checkout names such as `so.su` to `soSu`. Explicit workflow parameter names take precedence over these aliases. The return URL defaults to the current page. Internal Select variants and SDK rendering-mode flags are not forwarded.
+Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `af`, and the workflow's supported tracking, subscription, authentication, and display parameters. M@S maps `checkoutWorkflowStep` to `step`, `promotionCode` to `apc`, `addonProductArrangementCode` to `ao`, and dotted checkout names such as `so.su` to `soSu`. On the `segmentation` step, `ao` defaults to the product arrangement of the first cart offer that differs from the main offer (for example a checked Stock add-on), matching the checkout URL; an explicit `addonProductArrangementCode` takes precedence. Explicit workflow parameter names take precedence over these aliases. The return URL defaults to the current page. Internal Select variants and SDK rendering-mode flags are not forwarded.
 
 The [AUP integration contract](https://wiki.corp.adobe.com/spaces/BPS/pages/3985062578/Client+team+integration+details) merges these runtime params with the recommendation, with recommendation values taking precedence. Availability and behavior depend on the host's SDK release and campaign configuration; forwarding a parameter does not guarantee a particular Select experience.
 

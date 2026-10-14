@@ -15,6 +15,7 @@ import {
     getCreateProjectErrorMessage,
     describeVariationsToDelete,
     extractImageUrl,
+    getFragmentEditorUrl,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -43,6 +44,30 @@ function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch
         getTagTitle: () => null,
     };
 }
+
+describe('getFragmentEditorUrl', () => {
+    let originalHash;
+
+    beforeEach(() => {
+        originalHash = window.location.hash;
+        window.location.hash = '';
+    });
+
+    afterEach(() => {
+        window.location.hash = originalHash;
+    });
+
+    it('returns the fragment editor URL without a path', () => {
+        expect(getFragmentEditorUrl('test-id')).to.equal('#page=fragment-editor&fragmentId=test-id');
+    });
+
+    it('encodes fragment ids and preserves special characters in the current path', () => {
+        window.location.hash = '#page=content&path=acom%2Ffolder%20%26%20name';
+        expect(getFragmentEditorUrl('id&other=value')).to.equal(
+            '#page=fragment-editor&fragmentId=id%26other%3Dvalue&path=acom%2Ffolder%20%26%20name',
+        );
+    });
+});
 
 describe('generateLinkToUse', () => {
     it('appends fragment title to richText link text for cards', () => {

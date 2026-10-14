@@ -1,15 +1,30 @@
 import { getService } from './utils.js';
 import { MasElement } from './mas-element.js';
 
-function getPromoTermsUrl(env) {
+/**
+ * Builds the Universal Promo Terms page URL for an offer. Shared by UptLink.render and the
+ * server-side agent action, so both point "See terms" at the same page.
+ * @param {{ env: string, language: string, country: string, offerId: string, promotionCode?: string }} options
+ * @returns {string}
+ */
+export function getPromoTermsUrl({
+    env,
+    language,
+    country,
+    offerId,
+    promotionCode,
+}) {
     const host = env === 'PRODUCTION' ? 'www.adobe.com' : 'www.stage.adobe.com';
-    return `https://${host}/offers/promo-terms.html`;
+    let params = `locale=${language}_${country}&country=${country}&offer_id=${offerId}`;
+    if (promotionCode)
+        params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
+    return `https://${host}/offers/promo-terms.html?${params}`;
 }
 
 /**
  * Universal Promo Terms Link
  */
-export class UptLink extends HTMLAnchorElement {
+export class UptLink extends (globalThis.HTMLAnchorElement ?? class {}) {
     static is = 'upt-link';
     static tag = 'a';
     static observedAttributes = [
@@ -87,11 +102,13 @@ export class UptLink extends HTMLAnchorElement {
         try {
             const [[offer]] = await Promise.all(promises);
             const { country, language, env } = options;
-            let params = `locale=${language}_${country}&country=${country}&offer_id=${offer.offerId}`;
-            const promotionCode = this.getAttribute('data-promotion-code');
-            if (promotionCode)
-                params += `&promotion_code=${encodeURIComponent(promotionCode)}`;
-            this.href = `${getPromoTermsUrl(env)}?${params}`;
+            this.href = getPromoTermsUrl({
+                env,
+                language,
+                country,
+                offerId: offer.offerId,
+                promotionCode: this.getAttribute('data-promotion-code'),
+            });
             this.masElement.toggleResolved(version, offer, options);
         } catch (error) {
             const masError = new Error(
@@ -127,8 +144,8 @@ export class UptLink extends HTMLAnchorElement {
 }
 
 // Define custom DOM element
-if (!window.customElements.get(UptLink.is)) {
-    window.customElements.define(UptLink.is, UptLink, {
+if (globalThis.customElements && !globalThis.customElements.get(UptLink.is)) {
+    globalThis.customElements.define(UptLink.is, UptLink, {
         extends: UptLink.tag,
     });
 }

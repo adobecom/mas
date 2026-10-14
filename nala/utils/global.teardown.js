@@ -139,7 +139,6 @@ async function cleanupRun() {
         clearRunId();
         return;
     }
-    console.info('[NALA teardown] Starting authenticated cleanup browser.');
     const browser = await chromium.launch({ args: ['--disable-web-security', '--disable-gpu'] });
     const diagnostics = [];
     const expectedMissingUrls = new Set();
@@ -175,7 +174,6 @@ async function cleanupRun() {
         console.info(`[NALA teardown] Loading Studio at ${baseURL}; restoring saved authentication.`);
         await page.goto(`${baseURL}/studio.html#page=welcome&path=nala`, { waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('mas-repository')?.aem);
-        console.info('[NALA teardown] Authenticated repository ready.');
 
         const fragments = [...ledger.fragments];
         const paths = new Map();
@@ -242,7 +240,6 @@ async function cleanupRun() {
             );
         }
         completeFragmentLedger();
-        console.info('[NALA teardown] Run-owned fragment cleanup completed.');
         clearRunId();
     } catch (error) {
         global.nalaCleanupResults.totalFailed = global.nalaCleanupResults.totalFound - global.nalaCleanupResults.totalDeleted;
@@ -273,7 +270,6 @@ async function globalTeardown() {
     const stopCoordinator = ci
         ? await initializeRateLimitCoordinator(
               { workers: 1, projects: [{ outputDir: resolve('test-results') }] },
-              undefined,
               'odin-pressure-cleanup.json',
           )
         : null;

@@ -59,7 +59,6 @@ export async function installRunStaticHar(page) {
  * Raw browser headers/cookies never enter the archive used by test workers.
  */
 export async function recordRunStaticHar({ browser, name, urls, contextOptions, prepare = async () => {}, ready }) {
-    if (process.env.NALA_STATIC_CACHE_DISABLED === '1') return;
     const directory = process.env.NALA_STATIC_HAR_DIR;
     if (!directory) throw new Error('Static HAR recording requires an initialized Nala run');
     const rawPath = join(directory, `${name}.recording.har`);

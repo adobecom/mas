@@ -12,8 +12,6 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { isOdinOrigin, isPreviewOrigin } from './rate-limit-coordinator.js';
 import { resolveEdsMaxRps } from './request-budgets.js';
 
-export { resolveEdsMaxRps } from './request-budgets.js';
-
 const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
 let lastRequestAt = 0;
@@ -179,7 +177,7 @@ export function throttleEdsGap(maxRps, url, { signal, owner } = {}) {
     return next;
 }
 
-export function logEdsThrottleOnce(edsMaxRps) {
+function logEdsThrottleOnce(edsMaxRps) {
     if (edsMaxRps <= 0 || throttleLogged) return;
     throttleLogged = true;
     console.info(
@@ -195,7 +193,6 @@ export function logEdsThrottleOnce(edsMaxRps) {
 export async function installEdsThrottleOnPage(page, { replayHar = true, cache = true, nativeCooldowns = true } = {}) {
     if (pendingPageRoutes.has(page)) return;
     const edsMaxRps = resolveEdsMaxRps();
-    const cacheEnabled = cache && process.env.NALA_STATIC_CACHE_DISABLED !== '1';
     const state = {
         pending: new Set(),
         routes: new Set(),
@@ -299,7 +296,7 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
             }
         };
         if (await isStaticResource(route.request())) {
-            if (cacheEnabled) {
+            if (cache) {
                 await serveStaticResource(route, () => pace(true, false), options);
             } else {
                 const response = await fetchWithRateLimitRetry(route, () => pace(true, false), options);
@@ -401,7 +398,7 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         }
     };
     await page.route('**/*', trackRoute(handleRoute));
-    if (cacheEnabled && replayHar) {
+    if (cache && replayHar) {
         const harUrls = await installRunStaticHar(page);
         if (harUrls.size) {
             await page.route(

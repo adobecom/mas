@@ -4,37 +4,33 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { initializeRequestBudgets, resolveOdinMaxRps } from './request-budgets.js';
 
-export { resolveOdinMaxRps } from './request-budgets.js';
-
+const PREVIEW_ORIGIN = 'https://odinpreview.corp.adobe.com';
 const RECOVERY_GAP_MS = 100;
 const LEASE_MS = 90000;
 const RECOVERY_WINDOW_MS = 10000;
 const FOREGROUND_BURST = 3;
 
-export const previewOrigin = () => new URL(process.env.NALA_ODIN_PREVIEW_ORIGIN || 'https://odinpreview.corp.adobe.com').origin;
-export const isPreviewOrigin = (url) => new URL(url).origin === previewOrigin();
+export const isPreviewOrigin = (url) => new URL(url).origin === PREVIEW_ORIGIN;
 export const isOdinOrigin = (url) => {
     const { hostname } = new URL(url);
     return isPreviewOrigin(url) || hostname.endsWith('.adobeaemcloud.com') || hostname === 'odin.adobe.com';
 };
 
 /** Author and preview traffic share a budget; all origins honor observed cooldowns. */
-export class OriginRateLimits {
+class OriginRateLimits {
     origins = new Map();
 
-    constructor({
-        origin = previewOrigin(),
-        maxRps = resolveOdinMaxRps(),
-        maxInFlight = Number(process.env.NALA_ODIN_PREVIEW_MAX_IN_FLIGHT || 3),
-    } = {}) {
+    constructor() {
+        const maxRps = resolveOdinMaxRps();
+        const maxInFlight = Number(process.env.NALA_ODIN_PREVIEW_MAX_IN_FLIGHT || 3);
         if (!Number.isFinite(maxRps) || maxRps <= 0 || !Number.isInteger(maxInFlight) || maxInFlight <= 0) {
             throw new Error('Odin preview MAX_RPS must be positive and MAX_IN_FLIGHT must be a positive integer');
         }
-        this.preview = origin;
+        this.preview = PREVIEW_ORIGIN;
         this.startedAt = Date.now();
         this.minGap = 1000 / maxRps;
         this.maxInFlight = maxInFlight;
-        this.origins.set(origin, this.createState(this.minGap));
+        this.origins.set(this.preview, this.createState(this.minGap));
     }
 
     createState(gap) {
@@ -278,10 +274,10 @@ export async function coordinateRateLimit(action, origin, deadline, details = {}
 }
 
 /** A fresh loopback coordinator belongs to this invocation, never another run or PR. */
-export default async function initializeRateLimitCoordinator(config, options, pressureFile = 'odin-pressure.json') {
+export default async function initializeRateLimitCoordinator(config, pressureFile = 'odin-pressure.json') {
     const previousWorkers = process.env.NALA_RUN_WORKERS;
     initializeRequestBudgets(config);
-    const limits = new OriginRateLimits(options);
+    const limits = new OriginRateLimits();
     const token = randomUUID();
     const handle = async (request, response) => {
         if (

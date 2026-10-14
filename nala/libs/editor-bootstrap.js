@@ -75,7 +75,7 @@ export async function waitForEditorReady(page, fragmentId, { preview = true } = 
 /**
  * Only read operations against the authoring API belong in a seed bootstrap.
  */
-export function isBootstrapRead(request) {
+function isBootstrapRead(request) {
     const url = new URL(request.url());
     return (
         url.hostname.endsWith('.adobeaemcloud.com') &&
@@ -137,12 +137,6 @@ export class EditorBootstrapCache {
         const fragmentId = new URLSearchParams(target.hash.slice(1)).get('fragmentId');
         if (!fragmentId) {
             await page.goto(url, { waitUntil: 'domcontentloaded' });
-            return;
-        }
-        if (process.env.NALA_EDITOR_BOOTSTRAP_DISABLED === '1') {
-            this.metrics.coldLoads++;
-            await loadEditorDocument(page, url);
-            await waitForEditorReady(page, fragmentId);
             return;
         }
         const state = this.pages.get(page);

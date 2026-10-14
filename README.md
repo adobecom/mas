@@ -274,7 +274,6 @@ are labelled by phase, so the completed test snapshot is not presented as cleanu
 Cleanup errors remain visible and retain the run ledger for recovery, but cannot fail an otherwise passing CI job.
 Docs and local runs keep their existing end-of-test reporting.
 
-Use `NALA_STATIC_CACHE_DISABLED=1` or `NALA_EDITOR_BOOTSTRAP_DISABLED=1` for uncached comparisons.
 To make a suite's editor setup always live, leave `reuseEditor` unset. Cleanup uses exact run-owned IDs and live ETags;
 see [Nala cleanup](nala/utils/README-cleanup.md).
 All eight clone/save suites now opt into the same worker-local seed-bootstrap snapshots as editor/discard suites.

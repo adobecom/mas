@@ -363,8 +363,6 @@ function createWorkerPageSetup(config = {}) {
 
         consoleErrors = [];
         masRequestErrors = [];
-
-        console.info('[Worker Setup]: Pages will load on first use');
     }
 
     async function loadPage(pageConfig) {
@@ -401,7 +399,6 @@ function createWorkerPageSetup(config = {}) {
                 await page.waitForTimeout(retryDelay * attempt);
             }
         }
-        console.info(`[Worker Setup]: ${name} page ready for assertions:`, page.url());
         return page;
     }
 

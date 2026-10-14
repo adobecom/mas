@@ -210,11 +210,9 @@ jobs:
               uses: ./.github/actions/setup-nala
               timeout-minutes: 10
 
-            - name: Report runner capacity and shard selection
+            - name: Report shard allocation
               run: |
-                  node -e "console.log('Available CPUs:', require('node:os').availableParallelism())"
                   echo "Runner: ${{ matrix.runner }}; shard: ${{ matrix.shard }}; workers: ${{ matrix.workers }}"
-                  node ./nala/utils/studio-shards.js "${{ matrix.shard }}"
 
             - name: Set execute permission for gh.run.sh
               run: chmod +x ./nala/utils/gh.run.sh

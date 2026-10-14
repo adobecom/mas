@@ -115,24 +115,36 @@ describe('references-repository', () => {
         const openFragmentTokens = { surface: 'acom', parsedLocale: 'en_US', fragmentPath: 'my-card' };
         const collection = (path) => ({ path, model: { path: COLLECTION_MODEL_PATH } });
 
-        it('excludes pzn parents', () => {
+        it('keeps a pzn collection variation that holds the open card', () => {
             const reference = collection(`/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`);
-            expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
-        });
-
-        it('keeps a collection whose name contains "pzn"', () => {
-            const reference = collection('/content/dam/mas/acom/en_US/pzn-template-collection');
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
-        it('excludes promo variation parents', () => {
+        it('keeps a promo collection variation that holds the open card', () => {
             const reference = collection(`/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`);
-            expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
+            expect(isExcludedReference(reference, openFragmentTokens)).to.be.false;
         });
 
         it('excludes the self locale variation', () => {
             const reference = { path: '/content/dam/mas/acom/fr_FR/my-card', model: { path: CARD_MODEL_PATH } };
             expect(isExcludedReference(reference, openFragmentTokens)).to.be.true;
+        });
+
+        it('excludes a locale copy of the open pzn variation', () => {
+            const openVariationTokens = parsePathTokens(`/content/dam/mas/acom/fr_FR/${PZN_FOLDER}/black-friday/my-card`);
+            const reference = {
+                path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-card`,
+                model: { path: CARD_MODEL_PATH },
+            };
+            expect(isExcludedReference(reference, openVariationTokens)).to.be.true;
+        });
+
+        it('excludes a locale copy of the open promo variation', () => {
+            const openVariationTokens = parsePathTokens(
+                `/content/dam/mas/acom/fr_FR/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`,
+            );
+            const reference = collection(`/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`);
+            expect(isExcludedReference(reference, openVariationTokens)).to.be.true;
         });
 
         it('excludes cross-surface clones', () => {
@@ -422,16 +434,6 @@ describe('references-repository', () => {
             const referencedBy = [
                 coll('en_US', 'coll-en', 'Plans', 'PUBLISHED'),
                 coll('fr_FR', 'coll-fr', 'Plans FR', 'DRAFT'),
-                {
-                    path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`,
-                    id: 'pzn-parent',
-                    model: { path: COLLECTION_MODEL_PATH },
-                },
-                {
-                    path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`,
-                    id: 'promo-parent',
-                    model: { path: COLLECTION_MODEL_PATH },
-                },
                 { path: '/content/dam/mas/acom/fr_FR/my-card', id: 'self-locale-variation', model: { path: CARD_MODEL_PATH } },
                 coll('en_US', 'cross-surface', 'Plans', 'PUBLISHED', 'nala'),
                 {
@@ -473,6 +475,29 @@ describe('references-repository', () => {
             expect(bucket(result, 'bulkPublishProjects').rows[0].title).to.equal('Holiday Push');
             expect(bucket(result, 'promoProjects').rows[0].link).to.include('promotionId=promo-proj');
             expect(bucket(result, 'localizationProjects').rows[0].link).to.include('translationProjectId=loc-proj');
+        });
+
+        it('lists collection variations that hold the card as collections of their own', async () => {
+            const referencedBy = [
+                {
+                    path: `/content/dam/mas/acom/en_US/${PZN_FOLDER}/black-friday/my-collection`,
+                    id: 'pzn-collection',
+                    model: { path: COLLECTION_MODEL_PATH },
+                },
+                {
+                    path: `/content/dam/mas/acom/en_US/${PROMOTIONS_PATH_PREFIX}black-friday/my-collection`,
+                    id: 'promo-collection',
+                    model: { path: COLLECTION_MODEL_PATH },
+                },
+            ];
+            const getReferencedByFragmentId = sandbox.stub().resolves({ items: referencedBy });
+            const aem = { sites: { cf: { fragments: { getReferencedByFragmentId } } } };
+
+            const result = await getReferencingFragments(aem, fragment);
+
+            expect(bucket(result, 'collections').rows.map((row) => row.path)).to.deep.equal(
+                referencedBy.map((item) => item.path),
+            );
         });
 
         describe('promo variations', () => {

@@ -11,6 +11,7 @@ import {
     TAG_STUDIO_CONTENT_TYPE,
     TAG_MODEL_ID_MAPPING,
     PZN_FOLDER,
+    PAGE_NAMES,
 } from './constants.js';
 import { VARIANTS } from './editors/variant-picker.js';
 import Events from './events.js';
@@ -74,6 +75,21 @@ export function getHashParam(param) {
  */
 export function getHashParams() {
     return new URLSearchParams(window.location.hash.slice(1));
+}
+
+/**
+ * Builds a fragment editor link with optional surface and promotion context.
+ * @param {string} fragmentId
+ * @param {Object} [options]
+ * @param {string} [options.path]
+ * @param {string} [options.promotionId]
+ * @returns {string}
+ */
+export function getFragmentEditorUrl(fragmentId, { path = getHashParam('path'), promotionId } = {}) {
+    let url = `#page=${PAGE_NAMES.FRAGMENT_EDITOR}&fragmentId=${encodeURIComponent(fragmentId)}`;
+    if (path) url += `&path=${encodeURIComponent(path)}`;
+    if (promotionId) url += `&promotionId=${encodeURIComponent(promotionId)}`;
+    return url;
 }
 
 /**

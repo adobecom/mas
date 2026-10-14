@@ -13,7 +13,16 @@ export function resolveIoBaseUrl(search) {
     const params = new URLSearchParams(search);
     const requestedProject = params.get('io.project');
     const project = IO_PROJECTS.includes(requestedProject) ? requestedProject : 'masstudio';
-    const workspace = params.get('io.studio.env') || params.get('aem.env') || '';
-    const suffix = IO_WORKSPACE.test(workspace) ? `-${workspace}` : '';
+    let workspace = (params.get('io.studio.env') || params.get('aem.env') || '').toLowerCase();
+    if (workspace && !IO_WORKSPACE.test(workspace)) {
+        const fallback = (params.get('aem.env') || '').toLowerCase();
+        if (params.get('io.studio.env') && fallback && IO_WORKSPACE.test(fallback)) {
+            console.warn('Invalid io.studio.env; using aem.env instead.');
+            workspace = fallback;
+        } else {
+            throw new Error('Invalid IO workspace: use a label of 1-40 letters, digits or hyphens.');
+        }
+    }
+    const suffix = workspace ? `-${workspace}` : '';
     return `https://14257-${project}${suffix}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
 }

@@ -968,6 +968,29 @@ runTests(async () => {
                 expect(fragmentCalls).to.have.length(2);
                 aemFragment.remove();
             });
+
+            it('does not cache stale data under a pzn whose fetch failed', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps2');
+                await oneEvent(aemFragment, 'aem:load');
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has('fragment-cc-all-apps2-p_segment1')).to.be
+                    .false;
+                aemFragment.remove();
+            });
+
+            it('refetches when the fragment changes after a failed fetch', async () => {
+                const aemFragment = addFragment('notfound');
+                await oneEvent(aemFragment, 'aem:error');
+
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemFragment.classList.contains('error')).to.be.false;
+                aemFragment.remove();
+            });
         });
 
         describe('getFragmentClientUrl', () => {

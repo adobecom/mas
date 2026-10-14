@@ -193,6 +193,7 @@ export class AemFragment extends HTMLElement {
      * Internal promise to track if fetching is in progress.
      */
     #fetchPromise;
+    #loadAttempted = false;
     #refreshQueued = false;
 
     #author = false;
@@ -242,7 +243,7 @@ export class AemFragment extends HTMLElement {
         if (
             ENDPOINT_ATTRIBUTES.includes(name) &&
             oldValue !== newValue &&
-            this.#fetchPromise
+            this.#loadAttempted
         ) {
             this.#queueRefresh();
         }
@@ -257,7 +258,7 @@ export class AemFragment extends HTMLElement {
             this.#refreshQueued = false;
             this.refresh(false);
         };
-        this.#fetchPromise.then(run, run);
+        Promise.resolve(this.#fetchPromise).then(run, run);
     }
 
     connectedCallback() {
@@ -371,6 +372,7 @@ export class AemFragment extends HTMLElement {
                 new Promise((resolve) => setTimeout(resolve, this.#timeout)),
             ]);
         }
+        this.#loadAttempted = true;
         try {
             this.#fetchPromise = this.#fetchData();
             await this.#fetchPromise;
@@ -402,6 +404,7 @@ export class AemFragment extends HTMLElement {
     }
 
     #fail(message) {
+        this.#loadAttempted = true;
         this.#fetchPromise = null;
         this.#fetchInfo.message = message;
         this.classList.add('error');
@@ -458,6 +461,7 @@ export class AemFragment extends HTMLElement {
         }
 
         fragment = await this.#getFragment(endpoint);
+        if (fragment === this.#rawData) return true;
         fragment.fields.originalId ??= this.#fragmentId;
         if (cacheKey !== this.#fragmentId) {
             cache.set(cacheKey, fragment);

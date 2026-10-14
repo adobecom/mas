@@ -12,6 +12,10 @@ name: Resolve AIO Identity
 #
 # Allowlisted bots' io/studio deploys read the stage Odin bucket, matching Piñata's
 # stage-pinned Studio previews, and skip the shared AOS/OST service secrets.
+# vault_login selects workspace .env/.aio credentials; odin_bucket_path selects
+# content, not the IO workspace. The actual namespace comes from the deployed .env,
+# not the Vault key's spelling. Candidate identity uses the original dispatch actor;
+# PR identity uses the author, even when someone else synchronizes or reruns it.
 
 on:
     workflow_call:

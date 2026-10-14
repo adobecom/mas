@@ -5,6 +5,9 @@ on:
         paths:
             - 'io/studio/**'
 
+permissions:
+    contents: read
+
 jobs:
     identity:
         uses: ./.github/workflows/resolve-aio-identity.yaml
@@ -44,6 +47,25 @@ jobs:
                   fi
                   echo "Vault path 'cloudtech_wcms/$path' exists."
 
+    workspace-preflight:
+        needs: [identity]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            actions: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22.23.1'
+            - name: Reject a known busy workspace (advisory)
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  VAULT_LOGIN: ${{ needs.identity.outputs.vault_login }}
+              run: node .github/scripts/check-io-studio-workspace.mjs
+
     tests:
         runs-on: ubuntu-latest
         defaults:
@@ -53,6 +75,8 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
 
             - name: Set up Node.js 22.23.1
               uses: actions/setup-node@v4
@@ -70,7 +94,7 @@ jobs:
               run: npm test
 
     deploy:
-        needs: [preflight, tests, identity]
+        needs: [preflight, tests, identity, workspace-preflight]
         # Same group as io-studio-candidate.yaml, so a bot PR deploy and a Piñata
         # candidate deploy never write the shared bot workspace at once.
         concurrency:
@@ -79,13 +103,8 @@ jobs:
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: false
+            verify_deployment: true
             vault-path: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
             odin-bucket-path: ${{ needs.identity.outputs.odin_bucket_path }}
             shared-secrets: ${{ fromJSON(needs.identity.outputs.shared_secrets) }}
         secrets: inherit
-
-    test-deployed:
-        needs: deploy
-        uses: ./.github/workflows/io-studio-tests.yaml
-        with:
-            namespace: ${{ needs.deploy.outputs.namespace }}

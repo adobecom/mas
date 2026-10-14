@@ -55,17 +55,43 @@ fi
 
 # If the engine stops this gate (timeout, abort), don't leave the run deploying
 # behind it: a retry would queue behind the orphan in the same concurrency group.
-trap 'gh run cancel "$run_id" >/dev/null 2>&1 || true; exit 1' TERM INT
+childPid=""
+run_child() {
+    "$@" &
+    childPid=$!
+    local childStatus=0
+    wait "$childPid" || childStatus=$?
+    childPid=""
+    return "$childStatus"
+}
+
+stop_gate() {
+    local exitCode="$1"
+    trap - TERM INT
+    if [ -n "$childPid" ] && kill -0 "$childPid" 2>/dev/null; then
+        if ! kill -TERM "$childPid" 2>/dev/null; then
+            echo "WARN: could not stop gate child $childPid." >&2
+        fi
+    fi
+    if ! gh run cancel "$run_id"; then
+        echo "FAIL: could not cancel $WORKFLOW run $run_id. Cancel it on GitHub." >&2
+    fi
+    exit "$exitCode"
+}
+trap 'stop_gate 143' TERM
+trap 'stop_gate 130' INT
 
 echo "Waiting on $WORKFLOW run $run_id"
 # A watch can drop on a network error while the run keeps going, so the verdict
 # comes from the run's own status and conclusion, never from the watch's exit code.
 status=""
 for attempt in $(seq "$WATCH_ATTEMPTS"); do
-    gh run watch "$run_id" --interval 15 || true
+    if ! run_child gh run watch "$run_id" --interval 15; then
+        echo "WARN: watch disconnected for run $run_id; checking the run status." >&2
+    fi
     status=$(gh run view "$run_id" --json status --jq '.status' || true)
     [ "$status" = "completed" ] && break
-    sleep 15
+    run_child sleep 15
 done
 trap - TERM INT
 if [ "$status" != "completed" ]; then

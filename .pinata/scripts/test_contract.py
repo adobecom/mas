@@ -146,5 +146,78 @@ class PreviewPolicyTests(unittest.TestCase):
                 self.assertTrue(any(host.endswith(h) for h in public_hosts), host)
 
 
+class CandidateWorkflowPermissionTests(unittest.TestCase):
+    def test_candidate_workflows_default_to_read_only_contents(self):
+        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml"):
+            with self.subTest(workflow=name):
+                workflow = yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
+                self.assertEqual(workflow.get("permissions"), {"contents": "read"})
+
+    def test_candidate_checkouts_do_not_persist_tokens(self):
+        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml"):
+            workflow = yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
+            for job_name, job in workflow["jobs"].items():
+                for step in job.get("steps", []):
+                    if step.get("uses", "").startswith("actions/checkout@"):
+                        with self.subTest(workflow=name, job=job_name):
+                            self.assertIs(step.get("with", {}).get("persist-credentials"), False)
+
+
+class WorkspaceDeploymentContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.workflows = {
+            name: yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
+            for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml")
+        }
+
+    def test_callers_hold_the_same_workspace_lock_through_verification(self):
+        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml"):
+            with self.subTest(workflow=name):
+                jobs = self.workflows[name]["jobs"]
+                self.assertNotIn("test-deployed", jobs)
+                deploy = jobs["deploy"]
+                self.assertEqual(deploy["concurrency"], {
+                    "group": "io-studio-merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}",
+                    "cancel-in-progress": False,
+                })
+                self.assertIs(deploy["with"].get("verify_deployment"), True)
+                self.assertIn("workspace-preflight", deploy["needs"])
+
+    def test_health_check_is_inside_reusable_deploy_without_a_nested_lock(self):
+        workflow = self.workflows["io-studio-deploy.yaml"]
+        inputs = workflow.get("on", workflow.get(True))["workflow_call"]["inputs"]
+        self.assertEqual(inputs.get("verify_deployment"), {"type": "boolean", "required": False, "default": False})
+        health = workflow["jobs"].get("test-deployed", {})
+        self.assertEqual(health.get("needs"), "deploy")
+        self.assertEqual(health.get("if"), "inputs.verify_deployment")
+        self.assertEqual(health.get("uses"), "./.github/workflows/io-studio-tests.yaml")
+        self.assertEqual(health.get("with"), {"namespace": "${{ needs.deploy.outputs.namespace }}"})
+        self.assertNotIn("concurrency", workflow)
+        for job in workflow["jobs"].values():
+            self.assertNotIn("concurrency", job)
+
+    def test_only_workspace_preflights_can_enumerate_runs(self):
+        for name, workflow in self.workflows.items():
+            for job_name, job in workflow["jobs"].items():
+                with self.subTest(workflow=name, job=job_name):
+                    expected = {"contents": "read", "actions": "read"} if job_name == "workspace-preflight" else None
+                    self.assertEqual(job.get("permissions"), expected)
+
+    def test_preflights_use_the_shared_script_and_resolved_identity(self):
+        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml"):
+            with self.subTest(workflow=name):
+                preflight = self.workflows[name]["jobs"].get("workspace-preflight", {})
+                self.assertIn("identity", preflight.get("needs", []))
+                steps = preflight.get("steps", [])
+                check = next((s for s in steps if s.get("run") == "node .github/scripts/check-io-studio-workspace.mjs"), {})
+                self.assertEqual(check.get("env"), {
+                    "GH_TOKEN": "${{ github.token }}",
+                    "VAULT_LOGIN": "${{ needs.identity.outputs.vault_login }}",
+                })
+                self.assertTrue(any(s.get("uses", "").startswith("actions/checkout@") for s in steps))
+        self.assertIn("guard", self.workflows["io-studio-candidate.yaml"]["jobs"].get("workspace-preflight", {}).get("needs", []))
+
+
 if __name__ == "__main__":
     unittest.main()

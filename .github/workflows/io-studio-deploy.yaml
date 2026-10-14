@@ -2,6 +2,10 @@ name: IO Studio Deploy
 on:
     workflow_call:
         inputs:
+            verify_deployment:
+                type: boolean
+                required: false
+                default: false
             run_tests:
                 type: boolean
                 required: false
@@ -45,6 +49,9 @@ on:
                 description: 'I/O runtime workspace namespace the app was deployed to'
                 value: ${{ jobs.deploy.outputs.namespace }}
 
+permissions:
+    contents: read
+
 jobs:
     tests:
         if: inputs.run_tests == true
@@ -56,6 +63,8 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
 
             - name: Set up Node.js 22.23.1
               uses: actions/setup-node@v4
@@ -83,6 +92,8 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
 
             - name: Setup Node.js 22.23.1
               uses: actions/setup-node@v4
@@ -143,3 +154,12 @@ jobs:
                   RPS_LIMIT: ${{ inputs.rps_limit }}
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
               run: npx aio app deploy -v
+
+    # Runs inside the caller's concurrency-bearing reusable job, so its lock
+    # covers both deployment and availability verification. Do not nest that lock.
+    test-deployed:
+        if: inputs.verify_deployment
+        needs: deploy
+        uses: ./.github/workflows/io-studio-tests.yaml
+        with:
+            namespace: ${{ needs.deploy.outputs.namespace }}

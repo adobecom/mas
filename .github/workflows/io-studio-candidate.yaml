@@ -7,6 +7,9 @@ name: IO Studio Candidate Deploy
 on:
     workflow_dispatch:
 
+permissions:
+    contents: read
+
 jobs:
     identity:
         uses: ./.github/workflows/resolve-aio-identity.yaml
@@ -18,13 +21,15 @@ jobs:
     # so the check holds even when the candidate branch is hostile.
     # The candidate's own io/studio code (npm ci, aio app deploy hooks) still runs on
     # the self-hosted deploy runner with the bot workspace's .env present. That is
-    # only acceptable while that runner is ephemeral, as for bot PR deploys today.
+    # only acceptable after runner isolation/cleanup has been verified; token
+    # minimization does not establish that the runner is ephemeral.
     guard:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
+                  persist-credentials: false
             - name: Refuse candidates that change CI or Piñata config
               run: |
                   changed=$(git diff --name-only origin/main...HEAD -- .github .pinata)
@@ -34,8 +39,27 @@ jobs:
                       exit 1
                   fi
 
-    deploy:
+    workspace-preflight:
         needs: [identity, guard]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            actions: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22.23.1'
+            - name: Reject a known busy workspace (advisory)
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  VAULT_LOGIN: ${{ needs.identity.outputs.vault_login }}
+              run: node .github/scripts/check-io-studio-workspace.mjs
+
+    deploy:
+        needs: [identity, guard, workspace-preflight]
         # Same group as io-studio-pr.yaml's deploy for the same identity.
         concurrency:
             group: io-studio-merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
@@ -43,13 +67,8 @@ jobs:
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             run_tests: true
+            verify_deployment: true
             vault-path: merch-at-scale/aio-studio/${{ needs.identity.outputs.vault_login }}
             odin-bucket-path: ${{ needs.identity.outputs.odin_bucket_path }}
             shared-secrets: ${{ fromJSON(needs.identity.outputs.shared_secrets) }}
         secrets: inherit
-
-    test-deployed:
-        needs: deploy
-        uses: ./.github/workflows/io-studio-tests.yaml
-        with:
-            namespace: ${{ needs.deploy.outputs.namespace }}

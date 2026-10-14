@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Exercises .pinata/scripts/deploy-candidate-io.sh, the io-studio-candidate gate.
 #
-# Hermetic: `git`, `gh` and `sleep` are shims on PATH, so no workflow is ever
-# dispatched and nothing waits. The `gh` shim answers `--jq` by running the real
-# jq over canned JSON, so the script's run-selection filter is itself under test.
+# Hermetic: `git`, `gh` and `sleep` are shims on PATH, so no real workflow is ever
+# dispatched. Cancellation cases deliberately block on FIFOs. The `gh` shim runs
+# real jq over canned JSON, so the script's run-selection filter is itself under test.
 #
 # Usage: .pinata/scripts/test-deploy-candidate-io.sh
 set -uo pipefail
@@ -45,6 +45,11 @@ case "$1 $2" in
         # The first FAKE_WATCH_DROPS watches lose the connection before the run ends.
         count=$(( $(cat "$WORK/watch_count" 2>/dev/null || echo 0) + 1 ))
         echo "$count" >"$WORK/watch_count"
+        if [ "$FAKE_BLOCK_AT" = watch ]; then
+            echo "$$" >"$WORK/blocked_pid"
+            printf 'ready\n' >"$WORK/ready"
+            read -r release <"$WORK/release"
+        fi
         # Simulates the engine stopping the gate while it waits on the run.
         [ -n "$FAKE_WATCH_SIGNAL" ] && kill "-$FAKE_WATCH_SIGNAL" "$PPID"
         [ "$count" -le "$FAKE_WATCH_DROPS" ] && exit 1
@@ -57,17 +62,24 @@ case "$1 $2" in
         else
             echo "npm test: 3 failing"
         fi ;;
-    'run cancel') ;;
+    'run cancel') exit "$FAKE_CANCEL_EXIT" ;;
     *) echo "unexpected gh $*" >&2; exit 2 ;;
 esac
 SH
 
-printf '#!/usr/bin/env bash\nexit 0\n' >"$BIN/sleep"
+cat >"$BIN/sleep" <<'SH'
+#!/usr/bin/env bash
+if [ "$FAKE_BLOCK_AT" = poll ] && [ "$1" = 15 ]; then
+    echo "$$" >"$WORK/blocked_pid"
+    printf 'ready\n' >"$WORK/ready"
+    read -r release <"$WORK/release"
+fi
+SH
 chmod +x "$BIN"/*
 
 defaults() {
     export FAKE_BRANCH=MWPW-123456 FAKE_SHA=abc123 FAKE_REMOTE_SHA=abc123
-    export FAKE_WATCH_SIGNAL="" FAKE_WATCH_DROPS=0 FAKE_CONCLUSION=success
+    export FAKE_WATCH_SIGNAL="" FAKE_WATCH_DROPS=0 FAKE_CONCLUSION=success FAKE_BLOCK_AT="" FAKE_CANCEL_EXIT=0
     export FAKE_RUNS_BEFORE='[{"databaseId":100,"headSha":"abc123"}]'
     export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"abc123"},{"databaseId":100,"headSha":"abc123"}]'
 }
@@ -157,8 +169,74 @@ run_case "gives up after repeated dropped watches" 1 "lost track of" io/studio/s
 
 defaults
 export FAKE_WATCH_SIGNAL=TERM
-run_case "fails when the gate is stopped mid-wait" 1 "Waiting on" io/studio/src/custom-field-audit/index.js
+run_case "fails when the gate is stopped mid-wait" 143 "Waiting on" io/studio/src/custom-field-audit/index.js
 log_has "cancels the run it was waiting on" "run cancel 101"
+
+defaults
+export FAKE_WATCH_SIGNAL=TERM FAKE_CANCEL_EXIT=1
+run_case "reports a rejected remote cancellation" 143 "could not cancel" io/studio/src/custom-field-audit/index.js
+
+defaults
+export SCRIPT BIN
+python3 - <<'PY'
+import os
+from pathlib import Path
+import select
+import signal
+import subprocess
+import sys
+
+work = Path(os.environ["WORK"])
+failures = 0
+for phase in ("watch", "poll"):
+    for received_signal, expected_exit in ((signal.SIGTERM, 143), (signal.SIGINT, 130)):
+        for name in ("gh.log", "dispatched", "watch_count", "blocked_pid"):
+            (work / name).unlink(missing_ok=True)
+        for name in ("ready", "release"):
+            os.mkfifo(work / name)
+        ready = os.open(work / "ready", os.O_RDWR | os.O_NONBLOCK)
+        env = dict(os.environ, PATH=f'{os.environ["BIN"]}:{os.environ["PATH"]}',
+                   FAKE_BLOCK_AT=phase, FAKE_WATCH_DROPS="99" if phase == "poll" else "0")
+        process = subprocess.Popen(
+            ["bash", os.environ["SCRIPT"], "io/studio/src/custom-field-audit/index.js"],
+            env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        )
+        name = f"interrupts blocked {phase} with {received_signal.name}"
+        try:
+            if not select.select([ready], [], [], 3)[0]:
+                raise AssertionError("child did not reach the readiness handshake")
+            os.read(ready, 128)
+            process.send_signal(received_signal)
+            try:
+                actual_exit = process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                raise AssertionError("gate did not cancel before the blocked child was released") from None
+            if actual_exit != expected_exit:
+                raise AssertionError(f"exit {actual_exit}, want {expected_exit}")
+            if "run cancel 101" not in (work / "gh.log").read_text():
+                raise AssertionError("known remote run was not cancelled")
+            print(f"ok: {name}")
+        except AssertionError as error:
+            failures += 1
+            print(f"FAIL: {name}: {error}", file=sys.stderr)
+        finally:
+            if (work / "blocked_pid").exists():
+                try:
+                    os.kill(int((work / "blocked_pid").read_text()), signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=3)
+            os.close(ready)
+            for fifo in ("ready", "release"):
+                (work / fifo).unlink()
+sys.exit(bool(failures))
+PY
+signal_status=$?
+if [ "$signal_status" -ne 0 ]; then
+    failures=$((failures + 1))
+fi
 
 if [ "$failures" -ne 0 ]; then
     echo "$failures failure(s)" >&2

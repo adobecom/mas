@@ -84,14 +84,36 @@ pipeline code. A human approval to continue is an explicit exception.
 `.github/workflows/io-studio-candidate.yaml` on the pushed candidate branch: it
 refuses branches that touch `.github` or `.pinata`, runs the io/studio unit
 tests, and deploys to the `pinatacode[bot]` workspace resolved by
-`resolve-aio-identity.yaml` (`14257-merchatscale-pinata`, stage Odin bucket, no
+`resolve-aio-identity.yaml` (Vault key `pinatacode`, stage Odin bucket, no
 shared service secrets), then health-checks it. The `studio-io-candidate`
 surface previews Studio with `io.project=merchatscale&io.studio.env=pinata`.
 Piñata never holds the deploy credentials; they stay in Vault and the runner.
 
-One shared workspace: overlapping runs serialize their deploys, but an advisory
-screenshot can show a later run's IO. The blocking result (tests, deploy and
-health check on the candidate's exact commit) is per run.
+`vault-path` supplies the workspace `.env` and `.aio`; `odin_bucket_path`
+supplies the content environment's Odin bucket. Stage content does not mean a
+stage IO workspace. The deployed `.env` determines the namespace: verify the
+workflow's `namespace` output against the preview URL before rollout. Neither
+the Vault key nor that URL proves which namespace was deployed.
+
+Candidate and PR workflows share a workspace concurrency group held through
+deployment **and** health verification. Their advisory preflight checks both
+workflows for known queued, pending, waiting or running conflicts and fails with
+the conflicting PR/run and retry guidance. It excludes the current run; candidate
+identity is the original actor, while PR identity is the author. The check can
+race, GitHub can replace a pending concurrency job, and manual deploys outside
+these workflows are not protected. This is not strict zero-queue admission.
+An advisory screenshot taken after the lock ends can still show a later run's IO.
+
+Omitting shared AOS/OST credentials for automated candidates is intentional.
+Passing unit tests, deploy and `/health-check` establishes only those contracts;
+health proves availability, not AOS/OST flows or NALA readiness. Secret-dependent
+behavior requires human verification. Existing human workspace, QA bucket and
+shared-secret selection remain unchanged.
+
+Rollout still requires harmless same-workspace deploy-plus-health serialization
+and conflict tests, different-workspace/human-path checks, actual namespace/preview
+URL evidence, and self-hosted runner isolation/cleanup evidence. Read-only tokens
+and non-persisted checkout credentials are not a sandbox or proof of ephemerality.
 
 ### Ownership and configuration protection
 

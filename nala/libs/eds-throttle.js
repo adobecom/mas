@@ -10,6 +10,9 @@ import {
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { isOdinOrigin, isPreviewOrigin } from './rate-limit-coordinator.js';
+import { resolveEdsMaxRps } from './request-budgets.js';
+
+export { resolveEdsMaxRps } from './request-budgets.js';
 
 const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
@@ -135,27 +138,6 @@ export async function removePageRoutes(page, beforeClose = async () => {}) {
     }
 }
 
-/**
- * Pace EDS requests per worker; aggregate traffic scales with worker count.
- */
-
-/** Preserve the local cap; CI divides 180 rps across its fixed runner pool. */
-const DEFAULT_EDS_MAX_RPS = 45;
-
-export function resolveEdsMaxRps() {
-    if (process.env.NALA_EDS_THROTTLE_DISABLED === '1') return 0;
-    if (process.env.NALA_EDS_MAX_RPS !== undefined && process.env.NALA_EDS_MAX_RPS !== '') {
-        const v = Number.parseInt(process.env.NALA_EDS_MAX_RPS, 10);
-        return Number.isFinite(v) && v > 0 ? v : 0;
-    }
-    if (!process.env.NALA_TOTAL_WORKERS) return DEFAULT_EDS_MAX_RPS;
-    const workers = Number(process.env.NALA_TOTAL_WORKERS);
-    if (!Number.isInteger(workers) || workers <= 0 || workers > 180) {
-        throw new Error('EDS total worker allocation must be an integer between 1 and 180');
-    }
-    return Math.min(DEFAULT_EDS_MAX_RPS, Math.floor(180 / workers));
-}
-
 export function isEdsEdgeHost(url) {
     try {
         const { hostname } = new URL(url);
@@ -202,7 +184,7 @@ export function logEdsThrottleOnce(edsMaxRps) {
     throttleLogged = true;
     console.info(
         `[NALA] EDS request pacing ~${edsMaxRps} rps per worker for EDS / Helix hosts. ` +
-            `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS sets cap. Pacing is multiplied by worker count.\n`,
+            `NALA_EDS_THROTTLE_DISABLED=1 disables; NALA_EDS_MAX_RPS overrides the run/fleet-derived per-worker cap.\n`,
     );
 }
 

@@ -2,6 +2,9 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { initializeRequestBudgets, resolveOdinMaxRps } from './request-budgets.js';
+
+export { resolveOdinMaxRps } from './request-budgets.js';
 
 const RECOVERY_GAP_MS = 100;
 const LEASE_MS = 90000;
@@ -14,18 +17,6 @@ export const isOdinOrigin = (url) => {
     const { hostname } = new URL(url);
     return isPreviewOrigin(url) || hostname.endsWith('.adobeaemcloud.com') || hostname === 'odin.adobe.com';
 };
-
-export function resolveOdinMaxRps() {
-    if (process.env.NALA_ODIN_PREVIEW_MAX_RPS) return Number(process.env.NALA_ODIN_PREVIEW_MAX_RPS);
-    if (!process.env.NALA_TOTAL_WORKERS) return 10;
-    const total = Number(process.env.NALA_TOTAL_WORKERS);
-    const workers = Number(process.env.NALA_WORKER_COUNT);
-    const budget = Number(process.env.NALA_ODIN_MAX_RPS || 20);
-    if (!Number.isInteger(total) || !Number.isInteger(workers) || workers <= 0 || total < workers || budget <= 0) {
-        throw new Error('Odin worker allocation requires positive worker counts within the total pool and a positive budget');
-    }
-    return (budget * workers) / total;
-}
 
 /** Author and preview traffic share a budget; all origins honor observed cooldowns. */
 export class OriginRateLimits {
@@ -247,12 +238,13 @@ export class OriginRateLimits {
     }
 }
 
-const localLimits = new OriginRateLimits();
+let localLimits;
 
 export async function coordinateRateLimit(action, origin, deadline, details = {}, { signal } = {}) {
     if (action === 'acquire') details = { ...details, requestId: randomUUID() };
     const endpoint = process.env.NALA_RATE_LIMIT_COORDINATOR;
     if (!endpoint) {
+        localLimits ??= new OriginRateLimits();
         if (action === 'cooldown') return localLimits.cooldown(origin, deadline);
         if (action === 'acquire') {
             const permit = await localLimits.wait(origin, details, { signal });
@@ -287,6 +279,8 @@ export async function coordinateRateLimit(action, origin, deadline, details = {}
 
 /** A fresh loopback coordinator belongs to this invocation, never another run or PR. */
 export default async function initializeRateLimitCoordinator(config, options, pressureFile = 'odin-pressure.json') {
+    const previousWorkers = process.env.NALA_RUN_WORKERS;
+    initializeRequestBudgets(config);
     const limits = new OriginRateLimits(options);
     const token = randomUUID();
     const handle = async (request, response) => {
@@ -349,5 +343,7 @@ export default async function initializeRateLimitCoordinator(config, options, pr
         }
         delete process.env.NALA_RATE_LIMIT_COORDINATOR;
         await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+        if (previousWorkers === undefined) delete process.env.NALA_RUN_WORKERS;
+        else process.env.NALA_RUN_WORKERS = previousWorkers;
     };
 }

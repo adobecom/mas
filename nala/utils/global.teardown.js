@@ -272,7 +272,7 @@ async function globalTeardown() {
     const ci = process.env.GITHUB_ACTIONS === 'true';
     const stopCoordinator = ci
         ? await initializeRateLimitCoordinator(
-              { projects: [{ outputDir: resolve('test-results') }] },
+              { workers: 1, projects: [{ outputDir: resolve('test-results') }] },
               undefined,
               'odin-pressure-cleanup.json',
           )

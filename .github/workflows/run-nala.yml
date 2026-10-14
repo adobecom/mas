@@ -18,6 +18,9 @@ env:
     # Keep in sync with the branch-protection required-approval count. These are
     # separate sources of truth and will drift if one is changed without the other.
     REQUIRED_APPROVALS: 2
+    # Shared request-budget defaults live in nala/libs/request-budgets.js.
+    # The workflow defines the fixed Studio + Docs infrastructure allocation.
+    NALA_TOTAL_WORKERS: 12
 
 # Prevent multiple runs from happening at the same time. Keyed on the PR number
 # so pull_request and pull_request_review runs for the same PR share a group.
@@ -164,13 +167,11 @@ jobs:
         # Fixed participating runner pool: each uniquely labeled runner executes one job
         # at a time, including cleanup, even when different PRs overlap. This allocation
         # does not coordinate legacy workflows or other nonparticipating jobs.
-        # Backend scheduling allocates NALA_ODIN_MAX_RPS * NALA_WORKER_COUNT / 12
+        # Backend scheduling allocates the shared Odin budget * NALA_WORKER_COUNT / NALA_TOTAL_WORKERS
         # to this job; the same job-level budget is inherited by standalone cleanup.
         env:
-            NALA_TOTAL_WORKERS: 12
             NALA_WORKER_COUNT: ${{ matrix.workers }}
             NALA_PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
-            NALA_ODIN_MAX_RPS: 20
             NALA_STUDIO_SHARD: ${{ matrix.shard }}
             NALA_SHARD_ID: ${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
         strategy:
@@ -236,18 +237,6 @@ jobs:
                   # Authentication and fresh run-scoped HAR seeding happen within this invocation.
                   # No auth state or HAR artifacts are exchanged between jobs or PRs.
 
-            # Traces are excluded on purpose: they capture the test account's IMS bearer tokens and this repo is public.
-            - name: Upload failure screenshots
-              if: failure()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: nala-studio-${{ matrix.shard }}-failures-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-                  path: |
-                      test-results/**/*.png
-                      test-results/**/error-context.md
-                  retention-days: 7
-                  if-no-files-found: ignore
-
             - name: Cleanup cloned cards
               if: always()
               continue-on-error: true
@@ -273,10 +262,8 @@ jobs:
         runs-on: [self-hosted, Linux, X64, nala-docs]
         timeout-minutes: 20 # Prevent hanging jobs
         env:
-            NALA_TOTAL_WORKERS: 12
             NALA_WORKER_COUNT: 1
             NALA_PLAYWRIGHT_WORKERS: 1
-            NALA_ODIN_MAX_RPS: 20
             NALA_SHARD_ID: docs-${{ github.run_id }}-${{ github.run_attempt }}
         strategy:
             matrix:
@@ -347,14 +334,3 @@ jobs:
                   prBaseBranch: ${{ github.event.pull_request.base.ref }}
                   GITHUB_ACTION_PATH: ${{ github.workspace }}
                   FORCE_COLOR: 3 # Force color output
-
-            - name: Upload failure screenshots
-              if: failure()
-              uses: actions/upload-artifact@v4
-              with:
-                  name: nala-docs-failures-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-                  path: |
-                      test-results/**/*.png
-                      test-results/**/error-context.md
-                  retention-days: 7
-                  if-no-files-found: ignore

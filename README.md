@@ -131,7 +131,8 @@ it stops at teardown and is never reused between runs or PRs. Subsequent request
 including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
 This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
-Intercepted test Odin author and preview traffic share a budget from the first request, initially 10 request starts/second locally.
+Intercepted test Odin author and preview traffic share an invocation budget from the first request, derived from the shared
+20 request-starts/second default and any configured fleet allocation.
 Buffered Odin GET reads additionally share three in-flight permits across the invocation's workers;
 cached assets use neither budget. Read-only POSTs remain browser-managed and start-paced, not buffered.
 `NALA_ODIN_PREVIEW_MAX_RPS` and `NALA_ODIN_PREVIEW_MAX_IN_FLIGHT` tune these positive, run-wide budgets, not per-worker limits.
@@ -180,11 +181,24 @@ Network diagnostics also count browser HTTP 4xx/5xx outcomes, transport failures
 and unexpected transport failures log only the method and origin/path, never query strings or response bodies.
 Cookie-setting responses are neither retried nor cached. Authentication endpoints, streaming/range reads, documents and writes
 are not retried automatically. Pacing can be disabled without disabling 429 diagnostics.
-Remaining EDS requests are paced at 45 RPS per worker locally, including `.aem.page` previews.
-CI sets `NALA_TOTAL_WORKERS=12` for the fixed runner pool: Studio shards use 4, 4 and 3 workers on three distinct
-pinned runners, while Docs uses one worker. EDS divides 180 RPS over that pool (15 RPS per worker).
-Odin partitions `NALA_ODIN_MAX_RPS` (default 20 RPS) by `NALA_WORKER_COUNT / NALA_TOTAL_WORKERS`; each shard's
-independent cleanup retains its allocation. Explicit per-worker EDS or per-invocation Odin overrides replace these defaults.
+Both aggregate request budgets have one source of defaults in `nala/libs/request-budgets.js`: EDS 180 RPS and Odin 20 RPS.
+Every Playwright invocation resolves its actual worker count during global setup, including `--workers` and percentage
+overrides, and passes the allocation to its test workers, authentication and HAR seed pages. A local run receives the
+whole invocation budget: EDS divides 180 by the resolved workers; Odin shares 20 across the invocation's coordinator.
+For example, `--workers=8` gives EDS 22.5 RPS per worker, not eight copies of a fixed 45-RPS cap. Increasing workers does not
+increase either aggregate default. Fractional EDS caps are supported; site requests include `.aem.page` previews.
+CI defines infrastructure in `.github/workflows/run-nala.yml`: `NALA_TOTAL_WORKERS=12`, with Studio allocations of 4, 4 and 3
+on three pinned runners and one Docs worker. EDS divides its budget by total fleet workers (15 RPS per worker).
+Odin partitions its budget by `NALA_WORKER_COUNT / NALA_TOTAL_WORKERS`; each shard's independent cleanup retains its
+allocation. Both fleet counts must be supplied together, and startup fails if Playwright asks for more workers than
+the job's allocation. Fewer actual workers remain within the reserved budget.
+`NALA_EDS_TOTAL_MAX_RPS` and `NALA_ODIN_MAX_RPS` override aggregate defaults in either local or CI runs.
+Change defaults in the shared module, not individual jobs; workflows need only define their infrastructure.
+`NALA_EDS_MAX_RPS` remains a legacy per-worker override; `NALA_ODIN_PREVIEW_MAX_RPS` overrides an invocation's Odin
+allocation. These overrides bypass fleet-derived caps and are intentionally unset by the PR workflow.
+Startup prints the actual/allocated workers, total budgets and effective EDS-per-worker/Odin-per-invocation caps.
+Explicit per-worker/per-invocation overrides or disabling EDS pacing produce a warning because they can exceed the allocation.
+Separate simultaneous invocations/machines still do not share a dynamic coordinator; use explicit allocations if they overlap.
 Studio selection is complete and disjoint: `mixed-1`, `mixed-2` and `mixed-3` mix saves, editor checks and navigation
 using measured successful-test durations, balanced against their 4/4/3 worker capacities. San Jose owns Individuals
 edit/discard and saves; Oregon anchors regional variations; Noida receives the smaller Pro and Suggested suites instead
@@ -250,6 +264,9 @@ peak read concurrency, mean/max fetch latency, summed and mean/max queue waiting
 sanitized endpoint counts and observed user agents. No query strings, credentials or response bodies are retained.
 Per-test attachments include cancelled reads, outstanding route handlers and owned teardown time.
 Retried timeout attempts do not inflate the final failed-test count.
+The PR Nala workflow does not upload test artifacts: screenshots and error-context files are not assumed credential-free,
+especially when authentication fails. Failure screenshots remain enabled both locally and in CI; CI traces remain disabled,
+and local retry traces retain their existing behavior. Auth state, HARs, run ledgers and generated reports are not published as CI artifacts.
 Studio CI prints the styled Nala summary and test-only request/pressure totals immediately after the test suite.
 The independent cleanup step prints its own outcomes and maintenance-only request/pressure totals.
 CI cleanup uses its own fresh coordinator and records `test-results/odin-pressure-cleanup.json`; pressure measurements
@@ -300,14 +317,6 @@ has a ten-minute step budget. Cache service failures remain visible and fall bac
 Dependencies are saved before the tests, so a failing suite does not prevent reuse on a later run. GitHub cache branch-access
 rules still apply; a new PR may need a cold install if no compatible base-branch cache is available.
 Authentication, run-owned fragments, HARs and results are never part of these dependency caches.
-
-Offline setup regression checks (no IMS, Odin or EDS requests):
-
-```sh
-node --test nala/tests/setup-cache.unit.js
-node --test nala/tests/studio-shards.unit.js nala/tests/ci-dependencies.unit.js
-npx playwright test --config=nala/tests/setup-cache.config.js --workers=3
-```
 
 # CI/CD
 

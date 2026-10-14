@@ -324,6 +324,40 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
+        it('resolves countdown dates and locale into the preview without changing the authored fragment', async () => {
+            sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+            const description = '<p>Offer <a href="#">countdown-timer</a></p>';
+            Store.placeholders.previewByLocale.value.ko_KR = { 'offer-description': JSON.stringify(description).slice(1, -1) };
+            const source = createFragment({
+                fields: [
+                    { name: 'variant', values: ['pro'] },
+                    { name: 'description', values: ['{{offer-description}}'] },
+                ],
+            });
+            const store = createStore(source);
+            store.previewLocaleOverride = 'ko_KR';
+
+            const result = await store.getResolvedFragment();
+
+            expect(result.fields.find((field) => field.name === 'description').values).to.deep.equal([description]);
+            expect(result).to.include({ ...DATES, previewLocale: 'ko_KR' });
+            expect(source.getFieldValue('description')).to.equal('{{offer-description}}');
+            expect(source.cdtStart).to.be.undefined;
+            expect(source.previewLocale).to.be.undefined;
+            expect(store.value.cdtStart).to.be.undefined;
+
+            store.replaceFrom(result);
+            store.value.updateField('description', ['<p>Offer without a timer</p>']);
+            const cleared = await store.getResolvedFragment();
+
+            expect(cleared.cdtStart).to.be.undefined;
+            expect(cleared.cdtEnd).to.be.undefined;
+            expect(cleared.previewLocale).to.equal('ko_KR');
+            expect(store.previewPublishedFragment.calledOnce).to.be.true;
+            expect(repository.searchFragmentList.called).to.be.false;
+            store.dispose();
+        });
+
         it('takes a default card dates from the pipeline-selected project provenance', async () => {
             const store = createStore({ id: 'card-id' });
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);

@@ -281,7 +281,6 @@ export async function openOfferSelectorTool(triggerElement, offerElement, initia
                 searchParameters.append('text', offerElement.innerText);
             }
             const osiParts = (offerElement.getAttribute('data-wcs-osi') ?? '').split(',').filter(Boolean);
-            const template = offerElement.getAttribute('data-template');
             const isDiscount = template === 'discount' || template === 'discount-amount';
             // A soft-bundle placeholder carries every bundled OSI comma-joined
             // (and is not a discount, whose second OSI is a reference price).

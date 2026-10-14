@@ -119,4 +119,7 @@ export class MerchCountdown extends LitElement {
     }
 }
 
-customElements.define('merch-countdown', MerchCountdown);
+// hydrate.js imports this module, so the card and collection bundles both include it.
+if (!customElements.get('merch-countdown')) {
+    customElements.define('merch-countdown', MerchCountdown);
+}

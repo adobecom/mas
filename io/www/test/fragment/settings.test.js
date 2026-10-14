@@ -768,6 +768,27 @@ describe('settings', () => {
             }
         });
 
+        it('publishes and resolves countdown copy on Plans and Pro cards referenced by a collection', async () => {
+            const copy = 'Fin dans {days} jours, {hours} heures, {minutes} minutes';
+            const ref = (variant) => ({ type: 'content-fragment', value: { fields: { variant } } });
+            const context = {
+                locale: 'fr_FR',
+                body: {
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: { plans: ref('plans'), pro: ref('pro'), mini: ref('mini'), missing: null },
+                },
+                promises: {
+                    settings: Promise.resolve({}),
+                    replace: Promise.resolve({ 'countdown-timer-text': copy }),
+                },
+            };
+            const { references } = (await replace.process(await settings.process(context))).body;
+            expect(references.plans.value.placeholders.countdownTimerText).to.equal(copy);
+            expect(references.pro.value.placeholders.countdownTimerText).to.equal(copy);
+            expect(references.mini.value.placeholders).to.be.undefined;
+        });
+
         it('does not publish countdown copy for other variants', async () => {
             const context = { locale: 'en_US', body: { fields: { variant: 'mini' } } };
             await settings.process(context);

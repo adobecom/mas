@@ -124,6 +124,13 @@
                     });
                 });
 
+                describe('merch-countdown registration', () => {
+                    it('can be evaluated again, as when the card and collection bundles share a page', async () => {
+                        await import('../src/merch-countdown.js?second-bundle');
+                        expect(customElements.get('merch-countdown')).to.exist;
+                    });
+                });
+
                 describe('merch-countdown clock', () => {
                     let clock;
                     beforeEach(() => {

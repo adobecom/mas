@@ -373,12 +373,24 @@ function applyEduPlaceholders(body) {
     }
 }
 
+const supportsCountdown = (fragment) => {
+    const variant = fragment?.fields?.variant;
+    return ['pro', 'bizpro'].includes(variant) || variant?.startsWith('plans');
+};
+
 // Full-sentence templates preserve word order across languages. replace resolves the dictionary token.
+// A collection card is hydrated from its own reference, so it carries the template too.
 function applyCountdownPlaceholders(body) {
-    const variant = body?.fields?.variant;
-    if (!['pro', 'bizpro'].includes(variant) && !variant?.startsWith('plans') && body?.model?.id !== COLLECTION_MODEL_ID)
-        return;
-    body.placeholders = { ...body.placeholders, countdownTimerText: '{{countdown-timer-text}}' };
+    const isCollection = body?.model?.id === COLLECTION_MODEL_ID;
+    const cards = isCollection
+        ? Object.values(body.references ?? {})
+              .map((ref) => ref?.value)
+              .filter(supportsCountdown)
+        : [];
+    const targets = isCollection || supportsCountdown(body) ? [body, ...cards] : [];
+    for (const target of targets) {
+        target.placeholders = { ...target.placeholders, countdownTimerText: '{{countdown-timer-text}}' };
+    }
 }
 
 function applyPriceLiterals(fragment) {

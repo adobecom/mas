@@ -170,7 +170,7 @@ function extractGroupsFromMemberOfResponse(data) {
                     return null;
                 })
                 .filter(Boolean)
-                .filter((name) => /-MAS-/i.test(name)),
+                .filter((name) => /-MAS-/.test(name)),
         ),
     ).sort();
 }

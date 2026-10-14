@@ -1,5 +1,7 @@
 import { ODIN_PREVIEW_ORIGIN } from '../constants.js';
 
+const MISSING_STATUS = 'none';
+
 export function createOdinTelemetry({ log }) {
     const sessionId = crypto.randomUUID();
     const counts = new Map();
@@ -14,7 +16,7 @@ export function createOdinTelemetry({ log }) {
 
     function observe(entries) {
         for (const entry of entries) {
-            if (entry.name.startsWith(ODIN_PREVIEW_ORIGIN)) record(entry.responseStatus ?? 'none');
+            if (entry.name.startsWith(ODIN_PREVIEW_ORIGIN)) record(entry.responseStatus ?? MISSING_STATUS);
         }
     }
 
@@ -22,9 +24,10 @@ export function createOdinTelemetry({ log }) {
         if (counts.size === 0) return;
         const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
         const throttled = countOf(429);
+        const unknown = countOf(0) + countOf(MISSING_STATUS);
         const statuses = [...counts.entries()].map(([status, count]) => `${status}:${count}`).join(',');
         log(
-            `Odin preview requests¶session=${sessionId}¶total=${total}¶429=${throttled}¶unknown=${countOf(0) + countOf('none')}¶statuses=${statuses}`,
+            `Odin preview requests¶session=${sessionId}¶total=${total}¶429=${throttled}¶unknown=${unknown}¶statuses=${statuses}`,
             {
                 severity: throttled > 0 ? 'warning' : 'info',
                 sampleRate: 100,

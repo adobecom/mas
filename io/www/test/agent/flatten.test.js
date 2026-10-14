@@ -91,11 +91,11 @@ describe('flattenOffer', () => {
             });
         });
 
-        it('exposes the badge and CTAs, and ignores a hard-coded terms link', () => {
+        it('exposes the badge, CTAs, and the terms URL of its regular see-terms link', () => {
             expect(offer).to.deep.include({
                 badge: 'Save 50%',
                 ctas: [{ label: 'Buy now' }],
-                terms_url: null,
+                terms_url: 'https://www.adobe.com/offer-terms/cc_full_special_offer.html',
             });
             expect(offer.seeTermsInfo).to.be.undefined;
             expect(offer).to.not.have.property('cta_label');
@@ -343,7 +343,7 @@ describe('flattenOffer', () => {
         });
     });
 
-    describe('promo terms link', () => {
+    describe('terms link', () => {
         const studioLink = '<a class="upt-link secondary-link" href="#" data-analytics-id="see-terms">See terms</a>';
         const termsUrl = (query) => `https://www.adobe.com/offers/promo-terms.html?${query}`;
         let fetchStub;
@@ -412,14 +412,44 @@ describe('flattenOffer', () => {
             expect(onPriceError.firstCall.args[1]).to.equal('gone');
         });
 
-        it('ignores a regular link to an offer-terms page', async () => {
-            const offer = await flattenOffer({
-                fields: {
-                    description: '<a class="primary-link" href="https://www.adobe.com/offer-terms/x.html">See terms</a>',
-                },
+        describe('regular see-terms link', () => {
+            const offerTerms = 'https://www.adobe.com/offer-terms/x.html';
+            const link = (attributes) => `<a class="primary-link" ${attributes}>See terms</a>`;
+
+            for (const [label, description, termsUrl] of [
+                [
+                    'uses the https href of a link with the see-terms analytics id',
+                    link(`href="${offerTerms}" data-analytics-id="see-terms"`),
+                    offerTerms,
+                ],
+                ['ignores a link without the see-terms analytics id', link(`href="${offerTerms}"`), null],
+                ['ignores an http href', link('href="http://www.adobe.com/x.html" data-analytics-id="see-terms"'), null],
+                ['ignores a relative href', link('href="/offer-terms/x.html" data-analytics-id="see-terms"'), null],
+                [
+                    'skips see-terms links without an https href',
+                    `${studioLink} ${link(`href="${offerTerms}" data-analytics-id="see-terms"`)}`,
+                    offerTerms,
+                ],
+            ]) {
+                it(label, async () => {
+                    const offer = await flattenOffer({ fields: { description } });
+                    expect(offer.terms_url).to.equal(termsUrl);
+                });
+            }
+
+            it('is only a fallback for a promo terms link, which keeps its own seeTermsInfo', async () => {
+                const regularLink = link(`href="${offerTerms}" data-analytics-id="see-terms"`);
+                const resolved = await flattenOffer({
+                    fields: { osi: 'card', description: `${regularLink} ${studioLink}` },
+                    wcs: { prod: { 'card-us-mult': [wcsOffer('card', 1, { offerId: 'OFFER-1' })] } },
+                });
+                expect(resolved.terms_url).to.equal(termsUrl('locale=en_US&country=US&offer_id=OFFER-1'));
+
+                const unresolved = await flattenOffer({ fields: { description: `${studioLink} ${regularLink}` } });
+                expect(unresolved.terms_url).to.equal(offerTerms);
+                expect(unresolved.seeTermsInfo).to.deep.equal({ analyticsId: 'see-terms', href: undefined, text: 'See terms' });
+                expect(fetchStub.called).to.be.false;
             });
-            expect(offer.terms_url).to.be.null;
-            expect(offer.seeTermsInfo).to.be.undefined;
         });
     });
 

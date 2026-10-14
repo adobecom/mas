@@ -383,6 +383,17 @@ async function extractMerchCard(fragment, context) {
     };
 }
 
+// Authored links reach external consumers as-is, so only absolute https URLs are passed on.
+function seeTermsLinkUrl(fields) {
+    const link = htmlSources({ fields, settings: {} })
+        .flatMap((html) => extractElements(html, 'a'))
+        .find(
+            ({ attributes: { href, 'data-analytics-id': analyticsId } }) =>
+                analyticsId === 'see-terms' && URL.canParse(href) && new URL(href).protocol === 'https:',
+        );
+    return link?.attributes.href ?? null;
+}
+
 async function flattenOffer(fragment, context) {
     const fields = fragment?.fields ?? {};
     const merchCard = await extractMerchCard(fragment, context);
@@ -390,7 +401,8 @@ async function flattenOffer(fragment, context) {
         fragment: fragment?.id ?? null,
         productName: (fieldValue(fields, 'cardTitle') || '').trim() || null,
         badge: stripTags(fieldValue(fields, 'badge')),
-        terms_url: merchCard.seeTermsInfo?.href ?? null,
+        // The promo terms link wins; otherwise a regular link authored with the see-terms analytics id.
+        terms_url: merchCard.seeTermsInfo?.href ?? seeTermsLinkUrl(fields),
         ...parseTags(fields.tags),
         ...merchCard,
     };

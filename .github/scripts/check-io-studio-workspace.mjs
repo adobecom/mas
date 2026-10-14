@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 
 const activeStatuses = ['queued', 'pending', 'waiting', 'in_progress'];
+const PER_PAGE = 100;
 
 function workspaceKey(login) {
     if (!login) throw new Error('Unable to resolve workspace identity.');
@@ -8,13 +9,13 @@ function workspaceKey(login) {
     return login.replace(/\[bot\]$/i, '').toLowerCase();
 }
 
+function isCompetingRun(run, currentRunId) {
+    return String(run.id) !== String(currentRunId) && activeStatuses.includes(run.status);
+}
+
 export function findWorkspaceConflict(runs, currentRunId, vaultLogin) {
     const key = workspaceKey(vaultLogin);
-    for (const run of runs) {
-        if (String(run.id) === String(currentRunId) || !activeStatuses.includes(run.status)) continue;
-        if (workspaceKey(run.workspaceLogin) === key) return run;
-    }
-    return null;
+    return runs.find((run) => isCompetingRun(run, currentRunId) && workspaceKey(run.workspaceLogin) === key) ?? null;
 }
 
 export async function checkWorkspaceAvailability({ repository, runId, vaultLogin, token, fetchImpl = fetch }) {
@@ -43,6 +44,14 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
         }
     }
 
+    async function* paginate(path, query, pick) {
+        for (let page = 1; ; page++) {
+            const items = pick(await get(`${path}?${new URLSearchParams({ ...query, per_page: PER_PAGE, page })}`));
+            yield* items;
+            if (items.length < PER_PAGE) return;
+        }
+    }
+
     async function prIdentity(run) {
         let pulls = run.pull_requests ?? [];
         // GitHub can omit pull_requests on run records, particularly for fork PRs.
@@ -50,19 +59,13 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
             if (!run.head_sha || !run.head_branch || !run.head_repository?.full_name) {
                 throw new Error(`Unable to resolve PR identity for run ${run.id}.`);
             }
-            pulls = [];
-            for (let page = 1; ; page++) {
-                const batch = await get(`/commits/${run.head_sha}/pulls?per_page=100&page=${page}`);
-                pulls.push(
-                    ...batch.filter(
-                        (pull) =>
-                            pull.head.ref === run.head_branch &&
-                            pull.head.repo?.full_name === run.head_repository.full_name &&
-                            pull.base.repo.full_name === repository,
-                    ),
-                );
-                if (batch.length < 100) break;
-            }
+            const commitPulls = await Array.fromAsync(paginate(`/commits/${run.head_sha}/pulls`, {}, (batch) => batch));
+            pulls = commitPulls.filter(
+                (pull) =>
+                    pull.head.ref === run.head_branch &&
+                    pull.head.repo?.full_name === run.head_repository.full_name &&
+                    pull.base.repo.full_name === repository,
+            );
         }
         if (pulls.length !== 1 || !pulls[0].number) {
             throw new Error(`Unable to resolve a unique PR identity for run ${run.id}.`);
@@ -73,25 +76,27 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
         return { workspaceLogin: pull.user.login, prNumber };
     }
 
-    for (const workflow of ['io-studio-candidate.yaml', 'io-studio-pr.yaml']) {
+    const identityResolvers = {
+        'io-studio-candidate.yaml': async (run) => ({ workspaceLogin: run.actor?.login }),
+        'io-studio-pr.yaml': prIdentity,
+    };
+
+    for (const [workflow, resolveIdentity] of Object.entries(identityResolvers)) {
         for (const status of activeStatuses) {
-            for (let page = 1; ; page++) {
-                const result = await get(`/actions/workflows/${workflow}/runs?status=${status}&per_page=100&page=${page}`);
+            const runs = paginate(`/actions/workflows/${workflow}/runs`, { status }, (result) => {
                 if (!Array.isArray(result.workflow_runs)) throw new Error(`GitHub API returned no run list for ${workflow}.`);
-                for (const run of result.workflow_runs) {
-                    if (String(run.id) === String(runId) || !activeStatuses.includes(run.status)) continue;
-                    const identity =
-                        workflow === 'io-studio-pr.yaml' ? await prIdentity(run) : { workspaceLogin: run.actor?.login };
-                    const conflict = findWorkspaceConflict([{ ...run, ...identity }], runId, key);
-                    if (conflict) {
-                        const pr = conflict.prNumber ? `PR #${conflict.prNumber}, ` : '';
-                        throw new Error(
-                            `Workspace '${key}' is busy: ${pr}run ${conflict.id} (${conflict.status}), ` +
-                                `${conflict.html_url}. Retry after that run finishes.`,
-                        );
-                    }
+                return result.workflow_runs;
+            });
+            for await (const run of runs) {
+                if (!isCompetingRun(run, runId)) continue;
+                const conflict = findWorkspaceConflict([{ ...run, ...(await resolveIdentity(run)) }], runId, key);
+                if (conflict) {
+                    const pr = conflict.prNumber ? `PR #${conflict.prNumber}, ` : '';
+                    throw new Error(
+                        `Workspace '${key}' is busy: ${pr}run ${conflict.id} (${conflict.status}), ` +
+                            `${conflict.html_url}. Retry after that run finishes.`,
+                    );
                 }
-                if (result.workflow_runs.length < 100) break;
             }
         }
     }

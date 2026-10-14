@@ -146,33 +146,33 @@ class PreviewPolicyTests(unittest.TestCase):
                 self.assertTrue(any(host.endswith(h) for h in public_hosts), host)
 
 
-class CandidateWorkflowPermissionTests(unittest.TestCase):
-    def test_candidate_workflows_default_to_read_only_contents(self):
-        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml"):
+CALLER_WORKFLOWS = ("io-studio-candidate.yaml", "io-studio-pr.yaml")
+IO_STUDIO_WORKFLOWS = (*CALLER_WORKFLOWS, "io-studio-deploy.yaml")
+
+
+class IoStudioWorkflowContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.workflows = {
+            name: yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
+            for name in IO_STUDIO_WORKFLOWS
+        }
+
+    def test_workflows_default_to_read_only_contents(self):
+        for name, workflow in self.workflows.items():
             with self.subTest(workflow=name):
-                workflow = yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
                 self.assertEqual(workflow.get("permissions"), {"contents": "read"})
 
-    def test_candidate_checkouts_do_not_persist_tokens(self):
-        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml"):
-            workflow = yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
+    def test_checkouts_do_not_persist_tokens(self):
+        for name, workflow in self.workflows.items():
             for job_name, job in workflow["jobs"].items():
                 for step in job.get("steps", []):
                     if step.get("uses", "").startswith("actions/checkout@"):
                         with self.subTest(workflow=name, job=job_name):
                             self.assertIs(step.get("with", {}).get("persist-credentials"), False)
 
-
-class WorkspaceDeploymentContractTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.workflows = {
-            name: yaml.safe_load((CONTRACT.parent / ".github/workflows" / name).read_text())
-            for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml", "io-studio-deploy.yaml")
-        }
-
     def test_callers_hold_the_same_workspace_lock_through_verification(self):
-        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml"):
+        for name in CALLER_WORKFLOWS:
             with self.subTest(workflow=name):
                 jobs = self.workflows[name]["jobs"]
                 self.assertNotIn("test-deployed", jobs)
@@ -205,7 +205,7 @@ class WorkspaceDeploymentContractTests(unittest.TestCase):
                     self.assertEqual(job.get("permissions"), expected)
 
     def test_preflights_use_the_shared_script_and_resolved_identity(self):
-        for name in ("io-studio-candidate.yaml", "io-studio-pr.yaml"):
+        for name in CALLER_WORKFLOWS:
             with self.subTest(workflow=name):
                 preflight = self.workflows[name]["jobs"].get("workspace-preflight", {})
                 self.assertIn("identity", preflight.get("needs", []))

@@ -56,24 +56,27 @@ const prRun = {
     pull_requests: [{ number: 42 }],
     html_url: 'https://github.com/example/mas/actions/runs/12',
 };
+const orphanPrRun = {
+    ...prRun,
+    pull_requests: [],
+    head_sha: 'abc',
+    head_branch: 'MWPW-123',
+    head_repository: { full_name: 'example/mas' },
+};
+
+const runsOnly = (url, workflow, status, runs) => ({
+    workflow_runs: url.pathname.endsWith(`${workflow}/runs`) && url.searchParams.get('status') === status ? runs : [],
+});
 
 test('candidate reruns use the original actor rather than the triggering actor', async () => {
-    const fetchImpl = apiFixture((url) => ({
-        workflow_runs:
-            url.pathname.endsWith('io-studio-candidate.yaml/runs') && url.searchParams.get('status') === 'in_progress'
-                ? [candidate]
-                : [],
-    }));
+    const fetchImpl = apiFixture((url) => runsOnly(url, 'io-studio-candidate.yaml', 'in_progress', [candidate]));
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /workspace.*pinatacode.*run.*11.*retry/i);
 });
 
 test('a bot PR conflicts with a bot candidate even when synchronized by a human', async () => {
     const fetchImpl = apiFixture((url) => {
         if (url.pathname.endsWith('/pulls/42')) return { user: { login: 'pinatacode[bot]' } };
-        return {
-            workflow_runs:
-                url.pathname.endsWith('io-studio-pr.yaml/runs') && url.searchParams.get('status') === 'queued' ? [prRun] : [],
-        };
+        return runsOnly(url, 'io-studio-pr.yaml', 'queued', [prRun]);
     });
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /PR #42.*run.*12.*retry/i);
 });
@@ -89,9 +92,7 @@ test('own run is excluded before PR identity lookup', async () => {
 test('different workspaces are available across both workflows', async () => {
     const fetchImpl = apiFixture((url) => {
         if (url.pathname.endsWith('/pulls/42')) return { user: { login: 'alice' } };
-        if (url.pathname.endsWith('io-studio-pr.yaml/runs')) {
-            return { workflow_runs: url.searchParams.get('status') === 'queued' ? [prRun] : [] };
-        }
+        if (url.pathname.endsWith('io-studio-pr.yaml/runs')) return runsOnly(url, 'io-studio-pr.yaml', 'queued', [prRun]);
         return { workflow_runs: [{ ...candidate, actor: { login: 'bob' } }] };
     });
     assert.equal(await checkWorkspaceAvailability({ ...options, fetchImpl }), null);
@@ -132,10 +133,7 @@ test('network errors cannot report an available workspace', async () => {
 test('PR author lookup errors cannot report an available workspace', async () => {
     const fetchImpl = apiFixture((url) => {
         if (url.pathname.endsWith('/pulls/42')) return { user: {} };
-        return {
-            workflow_runs:
-                url.pathname.endsWith('io-studio-pr.yaml/runs') && url.searchParams.get('status') === 'queued' ? [prRun] : [],
-        };
+        return runsOnly(url, 'io-studio-pr.yaml', 'queued', [prRun]);
     });
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /identity/i);
 });
@@ -152,20 +150,7 @@ test('missing PR associations are resolved from the commit rather than the run a
             ];
         }
         if (url.pathname.endsWith('/pulls/42')) return { user: { login: 'pinatacode[bot]' } };
-        return {
-            workflow_runs:
-                url.pathname.endsWith('io-studio-pr.yaml/runs') && url.searchParams.get('status') === 'queued'
-                    ? [
-                          {
-                              ...prRun,
-                              pull_requests: [],
-                              head_sha: 'abc',
-                              head_branch: 'MWPW-123',
-                              head_repository: { full_name: 'example/mas' },
-                          },
-                      ]
-                    : [],
-        };
+        return runsOnly(url, 'io-studio-pr.yaml', 'queued', [orphanPrRun]);
     });
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /PR #42.*retry/i);
 });
@@ -173,20 +158,7 @@ test('missing PR associations are resolved from the commit rather than the run a
 test('unresolvable PR identity fails rather than using the synchronizing actor', async () => {
     const fetchImpl = apiFixture((url) => {
         if (url.pathname.endsWith('/commits/abc/pulls')) return [];
-        return {
-            workflow_runs:
-                url.pathname.endsWith('io-studio-pr.yaml/runs') && url.searchParams.get('status') === 'queued'
-                    ? [
-                          {
-                              ...prRun,
-                              pull_requests: [],
-                              head_sha: 'abc',
-                              head_branch: 'MWPW-123',
-                              head_repository: { full_name: 'example/mas' },
-                          },
-                      ]
-                    : [],
-        };
+        return runsOnly(url, 'io-studio-pr.yaml', 'queued', [orphanPrRun]);
     });
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /identity/i);
 });

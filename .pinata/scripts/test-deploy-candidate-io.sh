@@ -10,6 +10,7 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 
 SCRIPT=.pinata/scripts/deploy-candidate-io.sh
+IO_FILE=io/studio/src/custom-field-audit/index.js
 WORK=$(mktemp -d)
 BIN="$WORK/bin"
 mkdir -p "$BIN"
@@ -123,62 +124,62 @@ log_lacks "skip dispatches nothing" "workflow run"
 
 defaults
 export FAKE_REMOTE_SHA=def456
-run_case "refuses an unpushed candidate" 1 "is not pushed at abc123" io/studio/src/custom-field-audit/index.js
+run_case "refuses an unpushed candidate" 1 "is not pushed at abc123" "$IO_FILE"
 log_lacks "unpushed dispatches nothing" "workflow run"
 
 defaults
 export FAKE_BRANCH=HEAD
-run_case "refuses a detached HEAD" 1 "detached HEAD" io/studio/src/custom-field-audit/index.js
+run_case "refuses a detached HEAD" 1 "detached HEAD" "$IO_FILE"
 log_lacks "detached dispatches nothing" "workflow run"
 
 defaults
 run_case "deploys and waits on the new run" 0 "OK: io/studio candidate deployed" \
-    io/studio/src/custom-field-audit/index.js
+    "$IO_FILE"
 log_has "dispatches the candidate branch" "workflow run io-studio-candidate.yaml --ref MWPW-123456"
 log_has "watches the new run" "run watch 101"
 
 defaults
 export FAKE_RUNS_AFTER="$FAKE_RUNS_BEFORE"
 run_case "ignores an older run for the same commit" 1 "run appeared for abc123" \
-    io/studio/src/custom-field-audit/index.js
+    "$IO_FILE"
 log_lacks "never watches the stale run" "run watch 100"
 
 defaults
 export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"fff999"},{"databaseId":100,"headSha":"abc123"}]'
 run_case "ignores a newer run for a different commit" 1 "run appeared for abc123" \
-    io/studio/src/custom-field-audit/index.js
+    "$IO_FILE"
 log_lacks "never watches the other commit's run" "run watch 101"
 
 defaults
 export FAKE_CONCLUSION=failure
-run_case "surfaces the failed run log" 1 "npm test: 3 failing" io/studio/src/custom-field-audit/index.js
+run_case "surfaces the failed run log" 1 "npm test: 3 failing" "$IO_FILE"
 
 defaults
 export FAKE_CONCLUSION=cancelled
-run_case "explains a run replaced by a newer deploy" 1 "was cancelled" io/studio/src/custom-field-audit/index.js
+run_case "explains a run replaced by a newer deploy" 1 "was cancelled" "$IO_FILE"
 log_lacks "skips the empty failed-step log" "--log-failed"
 
 defaults
 export FAKE_WATCH_DROPS=1
 run_case "rides out a dropped watch connection" 0 "OK: io/studio candidate deployed" \
-    io/studio/src/custom-field-audit/index.js
+    "$IO_FILE"
 
 defaults
 export FAKE_WATCH_DROPS=99
-run_case "gives up after repeated dropped watches" 1 "lost track of" io/studio/src/custom-field-audit/index.js
+run_case "gives up after repeated dropped watches" 1 "lost track of" "$IO_FILE"
 
 defaults
 export FAKE_WATCH_SIGNAL=TERM
-run_case "fails when the gate is stopped mid-wait" 143 "Waiting on" io/studio/src/custom-field-audit/index.js
+run_case "fails when the gate is stopped mid-wait" 143 "Waiting on" "$IO_FILE"
 log_has "cancels the run it was waiting on" "run cancel 101"
 
 defaults
 export FAKE_WATCH_SIGNAL=TERM FAKE_CANCEL_EXIT=1
-run_case "reports a rejected remote cancellation" 143 "could not cancel" io/studio/src/custom-field-audit/index.js
+run_case "reports a rejected remote cancellation" 143 "could not cancel" "$IO_FILE"
 
 defaults
-export SCRIPT BIN
-python3 - <<'PY'
+export SCRIPT BIN IO_FILE
+python3 - <<'PY' || failures=$((failures + 1))
 import os
 from pathlib import Path
 import select
@@ -198,7 +199,7 @@ for phase in ("watch", "poll"):
         env = dict(os.environ, PATH=f'{os.environ["BIN"]}:{os.environ["PATH"]}',
                    FAKE_BLOCK_AT=phase, FAKE_WATCH_DROPS="99" if phase == "poll" else "0")
         process = subprocess.Popen(
-            ["bash", os.environ["SCRIPT"], "io/studio/src/custom-field-audit/index.js"],
+            ["bash", os.environ["SCRIPT"], os.environ["IO_FILE"]],
             env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
         )
         name = f"interrupts blocked {phase} with {received_signal.name}"
@@ -233,10 +234,6 @@ for phase in ("watch", "poll"):
                 (work / fifo).unlink()
 sys.exit(bool(failures))
 PY
-signal_status=$?
-if [ "$signal_status" -ne 0 ]; then
-    failures=$((failures + 1))
-fi
 
 if [ "$failures" -ne 0 ]; then
     echo "$failures failure(s)" >&2

@@ -55,28 +55,28 @@ fi
 
 # If the engine stops this gate (timeout, abort), don't leave the run deploying
 # behind it: a retry would queue behind the orphan in the same concurrency group.
-childPid=""
+child_pid=""
 run_child() {
     "$@" &
-    childPid=$!
-    local childStatus=0
-    wait "$childPid" || childStatus=$?
-    childPid=""
-    return "$childStatus"
+    child_pid=$!
+    local child_status=0
+    wait "$child_pid" || child_status=$?
+    child_pid=""
+    return "$child_status"
 }
 
 stop_gate() {
-    local exitCode="$1"
+    local exit_code="$1"
     trap - TERM INT
-    if [ -n "$childPid" ] && kill -0 "$childPid" 2>/dev/null; then
-        if ! kill -TERM "$childPid" 2>/dev/null; then
-            echo "WARN: could not stop gate child $childPid." >&2
+    if [ -n "$child_pid" ] && kill -0 "$child_pid" 2>/dev/null; then
+        if ! kill -TERM "$child_pid" 2>/dev/null; then
+            echo "WARN: could not stop gate child $child_pid." >&2
         fi
     fi
     if ! gh run cancel "$run_id"; then
         echo "FAIL: could not cancel $WORKFLOW run $run_id. Cancel it on GitHub." >&2
     fi
-    exit "$exitCode"
+    exit "$exit_code"
 }
 trap 'stop_gate 143' TERM
 trap 'stop_gate 130' INT

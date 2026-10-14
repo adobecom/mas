@@ -3,35 +3,32 @@ import { expect } from './utilities.js';
 
 describe('function "getPromoTermsUrl"', () => {
     const offer = { language: 'en', country: 'US', offerId: 'OFFER1' };
+    const query = 'locale=en_US&country=US&offer_id=OFFER1';
 
-    it('points production at www.adobe.com', () => {
-        expect(getPromoTermsUrl({ ...offer, env: 'PRODUCTION' })).to.equal(
-            'https://www.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=OFFER1',
-        );
-    });
-
-    it('points other environments at www.stage.adobe.com', () => {
-        expect(getPromoTermsUrl({ ...offer, env: 'STAGE' })).to.equal(
-            'https://www.stage.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=OFFER1',
-        );
-    });
-
-    it('adds an encoded promotion code when there is one', () => {
-        expect(
-            getPromoTermsUrl({
-                ...offer,
-                env: 'PRODUCTION',
-                promotionCode: 'PROMO 1&2',
-            }),
-        ).to.equal(
-            'https://www.adobe.com/offers/promo-terms.html?locale=en_US&country=US&offer_id=OFFER1&promotion_code=PROMO%201%262',
-        );
-        expect(
-            getPromoTermsUrl({
-                ...offer,
-                env: 'PRODUCTION',
-                promotionCode: null,
-            }),
-        ).to.not.include('promotion_code');
-    });
+    for (const [label, options, url] of [
+        [
+            'points production at www.adobe.com',
+            { env: 'PRODUCTION' },
+            `https://www.adobe.com/offers/promo-terms.html?${query}`,
+        ],
+        [
+            'points other environments at www.stage.adobe.com',
+            { env: 'STAGE' },
+            `https://www.stage.adobe.com/offers/promo-terms.html?${query}`,
+        ],
+        [
+            'adds an encoded promotion code',
+            { env: 'PRODUCTION', promotionCode: 'PROMO 1&2' },
+            `https://www.adobe.com/offers/promo-terms.html?${query}&promotion_code=PROMO%201%262`,
+        ],
+        [
+            'omits an empty promotion code',
+            { env: 'PRODUCTION', promotionCode: null },
+            `https://www.adobe.com/offers/promo-terms.html?${query}`,
+        ],
+    ]) {
+        it(label, () => {
+            expect(getPromoTermsUrl({ ...offer, ...options })).to.equal(url);
+        });
+    }
 });

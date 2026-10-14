@@ -1139,19 +1139,6 @@ describe('wcs OSI helpers', function () {
         expect(updateOffers({ promoScopeById: {} })).to.deep.equal([]);
     });
 
-    it('collects OSIs from a settings-sourced addon that is not authored as a card field', function () {
-        const elements = updateOffers({
-            body: {
-                fields: { osi: 'OWN' },
-                settings: {
-                    displayAnnual: true,
-                    addon: '<span is="inline-price" data-template="price" data-wcs-osi="ADDON"></span>',
-                },
-            },
-        });
-        expect(elements.map((element) => element.osi)).to.include('ADDON');
-    });
-
     it("applies the root fragment's promo project to settings OSIs, keeping inline promotion codes", function () {
         const context = {
             body: {
@@ -1180,11 +1167,11 @@ describe('wcs OSI helpers', function () {
         expect(context.body.settings.authored).to.include('data-promotion-code="INLINE"');
     });
 
-    it('applies the offer-mapping fallback to settings OSIs', function () {
+    it('collects settings OSIs that are not authored as card fields, applying the offer-mapping fallback', function () {
         const context = {
             body: {
                 fields: {},
-                settings: { addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
+                settings: { displayAnnual: true, addon: '<span is="inline-price" data-wcs-osi="ADDON"></span>' },
             },
         };
         expect(updateOffers(context, { ADDON: { osi: 'MAPPED', promotionCode: 'MAP_PROMO' } })).to.deep.equal([

@@ -1,28 +1,36 @@
 import { ODIN_PREVIEW_ORIGIN } from '../constants.js';
 
 export function createOdinTelemetry({ log }) {
+    const sessionId = crypto.randomUUID();
     const counts = new Map();
 
+    function countOf(status) {
+        return counts.get(status) ?? 0;
+    }
+
     function record(status) {
-        counts.set(status, (counts.get(status) ?? 0) + 1);
+        counts.set(status, countOf(status) + 1);
     }
 
     function observe(entries) {
         for (const entry of entries) {
-            if (entry.name.startsWith(ODIN_PREVIEW_ORIGIN)) record(entry.responseStatus ?? 0);
+            if (entry.name.startsWith(ODIN_PREVIEW_ORIGIN)) record(entry.responseStatus ?? 'none');
         }
     }
 
     function flush() {
         if (counts.size === 0) return;
         const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
-        const throttled = counts.get(429) ?? 0;
+        const throttled = countOf(429);
         const statuses = [...counts.entries()].map(([status, count]) => `${status}:${count}`).join(',');
-        log(`Odin preview requests¶total=${total}¶429=${throttled}¶statuses=${statuses}`, {
-            severity: throttled > 0 ? 'warning' : 'info',
-            sampleRate: 100,
-            tags: 'studio,odin-preview',
-        });
+        log(
+            `Odin preview requests¶session=${sessionId}¶total=${total}¶429=${throttled}¶unknown=${countOf(0) + countOf('none')}¶statuses=${statuses}`,
+            {
+                severity: throttled > 0 ? 'warning' : 'info',
+                sampleRate: 100,
+                tags: 'studio,odin-preview',
+            },
+        );
         counts.clear();
     }
 

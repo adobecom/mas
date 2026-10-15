@@ -1,0 +1,78 @@
+name: Refresh Nala Gate
+
+on:
+    workflow_run:
+        workflows: [Run Nala Tests]
+        types: [completed]
+
+permissions:
+    actions: write
+    checks: read
+    pull-requests: read
+
+jobs:
+    refresh:
+        name: Refresh gate after Nala retry
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+              with:
+                  script: |
+                      const run = context.payload.workflow_run;
+                      const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+                          ...context.repo, run_id: run.id, filter: 'all', per_page: 100,
+                      });
+                      // A gate-only retry must not trigger another gate-only retry.
+                      if (!jobs.some((job) => job.run_attempt === run.run_attempt &&
+                          job.name.startsWith('Running Nala ') && job.conclusion !== 'skipped')) {
+                          core.info('No E2E jobs executed in this attempt; no gate refresh needed.');
+                          return;
+                      }
+                      let references = run.pull_requests ?? [];
+                      if (!references.length) {
+                          references = await github.paginate(github.rest.pulls.list, {
+                              ...context.repo, state: 'open',
+                              head: `${run.head_repository.owner.login}:${run.head_branch}`,
+                              per_page: 100,
+                          });
+                      }
+                      for (const reference of references) {
+                          const { data: pr } = await github.rest.pulls.get({
+                              ...context.repo, pull_number: reference.number,
+                          });
+                          if (pr.state !== 'open' || pr.head.sha !== run.head_sha) {
+                              core.info(`Ignoring completed run for closed or updated PR ${pr.number}.`);
+                              continue;
+                          }
+                          const checks = await github.paginate(github.rest.checks.listForRef, {
+                              ...context.repo, ref: pr.head.sha,
+                              check_name: 'Nala Gate', filter: 'all', per_page: 100,
+                          });
+                          const gate = checks.sort((a, b) => b.id - a.id)[0];
+                          if (!gate || gate.status !== 'completed' || gate.conclusion === 'success') {
+                              core.info(`PR ${pr.number}: gate is already passing, running, or not yet created.`);
+                              continue;
+                          }
+                          const match = new URL(gate.details_url).pathname.match(/\/job\/(\d+)$/);
+                          if (!match) throw new Error(`Cannot identify Nala Gate job from ${gate.details_url}`);
+                          const jobId = Number(match[1]);
+                          const { data: gateJob } = await github.rest.actions.getJobForWorkflowRun({
+                              ...context.repo, job_id: jobId,
+                          });
+                          // Older preflight gates have downstream E2E jobs; retrying them would rerun tests.
+                          if (!gateJob.steps.some((step) => step.name === 'Resolve live PR and Nala state')) {
+                              core.warning(`PR ${pr.number}: legacy preflight gate cannot be refreshed without rerunning tests.`);
+                              continue;
+                          }
+                          const { data: gateRun } = await github.rest.actions.getWorkflowRun({
+                              ...context.repo, run_id: gateJob.run_id,
+                          });
+                          if (gateRun.run_attempt >= 3) {
+                              core.warning(`PR ${pr.number}: automatic gate refresh limit reached; retry the gate manually.`);
+                              continue;
+                          }
+                          await github.rest.actions.reRunJobForWorkflowRun({
+                              ...context.repo, job_id: jobId,
+                          });
+                          core.info(`Requested gate-only refresh for PR ${pr.number}; E2E tests are not retriggered.`);
+                      }

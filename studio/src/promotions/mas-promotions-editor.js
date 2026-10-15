@@ -1868,11 +1868,11 @@ class MasPromotionsEditor extends LitElement {
                                 class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label>Personalization and locale tags</sp-field-label>
+                                <sp-field-label>Personalization tags</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
-                                    label="Personalization and locale tags"
+                                    label="Personalization tags"
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
                                     exclude-country-tags

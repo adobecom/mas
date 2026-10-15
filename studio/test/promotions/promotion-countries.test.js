@@ -42,7 +42,7 @@ describe('promotion-countries', () => {
         expect(getSelectedCountries(geos)).to.deep.equal(['FR', 'US', 'GB']);
     });
 
-    it('reads personalization and locale tags excluding pzn country tags', () => {
+    it('reads Personalization tags excluding pzn country tags', () => {
         const geos = [
             'mas:pzn/smb',
             '/content/cq:tags/mas/pzn/teams',
@@ -117,12 +117,12 @@ describe('promotion-countries', () => {
         expect(pruneIneligibleCountries(geos, ['ccd'])).to.deep.equal(geos.slice(0, 2));
     });
 
-    it('replaces personalization and locale tags and keeps country geos', () => {
+    it('replaces Personalization tags and keeps country geos', () => {
         const geos = ['mas:locale/en_US', 'mas:pzn/smb', 'mas:pzn/country/US'];
         expect(setPersonalizationGeos(geos, ['mas:pzn/teams'])).to.deep.equal(['mas:pzn/country/US', 'mas:pzn/teams']);
     });
 
-    it('clears personalization and locale tags and keeps country geos', () => {
+    it('clears Personalization tags and keeps country geos', () => {
         const geos = ['mas:locale/en_US', '/content/cq:tags/mas/locale/fr_FR', 'mas:pzn/smb', 'mas:pzn/country/US'];
         expect(setPersonalizationGeos(geos, [])).to.deep.equal(['mas:pzn/country/US']);
     });

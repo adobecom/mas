@@ -911,13 +911,13 @@ describe('MasPromotionsEditor', () => {
             expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US', 'mas:pzn/smb']);
         });
 
-        it('shows personalization and locale tags in the picker', async () => {
+        it('shows Personalization tags in the picker', async () => {
             const el = await mountEditor();
             el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
             await el.updateComplete;
             const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
             expect(geosPicker.getAttribute('top')).to.equal('locale,pzn');
-            expect(geosPicker.getAttribute('label')).to.equal('Personalization and locale tags');
+            expect(geosPicker.getAttribute('label')).to.equal('Personalization tags');
             expect(geosPicker.value).to.deep.equal(['/content/cq:tags/mas/locale/en_US', '/content/cq:tags/mas/pzn/smb']);
         });
 

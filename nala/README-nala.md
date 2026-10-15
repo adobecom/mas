@@ -262,6 +262,8 @@ A workflow for an older PR commit does not run tests against the newer head.
 
 Reviews and unrelated label changes do not restart tests that are already running or have a result for the same commit.
 New commits, deliberately re-adding `run nala`, and manual workflow retries request execution explicitly.
+Label/review events skip superseded-run cancellation without blocking E2E launch. Both E2E jobs require successful
+direct prerequisites and a non-cancelled workflow; Docs also requires successful identity resolution.
 On a new commit, `Cancel Superseded Nala Runs` requests cancellation of older active Nala workflows for that PR before
 the label/approval check. This does not depend on approvals or the new E2E jobs being eligible to start.
 It does not cancel other PRs or newer workflows, and an already superseded push cannot cancel the current head's runs.

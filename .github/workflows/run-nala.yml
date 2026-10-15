@@ -157,7 +157,11 @@ jobs:
     run-nala-studio-tests:
         name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
         needs: [check-paths, check-approvals]
+        # Label/review events skip the cancellation ancestor; do not inherit implicit success().
         if: |
+            !cancelled() &&
+            needs.check-paths.result == 'success' &&
+            needs.check-approvals.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true' &&
             needs.check-approvals.outputs.already-handled != 'true'
@@ -256,7 +260,12 @@ jobs:
         # Keep in sync with the check names in .github/actions/resolve-nala-status.
         name: Running Nala Docs E2E UI Tests
         needs: [check-paths, check-approvals, identity]
+        # Label/review events skip the cancellation ancestor; do not inherit implicit success().
         if: |
+            !cancelled() &&
+            needs.check-paths.result == 'success' &&
+            needs.check-approvals.result == 'success' &&
+            needs.identity.result == 'success' &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true' &&
             needs.check-approvals.outputs.already-handled != 'true'

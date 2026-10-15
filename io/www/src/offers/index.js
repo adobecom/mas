@@ -45,8 +45,9 @@ export const offersBundleStateKey = (locale) => `offers-bundle-${locale}`;
 // flight), so a warm container neither re-reads state nor re-encodes a locale for every request:
 // - `offer-<locale>-<pa>`: stored offer baseline, '' when there is none (absence is cached too),
 // - `locale-<locale>`: encoded response (`{ etag, body }`) of every offer baseline of a locale.
-// State errors throw, so they are never cached.
-const offersCache = createSwrCache({ name: 'offers' });
+// State errors throw, so they are never cached. Room for a few locales of ~1800 offers (≤ ~2KB each) besides every locale
+// response (~250KB each).
+const offersCache = createSwrCache({ name: 'offers', maxEntries: 10000 });
 
 export function clearOffersCache() {
     offersCache.clear();

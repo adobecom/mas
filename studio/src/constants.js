@@ -72,6 +72,7 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
     CREATE: 'create',
@@ -300,6 +301,9 @@ export const QUICK_ACTION = {
     LINK: 'link',
     REVERT: 'revert',
     CHECK_MODIFICATIONS: 'check-modifications',
+    CREATE_VARIATION: 'create-variation',
+    PREVIEW: 'preview',
+    HISTORY: 'history',
 };
 
 export const FILTER_TYPE = {

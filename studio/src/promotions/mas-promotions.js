@@ -9,6 +9,7 @@ import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
 import { canEditPromotions } from '../groups.js';
@@ -196,7 +197,12 @@ class MasPromotions extends LitElement {
                                 data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                ${renderRowLinkOverlay(promo, { page: PAGE_NAMES.PROMOTIONS_EDITOR })}
+                                <sp-table-cell
+                                    >${renderEditorLink(promo, promo.title, {
+                                        page: PAGE_NAMES.PROMOTIONS_EDITOR,
+                                    })}</sp-table-cell
+                                >
                                 <sp-table-cell>
                                     <span class="timeline-cell">
                                         ${promo.timeline}

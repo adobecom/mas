@@ -72,12 +72,15 @@ jobs:
 
             - name: Deploy to Adobe I/O Runtime
               # Runtime namespace + auth come from the Vault .aio/.env written above.
-              # These three are the only app.config.yaml vars without a prod-correct code
-              # default; STUDIO_BASE_URL and PRODUCTS_* fall back in code (empty-string-safe).
+              # Every remaining app.config.yaml $VAR is exported here per the
+              # deploy-inputs-contract test — AEM_BASE_URL (derived from odin_bucket),
+              # STUDIO_BASE_URL, and the AOS creds. Only PRODUCTS_* are omitted, as
+              # they are code-defaulted (the test's DEFAULTED_IN_CODE allowlist).
               # AOS_API_KEY in particular is required — create-release-cards and
               # get-product-detail refuse to run without it.
               env:
                   AEM_BASE_URL: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
+                  STUDIO_BASE_URL: https://mas.adobe.com/studio.html
                   AOS_URL: ${{ env.AOS_URL }}
                   AOS_API_KEY: ${{ env.AOS_API_KEY }}
               run: aio app deploy --all

@@ -44,11 +44,18 @@ The term placeholder will be deprecated and it is recommended to refer as <stron
 <p>To route checkout links and buttons through the host’s initialized <code>window.aupsdk</code>, add:</p>
 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">name</span>=<span class="hljs-string">&quot;aup-select&quot;</span> <span class="hljs-attr">content</span>=<span class="hljs-string">&quot;on&quot;</span> /&gt;</span>
 </code></pre>
+<p>Two values enable routing:</p>
+<ul>
+<li><code>on</code> routes CTAs through the AUP SDK for the true Select experience.</li>
+<li><code>ucv3_in_iframe</code> routes CTAs through the AUP SDK and keeps the current 3-in-1 modals. This value is temporary.</li>
+<li>When the value is absent or anything else, AUP routing is disabled.</li>
+</ul>
+<p>M@S treats both values the same way; the difference is host-side. Milo adds <code>tmp_aupsdk_ucv3_in_iframe</code> to <code>miniAppContext.features</code> only for <code>ucv3_in_iframe</code>. The <code>ucv3_in_iframe</code> value will be removed once hosts switch fully to the true Select experience.</p>
 <p>The commerce service resolves <code>service.settings.aupSelect</code> during initialization from <code>aup-select</code> metadata, falling back to its <code>aup-select</code> attribute when metadata is absent:</p>
 <pre><code class="hljs language-html"><span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span> <span class="hljs-attr">aup-select</span>=<span class="hljs-string">&quot;on&quot;</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>
 </code></pre>
-<p>When configuring the service through Milo, use <code>commerce['aup-select'] = 'on'</code>. Milo does not translate <code>commerce.aupSelect</code> to the service’s hyphenated attribute.</p>
-<p>Only exact <code>on</code> enables routing; the default is disabled. At initialization, the <code>aup-select</code> query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit <code>off</code> or empty value. Storage overrides are ignored.</p>
+<p>When configuring the service through Milo, use <code>commerce['aup-select'] = 'on'</code> (or <code>'ucv3_in_iframe'</code>). Milo does not translate <code>commerce.aupSelect</code> to the service’s hyphenated attribute.</p>
+<p>Only exact, case-sensitive <code>on</code> or <code>ucv3_in_iframe</code> enables routing; the default is disabled. At initialization, the <code>aup-select</code> query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit <code>off</code> or empty value. Storage overrides are ignored.</p>
 <p>AUP-eligible links render <code>href=&quot;#&quot;</code> (buttons use <code>data-href=&quot;#&quot;</code>). M@S retains the original destination internally for checkout fallback. Upgrade and perpetual offers, downloads, and links targeting another window retain their existing URLs.</p>
 <p>Command/Ctrl-click, other modified clicks, and middle-click do nothing on AUP-eligible CTAs. They neither launch AUP nor invoke the host’s legacy checkout handler.</p>
 <p>CTAs launch the <code>try</code> intent for a main <code>TRIAL</code> offer and <code>buy</code> otherwise through <code>launchWorkflowInModal</code>, using the SDK’s default rendering mode. M@S does not initialize or reconfigure the SDK. The configured checkout client ID is forwarded to orchestration without a client-side allowlist. AUP determines workflow availability; M@S does not exclude promotions, multiple offers, addons, quantities, or change-plan steps.</p>

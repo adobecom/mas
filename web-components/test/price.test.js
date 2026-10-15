@@ -3,12 +3,12 @@ import {
     STATE_FAILED,
     STATE_RESOLVED,
 } from '../src/constants.js';
-import { InlinePrice } from '../src/inline-price.js';
+import { InlinePrice, resolvePriceOffers } from '../src/inline-price.js';
 import { Price } from '../src/price.js';
 import { getSettings } from '../src/settings.js';
 import priceLiteralsJson from '../price-literals.json' with { type: 'json' };
 import { equalsCaseInsensitive } from '@dexter/tacocat-core';
-import { FF_DEFAULTS } from '../src/constants.js';
+import { FF_ANNUAL_PRICE, FF_DEFAULTS } from '../src/constants.js';
 import { mockFetch } from './mocks/fetch.js';
 import { mockLana, unmockLana } from './mocks/lana.js';
 import * as snapshots from './price/__snapshots__/price.snapshots.js';
@@ -2546,5 +2546,71 @@ describe('WCS preformatted response format', () => {
             await inlinePrice.onceSettled();
             expect(partsOf(inlinePrice)).to.equal('64.77');
         });
+    });
+});
+
+// Offer selection, summing, discounts, and tax re-selection are covered through InlinePrice above;
+// these cover the option defaults the agent action relies on when it calls this without an element.
+describe('function "resolvePriceOffers"', () => {
+    const wcsOffer = (customerSegment = 'INDIVIDUAL') => ({
+        customerSegment,
+        marketSegments: ['COM'],
+        priceDetails: { formatString: "'US$'#,##0.00", price: 1 },
+    });
+
+    for (const [label, featureFlags, flagOption] of [
+        ['feature flags', { [FF_DEFAULTS]: true }, {}],
+        ['options', {}, { [FF_DEFAULTS]: true }],
+    ]) {
+        it(`applies per-unit and tax defaults when FF_DEFAULTS is on via ${label}`, async () => {
+            const team = { country: 'US', language: 'en', ...flagOption };
+            await resolvePriceOffers(
+                [[wcsOffer('TEAM')]],
+                team,
+                {},
+                featureFlags,
+            );
+            expect(team.displayPerUnit).to.be.true;
+            expect(team.displayTax).to.not.be.ok;
+            expect(team.forceTaxExclusive).to.not.be.ok;
+            expect(team).to.not.have.property('displayOldPrice');
+
+            const individual = { country: 'US', language: 'en', ...flagOption };
+            await resolvePriceOffers(
+                [[wcsOffer()]],
+                individual,
+                {},
+                featureFlags,
+            );
+            expect(individual.displayPerUnit).to.be.false;
+        });
+    }
+
+    it('keeps explicitly set per-unit and tax options under FF_DEFAULTS', async () => {
+        const priceOptions = {
+            displayPerUnit: false,
+            displayTax: true,
+            forceTaxExclusive: false,
+        };
+        const options = { country: 'MU', language: 'en', ...priceOptions };
+        await resolvePriceOffers([[wcsOffer('TEAM')]], options, priceOptions, {
+            [FF_DEFAULTS]: true,
+        });
+        expect(options).to.include(priceOptions);
+    });
+
+    it('turns on displayAnnual with FF_ANNUAL_PRICE unless it is false', async () => {
+        const featureFlags = { [FF_ANNUAL_PRICE]: true };
+        const unset = { country: 'US' };
+        await resolvePriceOffers([[wcsOffer()]], unset, {}, featureFlags);
+        expect(unset.displayAnnual).to.be.true;
+
+        const disabled = { country: 'US', displayAnnual: false };
+        await resolvePriceOffers([[wcsOffer()]], disabled, {}, featureFlags);
+        expect(disabled.displayAnnual).to.be.false;
+
+        const flagOff = { country: 'US' };
+        await resolvePriceOffers([[wcsOffer()]], flagOff, {});
+        expect(flagOff).to.not.have.property('displayAnnual');
     });
 });

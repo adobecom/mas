@@ -64,6 +64,11 @@ Ask colleagues/slack for IMS_EMAIL and IMS_PASS values, your user might not work
 Beware that 'npm run nala' runs `node nala/utils/nala.run.js`, it's not the script that GH action does.
 If you want to debug GH action script run sh `nala/utils/gh.run.sh`
 
+GitHub runs use the PR head branch (`prBranch`, then `GITHUB_HEAD_REF` or the workflow's `branch` value).
+
+See the [Nala guide](nala/README-nala.md) for browser setup, test-account credentials, parallel execution, caching,
+request limits, reporting and cleanup.
+
 # CI/CD
 
 documented in .github/README.md

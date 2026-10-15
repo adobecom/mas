@@ -45,6 +45,7 @@ async function main(params) {
         loggedTransformer: 'pipeline',
         DEFAULT_HEADERS,
         status: 200,
+        measures: [],
     };
     mark(context, 'start');
     let returnValue;
@@ -183,6 +184,7 @@ async function mainProcess(context) {
                 state: context.state,
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
+                measures: context.measures,
             };
             initContext.loggedTransformer = `${transformer.name}-init`;
             initPromises[transformer.name] = transformer.init(initContext);

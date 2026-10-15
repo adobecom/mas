@@ -179,6 +179,38 @@ describe('pipeline corner cases', () => {
         fetchStub.restore();
     });
 
+    it('includes init-phase fetch durations in the final pipeline timings log', async () => {
+        setupFragmentMocks(fetchStub, {});
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50').returns(
+            createResponse(200, {
+                items: [
+                    {
+                        id: 'timed-project',
+                        path: '/content/dam/mas/promotions/sale',
+                        fields: { surfaces: ['sandbox'], tags: ['mas:promotion/sale'] },
+                    },
+                ],
+            }),
+        );
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/timed-project?references=all-hydrated')
+            .returns(createResponse(200, { fields: { offers: ['|SAVE|'] } }));
+        const output = sinon.stub(console, 'log');
+        try {
+            const result = await getFragment({
+                id: 'some-en-us-fragment',
+                locale: 'en_US',
+                state: new MockState(),
+            });
+            expect(result.statusCode).to.equal(200);
+            const timings = output.getCalls().find(({ args }) => args[0].includes('timings (time and duration)'));
+            expect(timings.args[0]).to.match(/main-fetch-fragment t:[\d.]+, d:[\d.]+/);
+            expect(timings.args[0]).to.match(/main-fetch-promotions-hydrate-timed-project t:[\d.]+, d:[\d.]+/);
+        } finally {
+            output.restore();
+        }
+    });
+
     it('should handle main timeout', async () => {
         const odinDomain = 'https://odin.adobe.com';
         const odinUriRoot = '/adobe/contentFragments';

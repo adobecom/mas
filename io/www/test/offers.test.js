@@ -18,7 +18,7 @@ const OFFERS = '/content/dam/mas/offers';
 const listing = (folder, cursor) => `${ODIN}/?path=${folder}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
 const baseline = (locale, pa, name = pa) => ({
     id: `${locale}-${pa}`,
-    path: `${OFFERS}/${locale}/${pa}/baseline`,
+    path: `${OFFERS}/${locale}/baselines/${pa}/baseline`,
     model: { id: 'offer-model' },
     fields: { name },
     extra: 'not stored',
@@ -49,11 +49,17 @@ describe('offers action', () => {
         const phsp = baseline('en_US', 'phsp_direct_individual');
         const ilst = baseline('en_US', 'ilst_direct_individual');
         const phspFr = baseline('fr_FR', 'phsp_direct_individual');
-        fetchStub
-            .withArgs(listing(OFFERS))
-            .returns(
-                createResponse(200, { items: [phsp, { path: `${OFFERS}/en_US/phsp_direct_individual/other` }], cursor: 'c1' }),
-            );
+        fetchStub.withArgs(listing(OFFERS)).returns(
+            createResponse(200, {
+                items: [
+                    phsp,
+                    { path: `${OFFERS}/en_US/baselines/phsp_direct_individual/other` },
+                    { path: `${OFFERS}/en_US/baselines/phsp_direct_individual/edu/baseline` },
+                    { path: `${OFFERS}/en_US/phsp_direct_individual/baseline` },
+                ],
+                cursor: 'c1',
+            }),
+        );
         fetchStub.withArgs(listing(OFFERS, 'c1')).returns(createResponse(200, { items: [ilst, phspFr] }));
 
         const { statusCode, body } = await main({ state });

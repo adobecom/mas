@@ -5,12 +5,10 @@ const FRAGMENT_IDS_PARAMS = ['fragmentIds', 'ids', 'cardIds'];
 
 const TOOLS_REQUIRING_FRAGMENT_ID = new Set([
     'get_card',
-    'publish_card',
     'update_card',
     'copy_card',
     'link_card_to_offer',
     'get_variations',
-    'create_locale_variation',
     'create_grouped_variation',
     'list_context_cards',
 ]);

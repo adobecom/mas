@@ -12,8 +12,6 @@ const DEFAULT_DATA = Object.freeze({ sessions: {}, activeSessionId: null });
 const SAFE_OPERATION_TYPES = new Set([
     'search',
     'search_cards',
-    'publish',
-    'publish_card',
     'copy',
     'copy_card',
     'update',

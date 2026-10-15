@@ -9,7 +9,7 @@ import { OPERATIONS_SERVICE_URL } from '../mas-chat/config.js';
 
 /**
  * Execute an operation on the operations service
- * @param {string} toolName - Name of the operation (e.g., 'publish_card')
+ * @param {string} toolName - Name of the operation (e.g., 'update_card')
  * @param {Object} params - Tool parameters
  * @returns {Promise<Object>} - Tool execution result
  */
@@ -74,20 +74,6 @@ export async function executeStudioOperation(operationName, operationParams) {
     const result = await executeOperation(operationName, operationParams);
 
     switch (operationName) {
-        case 'publish_card': {
-            const id = result.id || result.card?.id || operationParams.id;
-            const title = result.title || result.card?.title || '';
-            return {
-                success: true,
-                operation: 'publish',
-                fragmentId: id,
-                fragmentTitle: title,
-                fragmentPath: result.path || result.card?.path,
-                message: title ? `✓ "${title}" has been published to production.` : '✓ Card published to production.',
-                deepLink: result.deepLink,
-            };
-        }
-
         case 'get_card': {
             const fragment = result.card || null;
             const title = fragment?.title || '';

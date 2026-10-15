@@ -110,7 +110,7 @@ describe('ai-chat/knowledge coverage', () => {
     }
 
     /**
-     * The corpus names tool identifiers (search_cards, create_locale_variation)
+     * The corpus names tool identifiers (search_cards, create_grouped_variation)
      * so the model can connect a documented capability to an intent it can
      * emit. That makes a stale identifier worse than a stale sentence: it reads
      * like a real tool name, so it seeds a call the registry will reject.

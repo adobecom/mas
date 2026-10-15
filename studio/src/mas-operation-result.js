@@ -186,27 +186,6 @@ export class MasOperationResult extends LitElement {
         this.displayCount = Math.min((this.displayCount || 5) + increment, totalCount);
     }
 
-    renderPublishResult() {
-        const { fragmentTitle, fragmentPath } = this.result;
-
-        return html`
-            <div class="operation-result publish-result success">
-                <div class="result-icon">
-                    <sp-icon-check-circle size="l"></sp-icon-check-circle>
-                </div>
-                <div class="result-content">
-                    <h4>Published Successfully</h4>
-                    <p>"${fragmentTitle}" is now live.</p>
-                    ${fragmentPath
-                        ? html`<p class="result-path">
-                              <a href="${fragmentPath}" target="_blank">${fragmentPath}</a>
-                          </p>`
-                        : ''}
-                </div>
-            </div>
-        `;
-    }
-
     renderCopyResult() {
         const { newFragmentTitle, newFragmentPath } = this.result;
 
@@ -934,9 +913,6 @@ export class MasOperationResult extends LitElement {
             case 'search':
             case 'search_cards':
                 return this.renderSearchResults();
-            case 'publish':
-            case 'publish_card':
-                return this.renderPublishResult();
             case 'copy':
             case 'copy_card':
                 return this.renderCopyResult();

@@ -3,6 +3,8 @@ import AHPromotedPlansSpec from '../specs/promoted_plans_edit_and_discard.spec.j
 
 const { features } = AHPromotedPlansSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
     // @studio-promoted-plans-edit-discard-gradient-border - Validate editing and discarding gradient border
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -12,7 +14,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
         const promotedPlansCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await promotedPlansCard).toBeVisible();
@@ -23,14 +25,7 @@ test.describe('M@S Studio AHome Promoted Plans card test suite', () => {
             await expect(await editor.borderColor).toBeVisible();
             await expect(await editor.borderColor).toContainText(data.standardBorder.color);
             await expect(promotedPlansCard).toHaveAttribute('border-color', data.standardBorder.cssColor);
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.waitForSelector(`sp-menu-item[value="${data.gradientBorder.value}"]`, {
-                state: 'visible',
-            });
-            await page.locator(`sp-menu-item[value="${data.gradientBorder.value}"]`).first().click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.gradientBorder.color);
         });
 
         await test.step('step-3: Validate border color applied to card', async () => {

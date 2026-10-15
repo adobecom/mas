@@ -3,8 +3,8 @@ import { DESTRUCTIVE_TOOLS, shouldRequireConfirmation } from '../../src/utils/ai
 
 describe('ai-operations-executor', () => {
     describe('DESTRUCTIVE_TOOLS allowlist', () => {
-        it('contains every state-mutating operation, not just publish and release', () => {
-            for (const tool of ['create_release_cards', 'publish_card', 'update_card', 'copy_card', 'link_card_to_offer']) {
+        it('contains every state-mutating operation, not just release', () => {
+            for (const tool of ['create_release_cards', 'update_card', 'copy_card', 'link_card_to_offer']) {
                 expect(DESTRUCTIVE_TOOLS.has(tool), tool).to.be.true;
             }
         });

@@ -123,7 +123,7 @@ describe('envelope-validator', () => {
 
         it('rejects a state-changing envelope whose ids were never observed', () => {
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: FAKE }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: FAKE }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [] }, [], 'update both of them') },
             );
 
@@ -134,7 +134,7 @@ describe('envelope-validator', () => {
 
         it('accepts ids that appear in the working set', () => {
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [{ id: UUID }] }, [], 'update both') },
             );
 
@@ -143,7 +143,7 @@ describe('envelope-validator', () => {
 
         it('accepts an id the user pasted in the current message', () => {
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({}, [], `publish ${UUID}`) },
             );
 
@@ -153,7 +153,7 @@ describe('envelope-validator', () => {
         it('rejects ids only narrated by the assistant', () => {
             const history = [{ role: 'assistant', content: `I found one card: ${UUID2}` }];
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: UUID2 }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: UUID2 }, confidence: 'high' },
                 { observedIds: collectObservedIds({}, history, 'publish it') },
             );
 
@@ -162,7 +162,7 @@ describe('envelope-validator', () => {
 
         it('accepts ids carried by the last operation', () => {
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: UUID }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: UUID }, confidence: 'high' },
                 { observedIds: collectObservedIds({ lastOperation: { fragmentIds: [UUID] } }, [], 'publish them') },
             );
 
@@ -171,7 +171,7 @@ describe('envelope-validator', () => {
 
         it('matches ids case-insensitively', () => {
             const r = validateEnvelope(
-                { intent: 'publish_card', slots: { id: UUID.toUpperCase() }, confidence: 'high' },
+                { intent: 'copy_card', slots: { id: UUID.toUpperCase() }, confidence: 'high' },
                 { observedIds: collectObservedIds({ workingSet: [{ id: UUID }] }, [], 'publish') },
             );
 
@@ -196,7 +196,7 @@ describe('envelope-validator', () => {
 
         it('stays inert when the caller supplies no provenance', () => {
             const r = validateEnvelope({
-                intent: 'publish_card',
+                intent: 'copy_card',
                 slots: { id: FAKE },
                 confidence: 'high',
             });

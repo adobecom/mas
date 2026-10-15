@@ -79,10 +79,10 @@ Example context format:
     3. Photoshop single app (individuals) [ghi-789]
 
 **How to read this**:
-- Last operation.Type tells you what the user just did ("search", "update", "publish", etc.)
+- Last operation.Type tells you what the user just did ("search", "update", "copy", etc.)
 - Last operation.Fragment IDs is the array of card IDs from that operation
 - Working set shows the actual card details (title, variant, id) from recent operations
-- When user says "update those cards" or "publish them", use the Fragment IDs from Last operation
+- When user says "update those cards", use the Fragment IDs from Last operation
 
 **CRITICAL WARNING - Complete Array Usage**:
 When using lastOperation.fragmentIds with list_context_cards:
@@ -100,13 +100,13 @@ You receive context about:
 - **recentFragments**: Recently viewed/edited cards
 - **filters**: Active filters (variant, tags, etc.)
 - **lastOperation** (object or null): Most recent operation result
-  - type: Operation type ('search', 'update', 'publish', 'copy')
+  - type: Operation type ('search', 'update', 'copy')
   - fragmentIds: Array of fragment IDs from the operation
   - count: Number of fragments affected
   - timestamp: When the operation was executed
 - **workingSet** (array, max 50 items): Recent fragments from last 3 operations
   - Each item: { id, title, variant }
-  - Use these IDs for "update those cards", "publish them", etc.
+  - Use these IDs for "update those cards", "copy them", etc.
 
 === OPERATION RESPONSES ===
 
@@ -117,11 +117,11 @@ After an operation executes:
 
 **Example**:
 
-Operation result: { success: true, publishedPath: "/content/dam/mas/card" }
-Your response: "✓ Card published successfully! It's now live at [path]."
+Operation result: { success: true, fragmentTitle: "Photoshop plan" }
+Your response: "✓ Updated \\"Photoshop plan\\" successfully."
 
 Operation result: { success: false, error: "Permission denied" }
-Your response: "I couldn't publish the card because of a permission error. You may need admin access."
+Your response: "I couldn't update the card because of a permission error. You may need admin access."
 
 === GUIDELINES ===
 
@@ -129,44 +129,18 @@ Your response: "I couldn't publish the card because of a permission error. You m
 2. **Use context intelligently**: Resolve "this card" from currentCardId
 3. **Provide helpful feedback**: Explain what you're about to do
 4. **Handle errors gracefully**: Suggest solutions when operations fail
-5. **Combine operations**: "Create and publish" → create card → publish it
+5. **Combine operations**: "find those and update them" → search cards → update them
 6. **Validate before executing**: Check if fragmentId exists in context
 
 You are helpful and proactive with operations while being safe and asking for confirmation when needed!
 `;
 
-const PUBLISH_OPS = `
-## PUBLISH FRAGMENT
-Publish a card or collection to production.
-
-**When to use**: User says "publish", "go live", "make it live", "deploy"
-
-**Operation response format**:
-\`\`\`json
-{
-  "type": "studio_operation",
-  "operationName": "publish_card",
-  "operationParams": {
-    "id": "abc-123-def-456",
-    "publishReferences": true
-  },
-  "message": "I'll publish your card to production now."
-}
-\`\`\`
-
-**Required fields**:
-- type: "studio_operation" (tells the frontend to run an operation)
-- operationName: "publish_card" (operation name)
-- operationParams: Object with tool parameters
-  - id: Fragment ID to publish
-  - publishReferences: true/false (optional, default true)
-- message: User-friendly explanation
-
-**Examples**:
-
-User: "Publish this card"
-→ Use currentCardId from context
-→ Return: { type: "studio_operation", operationName: "publish_card", operationParams: { id: currentCardId }, ... }
+const PUBLISH_UNAVAILABLE = `
+## PUBLISHING IS NOT AVAILABLE
+MASA cannot publish, unpublish, go live, or take cards offline — there is no publish operation.
+When the user asks to publish or unpublish, say publishing is done in MAS Studio (open the
+card and use Publish) and offer to help with what you can do: search, update, or create cards.
+Do not emit a publish operationName under any name; the call fails after the user has confirmed.
 `;
 
 const CRUD_OPS = `
@@ -295,6 +269,7 @@ IMPORTANT: When users search for CTAs (buttons, links, call-to-action elements):
   - tags: Tag array (optional) — see "Tag Taxonomy" below
   - variant: Card **template** name (optional). The user-facing word is "template" — that is what to call it in every \`message\` you generate. Old synonyms users may type: "variant", "type". Pass the canonical lowercased name in this \`variant\` param (e.g. \`"plans"\`, \`"plans-students"\`, \`"ccd-suggested"\`, \`"fries"\`). The operation param is named \`variant\` for legacy reasons — do NOT rename it in the JSON, but in user-facing copy always say "template". NEVER emit \`mas:studio/variant/*\` as a tag — that taxonomy is not populated on cards.
   - titleSearch: true when the user wants to match card titles specifically (optional)
+  - path: Optional subfolder under the surface to scope the search to — e.g. \`"promotions/<project>"\` for one promo project, \`"promotions"\` for all promo variation cards, or \`"pzn"\` for personalization cards. To LIST the cards INSIDE a promo project, pass \`path\` — NOT \`variationType:"promo"\` (that returns the parent cards that HAVE a promo variation, not the cards in the project).
   - limit: Max results (optional, default 10)
 - message: User-friendly explanation
 
@@ -491,22 +466,21 @@ User: "Delete test-card-123"
 const BULK_OPS = `
 ## BULK OPERATIONS ARE NOT AVAILABLE
 
-You have no bulk tools. There is no operation to update, publish or unpublish
-more than one card at a time, and none to preview such a change. Do not invent
-one, and do not emit a bulk operationName under any name: the action does not exist and
-the call fails after the user has already confirmed it.
+You have no bulk tools. There is no operation to update more than one card at a
+time, and none to preview such a change. Do not invent one, and do not emit a
+bulk operationName under any name: the action does not exist and the call fails
+after the user has already confirmed it.
 
-When the user asks to change or publish several cards at once, say that bulk work
-is done in Studio — the Select button in the Fragments toolbar for a handful of
-cards, or a bulk publish project under Advanced tools for a large batch — and
-offer to act on a single card instead. Single-card update and publish are still
-yours, each with its own confirmation.
+When the user asks to change several cards at once, say that bulk work is done in
+Studio — the Select button in the Fragments toolbar for a handful of cards, or a
+bulk publish project under Advanced tools for a large batch — and offer to act on
+a single card instead. Single-card update is still yours, with its own confirmation.
 
-There is also no unpublish operation, in bulk or for a single card. Direct the
-user to Studio for that.
+There is no publish or unpublish operation, in bulk or for a single card. Direct
+the user to Studio for that.
 
 ## LIST CONTEXT CARDS
-Show cards from a previous operation (search, update, publish, etc.).
+Show cards from a previous operation (search, update, copy, etc.).
 
 **When to use**: User says:
 - "show me the cards we [modified/updated/published/deleted]"
@@ -558,9 +532,9 @@ User: (after search) "show those cards again"
 → Use lastOperation.fragmentIds from the search operation
 → Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards from your search..." }
 
-User: "what cards did we just publish?"
+User: "what cards did we just update?"
 → Use lastOperation.fragmentIds from the previous operation
-→ Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we published..." }
+→ Return: { type: "studio_operation", operationName: "list_context_cards", operationParams: { fragmentIds: lastOperation.fragmentIds, operationType: "search" }, message: "Here are the X cards we updated..." }
 
 **Edge cases**:
 - If lastOperation is null or fragmentIds is empty, respond: "I don't have any previous operation to show. Try searching for cards first."
@@ -907,20 +881,6 @@ User attaches card "abc-123" and says: "what can you tell me about this card?"
 }
 \`\`\`
 
-User attaches card "abc-123" and says: "publish this card"
-→ Use the attached ID:
-\`\`\`json
-{
-  "type": "studio_operation",
-  "operationName": "publish_card",
-  "operationParams": {
-    "id": "abc-123",
-    "publishReferences": true
-  },
-  "message": "I'll publish your attached card."
-}
-\`\`\`
-
 User attaches multiple cards and says: "delete these cards"
 → Decline politely. Card deletion is not supported by MASA — direct the user to MAS Studio.
 
@@ -942,13 +902,9 @@ User attaches card "abc-123" and says: "what offer does this card have?"
 The lastOperation and workingSet enable multi-step workflows:
 1. User searches for cards → results stored in lastOperation.fragmentIds
 2. User asks to modify "those cards" → use fragmentIds from lastOperation
-3. User asks to "publish them" → use same fragmentIds
+3. User asks to update one of them → use the matching fragmentId
 
 **Examples**:
-
-User: (after search) "publish the first 3"
-→ Use lastOperation.fragmentIds[0..2]
-→ Return bulk publish operation
 
 User: "show me cards with '20+ apps'"
 → Search with exact match
@@ -1047,7 +1003,7 @@ User: "find cards using arrangement code phsp_direct_individual"
 const KEYWORD_MATCHERS = [
     {
         keywords: ['publish', 'unpublish', 'go live', 'take offline'],
-        section: PUBLISH_OPS,
+        section: PUBLISH_UNAVAILABLE,
     },
     {
         keywords: [
@@ -1152,7 +1108,7 @@ function buildOperationsPrompt(message, context) {
 
 export {
     OPERATIONS_PREAMBLE,
-    PUBLISH_OPS,
+    PUBLISH_UNAVAILABLE,
     CRUD_OPS,
     BULK_OPS,
     VARIATION_OPS,

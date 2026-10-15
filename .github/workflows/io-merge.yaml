@@ -4,6 +4,7 @@ on:
         types: [closed]
         paths:
             - 'io/www/**'
+            - '.github/workflows/io-merge.yaml'
 
 jobs:
     build_and_test:
@@ -22,6 +23,10 @@ jobs:
                   node-version: '22.x'
                   cache: 'npm'
                   cache-dependency-path: io/www/package.json
+
+            - name: Install shared web-component dependencies
+              run: npm ci
+              working-directory: .
 
             - name: Install dependencies
               run: npm ci

@@ -33,7 +33,7 @@ export const INTENTS = [
         name: 'search_cards',
         category: 'read-only',
         description:
-            'Search the card catalog. Filters combine: variant (template, e.g. "plans"), variationType (cards that HAVE grouped/promo/locale variations), query/titleSearch (free text), tags, surface/surfaces, locale.',
+            'Search the card catalog. Filters combine: variant (template, e.g. "plans"), variationType (cards that HAVE grouped/promo/locale variations), query/titleSearch (free text), tags, surface/surfaces, locale, path. To list the cards INSIDE a promo project or the personalization folder, pass path (e.g. "promotions/<project>" or "pzn") — that returns the cards in that folder, whereas variationType:"promo" returns the parent cards that have a promo variation.',
         required_slots: [],
         optional_slots: [
             'query',
@@ -45,6 +45,7 @@ export const INTENTS = [
             'tags',
             'osi',
             'variationType',
+            'path',
             'limit',
             'offset',
         ],
@@ -58,19 +59,10 @@ export const INTENTS = [
             tags: 'string[]',
             osi: 'osi',
             variationType: 'variationType',
+            path: 'relativePath',
         },
         tool_target: 'search_cards',
         confirmation_template: null,
-    },
-    {
-        name: 'publish_card',
-        category: 'state-changing',
-        description: 'Publish a single card to production.',
-        required_slots: ['id'],
-        optional_slots: [],
-        slot_validators: { id: 'uuid' },
-        tool_target: 'publish_card',
-        confirmation_template: 'Publish card {{id}} to production?',
     },
     {
         name: 'update_card',
@@ -107,16 +99,6 @@ export const INTENTS = [
         slot_validators: { id: 'uuid' },
         tool_target: 'get_variations',
         confirmation_template: null,
-    },
-    {
-        name: 'create_locale_variation',
-        category: 'state-changing',
-        description: 'Create a new locale variation of an existing fragment.',
-        required_slots: ['parentId', 'locale'],
-        optional_slots: ['title'],
-        slot_validators: { parentId: 'uuid', locale: 'locale', title: 'string' },
-        tool_target: 'create_locale_variation',
-        confirmation_template: 'Create {{locale}} variation of card {{parentId}}?',
     },
     {
         name: 'create_grouped_variation',
@@ -196,22 +178,6 @@ export const INTENTS = [
         slot_validators: { arrangementCode: 'string' },
         tool_target: 'get_product_by_arrangement_code',
         confirmation_template: null,
-    },
-    {
-        name: 'create_offer_selector',
-        category: 'state-changing',
-        description: 'Create a new AOS offer selector and return its OSI.',
-        required_slots: ['productArrangementCode', 'customerSegment', 'marketSegment', 'offerType'],
-        optional_slots: ['commitment', 'term', 'pricePoint'],
-        slot_validators: {
-            productArrangementCode: 'string',
-            customerSegment: 'string',
-            marketSegment: 'string',
-            offerType: 'string',
-        },
-        tool_target: 'create_offer_selector',
-        confirmation_template:
-            'Create offer selector for {{productArrangementCode}} ({{customerSegment}}/{{marketSegment}}, {{offerType}})?',
     },
     // ===== Collections & tagging =====
     {
@@ -432,6 +398,14 @@ export const SLOT_VALIDATORS = {
     locale: (v) => typeof v === 'string' && /^[a-z]{2}_[A-Z]{2,4}$/.test(v),
     paCode: (v) => typeof v === 'string' && /^PA-?\d+$/.test(v),
     boolean: (v) => typeof v === 'boolean',
+    // A subfolder path under the surface (e.g. "promotions/<project>", "pzn").
+    // Surrounding slashes are tolerated; '.'/'..' segments are rejected so the
+    // scoped search can never climb out of the caller's surface.
+    relativePath: (v) => {
+        if (typeof v !== 'string' || !v.trim()) return false;
+        const clean = v.trim().replace(/^\/+|\/+$/g, '');
+        return clean.length > 0 && clean.split('/').every((s) => s && s !== '.' && s !== '..');
+    },
     object: (v) => v !== null && typeof v === 'object' && !Array.isArray(v),
     'object[]': (v) => Array.isArray(v) && v.length > 0 && v.every((x) => x !== null && typeof x === 'object'),
 };

@@ -6,6 +6,7 @@ import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
+import { masaAvatar } from './img/masa-avatar.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 import { prepareTextReveal } from './utils/text-reveal.js';
 import Store from './store.js';
@@ -459,7 +460,7 @@ export class MasChatMessage extends LitElement {
                         : operationResult && content === operationResult.message
                           ? nothing
                           : content || this.showSuggestions
-                            ? html`${role === 'assistant' ? html`<div class="message-avatar">✦</div>` : nothing}
+                            ? html`${role === 'assistant' ? html`<div class="message-avatar">${masaAvatar}</div>` : nothing}
                                   <div class="message-content">
                                       <div class="message-text">
                                           ${role === 'error'

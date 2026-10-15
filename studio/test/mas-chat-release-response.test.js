@@ -29,8 +29,21 @@ describe('MasChat.handleReleaseCardsResponse', () => {
         storageSandbox.restore();
     });
 
+    // release_cards only creates when the user confirmed the release this turn
+    // (#releaseConfirmed, set from context.confirmedRelease). Drive that real
+    // confirmation turn, with the AI call stubbed, so the gate is open for the
+    // handleReleaseCardsResponse call under test.
+    const confirmRelease = async () => {
+        const ai = sinon.stub(el, 'callAIChatAction').resolves({ type: 'message', message: 'ok' });
+        await el.handleSendMessage({
+            detail: { message: 'confirm', context: { confirmedRelease: true, skipDeterministicRouter: true } },
+        });
+        ai.restore();
+    };
+
     it('appends an error and creates nothing when there are no card configs', async () => {
         const save = sinon.stub(el, 'saveDraftToAEM').resolves({});
+        await confirmRelease();
         await el.handleReleaseCardsResponse({ cardConfigs: [] });
         expect(save.called).to.equal(false);
         expect(el.messages.at(-1).role).to.equal('error');
@@ -42,7 +55,11 @@ describe('MasChat.handleReleaseCardsResponse', () => {
         save.onCall(0).resolves({ id: 'f1', title: 'A', path: '/p/a' });
         save.onCall(1).resolves({ id: 'f2', title: 'B', path: '/p/b' });
         el.selectedReleaseProduct = { name: 'Photoshop' };
+        // A model parentPath is honored only when it is under the current
+        // surface; set that surface so the acom path is accepted, not rejected.
+        Store.search.set({ path: 'acom' });
 
+        await confirmRelease();
         await el.handleReleaseCardsResponse({
             cardConfigs: [{ variant: 'plans' }, { variant: 'catalog' }],
             parentPath: '/content/dam/mas/acom/en_US',
@@ -62,6 +79,7 @@ describe('MasChat.handleReleaseCardsResponse', () => {
         save.onCall(1).rejects(new Error('AEM 500'));
         el.selectedReleaseProduct = { name: 'Acrobat' };
 
+        await confirmRelease();
         await el.handleReleaseCardsResponse({
             cardConfigs: [{ variant: 'plans' }, { variant: 'catalog' }],
             parentPath: '/content/dam/mas/acom/en_US',
@@ -77,6 +95,7 @@ describe('MasChat.handleReleaseCardsResponse', () => {
         Store.filters.set({ locale: 'en_US' });
         const save = sinon.stub(el, 'saveDraftToAEM').resolves({ id: 'f', title: 'T', path: '/p' });
 
+        await confirmRelease();
         await el.handleReleaseCardsResponse({
             cardConfigs: [{ variant: 'plans' }],
             parentPath: '/content/dam/mas/acom/../ccd/en_US',

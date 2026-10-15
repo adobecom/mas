@@ -36,8 +36,8 @@ describe('ai-chat envelope dispatcher', () => {
         });
 
         it('routes a plain state-changing intent through the confirmation gate', () => {
-            expect(classifyEnvelopeIntent({ intent: 'publish_card' })).to.equal('operation-state-changing');
-            expect(classifyEnvelopeIntent({ intent: 'create_locale_variation' })).to.equal('operation-state-changing');
+            expect(classifyEnvelopeIntent({ intent: 'copy_card' })).to.equal('operation-state-changing');
+            expect(classifyEnvelopeIntent({ intent: 'create_grouped_variation' })).to.equal('operation-state-changing');
         });
 
         it('treats anything else as a read-only MCP call', () => {
@@ -53,7 +53,7 @@ describe('ai-chat envelope dispatcher', () => {
 
     describe('renderConfirmationTemplate', () => {
         it('fills slots from the envelope', () => {
-            expect(renderConfirmationTemplate('publish_card', { id: 'abc' })).to.equal('Publish card abc to production?');
+            expect(renderConfirmationTemplate('copy_card', { id: 'abc' })).to.equal('Duplicate card abc?');
         });
 
         // The dotted-path case lived on bulk_publish_cards ({{fragmentIds.length}}).

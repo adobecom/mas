@@ -372,6 +372,13 @@ export const BULK_EDIT_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vb
 
 export const BULK_EDIT_STATUS = {
     DRAFT: 'Draft',
+    APPLYING: 'Applying',
+    APPLIED: 'Applied',
+    PARTIALLY_APPLIED: 'Partially applied',
+    FAILED: 'Failed',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+    LOCKED: 'Locked',
 };
 
 /**

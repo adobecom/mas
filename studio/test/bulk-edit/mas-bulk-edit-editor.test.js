@@ -6,6 +6,8 @@ import { BULK_EDIT_PROJECT_MODEL_ID, BULK_EDIT_STATUS, PAGE_NAMES, QUICK_ACTION 
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
+import { prepopulateFragmentCache, removeFromFragmentCache } from '../../src/mas-repository.js';
+import '@adobecom/mas';
 import '../../src/bulk-edit/mas-bulk-edit-editor.js';
 
 const rawProject = (title = 'Existing') => ({
@@ -148,6 +150,26 @@ describe('mas-bulk-edit-editor', () => {
         expect(el.projectTitle).to.equal('Existing');
     });
 
+    it('loads a cached project without fetching it from the repository', async () => {
+        const projectId = 'cached-project';
+        await prepopulateFragmentCache(projectId, {
+            ...rawProject(),
+            id: projectId,
+            model: { id: BULK_EDIT_PROJECT_MODEL_ID },
+        });
+        Store.bulkEditProjects.projectId.set(projectId);
+        const getFragmentById = sinon.stub();
+        const el = connectEditor({ getFragmentById });
+
+        try {
+            await el.connectedCallback();
+            expect(el.project.get().id).to.equal(projectId);
+            expect(getFragmentById.called).to.be.false;
+        } finally {
+            await removeFromFragmentCache(projectId);
+        }
+    });
+
     it('refuses to load a fragment that is not a bulk edit project', async () => {
         Store.bulkEditProjects.projectId.set('card1');
         sinon.stub(console, 'error');
@@ -172,9 +194,11 @@ describe('mas-bulk-edit-editor', () => {
 
     it('returns to the project list from the load error view', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        Store.bulkEditProjects.projectId.set('missing');
         el.loadFailed = true;
         await el.updateComplete;
         el.shadowRoot.querySelector('[data-testid="load-error"] sp-button').click();
+        expect(Store.bulkEditProjects.projectId.get()).to.be.null;
         expect(navigate.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
     });
 
@@ -257,6 +281,8 @@ describe('mas-bulk-edit-editor', () => {
             let resolve;
             const el = connectEditor({ getFragmentById: () => new Promise((r) => (resolve = r)) });
             const loading = el.connectedCallback();
+            await Promise.resolve();
+            await Promise.resolve();
             el.disconnectedCallback();
             resolve({ ...rawProject(), model: { id: BULK_EDIT_PROJECT_MODEL_ID } });
             await loading;
@@ -269,6 +295,8 @@ describe('mas-bulk-edit-editor', () => {
             let reject;
             const el = connectEditor({ getFragmentById: () => new Promise((r, j) => (reject = j)) });
             const loading = el.connectedCallback();
+            await Promise.resolve();
+            await Promise.resolve();
             el.disconnectedCallback();
             reject(new Error('aborted'));
             await loading;

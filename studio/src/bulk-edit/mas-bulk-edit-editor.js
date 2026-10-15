@@ -8,6 +8,7 @@ import router from '../router.js';
 import { BULK_EDIT_PROJECT_MODEL_ID, BULK_EDIT_STATUS, PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
+import { getFromFragmentCache } from '../mas-repository.js';
 import {
     buildBulkEditProjectPayload,
     isBulkEditProjectTitleTaken,
@@ -68,7 +69,7 @@ class MasBulkEditEditor extends LitElement {
         }
         this.loading = true;
         try {
-            const fragment = await this.repository.getFragmentById(projectId);
+            const fragment = (await getFromFragmentCache(projectId)) ?? (await this.repository.getFragmentById(projectId));
             if (signal.aborted) return;
             if (fragment.model?.id !== BULK_EDIT_PROJECT_MODEL_ID)
                 throw new Error(`Fragment ${projectId} is not a bulk edit project`);
@@ -180,7 +181,14 @@ class MasBulkEditEditor extends LitElement {
     get loadErrorView() {
         return html`<div class="card" data-testid="load-error">
             <p>This project could not be loaded. It may have been deleted or the link is invalid.</p>
-            <sp-button variant="secondary" @click=${router.navigateToPage(PAGE_NAMES.BULK_EDIT)}>Back to projects</sp-button>
+            <sp-button
+                variant="secondary"
+                @click=${() => {
+                    Store.bulkEditProjects.projectId.set(null);
+                    router.navigateToPage(PAGE_NAMES.BULK_EDIT)();
+                }}
+                >Back to projects</sp-button
+            >
         </div>`;
     }
 

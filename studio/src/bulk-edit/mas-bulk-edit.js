@@ -8,6 +8,17 @@ import { formatProjectDate, getProjectField, renderSkeletonRows } from '../commo
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import '../bulk-publish/mas-bulk-publish-delete-dialog.js';
 
+const STATUS_VARIANT = {
+    [BULK_EDIT_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
+    [BULK_EDIT_STATUS.LOCKED]: { label: 'Locked', className: 'locked' },
+    [BULK_EDIT_STATUS.APPLYING]: { label: 'Applying', className: 'publishing' },
+    [BULK_EDIT_STATUS.APPLIED]: { label: 'Applied', className: 'published' },
+    [BULK_EDIT_STATUS.PARTIALLY_APPLIED]: { label: 'Partially applied', className: 'partial' },
+    [BULK_EDIT_STATUS.FAILED]: { label: 'Failed', className: 'failed' },
+    [BULK_EDIT_STATUS.REVERTING]: { label: 'Reverting', className: 'reverting' },
+    [BULK_EDIT_STATUS.REVERTED]: { label: 'Reverted', className: 'reverted' },
+};
+
 class MasBulkEdit extends LitElement {
     static styles = styles;
 
@@ -51,6 +62,7 @@ class MasBulkEdit extends LitElement {
     }
 
     async handleDeleteConfirmed() {
+        if (!this.deletePending) return;
         const { projectStore } = this.deletePending;
         this.deletePending = null;
         const ok = await this.repository.deleteFragment(projectStore.get());
@@ -60,10 +72,11 @@ class MasBulkEdit extends LitElement {
     }
 
     renderStatus(status) {
+        const variant = STATUS_VARIANT[status] ?? STATUS_VARIANT[BULK_EDIT_STATUS.DRAFT];
         return html`
-            <span class="status-light ${status.toLowerCase()}">
+            <span class="status-light ${variant.className}">
                 <span class="status-dot" aria-hidden="true"></span>
-                ${status}
+                ${variant.label}
             </span>
         `;
     }

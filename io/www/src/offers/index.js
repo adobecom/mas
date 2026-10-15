@@ -1,7 +1,7 @@
 import stateLib from '@adobe/aio-lib-state';
 import { createHash } from 'crypto';
 import zlib from 'zlib';
-import { fetch, getJsonFromState, VALID_PARAMETER_VALUE_REGEX } from '../fragment/utils/common.js';
+import { fetch, getFromState, getJsonFromState, VALID_PARAMETER_VALUE_REGEX } from '../fragment/utils/common.js';
 import { loadConfiguration, validateApiKey } from '../fragment/utils/configuration.js';
 import { log, logError } from '../fragment/utils/log.js';
 import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
@@ -11,7 +11,8 @@ import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
  * per locale & product arrangement, so the fragment pipeline reads the few it needs instead of listing the whole folder
  * (~1800 product arrangements per locale).
  * - sync: non web invocations (every 15 minutes alarm, or on demand), for one `locale` or all of them,
- * - serve: web `GET ?locale=<locale>&pa=<pa>[,<pa>…]`, brotli compressed, with an ETag for conditional requests.
+ * - serve: web `GET ?locale=<locale>[&pa=<pa>[,<pa>…]]`, brotli compressed, with an ETag for conditional requests. Without
+ *   `pa`, every offer baseline of the locale, read from its bundle (one state entry per locale).
  */
 
 const OFFERS_ROOT = `${MAS_ROOT}/offers`;
@@ -22,6 +23,7 @@ const TTL = 365 * 24 * 60 * 60;
 const STATE_BATCH_SIZE = 10;
 const OFFER_BASELINE_FALLBACK_LOCALE = 'en_US';
 const MAX_PRODUCT_ARRANGEMENTS = 50;
+const WEB_BROTLI_QUALITY = 5;
 const RESPONSE_HEADERS = { 'Content-Type': 'application/json' };
 const WEB_RESPONSE_HEADERS = {
     ...RESPONSE_HEADERS,
@@ -34,6 +36,8 @@ const WEB_RESPONSE_HEADERS = {
 export const offerStateKey = (locale, productArrangementCode) => `offer-${locale}-${productArrangementCode}`;
 // { [offerStateKey]: hash } of what is stored for a locale
 export const offersIndexStateKey = (locale) => `offers-index-${locale}`;
+// brotli compressed (base64) `{ [pa]: offerBaseline }` of every offer baseline of a locale
+export const offersBundleStateKey = (locale) => `offers-bundle-${locale}`;
 
 const hash = (value) => createHash('sha1').update(value).digest('base64url');
 
@@ -95,23 +99,56 @@ async function syncLocale(context, locale, baselines) {
         ...updated.map((key) => () => state.put(key, baselines[key], { ttl: TTL })),
         ...removed.map((key) => () => state.delete(key)),
     ]);
-    if (!index || updated.length || removed.length) {
+    // the bundle is also written when missing (e.g. state synced before it existed)
+    const bundled = await getFromState(offersBundleStateKey(locale), context);
+    if (!index || !bundled || updated.length || removed.length) {
+        await state.put(offersBundleStateKey(locale), compressBundle(locale, baselines), { ttl: TTL });
         await state.put(offersIndexStateKey(locale), JSON.stringify(next), { ttl: TTL });
     }
     return { locale, total: Object.keys(next).length, updated: updated.length, removed: removed.length };
 }
 
+function compressBundle(locale, baselines) {
+    const prefix = offerStateKey(locale, '');
+    const bundle = Object.fromEntries(
+        Object.entries(baselines).map(([key, value]) => [key.slice(prefix.length), JSON.parse(value)]),
+    );
+    return zlib.brotliCompressSync(JSON.stringify(bundle)).toString('base64');
+}
+
+async function readBundle(context, locale) {
+    const value = await getFromState(offersBundleStateKey(locale), context);
+    return value ? JSON.parse(zlib.brotliDecompressSync(Buffer.from(value, 'base64')).toString('utf-8')) : {};
+}
+
 function webResponse(statusCode, body, headers = {}) {
     const json = JSON.stringify(body);
+    // a locale wide response weighs megabytes: maximum (default) quality would take seconds
+    const params = { [zlib.constants.BROTLI_PARAM_QUALITY]: WEB_BROTLI_QUALITY };
     return {
         statusCode,
         headers: { ...WEB_RESPONSE_HEADERS, ...headers },
-        body: statusCode == 304 ? undefined : zlib.brotliCompressSync(json).toString('base64'),
+        body: statusCode == 304 ? undefined : zlib.brotliCompressSync(json, { params }).toString('base64'),
     };
 }
 
 /**
- * `{ [pa]: offerBaseline }` of the requested product arrangements (unknown ones omitted, 404 if none is known).
+ * Every offer baseline of a locale, falling back to en_US ones not localized yet.
+ */
+async function readLocaleBaselines(context, locale) {
+    const locales = [...new Set([OFFER_BASELINE_FALLBACK_LOCALE, locale])];
+    const bundles = await Promise.all(locales.map((bundleLocale) => readBundle(context, bundleLocale)));
+    return Object.assign({}, ...bundles);
+}
+
+async function readProductArrangementBaselines(context, locale, productArrangementCodes) {
+    const baselines = await Promise.all(productArrangementCodes.map((code) => readOfferBaseline(context, locale, code)));
+    return Object.fromEntries(productArrangementCodes.map((code, i) => [code, baselines[i]]).filter(([, b]) => b));
+}
+
+/**
+ * `{ [pa]: offerBaseline }` of the requested product arrangements (unknown ones omitted), or of the whole locale without
+ * `pa`, 404 if none is known.
  * Responds 304 when `If-None-Match` matches the ETag of the response.
  * Requires an `api_key` accepted by the fragment pipeline (same configuration).
  */
@@ -121,17 +158,18 @@ async function serve(params) {
     if (validation.statusCode !== 200) return webResponse(validation.statusCode, { message: validation.message });
     const { locale, pa } = context;
     const productArrangementCodes = [...new Set(pa?.split(',').filter(Boolean))];
-    if (!locale || !productArrangementCodes.length) {
-        return webResponse(400, { message: 'requested parameters locale & pa are not present' });
-    }
+    if (!locale) return webResponse(400, { message: 'requested parameter locale is not present' });
     const invalid = [locale, ...productArrangementCodes].find((value) => !VALID_PARAMETER_VALUE_REGEX.test(value));
     if (invalid) return webResponse(400, { message: `invalid parameter value '${invalid}'` });
     if (productArrangementCodes.length > MAX_PRODUCT_ARRANGEMENTS) {
         return webResponse(400, { message: `at most ${MAX_PRODUCT_ARRANGEMENTS} product arrangements can be requested` });
     }
-    const baselines = await Promise.all(productArrangementCodes.map((code) => readOfferBaseline(context, locale, code)));
-    const body = Object.fromEntries(productArrangementCodes.map((code, i) => [code, baselines[i]]).filter(([, b]) => b));
-    if (!Object.keys(body).length) return webResponse(404, { message: `no offer baseline found for ${pa} in ${locale}` });
+    const body = productArrangementCodes.length
+        ? await readProductArrangementBaselines(context, locale, productArrangementCodes)
+        : await readLocaleBaselines(context, locale);
+    if (!Object.keys(body).length) {
+        return webResponse(404, { message: `no offer baseline found for ${pa ?? 'any product arrangement'} in ${locale}` });
+    }
     const etag = `"${hash(JSON.stringify(body))}"`;
     const statusCode = context.__ow_headers?.['if-none-match'] === etag ? 304 : 200;
     return webResponse(statusCode, body, { ETag: etag });

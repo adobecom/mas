@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import zlib from 'zlib';
-import { main, offerStateKey, offersIndexStateKey } from '../src/offers/index.js';
+import { main, offerStateKey, offersBundleStateKey, offersIndexStateKey } from '../src/offers/index.js';
 import { resetCache } from '../src/fragment/utils/configuration.js';
 import { MockState } from './fragment/mocks/MockState.js';
 import { createResponse } from './fragment/mocks/MockFetch.js';
@@ -17,6 +17,8 @@ const baseline = (locale, pa, name = pa) => ({
     extra: 'not stored',
 });
 const stored = ({ id, path, model, fields }) => JSON.stringify({ id, path, model, fields });
+const compress = (json) => zlib.brotliCompressSync(JSON.stringify(json)).toString('base64');
+const decompress = (value) => JSON.parse(zlib.brotliDecompressSync(Buffer.from(value, 'base64')).toString('utf-8'));
 
 describe('offers action', () => {
     let fetchStub;
@@ -57,6 +59,13 @@ describe('offers action', () => {
         expect(state.store[offerStateKey('en_US', 'ilst_direct_individual')]).to.equal(stored(ilst));
         expect(state.store[offerStateKey('fr_FR', 'phsp_direct_individual')]).to.equal(stored(phspFr));
         expect(Object.keys(JSON.parse(state.store[offersIndexStateKey('en_US')]))).to.have.length(2);
+        expect(decompress(state.store[offersBundleStateKey('en_US')])).to.deep.equal({
+            phsp_direct_individual: JSON.parse(stored(phsp)),
+            ilst_direct_individual: JSON.parse(stored(ilst)),
+        });
+        expect(decompress(state.store[offersBundleStateKey('fr_FR')])).to.deep.equal({
+            phsp_direct_individual: JSON.parse(stored(phspFr)),
+        });
         expect(state.put.firstCall.args[2]).to.deep.equal({ ttl: 365 * 24 * 60 * 60 });
     });
 
@@ -70,12 +79,21 @@ describe('offers action', () => {
         await main({ state, locale: 'en_US' });
         expect(state.put.called).to.be.false;
 
+        delete state.store[offersBundleStateKey('en_US')];
+        await main({ state, locale: 'en_US' });
+        expect(keysPut()).to.deep.equal([offersBundleStateKey('en_US'), offersIndexStateKey('en_US')]);
+        state.put.resetHistory();
+
         const updated = baseline('en_US', 'phsp_direct_individual', 'Photoshop');
         fetchStub.withArgs(listing(`${OFFERS}/en_US`)).returns(createResponse(200, { items: [updated] }));
         const { body } = await main({ state, locale: 'en_US' });
 
         expect(body.locales).to.deep.equal([{ locale: 'en_US', total: 1, updated: 1, removed: 1 }]);
-        expect(keysPut()).to.deep.equal([offerStateKey('en_US', 'phsp_direct_individual'), offersIndexStateKey('en_US')]);
+        expect(keysPut()).to.deep.equal([
+            offerStateKey('en_US', 'phsp_direct_individual'),
+            offersBundleStateKey('en_US'),
+            offersIndexStateKey('en_US'),
+        ]);
         expect(state.store[offerStateKey('en_US', 'phsp_direct_individual')]).to.equal(stored(updated));
         expect(state.store[offerStateKey('en_US', 'ilst_direct_individual')]).to.be.undefined;
     });
@@ -91,6 +109,7 @@ describe('offers action', () => {
         expect(body.locales).to.deep.equal([{ locale: 'de_DE', total: 0, updated: 0, removed: 1 }]);
         expect(state.delete.calledWith(offerStateKey('de_DE', 'phsp_direct_individual'))).to.be.true;
         expect(state.store[offersIndexStateKey('de_DE')]).to.equal('{}');
+        expect(decompress(state.store[offersBundleStateKey('de_DE')])).to.deep.equal({});
     });
 
     it('writes nothing when the listing fails', async () => {
@@ -119,6 +138,11 @@ describe('offers action', () => {
             state.store[offerStateKey('en_US', 'phsp_direct_individual')] = stored(PHSP);
             state.store[offerStateKey('fr_FR', 'phsp_direct_individual')] = stored(PHSP_FR);
             state.store[offerStateKey('en_US', 'ilst_direct_individual')] = stored(ILST);
+            state.store[offersBundleStateKey('en_US')] = compress({
+                phsp_direct_individual: JSON.parse(stored(PHSP)),
+                ilst_direct_individual: JSON.parse(stored(ILST)),
+            });
+            state.store[offersBundleStateKey('fr_FR')] = compress({ phsp_direct_individual: JSON.parse(stored(PHSP_FR)) });
         });
 
         it('serves requested offer baselines, brotli compressed with an ETag, falling back to en_US', async () => {
@@ -160,6 +184,26 @@ describe('offers action', () => {
             );
         });
 
+        it('serves every offer baseline of a locale without pa, falling back to en_US', async () => {
+            const response = await get({ locale: 'fr_FR' });
+            expect(response.statusCode).to.equal(200);
+            expect(response.headers.ETag).to.match(/^"[\w-]+"$/);
+            expect(decode(response)).to.deep.equal({
+                phsp_direct_individual: JSON.parse(stored(PHSP_FR)),
+                ilst_direct_individual: JSON.parse(stored(ILST)),
+            });
+            const notModified = await get({ locale: 'fr_FR' }, { 'if-none-match': response.headers.ETag });
+            expect(notModified.statusCode).to.equal(304);
+            expect(Object.keys(decode(await get({ locale: 'en_US' })))).to.have.length(2);
+        });
+
+        it('responds 404 for a locale without any offer baseline', async () => {
+            delete state.store[offersBundleStateKey('en_US')];
+            const response = await get({ locale: 'ja_JP' });
+            expect(response.statusCode).to.equal(404);
+            expect(decode(response).message).to.equal('no offer baseline found for any product arrangement in ja_JP');
+        });
+
         it('responds 404 when no requested offer baseline exists', async () => {
             const response = await get({ locale: 'en_US', pa: 'unknown_pa' });
             expect(response.statusCode).to.equal(404);
@@ -167,7 +211,6 @@ describe('offers action', () => {
         });
 
         it('responds 400 on missing, invalid or too many parameters', async () => {
-            expect((await get({ locale: 'en_US' })).statusCode).to.equal(400);
             expect((await get({ pa: 'phsp_direct_individual' })).statusCode).to.equal(400);
             expect(decode(await get({ locale: 'en_US', pa: 'phsp,../x' })).message).to.equal("invalid parameter value '../x'");
             const pa = Array.from({ length: 51 }, (_, i) => `pa_${i}`).join(',');

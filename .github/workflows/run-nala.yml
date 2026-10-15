@@ -207,10 +207,6 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: 20.x
-                  cache: 'npm'
-                  cache-dependency-path: |
-                      **/package-lock.json
-                      **/yarn.lock
 
             - name: Prepare compatible Nala dependencies
               uses: ./.github/actions/setup-nala
@@ -306,10 +302,6 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: 20.x
-                  cache: 'npm'
-                  cache-dependency-path: |
-                      **/package-lock.json
-                      **/yarn.lock
 
             - name: Prepare compatible Nala dependencies
               uses: ./.github/actions/setup-nala

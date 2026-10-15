@@ -14,14 +14,15 @@ test.describe('MAS Docs Masks feature test suite', () => {
 
         await test.step('step-1: Load masks doc page and wait for cards', async () => {
             await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            await page.waitForSelector('merch-card[variant^="plans"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
+            for (const id of data.fragmentIds) {
+                const { card, title } = masksPage.card(id);
+                await expect(card).toHaveAttribute('variant', /^plans/);
+                await expect(title).toBeVisible();
+            }
         });
 
         await test.step('step-2: Click Mask button to apply nala-mask', async () => {
             await masksPage.btnMask.click();
-            await page.waitForTimeout(3000);
             // wait for all three cards to show the masked title
             for (const id of data.fragmentIds) {
                 await expect(masksPage.card(id).title).toContainText(data.mask.title, { timeout: 15000 });

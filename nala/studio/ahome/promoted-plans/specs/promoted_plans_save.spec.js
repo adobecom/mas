@@ -14,7 +14,7 @@ export default {
                     },
                     updated: {
                         color: 'Transparent',
-                        cssColor: 'Transparent',
+                        cssColor: 'transparent',
                     },
                 },
             },

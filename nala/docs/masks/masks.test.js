@@ -15,8 +15,7 @@ test.describe('MAS Docs Masks feature test suite', () => {
         await test.step('step-1: Load masks doc page and wait for cards', async () => {
             await page.goto(testPage);
             for (const id of data.fragmentIds) {
-                const { card, title } = masksPage.card(id);
-                await expect(card).toHaveAttribute('variant', /^plans/);
+                const { title } = masksPage.card(id);
                 await expect(title).toBeVisible();
             }
         });

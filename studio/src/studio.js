@@ -10,6 +10,7 @@ import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
 import { initUsers } from './users.js';
+import { canAccessBulkPublish } from './groups.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
@@ -159,6 +160,8 @@ class MasStudio extends LitElement {
     }
 
     page = new StoreController(this, Store.page);
+    users = new StoreController(this, Store.users);
+    profile = new StoreController(this, Store.profile);
     landscape = new StoreController(this, Store.landscape);
     viewMode = new StoreController(this, Store.viewMode);
 
@@ -238,14 +241,20 @@ class MasStudio extends LitElement {
 
     get bulkPublish() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH) return nothing;
+        if (!this.bulkPublishAccessReady) return nothing;
         if (!this.#lazyLoad('mas-bulk-publish', './bulk-publish/mas-bulk-publish.js')) return nothing;
         return html`<mas-bulk-publish></mas-bulk-publish>`;
     }
 
     get bulkPublishEditor() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH_EDITOR) return nothing;
+        if (!this.bulkPublishAccessReady) return nothing;
         if (!this.#lazyLoad('mas-bulk-publish-editor', './bulk-publish/mas-bulk-publish-editor.js')) return nothing;
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
+    }
+
+    get bulkPublishAccessReady() {
+        return Store.users.getMeta('loaded') && canAccessBulkPublish();
     }
 
     get advancedTools() {

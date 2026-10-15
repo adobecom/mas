@@ -2,6 +2,8 @@ import Store from './store.js';
 
 const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
 
+const MAS_BULK_PUBLISH_GROUP = 'GRP-ODIN-MAS-ACOM-CURATORS';
+
 const MAS_PROMO_EDITORS_GROUP = 'GRP-ODIN-MAS-PROMO-EDITORS';
 
 /** Surface path segment → LDAP group required for Studio settings (non-admin). */
@@ -37,11 +39,20 @@ export function isMasAdmin() {
     return groups.includes(MAS_ADMIN_GROUP.toUpperCase());
 }
 
-/** Promotions authoring is gated to a single global editors group (admins always allowed). */
-export function canEditPromotions() {
+function isAdminOrInGroup(group) {
     const groups = getCurrentUserNormalizedGroups();
     if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_PROMO_EDITORS_GROUP.toUpperCase());
+    return groups.includes(MAS_ADMIN_GROUP) || groups.includes(group);
+}
+
+/** Studio UI access across all surfaces; AEM publish permissions remain unchanged. */
+export function canAccessBulkPublish() {
+    return isAdminOrInGroup(MAS_BULK_PUBLISH_GROUP);
+}
+
+/** Promotions authoring is gated to a single global editors group (admins always allowed). */
+export function canEditPromotions() {
+    return isAdminOrInGroup(MAS_PROMO_EDITORS_GROUP);
 }
 
 export function canAccessSettings(surface) {

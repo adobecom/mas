@@ -1666,6 +1666,68 @@ describe('priceInfo (WCS pre-split tree)', () => {
                 .join('');
         };
 
+        for (const { country, integer, delimiter, currencySymbol } of [
+            {
+                country: 'AR',
+                integer: '79.700',
+                delimiter: ',',
+                currencySymbol: 'Ar$',
+            },
+            {
+                country: 'US',
+                integer: '109',
+                delimiter: '.',
+                currencySymbol: 'US$',
+            },
+        ]) {
+            for (const { name, decimals, fullDecimals, expected } of [
+                {
+                    name: 'hides zero cents omitted from full',
+                    decimals: '00',
+                    fullDecimals: '',
+                    expected: '',
+                },
+                {
+                    name: 'keeps zero cents included in full',
+                    decimals: '00',
+                    fullDecimals: '00',
+                    expected: '00',
+                },
+                {
+                    name: 'keeps non-zero cents',
+                    decimals: '99',
+                    fullDecimals: '99',
+                    expected: '99',
+                },
+            ]) {
+                it(`${country}: ${name}`, () => {
+                    const priceInfo = {
+                        format: {
+                            ...abm.US.priceInfo.format,
+                            currencySymbol,
+                            decimalsDelimiter: delimiter,
+                        },
+                        asIs: {
+                            withDiscount: {
+                                withTax: {
+                                    integer,
+                                    decimals,
+                                    full: `${currencySymbol}${integer}${fullDecimals ? delimiter + fullDecimals : ''}`,
+                                },
+                            },
+                        },
+                    };
+                    const html = buildPriceHTML(
+                        [withInfo(offerFor('US'), priceInfo)],
+                        { ...opts, country },
+                    );
+                    expect(partsOf(html)).to.equal(
+                        `${integer}${expected ? delimiter + expected : ''}`,
+                    );
+                });
+            }
+        }
+
         Object.keys(abm).forEach((country) => {
             const c = abm[country];
             const countryOpts = { ...opts, country };

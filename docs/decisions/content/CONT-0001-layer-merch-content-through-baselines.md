@@ -1,12 +1,12 @@
 ---
-id: '0001'
+id: CONT-0001
 title: Layer merch content through product, template and market segment baselines
 status: active
 scope: project
-related: ['adr:adobecom/mas/0002', 'adr:Adobe-acom/core/KNOW-0000', 'adr:Adobe-acom/core/KNOW-0001']
+related: ['adr:adobecom/mas/CONT-0002', 'adr:Adobe-acom/core/KNOW-0000', 'adr:Adobe-acom/core/KNOW-0001']
 ---
 
-# 0001. Layer merch content through product, template and market segment baselines
+# CONT-0001. Layer merch content through product, template and market segment baselines
 
 ## Context
 
@@ -26,16 +26,16 @@ Decision drivers:
 We will resolve merch content as a stack of layers, from the lowest to the highest priority. Paths are relative to `/content/dam/mas`, `{pa}` is the full product arrangement code (e.g. `ccsn_direct_individual`) and `{segment}` is the lower-cased market segment (e.g. `edu`):
 
 1. **Product baseline**, at `offers/{locale}/baselines/{pa}/baseline` (offer model).
-   - Holds product default content, independent of any offer, pre-filled from MCS / NPI.
-   - Falls back to `en_US`.
-   - The `offers` I/O action syncs it into I/O state every 15 minutes, because the folder is too big to list per request.
+    - Holds product default content, independent of any offer, pre-filled from MCS / NPI.
+    - Falls back to `en_US`.
+    - The `offers` I/O action syncs it into I/O state every 15 minutes, because the folder is too big to list per request.
 2. **Template baseline**, at `{surface}/{locale}/baselines/{template}/{pa}/baseline`.
-   - Holds content common to every card of a PA on a surface and template.
+    - Holds content common to every card of a PA on a surface and template.
 3. **Market segment baseline**, at `{surface}/{locale}/baselines/{template}/{pa}/{segment}/baseline`.
-   - Applies only to offers whose resolved WCS market segment (the first of `marketSegments`) is `{segment}`.
-   - COM is the default: it has no segment folder.
+    - Applies only to offers whose resolved WCS market segment (the first of `marketSegments`) is `{segment}`.
+    - COM is the default: it has no segment folder.
 4. **Fragment**: the card or collection's own fields.
-5. **Variation**: at most one promotion, regional or PZN variation of the fragment (see [0002](./0002-select-one-fragment-variation.md)).
+5. **Variation**: at most one promotion, regional or PZN variation of the fragment (see [CONT-0002](./CONT-0002-select-one-fragment-variation.md)).
 
 Resolution rules:
 
@@ -44,7 +44,7 @@ Resolution rules:
 - A baseline's own variations and references are ignored: a baseline only provides defaults.
 - Without a fragment, the most specific existing baseline is the main body, merged over the lower layers.
 - Market segment overrides exist only at the template level. Other offer dimensions (consumer segment, plan type, …) are out of scope until a later ADR.
-- Baselines have no PZN level. Audience-specific content goes into the card's PZN variations ([0002](./0002-select-one-fragment-variation.md)).
+- Baselines have no PZN level. Audience-specific content goes into the card's PZN variations ([CONT-0002](./CONT-0002-select-one-fragment-variation.md)).
 - Masks (badges, runtime promo values, add-ons) are not part of this stack. They are merged separately at render time.
 
 ## Rationale

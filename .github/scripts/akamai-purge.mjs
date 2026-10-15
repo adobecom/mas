@@ -14,12 +14,11 @@ import { fileURLToPath } from 'node:url';
 const ORIGIN = 'https://main--mas--adobecom.aem.live';
 const EDGE = 'https://mas.adobe.com';
 const PURGE_PATH = '/ccu/v3/invalidate/url/production';
+// Fast Purge rejects request bodies over 50,000 bytes.
+const MAX_PURGE_BYTES = 50_000;
 // File types the mas.adobe.com property caches; HTML, JSON and the rest are no-store.
 const CACHED_EXTENSIONS = /\.(js|css|svg|png|jpe?g|gif|webp|ico|woff2?|ttf|otf|eot)$/i;
-const POLL_INTERVAL_MS = 10_000;
-const ORIGIN_TIMEOUT_MS = 5 * 60_000;
-const EDGE_TIMEOUT_MS = 60_000;
-const URLS_PER_PURGE = 500;
+const TIMING = { pollIntervalMs: 10_000, originTimeoutMs: 5 * 60_000, edgeTimeoutMs: 60_000, requestTimeoutMs: 30_000 };
 
 export function formatTimestamp(date) {
     return date
@@ -38,8 +37,23 @@ export function signRequest({ method, path, body = '', credentials, timestamp, n
     return `${authPrefix}signature=${signature}`;
 }
 
+// Expects `git diff -z` output, which keeps non-ASCII paths unquoted.
 export function selectPurgePaths(diffOutput) {
-    return diffOutput.split('\n').filter((path) => CACHED_EXTENSIONS.test(path));
+    return diffOutput.split('\0').filter((path) => CACHED_EXTENSIONS.test(path));
+}
+
+export function chunkUrls(urls, maxBytes = MAX_PURGE_BYTES) {
+    const chunks = [];
+    let chunk = [];
+    for (const url of urls) {
+        if (chunk.length && Buffer.byteLength(JSON.stringify({ objects: [...chunk, url] })) > maxBytes) {
+            chunks.push(chunk);
+            chunk = [];
+        }
+        chunk.push(url);
+    }
+    if (chunk.length) chunks.push(chunk);
+    return chunks;
 }
 
 function sleep(ms) {
@@ -47,41 +61,60 @@ function sleep(ms) {
 }
 
 function git(...args) {
-    return execFileSync('git', args, { maxBuffer: 64 * 1024 * 1024 });
+    return execFileSync('git', args, { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
-async function isServed(url, content) {
+function readPrevious(sha, path) {
     try {
-        const response = await fetch(url);
-        return response.ok && Buffer.from(await response.arrayBuffer()).equals(content);
+        return git('show', `${sha}:${path}`);
+    } catch {
+        return null;
+    }
+}
+
+function toUrl(base, path) {
+    return `${base}/${encodeURI(path)}`;
+}
+
+// A file is served once the host no longer returns the version from before the push. Comparing against "not the
+// previous version" rather than "this push's version" lets a later merge that changed the same file count as served.
+async function isServed(url, previous, timeoutMs) {
+    try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+        if (!response.ok) return false;
+        const content = Buffer.from(await response.arrayBuffer());
+        return !previous || !content.equals(previous);
     } catch {
         return false;
     }
 }
 
 // Sequential on purpose: aem.live throttles bursts from automation.
-async function findStale(base, files) {
+async function findStale(base, files, deadline, timing) {
     const stale = [];
     for (const file of files) {
-        if (!(await isServed(`${base}/${file.path}`, file.content))) stale.push(file);
+        const remainingMs = deadline - Date.now();
+        const served =
+            remainingMs > 0 &&
+            (await isServed(toUrl(base, file.path), file.previous, Math.min(timing.requestTimeoutMs, remainingMs)));
+        if (!served) stale.push(file);
     }
     return stale;
 }
 
-async function waitUntilServed(base, files, timeoutMs) {
+async function waitUntilServed(base, files, timeoutMs, timing) {
     const deadline = Date.now() + timeoutMs;
-    let stale = await findStale(base, files);
+    let stale = await findStale(base, files, deadline, timing);
     while (stale.length && Date.now() < deadline) {
-        await sleep(POLL_INTERVAL_MS);
-        stale = await findStale(base, stale);
+        await sleep(timing.pollIntervalMs);
+        stale = await findStale(base, stale, deadline, timing);
     }
     return stale;
 }
 
-async function purge(credentials, urls) {
+async function purge(credentials, urls, timing) {
     let estimatedSeconds = 0;
-    for (let start = 0; start < urls.length; start += URLS_PER_PURGE) {
-        const objects = urls.slice(start, start + URLS_PER_PURGE);
+    for (const objects of chunkUrls(urls)) {
         const body = JSON.stringify({ objects });
         const authorization = signRequest({
             method: 'POST',
@@ -95,6 +128,7 @@ async function purge(credentials, urls) {
             method: 'POST',
             headers: { Authorization: authorization, 'Content-Type': 'application/json' },
             body,
+            signal: AbortSignal.timeout(timing.requestTimeoutMs),
         });
         const result = await response.json().catch(() => ({}));
         if (response.status !== 201) {
@@ -104,6 +138,39 @@ async function purge(credentials, urls) {
         estimatedSeconds = Math.max(estimatedSeconds, result.estimatedSeconds ?? 0);
     }
     return estimatedSeconds;
+}
+
+function listPaths(files) {
+    return files
+        .slice(0, 5)
+        .map(({ path }) => path)
+        .join(', ');
+}
+
+// Purges the files aem.live already serves; fails if any stayed stale so the job goes red and can be re-run.
+export async function run({ files, credentials, timing = TIMING }) {
+    console.log(`Waiting for aem.live to serve ${files.length} changed files`);
+    const stale = await waitUntilServed(ORIGIN, files, timing.originTimeoutMs, timing);
+    const ready = files.filter((file) => !stale.includes(file));
+    const estimatedSeconds = ready.length
+        ? await purge(
+              credentials,
+              ready.map(({ path }) => toUrl(EDGE, path)),
+              timing,
+          )
+        : 0;
+    if (stale.length) {
+        throw new Error(
+            `aem.live still serves the previous version of ${stale.length} files (${listPaths(stale)}); re-run once code sync catches up`,
+        );
+    }
+
+    const [probe] = ready;
+    await sleep(estimatedSeconds * 1000);
+    if ((await waitUntilServed(EDGE, [probe], timing.edgeTimeoutMs, timing)).length) {
+        throw new Error(`mas.adobe.com still serves the previous ${probe.path} after the purge`);
+    }
+    console.log(`mas.adobe.com serves the new ${probe.path}`);
 }
 
 async function main() {
@@ -118,36 +185,24 @@ async function main() {
         throw new Error('Set BEFORE_SHA, AKAMAI_HOST, AKAMAI_CLIENT_TOKEN, AKAMAI_CLIENT_SECRET and AKAMAI_ACCESS_TOKEN.');
     }
 
-    const diff = git('diff', '--name-only', '--diff-filter=d', BEFORE_SHA, AFTER_SHA, '--', 'studio', 'web-components/dist');
+    // Deleted files stay cached on purpose: tabs still running the old Studio may lazy-load them.
+    const diff = git(
+        'diff',
+        '-z',
+        '--name-only',
+        '--diff-filter=d',
+        BEFORE_SHA,
+        AFTER_SHA,
+        '--',
+        'studio',
+        'web-components/dist',
+    );
     const paths = selectPurgePaths(diff.toString());
     if (!paths.length) {
         console.log('No cached Studio files changed.');
         return;
     }
-    const files = paths.map((path) => ({ path, content: git('show', `${AFTER_SHA}:${path}`) }));
-
-    console.log(`Waiting for aem.live to serve ${files.length} changed files`);
-    const stale = await waitUntilServed(ORIGIN, files, ORIGIN_TIMEOUT_MS);
-    if (stale.length) {
-        const sample = stale
-            .slice(0, 5)
-            .map(({ path }) => path)
-            .join(', ');
-        console.log(`::warning::aem.live still serves older versions of ${stale.length} files (${sample}); purging anyway`);
-    }
-
-    const estimatedSeconds = await purge(
-        credentials,
-        files.map(({ path }) => `${EDGE}/${path}`),
-    );
-
-    const probe = files.find((file) => !stale.includes(file));
-    if (!probe) return;
-    await sleep(estimatedSeconds * 1000);
-    if ((await waitUntilServed(EDGE, [probe], EDGE_TIMEOUT_MS)).length) {
-        throw new Error(`mas.adobe.com still serves an old ${probe.path} after the purge`);
-    }
-    console.log(`mas.adobe.com serves the new ${probe.path}`);
+    await run({ files: paths.map((path) => ({ path, previous: readPrevious(BEFORE_SHA, path) })), credentials });
 }
 
 const isDirectRun = process.argv[1] && basename(process.argv[1]) === basename(fileURLToPath(import.meta.url));

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../../libs/docs-test.js';
 import { features } from './promo-use-cases.spec.js';
 import MasPlans from '../plans.page.js';
 import { createWorkerPageSetup } from '../../../utils/commerce.js';
@@ -18,14 +18,19 @@ test.describe('ACOM MAS promotion and PZN use cases', () => {
         await workerSetup.cleanupWorkerPages();
     });
 
+    test.beforeEach(async () => {
+        await workerSetup.beginTest();
+    });
+
     test.afterEach(async ({}, testInfo) => {
-        workerSetup.attachWorkerErrorsToFailure(testInfo);
+        await workerSetup.finishTest(testInfo);
     });
 
     for (const feature of features) {
         test(`${feature.name},${feature.tags}`, async () => {
             const { data } = feature;
-            const plansPage = new MasPlans(workerSetup.getPage('LU'));
+            const page = await workerSetup.getPage('LU');
+            const plansPage = new MasPlans(page);
             const card = plansPage.getCard(data.id);
             const price = plansPage.getCardPrice(data.id).locator(plansPage.price);
 

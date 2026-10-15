@@ -10091,7 +10091,7 @@ Caused by: ${this.cause}`),e}};var Bl={[ge]:Ca,[Ie]:Ta,[oe]:La},ql={[ge]:_a,[oe]
         :host(.product-pricing) .show-more {
             box-sizing: border-box;
             min-height: 40px;
-            padding: 8px 24px;
+            padding: 8px 22px;
             border: 2px solid #000;
             border-radius: 999px;
             background: transparent;

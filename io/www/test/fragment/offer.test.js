@@ -24,7 +24,7 @@ const OFFER_MODEL = { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy'
 
 const OFFER_BASELINE = {
     id: 'offer-baseline-id',
-    path: `/content/dam/mas/offers/en_US/${PA}/baseline`,
+    path: `/content/dam/mas/offers/en_US/baselines/${PA}/baseline`,
     model: OFFER_MODEL,
     fields: {
         name: 'Photoshop',
@@ -35,7 +35,7 @@ const OFFER_BASELINE = {
 
 const FRAGMENT_BASELINE = {
     id: 'fragment-baseline-id',
-    path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}`,
+    path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/baseline`,
     model: CARD_MODEL,
     fields: {
         variant: 'plans',
@@ -45,15 +45,25 @@ const FRAGMENT_BASELINE = {
     },
 };
 
+const EDU_BASELINE = {
+    id: 'edu-baseline-id',
+    path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/edu/baseline`,
+    model: CARD_MODEL,
+    fields: { cardTitle: 'Photoshop for students', eduNote: 'Students & teachers', variations: ['some-edu-variation'] },
+};
+
 const PLANS_FOLDER = '/content/dam/mas/sandbox/en_US/baselines/plans';
 const listing = (folder, cursor) => `${ODIN}/?path=${folder}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
-// template folders may hold nested fragments, only `<pa>` are baselines
+// template folders may hold other fragments, only `<pa>/baseline` & `<pa>/<segment>/baseline` are baselines
 const noise = (folder) => [
     { id: 'nested', path: `${folder}/${PA}/nested/fragment`, fields: {} },
     { id: 'other', path: `${folder}/${PA}/other`, fields: {} },
+    { id: 'legacy', path: `${folder}/${PA}`, fields: {} },
+    { id: 'too-deep', path: `${folder}/${PA}/edu/nested/baseline`, fields: {} },
 ];
 
-const RESOLVED_OFFERS = [{ offerSelectorIds: [OSI], productArrangementCode: PA }];
+const RESOLVED_OFFERS = [{ offerSelectorIds: [OSI], productArrangementCode: PA, marketSegments: ['COM'] }];
+const EDU_RESOLVED_OFFERS = [{ offerSelectorIds: [OSI], productArrangementCode: PA, marketSegments: ['EDU'] }];
 
 let fetchStub;
 let state;
@@ -63,7 +73,12 @@ const isWcsCall = (url, osi = OSI) =>
 
 const wcsCalls = (osi = OSI) => fetchStub.getCalls().filter(({ args: [url] }) => isWcsCall(url, osi));
 
-function mockOdin({ offerBaseline = OFFER_BASELINE, fragmentBaseline = FRAGMENT_BASELINE, offerLocale = 'en_US' } = {}) {
+function mockOdin({
+    offerBaseline = OFFER_BASELINE,
+    fragmentBaseline = FRAGMENT_BASELINE,
+    offerLocale = 'en_US',
+    resolvedOffers = RESOLVED_OFFERS,
+} = {}) {
     mockDictionary(false, fetchStub);
     fetchStub
         .withArgs(`${ODIN}/byPath?path=/content/dam/mas/sandbox/settings/index`)
@@ -73,9 +88,9 @@ function mockOdin({ offerBaseline = OFFER_BASELINE, fragmentBaseline = FRAGMENT_
     fetchStub
         .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
         .returns(createResponse(200, { resolvedOffers: [] }));
-    fetchStub.withArgs(sinon.match((url) => isWcsCall(url))).returns(createResponse(200, { resolvedOffers: RESOLVED_OFFERS }));
+    fetchStub.withArgs(sinon.match((url) => isWcsCall(url))).returns(createResponse(200, { resolvedOffers }));
     if (offerBaseline) state.store[offerStateKey(offerLocale, PA)] = JSON.stringify(offerBaseline);
-    const plansItems = [...noise(PLANS_FOLDER), ...(fragmentBaseline ? [fragmentBaseline] : [])];
+    const plansItems = [...noise(PLANS_FOLDER), ...(fragmentBaseline ? [fragmentBaseline] : []), EDU_BASELINE];
     fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(200, { items: plansItems }));
     fetchStub
         .withArgs(`${ODIN}/some-en-us-fragment?references=all-hydrated`)
@@ -124,6 +139,44 @@ describe('offer transformer', () => {
             const fetched = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
             expect(fetched(listing(PLANS_FOLDER))).to.have.length(1);
             expect(fetched(listing(PLANS_FOLDER))).to.have.length(1);
+        });
+
+        it('uses the market segment override of the fragment baseline as main body (EDU offer)', async () => {
+            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS });
+            const { statusCode, body } = await getFragment({
+                offer: OSI,
+                template: 'plans',
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.id).to.equal('edu-baseline-id');
+            expect(body.offerBaselineId).to.equal('offer-baseline-id');
+            expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
+            expect(body.fields.cardTitle).to.equal('Photoshop for students');
+            expect(body.fields.variant).to.equal('plans');
+            expect(body.fields.name).to.equal('Photoshop');
+        });
+
+        it('uses the market segment override even without fragment baseline', async () => {
+            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS, fragmentBaseline: null });
+            const { statusCode, body } = await getFragment({
+                offer: OSI,
+                template: 'plans',
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.id).to.equal('edu-baseline-id');
+            expect(body.fragmentBaselineId).to.be.undefined;
+            expect(body.fields.name).to.equal('Photoshop');
+        });
+
+        it('ignores market segment overrides of other segments', async () => {
+            mockOdin({ resolvedOffers: [{ ...RESOLVED_OFFERS[0], marketSegments: ['GOV'] }] });
+            const { body } = await getFragment({ offer: OSI, template: 'plans', surface: 'sandbox', locale: 'en_US' });
+            expect(body.id).to.equal('fragment-baseline-id');
+            expect(body.fragmentSegmentBaselineId).to.be.undefined;
         });
 
         it('falls back to the offer baseline as main body', async () => {
@@ -236,6 +289,19 @@ describe('offer transformer', () => {
             expect(body.fields.osi).to.equal(OSI);
             expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
             expect(wcsCalls()).to.have.length(1);
+        });
+
+        it('layers the market segment override between the fragment baseline and the fragment (EDU offer)', async () => {
+            mockOdin({ resolvedOffers: EDU_RESOLVED_OFFERS });
+            const { statusCode, body } = await getFragment({ id: 'some-en-us-fragment', offer: OSI, locale: 'en_US' });
+            expect(statusCode).to.equal(200);
+            expect(body.id).to.equal(FRAGMENT_RESPONSE_EN.id);
+            expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
+            expect(body.fragmentSegmentBaselineId).to.equal('edu-baseline-id');
+            expect(body.fields.eduNote).to.equal('Students & teachers');
+            expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle);
+            expect(body.fields.name).to.equal('Photoshop');
+            expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
         });
 
         it("resolves the fragment's own osi when only a template is requested", async () => {

@@ -481,16 +481,19 @@ function prepareBaseline(baseline) {
 }
 
 /**
- * MWPW-186204: layers `offerBaseline` < `fragmentBaseline` < fragment, as resolved by the `offer` transformer for that
- * fragment. Applied before variations, so they override baselines too.
+ * MWPW-186204: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
+ * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
  */
 function applyBaselines(fragment, { baselines }) {
-    const { offerBaseline, fragmentBaseline } = baselines?.[fragment.id] ?? {};
-    const layers = [offerBaseline, fragmentBaseline].filter((baseline) => baseline && baseline.id !== fragment.id);
+    const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } = baselines?.[fragment.id] ?? {};
+    const layers = [offerBaseline, fragmentBaseline, fragmentSegmentBaseline].filter(
+        (baseline) => baseline && baseline.id !== fragment.id,
+    );
     if (!layers.length) return fragment;
     const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
+    if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
     return merged;
 }
 

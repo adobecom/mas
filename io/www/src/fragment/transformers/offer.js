@@ -5,23 +5,27 @@ import { createSwrCache } from '../utils/swr-cache.js';
 import { getDefaultLocaleCode, resolveCommerceCountries } from '../locales.js';
 import { computeRegionLocale } from './defaultLanguage.js';
 import { computeWcsCaches, createWcsContext, wcsCacheKey } from './wcs.js';
-import { offerStateKey, readOfferBaseline } from '../../offers/index.js';
+import { clearOffersCache, readOfferBaseline } from '../../offers/index.js';
 
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
 const REFERENCE_FIELDS = ['cards', 'collections'];
 
-// Fragment baselines folders (listed in bulk) & offer baselines (read from state) are shared by every fragment & request
-// on the same locale / template: single-flight + TTL, absence included, so each is requested once whatever the size of
-// a collection.
+// Fragment baselines folders (listed in bulk) are shared by every fragment & request on the same locale / template:
+// single-flight + TTL, absence included, so each is requested once whatever the size of a collection. Offer baselines
+// are cached the same way by the offers module.
 const baselineCache = createSwrCache({ name: 'baselines' });
 
-export const clearBaselineCache = () => baselineCache.clear();
+export const clearBaselineCache = () => {
+    baselineCache.clear();
+    clearOffersCache();
+};
 
 const offerToken = ({ fields }, osi) => ({ osi, promotionCode: fields?.promoCode || undefined });
 
 /**
- * Resolves the product arrangement code of each distinct offer token through one WCS batch. The returned
+ * Resolves the product arrangement code & market segment (lower cased, e.g. `com`, `edu`) of each distinct offer token
+ * through one WCS batch. The returned
  * `wcsPrefetch` (`{ [env]: { [cacheKey]: resolvedOffers } }`) is reused by the `wcs` transformer, so the same artifact
  * is never requested twice. `context` must carry the request `wcsCountry` / `regionLocale` for cache keys to match.
  */
@@ -29,11 +33,15 @@ async function resolveProductArrangements(context, tokens, prefetched) {
     const wcsPrefetch = await computeWcsCaches(tokens, context, prefetched);
     const wcsContext = createWcsContext(context);
     const caches = Object.values(wcsPrefetch);
-    const paCode = (token) => {
+    const resolveOffer = (token) => {
         const key = wcsCacheKey(token, wcsContext);
-        return caches.map((cache) => cache[key]).find((offers) => offers?.length)?.[0]?.productArrangementCode;
+        const offer = caches.map((cache) => cache[key]).find((offers) => offers?.length)?.[0];
+        return {
+            productArrangementCode: offer?.productArrangementCode,
+            marketSegment: offer?.marketSegments?.[0]?.toLowerCase(),
+        };
     };
-    return { paCode, wcsPrefetch };
+    return { resolveOffer, wcsPrefetch };
 }
 
 /**
@@ -55,38 +63,43 @@ async function listFolder(context, folder) {
     return items;
 }
 
+const FRAGMENT_BASELINE_PATH = /^(?<key>[\w-]+(?:\/[\w-]+)?)\/baseline$/;
+
 /**
- * Fragment baselines of a template, keyed by product arrangement code:
- * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>`, listed once (single-flight + TTL), empty folders
- * included; failures are retried next time.
+ * Fragment baselines of a template, keyed by `<pa>` or `<pa>/<segment>` (market segment override, e.g. `edu`):
+ * `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>[/<segment>]/baseline`, listed once (single-flight +
+ * TTL), empty folders included; failures are retried next time.
  */
 async function fetchFragmentBaselines(context, surface, locale, template) {
     const folder = `${MAS_ROOT}/${surface}/${locale}/baselines/${template}`;
     const entry = await baselineCache.get(context, folder, async () => {
         const items = await listFolder(context, folder);
         if (!items) return null;
-        const keyed = items.map((item) => [item.path.slice(folder.length + 1), item]);
-        return { baselines: Object.fromEntries(keyed.filter(([pa]) => !pa.includes('/'))) };
+        const keyed = items.map((item) => [item.path.slice(folder.length + 1).match(FRAGMENT_BASELINE_PATH)?.groups.key, item]);
+        return { baselines: Object.fromEntries(keyed.filter(([key]) => key)) };
     });
     return entry?.baselines ?? {};
 }
 
 /**
- * Offer baseline (offer model, MCS copy & assets) of a product arrangement, as synced in state by the `offers` action
- * from `/content/dam/mas/offers/<locale>/<pa>/baseline`, falling back to en_US.
+ * Fragment baseline of a product arrangement & its market segment override, if any.
  */
-async function getOfferBaseline(context, productArrangementCode) {
-    const { defaultLocale } = context;
-    const key = offerStateKey(defaultLocale, productArrangementCode);
-    const entry = await baselineCache.get(context, key, async () => ({
-        body: await readOfferBaseline(context, defaultLocale, productArrangementCode),
-    }));
-    return entry.body;
-}
+const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegment }) => ({
+    fragmentBaseline: baselines[productArrangementCode],
+    fragmentSegmentBaseline: marketSegment ? baselines[`${productArrangementCode}/${marketSegment}`] : undefined,
+});
+
+/**
+ * Offer baseline (offer model, MCS copy & assets) of a product arrangement, as synced in state by the `offers` action
+ * from `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US.
+ */
+const getOfferBaseline = (context, productArrangementCode) =>
+    readOfferBaseline(context, context.defaultLocale, productArrangementCode);
 
 /**
  * Request infos when no fragment `id` is requested (MWPW-186204): `offer`, `template` & `surface` select the main body,
- * the fragment baseline for that template if any, the offer baseline otherwise.
+ * the most specific baseline: the fragment baseline for that template & the offer market segment, the fragment baseline
+ * for that template, or the offer baseline.
  * Same shape as fetchFragment's request infos, plus the `wcsPrefetch` used to resolve the offer.
  */
 export async function resolveOfferInfos(initContext) {
@@ -100,16 +113,17 @@ export async function resolveOfferInfos(initContext) {
     const context = { ...initContext, ...countries, regionLocale, defaultLocale };
     // fragment baselines are listed while the offer is resolved
     const fragmentBaselines = fetchFragmentBaselines(context, surface, defaultLocale, template);
-    const { paCode, wcsPrefetch } = await resolveProductArrangements(context, [{ osi: offer }]);
-    const productArrangementCode = paCode({ osi: offer });
+    const { resolveOffer, wcsPrefetch } = await resolveProductArrangements(context, [{ osi: offer }]);
+    const resolved = resolveOffer({ osi: offer });
+    const { productArrangementCode } = resolved;
     if (!productArrangementCode) {
         return { status: 404, message: `No product arrangement found for offer '${offer}'` };
     }
-    const [offerBaseline, fragmentBaseline] = await Promise.all([
+    const [offerBaseline, { fragmentBaseline, fragmentSegmentBaseline }] = await Promise.all([
         getOfferBaseline(context, productArrangementCode),
-        fragmentBaselines.then((baselines) => baselines[productArrangementCode]),
+        fragmentBaselines.then((baselines) => selectFragmentBaselines(baselines, resolved)),
     ]);
-    const baseline = fragmentBaseline ?? offerBaseline;
+    const baseline = fragmentSegmentBaseline ?? fragmentBaseline ?? offerBaseline;
     if (!baseline) {
         return {
             status: 404,
@@ -157,7 +171,7 @@ function collectTargets({ body, offer, template }) {
  * Looks up offer & fragment baselines of the requested fragment and of each card it references (MWPW-186204), so a
  * single baseline can hold the content common to all fragments of a product arrangement & template.
  * Each distinct offer, offer baseline & fragment baseline is requested once. Failures are not fatal.
- * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline } }, wcsPrefetch }}
+ * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } }, wcsPrefetch }}
  */
 async function init(initContext) {
     const { promises } = initContext;
@@ -179,18 +193,19 @@ async function init(initContext) {
             fetchFragmentBaselines(context, surface, defaultLocale, template),
         ]),
     );
-    const { paCode, wcsPrefetch } = await resolveProductArrangements(context, tokens, prefetched);
+    const { resolveOffer, wcsPrefetch } = await resolveProductArrangements(context, tokens, prefetched);
     const entries = targets.map(async ({ fragment, token, template }) => {
-        const productArrangementCode = paCode(token);
+        const resolved = resolveOffer(token);
+        const { productArrangementCode } = resolved;
         if (!productArrangementCode) {
             logError(`No product arrangement found for offer '${token.osi}' of ${fragment.id}`, initContext);
             return [fragment.id, {}];
         }
-        const [offerBaseline, fragmentBaseline] = await Promise.all([
+        const [offerBaseline, fragmentBaselinesOfOffer] = await Promise.all([
             getOfferBaseline(context, productArrangementCode),
-            fragmentBaselines[template].then((baselines) => baselines[productArrangementCode]),
+            fragmentBaselines[template].then((baselines) => selectFragmentBaselines(baselines, resolved)),
         ]);
-        return [fragment.id, { offerBaseline, fragmentBaseline }];
+        return [fragment.id, { offerBaseline, ...fragmentBaselinesOfOffer }];
     });
     return { status: 200, baselines: Object.fromEntries(await Promise.all(entries)), wcsPrefetch };
 }

@@ -1,6 +1,6 @@
 /**
  * Creates the offer baseline fragment (offer model) of a product arrangement from its MCS merchandising data (MWPW-186204):
- * /content/dam/mas/offers/<locale>/<productArrangementCode>/baseline
+ * /content/dam/mas/offers/<locale>/baselines/<productArrangementCode>/baseline
  * e.g: node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run
  */
 
@@ -25,7 +25,8 @@ if (!bucket || !productArrangementCode || !accessToken || !apiKey) {
 
 const baseUrl = `https://${bucket}.adobeaemcloud.com`;
 const headers = createHeaders(accessToken, apiKey);
-const folderPath = `${ROOT_PATH}/offers/${locale}/${productArrangementCode}`;
+const baselinesPath = `${ROOT_PATH}/offers/${locale}/baselines`;
+const folderPath = `${baselinesPath}/${productArrangementCode}`;
 
 async function fetchMerchandising() {
     const [, country] = locale.split('_');
@@ -111,6 +112,7 @@ async function run() {
         console.log(`offer baseline already exists: ${existing.path} (${existing.id})`);
         return;
     }
+    await ensureFolder(baselinesPath, 'baselines');
     await ensureFolder(folderPath, productArrangementCode);
     const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments`, {
         method: 'POST',

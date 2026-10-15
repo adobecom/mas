@@ -65,7 +65,9 @@ const hash = (value) => createHash('sha1').update(value).digest('base64url');
  */
 export async function readOfferBaseline(context, locale, productArrangementCode) {
     const key = offerStateKey(locale, productArrangementCode);
-    const value = await offersCache.get(context, key, async () => (await getFromState(key, context)) ?? '');
+    // offers have no preview: `preview` would move offersCache to localStorage
+    const published = { ...context, preview: false };
+    const value = await offersCache.get(published, key, async () => (await getFromState(key, context)) ?? '');
     if (value || locale === OFFER_BASELINE_FALLBACK_LOCALE) return value ? JSON.parse(value) : undefined;
     return readOfferBaseline(context, OFFER_BASELINE_FALLBACK_LOCALE, productArrangementCode);
 }

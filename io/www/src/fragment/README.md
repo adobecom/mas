@@ -23,17 +23,18 @@ Request parameters: `locale` (required), `id`, `offer` (an OSI for now), `templa
 
 Surface resolution: the `surface` parameter is the source of truth, then the surface of the `id` fragment, then the api key's (`apiKeySurfaces` configuration). A `surface` parameter different from the api key's or the fragment's surface returns `404`.
 
-- with `id`: the `offer` transformer looks baselines up for the requested fragment and for every card of its references tree (collections). Each fragment's offer (the `offer` param for the root, its own `osi` otherwise) is resolved through WCS to its product arrangement code, its template is its `variant` (or the `template` param for the root). `customize` then layers, per fragment: offer baseline < fragment baseline < fragment < its variations. A fragment baseline can hold the content common to all cards of an offer & template. Failures are logged and ignored.
-- without `id`: `offer`, `template` & a surface (parameter or api key's) are required (400 otherwise). The main body is the fragment baseline, or the offer baseline when there is no fragment baseline (404 if there is neither).
+- with `id`: the `offer` transformer looks baselines up for the requested fragment and for every card of its references tree (collections). Each fragment's offer (the `offer` param for the root, its own `osi` otherwise) is resolved through WCS to its product arrangement code, its template is its `variant` (or the `template` param for the root). `customize` then layers, per fragment: offer baseline < fragment baseline < fragment market segment baseline < fragment < its variations. A fragment baseline can hold the content common to all cards of an offer & template. Failures are logged and ignored.
+- without `id`: `offer`, `template` & a surface (parameter or api key's) are required (400 otherwise). The main body is the most specific baseline: the fragment market segment baseline, the fragment baseline, or the offer baseline (404 if there is none).
 
-Baselines locations (`<pa>` being the product arrangement code, e.g. `phsp_direct_individual`):
+Baselines locations (`<pa>` being the product arrangement code, e.g. `phsp_direct_individual`, `<segment>` the lower cased market segment of the resolved offer, e.g. `edu`, `gov`):
 
-- offer baseline (offer model, MCS copy & assets): `/content/dam/mas/offers/<locale>/<pa>/baseline`, falling back to `en_US`. With ~1800 product arrangements per locale in MCS, that folder is too big to list per request: the `offers` action (every 15 minutes) syncs it into the namespace state, one `offer-<locale>-<pa>` key each (only changed ones are written, removed ones deleted), and the pipeline reads the keys it needs,
-- fragment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>`.
+- offer baseline (offer model, MCS copy & assets): `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to `en_US`. With ~1800 product arrangements per locale in MCS, that folder is too big to list per request: the `offers` action (every 15 minutes) syncs it into the namespace state, one `offer-<locale>-<pa>` key each (only changed ones are written, removed ones deleted), and the pipeline reads the keys it needs,
+- fragment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/baseline`,
+- fragment market segment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/<segment>/baseline`, only applied to offers of that market segment (COM offers use the fragment baseline only). Offer baselines have no market segment override.
 
 Baselines are fields only: their references are not hydrated.
 
-Baselines' own variations are ignored. Each customized fragment exposes `offerBaselineId` / `fragmentBaselineId`, and the root `fields.osi` is forced to the `offer` param.
+Baselines' own variations are ignored. Each customized fragment exposes `offerBaselineId` / `fragmentBaselineId` / `fragmentSegmentBaselineId`, and the root `fields.osi` is forced to the `offer` param.
 
 Nothing is requested twice, whatever the collection size: distinct offers are resolved in one WCS batch whose artifacts are reused by the `wcs` transformer (and always shipped in `body.wcs`). Fragment baselines are fetched in bulk, in parallel with WCS, with one (paginated) listing of `/content/dam/mas/<surface>/<locale>/baselines/<template>` per template used; offer baselines are read from state, one key per product arrangement used. Both are kept in a single-flight SWR cache (5 min TTL) shared by all fragments and requests, absence included.
 

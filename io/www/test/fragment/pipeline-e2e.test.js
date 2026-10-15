@@ -973,7 +973,7 @@ describe('pipeline end to end', () => {
         };
         const OFFER_BASELINE = {
             id: 'phsp-offer-baseline',
-            path: `/content/dam/mas/offers/en_US/${PA}/baseline`,
+            path: `/content/dam/mas/offers/en_US/baselines/${PA}/baseline`,
             model: { id: OFFER_MODEL_ID },
             fields: {
                 name: 'Photoshop',
@@ -984,7 +984,7 @@ describe('pipeline end to end', () => {
         };
         const FRAGMENT_BASELINE = {
             id: 'phsp-plans-baseline',
-            path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}`,
+            path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/baseline`,
             model: { id: CARD_MODEL_ID },
             fields: {
                 variant: 'plans',
@@ -1084,7 +1084,7 @@ describe('pipeline end to end', () => {
             ...product,
             offerBaseline: {
                 id: `${product.key}-offer-baseline`,
-                path: `/content/dam/mas/offers/en_US/${product.pa}/baseline`,
+                path: `/content/dam/mas/offers/en_US/baselines/${product.pa}/baseline`,
                 model: { id: OFFER_MODEL_ID },
                 fields: {
                     name: product.name,
@@ -1095,7 +1095,7 @@ describe('pipeline end to end', () => {
             },
             fragmentBaseline: {
                 id: `${product.key}-plans-baseline`,
-                path: `/content/dam/mas/sandbox/en_US/baselines/plans/${product.pa}`,
+                path: `/content/dam/mas/sandbox/en_US/baselines/plans/${product.pa}/baseline`,
                 model: { id: CARD_MODEL_ID },
                 fields: {
                     variant: 'plans',

@@ -274,7 +274,7 @@ const selectPreformattedPrice = ({
  * @param {number} options.price - The price value to format
  * @param {boolean} options.usePrecision - Whether to include decimal precision in the formatted price
  * @param {boolean} [options.isIndianPrice=false] - Whether to use Indian locale-specific formatting
- * @param {object} [options.preformatted] - WCS pre-split leaf { integer, decimals, full }, matching full's zero-cent display
+ * @param {object} [options.preformatted] - WCS pre-split leaf { integer, decimals, full }, omitting zero cents for display
  * @param {object} [options.priceInfoFormat] - WCS priceInfo.format: currency symbol and its placement
  * @param {string} recurrenceTerm - The recurrence term (MONTH or YEAR) for the price
  * @param {function} [transformPrice=(price) => price] - Optional function to transform the price before formatting
@@ -308,15 +308,16 @@ function formatPrice(
         const decimalsDelimiter =
             priceInfoFormat?.decimalsDelimiter ??
             findDecimalsDelimiter(formatString);
-        const decimals =
-            /^0+$/.test(preformatted.decimals) &&
-            !preformatted.full.includes(
-                `${preformatted.integer}${decimalsDelimiter}${preformatted.decimals}`,
-            )
-                ? ''
-                : (preformatted.decimals ?? '');
+        const decimals = /^0+$/.test(preformatted.decimals)
+            ? ''
+            : (preformatted.decimals ?? '');
         return {
-            accessiblePrice: preformatted.full,
+            accessiblePrice: decimals
+                ? preformatted.full
+                : preformatted.full.replace(
+                      `${preformatted.integer}${decimalsDelimiter}${preformatted.decimals}`,
+                      preformatted.integer,
+                  ),
             currencySymbol: priceInfoFormat?.currencySymbol ?? currencySymbol,
             decimals,
             decimalsDelimiter: decimals ? decimalsDelimiter : '',
@@ -344,16 +345,19 @@ function formatPrice(
         ? formattedPrice.lastIndexOf(decimalsDelimiter)
         : formattedPrice.length;
     const integer = formattedPrice.substring(0, decimalIndex);
-    const decimals = formattedPrice.substring(decimalIndex + 1);
+    const decimals = formattedPrice
+        .substring(decimalIndex + 1)
+        .replace(/^0+$/, '');
+    const displayPrice = `${integer}${decimals ? decimalsDelimiter + decimals : ''}`;
     const accessiblePrice = formatString
         .replace(/'.*?'/, 'SYMBOL')
-        .replace(/#.*0/, formattedPrice)
+        .replace(/#.*0/, displayPrice)
         .replace(/SYMBOL/, currencySymbol);
     return {
         accessiblePrice,
         currencySymbol,
         decimals,
-        decimalsDelimiter,
+        decimalsDelimiter: decimals ? decimalsDelimiter : '',
         hasCurrencySpace,
         integer,
         isCurrencyFirst,

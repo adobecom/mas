@@ -1587,7 +1587,7 @@ describe('promotions', () => {
             expect(second.activeProjects[0].groupedVariationReferences).to.equal(
                 first.activeProjects[0].groupedVariationReferences,
             );
-            expect(second.activeProjects[0].groupedVariationReferences.get('PA-123/pzn/edu')).to.equal(
+            expect(second.activeProjects[0].groupedVariationReferences.get('PA-123/pzn/edu')).to.deep.equal(
                 hydrated.references['frag-1'].value,
             );
             clock.returns(T0 + 60001);

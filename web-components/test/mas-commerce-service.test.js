@@ -70,23 +70,44 @@ describe('commerce service', () => {
                 history.replaceState(null, '', originalUrl);
             });
 
-            it('reads the service attribute on initialization', () => {
-                const service = initMasCommerceService({
-                    'aup-select': 'on',
+            for (const value of ['on', 'ucv3_in_iframe']) {
+                it(`reads the service attribute ${JSON.stringify(value)} on initialization`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.true;
                 });
-                expect(service.settings.aupSelect).to.be.true;
-            });
 
-            it('uses metadata ahead of the service attribute on initialization', () => {
-                meta.content = 'on';
+                it(`uses metadata ${JSON.stringify(value)} ahead of the service attribute on initialization`, () => {
+                    meta.content = value;
+                    document.head.append(meta);
+                    const service = initMasCommerceService({
+                        'aup-select': 'off',
+                    });
+                    expect(service.settings.aupSelect).to.be.true;
+                });
+            }
+
+            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
+                meta.content = 'off';
                 document.head.append(meta);
-                const service = initMasCommerceService({ 'aup-select': 'off' });
-                expect(service.settings.aupSelect).to.be.true;
+                const service = initMasCommerceService({
+                    'aup-select': 'ucv3_in_iframe',
+                });
+                expect(service.settings.aupSelect).to.be.false;
             });
 
-            for (const value of ['on', 'off', 'true', 'ON', '']) {
+            for (const value of [
+                'on',
+                'ucv3_in_iframe',
+                'off',
+                'true',
+                'ON',
+                'UCV3_IN_IFRAME',
+                '',
+            ]) {
                 it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
-                    const enabled = value === 'on';
+                    const enabled = ['on', 'ucv3_in_iframe'].includes(value);
                     const fallback = enabled ? 'off' : 'on';
                     meta.content = fallback;
                     document.head.append(meta);

@@ -4,11 +4,8 @@
     "description": "Merch at Scale Studio",
     "scripts": {
         "build": "node build.mjs",
-        "postbuild": "npm run build:versions",
-        "build:versions": "node build-versions.mjs",
         "test": "wtr --config ./web-test-runner.config.mjs --coverage --watch --debug",
-        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage && npm run test:node",
-        "test:node": "node --test test/build/build-versions.test.mjs",
+        "test:ci": "wtr --config ./web-test-runner.config.mjs --coverage",
         "proxy:qa": "node ./proxy-server.mjs https://author-p22655-e155390.adobeaemcloud.com",
         "proxy:stage": "node ./proxy-server.mjs https://author-p22655-e59471.adobeaemcloud.com",
         "proxy": "node ./proxy-server.mjs https://author-p22655-e59433.adobeaemcloud.com",
@@ -21,7 +18,6 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "es-module-lexer": "^1.5.4",
         "sinon": "^13.0.1"
     }
 }

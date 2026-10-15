@@ -179,8 +179,10 @@ describe('MasStudio – #lazyLoad failure path', () => {
         await flushAttempt(clock, 1000);
         await flushAttempt(clock, 0);
 
-        expect(importStub.args.map(([, attempt]) => attempt)).to.deep.equal([0, 1]);
-        expect(importStub.firstCall.args[0]).to.not.equal(importStub.secondCall.args[0]);
+        expect(importStub.args.map(([path]) => path)).to.deep.equal([
+            './placeholders/mas-placeholders.js',
+            './placeholders/mas-placeholders.js?retry=1',
+        ]);
         expect(toastSpy.called).to.be.false;
     });
 

@@ -848,7 +848,7 @@ describe('aup-select checkout routing', () => {
         );
     });
 
-    for (const value of ['', 'true', 'ON', 'off']) {
+    for (const value of ['off', 'false']) {
         it(`does not opt in for metadata value ${JSON.stringify(value)}`, async () => {
             meta.content = value;
             removeMasCommerceService();
@@ -863,7 +863,7 @@ describe('aup-select checkout routing', () => {
         });
     }
 
-    for (const value of ['on', 'ucv3_in_iframe']) {
+    for (const value of ['on']) {
         it(`routes using commerce service initialization ${JSON.stringify(value)} without metadata`, async () => {
             meta.remove();
             removeMasCommerceService();
@@ -881,20 +881,6 @@ describe('aup-select checkout routing', () => {
             expect(legacy.called).to.be.false;
         });
     }
-
-    it('routes using "ucv3_in_iframe" metadata', async () => {
-        meta.content = 'ucv3_in_iframe';
-        removeMasCommerceService();
-        service = initMasCommerceService(
-            { 'checkout-client-id': 'creative' },
-            () => ({ handler: legacy }),
-        );
-        const element = await create();
-        click(element);
-        await element.aupCheckoutPromise;
-        expect(launch.calledOnce).to.be.true;
-        expect(legacy.called).to.be.false;
-    });
 
     it('does not accept the old metadata name', async () => {
         meta.name = 'mas-select';

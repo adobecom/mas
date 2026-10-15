@@ -31,7 +31,7 @@
  *     Published reads use SWR with single-flight refills.
  *     Project listings and hydration have independent jittered TTLs: a published edit can
  *     temporarily combine refreshed dates/tags with older promoCode/offers for up to two TTLs.
- *     Preview uses a ~10-second in-memory TTL, cleared on promotion saves.
+ *     Preview uses a ~1-minute in-memory TTL, cleared on promotion saves.
  *     Incomplete variation loads back off for 10 seconds, retaining existing published data.
  *     Failed listing or project hydration loads do not overwrite cached data.
  *   - Returns `{ activeProjects }` — array sorted most-recent-`startDate`-first, then stably
@@ -63,7 +63,7 @@ import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
-const PREVIEW_CACHE_TTL = 10 * 1000;
+const PREVIEW_CACHE_TTL = 60 * 1000;
 
 const projectsCache = createSwrCache({ name: 'promotions', previewTtl: PREVIEW_CACHE_TTL, previewMemory: true });
 const hydratedProjectsCache = createSwrCache({

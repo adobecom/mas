@@ -1443,7 +1443,7 @@ describe('promotions', () => {
             expect(result.activeProjects).to.have.length(1);
         });
 
-        it('reuses preview listings within ten seconds without localStorage writes', async () => {
+        it('reuses preview listings for one minute without localStorage writes', async () => {
             const project = makeProject({ surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
             const hydrated = makeHydratedProject();
             const previewCtx = createContext({
@@ -1456,7 +1456,7 @@ describe('promotions', () => {
             await promotionsTransformer.init(previewCtx);
             expect(Object.keys(storage)).to.deep.equal([]);
 
-            clock.returns(T0 + 9000);
+            clock.returns(T0 + 60000);
             const result = await promotionsTransformer.init(previewCtx);
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(1);
             expect(result.activeProjects).to.have.length(1);
@@ -1465,7 +1465,7 @@ describe('promotions', () => {
             expect(storage['promotions-acom']).to.be.undefined;
         });
 
-        it('reuses hydrated preview data within ten seconds', async () => {
+        it('reuses hydrated preview data for one minute', async () => {
             const previewCtx = () => createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
             fetchStub.withArgs(FOLDER_URL).returns(createResponse(200, { items: [makeProject()] }));
             const response = fetchStub.withArgs(hydrateUrl('proj-1'));
@@ -1473,19 +1473,19 @@ describe('promotions', () => {
             const first = await promotionsTransformer.init(previewCtx());
             response.returns(createResponse(200, makeHydratedProject({ promoCode: 'EDITED' })));
 
-            clock.returns(T0 + 9000);
+            clock.returns(T0 + 60000);
             const cached = await promotionsTransformer.init(previewCtx());
             expect(cached.activeProjects[0].promoCode).to.equal('PROMO10');
             expect(cached.activeProjects[0].fragmentPaths).to.equal(first.activeProjects[0].fragmentPaths);
             expect(response.callCount).to.equal(1);
 
-            clock.returns(T0 + 10001);
+            clock.returns(T0 + 60001);
             const refreshed = await promotionsTransformer.init(previewCtx());
             expect(refreshed.activeProjects[0].promoCode).to.equal('EDITED');
             expect(response.callCount).to.equal(2);
         });
 
-        it('refreshes preview variations only after their ten-second TTL expires', async () => {
+        it('refreshes preview variations only after their one-minute TTL expires', async () => {
             const variationUrl =
                 'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
             const variation = {
@@ -1503,12 +1503,12 @@ describe('promotions', () => {
             await promotionsTransformer.init(previewCtx());
             response.returns(createResponse(200, { items: [edited] }));
 
-            clock.returns(T0 + 9000);
+            clock.returns(T0 + 60000);
             const cached = await promotionsTransformer.init(previewCtx());
             expect(cached.activeProjects[0].defaultVariations.card).to.deep.equal(variation);
             expect(response.callCount).to.equal(1);
 
-            clock.returns(T0 + 10001);
+            clock.returns(T0 + 60001);
             const refreshed = await promotionsTransformer.init(previewCtx());
             expect(refreshed.activeProjects[0].defaultVariations.card).to.deep.equal(edited);
             expect(response.callCount).to.equal(2);
@@ -1581,7 +1581,7 @@ describe('promotions', () => {
             response.onFirstCall().returns(createResponse(200, hydrated));
             response.onSecondCall().returns(createResponse(200, makeHydratedProject({ promoCode: 'EDITED' })));
             const first = await promotionsTransformer.init(previewCtx);
-            clock.returns(T0 + 9000);
+            clock.returns(T0 + 60000);
             const second = await promotionsTransformer.init(previewCtx);
             expect(second.activeProjects[0].groupedVariationReferences).to.be.instanceOf(Map);
             expect(second.activeProjects[0].groupedVariationReferences).to.equal(
@@ -1590,7 +1590,7 @@ describe('promotions', () => {
             expect(second.activeProjects[0].groupedVariationReferences.get('PA-123/pzn/edu')).to.equal(
                 hydrated.references['frag-1'].value,
             );
-            clock.returns(T0 + 10001);
+            clock.returns(T0 + 60001);
             const third = await promotionsTransformer.init(previewCtx);
             expect(third.activeProjects[0].promoCode).to.equal('EDITED');
             expect(Object.keys(storage)).to.deep.equal([]);
@@ -1604,13 +1604,13 @@ describe('promotions', () => {
             response.onSecondCall().returns(createResponse(500, null, 'Error'));
             response.onThirdCall().returns(createResponse(200, makeHydratedProject({ promoCode: 'RECOVERED' })));
             await promotionsTransformer.init(previewCtx());
-            clock.returns(T0 + 10001);
+            clock.returns(T0 + 60001);
             expect((await promotionsTransformer.init(previewCtx())).activeProjects).to.have.length(0);
             const recovered = await promotionsTransformer.init(previewCtx());
             expect(recovered.activeProjects[0].promoCode).to.equal('RECOVERED');
         });
 
-        it('blocks for a fresh preview listing after ten seconds instead of serving the expired listing', async () => {
+        it('blocks for a fresh preview listing after one minute instead of serving the expired listing', async () => {
             const stale = makeProject({ id: 'proj-stale', surfaces: ['acom'], geos: [] });
             const fresh = makeProject({ id: 'proj-fresh', surfaces: ['acom'], geos: [] });
             const previewCtx = () => createContext({ preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
@@ -1628,7 +1628,7 @@ describe('promotions', () => {
             const first = await promotionsTransformer.init(previewCtx());
             expect(first.activeProjects[0].id).to.equal('proj-stale');
 
-            clock.returns(T0 + 10001);
+            clock.returns(T0 + 60001);
             const second = await promotionsTransformer.init(previewCtx());
             expect(second.activeProjects[0].id).to.equal('proj-fresh');
             expect(fetchStub.withArgs(FOLDER_URL).callCount).to.equal(2);

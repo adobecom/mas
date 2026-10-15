@@ -39,6 +39,85 @@ function installLocalStorageShim() {
 const published = { debugLogs: true, requestId: 'swr-ut' };
 
 describe('swr-cache', () => {
+    describe('memory entry limits', () => {
+        let clock;
+
+        beforeEach(() => {
+            installLocalStorageShim();
+            clock = sinon.stub(Date, 'now').returns(1000);
+        });
+
+        afterEach(() => {
+            sinon.restore();
+            delete globalThis.localStorage;
+        });
+
+        for (const [mode, context] of [
+            ['published', {}],
+            ['preview', { preview: true }],
+        ]) {
+            it(`limits ${mode} memory entries to 1000 by default`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true });
+                for (let i = 0; i <= 1000; i++) {
+                    await cache.get(context, `${i}`, async () => i);
+                }
+
+                expect(await cache.get(context, '1', async () => 'unexpected')).to.equal(1);
+                expect(await cache.get(context, '1000', async () => 'unexpected')).to.equal(1000);
+                expect(await cache.get(context, '0', async () => 'reloaded')).to.equal('reloaded');
+            });
+
+            it(`evicts the oldest written ${mode} entry at the configured limit`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 2 });
+                await cache.get(context, 'a', async () => 'a');
+                await cache.get(context, 'b', async () => 'b');
+                await cache.get(context, 'a', async () => 'unexpected');
+
+                await cache.get(context, 'c', async () => 'c');
+
+                expect(await cache.get(context, 'b', async () => 'unexpected')).to.equal('b');
+                expect(await cache.get(context, 'c', async () => 'unexpected')).to.equal('c');
+                expect(await cache.get(context, 'a', async () => 'reloaded')).to.equal('reloaded');
+            });
+
+            it(`keeps recently refreshed ${mode} entries when evicting`, async () => {
+                const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 2, ttl: 1000, jitter: 0 });
+                await cache.get(context, 'a', async () => 'original');
+                clock.returns(1500);
+                await cache.get(context, 'b', async () => 'b');
+                clock.returns(2001);
+                await cache.get(context, 'a', async () => 'refreshed');
+                await new Promise((resolve) => setImmediate(resolve));
+
+                await cache.get(context, 'c', async () => 'c');
+
+                expect(await cache.get(context, 'a', async () => 'unexpected')).to.equal('refreshed');
+                expect(await cache.get(context, 'b', async () => 'reloaded')).to.equal('reloaded');
+            });
+        }
+
+        it('applies the limit independently to published and preview memory', async () => {
+            const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 1 });
+            await cache.get({}, 'a', async () => 'published');
+            await cache.get({ preview: true }, 'a', async () => 'preview');
+
+            await cache.get({}, 'b', async () => 'new published');
+
+            expect(await cache.get({ preview: true }, 'a', async () => 'unexpected')).to.equal('preview');
+            expect(await cache.get({}, 'b', async () => 'unexpected')).to.equal('new published');
+            expect(await cache.get({}, 'a', async () => 'reloaded')).to.equal('reloaded');
+        });
+
+        it('does not apply the memory limit to persistent preview entries', async () => {
+            const cache = createSwrCache({ name: 'test', maxEntries: 1 });
+            await cache.get({ preview: true }, 'a', async () => 'a');
+            await cache.get({ preview: true }, 'b', async () => 'b');
+
+            expect(await cache.get({ preview: true }, 'a', async () => 'unexpected')).to.equal('a');
+            expect(await cache.get({ preview: true }, 'b', async () => 'unexpected')).to.equal('b');
+        });
+    });
+
     describe('preview (in-memory) backend', () => {
         const preview = { preview: { url: 'https://preview.example' }, requestId: 'swr-ut' };
         let storage;

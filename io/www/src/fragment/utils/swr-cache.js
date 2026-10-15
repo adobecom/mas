@@ -13,6 +13,8 @@ const DEFAULT_JITTER = 0.2;
  * Published reads use memory. Preview defaults to per-key localStorage (`<name>-<key>`)
  * unless `previewMemory` is enabled. Memory-only preview caches share an invalidation revision
  * in localStorage, so clearing one instance also invalidates other clients on the same origin.
+ * Each memory backend keeps at most `maxEntries` (default 1000), evicting the oldest written
+ * entry on overflow. Refreshing a key moves it to the newest position; reads do not.
  * Cached values remain in memory. The read path:
  *   - fresh entry         → return it;
  *   - expired, published  → serve stale, refill in the background (coalesced single-flight);
@@ -27,7 +29,7 @@ const DEFAULT_JITTER = 0.2;
  * keep an existing stale value during that backoff rather than replacing it with partial data.
  *
  * @param {{ name: string, ttl?: number, jitter?: number,
- *   previewTtl?: number, previewMemory?: boolean,
+ *   previewTtl?: number, previewMemory?: boolean, maxEntries?: number,
  *   shouldCache?: (value: *) => (boolean | { ttl: number }) }} options
  */
 export function createSwrCache({
@@ -36,6 +38,7 @@ export function createSwrCache({
     jitter = DEFAULT_JITTER,
     previewTtl = ttl,
     previewMemory = false,
+    maxEntries = 1000,
     shouldCache = () => true,
 }) {
     const createBackend = () => ({ store: new Map(), refills: new Map() });
@@ -83,7 +86,11 @@ export function createSwrCache({
                     };
                     if (backends[mode] === backend) {
                         if (persistent) localStorage.setItem(storageKey(key), JSON.stringify(refreshed));
-                        else backend.store.set(memoryKey, refreshed);
+                        else {
+                            backend.store.delete(memoryKey);
+                            backend.store.set(memoryKey, refreshed);
+                            if (backend.store.size > maxEntries) backend.store.delete(backend.store.keys().next().value);
+                        }
                     }
                     return value;
                 })();

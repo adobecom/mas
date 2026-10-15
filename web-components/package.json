@@ -4,6 +4,9 @@
     "type": "module",
     "main": "dist/mas.js",
     "private": true,
+    "dependencies": {
+        "@adobecom/mas-price": "0.1.0"
+    },
     "scripts": {
         "lint": "eslint --fix",
         "build": "npm run test && npm run build:bundle && npm run build:docs",

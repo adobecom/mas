@@ -5,7 +5,7 @@ import {
     formatOpticalPrice,
     formatRegularPrice,
     selectPreformattedPrice,
-} from '../../web-components/src/price/utilities.js';
+} from '@adobecom/mas-price/price/utilities';
 import { getSurfaceLocales } from '../../io/www/src/fragment/locales.js';
 
 const AUDIT_TARGET = {

@@ -2,7 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { readFile } from 'node:fs/promises';
 import { transformer as render } from '../../src/fragment/transformers/render.js';
-import { baseOffer, cases, instant } from '../../../../price/test/fixtures/cases.js';
+import { buildPriceHTML } from '@adobecom/mas-price';
+import { baseOffer, cases, instant, priceInfo } from '../../../../price/test/fixtures/cases.js';
 
 const golden = JSON.parse(await readFile(new URL('../../../../price/test/fixtures/price-html.expected.json', import.meta.url)));
 const wrapper = '<span is="inline-price" data-wcs-osi="osi-base">';
@@ -69,6 +70,44 @@ describe('inactive inline-price render transformer', () => {
         const context = contextFor();
         expect(await render.process(context, invocation())).to.equal(context);
     });
+
+    it('renders the annual golden from a raw YEAR/MONTHLY offer without planType', async () => {
+        const offer = structuredClone(baseOffer);
+        delete offer.planType;
+        const context = contextFor(placeholder, [offer]);
+        const before = structuredClone(context.body.wcs);
+        await render.process(context, invocation(resolvedOptions({ displayAnnual: true })));
+        expect(context.body.fields.description).to.equal(
+            `${wrapper}${golden.results['US-en/INDIVIDUAL/with-annual/regular']}</span>`,
+        );
+        expect(context.body.wcs).to.deep.equal(before);
+    });
+
+    for (const [commitment, term, planType] of [
+        ['YEAR', 'MONTHLY', 'ABM'],
+        ['YEAR', 'ANNUAL', 'PUF'],
+        ['MONTH', 'MONTHLY', 'M2M'],
+        ['PERPETUAL', undefined, 'PERPETUAL'],
+        ['TERM_LICENSE', 'P3Y', 'P3Y'],
+    ]) {
+        it(`renders the ${planType} legal label from raw WCS dimensions without mutating cached offers`, async () => {
+            const offer = { ...structuredClone(baseOffer), commitment, term };
+            delete offer.planType;
+            const context = contextFor(placeholder, [offer]);
+            const before = structuredClone(context.body.wcs);
+            const options = resolvedOptions({
+                template: 'legal',
+                displayPlanType: true,
+                literals: { planTypeLabel: '{planType}' },
+            });
+            await render.process(context, invocation(options));
+            expect(context.body.fields.description).to.equal(
+                `${wrapper}${buildPriceHTML([{ ...offer, planType }], options)}</span>`,
+            );
+            expect(context.body.fields.description).to.include(`<span class="price-plan-type">${planType}</span>`);
+            expect(context.body.wcs).to.deep.equal(before);
+        });
+    }
 
     it('requires an explicit environment even when no inline prices exist', async () => {
         await expectFailure(contextFor('plain content'), { resolveOptions: () => resolvedOptions() }, 'environment');
@@ -385,6 +424,73 @@ describe('inactive inline-price render transformer', () => {
         expect(context.body.fields.description).to.include('>59</span>').and.include('>98</span>');
     });
 
+    for (const preformatted of [false, true]) {
+        it(`renders a two-offer discount against the reference price${preformatted ? ' ignoring stale priceInfo' : ''}`, async () => {
+            const offerAt = (price) => ({
+                ...structuredClone(baseOffer),
+                ...(preformatted && { priceInfo: structuredClone(priceInfo) }),
+                priceDetails: {
+                    ...baseOffer.priceDetails,
+                    price,
+                    priceWithoutDiscount: price,
+                    priceWithoutTax: price,
+                    priceWithoutDiscountAndTax: price,
+                },
+            });
+            const context = contextFor(placeholder, [offerAt(40)]);
+            context.body.wcs.prod['reference-us-mult'] = [offerAt(100)];
+            const before = structuredClone(context.body.wcs);
+            const options = resolvedOptions({
+                template: 'discount',
+                wcsOsi: ['osi-base', 'reference'],
+                promotionCodes: ['', ''],
+            });
+            await render.process(context, invocation(options));
+            expect(context.body.fields.description).to.equal(`${wrapper}<span class="discount">60%</span></span>`);
+            expect(context.body.wcs).to.deep.equal(before);
+        });
+    }
+
+    it('uses selected tax-exclusive prices for the two-offer discount comparison', async () => {
+        const discounted = structuredClone(baseOffer);
+        const reference = structuredClone(baseOffer);
+        Object.assign(discounted.priceDetails, { price: 40, priceWithoutDiscount: 40, priceWithoutTax: 20 });
+        Object.assign(reference.priceDetails, { price: 100, priceWithoutDiscount: 100, priceWithoutTax: 80 });
+        const context = contextFor(placeholder, [discounted]);
+        context.body.wcs.prod['reference-us-mult'] = [reference];
+        const before = structuredClone(context.body.wcs);
+        await render.process(
+            context,
+            invocation(
+                resolvedOptions({
+                    template: 'discount',
+                    wcsOsi: ['osi-base', 'reference'],
+                    promotionCodes: ['', ''],
+                    forceTaxExclusive: true,
+                }),
+            ),
+        );
+        expect(context.body.fields.description).to.equal(`${wrapper}<span class="discount">75%</span></span>`);
+        expect(context.body.wcs).to.deep.equal(before);
+    });
+
+    it('keeps general summation for discount placeholders with more than two offers', async () => {
+        const context = contextFor();
+        context.body.wcs.prod['addon-us-mult'] = [structuredClone(baseOffer)];
+        context.body.wcs.prod['third-us-mult'] = [structuredClone(baseOffer)];
+        await render.process(
+            context,
+            invocation(
+                resolvedOptions({
+                    template: 'discount',
+                    wcsOsi: ['osi-base', 'addon', 'third'],
+                    promotionCodes: ['', '', ''],
+                }),
+            ),
+        );
+        expect(context.body.fields.description).to.equal(`${wrapper}<span class="discount">25%</span></span>`);
+    });
+
     it('fails a missing bundle member without changing any field', async () => {
         const context = contextFor(`${placeholder}${placeholder}`);
         const before = structuredClone(context);
@@ -447,7 +553,7 @@ describe('inactive transformer golden output', () => {
             });
             continue;
         }
-        it(`preserves exact golden price contents for ${id}`, async () => {
+        it(`preserves exact golden price contents from raw WCS offers for ${id}`, async () => {
             const context = contextFor(placeholder, structuredClone(offers));
             const promotionCode = options.promotionCode ?? '';
             const key = [
@@ -458,7 +564,9 @@ describe('inactive transformer golden output', () => {
             ]
                 .filter(Boolean)
                 .join('-');
-            context.body.wcs.prod = { [key]: structuredClone(offers) };
+            const rawOffers = structuredClone(offers);
+            for (const offer of rawOffers) delete offer.planType;
+            context.body.wcs.prod = { [key]: rawOffers };
             const resolved = resolvedOptions({ ...options, promotionCodes: [promotionCode], promotionCode });
             await render.process(context, invocation(resolved));
             expect(context.body.fields.description).to.equal(`${wrapper}${golden.results[id]}</span>`);

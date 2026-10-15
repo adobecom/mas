@@ -1,5 +1,5 @@
 import { parseFragment } from 'parse5';
-import { selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
+import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
 import { log, logError } from '../utils/log.js';
 
 const REQUIRED_OPTIONS = [
@@ -87,9 +87,22 @@ async function render(context, { environment, resolveOptions } = {}) {
                     .join('-');
                 const offers = cache[key];
                 if (!offers?.length) fieldFail(`No cached offers for ${key}`);
-                return selectOffers([...offers], options)[0];
+                return selectOffers(offers.map(applyPlanType), options)[0];
             });
-            const offer = sumOffers(selected, { logger });
+            let offer;
+            if (options.template === 'discount' && selected.length === 2) {
+                const [discountedOffer, referenceOffer] = selected;
+                offer = {
+                    ...discountedOffer,
+                    priceInfo: undefined,
+                    priceDetails: {
+                        ...discountedOffer.priceDetails,
+                        priceWithoutDiscount: referenceOffer.priceDetails?.price,
+                    },
+                };
+            } else {
+                offer = sumOffers(selected, { logger });
+            }
             replacements.push({
                 start: location.startTag.endOffset,
                 end: location.endTag.startOffset,

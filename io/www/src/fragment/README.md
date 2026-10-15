@@ -74,11 +74,21 @@ parameters. These are prerequisites for the separate activation ticket.
 
 The selected cache is `context.body.wcs[environment]`. Cache keys follow the WCS
 producer: final OSI, lowercased country, `mult` except for GB, then the lowercased
-effective promotion code if present. Cached arrays are copied before offer
-selection. Missing environments/offers, empty offer groups, unaligned promotions,
+effective promotion code if present. Raw cached offers are copied and normalized
+using `applyPlanType` from the dependency-free `mas-price` package before offer
+selection. Its mapping preserves the browser's existing tacocat behavior;
+web-components is unchanged and continues using its current helper.
+The server does not depend on Dexter or Pandora for normalization.
+Missing environments/offers, empty offer groups, unaligned promotions,
 and unresolved required options fail explicitly with request/field diagnostics.
 All field updates are committed only after the entire render succeeds; cached
 offers and unrelated context values are not modified.
+
+For a `discount` template with exactly two OSIs, the first selected offer supplies
+the discounted price and the second supplies the reference price, matching the
+browser. Stale `priceInfo` is discarded on the derived offer. Other multi-OSI
+prices retain shared soft-bundle summation; percentage calculation and markup
+remain in `mas-price`.
 
 Root and flattened referenced fragments are processed once. String fields,
 wrapped rich-text `value` strings/arrays and string-array fields are supported.

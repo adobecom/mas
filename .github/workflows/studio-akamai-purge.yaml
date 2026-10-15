@@ -1,0 +1,42 @@
+name: Studio Akamai Purge
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'studio/**'
+            - 'web-components/dist/**'
+
+permissions:
+    contents: read
+
+jobs:
+    purge:
+        if: github.repository_owner == 'adobecom'
+        runs-on: ubuntu-latest
+        environment: akamai
+        timeout-minutes: 15
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Fetch the previous main commit
+              run: git fetch --depth=1 origin "$BEFORE_SHA"
+              env:
+                  BEFORE_SHA: ${{ github.event.before }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+
+            - name: Invalidate changed files on mas.adobe.com
+              run: node .github/scripts/akamai-purge.mjs
+              env:
+                  BEFORE_SHA: ${{ github.event.before }}
+                  AFTER_SHA: ${{ github.sha }}
+                  AKAMAI_HOST: ${{ secrets.AKAMAI_HOST }}
+                  AKAMAI_CLIENT_TOKEN: ${{ secrets.AKAMAI_CLIENT_TOKEN }}
+                  AKAMAI_CLIENT_SECRET: ${{ secrets.AKAMAI_CLIENT_SECRET }}
+                  AKAMAI_ACCESS_TOKEN: ${{ secrets.AKAMAI_ACCESS_TOKEN }}

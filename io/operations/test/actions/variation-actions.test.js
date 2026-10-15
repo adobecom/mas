@@ -1,6 +1,8 @@
 import { expect } from 'chai';
 import { Ims } from '@adobe/aio-lib-ims';
+import stateLib from '@adobe/aio-lib-state';
 import { StudioOperations } from '../../src/lib/studio-operations.js';
+import { AEMClient } from '../../src/lib/aem-client.js';
 
 /**
  * Five variation intents were in the registry with no action behind them: the
@@ -17,6 +19,10 @@ const baseParams = { AEM_BASE_URL: 'https://author-test.adobeaemcloud.com', __ow
 
 describe('variation actions', () => {
     let originalValidateToken;
+    let originalFetch;
+    let originalInit;
+    let originalGetFragment;
+    let callerGroups;
     const calls = [];
 
     before(() => {
@@ -29,7 +35,29 @@ describe('variation actions', () => {
 
     beforeEach(() => {
         calls.length = 0;
+        callerGroups = ['GRP-ODIN-MAS-ADMINS'];
         Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
+
+        originalFetch = globalThis.fetch;
+        globalThis.fetch = async (input) => {
+            const url = new URL(input);
+            if (url.hostname.includes('adobelogin')) return new Response(JSON.stringify({ email: 'caller@adobe.com' }));
+            return new Response(JSON.stringify({}));
+        };
+        originalInit = stateLib.init;
+        stateLib.init = async () => ({
+            get: async () => ({
+                value: JSON.stringify([{ userPrincipalName: 'caller@adobe.com', groups: callerGroups }]),
+            }),
+        });
+        originalGetFragment = AEMClient.prototype.getFragment;
+        AEMClient.prototype.getFragment = async () => ({ id: 'card-1', path: '/content/dam/mas/acom/en_US/card-1' });
+    });
+
+    afterEach(() => {
+        globalThis.fetch = originalFetch;
+        stateLib.init = originalInit;
+        AEMClient.prototype.getFragment = originalGetFragment;
     });
 
     /** Record what the action hands the library, without hitting AEM. */
@@ -91,6 +119,20 @@ describe('variation actions', () => {
                     for (const [key, value] of Object.entries(testCase.expect)) {
                         expect(calls[0].params[key], `${testCase.action} should send ${key}`).to.deep.equal(value);
                     }
+                } finally {
+                    restore();
+                }
+            });
+
+            it('denies a caller who is not an editor of the parent fragment surface', async () => {
+                callerGroups = ['GRP-ODIN-MAS-EXPRESS-EDITORS'];
+                const restore = stubMethod(testCase.method);
+
+                try {
+                    const result = await load({ ...baseParams, ...testCase.send });
+
+                    expect(result.statusCode).to.equal(403);
+                    expect(calls).to.have.length(0);
                 } finally {
                     restore();
                 }

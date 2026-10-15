@@ -6,7 +6,6 @@ import {
     buildReleaseTags,
 } from './ai-card-mapper.js';
 import { getProductName, getPreferredProductDescription, capitalize } from './mas-chat-helpers.js';
-import { normalizeFragmentForCache } from '../utils.js';
 
 const PLANS_VARIANTS = new Set(['plans', 'plans-students', 'plans-education']);
 
@@ -72,7 +71,7 @@ export async function buildReleaseFragmentData({ product, variant, baseOsi, tria
 
 /**
  * Build and persist one release card directly to AEM through the shared
- * mas-repository, then warm the aem-fragment cache. Mirrors the MASA chat
+ * mas-repository without changing shared preview data. Mirrors the MASA chat
  * create path (mas-chat.saveDraftToAEM) so the Offers-page flow behaves the same.
  *
  * @param {Object} args - see buildReleaseFragmentData, plus:
@@ -86,9 +85,5 @@ export async function createReleaseCard({ product, variant, baseOsi, trialOsi, p
     const fragmentData = await buildReleaseFragmentData({ product, variant, baseOsi, trialOsi, parentPath, title, name });
     const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
 
-    const AemFragmentElement = customElements.get('aem-fragment');
-    if (AemFragmentElement && newFragment) {
-        AemFragmentElement.cache.add(normalizeFragmentForCache(newFragment));
-    }
     return newFragment;
 }

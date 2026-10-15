@@ -3,7 +3,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
-import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
+import { requireIMSAuth, requireEditorForFragmentPath, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 /**
  * Update card fields
@@ -28,10 +28,18 @@ async function main(params) {
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
 
         const aemClient = new AEMClient(aemBaseUrl, authManager);
+
+        const existing = await aemClient.getFragment(id);
+        const surfaceError = await requireEditorForFragmentPath(accessToken, existing.path);
+        if (surfaceError) return surfaceError;
+
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 
-        const aosClient = new AOSClient(authManager, { baseUrl: params.AOS_URL, apiKey: params.AOS_API_KEY });
+        const aosClient = new AOSClient(authManager, {
+            baseUrl: params.AOS_URL || 'https://aos.adobe.io',
+            apiKey: params.AOS_API_KEY,
+        });
         if (!(await aosClient.validateOfferFields(fields, undefined))) {
             return { statusCode: 400, body: { error: 'Offer selector did not resolve to the requested product' } };
         }

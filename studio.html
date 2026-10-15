@@ -9,6 +9,8 @@
         <meta name="aem-base-url" />
         <meta name="aem-author-url" />
         <meta name="io-base-url" />
+        <meta name="mas-assistant-enabled" content="true" />
+        <meta name="mas-offers-enabled" content="true" />
         <script>
             // Relay check - redirect back to origin port if relayPort param + token in hash
             const relayPort = new URLSearchParams(window.location.search).get('relayPort');
@@ -39,7 +41,6 @@
                     "prosemirror-commands": "/studio/libs/prosemirror.js",
                     "prosemirror-schema-list": "/studio/libs/prosemirror.js",
                     "prosemirror-history": "/studio/libs/prosemirror.js",
-                    "prosemirror-placeholder": "/studio/libs/prosemirror.js",
                     "fragment-client": "/studio/libs/fragment-client.js"
                 }
             }

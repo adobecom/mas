@@ -30,14 +30,16 @@ describe('offer writes validate AOS before mutation', () => {
     let writes;
     let wcsOffers;
     let requireArrangement;
+    let callerGroups;
     beforeEach(() => {
         originalFetch = globalThis.fetch;
         originalValidate = Ims.prototype.validateTokenAllowList;
         originalInit = stateLib.init;
+        callerGroups = ['GRP-ODIN-MAS-ADMINS'];
         Ims.prototype.validateTokenAllowList = async () => ({ valid: true });
         stateLib.init = async () => ({
             get: async () => ({
-                value: JSON.stringify([{ userPrincipalName: 'caller@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]),
+                value: JSON.stringify([{ userPrincipalName: 'caller@adobe.com', groups: callerGroups }]),
             }),
         });
         offers = [product];
@@ -64,6 +66,15 @@ describe('offer writes validate AOS before mutation', () => {
         Ims.prototype.validateTokenAllowList = originalValidate;
         stateLib.init = originalInit;
     });
+    it('denies update and link when the caller is not an editor of the fragment surface', async () => {
+        callerGroups = ['GRP-ODIN-MAS-EXPRESS-EDITORS'];
+        const updateResult = await update({ ...params, id: 'card', fields: { osi: selector } });
+        const linkResult = await link({ ...params, cardId: 'card', offerSelectorId: selector });
+        expect(updateResult.statusCode).to.equal(403);
+        expect(linkResult.statusCode).to.equal(403);
+        expect(writes).to.deep.equal([]);
+    });
+
     for (const action of ['link', 'update', 'release']) {
         it(`rejects coherent unfiltered AOS responses for ${action}`, async () => {
             wcsOffers = [{ offerSelectorIds: ['differentSelector'], offerId }];

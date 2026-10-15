@@ -4,6 +4,7 @@ import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from '
 import { debounce } from './utils.js';
 import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
@@ -709,6 +710,7 @@ export class Router extends EventTarget {
     }
 
     #getAuthorizedPage(page) {
+        if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;
@@ -748,6 +750,12 @@ export class Router extends EventTarget {
     }
 
     #enforceRestrictedAccessFromParams() {
+        if (!isFeaturePageEnabled(this.currentParams.get('page'))) {
+            this.currentParams.set('page', PAGE_NAMES.WELCOME);
+            this.currentParams.delete('arrangementCode');
+            Store.page.set(PAGE_NAMES.WELCOME);
+            return true;
+        }
         const canAccess = RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')];
         if (!canAccess) return false;
         if (!Store.users.getMeta('loaded')) {

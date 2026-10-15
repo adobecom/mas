@@ -87,21 +87,24 @@ function sanitizeData(raw) {
 export class ChatSessionManager {
     constructor() {
         this.debounceTimers = new Map();
-        this.initializeStorage();
-    }
-
-    initializeStorage() {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA));
-        }
+        this.memoryData = structuredClone(DEFAULT_DATA);
+        this.storageAvailable = true;
     }
 
     getData() {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        if (!this.storageAvailable) return sanitizeData(this.memoryData);
+        let stored;
+        try {
+            stored = localStorage.getItem(STORAGE_KEY);
+        } catch (error) {
+            if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+            this.storageAvailable = false;
+            return sanitizeData(this.memoryData);
+        }
         if (!stored) return { sessions: {}, activeSessionId: null };
         try {
-            return sanitizeData(JSON.parse(stored));
+            this.memoryData = sanitizeData(JSON.parse(stored));
+            return this.memoryData;
         } catch {
             // Preserve corrupt data in storage so a developer can recover it
             // manually; surface the default to the UI without destroying state.
@@ -110,7 +113,14 @@ export class ChatSessionManager {
     }
 
     saveData(data) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        this.memoryData = data;
+        if (!this.storageAvailable) return;
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (error) {
+            if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+            this.storageAvailable = false;
+        }
     }
 
     generateSessionName(firstMessage) {

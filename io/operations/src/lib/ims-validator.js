@@ -240,6 +240,35 @@ export async function requireSurfaceAccess(headers, params) {
 }
 
 /**
+ * Authorize an already-authenticated caller to mutate a specific fragment.
+ * Actions keyed by fragment id (update, link, grouped variation) cannot derive
+ * the surface from request params, so they derive it from the fetched
+ * fragment's own path and require editor access to that surface. Returns a
+ * 400/403 error response, or null when the caller is allowed.
+ *
+ * @param {string} token - Bearer token (no 'Bearer ' prefix)
+ * @param {string} fragmentPath - the fragment's AEM path
+ * @returns {Promise<Object|null>}
+ */
+export async function requireEditorForFragmentPath(token, fragmentPath) {
+    const surface = deriveSurfaceFromPath(fragmentPath);
+    if (!surface) {
+        return {
+            statusCode: 400,
+            body: { error: 'Fragment is not under a known MAS surface (/content/dam/mas/{surface}/...)' },
+        };
+    }
+    const groups = await fetchUserGroups(token);
+    if (!canEditSurface(groups, surface)) {
+        return {
+            statusCode: 403,
+            body: { error: `Forbidden: caller does not have editor access to surface "${surface}"` },
+        };
+    }
+    return null;
+}
+
+/**
  * Middleware-style function to validate auth in Runtime actions
  * Returns error response if invalid, null if valid
  * @param {Object} headers - Runtime __ow_headers object

@@ -244,21 +244,7 @@ export function createFragmentFromAIConfig(aiConfig, variant, options = {}) {
         tags: options.tags || [],
     };
 
-    const fragment = new Fragment(fragmentData);
-
-    const AemFragmentElement = customElements.get('aem-fragment');
-    if (AemFragmentElement) {
-        const cacheData = {
-            id: fragment.id,
-            fields: fragment.fields.reduce((acc, field) => {
-                acc[field.name] = field.values.length === 1 ? field.values[0] : field.values;
-                return acc;
-            }, {}),
-        };
-        AemFragmentElement.cache.add(cacheData);
-    }
-
-    return fragment;
+    return new Fragment(fragmentData);
 }
 
 /**

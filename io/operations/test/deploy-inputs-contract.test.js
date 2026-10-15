@@ -106,6 +106,26 @@ describe('operations deploy inputs contract', () => {
         expect(sources).to.include(`params.AOS_URL || '${DEFAULTED_IN_CODE.AOS_URL}'`);
     });
 
+    it('binds AOS_API_KEY for every action that reads it without a fallback', () => {
+        // The manifest-vars check above only sees vars the manifest already
+        // lists. An action that reads params.AOS_API_KEY the manifest never
+        // binds is invisible to it, yet ships with an empty key and 500s on the
+        // first offer-bearing call. A secret has no safe default, so the read
+        // must be backed by a manifest input.
+        const chunks = read(MANIFEST).split('function: src/actions/');
+        const offenders = [];
+        for (let i = 1; i < chunks.length; i += 1) {
+            const name = chunks[i].slice(0, chunks[i].indexOf('.js') + 3);
+            const source = read(path.join(ACTIONS_DIR, name));
+            const readsWithoutFallback = source.includes('params.AOS_API_KEY') && !source.includes('params.AOS_API_KEY ||');
+            if (readsWithoutFallback && !chunks[i].includes('AOS_API_KEY')) offenders.push(name);
+        }
+        expect(
+            offenders,
+            `read params.AOS_API_KEY with no fallback but the manifest does not bind it: ${offenders.join(', ')}`,
+        ).to.deep.equal([]);
+    });
+
     describe('the known gap', () => {
         it('still names only vars the manifest actually uses', () => {
             const vars = manifestVars();

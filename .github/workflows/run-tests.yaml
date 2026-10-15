@@ -36,11 +36,6 @@ jobs:
               run: xvfb-run -a npm test
 
             - name: Upload coverage to Codecov
-              # Run even when the test step fails: the suite still writes lcov, and
-              # the required codecov/patch + codecov/project checks only finalize once
-              # they receive the upload — a skipped upload leaves them pending and
-              # blocks merge.
-              if: always()
               uses: codecov/codecov-action@v5
               continue-on-error: true
               with:

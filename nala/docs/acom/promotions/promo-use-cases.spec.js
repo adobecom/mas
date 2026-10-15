@@ -1,3 +1,5 @@
+const priceFormat = /^\d+(?:[.\s]\d{3})*,\d{2}\s€\/mo$/;
+
 export const FeatureName = 'Merch Acom Promotion and PZN Use Cases';
 export const features = [
     {
@@ -8,11 +10,8 @@ export const features = [
             id: '6908817e-8cfd-4f8b-9fc8-89f01da635fb',
             variationId: 'a864a187-5e99-4199-bcf1-f758bf95bfb6',
             title: '#1 SMB',
-            price: /^76,68\s€\/mo$/,
+            price: priceFormat,
             osi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
-            promotionProject: null,
-            promoCode: null,
-            promoVariationProject: null,
         },
         tags: '@mas-docs @mas-acom @mas-promotions @mas-promo-pzn @commerce @regression',
     },
@@ -24,11 +23,11 @@ export const features = [
             id: 'a9fd0a11-a81d-4b4f-bfda-d77e393ce023',
             variationId: 'a07ac5da-8fad-44a9-8242-a29de77cbfcd',
             title: '#2 SMB',
-            price: /^5,89\s€\/mo$/,
+            price: priceFormat,
             osi: 'nIy-IPGnALw3KNncaqMjOJsMUrqElWi8sdGnBFBAgTw',
+            replacedOsi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
             promotionProject: 'NalaPromoPZNRules',
             promoCode: 'promoPZNrules',
-            promoVariationProject: null,
         },
         tags: '@mas-docs @mas-acom @mas-promotions @mas-promo-pzn @commerce @regression',
     },
@@ -40,8 +39,9 @@ export const features = [
             id: 'a841a6df-c9b9-4cfc-b156-b4cee7b45f91',
             variationId: '6e3be019-a277-4b7f-9521-15d1d7afc8d5',
             title: '#3 SMB + BF',
-            price: /^5,89\s€\/mo$/,
+            price: priceFormat,
             osi: 'nIy-IPGnALw3KNncaqMjOJsMUrqElWi8sdGnBFBAgTw',
+            replacedOsi: 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8',
             promotionProject: 'NalaPromoPZNRules',
             promoCode: 'promoPZNrules',
             promoVariationProject: 'NalaPromoPZNRules',

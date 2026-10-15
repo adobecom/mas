@@ -26,44 +26,78 @@ test.describe('ACOM MAS promotion and PZN use cases', () => {
         await workerSetup.finishTest(testInfo);
     });
 
-    for (const feature of features) {
-        test(`${feature.name},${feature.tags}`, async () => {
-            const { data } = feature;
-            const page = await workerSetup.getPage('LU');
-            const plansPage = new MasPlans(page);
-            const card = plansPage.getCard(data.id);
-            const price = plansPage.getCardPrice(data.id).locator(plansPage.price);
+    test(`${features[0].name},${features[0].tags}`, async () => {
+        const { data } = features[0];
+        const page = await workerSetup.getPage('LU');
+        const plansPage = new MasPlans(page);
+        const card = plansPage.getCard(data.id);
+        const price = plansPage.getCardPrice(data.id).locator(plansPage.price);
 
-            await test.step('Verify the selected SMB content and Luxembourg price', async () => {
-                await workerSetup.verifyPageURL('LU', feature.path, expect);
-                await expect(card).toBeVisible();
-                await expect(card).toHaveAttribute('variation-id', data.variationId);
-                await expect(plansPage.getCardTitle(data.id)).toHaveText(data.title);
-                await expect(price).toHaveText(data.price);
-            });
-
-            await test.step('Verify offer substitution and promotion context', async () => {
-                await expect(card).toHaveAttribute('data-card-osi', data.osi);
-                await expect(price).toHaveAttribute('data-wcs-osi', data.osi);
-
-                for (const [attribute, expected] of [
-                    ['data-promotion-project', data.promotionProject],
-                    ['data-promotion-code', data.promoCode],
-                    ['data-promotion-variation-project', data.promoVariationProject],
-                ]) {
-                    if (expected === null) {
-                        await expect(card).not.toHaveAttribute(attribute);
-                    } else {
-                        await expect(card).toHaveAttribute(attribute, expected);
-                    }
-                }
-
-                if (data.promotionProject === null) {
-                    await expect(price).not.toHaveAttribute('data-replaced-osi');
-                } else {
-                    await expect(price).toHaveAttribute('data-replaced-osi', 'r_JXAnlFI7xD6FxWKl2ODvZriLYBoSL701Kd1hRyhe8');
-                }
-            });
+        await test.step('Verify the excluded SMB content and Luxembourg price format', async () => {
+            await workerSetup.verifyPageURL('LU', features[0].path, expect);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variation-id', data.variationId);
+            await expect(plansPage.getCardTitle(data.id)).toHaveText(data.title);
+            await expect(price).toHaveText(data.price);
         });
-    }
+
+        await test.step('Verify the excluded SMB has no promotion or offer substitution', async () => {
+            await expect(card).toHaveAttribute('data-card-osi', data.osi);
+            await expect(price).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(card).not.toHaveAttribute('data-promotion-project');
+            await expect(card).not.toHaveAttribute('data-promotion-code');
+            await expect(card).not.toHaveAttribute('data-promotion-variation-project');
+            await expect(price).not.toHaveAttribute('data-replaced-osi');
+        });
+    });
+
+    test(`${features[1].name},${features[1].tags}`, async () => {
+        const { data } = features[1];
+        const page = await workerSetup.getPage('LU');
+        const plansPage = new MasPlans(page);
+        const card = plansPage.getCard(data.id);
+        const price = plansPage.getCardPrice(data.id).locator(plansPage.price);
+
+        await test.step('Verify the included SMB content is preserved and the Luxembourg price format', async () => {
+            await workerSetup.verifyPageURL('LU', features[1].path, expect);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variation-id', data.variationId);
+            await expect(plansPage.getCardTitle(data.id)).toHaveText(data.title);
+            await expect(price).toHaveText(data.price);
+        });
+
+        await test.step('Verify promotion mapping without a promo variation', async () => {
+            await expect(card).toHaveAttribute('data-card-osi', data.osi);
+            await expect(price).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(card).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(card).toHaveAttribute('data-promotion-code', data.promoCode);
+            await expect(card).not.toHaveAttribute('data-promotion-variation-project');
+            await expect(price).toHaveAttribute('data-replaced-osi', data.replacedOsi);
+        });
+    });
+
+    test(`${features[2].name},${features[2].tags}`, async () => {
+        const { data } = features[2];
+        const page = await workerSetup.getPage('LU');
+        const plansPage = new MasPlans(page);
+        const card = plansPage.getCard(data.id);
+        const price = plansPage.getCardPrice(data.id).locator(plansPage.price);
+
+        await test.step('Verify the dedicated SMB promo variation and Luxembourg price format', async () => {
+            await workerSetup.verifyPageURL('LU', features[2].path, expect);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variation-id', data.variationId);
+            await expect(plansPage.getCardTitle(data.id)).toHaveText(data.title);
+            await expect(price).toHaveText(data.price);
+        });
+
+        await test.step('Verify promotion mapping on the SMB promo variation', async () => {
+            await expect(card).toHaveAttribute('data-card-osi', data.osi);
+            await expect(price).toHaveAttribute('data-wcs-osi', data.osi);
+            await expect(card).toHaveAttribute('data-promotion-project', data.promotionProject);
+            await expect(card).toHaveAttribute('data-promotion-code', data.promoCode);
+            await expect(card).toHaveAttribute('data-promotion-variation-project', data.promoVariationProject);
+            await expect(price).toHaveAttribute('data-replaced-osi', data.replacedOsi);
+        });
+    });
 });

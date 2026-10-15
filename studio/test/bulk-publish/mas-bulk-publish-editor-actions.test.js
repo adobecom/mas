@@ -1267,20 +1267,7 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         expect(el.shadowRoot.querySelector('sp-dialog-wrapper.add-locales-dialog')).to.exist;
     });
 
-    it('locales picker passes include-source so en_US is included', async () => {
-        const el = await makeEditor();
-        seedNew({ locales: [] });
-        await el.updateComplete;
-
-        el.localesPickerOpen = true;
-        await el.updateComplete;
-
-        const langPicker = el.shadowRoot.querySelector('mas-translation-languages');
-        expect(langPicker).to.exist;
-        expect(langPicker.hasAttribute('include-source')).to.equal(true);
-    });
-
-    it('locales picker passes include-regional so regional variants are included', async () => {
+    it('locales picker includes en_US and binds the bulk publish store', async () => {
         Store.search.set({ path: 'acom' });
         const el = await makeEditor();
         seedNew({ locales: [] });
@@ -1289,10 +1276,22 @@ describe('mas-bulk-publish-editor (openLocalesPicker)', () => {
         el.localesPickerOpen = true;
         await el.updateComplete;
 
-        const langPicker = el.shadowRoot.querySelector('mas-translation-languages');
-        expect(langPicker).to.exist;
-        expect(langPicker.hasAttribute('include-regional')).to.equal(true);
-        const codes = langPicker.localesArray.map((item) => item.locale);
+        const langPicker = el.shadowRoot.querySelector('mas-region-picker');
+        expect(langPicker.store).to.equal(Store.bulkPublishProjects.targetLocales);
+        expect(langPicker.items.map(({ value }) => value)).to.include('en_US');
+    });
+
+    it('locales picker includes regional variants', async () => {
+        Store.search.set({ path: 'acom' });
+        const el = await makeEditor();
+        seedNew({ locales: [] });
+        await el.updateComplete;
+
+        el.localesPickerOpen = true;
+        await el.updateComplete;
+
+        const langPicker = el.shadowRoot.querySelector('mas-region-picker');
+        const codes = langPicker.items.map(({ value }) => value);
         expect(codes).to.include('fr_FR');
         expect(codes).to.include('fr_CA');
         expect(codes).to.include('fr_BE');

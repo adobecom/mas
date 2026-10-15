@@ -9,19 +9,50 @@ const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
 /** The namespace-scoped cache key MerchAtScaleStudio/listMembers serves. */
 const MAS_USERS_CACHE_KEY = 'mas-users';
 
+const SURFACE_EDITOR_PREFIX = 'GRP-ODIN-MAS-';
+const SURFACE_EDITOR_SUFFIX = '-EDITORS';
+
 /**
- * Surface path segment → LDAP group required to mutate fragments in that surface.
- * Mirrors studio/src/groups.js::SETTINGS_ACCESS_GROUP_BY_SURFACE but for editor
- * permission on fragment content (not just settings).
+ * The MAS surfaces this service governs — the single source of truth, kept in
+ * step with studio/src/groups.js. Each surface's editor group is DERIVED from
+ * the GRP-ODIN-MAS-{ABBREV}-EDITORS convention rather than spelled out, so a new
+ * surface only needs its segment listed here and the two lists this file used to
+ * keep (editable + searchable) can no longer drift apart (brand-concierge was
+ * missing from both, silently denying its editors).
+ *
+ *   abbrev     — group-name segment when it differs from the surface (only
+ *                adobe-home → AH today); defaults to the surface uppercased.
+ *   adminOnly  — surface has no governed editor group; only admins may touch it.
+ *   readParent — a sub-surface that folds into this top-level surface for
+ *                cross-surface search read (acom-cc / acom-dc → acom).
+ *
+ * An unlisted surface is denied — see canEditSurface's defense-in-depth check.
  */
-const EDITOR_ACCESS_GROUP_BY_SURFACE = new Map([
-    ['acom', 'GRP-ODIN-MAS-ACOM-EDITORS'],
-    ['acom-cc', 'GRP-ODIN-MAS-ACOM-CC-EDITORS'],
-    ['acom-dc', 'GRP-ODIN-MAS-ACOM-DC-EDITORS'],
-    ['adobe-home', 'GRP-ODIN-MAS-AH-EDITORS'],
-    ['ccd', 'GRP-ODIN-MAS-CCD-EDITORS'],
-    ['express', 'GRP-ODIN-MAS-EXPRESS-EDITORS'],
-]);
+const SURFACES = {
+    acom: {},
+    'acom-cc': { readParent: 'acom' },
+    'acom-dc': { readParent: 'acom' },
+    'adobe-home': { abbrev: 'AH' },
+    'brand-concierge': {},
+    ccd: {},
+    express: {},
+    commerce: { adminOnly: true },
+    sandbox: { adminOnly: true },
+    docs: { adminOnly: true },
+    nala: { adminOnly: true },
+};
+
+/**
+ * The editor LDAP group that grants write access to a surface, or null when the
+ * surface is unknown or admin-only (no governed editor group). Derived from the
+ * GRP-ODIN-MAS-{ABBREV}-EDITORS naming convention.
+ */
+function editorGroupForSurface(surface) {
+    const config = SURFACES[surface];
+    if (!config || config.adminOnly) return null;
+    const segment = config.abbrev ?? surface.toUpperCase();
+    return `${SURFACE_EDITOR_PREFIX}${segment}${SURFACE_EDITOR_SUFFIX}`;
+}
 
 /**
  * Validates IMS token for the mas-studio client
@@ -139,42 +170,35 @@ export function canEditSurface(groups, surface) {
     if (!Array.isArray(groups) || groups.length === 0) return false;
     if (groups.includes(MAS_ADMIN_GROUP.toUpperCase())) return true;
     if (!surface) return false;
-    const required = EDITOR_ACCESS_GROUP_BY_SURFACE.get(surface);
+    const required = editorGroupForSurface(surface);
     return !!required && groups.includes(required.toUpperCase());
 }
 
 /**
- * Searchable top-level surfaces → the editor groups that grant READ access in
- * cross-surface search. An acom-cc / acom-dc editor can read acom, so those
- * groups fold into the `acom` entry. Surfaces with no governed editor group
- * (commerce, sandbox, docs, nala) are reachable only by an admin. Keys match
- * StudioOperations.getSurfacePath so an entitled surface is always searchable.
- */
-const READ_GROUPS_BY_SURFACE = new Map([
-    ['acom', ['GRP-ODIN-MAS-ACOM-EDITORS', 'GRP-ODIN-MAS-ACOM-CC-EDITORS', 'GRP-ODIN-MAS-ACOM-DC-EDITORS']],
-    ['adobe-home', ['GRP-ODIN-MAS-AH-EDITORS']],
-    ['ccd', ['GRP-ODIN-MAS-CCD-EDITORS']],
-    ['express', ['GRP-ODIN-MAS-EXPRESS-EDITORS']],
-    ['commerce', []],
-    ['sandbox', []],
-    ['docs', []],
-    ['nala', []],
-]);
-
-/**
  * The searchable surfaces a caller may read in a cross-surface search. An admin
- * sees every surface; everyone else sees only the surfaces whose read group
- * they belong to. Empty for a caller in no MAS group.
+ * sees every top-level surface; everyone else sees the top-level surface behind
+ * each editor group they hold — a sub-surface folds into its readParent
+ * (acom-cc / acom-dc → acom). Empty for a caller in no governing group. Derived
+ * from SURFACES, so a surface can no longer be editable-but-not-searchable (or
+ * vice versa) by accident; StudioOperations.getSurfacePath resolves any of these
+ * generically.
  *
  * @param {string[]} groups - uppercase LDAP group names
- * @returns {string[]} entitled surface segments (subset of getSurfacePath keys)
+ * @returns {string[]} entitled top-level surface segments
  */
 export function entitledSurfaces(groups) {
-    const owned = Array.isArray(groups) ? groups : [];
-    if (owned.includes(MAS_ADMIN_GROUP.toUpperCase())) return [...READ_GROUPS_BY_SURFACE.keys()];
-    return [...READ_GROUPS_BY_SURFACE.entries()]
-        .filter(([, grants]) => grants.some((group) => owned.includes(group.toUpperCase())))
-        .map(([surface]) => surface);
+    const owned = Array.isArray(groups) ? groups.map((group) => group.toUpperCase()) : [];
+    const topLevelSurfaces = Object.keys(SURFACES).filter((surface) => !SURFACES[surface].readParent);
+    if (owned.includes(MAS_ADMIN_GROUP.toUpperCase())) return topLevelSurfaces;
+
+    const readable = new Set();
+    for (const surface of Object.keys(SURFACES)) {
+        const group = editorGroupForSurface(surface);
+        if (group && owned.includes(group.toUpperCase())) {
+            readable.add(SURFACES[surface].readParent ?? surface);
+        }
+    }
+    return [...readable];
 }
 
 /**

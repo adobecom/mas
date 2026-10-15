@@ -31,15 +31,23 @@ To route checkout links and buttons through the host's initialized `window.aupsd
 <meta name="aup-select" content="on" />
 ```
 
+Two values enable routing:
+
+- `on` routes CTAs through the AUP SDK for the true Select experience.
+- `ucv3_in_iframe` routes CTAs through the AUP SDK and keeps the current 3-in-1 modals. This value is temporary.
+- When the value is absent or anything else, AUP routing is disabled.
+
+M@S treats both values the same way; the difference is host-side. Milo adds `tmp_aupsdk_ucv3_in_iframe` to `miniAppContext.features` only for `ucv3_in_iframe`. The `ucv3_in_iframe` value will be removed once hosts switch fully to the true Select experience.
+
 The commerce service resolves `service.settings.aupSelect` during initialization from `aup-select` metadata, falling back to its `aup-select` attribute when metadata is absent:
 
 ```html
 <mas-commerce-service aup-select="on"></mas-commerce-service>
 ```
 
-When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
+When configuring the service through Milo, use `commerce['aup-select'] = 'on'` (or `'ucv3_in_iframe'`). Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
 
-Only exact `on` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
+Only exact, case-sensitive `on` or `ucv3_in_iframe` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
 
 AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Upgrade and perpetual offers, downloads, and links targeting another window retain their existing URLs.
 

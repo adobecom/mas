@@ -19,6 +19,7 @@ import router from './router.js';
 import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+import { startOdinTelemetry } from './utils/odin-telemetry.js';
 
 const LAZY_IMPORT_RETRIES = 2;
 const LAZY_IMPORT_RETRY_DELAY = 1000;
@@ -30,6 +31,7 @@ const BUCKET_TO_ENV = {
 };
 
 router.start();
+startOdinTelemetry();
 
 class MasStudio extends LitElement {
     static properties = {
@@ -262,7 +264,7 @@ class MasStudio extends LitElement {
 
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true" lana-tags="studio"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {

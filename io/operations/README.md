@@ -8,8 +8,6 @@ This is the production deployment of the MAS Operations Service using Adobe I/O 
 
 ### Actions
 
-- **publish-card**: Publish a card to production
-- **unpublish-card**: Unpublish a card from production
 - **get-card**: Get card details by ID
 - **search-cards**: Search for cards with filters
 - **delete-card**: Delete a card
@@ -55,7 +53,7 @@ aio app deploy --all
 Deploy specific action:
 
 ```bash
-aio app deploy -a publish-card
+aio app deploy -a update-card
 ```
 
 ### Test
@@ -69,7 +67,7 @@ aio runtime action list
 Invoke action directly:
 
 ```bash
-aio runtime action invoke publish-card --param id <card-id> --result
+aio runtime action invoke update-card --param id <card-id> --result
 ```
 
 ## Auto-Deployment
@@ -96,7 +94,7 @@ https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/<action
 Example:
 
 ```
-https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations/publish-card
+https://adobeioruntime.net/api/v1/web/prod-namespace/MerchAtScaleOperations/update-card
 ```
 
 ## Local development

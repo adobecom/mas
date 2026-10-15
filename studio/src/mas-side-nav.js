@@ -14,6 +14,7 @@ import {
 } from './utils.js';
 import { parseCtas } from './editors/variation-utils.js';
 import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
+import { masaIcon } from './img/masa-icon.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -988,7 +989,7 @@ class MasSideNav extends LitElement {
                 ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
             >
-                <sp-icon-magic-wand slot="icon"></sp-icon-magic-wand>
+                ${masaIcon}
             </mas-side-nav-item>
             <mas-side-nav-item
                 class="side-nav-support"

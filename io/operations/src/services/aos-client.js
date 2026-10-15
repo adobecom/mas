@@ -181,38 +181,6 @@ export class AOSClient {
         throw new Error(`Failed to get offer: ${lastError?.message || `Offer ${offerId} not found`}`);
     }
 
-    async createOfferSelector(offerParams) {
-        const authHeader = await this.authManager.getAuthHeader();
-
-        const params = {
-            ...DEFAULT_AOS_PARAMS,
-            ...offerParams,
-            market_segments: [offerParams.market_segment],
-        };
-
-        delete params.market_segment;
-
-        const url = `${this.baseUrl}/v3/offer-selectors`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Authorization: authHeader,
-                'Content-Type': 'application/json',
-                'x-api-key': this.apiKey,
-            },
-            body: JSON.stringify(params),
-        });
-
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: response.statusText }));
-            throw new Error(`Failed to create offer selector: ${error.message || response.statusText}`);
-        }
-
-        const data = await response.json();
-        return { id: data.data.id };
-    }
-
     async resolveOfferSelector(offerSelectorId, country, { arrangementCode, verifyIdentity = false } = {}) {
         if (typeof offerSelectorId !== 'string' || !/^[A-Za-z0-9_-]+$/.test(offerSelectorId)) return [];
         if (/^[0-9a-f]{32}$/i.test(offerSelectorId)) {

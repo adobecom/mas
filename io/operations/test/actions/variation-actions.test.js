@@ -44,19 +44,11 @@ describe('variation actions', () => {
         };
     }
 
-    // The three read actions that used to sit here — get-card-with-variations,
-    // list-variation-locales and get-variation-parent — were removed: the
-    // registry offered them to the model and no client path could dispatch one,
-    // so picking any of them dead-ended the turn. Creating variations is still
-    // wired, so those two stay.
+    // The read actions that used to sit here (get-card-with-variations,
+    // list-variation-locales, get-variation-parent) and create-locale-variation
+    // were removed. Grouped-variation creation is the one variation write still
+    // wired to the assistant, so it stays.
     const cases = [
-        {
-            action: 'create-locale-variation',
-            method: 'createLocaleVariation',
-            send: { parentId: 'card-1', locale: 'fr_FR', title: 'Photoshop FR' },
-            // registry parentId/locale -> library id/targetLocale
-            expect: { id: 'card-1', targetLocale: 'fr_FR', title: 'Photoshop FR' },
-        },
         {
             action: 'create-grouped-variation',
             method: 'createGroupedVariation',
@@ -123,24 +115,6 @@ describe('variation actions', () => {
     }
 
     describe('required slots', () => {
-        it('rejects a locale variation with no parentId', async () => {
-            const { main } = await import('../../src/actions/create-locale-variation.js');
-
-            const result = await main({ ...baseParams, locale: 'fr_FR' });
-
-            expect(result.statusCode).to.equal(400);
-            expect(result.body.error).to.match(/parentId/i);
-        });
-
-        it('rejects a locale variation with no locale', async () => {
-            const { main } = await import('../../src/actions/create-locale-variation.js');
-
-            const result = await main({ ...baseParams, parentId: 'card-1' });
-
-            expect(result.statusCode).to.equal(400);
-            expect(result.body.error).to.match(/locale/i);
-        });
-
         it('rejects a grouped variation with no parentId', async () => {
             const { main } = await import('../../src/actions/create-grouped-variation.js');
 

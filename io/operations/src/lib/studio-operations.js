@@ -54,6 +54,24 @@ function classifyVariationPath(path) {
     return null;
 }
 
+// Join a caller-supplied relative subfolder onto a surface base path, used to
+// scope a card search to e.g. a promo project (promotions/<project>) or the
+// personalization folder (pzn). Surrounding slashes are stripped so an absolute
+// look-alike stays relative; any '.' or '..' segment is rejected so the search
+// can never climb out of the caller's surface. Empty input returns the base.
+export function safeJoinPath(base, relativePath) {
+    if (relativePath == null || relativePath === '') return base;
+    const clean = String(relativePath)
+        .trim()
+        .replace(/^\/+|\/+$/g, '');
+    if (!clean) return base;
+    const segments = clean.split('/');
+    if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
+        throw new Error(`Invalid search path: ${relativePath}`);
+    }
+    return `${base}/${clean}`;
+}
+
 /**
  * Strip HTML tags from text while preserving the content
  * Used for searching text in HTML-formatted fields
@@ -128,74 +146,6 @@ export class StudioOperations {
     constructor(aemClient, urlBuilder) {
         this.aemClient = aemClient;
         this.urlBuilder = urlBuilder;
-    }
-
-    /**
-     * Publish a card to production
-     * @param {Object} params - { id: string, publishReferences?: boolean }
-     */
-    async publishCard(params) {
-        const { id, publishReferences = true } = params;
-
-        if (!id) {
-            throw new Error('Card ID is required for publish operation');
-        }
-
-        const fragment = await this.aemClient.getFragment(id);
-
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
-        }
-
-        await this.aemClient.publishFragment(fragment.id, publishReferences);
-
-        const card = this.formatCard(fragment);
-        const studioLinks = this.urlBuilder.createCardLinks(card);
-
-        return {
-            success: true,
-            operation: 'publish',
-            card,
-            message: `✓ "${fragment.title}" has been published to production.`,
-            studioLinks: {
-                viewInStudio: studioLinks.view,
-                viewFolder: studioLinks.folder,
-            },
-        };
-    }
-
-    /**
-     * Unpublish a card from production
-     * @param {Object} params - { id: string }
-     */
-    async unpublishCard(params) {
-        const { id } = params;
-
-        if (!id) {
-            throw new Error('Card ID is required for unpublish operation');
-        }
-
-        const fragment = await this.aemClient.getFragment(id);
-
-        if (!fragment) {
-            throw new Error(`Card not found: ${id}`);
-        }
-
-        await this.aemClient.unpublishFragment(fragment.id);
-
-        const card = this.formatCard(fragment);
-        const studioLinks = this.urlBuilder.createCardLinks(card);
-
-        return {
-            success: true,
-            operation: 'unpublish',
-            card,
-            message: `✓ "${fragment.title}" has been unpublished from production.`,
-            studioLinks: {
-                viewInStudio: studioLinks.view,
-                viewFolder: studioLinks.folder,
-            },
-        };
     }
 
     /**
@@ -465,6 +415,7 @@ export class StudioOperations {
             variationType = 'all',
             osi,
             titleSearch,
+            path: scopePath,
         } = params;
 
         if (osi && !surface) {
@@ -495,6 +446,26 @@ export class StudioOperations {
         const surfacePath = this.getSurfacePath(surface, locale);
         console.log(`[StudioOperations] getSurfacePath(${surface}, ${locale}) = ${surfacePath}`);
 
+        // Optional subfolder scope (e.g. a promo project `promotions/<project>`
+        // or the pzn folder). safeJoinPath keeps the search strictly under the
+        // caller's surface; an escaping path is rejected rather than widening it.
+        let searchPath;
+        try {
+            searchPath = safeJoinPath(surfacePath, scopePath);
+        } catch (error) {
+            return {
+                success: false,
+                error: 'INVALID_PATH',
+                operation: 'search',
+                results: [],
+                count: 0,
+                message: error.message,
+            };
+        }
+        if (searchPath !== surfacePath) {
+            console.log(`[StudioOperations] scoped search path: ${searchPath}`);
+        }
+
         // Title search: deterministic path used by the AI assistant search router.
         // Two-stage: AEM full-text (EDGES) using the user's full query narrows
         // to candidate fragments, then a local case-insensitive substring filter
@@ -511,7 +482,7 @@ export class StudioOperations {
             const MAX_PAGES = 40;
             for (let page = 0; page < MAX_PAGES; page += 1) {
                 const response = await this.aemClient.searchFragments({
-                    path: surfacePath,
+                    path: searchPath,
                     query,
                     modelIds: [CARD_MODEL_ID],
                     limit: 50,
@@ -568,7 +539,7 @@ export class StudioOperations {
         const isTagOnlySearch = !query && Array.isArray(tags) && tags.length > 0;
         if (isTagOnlySearch) {
             console.log('[StudioOperations] Tag-only search (bounded cursor):', {
-                path: surfacePath,
+                path: searchPath,
                 tags,
                 modelIds: [CARD_MODEL_ID],
                 limit,
@@ -580,7 +551,7 @@ export class StudioOperations {
             const TAG_MAX_PAGES = 8;
             for (let page = 0; page < TAG_MAX_PAGES; page += 1) {
                 const response = await this.aemClient.searchFragments({
-                    path: surfacePath,
+                    path: searchPath,
                     tags,
                     modelIds: [CARD_MODEL_ID],
                     limit: 50,
@@ -619,7 +590,7 @@ export class StudioOperations {
         // MAX_PAGES so a dilute query can't run forever; the action layer
         // also wraps this in its own timeout.
         console.log('[StudioOperations] Cursor-paginated search:', {
-            path: surfacePath,
+            path: searchPath,
             query,
             modelIds: [CARD_MODEL_ID],
         });
@@ -629,7 +600,7 @@ export class StudioOperations {
         const MAX_PAGES = 40;
         for (let page = 0; page < MAX_PAGES; page += 1) {
             const response = await this.aemClient.searchFragments({
-                path: surfacePath,
+                path: searchPath,
                 query,
                 tags,
                 modelIds: [CARD_MODEL_ID],
@@ -1018,18 +989,14 @@ export class StudioOperations {
      * @private
      */
     getSurfacePath(surface, locale = 'en_US') {
-        const surfaceMap = {
-            commerce: '/content/dam/mas/commerce',
-            acom: '/content/dam/mas/acom',
-            ccd: '/content/dam/mas/ccd',
-            'adobe-home': '/content/dam/mas/adobe-home',
-            express: '/content/dam/mas/express',
-            sandbox: '/content/dam/mas/sandbox',
-            docs: '/content/dam/mas/docs',
-            nala: '/content/dam/mas/nala',
-        };
-
-        const basePath = surfaceMap[surface] || '/content/dam/mas';
+        // Surfaces map 1:1 to /content/dam/mas/<surface>, so resolve generically
+        // rather than from a hardcoded list that drifts behind the frontend's
+        // SURFACES. acom-cc, acom-dc and brand-concierge were missing, so a
+        // search on those surfaces fell through to the dam root and returned
+        // nothing. The segment guard stops an unexpected value from building a
+        // traversing path.
+        const safeSurface = typeof surface === 'string' && /^[\w-]+$/.test(surface) ? surface : null;
+        const basePath = safeSurface ? `/content/dam/mas/${safeSurface}` : '/content/dam/mas';
         return locale && locale !== 'all' ? `${basePath}/${locale}` : basePath;
     }
 
@@ -1240,61 +1207,6 @@ export class StudioOperations {
             count: results.length,
             errors: errors.length > 0 ? errors : undefined,
             message: `Showing ${results.length} card${results.length !== 1 ? 's' : ''} from ${operationLabel}`,
-        };
-    }
-
-    async createLocaleVariation(params) {
-        const { id, targetLocale } = params;
-        if (!id) throw new Error('Card ID is required');
-        if (!targetLocale) throw new Error('Target locale is required');
-
-        const parentFragment = await this.aemClient.getFragment(id);
-        if (!parentFragment) throw new Error(`Card not found: ${id}`);
-
-        const match = parentFragment.path.match(PATH_TOKENS);
-        if (!match) throw new Error(`Cannot parse path: ${parentFragment.path}`);
-
-        const { surface, locale: parentLocale, fragmentPath } = match.groups;
-        if (parentLocale !== 'en_US') {
-            throw new Error('Variations can only be created from en_US (default locale) cards');
-        }
-
-        const targetFolderPath = `/content/dam/mas/${surface}/${targetLocale}`;
-        const targetFragmentPath = `${targetFolderPath}/${fragmentPath}`;
-
-        try {
-            const existing = await this.aemClient.getFragmentByPath(targetFragmentPath);
-            if (existing) throw new Error(`Variation already exists at ${targetFragmentPath}`);
-        } catch (e) {
-            if (!e.message.includes('not found') && !e.message.includes('Failed to get')) throw e;
-        }
-
-        const folderParts = targetFragmentPath.split('/');
-        folderParts.pop();
-        const folderPath = folderParts.join('/');
-        await this.aemClient.createFolder(folderPath);
-
-        const fragmentData = {
-            title: parentFragment.title,
-            description: parentFragment.description || `Variation: ${targetLocale}`,
-            modelId: parentFragment.model?.id || parentFragment.modelId,
-            parentPath: folderPath,
-            fields: [],
-            tags: (parentFragment.tags || []).map((t) => t.id || t),
-        };
-
-        const newFragment = await this.aemClient.createFragment(fragmentData);
-
-        await this.updateParentVariations(parentFragment, newFragment.path || targetFragmentPath);
-
-        const card = this.formatCard(newFragment);
-        return {
-            success: true,
-            operation: 'create_locale_variation',
-            card,
-            parentId: id,
-            targetLocale,
-            message: `Created ${targetLocale} variation of "${parentFragment.title}"`,
         };
     }
 

@@ -47,8 +47,8 @@ describe('MasChat isolates asynchronous work after model responses', () => {
         clearProductCache();
         delete window.adobeIMS;
     });
-    const send = (el) =>
-        el.handleSendMessage({ detail: { message: 'old product', context: { skipDeterministicRouter: true } } });
+    const send = (el, extra = {}) =>
+        el.handleSendMessage({ detail: { message: 'old product', context: { skipDeterministicRouter: true, ...extra } } });
     const replaceSession = (el) => {
         const session = sessionManager.createSession();
         sessionManager.updateSession(session.id, {
@@ -173,6 +173,9 @@ describe('MasChat isolates asynchronous work after model responses', () => {
                 },
             }));
             el.selectedReleaseProduct = product;
+            // release_cards only creates post-confirmation (#releaseConfirmed);
+            // open the gate for that branch so the stale-work check is reached.
+            const pendingSend = branch === 'release drafts' ? { confirmedRelease: true } : {};
             ai.onFirstCall().resolves(
                 branch === 'single draft'
                     ? {
@@ -188,7 +191,7 @@ describe('MasChat isolates asynchronous work after model responses', () => {
                           conversationHistory: confirmation.conversationHistory,
                       },
             );
-            const pending = send(el);
+            const pending = send(el, pendingSend);
             await started.promise;
             replaceSession(el);
             result.resolve({ id: 'old-card', title: 'Old card', path: '/content/dam/mas/old-card' });

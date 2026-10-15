@@ -75,4 +75,34 @@ const config = {
     },
 };
 
-export default [ignoresConfig, config];
+const priceConfig = {
+    files: ['price/src/**/*.js'],
+    languageOptions: {
+        globals: {
+            ...Object.fromEntries(
+                Object.keys(baseConfig.languageOptions.globals)
+                    .filter((name) => !(name in globals.es2022))
+                    .map((name) => [name, 'off']),
+            ),
+            console: 'readonly',
+        },
+    },
+    rules: {
+        'no-restricted-imports': [
+            'error',
+            {
+                patterns: [
+                    'node:*',
+                    '@dexter/*',
+                    'lit',
+                    'lit/*',
+                    '@spectrum-web-components/*',
+                    '**/web-components/**',
+                    '**/io/**',
+                ],
+            },
+        ],
+    },
+};
+
+export default [ignoresConfig, config, priceConfig];

@@ -35,9 +35,9 @@ const MOCK_FRAGMENT_MAPPING = {
 // element, which the test shell does not register. Stub it the way
 // ai-card-mapper.test.js does so the builder exercises the real mapping path.
 function stubMerchCard() {
-    sinon.stub(window.customElements, 'get').callsFake((name) =>
-        name === 'merch-card' ? { getFragmentMapping: () => MOCK_FRAGMENT_MAPPING } : undefined,
-    );
+    sinon
+        .stub(window.customElements, 'get')
+        .callsFake((name) => (name === 'merch-card' ? { getFragmentMapping: () => MOCK_FRAGMENT_MAPPING } : undefined));
 }
 
 describe('release-cards buildReleaseFragmentData', () => {

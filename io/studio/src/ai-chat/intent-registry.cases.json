@@ -158,7 +158,7 @@
             },
             "conversationHistory": [],
             "user_message": "publish all of them",
-            "notes": "Same for publishing: no bulk_publish_cards, and single publish needs one id, not the whole set.",
+            "notes": "Publishing is not available from the assistant — no bulk publish and no single publish; direct the user to Studio.",
             "expect": {
                 "intent_one_of": ["SHOW_HELP", "ASK_USER"]
             }

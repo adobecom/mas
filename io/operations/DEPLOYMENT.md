@@ -15,13 +15,13 @@ After deploying the Runtime actions, update the Studio frontend to use the Runti
 After deployment, get your action URLs:
 
 ```bash
-aio runtime action get publish-card --url
+aio runtime action get update-card --url
 ```
 
 The URL will look like:
 
 ```
-https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/publish-card
+https://adobeioruntime.net/api/v1/web/<namespace>/MerchAtScaleOperations/update-card
 ```
 
 ### 2. Update Studio Constants
@@ -70,7 +70,6 @@ const response = await fetch(`${OPERATIONS_SERVICE_URL}/${toolName.replace('stud
 
 This maps:
 
-- `studio_publish_card` → `publish-card`
 - `studio_search_cards` → `search-cards`
 - etc.
 

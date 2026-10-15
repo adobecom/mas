@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import zlib from 'zlib';
-import { main, offerStateKey, offersBundleStateKey, offersIndexStateKey } from '../src/offers/index.js';
+import { clearOffersCache, main, offerStateKey, offersBundleStateKey, offersIndexStateKey } from '../src/offers/index.js';
 import { resetCache } from '../src/fragment/utils/configuration.js';
 import { MockState } from './fragment/mocks/MockState.js';
 import { createResponse } from './fragment/mocks/MockFetch.js';
@@ -25,6 +25,7 @@ describe('offers action', () => {
     let state;
 
     beforeEach(() => {
+        clearOffersCache();
         state = new MockState();
         sinon.spy(state, 'put');
         sinon.spy(state, 'delete');
@@ -221,6 +222,33 @@ describe('offers action', () => {
             await get({ locale: 'en_US', pa: 'phsp_direct_individual' });
             expect(fetchStub.called).to.be.false;
             expect(state.put.called).to.be.false;
+        });
+
+        it('caches state reads in container memory, absent offer baselines included', async () => {
+            sinon.spy(state, 'get');
+            const pa = 'phsp_direct_individual,unknown_pa';
+            const first = await get({ locale: 'fr_FR', pa });
+            const locale = await get({ locale: 'fr_FR' });
+            state.get.resetHistory();
+
+            expect(decode(await get({ locale: 'fr_FR', pa }))).to.deep.equal(decode(first));
+            expect(decode(await get({ locale: 'fr_FR', preview: 'true' }))).to.deep.equal(decode(locale));
+            expect((await get({ locale: 'fr_FR' }, { 'if-none-match': locale.headers.ETag })).statusCode).to.equal(304);
+            // only the configuration may be read again
+            expect(state.get.getCalls().filter(({ args: [key] }) => key !== 'configuration')).to.be.empty;
+        });
+
+        it('serves what a sync of the same container just wrote', async () => {
+            expect(
+                decode(await get({ locale: 'en_US', pa: 'phsp_direct_individual' })).phsp_direct_individual.fields.name,
+            ).to.equal('phsp_direct_individual');
+            const updated = baseline('en_US', 'phsp_direct_individual', 'Photoshop');
+            fetchStub.withArgs(listing(`${OFFERS}/en_US`)).returns(createResponse(200, { items: [updated, ILST] }));
+            await main({ state, locale: 'en_US' });
+
+            const response = await get({ locale: 'en_US', pa: 'phsp_direct_individual' });
+            expect(decode(response).phsp_direct_individual.fields.name).to.equal('Photoshop');
+            expect(decode(await get({ locale: 'en_US' })).phsp_direct_individual.fields.name).to.equal('Photoshop');
         });
     });
 });

@@ -5,6 +5,7 @@ import { fetch, getFromState, getJsonFromState, VALID_PARAMETER_VALUE_REGEX } fr
 import { loadConfiguration, validateApiKey } from '../fragment/utils/configuration.js';
 import { log, logError } from '../fragment/utils/log.js';
 import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
+import { createSwrCache } from '../fragment/utils/swr-cache.js';
 
 /**
  * MWPW-186204: keeps offer baselines (`/content/dam/mas/offers/<locale>/<pa>/baseline`) in the namespace state, one key
@@ -12,7 +13,8 @@ import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
  * (~1800 product arrangements per locale).
  * - sync: non web invocations (every 15 minutes alarm, or on demand), for one `locale` or all of them,
  * - serve: web `GET ?locale=<locale>[&pa=<pa>[,<pa>…]]`, brotli compressed, with an ETag for conditional requests. Without
- *   `pa`, every offer baseline of the locale, read from its bundle (one state entry per locale).
+ *   `pa`, every offer baseline of the locale, read from its bundle (one state entry per locale). State reads are cached
+ *   in container memory (see offersCache).
  */
 
 const OFFERS_ROOT = `${MAS_ROOT}/offers`;
@@ -39,14 +41,26 @@ export const offersIndexStateKey = (locale) => `offers-index-${locale}`;
 // brotli compressed (base64) `{ [pa]: offerBaseline }` of every offer baseline of a locale
 export const offersBundleStateKey = (locale) => `offers-bundle-${locale}`;
 
+// Container memory cache of what web requests read from state (jittered 5 minutes TTL, stale-while-revalidate, single
+// flight), so a warm container neither re-reads state nor re-encodes a locale for every request:
+// - `offer-<locale>-<pa>`: stored offer baseline, '' when there is none (absence is cached too),
+// - `locale-<locale>`: encoded response (`{ etag, body }`) of every offer baseline of a locale.
+// State errors throw, so they are never cached.
+const offersCache = createSwrCache({ name: 'offers' });
+
+export function clearOffersCache() {
+    offersCache.clear();
+}
+
 const hash = (value) => createHash('sha1').update(value).digest('base64url');
 
 /**
  * Offer baseline of a product arrangement as synced in state, falling back to en_US when not localized yet.
  */
 export async function readOfferBaseline(context, locale, productArrangementCode) {
-    const { json } = await getJsonFromState(offerStateKey(locale, productArrangementCode), context);
-    if (json || locale === OFFER_BASELINE_FALLBACK_LOCALE) return json ?? undefined;
+    const key = offerStateKey(locale, productArrangementCode);
+    const value = await offersCache.get(context, key, async () => (await getFromState(key, context)) ?? '');
+    if (value || locale === OFFER_BASELINE_FALLBACK_LOCALE) return value ? JSON.parse(value) : undefined;
     return readOfferBaseline(context, OFFER_BASELINE_FALLBACK_LOCALE, productArrangementCode);
 }
 
@@ -121,29 +135,48 @@ async function readBundle(context, locale) {
     return value ? JSON.parse(zlib.brotliDecompressSync(Buffer.from(value, 'base64')).toString('utf-8')) : {};
 }
 
-function webResponse(statusCode, body, headers = {}) {
+// a locale wide response weighs megabytes: maximum (default) quality would take seconds
+const compress = (json) =>
+    zlib.brotliCompressSync(json, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: WEB_BROTLI_QUALITY } }).toString('base64');
+
+function encode(body) {
     const json = JSON.stringify(body);
-    // a locale wide response weighs megabytes: maximum (default) quality would take seconds
-    const params = { [zlib.constants.BROTLI_PARAM_QUALITY]: WEB_BROTLI_QUALITY };
+    return { etag: `"${hash(json)}"`, body: compress(json) };
+}
+
+function webResponse(statusCode, body) {
+    return { statusCode, headers: WEB_RESPONSE_HEADERS, body: compress(JSON.stringify(body)) };
+}
+
+/**
+ * 200 with the encoded offer baselines, or 304 when `If-None-Match` matches their ETag.
+ */
+function offersResponse(context, { etag, body }) {
+    const notModified = context.__ow_headers?.['if-none-match'] === etag;
     return {
-        statusCode,
-        headers: { ...WEB_RESPONSE_HEADERS, ...headers },
-        body: statusCode == 304 ? undefined : zlib.brotliCompressSync(json, { params }).toString('base64'),
+        statusCode: notModified ? 304 : 200,
+        headers: { ...WEB_RESPONSE_HEADERS, ETag: etag },
+        body: notModified ? undefined : body,
     };
 }
 
 /**
- * Every offer baseline of a locale, falling back to en_US ones not localized yet.
+ * Every offer baseline of a locale, falling back to en_US ones not localized yet, encoded. Resolves null (not cached)
+ * when there is none.
  */
-async function readLocaleBaselines(context, locale) {
-    const locales = [...new Set([OFFER_BASELINE_FALLBACK_LOCALE, locale])];
-    const bundles = await Promise.all(locales.map((bundleLocale) => readBundle(context, bundleLocale)));
-    return Object.assign({}, ...bundles);
+function readLocaleBaselines(context, locale) {
+    return offersCache.get(context, `locale-${locale}`, async () => {
+        const locales = [...new Set([OFFER_BASELINE_FALLBACK_LOCALE, locale])];
+        const bundles = await Promise.all(locales.map((bundleLocale) => readBundle(context, bundleLocale)));
+        const baselines = Object.assign({}, ...bundles);
+        return Object.keys(baselines).length ? encode(baselines) : null;
+    });
 }
 
 async function readProductArrangementBaselines(context, locale, productArrangementCodes) {
     const baselines = await Promise.all(productArrangementCodes.map((code) => readOfferBaseline(context, locale, code)));
-    return Object.fromEntries(productArrangementCodes.map((code, i) => [code, baselines[i]]).filter(([, b]) => b));
+    const body = Object.fromEntries(productArrangementCodes.map((code, i) => [code, baselines[i]]).filter(([, b]) => b));
+    return Object.keys(body).length ? encode(body) : null;
 }
 
 /**
@@ -153,7 +186,8 @@ async function readProductArrangementBaselines(context, locale, productArrangeme
  * Requires an `api_key` accepted by the fragment pipeline (same configuration).
  */
 async function serve(params) {
-    const context = await loadConfiguration(params, Date.now());
+    // offers have no preview: `preview` would move offersCache to localStorage
+    const context = { ...(await loadConfiguration(params, Date.now())), preview: false };
     const validation = validateApiKey(context);
     if (validation.statusCode !== 200) return webResponse(validation.statusCode, { message: validation.message });
     const { locale, pa } = context;
@@ -164,15 +198,13 @@ async function serve(params) {
     if (productArrangementCodes.length > MAX_PRODUCT_ARRANGEMENTS) {
         return webResponse(400, { message: `at most ${MAX_PRODUCT_ARRANGEMENTS} product arrangements can be requested` });
     }
-    const body = productArrangementCodes.length
+    const encoded = productArrangementCodes.length
         ? await readProductArrangementBaselines(context, locale, productArrangementCodes)
         : await readLocaleBaselines(context, locale);
-    if (!Object.keys(body).length) {
+    if (!encoded) {
         return webResponse(404, { message: `no offer baseline found for ${pa ?? 'any product arrangement'} in ${locale}` });
     }
-    const etag = `"${hash(JSON.stringify(body))}"`;
-    const statusCode = context.__ow_headers?.['if-none-match'] === etag ? 304 : 200;
-    return webResponse(statusCode, body, { ETag: etag });
+    return offersResponse(context, encoded);
 }
 
 export async function main(params) {
@@ -206,5 +238,7 @@ export async function main(params) {
         results.push(await syncLocale(context, syncedLocale, grouped[syncedLocale] ?? {}));
     }
     log(`synced offer baselines: ${JSON.stringify(results)}`, context);
+    // this container may serve web requests too: don't let it serve what it just replaced
+    if (results.some(({ updated, removed }) => updated || removed)) clearOffersCache();
     return { statusCode: 200, headers: RESPONSE_HEADERS, body: { locales: results } };
 }

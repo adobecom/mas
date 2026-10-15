@@ -4,7 +4,7 @@
 
 - [fragment pipeline service](./src/fragment/README.md)
 - [healthcheck service](./src/fragment/README.md)
-- offers service (`offers`): every 15 minutes (`offersSync` alarm rule), copies offer baselines (`/content/dam/mas/offers/<locale>/<pa>/baseline`) into the namespace state, one `offer-<locale>-<pa>` key each, to be read by the fragment pipeline. Sync on demand with `aio rt action invoke MerchAtScale/offers [-p locale en_US]` (web requests never sync). As a web action, `GET /offers?locale=<locale>&pa=<pa>[,<pa>…]` (up to 50) serves `{ [pa]: offerBaseline }` (en_US fallback, 404 if none), brotli compressed, with an `ETag`: send it back as `If-None-Match` to get a `304` when unchanged.
+- offers service (`offers`): every 15 minutes (`offersSync` alarm rule), copies offer baselines (`/content/dam/mas/offers/<locale>/<pa>/baseline`) into the namespace state, one `offer-<locale>-<pa>` key each, to be read by the fragment pipeline. Sync on demand with `aio rt action invoke MerchAtScale/offers [-p locale en_US]` (web requests never sync). As a web action, `GET /offers?api_key=<key>&locale=<locale>&pa=<pa>[,<pa>…]` (up to 50; same api keys as the fragment pipeline, 400 if missing, 401 if not accepted) serves `{ [pa]: offerBaseline }` (en_US fallback, 404 if none), brotli compressed, with an `ETag`: send it back as `If-None-Match` to get a `304` when unchanged.
 
 ## Setup / Local
 

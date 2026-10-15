@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import zlib from 'zlib';
 import { main, offerStateKey, offersIndexStateKey } from '../src/offers/index.js';
+import { resetCache } from '../src/fragment/utils/configuration.js';
 import { MockState } from './fragment/mocks/MockState.js';
 import { createResponse } from './fragment/mocks/MockFetch.js';
 
@@ -109,10 +110,12 @@ describe('offers action', () => {
         const PHSP = baseline('en_US', 'phsp_direct_individual');
         const PHSP_FR = baseline('fr_FR', 'phsp_direct_individual', 'Photoshop FR');
         const ILST = baseline('en_US', 'ilst_direct_individual');
-        const get = (params, headers = {}) => main({ state, __ow_method: 'get', __ow_headers: headers, ...params });
+        const get = (params, headers = {}) =>
+            main({ state, __ow_method: 'get', __ow_headers: headers, api_key: 'AdobeExpressWeb', ...params });
         const decode = ({ body }) => JSON.parse(zlib.brotliDecompressSync(Buffer.from(body, 'base64')).toString('utf-8'));
 
         beforeEach(() => {
+            resetCache();
             state.store[offerStateKey('en_US', 'phsp_direct_individual')] = stored(PHSP);
             state.store[offerStateKey('fr_FR', 'phsp_direct_individual')] = stored(PHSP_FR);
             state.store[offerStateKey('en_US', 'ilst_direct_individual')] = stored(ILST);
@@ -143,6 +146,18 @@ describe('offers action', () => {
             expect(response.headers.ETag).to.equal(headers.ETag);
             const changed = await get({ locale: 'en_US', pa: 'phsp_direct_individual' }, { 'if-none-match': '"stale"' });
             expect(changed.statusCode).to.equal(200);
+        });
+
+        it('requires an api key accepted by the fragment pipeline configuration', async () => {
+            const missing = await get({ locale: 'en_US', pa: 'phsp_direct_individual', api_key: undefined });
+            expect(missing.statusCode).to.equal(400);
+            expect(decode(missing).message).to.equal('missing api_key');
+            expect((await get({ locale: 'en_US', pa: 'phsp_direct_individual', api_key: 'unknown' })).statusCode).to.equal(401);
+            resetCache();
+            state.store.configuration = JSON.stringify({ apiKeys: ['/^custom_v\\d+$/'] });
+            expect((await get({ locale: 'en_US', pa: 'phsp_direct_individual', api_key: 'custom_v2' })).statusCode).to.equal(
+                200,
+            );
         });
 
         it('responds 404 when no requested offer baseline exists', async () => {

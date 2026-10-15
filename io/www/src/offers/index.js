@@ -2,6 +2,7 @@ import stateLib from '@adobe/aio-lib-state';
 import { createHash } from 'crypto';
 import zlib from 'zlib';
 import { fetch, getJsonFromState, VALID_PARAMETER_VALUE_REGEX } from '../fragment/utils/common.js';
+import { loadConfiguration, validateApiKey } from '../fragment/utils/configuration.js';
 import { log, logError } from '../fragment/utils/log.js';
 import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
 
@@ -112,8 +113,12 @@ function webResponse(statusCode, body, headers = {}) {
 /**
  * `{ [pa]: offerBaseline }` of the requested product arrangements (unknown ones omitted, 404 if none is known).
  * Responds 304 when `If-None-Match` matches the ETag of the response.
+ * Requires an `api_key` accepted by the fragment pipeline (same configuration).
  */
-async function serve(context) {
+async function serve(params) {
+    const context = await loadConfiguration(params, Date.now());
+    const validation = validateApiKey(context);
+    if (validation.statusCode !== 200) return webResponse(validation.statusCode, { message: validation.message });
     const { locale, pa } = context;
     const productArrangementCodes = [...new Set(pa?.split(',').filter(Boolean))];
     if (!locale || !productArrangementCodes.length) {

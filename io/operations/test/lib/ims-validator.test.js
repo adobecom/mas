@@ -116,6 +116,16 @@ describe('ims-validator surface authz', () => {
             // Input groups are expected uppercase; verify the constant comparison is uppercase too.
             expect(canEditSurface(['GRP-ODIN-MAS-ADMINS'], 'express')).to.be.true;
         });
+
+        it('derives the editor group from the surface, abbreviating adobe-home to AH', () => {
+            expect(canEditSurface(['GRP-ODIN-MAS-AH-EDITORS'], 'adobe-home')).to.be.true;
+            // The group uses the AH abbreviation, not a literal uppercase of the surface.
+            expect(canEditSurface(['GRP-ODIN-MAS-ADOBE-HOME-EDITORS'], 'adobe-home')).to.be.false;
+        });
+
+        it('grants a brand-concierge editor (regression: the surface was missing from the list)', () => {
+            expect(canEditSurface(['GRP-ODIN-MAS-BRAND-CONCIERGE-EDITORS'], 'brand-concierge')).to.be.true;
+        });
     });
 
     describe('fetchUserGroups', () => {
@@ -307,5 +317,13 @@ describe('entitledSurfaces (cross-surface read authz)', () => {
         expect(entitledSurfaces(['GRP-SOMETHING-ELSE'])).to.deep.equal([]);
         expect(entitledSurfaces([])).to.deep.equal([]);
         expect(entitledSurfaces(null)).to.deep.equal([]);
+    });
+
+    it('includes brand-concierge for an admin (regression: it was missing from the searchable list)', () => {
+        expect(entitledSurfaces(['GRP-ODIN-MAS-ADMINS'])).to.include('brand-concierge');
+    });
+
+    it('gives a brand-concierge editor brand-concierge', () => {
+        expect(entitledSurfaces(['GRP-ODIN-MAS-BRAND-CONCIERGE-EDITORS'])).to.deep.equal(['brand-concierge']);
     });
 });

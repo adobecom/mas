@@ -473,13 +473,36 @@ function adaptReferencesTree(referencesTree, customizedRoot, variationReferences
 }
 
 /**
+ * Baseline fragments only provide defaults: their own variations are never resolved.
+ */
+function prepareBaseline(baseline) {
+    const { variations, ...fields } = baseline.fields;
+    return { ...skimFragmentFromReferences(baseline), fields: normalizeExplicitEmptyInFields(fields) };
+}
+
+/**
+ * MWPW-186204: layers `offerBaseline` < `fragmentBaseline` < fragment, as resolved by the `offer` transformer for that
+ * fragment. Applied before variations, so they override baselines too.
+ */
+function applyBaselines(fragment, { baselines }) {
+    const { offerBaseline, fragmentBaseline } = baselines?.[fragment.id] ?? {};
+    const layers = [offerBaseline, fragmentBaseline].filter((baseline) => baseline && baseline.id !== fragment.id);
+    if (!layers.length) return fragment;
+    const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
+    if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
+    if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
+    return merged;
+}
+
+/**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
  * @param {*} referencesTree
  * @param {*} customizeContext
  * @returns
  */
-function customizeTree(root, referencesTree = [], customizeContext) {
+function customizeTree(fragment, referencesTree = [], customizeContext) {
+    const root = applyBaselines(fragment, customizeContext);
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
     const {
@@ -588,6 +611,7 @@ async function customize(context) {
 
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
     let { fragment: customizedFragment } = customizedTree;
+    if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
     if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {

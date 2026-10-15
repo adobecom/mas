@@ -1,6 +1,6 @@
-import { createTimeoutPromise, mark, measureTiming } from './utils/common.js';
+import { createTimeoutPromise, mark, measureTiming, VALID_PARAMETER_VALUE_REGEX } from './utils/common.js';
 import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
-import { loadConfiguration, resetCache, validateApiKey } from './utils/configuration.js';
+import { getApiKeySurface, loadConfiguration, resetCache, validateApiKey } from './utils/configuration.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -8,6 +8,7 @@ import stateLib from '@adobe/aio-lib-state';
 
 import { transformer as fetchFragment } from './transformers/fetchFragment.js';
 import { transformer as defaultLanguage } from './transformers/defaultLanguage.js';
+import { transformer as offer } from './transformers/offer.js';
 import { transformer as corrector } from './transformers/corrector.js';
 import { transformer as replace } from './transformers/replace.js';
 import { transformer as promotions } from './transformers/promotions.js';
@@ -21,7 +22,7 @@ function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
 }
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, wcs, corrector];
+const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
 
 const RESPONSE_HEADERS = {
     'Access-Control-Expose-Headers': 'X-Request-Id,Etag,Last-Modified,server-timing',
@@ -118,8 +119,32 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    if (!context.id || !context.locale) {
-        return { statusCode: 400, body: JSON.stringify({ message: 'requested parameters id & locale are not present' }) };
+    // MWPW-186204: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
+    // A requested surface conflicting with the api key's (here) or the fragment's (fetchFragment) one is a 404.
+    const apiKeySurface = getApiKeySurface(context);
+    context.requestedSurface = context.surface;
+    if (context.surface && apiKeySurface && context.surface !== apiKeySurface) {
+        return {
+            statusCode: 404,
+            body: JSON.stringify({ message: `surface '${context.surface}' is not available for this api_key` }),
+        };
+    }
+    if (!context.id) context.surface ??= apiKeySurface;
+    const { id, locale, offer, template, surface } = context;
+    // without a fragment id, the offer baseline is resolved from `offer`, `template` & `surface`.
+    if (!locale || (!id && !(offer && template && surface))) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({
+                message: 'requested parameters id (or offer, template & surface) & locale are not present',
+            }),
+        };
+    }
+    const invalidParameter = Object.entries({ offer, template, surface }).find(
+        ([, value]) => value !== undefined && !VALID_PARAMETER_VALUE_REGEX.test(value),
+    );
+    if (invalidParameter) {
+        return { statusCode: 400, body: JSON.stringify({ message: `invalid parameter '${invalidParameter[0]}'` }) };
     }
     if (!isKnownLocale(context.locale)) {
         return {

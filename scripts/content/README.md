@@ -148,3 +148,11 @@ node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
 node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
     --folder /content/dam/mas/ccd/de_DE --concurrency 20
 ```
+
+# create-offer-baseline.mjs
+
+Creates the offer baseline fragment (offer model) of a product arrangement at `/content/dam/mas/offers/<locale>/<productArrangementCode>/baseline`, filled with its MCS merchandising data (name, descriptions, icons, background images, links, included apps) fetched from AOS. Skips creation when the fragment already exists. Used by the io/www `offer` transformer (MWPW-186204).
+
+```sh
+node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run
+```

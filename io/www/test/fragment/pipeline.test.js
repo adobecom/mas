@@ -380,7 +380,7 @@ describe('pipeline corner cases', () => {
         expect(result).to.deep.equal({
             headers: EXPECTED_HEADERS,
             body: {
-                message: 'requested parameters id & locale are not present',
+                message: 'requested parameters id (or offer, template & surface) & locale are not present',
             },
             statusCode: 400,
         });

@@ -416,7 +416,9 @@ export class MerchCard extends LitElement {
     }
 
     get iconButton() {
-        return this.querySelector('[slot="callout-content"] .icon-button');
+        return this.querySelector(
+            '[slot="callout-content"] .icon-button, [slot="short-description"] .icon-button',
+        );
     }
 
     get price() {

@@ -55,6 +55,14 @@ export function getFragmentSummary() {
 }
 
 let currentTestName = null;
+let currentAttempt = '';
+
+/**
+ * Distinguish writable data created by retries and worker replacements.
+ */
+export function setCurrentTestAttempt(workerIndex, retry) {
+    currentAttempt = `.w${workerIndex}.r${retry}`;
+}
 
 /**
  * Set the current test name or tag (used when generating fragment title).
@@ -96,7 +104,7 @@ export function getTitle() {
     const runId = getCurrentRunId();
     const base = `MAS.Nala.Automation.${runId}`;
     const testName = sanitizeTestName(getCurrentTestName());
-    return testName ? `${base}.${testName}` : base;
+    return `${testName ? `${base}.${testName}` : base}${currentAttempt}`;
 }
 
 // Default export for backward compatibility

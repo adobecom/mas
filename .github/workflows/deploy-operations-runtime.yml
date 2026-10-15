@@ -1,5 +1,11 @@
 name: Deploy Operations Runtime Actions
 
+# Deploys the MerchAtScaleOperations package into the prod masStudio namespace
+# (14257-masstudio) — the same App Builder workspace ai-chat deploys to, so MASA's
+# derived operations URL co-locates with ai-chat. Credentials come from Vault, reusing
+# io-studio's prod + common paths (see io-studio-deploy.yaml): no repo secrets beyond
+# VAULT_ROLE_ID / VAULT_SECRET_ID. Prod only — M@S has no stage/QA environment.
+
 on:
     push:
         branches:
@@ -11,52 +17,75 @@ on:
 
 jobs:
     deploy:
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
+        defaults:
+            run:
+                working-directory: io/operations
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Node.js
+            - name: Setup Node.js 22.23.1
               uses: actions/setup-node@v4
               with:
-                  node-version: '22'
+                  # Pinned: 22.23.1 fixes the node-fetch v2 gzip / ERR_STREAM_PREMATURE_CLOSE
+                  # regression (io/operations depends on node-fetch ^2.6.0).
+                  node-version: '22.23.1'
                   cache: 'npm'
                   cache-dependency-path: io/operations/package-lock.json
 
             - name: Install Adobe I/O CLI
               run: npm install -g @adobe/aio-cli
 
-            - name: Configure Adobe I/O CLI
-              env:
-                  AIO_RUNTIME_NAMESPACE: ${{ secrets.AIO_RUNTIME_NAMESPACE }}
-                  AIO_RUNTIME_AUTH: ${{ secrets.AIO_RUNTIME_AUTH }}
-              run: |
-                  aio config:set runtime.namespace $AIO_RUNTIME_NAMESPACE
-                  aio config:set runtime.auth $AIO_RUNTIME_AUTH
-
             - name: Install dependencies
-              working-directory: io/operations
               run: npm ci
 
+            - name: Fetch workspace secrets from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/prod
+                  file-fields: env=.env,aio=.aio
+                  working-directory: io/operations
+
+            # odin_bucket is environment-level — it is the prod Odin author host the card
+            # actions read as AEM_BASE_URL. Same field io-studio derives ODIN_ENDPOINT from.
+            - name: Fetch Odin bucket from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/prod
+                  env-fields: odin_bucket
+
+            # AOS credentials are identical across environments — stored once in the shared
+            # path so they don't need to live in every workspace's .env blob.
+            - name: Fetch shared service secrets from Vault
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/common
+                  env-fields: aos_url,aos_api_key
+
             - name: Deploy to Adobe I/O Runtime
-              working-directory: io/operations
+              # Runtime namespace + auth come from the Vault .aio/.env written above.
+              # These three are the only app.config.yaml vars without a prod-correct code
+              # default; STUDIO_BASE_URL and PRODUCTS_* fall back in code (empty-string-safe).
+              # AOS_API_KEY in particular is required — create-release-cards and
+              # get-product-detail refuse to run without it.
               env:
-                  AEM_BASE_URL: ${{ secrets.AEM_BASE_URL }}
-                  STUDIO_BASE_URL: ${{ secrets.STUDIO_BASE_URL }}
-                  # aio app deploy substitutes every $VAR in app.config.yaml from the
-                  # environment, and anything not exported here is deployed as an empty
-                  # string. create-release-cards and get-product-detail both refuse to
-                  # run without AOS_API_KEY, so omitting it shipped them pre-broken.
-                  AOS_URL: ${{ secrets.AOS_URL }}
-                  AOS_API_KEY: ${{ secrets.AOS_API_KEY }}
+                  AEM_BASE_URL: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
+                  AOS_URL: ${{ env.AOS_URL }}
+                  AOS_API_KEY: ${{ env.AOS_API_KEY }}
               run: aio app deploy --all
 
             - name: Verify deployment
-              working-directory: io/operations
               run: aio runtime action list
 
             - name: Deployment summary
               run: |
-                  echo "✅ Operations Runtime actions deployed successfully"
-                  echo "See the 'List deployed actions' step above for the live action list."
+                  echo "✅ Operations Runtime actions deployed to the prod masStudio namespace"
+                  echo "See the 'Verify deployment' step above for the live action list."

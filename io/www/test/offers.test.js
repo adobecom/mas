@@ -1,7 +1,14 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import zlib from 'zlib';
-import { clearOffersCache, main, offerStateKey, offersBundleStateKey, offersIndexStateKey } from '../src/offers/index.js';
+import {
+    clearOffersCache,
+    main,
+    offerStateKey,
+    offersBundleStateKey,
+    offersIndexStateKey,
+    OFFERS_LOCALES_STATE_KEY,
+} from '../src/offers/index.js';
 import { resetCache } from '../src/fragment/utils/configuration.js';
 import { MockState } from './fragment/mocks/MockState.js';
 import { createResponse } from './fragment/mocks/MockFetch.js';
@@ -59,7 +66,8 @@ describe('offers action', () => {
         expect(state.store[offerStateKey('en_US', 'phsp_direct_individual')]).to.equal(stored(phsp));
         expect(state.store[offerStateKey('en_US', 'ilst_direct_individual')]).to.equal(stored(ilst));
         expect(state.store[offerStateKey('fr_FR', 'phsp_direct_individual')]).to.equal(stored(phspFr));
-        expect(Object.keys(JSON.parse(state.store[offersIndexStateKey('en_US')]))).to.have.length(2);
+        expect(Object.keys(JSON.parse(state.store[offersIndexStateKey('en_US')]).hashes)).to.have.length(2);
+        expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal(['en_US', 'fr_FR']);
         expect(decompress(state.store[offersBundleStateKey('en_US')])).to.deep.equal({
             phsp_direct_individual: JSON.parse(stored(phsp)),
             ilst_direct_individual: JSON.parse(stored(ilst)),
@@ -78,11 +86,16 @@ describe('offers action', () => {
         state.put.resetHistory();
 
         await main({ state, locale: 'en_US' });
-        expect(state.put.called).to.be.false;
+        expect(keysPut()).to.deep.equal([OFFERS_LOCALES_STATE_KEY]);
+        state.put.resetHistory();
 
         delete state.store[offersBundleStateKey('en_US')];
         await main({ state, locale: 'en_US' });
-        expect(keysPut()).to.deep.equal([offersBundleStateKey('en_US'), offersIndexStateKey('en_US')]);
+        expect(keysPut()).to.deep.equal([
+            offersBundleStateKey('en_US'),
+            offersIndexStateKey('en_US'),
+            OFFERS_LOCALES_STATE_KEY,
+        ]);
         state.put.resetHistory();
 
         const updated = baseline('en_US', 'phsp_direct_individual', 'Photoshop');
@@ -94,12 +107,13 @@ describe('offers action', () => {
             offerStateKey('en_US', 'phsp_direct_individual'),
             offersBundleStateKey('en_US'),
             offersIndexStateKey('en_US'),
+            OFFERS_LOCALES_STATE_KEY,
         ]);
         expect(state.store[offerStateKey('en_US', 'phsp_direct_individual')]).to.equal(stored(updated));
         expect(state.store[offerStateKey('en_US', 'ilst_direct_individual')]).to.be.undefined;
     });
 
-    it('deletes every baseline of a requested locale that has none anymore', async () => {
+    it('deletes every baseline, the index & bundle of a requested locale that has none anymore', async () => {
         const phsp = baseline('de_DE', 'phsp_direct_individual');
         fetchStub.withArgs(listing(`${OFFERS}/de_DE`)).returns(createResponse(200, { items: [phsp] }));
         await main({ state, locale: 'de_DE' });
@@ -109,8 +123,54 @@ describe('offers action', () => {
 
         expect(body.locales).to.deep.equal([{ locale: 'de_DE', total: 0, updated: 0, removed: 1 }]);
         expect(state.delete.calledWith(offerStateKey('de_DE', 'phsp_direct_individual'))).to.be.true;
-        expect(state.store[offersIndexStateKey('de_DE')]).to.equal('{}');
-        expect(decompress(state.store[offersBundleStateKey('de_DE')])).to.deep.equal({});
+        expect(state.store[offersIndexStateKey('de_DE')]).to.be.undefined;
+        expect(state.store[offersBundleStateKey('de_DE')]).to.be.undefined;
+        expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal([]);
+    });
+
+    it('reconciles previously synced locales that have no baseline anymore on a full sync', async () => {
+        const phsp = baseline('en_US', 'phsp_direct_individual');
+        const phspFr = baseline('fr_FR', 'phsp_direct_individual');
+        fetchStub.withArgs(listing(OFFERS)).returns(createResponse(200, { items: [phsp, phspFr] }));
+        await main({ state });
+        fetchStub.withArgs(listing(OFFERS)).returns(createResponse(200, { items: [phsp] }));
+
+        const { body } = await main({ state });
+
+        expect(body.locales).to.deep.equal([
+            { locale: 'en_US', total: 1, updated: 0, removed: 0 },
+            { locale: 'fr_FR', total: 0, updated: 0, removed: 1 },
+        ]);
+        expect(state.store[offerStateKey('fr_FR', 'phsp_direct_individual')]).to.be.undefined;
+        expect(state.store[offersBundleStateKey('fr_FR')]).to.be.undefined;
+        expect(state.store[offersIndexStateKey('fr_FR')]).to.be.undefined;
+        expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal(['en_US']);
+    });
+
+    it('rewrites unchanged baselines once their refresh deadline is passed, so they never expire', async () => {
+        const day = 24 * 60 * 60 * 1000;
+        const phsp = baseline('en_US', 'phsp_direct_individual');
+        fetchStub.withArgs(listing(`${OFFERS}/en_US`)).returns(createResponse(200, { items: [phsp] }));
+        const before = Date.now();
+        await main({ state, locale: 'en_US' });
+        const { refreshAt } = JSON.parse(state.store[offersIndexStateKey('en_US')]);
+        expect(refreshAt).to.be.within(before + 30 * day, Date.now() + 60 * day);
+        state.put.resetHistory();
+
+        const clock = sinon.useFakeTimers({ now: refreshAt + 1, toFake: ['Date'] });
+        try {
+            const { body } = await main({ state, locale: 'en_US' });
+            expect(body.locales).to.deep.equal([{ locale: 'en_US', total: 1, updated: 1, removed: 0 }]);
+            expect(keysPut()).to.deep.equal([
+                offerStateKey('en_US', 'phsp_direct_individual'),
+                offersBundleStateKey('en_US'),
+                offersIndexStateKey('en_US'),
+                OFFERS_LOCALES_STATE_KEY,
+            ]);
+            expect(JSON.parse(state.store[offersIndexStateKey('en_US')]).refreshAt).to.be.above(refreshAt + 30 * day);
+        } finally {
+            clock.restore();
+        }
     });
 
     it('writes nothing when the listing fails', async () => {

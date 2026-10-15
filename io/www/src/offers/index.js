@@ -20,8 +20,10 @@ import { createSwrCache } from '../fragment/utils/swr-cache.js';
 const OFFERS_ROOT = `${MAS_ROOT}/offers`;
 const BASELINE_PATH = /^\/content\/dam\/mas\/offers\/(?<locale>[\w-]+)\/(?<pa>[\w-]+)\/baseline$/;
 const PAGE_SIZE = 50;
-// aio-lib-state maximum: entries are rewritten when they change, deleted when their baseline is
+// aio-lib-state maximum: entries are rewritten when they change, deleted when their baseline is, and all rewritten (TTL
+// refresh) every REFRESH_INTERVAL to 2 × REFRESH_INTERVAL (randomized so that locales don't all refresh at once)
 const TTL = 365 * 24 * 60 * 60;
+const REFRESH_INTERVAL = 30 * 24 * 60 * 60 * 1000;
 const STATE_BATCH_SIZE = 10;
 const OFFER_BASELINE_FALLBACK_LOCALE = 'en_US';
 const MAX_PRODUCT_ARRANGEMENTS = 50;
@@ -36,10 +38,12 @@ const WEB_RESPONSE_HEADERS = {
 };
 
 export const offerStateKey = (locale, productArrangementCode) => `offer-${locale}-${productArrangementCode}`;
-// { [offerStateKey]: hash } of what is stored for a locale
+// `{ refreshAt, hashes: { [offerStateKey]: hash } }` of what is stored for a locale
 export const offersIndexStateKey = (locale) => `offers-index-${locale}`;
 // brotli compressed (base64) `{ [pa]: offerBaseline }` of every offer baseline of a locale
 export const offersBundleStateKey = (locale) => `offers-bundle-${locale}`;
+// `[locale]` having offer baselines in state, so that a full sync also reconciles locales that have none anymore
+export const OFFERS_LOCALES_STATE_KEY = 'offers-locales';
 
 // Container memory cache of what web requests read from state (jittered 5 minutes TTL, stale-while-revalidate, single
 // flight), so a warm container neither re-reads state nor re-encodes a locale for every request:
@@ -100,27 +104,58 @@ async function inBatches(tasks) {
 }
 
 /**
- * Writes changed baselines of a locale & deletes removed ones. The index is only updated once they all succeeded, so a
- * failed sync is fully retried next time.
+ * Writes changed baselines of a locale & deletes removed ones, or rewrites them all once the refresh deadline is passed so
+ * that unchanged ones never expire. The index is only updated once they all succeeded, so a failed sync is fully retried
+ * next time. A locale without baselines anymore has its index & bundle deleted too.
  */
 async function syncLocale(context, locale, baselines) {
     const { state } = context;
     const { json: index } = await getJsonFromState(offersIndexStateKey(locale), context);
-    const previous = index ?? {};
+    const previous = index?.hashes ?? {};
+    const refresh = !(Date.now() < index?.refreshAt);
     const next = Object.fromEntries(Object.entries(baselines).map(([key, value]) => [key, hash(value)]));
-    const updated = Object.keys(next).filter((key) => previous[key] !== next[key]);
+    const updated = Object.keys(next).filter((key) => refresh || previous[key] !== next[key]);
     const removed = Object.keys(previous).filter((key) => !(key in next));
+    const total = Object.keys(next).length;
     await inBatches([
         ...updated.map((key) => () => state.put(key, baselines[key], { ttl: TTL })),
         ...removed.map((key) => () => state.delete(key)),
     ]);
+    if (!total) {
+        await Promise.all([state.delete(offersBundleStateKey(locale)), state.delete(offersIndexStateKey(locale))]);
+        return { locale, total, updated: 0, removed: removed.length };
+    }
     // the bundle is also written when missing (e.g. state synced before it existed)
     const bundled = await getFromState(offersBundleStateKey(locale), context);
-    if (!index || !bundled || updated.length || removed.length) {
+    if (!bundled || updated.length || removed.length) {
+        const refreshAt = refresh ? Date.now() + REFRESH_INTERVAL * (1 + Math.random()) : index.refreshAt;
         await state.put(offersBundleStateKey(locale), compressBundle(locale, baselines), { ttl: TTL });
-        await state.put(offersIndexStateKey(locale), JSON.stringify(next), { ttl: TTL });
+        await state.put(offersIndexStateKey(locale), JSON.stringify({ refreshAt, hashes: next }), { ttl: TTL });
     }
-    return { locale, total: Object.keys(next).length, updated: updated.length, removed: removed.length };
+    return { locale, total, updated: updated.length, removed: removed.length };
+}
+
+/**
+ * Locales to sync: the requested one, or every listed one plus those having baselines in state (to delete them when they
+ * have none anymore).
+ */
+async function localesToSync(context, locale, grouped) {
+    if (locale) return [locale];
+    const { json: synced } = await getJsonFromState(OFFERS_LOCALES_STATE_KEY, context);
+    return [...new Set([...Object.keys(grouped), ...(synced ?? [])])];
+}
+
+/**
+ * Updates the locales having baselines in state with the sync results (rewritten every sync, so it never expires).
+ */
+async function writeSyncedLocales(context, results) {
+    const { json: synced } = await getJsonFromState(OFFERS_LOCALES_STATE_KEY, context);
+    const locales = new Set(synced);
+    for (const { locale, total } of results) {
+        if (total) locales.add(locale);
+        else locales.delete(locale);
+    }
+    await context.state.put(OFFERS_LOCALES_STATE_KEY, JSON.stringify([...locales].sort()), { ttl: TTL });
 }
 
 function compressBundle(locale, baselines) {
@@ -233,11 +268,12 @@ export async function main(params) {
     }
     const grouped = groupBaselines(items);
     // a requested locale is synced even when empty, so that its removed baselines are deleted
-    const locales = locale ? [locale] : Object.keys(grouped);
+    const locales = await localesToSync(context, locale, grouped);
     const results = [];
     for (const syncedLocale of locales) {
         results.push(await syncLocale(context, syncedLocale, grouped[syncedLocale] ?? {}));
     }
+    await writeSyncedLocales(context, results);
     log(`synced offer baselines: ${JSON.stringify(results)}`, context);
     // this container may serve web requests too: don't let it serve what it just replaced
     if (results.some(({ updated, removed }) => updated || removed)) clearOffersCache();

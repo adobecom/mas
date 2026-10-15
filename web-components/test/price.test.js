@@ -30,6 +30,7 @@ import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
 import { sumOffers, selectOffers } from '../src/utilities.js';
+import { formatRegularPrice } from '../src/price/utilities.js';
 
 /**
  * @param {string} wcsOsi
@@ -1666,6 +1667,156 @@ describe('priceInfo (WCS pre-split tree)', () => {
                 .join('');
         };
 
+        for (const {
+            country,
+            integer,
+            bundleInteger,
+            delimiter,
+            currencySymbol,
+            priceDetails,
+            language,
+            hasCurrencySpace,
+        } of [
+            {
+                country: 'AR',
+                integer: '79.700',
+                bundleInteger: '159.400',
+                delimiter: ',',
+                currencySymbol: 'Ar$',
+                priceDetails: {
+                    price: 79700,
+                    priceWithoutTax: 65867.77,
+                    annualized: {
+                        annualizedPrice: 956400,
+                        annualizedPriceWithoutTax: 790413.24,
+                    },
+                    usePrecision: true,
+                    formatString: "'Ar$' #.##0,00",
+                    taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                    taxTerm: 'TAX',
+                },
+                language: 'es',
+                hasCurrencySpace: true,
+            },
+            {
+                country: 'US',
+                integer: '109',
+                bundleInteger: '218',
+                delimiter: '.',
+                currencySymbol: 'US$',
+                priceDetails: abm.US.priceDetails,
+                language: 'en',
+                hasCurrencySpace: false,
+            },
+        ]) {
+            const { price } = priceDetails;
+            const offer = {
+                offerSelectorIds: [`pi-${country}`],
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                planType: 'ABM',
+                priceDetails,
+            };
+            for (const { name, decimals, fullDecimals, expected } of [
+                {
+                    name: 'hides zero cents omitted from full',
+                    decimals: '00',
+                    fullDecimals: '',
+                    expected: '',
+                },
+                {
+                    name: 'hides zero cents included in full',
+                    decimals: '00',
+                    fullDecimals: '00',
+                    expected: '',
+                },
+                {
+                    name: 'keeps non-zero cents',
+                    decimals: '99',
+                    fullDecimals: '99',
+                    expected: '99',
+                },
+            ]) {
+                it(`${country}: ${name}`, () => {
+                    const priceInfo = {
+                        format: {
+                            currencySymbol,
+                            decimalsDelimiter: delimiter,
+                            usePrecision: true,
+                            isCurrencyFirst: true,
+                            hasCurrencySpace,
+                        },
+                        tax: {
+                            display: priceDetails.taxDisplay,
+                            term: priceDetails.taxTerm,
+                        },
+                        recurrence: { term: 'MONTHLY' },
+                        asIs: {
+                            withDiscount: {
+                                withTax: {
+                                    integer,
+                                    decimals,
+                                    full: `${currencySymbol}${hasCurrencySpace ? ' ' : ''}${integer}${fullDecimals ? delimiter + fullDecimals : ''}`,
+                                },
+                            },
+                        },
+                    };
+                    const html = buildPriceHTML([withInfo(offer, priceInfo)], {
+                        ...opts,
+                        country,
+                        language,
+                        locale: `${language}_${country}`,
+                    });
+                    expect(partsOf(html)).to.equal(
+                        `${integer}${expected ? delimiter + expected : ''}`,
+                    );
+                    expect(
+                        formatRegularPrice({
+                            ...priceDetails,
+                            preformatted: priceInfo.asIs.withDiscount.withTax,
+                            priceInfoFormat: priceInfo.format,
+                        }).accessiblePrice,
+                    ).to.equal(
+                        `${currencySymbol}${hasCurrencySpace ? ' ' : ''}${integer}${expected ? delimiter + expected : ''}`,
+                    );
+                });
+            }
+
+            it(`${country}: numeric fallback hides zero cents`, () => {
+                const formatted = formatRegularPrice({
+                    ...priceDetails,
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                });
+                expect(formatted.decimals).to.equal('');
+                expect(formatted.decimalsDelimiter).to.equal('');
+                expect(formatted.accessiblePrice).to.equal(
+                    `${currencySymbol}${hasCurrencySpace ? ' ' : ''}${integer}`,
+                );
+            });
+
+            it(`${country}: numeric fallback keeps non-zero cents`, () => {
+                const formatted = formatRegularPrice({
+                    ...priceDetails,
+                    price: price + 0.99,
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                });
+                expect(formatted.decimals).to.equal('99');
+                expect(formatted.decimalsDelimiter).to.equal(delimiter);
+            });
+
+            it(`${country}: soft bundle fallback hides zero cents`, () => {
+                const combined = sumOffers([offer, offer]);
+                const html = buildPriceHTML([combined], {
+                    ...opts,
+                    country,
+                    language,
+                });
+                expect(partsOf(html)).to.equal(bundleInteger);
+            });
+        }
+
         Object.keys(abm).forEach((country) => {
             const c = abm[country];
             const countryOpts = { ...opts, country };
@@ -1836,9 +1987,10 @@ describe('priceInfo (WCS pre-split tree)', () => {
                 const shown = partsOf(
                     buildPriceHTML([withInfo(offer, info)], opticalOpts),
                 );
-                const expected = c.leaf.decimals
-                    ? `${c.leaf.integer}.${c.leaf.decimals}`
-                    : c.leaf.integer;
+                const expected =
+                    c.leaf.decimals && !/^0+$/.test(c.leaf.decimals)
+                        ? `${c.leaf.integer}.${c.leaf.decimals}`
+                        : c.leaf.integer;
                 expect(shown).to.equal(expected);
                 // leaf digits differ from the client division: override proven
                 expect(shown).to.not.equal(numeric);

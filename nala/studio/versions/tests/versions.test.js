@@ -13,7 +13,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000); // Wait for version page to render
+            await versions.waitForVersionPageLoaded();
         });
 
         await test.step('step-2: Validate version page elements', async () => {
@@ -57,14 +57,14 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
+            await versions.waitForVersionPageLoaded();
             await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Validate initial preview displays', async () => {
             await expect(versions.previewPanel).toBeVisible();
             await expect(versions.previewContent).toBeVisible();
-            await page.waitForTimeout(2000);
+            await versions.waitForPreviewUpdate();
             const columnCount = await versions.previewColumns.count();
             expect(columnCount).toBeGreaterThanOrEqual(1);
         });
@@ -123,7 +123,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
+            await versions.waitForVersionPageLoaded();
             await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
@@ -135,7 +135,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
         await test.step('step-3: Search for versions', async () => {
             await versions.searchVersions(data.searchQuery);
-            await page.waitForTimeout(1000);
         });
 
         await test.step('step-4: Validate search results', async () => {
@@ -146,7 +145,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
 
         await test.step('step-5: Clear search', async () => {
             await versions.clearSearch();
-            await page.waitForTimeout(1000);
             const finalCount = await versions.getVersionCount();
             expect(finalCount).toBeGreaterThan(0);
         });
@@ -161,7 +159,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
+            await versions.waitForVersionPageLoaded();
             await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
@@ -171,7 +169,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-3: Validate URL is fragment editor with correct fragmentId', async () => {
-            await page.waitForTimeout(2000);
             const hash = await page.evaluate(() => window.location.hash);
             expect(hash).toContain(`page=${data.expectedPage}`);
             expect(hash).toContain(`path=${data.expectedPath}`);
@@ -194,7 +191,7 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
+            await versions.waitForVersionPageLoaded();
             await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
@@ -204,7 +201,6 @@ test.describe('M@S Studio - Version Page test suite', () => {
         });
 
         await test.step('step-3: Validate URL is content page with path=nala and no fragmentId', async () => {
-            await page.waitForTimeout(2000);
             const hash = await page.evaluate(() => window.location.hash);
             expect(hash).toContain(`page=${data.expectedPage}`);
             expect(hash).toContain(`path=${data.expectedPath}`);
@@ -323,14 +319,13 @@ test.describe('M@S Studio - Version Page test suite', () => {
         await test.step('step-1: Navigate to version page', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
-            await page.waitForTimeout(5000);
+            await versions.waitForVersionPageLoaded();
             await expect(versions.versionPage).toBeVisible({ timeout: 10000 });
         });
 
         await test.step('step-2: Search by author name', async () => {
             await page.waitForSelector('version-page .version-item', { timeout: 15000 });
             await versions.searchVersions(data.authorName);
-            await page.waitForTimeout(1500);
         });
 
         await test.step('step-3: Validate filtered results contain that author', async () => {

@@ -100,9 +100,12 @@ export function Price({ literals, providers, settings }) {
             ].includes(options.template) &&
             !resolvedOptions.instant
         ) {
-            resolvedOptions.instant = new URLSearchParams(
-                document.location.search,
-            ).get('instant');
+            resolvedOptions.instant =
+                typeof document === 'undefined'
+                    ? undefined
+                    : new URLSearchParams(document.location.search).get(
+                          'instant',
+                      );
         }
         return renderPrice(offers, resolvedOptions, { logger: log });
     }

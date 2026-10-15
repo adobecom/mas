@@ -2,6 +2,7 @@ import { isStaticResource, serveStaticResource, recordStaticCacheHit } from './s
 import { installRunStaticHar, STATIC_HAR_URLS } from './run-static-har.js';
 import {
     fetchWithRateLimitRetry,
+    isEdsEdgeHost,
     isReadOnlyRequest,
     isRetryableRead,
     logRateLimitedResponses,
@@ -11,6 +12,8 @@ import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { isOdinOrigin, isPreviewOrigin } from './rate-limit-coordinator.js';
 import { resolveEdsMaxRps } from './request-budgets.js';
+
+export { isEdsEdgeHost } from './rate-limit.js';
 
 const pendingPageRoutes = new WeakMap();
 let throttleChain = Promise.resolve();
@@ -130,26 +133,13 @@ export async function removePageRoutes(page, beforeClose = async () => {}) {
         ]);
     } finally {
         clearTimeout(timer);
-        await page.close();
-        state.readControllers.clear();
-        state.teardownMs = Date.now() - started;
-    }
-}
-
-export function isEdsEdgeHost(url) {
-    try {
-        const { hostname } = new URL(url);
-        return (
-            hostname.endsWith('.aem.live') ||
-            hostname.endsWith('.aem.page') ||
-            hostname.endsWith('.hlx.page') ||
-            hostname.endsWith('.hlx.live') ||
-            hostname === 'aem.live' ||
-            hostname === 'mas.adobe.com' ||
-            hostname === 'mas.stage.adobe.com'
-        );
-    } catch {
-        return false;
+        try {
+            await page.close();
+        } finally {
+            state.readControllers.clear();
+            state.teardownMs = Date.now() - started;
+            await state.finishRateLimitReports();
+        }
     }
 }
 
@@ -273,7 +263,7 @@ export async function installEdsThrottleOnPage(page, { replayHar = true, cache =
         finishMutation(request);
         state.readControllers.delete(request);
     });
-    logRateLimitedResponses(page, nativeCooldowns, true);
+    state.finishRateLimitReports = logRateLimitedResponses(page, nativeCooldowns, true, state.owner);
     logEdsThrottleOnce(edsMaxRps);
     const handleRoute = async (route, options) => {
         const url = route.request().url();

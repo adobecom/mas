@@ -104,11 +104,14 @@ block unrelated tests or conceal missing dependencies. Seed navigation, readines
 ### Cooldowns and Odin scheduling
 
 Nala logs observed HTTP 429s with the method, origin/path and `Retry-After`. `Retry-After` seconds or HTTP dates take priority;
-missing or invalid values use 10 seconds. Nala-applied cooldowns above 60 seconds fail explicitly instead of parking the shared budget
+missing or invalid values use 10 seconds. Only EDS/Odin responses impose Nala cooldowns; unrelated third parties are logging-only.
+Nala-applied cooldowns above 60 seconds fail explicitly instead of parking the shared budget
 past test deadlines or retrying earlier than the server permits.
+Response-reporting failures are confined to the owning page and surfaced during requests or teardown; they do not poison
+later tests in the worker. Settled reports are removed on both success and failure. Backend cooldowns remain shared.
 A fresh loopback coordinator shares origin cooldowns across this invocation's workers;
 it stops at teardown and is never reused between runs or PRs. Subsequent requests to the same origin wait for the cooldown,
-including IMS, Odin and third-party services on test and HAR seed pages; no hosts are excluded.
+for EDS/Odin traffic on test and HAR seed pages; IMS and unrelated third-party services remain logging-only.
 After an origin returns 429, recovery requests are released at least 100ms apart across workers for the remainder of the run.
 This recovery spacing is not an assumption about the service's published limit; unrelated origins remain independent.
 Intercepted test Odin author and preview traffic share an invocation budget from the first request, derived from the shared
@@ -148,9 +151,9 @@ Odin traffic on that page still uses its shard's pacing, read permits and cooldo
 owned route teardown closes the authentication page before HAR recording, so welcome-page previews cannot keep loading in the background.
 Its public static asset requests still honor cooldowns and the existing EDS pacing.
 Authentication submits each form once and waits within the existing 180-second setup budget, including cooldowns.
-Public static GETs and eligible fetch/XHR GETs retry a 429 once after cooldown, including live Odin reads.
+Public static GETs and eligible EDS/Odin fetch/XHR GETs retry a 429 once after cooldown, including live Odin reads.
 Eligible GETs also retry a recognized transient connection reset once, within the same two-attempt limit.
-Cancelled requests and timeouts are not retried. Native HTTP 503/529 responses with `Retry-After` coordinate subsequent
+Cancelled requests and timeouts are not retried. Native EDS/Odin HTTP 503/529 responses with `Retry-After` coordinate subsequent
 cooldowns but still reach the application unchanged; overload responses are not converted into successes.
 Outside the explicitly opted-in immutable seed bootstrap, completed API responses are never cached;
 persistent 429s reach the browser unchanged.

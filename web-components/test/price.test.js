@@ -1670,6 +1670,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
         for (const {
             country,
             integer,
+            bundleInteger,
             delimiter,
             currencySymbol,
             priceDetails,
@@ -1679,6 +1680,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
             {
                 country: 'AR',
                 integer: '79.700',
+                bundleInteger: '159.400',
                 delimiter: ',',
                 currencySymbol: 'Ar$',
                 priceDetails: {
@@ -1699,6 +1701,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
             {
                 country: 'US',
                 integer: '109',
+                bundleInteger: '218',
                 delimiter: '.',
                 currencySymbol: 'US$',
                 priceDetails: abm.US.priceDetails,
@@ -1767,6 +1770,15 @@ describe('priceInfo (WCS pre-split tree)', () => {
                     expect(partsOf(html)).to.equal(
                         `${integer}${expected ? delimiter + expected : ''}`,
                     );
+                    expect(
+                        formatRegularPrice({
+                            ...priceDetails,
+                            preformatted: priceInfo.asIs.withDiscount.withTax,
+                            priceInfoFormat: priceInfo.format,
+                        }).accessiblePrice,
+                    ).to.equal(
+                        `${currencySymbol}${hasCurrencySpace ? ' ' : ''}${integer}${expected ? delimiter + expected : ''}`,
+                    );
                 });
             }
 
@@ -1801,9 +1813,7 @@ describe('priceInfo (WCS pre-split tree)', () => {
                     country,
                     language,
                 });
-                expect(partsOf(html).endsWith(`${delimiter}00`)).to.equal(
-                    false,
-                );
+                expect(partsOf(html)).to.equal(bundleInteger);
             });
         }
 

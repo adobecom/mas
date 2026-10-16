@@ -88,3 +88,10 @@ export function canAccessMasks(surface) {
 export function canAccessOfferMapping(surface) {
     return canAccessSettings(surface);
 }
+
+/** Baselines authoring is gated to a single global editors group (admins always allowed). */
+export function canEditBaselines() {
+    const groups = getCurrentUserNormalizedGroups();
+    if (!groups) return false;
+    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_PROMO_EDITORS_GROUP.toUpperCase());
+}

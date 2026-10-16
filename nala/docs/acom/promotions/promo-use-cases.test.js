@@ -26,6 +26,8 @@ test.describe('ACOM MAS promotion and PZN use cases', () => {
         await workerSetup.finishTest(testInfo);
     });
 
+    // @MAS-DOCS-Promo-PZN-SMB-Excluded
+    // Verify the excluded SMB keeps its content and offer without applying a promotion.
     test(`${features[0].name},${features[0].tags}`, async () => {
         const { data } = features[0];
         const page = await workerSetup.getPage('LU');
@@ -51,6 +53,8 @@ test.describe('ACOM MAS promotion and PZN use cases', () => {
         });
     });
 
+    // @MAS-DOCS-Promo-PZN-SMB-Included
+    // Verify the included SMB keeps its content and applies the promotional offer without a promo variation.
     test(`${features[1].name},${features[1].tags}`, async () => {
         const { data } = features[1];
         const page = await workerSetup.getPage('LU');
@@ -76,6 +80,8 @@ test.describe('ACOM MAS promotion and PZN use cases', () => {
         });
     });
 
+    // @MAS-DOCS-Promo-PZN-SMB-Promo-Variation
+    // Verify the SMB uses its dedicated promo variation and applies the promotional offer.
     test(`${features[2].name},${features[2].tags}`, async () => {
         const { data } = features[2];
         const page = await workerSetup.getPage('LU');

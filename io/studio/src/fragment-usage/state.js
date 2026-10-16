@@ -20,6 +20,11 @@ const USAGE_TTL = (PAGE_RETENTION_HOURS + 24) * 60 * 60;
 
 const RECORD_VERSION = 1;
 
+const ROLLUP_LEASE_KEY = 'fragment-usage-rollup.lease';
+
+/** The rollup action's timeout, so a run killed mid-way frees the lease when it would have ended anyway. */
+const ROLLUP_LEASE_TTL = 300;
+
 function buildUsageKey(fragmentId) {
     return `fragment-usage.${fragmentId}`;
 }
@@ -62,8 +67,35 @@ function emptyRecord() {
     return { version: RECORD_VERSION, updatedAt: null, pages: {} };
 }
 
+/**
+ * Claims the single rollup slot, so overlapping runs cannot interleave their read-merge-write of
+ * the same record. State has no conditional writes, so two runs starting within the same few
+ * milliseconds can both claim it; anything wider is serialised.
+ * @param {string} owner id unique to this run
+ * @param {object} state pre-initialised State client
+ * @returns {Promise<boolean>} true when this run now holds the lease
+ */
+async function acquireRollupLease(owner, state) {
+    const entry = await state.get(ROLLUP_LEASE_KEY);
+    if (entry?.value) return false;
+    await state.put(ROLLUP_LEASE_KEY, owner, { ttl: ROLLUP_LEASE_TTL });
+    return true;
+}
+
+/**
+ * Frees the rollup slot, unless it has already lapsed and been claimed by another run.
+ * @param {string} owner id the lease was acquired with
+ * @param {object} state pre-initialised State client
+ */
+async function releaseRollupLease(owner, state) {
+    const entry = await state.get(ROLLUP_LEASE_KEY);
+    if (entry?.value === owner) await state.delete(ROLLUP_LEASE_KEY);
+}
+
 module.exports = {
     readUsage,
     writeUsage,
     emptyRecord,
+    acquireRollupLease,
+    releaseRollupLease,
 };

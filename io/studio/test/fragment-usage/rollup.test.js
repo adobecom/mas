@@ -19,7 +19,7 @@ const entry = (requests, countries = {}) => ({ requests, countries });
  * Loads the rollup with Grafana and State stubbed, backing State with a plain object so a run can
  * be replayed against the records the previous run wrote.
  */
-function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null } = {}) {
+function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null, leaseHeld = false } = {}) {
     const logger = { info: sinon.spy(), warn: sinon.spy(), error: sinon.spy() };
     const fetchHourlyPages = pagesError ? sinon.stub().rejects(pagesError) : sinon.stub().resolves(pagesByFragment);
     const readUsage = sinon.stub().callsFake(async (fragmentId) => store[fragmentId] || null);
@@ -27,6 +27,8 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null } = {}
         store[fragmentId] = record;
         return record;
     });
+    const acquireRollupLease = sinon.stub().resolves(!leaseHeld);
+    const releaseRollupLease = sinon.stub().resolves();
 
     const rollup = proxyquire('../../src/fragment-usage/rollup', {
         '@adobe/aio-sdk': { Core: { Logger: () => logger } },
@@ -36,10 +38,21 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null } = {}
             readUsage,
             writeUsage,
             emptyRecord: () => ({ version: 1, updatedAt: null, pages: {} }),
+            acquireRollupLease,
+            releaseRollupLease,
         },
     });
 
-    return { rollup, store, fetchHourlyPages, readUsage, writeUsage, logger };
+    return {
+        rollup,
+        store,
+        fetchHourlyPages,
+        readUsage,
+        writeUsage,
+        acquireRollupLease,
+        releaseRollupLease,
+        logger,
+    };
 }
 
 describe('fragment-usage rollup', () => {
@@ -302,6 +315,64 @@ describe('fragment-usage rollup', () => {
         const { rollup } = loadRollup({ pagesError: new Error('grafana down') });
         const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
         expect(response.statusCode).to.equal(500);
+    });
+
+    it('skips the run while another rollup holds the lease', async () => {
+        const hour = toEpochHour(Date.now()) - 1;
+        const { rollup, store, fetchHourlyPages } = loadRollup({
+            pagesByFragment: { [FRAGMENT]: { [hour]: { [PAGE]: entry(1) } } },
+            leaseHeld: true,
+        });
+
+        const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(response.statusCode).to.equal(409);
+        expect(fetchHourlyPages).to.not.have.been.called;
+        expect(store).to.deep.equal({});
+    });
+
+    it('takes the lease before querying Grafana', async () => {
+        // A window fetched before the lease could be older than one a concurrent run already stored.
+        const { rollup, acquireRollupLease, fetchHourlyPages } = loadRollup();
+
+        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(acquireRollupLease).to.have.been.calledBefore(fetchHourlyPages);
+    });
+
+    it('releases the lease it took once the run completes', async () => {
+        const { rollup, acquireRollupLease, releaseRollupLease } = loadRollup();
+
+        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(releaseRollupLease).to.have.been.calledOnce;
+        expect(releaseRollupLease.firstCall.args[0]).to.equal(acquireRollupLease.firstCall.args[0]);
+    });
+
+    it('releases the lease when the run fails', async () => {
+        const { rollup, releaseRollupLease } = loadRollup({ pagesError: new Error('grafana down') });
+
+        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(releaseRollupLease).to.have.been.calledOnce;
+    });
+
+    it('does not release a lease it did not take', async () => {
+        const { rollup, releaseRollupLease } = loadRollup({ leaseHeld: true });
+
+        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(releaseRollupLease).to.not.have.been.called;
+    });
+
+    it('still reports the run when the lease cannot be released', async () => {
+        // The lease lapses with the action timeout, so a failed release only delays the next manual run.
+        const { rollup, releaseRollupLease } = loadRollup();
+        releaseRollupLease.rejects(new Error('state delete failed'));
+
+        const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+
+        expect(response.statusCode).to.equal(200);
     });
 });
 

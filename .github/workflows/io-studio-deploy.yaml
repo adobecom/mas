@@ -2,6 +2,11 @@ name: IO Studio Deploy
 on:
     workflow_call:
         inputs:
+            deploy_ai:
+                description: 'Deploy optional AI actions after the core Studio actions'
+                type: boolean
+                required: false
+                default: true
             run_tests:
                 type: boolean
                 required: false
@@ -113,7 +118,7 @@ jobs:
                   path: ${{ inputs.odin-bucket-path || inputs.vault-path }}
                   env-fields: odin_bucket
 
-            # AOS / OST / AI Foundry credentials are identical across environments —
+            # AOS / OST credentials are identical across environments —
             # stored once in a shared path so they don't need to live in every
             # workspace's .env blob.
             - name: Fetch shared service secrets from Vault
@@ -122,7 +127,7 @@ jobs:
                   role-id: ${{ secrets.VAULT_ROLE_ID }}
                   secret-id: ${{ secrets.VAULT_SECRET_ID }}
                   path: merch-at-scale/aio-studio/common
-                  env-fields: aos_url,aos_api_key,ost_write_api_key,ai_foundry_api_key
+                  env-fields: aos_url,aos_api_key,ost_write_api_key
 
             # Derive namespace from the deployed .env (AIO_runtime_namespace). We must NOT
             # source it from a masked Vault field: GitHub empties job outputs whose value is
@@ -134,14 +139,37 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
-            # The assistant searches the mas-agent knowledge corpus in process; the deploy bundles it from
-            # the knowledge-latest release of adobecom/mas-agent and fails without it.
+            - name: Deploy core Studio actions
+              env:
+                  ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
+                  BATCH_SIZE: ${{ inputs.batch_size }}
+                  RPS_LIMIT: ${{ inputs.rps_limit }}
+                  WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
+              run: node scripts/deploy-actions.mjs core
+
+            - name: Fetch optional AI secrets from Vault
+              id: ai-secrets
+              if: inputs.deploy_ai
+              continue-on-error: true
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/common
+                  env-fields: ai_foundry_api_key
+
             - name: Fetch the mas-agent knowledge corpus
+              id: masa-knowledge
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success'
+              continue-on-error: true
               env:
                   MAS_AGENT_KNOWLEDGE_TOKEN: ${{ secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: npm run fetch:masa-knowledge -- --required
 
-            - name: Deploy
+            - name: Deploy optional AI actions
+              id: ai-deploy
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && steps.masa-knowledge.outcome == 'success'
+              continue-on-error: true
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
                   BATCH_SIZE: ${{ inputs.batch_size }}
@@ -154,4 +182,8 @@ jobs:
                   AI_FOUNDRY_MODEL_ID: aifoundry/Qwen/Qwen-latest
                   AI_FOUNDRY_FAST_MODEL_ID: aifoundry/Qwen/Qwen-latest
                   AI_FOUNDRY_THINKING: 'off'
-              run: npx aio app deploy -v
+              run: node scripts/deploy-actions.mjs assistant
+
+            - name: Report optional AI deployment failure
+              if: inputs.deploy_ai && (steps.ai-secrets.outcome == 'failure' || steps.masa-knowledge.outcome == 'failure' || steps.ai-deploy.outcome == 'failure')
+              run: echo '::warning::AI actions were not updated. Core Studio actions were deployed successfully.'

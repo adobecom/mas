@@ -17,7 +17,12 @@ export class MasChatDrawer extends LitElement {
         super();
         this.open = false;
         this.closing = false;
-        this.drawerWidth = parseInt(localStorage.getItem(STORAGE_KEY), 10) || 440;
+        this.drawerWidth = 440;
+        try {
+            this.drawerWidth = parseInt(localStorage.getItem(STORAGE_KEY), 10) || this.drawerWidth;
+        } catch (error) {
+            if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+        }
         this.widthStyleSheet = new CSSStyleSheet();
         this.widthScope = crypto.randomUUID();
         this.widthStyleSheet.replaceSync(`[data-chat-drawer="${this.widthScope}"] {}`);
@@ -69,7 +74,7 @@ export class MasChatDrawer extends LitElement {
         this.startWidth = this.drawerWidth;
         document.addEventListener('mousemove', this.boundHandleMouseMove);
         document.addEventListener('mouseup', this.boundHandleMouseUp);
-        document.body.classList.add('chat-resizing');
+        this.classList.add('chat-resizing');
     }
 
     handleMouseMove(e) {
@@ -82,11 +87,17 @@ export class MasChatDrawer extends LitElement {
     }
 
     handleMouseUp() {
+        const wasResizing = this.resizing;
         this.resizing = false;
         document.removeEventListener('mousemove', this.boundHandleMouseMove);
         document.removeEventListener('mouseup', this.boundHandleMouseUp);
-        document.body.classList.remove('chat-resizing');
-        localStorage.setItem(STORAGE_KEY, String(this.drawerWidth));
+        this.classList.remove('chat-resizing');
+        if (!wasResizing) return;
+        try {
+            localStorage.setItem(STORAGE_KEY, String(this.drawerWidth));
+        } catch (error) {
+            if (error.name !== 'SecurityError' && error.name !== 'QuotaExceededError') throw error;
+        }
     }
 
     relaySessionEvent(event) {

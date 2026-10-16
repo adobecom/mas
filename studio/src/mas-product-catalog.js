@@ -8,6 +8,7 @@ import { EVENT_OST_MULTI_OFFER_SELECT, PAGE_NAMES } from './constants.js';
 import { TEMPLATE_PREVIEWS } from './mas-chat/config.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
+import { FeaturePreviewCache } from './mas-chat/preview-cache.js';
 import { getUserSurfaces } from './groups.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 
@@ -37,6 +38,7 @@ class MasProductCatalog extends LitElement {
     constructor() {
         super();
         this.products = [];
+        this.previewCache = new FeaturePreviewCache();
         this.loading = false;
         this.currentPage = 0;
         this.error = null;
@@ -181,6 +183,7 @@ class MasProductCatalog extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.previewCache.clear();
         Store.productCatalog.search.unsubscribe(this.handleSearchChange);
         document.removeEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.handleMultiOfferSelect);
     }
@@ -301,7 +304,7 @@ class MasProductCatalog extends LitElement {
     }
 
     async loadTemplatePreviews(surface) {
-        await precacheTemplatePreviews(surface);
+        await precacheTemplatePreviews(surface, this.previewCache);
         if (this.createDialog) {
             this.createDialog = { ...this.createDialog, previewsLoaded: true };
         }
@@ -707,7 +710,8 @@ class MasProductCatalog extends LitElement {
 
     renderTemplateCard(v, selectedVariants) {
         const selected = selectedVariants.has(v.name);
-        const previewId = TEMPLATE_PREVIEWS[v.name];
+        const templateId = TEMPLATE_PREVIEWS[v.name];
+        const previewId = this.previewCache.has(templateId) ? this.previewCache.getId(templateId) : null;
 
         return html`
             <div class="template-card ${selected ? 'selected' : ''}" @click=${() => this.toggleVariant(v.name)}>

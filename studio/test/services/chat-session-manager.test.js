@@ -33,9 +33,10 @@ describe('ChatSessionManager', () => {
         return JSON.parse(storage[STORAGE_KEY]);
     }
 
-    describe('initializeStorage', () => {
-        it('creates initial data when storage is empty', () => {
-            const data = getStoredData();
+    describe('lazy storage', () => {
+        it('returns empty data without writing to storage', () => {
+            expect(storage[STORAGE_KEY]).to.equal(undefined);
+            const data = manager.getData();
             expect(data.sessions).to.deep.equal({});
             expect(data.activeSessionId).to.equal(null);
         });

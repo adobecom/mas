@@ -1,43 +1,53 @@
 import { html, nothing } from 'lit';
-import { PAGE_NAMES, WCS_LANDSCAPE_DRAFT } from '../constants.js';
-import Store from '../store.js';
-import '../mas-chat.js';
-import '../mas-chat-fab.js';
-import '../mas-chat-drawer.js';
-import '../mas-product-catalog.js';
-import '../mas-product-detail.js';
+import { PAGE_NAMES } from '../constants.js';
+import { getStudioFeatures, isFeaturePageEnabled } from './features.js';
 
-export function renderChatPages(pageValue) {
+const stylesUrl = new URL('../styles/chat.css', import.meta.url).href;
+
+/** Renders enabled feature pages after their lazy imports succeed. */
+export function renderChatPages(pageValue, load) {
+    if (!isFeaturePageEnabled(pageValue)) return nothing;
     if (pageValue === PAGE_NAMES.AI_ASSISTANT) {
-        return html`<mas-chat></mas-chat>`;
+        if (!load('mas-chat', './mas-chat.js')) return nothing;
+        return html`<div class="mas-feature"><link rel="stylesheet" href=${stylesUrl} /><mas-chat></mas-chat></div>`;
     }
     if (pageValue === PAGE_NAMES.PRODUCT_CATALOG) {
-        return html`<div id="content-container">
-            <mas-product-catalog></mas-product-catalog>
+        if (!load('mas-product-catalog', './mas-product-catalog.js')) return nothing;
+        return html`<div class="mas-feature">
+            <link rel="stylesheet" href=${stylesUrl} />
+            <div id="content-container">
+                <mas-product-catalog></mas-product-catalog>
+            </div>
         </div>`;
     }
     if (pageValue === PAGE_NAMES.PRODUCT_DETAIL) {
-        return html`<div id="content-container">
-            <mas-product-detail></mas-product-detail>
+        if (!load('mas-product-detail', './mas-product-detail.js')) return nothing;
+        return html`<div class="mas-feature">
+            <link rel="stylesheet" href=${stylesUrl} />
+            <div id="content-container">
+                <mas-product-detail></mas-product-detail>
+            </div>
         </div>`;
     }
     return nothing;
 }
 
-export function renderChatOverlay(onToggle) {
+/** Loads only the launcher until an author explicitly opens the drawer. */
+export function renderChatOverlay(onToggle, load, open) {
+    if (!getStudioFeatures().assistant) return nothing;
+    if (!load('mas-chat-fab', './mas-chat-fab.js')) return nothing;
     return html`
-        <mas-chat-fab @chat-drawer-toggle=${onToggle}></mas-chat-fab>
-        <mas-chat-drawer @chat-drawer-toggle=${onToggle}></mas-chat-drawer>
+        <div class="mas-feature">
+            <link rel="stylesheet" href=${stylesUrl} />
+            <mas-chat-fab .open=${open} @chat-drawer-toggle=${onToggle}></mas-chat-fab>
+            ${open && load('mas-chat-drawer', './mas-chat-drawer.js')
+                ? html`<mas-chat-drawer open @chat-drawer-toggle=${onToggle}></mas-chat-drawer>`
+                : nothing}
+        </div>
     `;
 }
 
+/** Keeps assistant visibility separate from shared authoring state. */
 export function handleChatDrawerToggle(event, host) {
-    const drawer = host.querySelector('mas-chat-drawer');
-    const fab = host.querySelector('mas-chat-fab');
-    const { open } = event.detail;
-    // The assistant authors drafts, so entering it defaults to the DRAFT
-    // landscape (the top-nav switch still lets the user flip to PUBLISHED).
-    if (open) Store.landscape.set(WCS_LANDSCAPE_DRAFT);
-    if (drawer) drawer.open = open;
-    if (fab) fab.open = open;
+    host.chatDrawerOpen = event.detail.open;
 }

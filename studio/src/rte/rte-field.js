@@ -266,8 +266,6 @@ class RteField extends LitElement {
                     gap: 8px;
                     flex-direction: column;
                     font-size: var(--spectrum-font-size-200);
-                    width: 100%;
-                    box-sizing: border-box;
                 }
 
                 :host([hide-format-buttons]) {
@@ -390,24 +388,22 @@ class RteField extends LitElement {
                     padding: 8px 4px 4px 4px;
                     min-height: 36px;
                     flex: 1;
-                    width: 100%;
-                    box-sizing: border-box;
                     color: var(--spectrum-gray-800);
                     background-color: var(--spectrum-white);
                     border: 2px solid var(--spectrum-gray-300);
                     border-radius: 8px;
                 }
 
-                #editor .ProseMirror.is-empty::before {
+                #editor .ProseMirror.is-empty[data-placeholder]::before {
                     content: attr(data-placeholder);
-                    color: #888888;
+                    color: var(--spectrum-gray-500);
                     pointer-events: none;
                     float: left;
                     height: 0;
                     font-style: italic;
                 }
 
-                #editor .ProseMirror {
+                :host([no-border]) #editor .ProseMirror {
                     min-height: 20px;
                 }
 
@@ -415,6 +411,12 @@ class RteField extends LitElement {
                     border: none;
                     background: transparent;
                     padding: 0;
+                }
+
+                :host([no-border]),
+                :host([no-border]) #editor {
+                    width: 100%;
+                    box-sizing: border-box;
                 }
 
                 :host([no-border]) #editor .ProseMirror {
@@ -1460,7 +1462,7 @@ class RteField extends LitElement {
     }
 
     #updateEmptyState() {
-        if (!this.editorView?.dom) return;
+        if (!this.placeholder || !this.editorView?.dom) return;
         const text = this.editorView.dom.innerText.trim();
         if (text === '' || text === '\n') {
             this.editorView.dom.classList.add('is-empty');

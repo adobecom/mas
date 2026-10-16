@@ -2,13 +2,7 @@
 
 ## AEM(Odin) Proxy
 
-Due to CORS limitations, `proxy-server.mjs` is used as a shared local AEM proxy. Worktrees can run Studio on different local ports while reusing the same proxy.
-
-By default:
-
-- the shared proxy runs on `localhost:8080`
-- the IMS relay runs on `localhost:3000`
-- each worktree gets its own available `aem up` port at runtime
+Due to CORS limitations, `proxy-server.mjs` provides the local AEM proxy used by Studio.
 
 MAS Studio can be developed with the following markup using the proxy.
 
@@ -32,8 +26,13 @@ From the repo root:
 npm run studio
 ```
 
-This command:
+This starts the proxy and `aem up`. Use `npm run studio:qa` or `npm run studio:stage` for the corresponding author environment.
 
-- starts the shared proxy if it is not already running
-- finds an available local port for `aem up`
-- prints the worktree Studio URL, including `proxy.port` / `relay.port` params when non-default ports are used
+## Optional features
+
+MASA and Offers are enabled in `studio.html`. Disable either independently by setting its metadata content to `false`; set it to `true` to re-enable:
+
+- `mas-assistant-enabled`: MASA page and drawer.
+- `mas-offers-enabled`: Offers catalog and product details.
+
+Reload after changing the configuration. Missing flags default to disabled. These are rollout flags, not authorization controls. Disabled features do not import their implementations, load their styles, or initialize their storage. Enabled features load on navigation; the drawer loads only when opened. Storage failures fall back to in-memory chat sessions.

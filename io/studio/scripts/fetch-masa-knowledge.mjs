@@ -10,7 +10,8 @@
  * MAS_AGENT_KNOWLEDGE_TOKEN: a token that can read adobecom/mas-agent releases. Without it (local
  * work, fork PRs) the module is written empty and the assistant answers from its own chunks only;
  * --required makes that an error, as deploys and CI tests need the real corpus. --file reads a local
- * export instead (npm run knowledge:export in mas-agent).
+ * export instead (npm run knowledge:export in mas-agent). MAS_AGENT_KNOWLEDGE_FILE supplies the
+ * same local export to npm's pretest hooks. CI requires a corpus even without --required.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -30,6 +31,7 @@ const CHUNK_FIELDS = ['id', 'topic', 'title', 'section', 'text'];
 export function validateCorpus(corpus) {
     if (corpus?.version !== FORMAT_VERSION)
         throw new Error(`unsupported knowledge format version ${corpus?.version}; this script reads ${FORMAT_VERSION}`);
+    if (corpus.profile !== 'author') throw new Error('Studio requires the author knowledge profile');
     if (!Array.isArray(corpus.chunks) || corpus.chunks.length === 0) throw new Error('the knowledge export has no chunks');
     return corpus.chunks.map((chunk, index) => {
         for (const field of CHUNK_FIELDS) {
@@ -59,6 +61,7 @@ export function moduleSource({ revision = null, generatedAt = null, chunks = [] 
 }
 
 async function download(token) {
+    const signal = AbortSignal.timeout(30000);
     const headers = {
         Authorization: `Bearer ${token}`,
         'X-GitHub-Api-Version': '2022-11-28',
@@ -66,12 +69,14 @@ async function download(token) {
     };
     const release = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${TAG}`, {
         headers: { ...headers, Accept: 'application/vnd.github+json' },
+        signal,
     });
     if (!release.ok) throw new Error(`could not read the ${TAG} release of ${REPO}: HTTP ${release.status}`);
     const asset = (await release.json()).assets?.find((item) => item.name === ASSET);
     if (!asset) throw new Error(`the ${TAG} release of ${REPO} has no ${ASSET}`);
     const file = await fetch(`https://api.github.com/repos/${REPO}/releases/assets/${asset.id}`, {
         headers: { ...headers, Accept: 'application/octet-stream' },
+        signal,
     });
     if (!file.ok) throw new Error(`could not download ${ASSET}: HTTP ${file.status}`);
     return file.json();
@@ -80,8 +85,9 @@ async function download(token) {
 async function main() {
     const { values } = parseArgs({ options: { required: { type: 'boolean', default: false }, file: { type: 'string' } } });
     const token = process.env.MAS_AGENT_KNOWLEDGE_TOKEN;
-    if (!values.file && !token) {
-        if (values.required)
+    const file = values.file || process.env.MAS_AGENT_KNOWLEDGE_FILE;
+    if (!file && !token) {
+        if (values.required || process.env.CI)
             throw new Error('MAS_AGENT_KNOWLEDGE_TOKEN is not set, and this run needs the mas-agent knowledge corpus');
         writeFileSync(OUT_FILE, moduleSource());
         console.warn(
@@ -89,7 +95,7 @@ async function main() {
         );
         return;
     }
-    const corpus = values.file ? JSON.parse(readFileSync(values.file, 'utf8')) : await download(token);
+    const corpus = file ? JSON.parse(readFileSync(file, 'utf8')) : await download(token);
     const chunks = validateCorpus(corpus);
     writeFileSync(
         OUT_FILE,

@@ -288,12 +288,12 @@ export function isReleaseIntent(message, conversationHistory = []) {
  * @param {Object} context - Original context from frontend
  * @returns {Object} - Enriched context
  */
-function enrichContextWithSurface(context) {
-    if (!context) return null;
+export function enrichContextWithSurface(context) {
+    // Always return an object: a later stage assigns enrichedContext.ragContext,
+    // and a null here (no context supplied) crashed documentation requests with a 500.
+    const enrichedContext = { ...(context || {}) };
 
-    const enrichedContext = { ...context };
-
-    if (context.currentPath) {
+    if (context?.currentPath) {
         const surface = extractSurfaceFromPath(context.currentPath);
 
         if (surface) {
@@ -301,7 +301,7 @@ function enrichContextWithSurface(context) {
         }
     }
 
-    if (context.currentLocale) {
+    if (context?.currentLocale) {
         enrichedContext.locale = context.currentLocale;
     }
 

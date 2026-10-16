@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { getVariantTreeData } from './editors/variant-picker.js';
 import { TEMPLATE_PREVIEWS } from './mas-chat/config.js';
 import { precacheTemplatePreviews } from './utils/template-cache.js';
+import { FeaturePreviewCache } from './mas-chat/preview-cache.js';
 
 export class MasChatConfirmationSummary extends LitElement {
     static properties = {
@@ -22,10 +23,16 @@ export class MasChatConfirmationSummary extends LitElement {
         this.selectedVariants = new Set();
         this.previewsLoaded = false;
         this.showTemplateDialog = false;
+        this.previewCache = new FeaturePreviewCache();
     }
 
     createRenderRoot() {
         return this;
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.previewCache.clear();
     }
 
     willUpdate(changedProperties) {
@@ -39,7 +46,7 @@ export class MasChatConfirmationSummary extends LitElement {
 
     async loadPreviews() {
         this.previewsLoaded = false;
-        await precacheTemplatePreviews(this.surface);
+        await precacheTemplatePreviews(this.surface, this.previewCache);
         this.previewsLoaded = true;
     }
 
@@ -99,9 +106,9 @@ export class MasChatConfirmationSummary extends LitElement {
 
     renderTemplateCard(v) {
         const selected = this.selectedVariants.has(v.name);
-        const previewId = TEMPLATE_PREVIEWS[v.name];
-        const AemFragmentElement = customElements.get('aem-fragment');
-        const isCached = previewId && this.previewsLoaded && AemFragmentElement?.cache?.has(previewId);
+        const templateId = TEMPLATE_PREVIEWS[v.name];
+        const previewId = this.previewCache.getId(templateId);
+        const isCached = this.previewsLoaded && this.previewCache.has(templateId);
 
         return html`
             <div class="template-card ${selected ? 'selected' : ''}" @click=${() => this.toggleVariant(v.name)}>

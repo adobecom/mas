@@ -5,7 +5,7 @@ import Store from '../../src/store.js';
 import { WCS_LANDSCAPE_PUBLISHED, WCS_LANDSCAPE_DRAFT } from '../../src/constants.js';
 
 describe('chat-router handleChatDrawerToggle', () => {
-    const host = { querySelector: () => null };
+    const host = { chatDrawerOpen: false };
     let original;
 
     beforeEach(() => {
@@ -16,8 +16,14 @@ describe('chat-router handleChatDrawerToggle', () => {
         Store.landscape.set(original);
     });
 
-    it('defaults to the DRAFT landscape when the assistant opens', () => {
+    it('preserves the published landscape when the assistant opens', () => {
         Store.landscape.set(WCS_LANDSCAPE_PUBLISHED);
+        handleChatDrawerToggle({ detail: { open: true } }, host);
+        expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_PUBLISHED);
+    });
+
+    it('preserves the draft landscape when the assistant opens', () => {
+        Store.landscape.set(WCS_LANDSCAPE_DRAFT);
         handleChatDrawerToggle({ detail: { open: true } }, host);
         expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_DRAFT);
     });

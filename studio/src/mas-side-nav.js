@@ -15,6 +15,7 @@ import {
 import { parseCtas } from './editors/variation-utils.js';
 import { parseBackgroundsUrls } from './editors/backgrounds-url.js';
 import { masaIcon } from './img/masa-icon.js';
+import { getStudioFeatures } from './mas-chat/features.js';
 import './mas-side-nav-item.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 
@@ -938,6 +939,7 @@ class MasSideNav extends LitElement {
     }
 
     get defaultNavigation() {
+        const features = getStudioFeatures();
         return html`
             <mas-side-nav-item
                 label="Home"
@@ -946,13 +948,15 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-home slot="icon"></sp-icon-home>
             </mas-side-nav-item>
-            <mas-side-nav-item
-                label="Offers"
-                ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
-            >
-                <sp-icon-market slot="icon"></sp-icon-market>
-            </mas-side-nav-item>
+            ${features.offers
+                ? html`<mas-side-nav-item
+                      label="Offers"
+                      ?selected=${Store.page.get() === PAGE_NAMES.PRODUCT_CATALOG}
+                      @nav-click="${router.navigateToPage(PAGE_NAMES.PRODUCT_CATALOG)}"
+                  >
+                      <sp-icon-market slot="icon"></sp-icon-market>
+                  </mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 label="Fragments"
                 ?selected=${Store.page.get() === PAGE_NAMES.CONTENT}
@@ -970,6 +974,11 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-promote slot="icon"></sp-icon-promote>
             </mas-side-nav-item>
+            ${!features.offers
+                ? html`<mas-side-nav-item label="Offers" disabled
+                      ><sp-icon-market slot="icon"></sp-icon-market
+                  ></mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 label="Placeholders"
                 ?selected=${Store.page.get() === PAGE_NAMES.PLACEHOLDERS}
@@ -984,13 +993,15 @@ class MasSideNav extends LitElement {
             >
                 <sp-icon-translate slot="icon"></sp-icon-translate>
             </mas-side-nav-item>
-            <mas-side-nav-item
-                label="MASA"
-                ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
-                @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
-            >
-                ${masaIcon}
-            </mas-side-nav-item>
+            ${features.assistant
+                ? html`<mas-side-nav-item
+                      label="MASA"
+                      ?selected=${Store.page.get() === PAGE_NAMES.AI_ASSISTANT}
+                      @nav-click="${router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)}"
+                  >
+                      ${masaIcon}
+                  </mas-side-nav-item>`
+                : nothing}
             <mas-side-nav-item
                 class="side-nav-support"
                 label="Support"

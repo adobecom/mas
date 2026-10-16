@@ -29,6 +29,7 @@ const PRICE_PATTERN = {
     EG: { mo: /LE\s+\d+\.\d\d\/.+/ },
     FR: { mo: /\d+,\d\d\s€\/mois/, mo_en: /\d+,\d\d\s€\/mo/ },
     GR: { mo_en: /€\d+,\d\d\/mo/ },
+    LU: { mo_en: /^\d+(?:[.\s]\d{3})*,\d{2}\s€\/mo$/ },
 };
 
 const PLANS_NALA_PATH = { US: '/drafts/nala/features/commerce/plans2' };

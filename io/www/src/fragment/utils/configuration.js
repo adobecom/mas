@@ -88,6 +88,16 @@ export function validateApiKey(context) {
     return { statusCode: 200 };
 }
 
+/**
+ * Surface bound to the request api key by the `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`),
+ * most api keys serving a single surface (MWPW-186204).
+ * @returns {string|undefined}
+ */
+export function getApiKeySurface({ api_key, apiKeySurfaces }) {
+    const entry = Object.entries(apiKeySurfaces ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])));
+    return entry?.[1];
+}
+
 export function resetCache() {
     cachedConfiguration = null;
     configurationTimestamp = null;

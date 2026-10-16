@@ -1,5 +1,6 @@
 **/logs/
-.pinata/docs/
+.pinata/docs/*
+!/docs/decisions/
 .pinata/logs/
 .pinata/specs/
 .pinata/state/
@@ -61,8 +62,9 @@ masStudio-*.json
 .superpowers/
 
 
-# Worktree documentation (per-ticket, not committed)
-/docs/
+# Worktree documentation (per-ticket, not committed); ADRs are versioned
+/docs/*
+!/docs/decisions/
 
 # pznTags migration scratch reports (live content paths/etags, never committed)
 /scripts/pzn-tags-locale-to-country/tmp/

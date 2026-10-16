@@ -352,6 +352,10 @@ function withDeadline(promise, ms) {
     return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 }
 
+function wcsCacheKey({ osi, promotionCode }, { country, language }) {
+    return [osi, country.toLowerCase(), language?.toLowerCase(), promotionCode?.toLowerCase()].filter((val) => val).join('-');
+}
+
 async function computeCache(tokens, wcsContext) {
     const cache = {};
     let idx = 0;
@@ -360,16 +364,8 @@ async function computeCache(tokens, wcsContext) {
             const response = await fetchArtifact(osi, promotionCode, wcsContext, idx++);
             if (response) {
                 const { resolvedOffers } = response;
-                const cacheKey = [
-                    osi,
-                    wcsContext.country.toLowerCase(),
-                    wcsContext.language?.toLowerCase(),
-                    promotionCode?.toLowerCase(),
-                ]
-                    .filter((val) => val)
-                    .join('-');
                 resolve({
-                    cacheKey,
+                    cacheKey: wcsCacheKey({ osi, promotionCode }, wcsContext),
                     resolvedOffers,
                 });
             } else {
@@ -388,6 +384,48 @@ async function computeCache(tokens, wcsContext) {
     return cache;
 }
 
+/**
+ * Fetches WCS artifacts for `tokens` against every WCS configuration, returning `{ [env]: { [cacheKey]: resolvedOffers } }`.
+ * Entries already present in `prefetched` (e.g. the offer transformer's early call) are reused, not requested again.
+ * WCS country/locale follow the request (`wcsCountry`, `regionLocale`), so callers ahead of the `wcs` transformer must
+ * pass a context carrying the same values to share entries.
+ */
+function createWcsContext(context) {
+    const country = context.wcsCountry ?? getCountry(context);
+    return {
+        locale: getRegionalLocale(context),
+        country,
+        language: country !== 'GB' ? 'MULT' : undefined,
+        context,
+    };
+}
+
+async function computeWcsCaches(tokens, context, prefetched = {}) {
+    const wcsContext = createWcsContext(context);
+    const caches = {};
+    for (const config of context.wcsConfiguration) {
+        wcsContext.wcsURL = config.wcsURL;
+        wcsContext.landscape = config.landscape || 'PUBLISHED';
+        const known = prefetched[config.env] ?? {};
+        const missing = tokens.filter((token) => !(wcsCacheKey(token, wcsContext) in known));
+        try {
+            const fetched = await computeCache(missing, wcsContext);
+            // token order (not fetch order) keeps the response, hence its ETag, stable whatever was prefetched
+            const cache = {};
+            for (const token of tokens) {
+                const key = wcsCacheKey(token, wcsContext);
+                const offers = known[key] ?? fetched[key];
+                if (offers) cache[key] = offers;
+            }
+            caches[config.env] = { ...cache, ...known };
+            /* c8 ignore next 3*/
+        } catch (error) {
+            logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
+        }
+    }
+    return caches;
+}
+
 async function wcs(context) {
     // Prefer the offer-mapping prefetched in `init` (parallel with the other transformer inits);
     // fall back to a lazy build when the pipeline ran without inits (e.g. unit tests).
@@ -403,6 +441,8 @@ async function wcs(context) {
         log('No WCS configurations available', context);
         return context;
     }
+    // Artifacts already fetched by the offer transformer (MWPW-186204) are reused instead of requested twice.
+    const prefetched = context.wcsPrefetch ?? {};
     if (masElements.length > 0) {
         // Promo codes applied to referenced cards live on each card's fields.promoCode (keyed by its base osi),
         // not in the price HTML nor on the collection root. Build a base-osi -> promoCode lookup to fill the cache
@@ -462,27 +502,10 @@ async function wcs(context) {
         }
 
         const tokens = Array.from(tokenMap, ([key, token]) => ({ ...token, optional: !requiredKeys.has(key) }));
-        const country = context.wcsCountry ?? getCountry(context);
-        const wcsContext = {
-            locale: getRegionalLocale(context),
-            country,
-            context,
-        };
-        context.body.wcs ??= {};
-        for (const config of wcsConfigs) {
-            wcsContext.wcsURL = config.wcsURL;
-            wcsContext.landscape = config.landscape || 'PUBLISHED';
-            if (country !== 'GB') wcsContext.language = 'MULT';
-            context.body.wcs ??= {};
-            try {
-                context.body.wcs[config.env] = await computeCache(tokens, wcsContext);
-                /* c8 ignore next 3*/
-            } catch (error) {
-                logError(`Error computing WCS cache for ${config.env}: ${error.message}`, context);
-            }
-        }
+        context.body.wcs = { ...context.body.wcs, ...(await computeWcsCaches(tokens, context, prefetched)) };
     } else {
         log('No WCS placeholders found in fragment content', context);
+        if (Object.keys(prefetched).length > 0) context.body.wcs = { ...context.body.wcs, ...prefetched };
     }
     return context;
 }
@@ -504,4 +527,7 @@ export {
     updateOffers,
     buildOfferMapping,
     resolveOfferSubstituteMap,
+    computeWcsCaches,
+    createWcsContext,
+    wcsCacheKey,
 };

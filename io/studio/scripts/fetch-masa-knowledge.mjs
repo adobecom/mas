@@ -5,16 +5,16 @@
  * release (rebuilt on every knowledge change there); the generated module is gitignored, so the
  * corpus never lands in this public repo.
  *
- *   node scripts/fetch-masa-knowledge.mjs [--required] [--file <knowledge-author.json>]
+ *   node scripts/fetch-masa-knowledge.mjs [--file <knowledge-author.json>] [--expected-sha256 <hash>]
  *
- * MAS_AGENT_KNOWLEDGE_TOKEN: a token that can read adobecom/mas-agent releases. Without it (local
- * work, fork PRs) the module is written empty and the assistant answers from its own chunks only;
- * --required makes that an error, as deploys and CI tests need the real corpus. --file reads a local
- * export instead (npm run knowledge:export in mas-agent). MAS_AGENT_KNOWLEDGE_FILE supplies the
- * same local export to npm's pretest hooks. CI requires a corpus even without --required.
+ * MAS_AGENT_KNOWLEDGE_TOKEN reads adobecom/mas-agent releases. --file or MAS_AGENT_KNOWLEDGE_FILE
+ * reads a local author export instead. A valid, nonempty source is always required; --required is
+ * retained for existing callers. Failed refreshes leave the previous module intact. The optional
+ * digest pins deployment to the exact export that passed tests, even if knowledge-latest changes.
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -32,11 +32,17 @@ export function validateCorpus(corpus) {
     if (corpus?.version !== FORMAT_VERSION)
         throw new Error(`unsupported knowledge format version ${corpus?.version}; this script reads ${FORMAT_VERSION}`);
     if (corpus.profile !== 'author') throw new Error('Studio requires the author knowledge profile');
+    if (typeof corpus.revision !== 'string' || !corpus.revision.trim()) throw new Error('the knowledge export has no revision');
+    if (typeof corpus.generatedAt !== 'string' || !Number.isFinite(Date.parse(corpus.generatedAt)))
+        throw new Error('the knowledge export has no valid generation date');
     if (!Array.isArray(corpus.chunks) || corpus.chunks.length === 0) throw new Error('the knowledge export has no chunks');
+    const ids = new Set();
     return corpus.chunks.map((chunk, index) => {
         for (const field of CHUNK_FIELDS) {
-            if (typeof chunk?.[field] !== 'string' || !chunk[field]) throw new Error(`chunk ${index} has no ${field}`);
+            if (typeof chunk?.[field] !== 'string' || !chunk[field].trim()) throw new Error(`chunk ${index} has no ${field}`);
         }
+        if (ids.has(chunk.id)) throw new Error(`duplicate knowledge chunk id: ${chunk.id}`);
+        ids.add(chunk.id);
         return {
             id: `masa:${chunk.id}`,
             topic: chunk.topic,
@@ -48,14 +54,14 @@ export function validateCorpus(corpus) {
     });
 }
 
-export function moduleSource({ revision = null, generatedAt = null, chunks = [] } = {}) {
+export function moduleSource({ revision, generatedAt, sha256, chunks }) {
     return [
         '/**',
         ' * GENERATED FILE — do not edit or commit (it is gitignored).',
         ' * The mas-agent knowledge corpus, written by `npm run fetch:masa-knowledge`.',
         ' */',
         '',
-        `export const MASA_KNOWLEDGE = ${JSON.stringify({ revision, generatedAt, chunks }, null, 4)};`,
+        `export const MASA_KNOWLEDGE = ${JSON.stringify({ revision, generatedAt, sha256, chunks }, null, 4)};`,
         '',
     ].join('\n');
 }
@@ -79,28 +85,37 @@ async function download(token) {
         signal,
     });
     if (!file.ok) throw new Error(`could not download ${ASSET}: HTTP ${file.status}`);
-    return file.json();
+    return file.text();
 }
 
 async function main() {
-    const { values } = parseArgs({ options: { required: { type: 'boolean', default: false }, file: { type: 'string' } } });
+    const { values } = parseArgs({
+        options: {
+            required: { type: 'boolean', default: false },
+            file: { type: 'string' },
+            'expected-sha256': { type: 'string' },
+        },
+    });
     const token = process.env.MAS_AGENT_KNOWLEDGE_TOKEN;
     const file = values.file || process.env.MAS_AGENT_KNOWLEDGE_FILE;
     if (!file && !token) {
-        if (values.required || process.env.CI)
-            throw new Error('MAS_AGENT_KNOWLEDGE_TOKEN is not set, and this run needs the mas-agent knowledge corpus');
-        writeFileSync(OUT_FILE, moduleSource());
-        console.warn(
-            'MAS_AGENT_KNOWLEDGE_TOKEN is not set: wrote an empty mas-agent knowledge module; the assistant answers from its own chunks only.',
+        throw new Error(
+            'A mas-agent author export is required: set MAS_AGENT_KNOWLEDGE_TOKEN or MAS_AGENT_KNOWLEDGE_FILE, or pass --file. The previous snapshot has not been changed.',
         );
-        return;
     }
-    const corpus = file ? JSON.parse(readFileSync(file, 'utf8')) : await download(token);
+    const source = file ? readFileSync(file, 'utf8') : await download(token);
+    const sha256 = createHash('sha256').update(source).digest('hex');
+    const expected = values['expected-sha256'];
+    if (expected && expected !== sha256) throw new Error('the knowledge export changed since validation; rerun the refresh');
+    const corpus = JSON.parse(source);
     const chunks = validateCorpus(corpus);
-    writeFileSync(
-        OUT_FILE,
-        moduleSource({ revision: corpus.revision ?? null, generatedAt: corpus.generatedAt ?? null, chunks }),
-    );
+    const temporary = `${OUT_FILE}.${process.pid}.tmp`;
+    try {
+        writeFileSync(temporary, moduleSource({ revision: corpus.revision, generatedAt: corpus.generatedAt, sha256, chunks }));
+        renameSync(temporary, OUT_FILE);
+    } finally {
+        rmSync(temporary, { force: true });
+    }
     console.log(
         `wrote ${chunks.length} mas-agent knowledge chunks (revision ${corpus.revision ?? 'unknown'}) to src/ai-chat/masa-knowledge.js`,
     );

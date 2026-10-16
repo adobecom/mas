@@ -44,7 +44,6 @@
         "test:coverage:html": "c8 --reporter=html --reporter=text mocha --recursive ./test",
         "lint": "eslint --ignore-pattern web-src --no-error-on-unmatched-pattern test src actions",
         "lint:fix": "npm run lint -- --fix",
-        "build:knowledge": "node scripts/build-knowledge-corpus.mjs",
         "fetch:masa-knowledge": "node scripts/fetch-masa-knowledge.mjs"
     },
     "engines": {

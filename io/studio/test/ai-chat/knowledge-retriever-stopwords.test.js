@@ -2,20 +2,8 @@ const { expect } = require('chai');
 const { requireRealCorpus } = require('./real-corpus.js');
 
 /**
- * The stopword list is hand-written, so it encodes an assumption about English
- * rather than about THIS corpus. Several entries are content words here:
- *
- *   help  df 11, in 8 chunk headlines, idf 2.04
- *   get   df  1, in 1 chunk headline,  idf 4.32  ← most discriminative of all
- *
- * Stopping them means "Where do I get help?" reduces to no query terms at all
- * and retrieves NOTHING — while being, verbatim, the section heading of
- * troubleshooting.md. The corpus contains the answer and cannot find it.
- *
- * The corpus itself says which words are topical: a term that heads a section,
- * and is rare enough to discriminate, is content no matter what a generic list
- * says. Genuine function words stay stopped because they are everywhere and so
- * carry almost no idf ("the" 0.69, "is" 0.87, "of" 1.14).
+ * Help/get are content words for author-support questions. Preserve the regression that removing
+ * them loses those answers; measure against mas-agent's current export, not the retired corpus.
  */
 
 let LocalKnowledgeRetriever;
@@ -39,7 +27,7 @@ describe('ai-chat/knowledge-retriever stopwords', () => {
     it('finds a section whose heading is made of former stopwords', async () => {
         const sections = await sectionsFor('Where do I get help?');
 
-        expect(sections.join(' | '), 'troubleshooting.md heads a section with exactly this question').to.include('help');
+        expect(sections.join(' | '), 'mas-agent includes author support guidance').to.include('help');
     });
 
     it('answers a bare plea for help, which is a whole query of former stopwords', async () => {
@@ -72,7 +60,7 @@ describe('ai-chat/knowledge-retriever stopwords', () => {
     });
 
     it('does not let a function word alone satisfy the coverage gate', async () => {
-        // "the" appears in all 74 chunks; if it counted, every chunk would
+        // A common function word must not count as evidence; otherwise chunks could
         // score 1.0 coverage and the top-ranked one would be injected as
         // relevant knowledge for a meaningless query.
         const { sources } = await retriever.queryWithSources('the', PROD);

@@ -109,46 +109,19 @@ describe('ai-chat/knowledge coverage', () => {
         });
     }
 
-    /**
-     * The corpus names tool identifiers (search_cards, create_grouped_variation)
-     * so the model can connect a documented capability to an intent it can
-     * emit. That makes a stale identifier worse than a stale sentence: it reads
-     * like a real tool name, so it seeds a call the registry will reject.
-     *
-     * find_untranslated_cards survived here for a day after its intent was
-     * removed, purely because nothing checked.
-     */
-    it('names no tool the registry does not have', async () => {
-        const fs = require('fs');
-        const path = require('path');
-        const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
-
-        const known = new Set();
-        for (const intent of INTENTS) {
-            known.add(intent.name);
-            if (intent.tool_target) known.add(intent.tool_target);
-        }
-
-        // Snake_case tokens long enough to be an identifier rather than prose.
-        // Domain terms that are not tools live here with a reason.
-        const NOT_A_TOOL = new Set(['web_commerce_artifact']);
-
-        const dir = path.join(__dirname, '../../src/ai-chat/knowledge');
-        const unknown = [];
-        for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.md'))) {
-            const text = fs.readFileSync(path.join(dir, file), 'utf8');
-            for (const [token] of text.matchAll(/\b[a-z]+(?:_[a-z]+){1,3}\b/g)) {
-                if (token.length > 8 && !known.has(token) && !NOT_A_TOOL.has(token)) {
-                    unknown.push(`${file}: ${token}`);
-                }
-            }
-        }
-
-        expect(
-            [...new Set(unknown)],
-            `corpus names tools that are not in the registry:\n  ${[...new Set(unknown)].join('\n  ')}`,
-        ).to.deep.equal([]);
-    });
+    for (const [question, evidence] of [
+        ['how do I create a card in Studio?', /tags include an offerless tag/],
+        ['how do I edit and publish a placeholder?', /placeholder fragment and then its dictionary index/],
+        ['how do rich text placeholders work?', /500-character limit/],
+        ['where do I get help?', /Support in Studio's navigation/],
+        ['what happens when I edit a card that is already published?', /Published, Draft, New, Modified and Unpublished/],
+        ['can I unpublish a card in Studio?', /does not currently offer Unpublish for cards/],
+    ]) {
+        it(`grounds the answer in current behavior: ${question}`, async () => {
+            const { context } = await retrieve(question);
+            expect(context).to.match(evidence);
+        });
+    }
 
     describe('the known gaps', () => {
         it('shrinks: a question that now answers correctly must leave KNOWN_GAPS', async () => {

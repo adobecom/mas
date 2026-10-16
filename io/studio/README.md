@@ -167,7 +167,10 @@ All fetched values — and the Vault token — are masked in the workflow logs.
 
 ### Shared MASA knowledge
 
-The assistant searches Studio's own knowledge together with mas-agent's author corpus. Test and
+The assistant searches only mas-agent's author corpus. Maintain product facts, authoring guidance
+and troubleshooting in `adobecom/mas-agent/knowledge/`; Studio has no authored corpus or local
+knowledge fallback. Intent schemas, guided UI flows and confirmation rules remain in Studio.
+Test and
 deployment jobs download `knowledge-author.json` from the `knowledge-latest` release of
 `adobecom/mas-agent` with Contents read access. CI mints a short-lived token when repository variable
 `MAS_AGENT_READER_APP_ID` is configured, using repository secret `MAS_AGENT_READER_APP_KEY`.
@@ -177,9 +180,10 @@ by the token action and need no repository variable. The imported
 module, `src/ai-chat/masa-knowledge.js`, is generated and gitignored. It contains the corpus revision
 and is bundled with the assistant; answering a question does not call mas-agent.
 
-`npm test` fetches the corpus in its pretest hook. CI and `npm run fetch:masa-knowledge -- --required`
-fail if it cannot be loaded. Local tests without credentials use Studio's own chunks and skip the
-combined-corpus coverage suites. To test an unpublished author export from mas-agent:
+`npm test` fetches the corpus in its pretest hook. Local development and CI require a valid,
+nonempty author export; coverage suites never skip a missing source. To work without a read token,
+export from a local mas-agent checkout with `npm run knowledge:export -- --profile author --out
+/absolute/path/knowledge-author.json`, then run:
 
 ```sh
 MAS_AGENT_KNOWLEDGE_FILE=/absolute/path/knowledge-author.json npm test
@@ -191,10 +195,36 @@ succeed. Clearing the App-ID variable restores the fallback while the secret is 
 token failure does not silently use a personal token. Local downloads still accept
 `MAS_AGENT_KNOWLEDGE_TOKEN` directly.
 
-The import accepts only the version 1 author profile. Before deploying assistant actions locally,
+The import accepts only the version 1 author profile and records its revision, generation date
+and SHA-256 digest. An invalid or failed fetch leaves the existing generated module intact;
+it never writes an empty replacement. Before deploying assistant actions locally,
 run `npm run fetch:masa-knowledge -- --required` with a read token or a local export configured.
 In CI, a failed corpus fetch skips the optional AI deployment and reports a warning; already
-deployed core Studio actions are unaffected. Knowledge changes reach Studio on its next deployment.
+deployed core Studio actions are unaffected.
+
+### Snapshot refresh
+
+`IO Studio Knowledge Refresh` runs daily at 07:17 UTC on `main`, and can also be dispatched manually
+on `main` for an urgent knowledge correction. The target lag is one day plus GitHub queue and
+validation/deployment time; this is a snapshot, not a live API. Failed runs need operator attention
+in Actions and keep the previous deployed knowledge when fetching or validation fails.
+
+The workflow uses the reader App, runs the Studio suite against the fetched export, and records
+the revision and digest in its summary. It then deploys only the AI action to stage, runs the
+existing workspace health check, and deploys the same tested export to production. Deployment
+re-downloads the export with `--expected-sha256`; if the release changes in the meantime, the run
+fails and must be retried. Corpus contents are not committed or uploaded as workflow artifacts.
+Workspace deployments share a lock with normal Studio deployments, and a refresh refuses to
+deploy application code older than current `main`.
+
+The workspace health check does not grade live model answers. Validate representative questions
+in the stage assistant for the initial cutover and for changes to retrieval or prompt behavior.
+The scheduled job checks source coverage, import failure paths and offline chat behavior; live
+investigation parity is a later API deliverable.
+
+If a source change breaks coverage, fix or revert it in mas-agent and retry the refresh. Do not
+reintroduce a Studio corpus. The initial cutover requires the mas-agent migration export to be
+published first; its inventory is `config/knowledge-export/studio-migration.md` in mas-agent.
 
 ## Deploy & Cleanup
 

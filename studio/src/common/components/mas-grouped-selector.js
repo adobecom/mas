@@ -79,7 +79,10 @@ class MasGroupedSelector extends LitElement {
         const confirmEvent = new CustomEvent('confirm', { detail: {} });
         this.dispatchEvent(confirmEvent);
         const { pending } = confirmEvent.detail;
-        if (pending && !(await this.#settle(pending))) return;
+        if (pending) {
+            const result = await this.#settle(pending);
+            if (result === false) return;
+        }
         this.#confirmed = true;
         this.#closeDialog(dialog);
     };

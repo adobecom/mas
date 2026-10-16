@@ -238,6 +238,20 @@ describe('MasGroupedSelector', () => {
         expect(onClose.calledOnce).to.be.true;
     });
 
+    it('closes the dialog when confirm resolves without a boolean result', async () => {
+        const el = await render();
+        el.addEventListener('confirm', ({ detail }) => {
+            detail.pending = Promise.resolve();
+        });
+        const onClose = sinon.spy();
+        const dialog = query(el, '.selector-dialog');
+        dialog.addEventListener('close', onClose);
+        dialog.dispatchEvent(new Event('confirm'));
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(onClose.calledOnce).to.be.true;
+    });
+
     const holdConfirm = (el) => {
         const control = {};
         el.addEventListener('confirm', ({ detail }) => {

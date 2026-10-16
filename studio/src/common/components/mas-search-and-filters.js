@@ -87,6 +87,8 @@ class MasSearchAndFilters extends LitElement {
         offerFilterValue: { type: String },
         /** If true, don't overwrite productFilter — the consumer controls it (offers for promotions). */
         externalProductFilter: { type: Boolean },
+        /** When set, card search also matches grouped variation ids and personalization tags (promotions picker). */
+        matchVariationsAndTags: { type: Boolean, attribute: false },
     };
 
     constructor() {
@@ -119,6 +121,7 @@ class MasSearchAndFilters extends LitElement {
         this.promotionSurface = '';
         this.offerFilterOptions = [];
         this.offerFilterValue = '';
+        this.matchVariationsAndTags = false;
         this.externalProductFilter = false;
     }
 
@@ -869,6 +872,31 @@ class MasSearchAndFilters extends LitElement {
         return fragment.tags?.some((tag) => selectedIds.some((sel) => tag.id === sel || tag.id?.startsWith(`${sel}/`)));
     }
 
+    #pznTagMatchesQuery(tag, query) {
+        const id = typeof tag === 'string' ? tag : tag?.id;
+        if (!id?.startsWith('mas:pzn/')) return false;
+        const title = typeof tag === 'string' ? '' : (tag.title || '').toLowerCase();
+        return id.split('/').pop().toLowerCase() === query || title.includes(query);
+    }
+
+    #variationMatchesQuery(variation, query) {
+        if ((variation.id || '').toLowerCase() === query) return true;
+        const tags = [...(variation.tags ?? []), ...(variation.fieldTags ?? [])];
+        if (tags.some((tag) => this.#pznTagMatchesQuery(tag, query))) return true;
+        const pznTags = variation.fields?.find((field) => field.name === 'pznTags')?.values ?? [];
+        return pznTags.some((value) => {
+            const lower = String(value).toLowerCase();
+            return lower === query || lower.endsWith(`/${query}`);
+        });
+    }
+
+    #fragmentMatchesVariationOrTag(fragment, query) {
+        return (
+            fragment.tags?.some((tag) => this.#pznTagMatchesQuery(tag, query)) ||
+            fragment.groupedVariations?.some((variation) => this.#variationMatchesQuery(variation, query))
+        );
+    }
+
     #applyFilters() {
         const source = this.itemsSelection.value[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
@@ -902,7 +930,8 @@ class MasSearchAndFilters extends LitElement {
                         !path.includes(query) &&
                         !(fragmentId && fragmentId === query) &&
                         !productTag.toLowerCase().includes(query) &&
-                        !offerId.toLowerCase().includes(query)
+                        !offerId.toLowerCase().includes(query) &&
+                        !(this.matchVariationsAndTags && this.#fragmentMatchesVariationOrTag(fragment, query))
                     ) {
                         return false;
                     }

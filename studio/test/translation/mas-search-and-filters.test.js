@@ -117,6 +117,53 @@ describe('MasSearchAndFilters', () => {
         });
     });
 
+    describe('matchVariationsAndTags', () => {
+        const VARIATION_ID = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+        const cards = () => [
+            { id: 'parent', title: 'Parent', tags: [], groupedVariations: [{ id: VARIATION_ID, tags: [] }] },
+            { id: 'smb-card', title: 'Card B', tags: [{ id: 'mas:pzn/segment/smb', title: 'SMB' }] },
+            {
+                id: 'edu-parent',
+                title: 'Card C',
+                tags: [],
+                groupedVariations: [{ id: 'v2', fields: [{ name: 'pznTags', values: ['mas:pzn/segment/edu'] }] }],
+            },
+            { id: 'plain', title: 'Plain', tags: [] },
+        ];
+
+        const search = async (query, flag) => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set(cards());
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .matchVariationsAndTags=${flag}
+                    .searchQuery=${query}
+                ></mas-search-and-filters>`,
+            );
+            await el.updateComplete;
+            return Store.promotions.displayCards.get().map((card) => card.id);
+        };
+
+        it('finds the parent card of a grouped variation by id', async () => {
+            expect(await search(VARIATION_ID, true)).to.deep.equal(['parent']);
+        });
+
+        it('does not match variation ids without the flag', async () => {
+            expect(await search(VARIATION_ID, false)).to.deep.equal([]);
+        });
+
+        it('matches personalization tags case-insensitively', async () => {
+            expect(await search('SMB', true)).to.deep.equal(['smb-card']);
+            expect(await search('edu', true)).to.deep.equal(['edu-parent']);
+        });
+
+        it('does not match personalization tags without the flag', async () => {
+            expect(await search('edu', false)).to.deep.equal([]);
+        });
+    });
+
     describe('initialization', () => {
         it('should initialize with default filter values', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);

@@ -1,6 +1,7 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
+import { PAGE_NAMES } from '../src/constants.js';
 
 describe('store', () => {
     let sandbox;
@@ -92,6 +93,17 @@ describe('store', () => {
         it('normalizes an empty array to undefined', () => {
             Store.filters.set({ locale: 'en_US', status: [] });
             expect(Store.filters.value.status).to.equal(undefined);
+        });
+    });
+
+    describe('pageValidator', () => {
+        afterEach(() => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+        });
+
+        it('accepts the baselines page', () => {
+            Store.page.set(PAGE_NAMES.BASELINES);
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINES);
         });
     });
 });

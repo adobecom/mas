@@ -111,7 +111,8 @@ async function stripTrialCtas(html, indexed, self) {
                 anchor.setAttribute('data-analytics-id', 'buy-now');
                 if (anchor.hasAttribute('data-modal'))
                     anchor.setAttribute('data-modal', 'crm');
-                anchor.textContent = self.aemFragment?.data?.priceLiterals?.buyNow;
+                anchor.textContent =
+                    self.aemFragment?.data?.priceLiterals?.buyNow;
             }
         } else {
             anchor.remove();

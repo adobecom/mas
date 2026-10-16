@@ -1021,13 +1021,17 @@ export async function processCTAs(
         const allCtaLinks = [...footer.querySelectorAll('a')];
         const filteredLinks = settings?.hideTrialCTAs
             ? allCtaLinks.filter(
-                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId) || cta.hasAttribute('data-replaced-osi'),
+                  (cta) =>
+                      !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId) ||
+                      cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const buyNowExists = filteredLinks.some((c) => c.dataset.analyticsId === 'buy-now');
+        const buyNowExists = filteredLinks.some(
+            (c) => c.dataset.analyticsId === 'buy-now',
+        );
         const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
-        );        
+        );
 
         footer.textContent = '';
         footer.append(
@@ -1062,15 +1066,26 @@ export async function processCTAs(
                                 cta.hidden = false;
                             }
                             trialCtaSwapped(false);
-                        } else if (offerType === 'BASE' && TRIAL_ANALYTICS_IDS.has(checkout.dataset.analyticsId) && checkout.hasAttribute('data-replaced-osi')) {
+                        } else if (
+                            offerType === 'BASE' &&
+                            TRIAL_ANALYTICS_IDS.has(
+                                checkout.dataset.analyticsId,
+                            ) &&
+                            checkout.hasAttribute('data-replaced-osi')
+                        ) {
                             if (buyNowExists) {
                                 cta.classList.remove('blue');
                                 cta.removeAttribute('data-analytics-id');
                                 cta.remove();
                             } else {
-                                checkout.setAttribute('data-analytics-id', 'buy-now');
-                                if (checkout.hasAttribute('data-modal')) checkout.setAttribute('data-modal', 'crm');
-                                checkout.textContent = merchCard.priceLiterals?.buyNow;
+                                checkout.setAttribute(
+                                    'data-analytics-id',
+                                    'buy-now',
+                                );
+                                if (checkout.hasAttribute('data-modal'))
+                                    checkout.setAttribute('data-modal', 'crm');
+                                checkout.textContent =
+                                    merchCard.priceLiterals?.buyNow;
                                 cta.hidden = false;
                             }
                             trialCtaSwapped(true);
@@ -1084,10 +1099,16 @@ export async function processCTAs(
                         trialCtaSwapped(false);
                     });
             });
-            const trialCtaSwappedResults = await Promise.all(trialCtaSwappedPromises);
+            const trialCtaSwappedResults = await Promise.all(
+                trialCtaSwappedPromises,
+            );
             if (trialCtaSwappedResults.some((c) => c === true)) {
-                const hasBlueCta = ctas.some((c) => c.classList.contains('blue'));
-                const buyNowCta = ctas.find((c) => c.getAttribute('data-analytics-id') === 'buy-now');
+                const hasBlueCta = ctas.some((c) =>
+                    c.classList.contains('blue'),
+                );
+                const buyNowCta = ctas.find(
+                    (c) => c.getAttribute('data-analytics-id') === 'buy-now',
+                );
                 if (!hasBlueCta && buyNowCta) {
                     buyNowCta.classList.remove('primary');
                     buyNowCta.classList.add('blue');

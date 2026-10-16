@@ -20,6 +20,7 @@ import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
 import './rte-icon-editor.js';
+import { COUNTDOWN_LINK_TEXT, isCountdownLinkText } from '../../../web-components/src/countdown.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
@@ -30,7 +31,6 @@ const COUNTDOWN_COLORS = [
     ['spectrum-green-900', 'Green', '#05834E'],
     ['spectrum-red-700', 'Red', '#EB1000'],
 ];
-const COUNTDOWN_LINK_TEXT = 'countdown-timer';
 
 const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
@@ -1896,8 +1896,7 @@ class RteField extends LitElement {
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
-        const isCountdown =
-            this.isLinkSelected && selection.node.textContent.replace(/\s+/g, ' ').trim().toLowerCase() === COUNTDOWN_LINK_TEXT;
+        const isCountdown = this.isLinkSelected && isCountdownLinkText(selection.node.textContent);
         this.countdownColor = isCountdown ? (selection.node.attrs.class ?? '') : null;
         this.smallActive = this.#isMarkActive(state, 'small');
     }
@@ -2508,7 +2507,7 @@ class RteField extends LitElement {
         // Bold by default; authors can still toggle it off.
         const node = state.schema.nodes.link.create(
             { href: '#', translate: 'no' },
-            state.schema.text('countdown-timer'),
+            state.schema.text(COUNTDOWN_LINK_TEXT),
             state.schema.marks.strong ? [state.schema.marks.strong.create()] : [],
         );
         dispatch(state.tr.insert(state.selection.to, node));

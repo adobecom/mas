@@ -12,9 +12,10 @@ import {
     toCountdownProject,
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
+import { createTtlCache } from '../utils/ttl-cache.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
-const countdownProjectsByRepository = new WeakMap();
+const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
 
 /**
  * Reads the promotion projects without side effects: the loaded list when available, otherwise
@@ -25,17 +26,11 @@ async function readCountdownProjects() {
     if (list.get()?.length || list.hasMeta('listFetched'))
         return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
     const repository = document.querySelector('mas-repository');
-    const cached = countdownProjectsByRepository.get(repository);
-    if (cached && Date.now() - cached.at < COUNTDOWN_CACHE_TTL) return cached.projects;
-    const projects = repository
-        .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
-        .then((fragments) => fragments.map(toCountdownProject))
-        .catch((error) => {
-            countdownProjectsByRepository.delete(repository);
-            throw error;
-        });
-    countdownProjectsByRepository.set(repository, { at: Date.now(), projects });
-    return projects;
+    return cachedCountdownProjects(repository, () =>
+        repository
+            .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
+            .then((fragments) => fragments.map(toCountdownProject)),
+    );
 }
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
@@ -102,7 +97,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
-    #publishedDates = null;
+    #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
 
     /**
      * @param {Fragment} initialValue
@@ -320,28 +315,23 @@ export class PreviewFragmentStore extends FragmentStore {
             if (!canProbePromoVariationsForFragment(this.value)) return none;
             const instant = getService()?.settings?.instant;
             const key = `${this.value.id}|${this.previewLocale}|${instant ?? ''}`;
-            if (this.#publishedDates?.key !== key || Date.now() - this.#publishedDates.at >= COUNTDOWN_CACHE_TTL) {
-                // The saved version's project does not change while the author types: reuse the pipeline result.
-                const promise = this.previewPublishedFragment(this.value.id, {
+            // The saved version's project does not change while the author types.
+            const published = await this.#publishedDates(key, () =>
+                this.previewPublishedFragment(this.value.id, {
                     locale: this.previewLocale,
                     country: this.previewLocale.split('_')[1],
                     ...(instant && { instant }),
                     fullContext: true,
-                }).then(countdownDatesOfProvenance);
-                const entry = { key, at: Date.now(), promise };
-                promise.catch(() => {
-                    if (this.#publishedDates === entry) this.#publishedDates = null;
-                });
-                this.#publishedDates = entry;
-            }
-            return { ...none, ...(await this.#publishedDates.promise) };
+                }).then(countdownDatesOfProvenance),
+            );
+            return { ...none, ...published };
         } catch (error) {
             console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
             return none;
         }
     }
 
-    /** Edge: the production pipeline over the saved fragment (reads only, shares its caches). */
+    /** Runs the production pipeline over the saved fragment (read-only, shares its caches). */
     previewPublishedFragment(id, options) {
         return previewFragment(id, options);
     }

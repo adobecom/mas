@@ -1,4 +1,8 @@
 import { LitElement, css, html } from 'lit';
+import {
+    COUNTDOWN_UNIT_PAIR,
+    isUnresolvedCountdownToken,
+} from './countdown.js';
 
 const MINUTE = 60000;
 /** Classes an author can put on the sentinel link; each has a color rule in the styles below. */
@@ -6,28 +10,61 @@ export const COUNTDOWN_COLOR_CLASSES = [
     'spectrum-green-900',
     'spectrum-red-700',
 ];
-const TEMPLATES = {
-    en: 'Ends in {days} days, {hours} hours, {minutes} minutes!',
-    ko: '{days} 일 {hours} 시간 {minutes} 분 후 할인 종료!',
+// The resolved dictionary sentence holds one <unit>singular|plural</unit> per unit (see replace.js),
+// where {n} is the number. Built-ins fill in whatever the dictionary leaves unresolved.
+const DEFAULTS = {
+    en: {
+        sentence: 'Ends in <day></day>, <hour></hour>, <minute></minute>!',
+        day: ['{n} day', '{n} days'],
+        hour: ['{n} hour', '{n} hours'],
+        minute: ['{n} minute', '{n} minutes'],
+    },
+    ko: {
+        sentence: '<day></day> <hour></hour> <minute></minute> 후 할인 종료!',
+        day: ['{n} 일'],
+        hour: ['{n} 시간'],
+        minute: ['{n} 분'],
+    },
 };
+/** Whole days, hours and minutes left, or null outside the start..end range. */
+export function remainingParts(start, end, now) {
+    const startTime = Date.parse(start);
+    const endTime = Date.parse(end);
+    if (!(startTime <= now && now < endTime)) return null;
+    const remaining = Math.floor((endTime - now) / MINUTE);
+    return {
+        day: Math.floor(remaining / 1440),
+        hour: Math.floor((remaining % 1440) / 60),
+        minute: remaining % 60,
+    };
+}
+
+/** Fills the sentence's <unit>singular|plural</unit> pairs from `parts`; built-ins cover unresolved text. */
+export function renderSentence(parts, locale, template) {
+    const language = locale.split(/[-_]/)[0];
+    const defaults = DEFAULTS[language] || DEFAULTS.en;
+    // Rich-text dictionary entries arrive wrapped in <p>.
+    const authored = template?.replace(/<\/?p>/gi, '');
+    const sentence =
+        !authored || isUnresolvedCountdownToken(authored)
+            ? defaults.sentence
+            : authored;
+    // shortcut: singular|plural only, languages with more plural categories need more forms.
+    const plural = new Intl.PluralRules(language);
+    return sentence.replace(COUNTDOWN_UNIT_PAIR, (_, name, pair) => {
+        const forms = pair.split('|');
+        const index = plural.select(parts[name]) === 'one' ? 0 : 1;
+        const form = forms[index] ?? forms[0];
+        const usable = form && !isUnresolvedCountdownToken(form);
+        const fallback = defaults[name][index] ?? defaults[name][0];
+        return (usable ? form : fallback).replace('{n}', parts[name]);
+    });
+}
 
 /** Formats an active countdown, or returns an empty string outside its range. */
 export function countdownText(start, end, now, locale = 'en_US', template) {
-    const startTime = Date.parse(start);
-    const endTime = Date.parse(end);
-    if (!(startTime <= now && now < endTime)) return '';
-    const remaining = Math.floor((endTime - now) / MINUTE);
-    const values = {
-        days: Math.floor(remaining / 1440),
-        hours: Math.floor((remaining % 1440) / 60),
-        minutes: remaining % 60,
-    };
-    const language = locale.split(/[-_]/)[0];
-    const copy =
-        !template || /^(\{\{)?countdown-timer-text(\}\})?$/.test(template)
-            ? TEMPLATES[language] || TEMPLATES.en
-            : template;
-    return copy.replace(/\{(days|hours|minutes)\}/g, (_, unit) => values[unit]);
+    const parts = remainingParts(start, end, now);
+    return parts ? renderSentence(parts, locale, template) : '';
 }
 
 /** Inline promotion countdown with a clock owned by its connected element. */

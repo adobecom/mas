@@ -55,6 +55,10 @@
             import '../src/mas.js';
             import '../src/merch-card-collection.js';
             import { countdownText } from '../src/merch-countdown.js';
+            import {
+                isCountdownLinkText,
+                supportsCountdown,
+            } from '../src/countdown.js';
             import { hydrate } from '../src/hydrate.js';
             import { mockFetch } from './mocks/fetch.js';
             import { withWcs } from './mocks/wcs.js';
@@ -69,6 +73,25 @@
             const fixtures = document.querySelector('#fixtures');
 
             runTests(() => {
+                describe('countdown rules', () => {
+                    it('matches the marker ignoring case and spacing', () => {
+                        expect(isCountdownLinkText(' COUNTDOWN-TIMER\n')).to.be
+                            .true;
+                        expect(isCountdownLinkText('countdown timer')).to.be
+                            .false;
+                    });
+                    it('supports Pro, bizpro and Plans variants only', () => {
+                        for (const variant of [
+                            'pro',
+                            'bizpro',
+                            'plans',
+                            'plans-students',
+                        ])
+                            expect(supportsCountdown(variant)).to.be.true;
+                        for (const variant of ['mini', undefined])
+                            expect(supportsCountdown(variant)).to.be.false;
+                    });
+                });
                 describe('countdownText', () => {
                     it('formats full English and Korean sentences', () => {
                         expect(countdownText(START, END, NOW)).to.equal(
@@ -88,18 +111,37 @@
                                 '2026-11-01T09:01:00+09:00',
                                 NOW,
                             ),
-                        ).to.equal('Ends in 0 days, 0 hours, 1 minutes!');
+                        ).to.equal('Ends in 0 days, 0 hours, 1 minute!');
+                        expect(
+                            countdownText(START, '2026-11-02T01:01:00Z', NOW),
+                        ).to.equal('Ends in 1 day, 1 hour, 1 minute!');
+                        const fr =
+                            'Fin dans <day>{n} jour|{n} jours</day> et <minute>{n} minute|{n} minutes</minute>';
+                        expect(
+                            countdownText(START, END, NOW, 'fr_FR', fr),
+                        ).to.equal('Fin dans 3 jours et 5 minutes');
+                        expect(
+                            countdownText(
+                                START,
+                                '2026-11-02T00:01:00Z',
+                                NOW,
+                                'fr_FR',
+                                fr,
+                            ),
+                        ).to.equal('Fin dans 1 jour et 1 minute');
+                    });
+                    it('ignores the <p> wrapper of rich-text dictionary entries', () => {
                         expect(
                             countdownText(
                                 START,
                                 END,
                                 NOW,
-                                'fr_FR',
-                                'Fin dans {days} jours et {minutes} minutes',
+                                'en_US',
+                                '<p>Ends in <day><p>{n} day</p>|<p>{n} days</p></day></p>',
                             ),
-                        ).to.equal('Fin dans 3 jours et 5 minutes');
+                        ).to.equal('Ends in 3 days');
                     });
-                    it('falls back to EN/KO copy when the dictionary token is unresolved', () => {
+                    it('falls back to EN/KO copy per part when the dictionary token is unresolved', () => {
                         for (const token of [
                             undefined,
                             'countdown-timer-text',
@@ -109,6 +151,15 @@
                                 countdownText(START, END, NOW, 'ko_KR', token),
                             ).to.equal('3 일 4 시간 5 분 후 할인 종료!');
                         }
+                        expect(
+                            countdownText(
+                                START,
+                                END,
+                                NOW,
+                                'en_US',
+                                'Ends in <day>countdown-day-singular|countdown-day-plural</day>, <hour>{n} hr|{n} hrs</hour>',
+                            ),
+                        ).to.equal('Ends in 3 days, 4 hrs');
                     });
                     it('hides missing, invalid, reversed, future and expired ranges', () => {
                         for (const [start, end] of [
@@ -151,7 +202,7 @@
                         expect(timer.getAttribute('role')).to.equal('timer');
                         expect(timer.getAttribute('aria-live')).to.equal('off');
                         clock.tick(1);
-                        expect(timer.text).to.include('1 minutes');
+                        expect(timer.text).to.include('1 minute!');
                         clock.tick(60000);
                         expect(timer.text).to.include('0 minutes');
                         clock.tick(60000);
@@ -161,7 +212,7 @@
                     });
                     it('wakes at the next minute change, not a minute after mount', async () => {
                         const timer = await renderTimer('2026-11-01T00:01:30Z');
-                        expect(timer.text).to.include('1 minutes');
+                        expect(timer.text).to.include('1 minute!');
                         clock.tick(30001);
                         expect(timer.text).to.include('0 minutes');
                         clock.tick(60000);
@@ -296,7 +347,7 @@
                                 ...payload(),
                                 placeholders: {
                                     countdownTimerText:
-                                        'Fin dans {days} jours et {minutes} minutes',
+                                        'Fin dans <day>{n} jour|{n} jours</day> et <minute>{n} minute|{n} minutes</minute>',
                                 },
                             },
                             card,

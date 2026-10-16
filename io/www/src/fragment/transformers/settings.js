@@ -10,6 +10,7 @@ import {
     matchesGeo,
 } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
+import { supportsCountdown } from '../../../../../web-components/src/countdown.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -358,39 +359,39 @@ function applyCollectionSettings(context, locale, settings, country) {
         Object.fromEntries([...tagKeys].map((key) => [key, `{{coll-tag-filter-${placeholderKey(key)}}}`])) || {};
 }
 
-// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
-// into body.placeholders, like applyPriceLiterals. `replace` resolves them
-// from the dictionary; pro.js places the resolved strings client-side.
+// Dictionary tokens published per feature into body.placeholders. `replace` resolves them.
+const PLACEHOLDER_TEMPLATES = {
+    edu: {
+        whatsIncludedLabel: '{{whats-included}}',
+        eduDisclaimer: '{{edu-disclaimer}}',
+    },
+    // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
+    countdown: { countdownTimerText: '{{countdown-timer-text}}' },
+};
+
+const addPlaceholders = (target, templates) => {
+    target.placeholders = { ...target.placeholders, ...templates };
+};
+
+// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer);
+// pro.js places the resolved strings client-side.
 function applyEduPlaceholders(body) {
     const fields = body?.fields;
     if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
-    body.placeholders = {
-        ...body.placeholders,
-        whatsIncludedLabel: '{{whats-included}}',
-    };
-    if (!body.settings?.hideEduDisclaimer) {
-        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
-    }
+    const { eduDisclaimer, ...withoutDisclaimer } = PLACEHOLDER_TEMPLATES.edu;
+    addPlaceholders(body, body.settings?.hideEduDisclaimer ? withoutDisclaimer : PLACEHOLDER_TEMPLATES.edu);
 }
 
-const supportsCountdown = (fragment) => {
-    const variant = fragment?.fields?.variant;
-    return ['pro', 'bizpro'].includes(variant) || variant?.startsWith('plans');
-};
-
-// Full-sentence templates preserve word order across languages. replace resolves the dictionary token.
 // A collection card is hydrated from its own reference, so it carries the template too.
 function applyCountdownPlaceholders(body) {
-    const isCollection = body?.model?.id === COLLECTION_MODEL_ID;
-    const cards = isCollection
-        ? Object.values(body.references ?? {})
-              .map((ref) => ref?.value)
-              .filter(supportsCountdown)
-        : [];
-    const targets = isCollection || supportsCountdown(body) ? [body, ...cards] : [];
-    for (const target of targets) {
-        target.placeholders = { ...target.placeholders, countdownTimerText: '{{countdown-timer-text}}' };
+    if (body?.model?.id !== COLLECTION_MODEL_ID) {
+        if (supportsCountdown(body?.fields?.variant)) addPlaceholders(body, PLACEHOLDER_TEMPLATES.countdown);
+        return;
     }
+    const cards = Object.values(body.references ?? {})
+        .map((ref) => ref?.value)
+        .filter((card) => supportsCountdown(card?.fields?.variant));
+    for (const target of [body, ...cards]) addPlaceholders(target, PLACEHOLDER_TEMPLATES.countdown);
 }
 
 function applyPriceLiterals(fragment) {

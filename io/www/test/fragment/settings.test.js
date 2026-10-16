@@ -746,7 +746,7 @@ describe('settings', () => {
         });
 
         it('publishes and resolves full-sentence countdown copy for Plans, Pro and collections', async () => {
-            const copy = 'Fin dans {days} jours, {hours} heures, {minutes} minutes';
+            const copy = 'Fin dans <day>{n} jour|{n} jours</day>';
             for (const body of [
                 { fields: { variant: 'pro' } },
                 { fields: { variant: 'bizpro' } },
@@ -769,7 +769,7 @@ describe('settings', () => {
         });
 
         it('publishes and resolves countdown copy on Plans and Pro cards referenced by a collection', async () => {
-            const copy = 'Fin dans {days} jours, {hours} heures, {minutes} minutes';
+            const copy = 'Fin dans <day>{n} jour|{n} jours</day>';
             const ref = (variant) => ({ type: 'content-fragment', value: { fields: { variant } } });
             const context = {
                 locale: 'fr_FR',

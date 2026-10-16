@@ -263,7 +263,9 @@ function updateVariantFilter() {
 }
 
 function openInStudio(fragmentId, variant, locale, elementType) {
-    if (elementType === 'field') {
+    // Cards and collections map their variant to a surface; a field or an unwrapped
+    // price/CTA has none, so open its source fragment by UUID to avoid defaulting to acom.
+    if (elementType !== 'card' && elementType !== 'collection') {
         chrome.runtime.sendMessage({
             type: 'OPEN_STUDIO_LINK',
             view: 'fragment-editor',

@@ -1,9 +1,11 @@
 class StudioLinker {
     openInStudio(fragmentId, options = {}) {
-        // A field has no template variant, so the content view cannot map it to a
-        // surface and would scope the search to acom. Open its source fragment
-        // directly instead, which resolves by UUID regardless of surface.
-        if (options.elementType === 'field') {
+        // Only cards and collections carry a template variant the content view maps to a
+        // surface. A field, or a price/CTA unwrapped from its <mas-field>, has no such
+        // variant, so a content search would default to the acom surface and miss the real
+        // one. Open their source fragment by UUID instead, which resolves regardless of
+        // surface.
+        if (options.elementType !== 'card' && options.elementType !== 'collection') {
             chrome.runtime.sendMessage({
                 type: 'OPEN_STUDIO_LINK',
                 view: 'fragment-editor',

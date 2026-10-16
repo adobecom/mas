@@ -194,14 +194,20 @@ describe('offer transformer', () => {
             expect(statusCode).to.equal(200);
             expect(body.id).to.equal('offer-baseline-id');
             // MCS fields are mapped to card fields, the others (e.g. MCS description & blurb) are dropped
-            expect(body.fields).to.deep.equal({ cardTitle: 'Photoshop', mnemonicIcon: [PS_ICON], osi: OSI });
+            expect(body.fields).to.deep.equal({
+                cardTitle: 'Photoshop',
+                mnemonicIcon: [PS_ICON],
+                mnemonicAlt: ['Photoshop'],
+                osi: OSI,
+            });
             expect(body.fields.osi).to.equal(OSI);
             expect(body.wcs.prod[`${OSI}-us-mult`]).to.deep.equal(RESOLVED_OFFERS);
             expect(wcsCalls()).to.have.length(1);
         });
 
         it('only maps the MCS fields an offer baseline has', async () => {
-            mockOdin({ offerBaseline: { ...OFFER_BASELINE, fields: { paCode: PA, description: 'Photoshop' } } });
+            const fields = { paCode: PA, description: 'Photoshop', icons: [PS_ICON] };
+            mockOdin({ offerBaseline: { ...OFFER_BASELINE, fields } });
             const { statusCode, body } = await getFragment({
                 offer: OSI,
                 template: 'plans',
@@ -211,7 +217,15 @@ describe('offer transformer', () => {
             expect(statusCode).to.equal(200);
             expect(body.offerBaselineId).to.equal('offer-baseline-id');
             expect(body.fields.cardTitle).to.equal('Photoshop baseline');
-            expect(body.fields).to.not.have.any.keys('mnemonicIcon', 'description', 'paCode', 'name');
+            // no name: no alt text for the icon
+            expect(body.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
+            expect(body.fields).to.not.have.any.keys('mnemonicAlt', 'description', 'paCode', 'name');
+        });
+
+        it('maps an offer baseline without icons', async () => {
+            mockOdin({ fragmentBaseline: null, offerBaseline: { ...OFFER_BASELINE, fields: { name: 'Photoshop' } } });
+            const { body } = await getFragment({ offer: OSI, template: 'plans', surface: 'sandbox', locale: 'en_US' });
+            expect(body.fields).to.deep.equal({ cardTitle: 'Photoshop', osi: OSI });
         });
 
         it('falls back to the en_US offer baseline for other locales', async () => {

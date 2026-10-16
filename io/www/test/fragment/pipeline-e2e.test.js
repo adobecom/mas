@@ -1190,6 +1190,7 @@ describe('pipeline end to end', () => {
                 expect(card.fields, label).to.deep.include({
                     // offer baseline: the plans baseline defines no icon
                     mnemonicIcon: [offerBaseline.fields.icons[0]],
+                    mnemonicAlt: [offerBaseline.fields.name],
                     variant: 'plans',
                     cardTitle: fragmentBaseline.fields.cardTitle,
                     description: fragmentBaseline.fields.description,

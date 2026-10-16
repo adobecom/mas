@@ -36,9 +36,10 @@ import { isDeterministicSearchEnabled, recordSearchIntentTelemetry } from './uti
 import { validateFragmentIds, fragmentIdGuardMessage } from './utils/fragment-id-guard.js';
 import { extractFragmentIdsFromMessage, extractFragmentSummariesFromMessage } from './utils/operation-result-extractors.js';
 import { FragmentStore } from './reactivity/fragment-store.js';
-import { showToast, getHashParam, normalizeFragmentForCache, logError } from './utils.js';
+import { showToast, getHashParam, logError } from './utils.js';
 import { AI_CHAT_BASE_URL } from './mas-chat/config.js';
 import { getDamPath } from './mas-repository.js';
+import { cardOfferResolves } from './utils/verify-card-offer.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
@@ -1414,6 +1415,12 @@ export class MasChat extends LitElement {
                 parentPath: `${getDamPath(Store.search.value.path)}/${Store.filters.value.locale || 'en_US'}`,
             });
 
+            if (!(await cardOfferResolves(fragmentData))) {
+                if (!this.isCurrentWork(work)) return;
+                showToast('That offer selector could not be verified, so the card was not saved.', 'negative');
+                return;
+            }
+
             const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
             if (!this.isCurrentWork(work)) return;
 
@@ -1512,11 +1519,6 @@ export class MasChat extends LitElement {
 
         const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
         if (!this.isCurrentWork(work)) return;
-
-        const AemFragmentElement = customElements.get('aem-fragment');
-        if (AemFragmentElement && newFragment) {
-            AemFragmentElement.cache.add(normalizeFragmentForCache(newFragment));
-        }
 
         return newFragment;
     }

@@ -2,6 +2,8 @@ import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { openPreview, closePreview } from './mas-card-preview.js';
 import { buildStudioFragmentHref, showToast, normalizeFragmentForCache } from './utils.js';
+import { FeaturePreviewCache } from './mas-chat/preview-cache.js';
+import Store from './store.js';
 
 const HTML_ESCAPE_MAP = {
     '&': '&amp;',
@@ -82,10 +84,17 @@ export class MasOperationResult extends LitElement {
         super();
         this.displayCount = 5;
         this.displayContext = null;
+        this.previewCache = new FeaturePreviewCache();
     }
 
     createRenderRoot() {
         return this;
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        if (this.previewCache.owns(Store.preview.value?.id)) closePreview();
+        this.previewCache.clear();
     }
 
     cacheFragments(fragments) {
@@ -94,7 +103,7 @@ export class MasOperationResult extends LitElement {
 
         fragments.forEach((card) => {
             const fragmentData = card.fragmentData || card;
-            AemFragmentElement.cache.add(normalizeFragmentForCache(fragmentData));
+            this.previewCache.add(normalizeFragmentForCache(fragmentData));
         });
     }
 
@@ -350,7 +359,7 @@ export class MasOperationResult extends LitElement {
     }
 
     handlePreview(fragmentId) {
-        openPreview(fragmentId, { left: 'min(700px, 60%)' });
+        openPreview(this.previewCache.getId(fragmentId), { left: 'min(700px, 60%)' });
     }
 
     extractLocale(variation) {
@@ -592,7 +601,11 @@ export class MasOperationResult extends LitElement {
                                     ? html`
                                           <div class="release-card-preview">
                                               <merch-card>
-                                                  <aem-fragment fragment="${card.id}" author ims></aem-fragment>
+                                                  <aem-fragment
+                                                      fragment="${this.previewCache.getId(card.id)}"
+                                                      author
+                                                      ims
+                                                  ></aem-fragment>
                                               </merch-card>
                                           </div>
                                       `
@@ -866,7 +879,11 @@ export class MasOperationResult extends LitElement {
                             (fragment) => html`
                                 <div class="card-wrapper">
                                     <merch-card>
-                                        <aem-fragment fragment="${fragment.id}" author ims></aem-fragment>
+                                        <aem-fragment
+                                            fragment="${this.previewCache.getId(fragment.id)}"
+                                            author
+                                            ims
+                                        ></aem-fragment>
                                     </merch-card>
                                     ${fragment.id
                                         ? html`

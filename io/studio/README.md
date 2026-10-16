@@ -2,16 +2,16 @@
 
 ## Setup your workspace
 
-- install aio cli running `npm install -g @adobe/aio-cli`
-- Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
-- navigate to Developer Console https://developer.adobe.com/console
-- in 'Merch at Scale Studio' project, create a workspace with your github user id
-- to enable the oauth-server flow, navigate to your personal workspace
-- if there is no `I/O Management API` card present yet, click on `Add Service`, then select `API`
-- in the list of API services, find `I/O Management API` and select it
-- click `Next`
-- click `Save configured API`
-- in your workspace click on 'Download all' and copy the auth .json in root (/io/studio)
+-   install aio cli running `npm install -g @adobe/aio-cli`
+-   Request access to I/O Runtime in Adobe Corp org (you can do that on #milo-dev)
+-   navigate to Developer Console https://developer.adobe.com/console
+-   in 'Merch at Scale Studio' project, create a workspace with your github user id
+-   to enable the oauth-server flow, navigate to your personal workspace
+-   if there is no `I/O Management API` card present yet, click on `Add Service`, then select `API`
+-   in the list of API services, find `I/O Management API` and select it
+-   click `Next`
+-   click `Save configured API`
+-   in your workspace click on 'Download all' and copy the auth .json in root (/io/studio)
 
 ## Prepare .aio and .env files
 
@@ -60,12 +60,12 @@ With these steps, your local `.aio` and `.env` are ready for local dev. To make 
 
 Using Github workflows, the CI/CD of I/O studio is automated. Deployment secrets are fetched from the corporate **Vault** (HashiCorp, KV v2, mount `cloudtech_wcms`) at runtime via AppRole auth — they are **no longer stored as GitHub Action secrets**. The workflows do the following:
 
-- detect PRs touching `io/studio/**`
-- **preflight**: confirm the PR author's Vault path exists, failing fast if it isn't seeded yet
-- build and run tests
-- auto-deploy the I/O studio actions to the personal I/O runtime workspace of the person who opened the PR (`github.event.pull_request.user.login`), reading that workspace's `env`/`aio` from their Vault path and the `odin_bucket` from the shared QA path
-- run a health-check against the deployed workspace
-- on merge, auto-deploy to stage (with health-check) then prod, reading each environment's secrets from its own Vault path
+-   detect PRs touching `io/studio/**`
+-   **preflight**: confirm the PR author's Vault path exists, failing fast if it isn't seeded yet
+-   build and run tests
+-   auto-deploy the I/O studio actions to the personal I/O runtime workspace of the person who opened the PR (`github.event.pull_request.user.login`), reading that workspace's `env`/`aio` from their Vault path and the `odin_bucket` from the shared QA path
+-   run a health-check against the deployed workspace
+-   on merge, auto-deploy to stage (with health-check) then prod, reading each environment's secrets from its own Vault path
 
 There is no QA fallback: if your personal Vault path is missing, the PR run fails at preflight.
 
@@ -130,8 +130,8 @@ At least one of `file-fields` / `env-fields` must be provided.
 
 ### How secrets are exposed
 
-- **`file-fields`** → **files.** Each `field=filename` writes that field's value verbatim to `working-directory/filename`. Used for whole-file blobs (`env=.env,aio=.aio` recreates the `.env` and `.aio` files `aio app deploy` expects). Writing blobs to files avoids multi-line-env masking pitfalls.
-- **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**. Because they are masked, they cannot be reliably passed to a _different_ job via job outputs (GitHub empties masked outputs) — derive such values from a non-masked source instead (see the namespace note below).
+-   **`file-fields`** → **files.** Each `field=filename` writes that field's value verbatim to `working-directory/filename`. Used for whole-file blobs (`env=.env,aio=.aio` recreates the `.env` and `.aio` files `aio app deploy` expects). Writing blobs to files avoids multi-line-env masking pitfalls.
+-   **`env-fields`** → **environment variables.** Each field is exported to `$GITHUB_ENV` as a **masked** variable named after the field, **UPPERCASED**: `odin_bucket` → `$ODIN_BUCKET`, `aos_url` → `$AOS_URL`. Used for scalar values. These are available to **every subsequent step in the same job**. Because they are masked, they cannot be reliably passed to a _different_ job via job outputs (GitHub empties masked outputs) — derive such values from a non-masked source instead (see the namespace note below).
 
 All fetched values — and the Vault token — are masked in the workflow logs.
 
@@ -150,32 +150,66 @@ All fetched values — and the Vault token — are masked in the workflow logs.
 
 ### Notes
 
-- **Same job only.** The files and env vars live on that job's runner and do not cross to other jobs. The separate health-check job gets the `namespace` it needs via a job **output**: the deploy job reads `AIO_runtime_namespace` from the deployed `.env` and emits it. It deliberately does **not** fetch `namespace` as a masked Vault field, because GitHub empties job outputs whose value is a masked secret.
-- **Precedence over `.env`.** Env vars exported here win over values in the `.env` file — `aio`'s dotenv loader does not override variables already set in the environment. This is how CI forces the QA `odin_bucket` (→ `ODIN_ENDPOINT`) and the shared AOS/OST credentials regardless of what a developer put in their `.env`.
-- The deploy job calls the action **three times**: workspace creds (`env`/`aio` files) from the workspace path, `odin_bucket` from the environment path (QA for PRs, stage/prod on merge), and the AOS/OST creds from the shared `common` path.
+-   **Same job only.** The files and env vars live on that job's runner and do not cross to other jobs. The separate health-check job gets the `namespace` it needs via a job **output**: the deploy job reads `AIO_runtime_namespace` from the deployed `.env` and emits it. It deliberately does **not** fetch `namespace` as a masked Vault field, because GitHub empties job outputs whose value is a masked secret.
+-   **Precedence over `.env`.** Env vars exported here win over values in the `.env` file — `aio`'s dotenv loader does not override variables already set in the environment. This is how CI forces the QA `odin_bucket` (→ `ODIN_ENDPOINT`) and the shared AOS/OST credentials regardless of what a developer put in their `.env`.
+-   The deploy job calls the action **three times**: workspace creds (`env`/`aio` files) from the workspace path, `odin_bucket` from the environment path (QA for PRs, stage/prod on merge), and the AOS/OST creds from the shared `common` path.
+-   After core deployment, it separately fetches the AI key and deploys AI actions. Missing AI secrets or an AI deployment failure produce a warning without blocking core Studio. Set the reusable workflow's `deploy_ai` input to `false` to skip that rollout; this does not remove previously deployed AI actions.
 
 ## Local Dev
 
-- `aio app dev` to start your local Dev server
-- App will run on `localhost:9080` by default
-- open https://localhost:9080/api/v1/web/MerchAtScale/health-check
+-   `aio app dev` to start your local Dev server
+-   App will run on `localhost:9080` by default
+-   open https://localhost:9080/api/v1/web/MerchAtScale/health-check
 
 ## Test & Coverage
 
-- Run `aio app test` to run unit tests for ui and actions
+-   Run `aio app test` to run unit tests for ui and actions
+
+### Shared MASA knowledge
+
+The assistant searches Studio's own knowledge together with mas-agent's author corpus. Test and
+deployment jobs download `knowledge-author.json` from the `knowledge-latest` release of
+`adobecom/mas-agent` with Contents read access. CI mints a short-lived token when repository variable
+`MAS_AGENT_READER_APP_ID` is configured, using repository secret `MAS_AGENT_READER_APP_KEY`.
+Set the key first and then the App-ID variable. Use only the MASA knowledge reader App, installed
+on `adobecom/mas-agent`; MASA's writing App key stays on its host. Installation IDs are discovered
+by the token action and need no repository variable. The imported
+module, `src/ai-chat/masa-knowledge.js`, is generated and gitignored. It contains the corpus revision
+and is bundled with the assistant; answering a question does not call mas-agent.
+
+`npm test` fetches the corpus in its pretest hook. CI and `npm run fetch:masa-knowledge -- --required`
+fail if it cannot be loaded. Local tests without credentials use Studio's own chunks and skip the
+combined-corpus coverage suites. To test an unpublished author export from mas-agent:
+
+```sh
+MAS_AGENT_KNOWLEDGE_FILE=/absolute/path/knowledge-author.json npm test
+```
+
+Without the reader App-ID variable, workflows use the existing `MAS_AGENT_KNOWLEDGE_TOKEN` secret.
+Keep that fallback during activation, then remove it after App-authenticated tests and deployment
+succeed. Clearing the App-ID variable restores the fallback while the secret is retained. An App
+token failure does not silently use a personal token. Local downloads still accept
+`MAS_AGENT_KNOWLEDGE_TOKEN` directly.
+
+The import accepts only the version 1 author profile. Before deploying assistant actions locally,
+run `npm run fetch:masa-knowledge -- --required` with a read token or a local export configured.
+In CI, a failed corpus fetch skips the optional AI deployment and reports a warning; already
+deployed core Studio actions are unaffected. Knowledge changes reach Studio on its next deployment.
 
 ## Deploy & Cleanup
 
+From `io/studio`, use `node scripts/deploy-actions.mjs core` for existing Studio services or `node scripts/deploy-actions.mjs assistant` for AI actions. The groups are derived from the manifest and preserve existing action URLs. The normal workspace credentials are required for both groups.
+
 Do not deploy all actions at the same time - this increases risks, provide -a <action-name> to specify what you are deploying.
 
-- `aio app test && aio app deploy -a ost-products-read` to test and deploy an action to Runtime and static files to CDN
-- `aio app undeploy` to undeploy the app
+-   `aio app test && aio app deploy -a ost-products-read` to test and deploy an action to Runtime and static files to CDN
+-   `aio app undeploy` to undeploy the app
 
 If you need to force re-deploy:
 
-- `aio app deploy --force-deploy --no-publish`
-  To deploy specific action
-- `aio app deploy --force-deploy -a ost-products-read`
+-   `aio app deploy --force-deploy --no-publish`
+    To deploy specific action
+-   `aio app deploy --force-deploy -a ost-products-read`
 
 ## Config
 

@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { StudioOperations } from '../lib/studio-operations.js';
-import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
+import { requireIMSAuth, requireEditorForFragmentPath, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 /**
  * Create a personalisation-grouped variation of a card.
@@ -35,6 +35,11 @@ async function main(params) {
         const studioBaseUrl = params.STUDIO_BASE_URL || 'https://mas.adobe.com/studio.html';
 
         const aemClient = new AEMClient(aemBaseUrl, authManager);
+
+        const parent = await aemClient.getFragment(parentId);
+        const surfaceError = await requireEditorForFragmentPath(accessToken, parent.path);
+        if (surfaceError) return surfaceError;
+
         const urlBuilder = new StudioURLBuilder(studioBaseUrl);
         const studioOps = new StudioOperations(aemClient, urlBuilder);
 

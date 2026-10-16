@@ -25,14 +25,14 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const moduleDir = dirname(fileURLToPath(import.meta.url));
 
 /**
  * Load .env from io/studio so we don't need an external dotenv dep. Tiny
  * parser; supports KEY=value lines and ignores comments/blank lines.
  */
 function loadDotEnv() {
-    const envPath = resolve(__dirname, '../../../.env');
+    const envPath = resolve(moduleDir, '../../../.env');
     try {
         const text = readFileSync(envPath, 'utf8');
         for (const line of text.split('\n')) {

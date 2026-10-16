@@ -38,6 +38,7 @@ class MasStudio extends LitElement {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
         masJsReady: { type: Boolean, state: true },
+        chatDrawerOpen: { state: true },
     };
 
     #unsubscribeLocaleObserver;
@@ -49,6 +50,7 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.masJsReady = false;
+        this.chatDrawerOpen = false;
     }
 
     connectedCallback() {
@@ -346,13 +348,19 @@ class MasStudio extends LitElement {
             <div class="studio-content">
                 ${this.sideNav}
                 ${this.masJsReady
-                    ? html`<div class="main-container">${this.currentPage}${renderChatPages(this.page.value)}</div>`
+                    ? html`<div class="main-container">
+                          ${this.currentPage}${renderChatPages(this.page.value, (name, path) => this.#lazyLoad(name, path))}
+                      </div>`
                     : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
-            ${renderChatOverlay((e) => handleChatDrawerToggle(e, this))}
+            ${renderChatOverlay(
+                (event) => handleChatDrawerToggle(event, this),
+                (name, path) => this.#lazyLoad(name, path),
+                this.chatDrawerOpen && this.page.value !== PAGE_NAMES.AI_ASSISTANT,
+            )}
         `;
     }
 }

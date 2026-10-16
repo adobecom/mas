@@ -2,7 +2,7 @@ import { AuthManager } from '../lib/auth-manager.js';
 import { AEMClient } from '../lib/aem-client.js';
 import { StudioURLBuilder } from '../lib/studio-url-builder.js';
 import { AOSClient } from '../services/aos-client.js';
-import { requireIMSAuth, resolveAemBaseUrl } from '../lib/ims-validator.js';
+import { requireIMSAuth, requireEditorForFragmentPath, resolveAemBaseUrl } from '../lib/ims-validator.js';
 
 async function main(params) {
     const { cardId, offerSelectorId, etag, __ow_headers } = params;
@@ -51,6 +51,8 @@ async function main(params) {
         const updateFields = { osi: [offerSelectorId] };
 
         const fragment = await aemClient.getFragment(cardId);
+        const surfaceError = await requireEditorForFragmentPath(accessToken, fragment.path);
+        if (surfaceError) return surfaceError;
         const updatedFragment = await aemClient.updateFragment(cardId, updateFields, etag || fragment.etag);
 
         const variantField = updatedFragment.fields?.find?.((f) => f.name === 'variant');

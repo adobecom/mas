@@ -34,12 +34,15 @@ import {
     SURFACES,
     STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
+    BULK_EDIT_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
+import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { getSearchSurface, loadProjectList } from './common/utils/project-list-utils.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
 import {
     clearDictionaryCache,
@@ -77,7 +80,7 @@ export function getDamPath(path) {
 }
 
 export async function initFragmentCache() {
-    if (fragmentCache) return;
+    if (fragmentCache || !customElements.get('aem-fragment')) return;
     await customElements.whenDefined('aem-fragment').then(() => {
         fragmentCache = document.createElement('aem-fragment').cache;
     });
@@ -85,12 +88,12 @@ export async function initFragmentCache() {
 
 export async function getFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.get(fragmentId);
+    return fragmentCache?.get(fragmentId);
 }
 
 export async function removeFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.remove(fragmentId);
+    return fragmentCache?.remove(fragmentId);
 }
 
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
@@ -150,6 +153,7 @@ export class MasRepository extends LitElement {
             translations: null,
             collections: null,
             bulkPublish: null,
+            bulkEdit: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -272,6 +276,12 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.BULK_PUBLISH:
                 this.loadBulkPublishProjects();
                 break;
+            case PAGE_NAMES.BULK_EDIT:
+            case PAGE_NAMES.BULK_EDIT_EDITOR:
+                this.#abortControllers.bulkEdit?.abort();
+                this.#abortControllers.bulkEdit = new AbortController();
+                loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
+                break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
             case PAGE_NAMES.PROMOTIONS_EDITOR:
@@ -283,7 +293,12 @@ export class MasRepository extends LitElement {
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
+            const ignore = window.localStorage.getItem('ignore_folders') || [
+                'images',
+                'promotions',
+                BULK_PUBLISH_PROJECTS_FOLDER,
+                BULK_EDIT_PROJECTS_FOLDER,
+            ];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -1282,29 +1297,18 @@ export class MasRepository extends LitElement {
     }
 
     getBulkPublishProjectsPath() {
-        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return this.getBulkPublishParentPath(surface);
+        return this.getBulkPublishParentPath(getSearchSurface(this.search.value.path));
     }
 
     async loadBulkPublishProjects() {
-        const path = this.getBulkPublishProjectsPath();
-        if (!path) return;
-        try {
-            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
-            this.#abortControllers.bulkPublish = new AbortController();
-            Store.bulkPublishProjects.list.loading.set(true);
-            const fragments = await this.searchFragmentList(
-                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
-                50,
-                this.#abortControllers.bulkPublish,
-            );
-            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.bulkPublishProjects.list.data.set(projects);
-        } catch (error) {
-            this.processError(error, 'Could not load bulk publish projects.');
-        } finally {
-            Store.bulkPublishProjects.list.loading.set(false);
-        }
+        this.#abortControllers.bulkPublish?.abort();
+        this.#abortControllers.bulkPublish = new AbortController();
+        await loadProjectList(this, {
+            path: this.getBulkPublishProjectsPath(),
+            list: Store.bulkPublishProjects.list,
+            abortController: this.#abortControllers.bulkPublish,
+            errorMessage: 'Could not load bulk publish projects.',
+        });
     }
 
     getFragmentById(id) {

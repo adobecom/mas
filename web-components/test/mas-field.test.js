@@ -9,6 +9,7 @@ import {
 } from '../src/mas-field.js';
 import { FF_DEFAULTS } from '../src/constants.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
+import { delay } from './utils.js';
 
 const CTA_HTML =
     '<a data-wcs-osi="ABC123" data-checkout-workflow="UCv3" data-template="checkoutUrl" data-analytics-id="buy-now" class="accent">Buy now</a>';
@@ -1430,8 +1431,9 @@ describe('mas-field – hideTrialCTAs setting', () => {
         ].map((a) => a.textContent);
     }
 
-    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', () => {
+    it('strips trial CTAs from a plain ctas field when hideTrialCTAs is true', async () => {
         const el = makeField('ctas', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Buy now', 'Save today']);
     });
 
@@ -1450,13 +1452,15 @@ describe('mas-field – hideTrialCTAs setting', () => {
         expect(anchorsOf(el)).to.be.empty;
     });
 
-    it('does not shift indices when a trial CTA is suppressed', () => {
+    it('does not shift indices when a trial CTA is suppressed', async () => {
         const el = makeField('ctas[4]', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Save today']);
     });
 
-    it('renders a non-trial indexed CTA unchanged', () => {
+    it('renders a non-trial indexed CTA unchanged', async () => {
         const el = makeField('ctas[1]', TRIAL_CTAS, { hideTrialCTAs: true });
+        await delay(50);
         expect(anchorsOf(el)).to.deep.equal(['Buy now']);
     });
 
@@ -1464,9 +1468,10 @@ describe('mas-field – hideTrialCTAs setting', () => {
         '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="free-trial">Free trial</a>' +
         '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-analytics-id="start-free-trial">Start free trial</a>';
 
-    it('keeps every CTA on a plain ctas field when all of them are trials', () => {
+    it('do not keep any CTA on a plain ctas field when all of them are trials', async () => {
         const el = makeField('ctas', ALL_TRIAL_CTAS, { hideTrialCTAs: true });
-        expect(anchorsOf(el)).to.deep.equal(['Free trial', 'Start free trial']);
+        await delay(50);
+        expect(anchorsOf(el)).to.deep.equal([]);
     });
 
     it('renders nothing for an indexed ref into an all-trial field', () => {
@@ -1539,7 +1544,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(el.hidden).to.be.true;
     });
 
-    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', () => {
+    it('sets hidden when an indexed CTA is stripped by hideTrialCTAs', async () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'ctas[2]');
         const fragment = document.createElement('aem-fragment');
@@ -1558,6 +1563,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
                 },
             }),
         );
+        await delay(50);
         expect(el.hidden).to.be.true;
     });
 

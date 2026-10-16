@@ -1006,7 +1006,7 @@ const isFilled = (cta) => cta.classList.contains('blue');
 const filledFirst = (ctas) =>
     [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
 
-export function processCTAs(
+export async function processCTAs(
     fields,
     merchCard,
     aemFragmentMapping,
@@ -1021,12 +1021,15 @@ export function processCTAs(
         const allCtaLinks = [...footer.querySelectorAll('a')];
         const filteredLinks = settings?.hideTrialCTAs
             ? allCtaLinks.filter(
-                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+                  (cta) =>
+                      !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId) ||
+                      cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const ctas = (
-            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
-        ).map((cta) =>
+        const buyNowExists = filteredLinks.some(
+            (c) => c.dataset.analyticsId === 'buy-now',
+        );
+        const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
@@ -1039,14 +1042,21 @@ export function processCTAs(
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            const trialCtaSwappedPromises = [];
             ctas.forEach((cta) => {
+                let trialCtaSwapped;
+                const promise = new Promise((resolve, reject) => {
+                    trialCtaSwapped = resolve;
+                });
+                trialCtaSwappedPromises.push(promise);
                 const checkout = cta.source ?? cta;
                 if (!checkout.onceSettled) return;
                 cta.hidden = true;
                 checkout
                     .onceSettled()
                     .then(() => {
-                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                        const offerType = checkout.value?.[0]?.offerType;
+                        if (offerType === 'TRIAL') {
                             const othersVisible = ctas.some(
                                 (c) => c !== cta && !c.hidden,
                             );
@@ -1055,14 +1065,55 @@ export function processCTAs(
                             } else {
                                 cta.hidden = false;
                             }
+                            trialCtaSwapped(false);
+                        } else if (
+                            offerType === 'BASE' &&
+                            TRIAL_ANALYTICS_IDS.has(
+                                checkout.dataset.analyticsId,
+                            ) &&
+                            checkout.hasAttribute('data-replaced-osi')
+                        ) {
+                            if (buyNowExists) {
+                                cta.classList.remove('blue');
+                                cta.removeAttribute('data-analytics-id');
+                                cta.remove();
+                            } else {
+                                checkout.setAttribute(
+                                    'data-analytics-id',
+                                    'buy-now',
+                                );
+                                if (checkout.hasAttribute('data-modal'))
+                                    checkout.setAttribute('data-modal', 'crm');
+                                checkout.textContent =
+                                    merchCard.priceLiterals?.buyNow;
+                                cta.hidden = false;
+                            }
+                            trialCtaSwapped(true);
                         } else {
                             cta.hidden = false;
+                            trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
                         cta.hidden = false;
+                        trialCtaSwapped(false);
                     });
             });
+            const trialCtaSwappedResults = await Promise.all(
+                trialCtaSwappedPromises,
+            );
+            if (trialCtaSwappedResults.some((c) => c === true)) {
+                const hasBlueCta = ctas.some((c) =>
+                    c.classList.contains('blue'),
+                );
+                const buyNowCta = ctas.find(
+                    (c) => c.getAttribute('data-analytics-id') === 'buy-now',
+                );
+                if (!hasBlueCta && buyNowCta) {
+                    buyNowCta.classList.remove('primary');
+                    buyNowCta.classList.add('blue');
+                }
+            }
         }
     }
 }

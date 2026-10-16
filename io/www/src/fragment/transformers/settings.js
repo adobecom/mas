@@ -388,6 +388,7 @@ function applyPriceLiterals(fragment) {
             strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
             planTypeLabel: '{{price-literal-plan-type-label}}',
             priceUnavailableLabel: '{{price-literal-price-unavailable-label}}',
+            buyNow: '{{buy-now}}',
         };
     }
 }

@@ -29,6 +29,14 @@ const openDialog = async (el) => {
     await opened;
 };
 
+// The click tests check the component's own handlers. A real modal would stay in the top layer and
+// block clicks in later tests, so keep the overlay from opening at all.
+const keepDialogClosed = async (el) => {
+    const trigger = query(el, 'overlay-trigger');
+    trigger.disabled = true;
+    await trigger.updateComplete;
+};
+
 describe('MasGroupedSelector', () => {
     afterEach(() => {
         fixtureCleanup();
@@ -152,10 +160,10 @@ describe('MasGroupedSelector', () => {
 
     it('does not toggle the list when the edit trigger is clicked', async () => {
         const el = await render(['fr_FR']);
+        await keepDialogClosed(el);
         query(el, '.edit-button').click();
         await el.updateComplete;
         expect(el.expanded).to.be.true;
-        query(el, '.selector-dialog').dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     });
 
     it('does not toggle the list when the header outside the toggle button is clicked', async () => {
@@ -163,7 +171,6 @@ describe('MasGroupedSelector', () => {
         query(el, '.selected-header').click();
         await el.updateComplete;
         expect(el.expanded).to.be.true;
-        query(el, '.selector-dialog').dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     });
 
     it('projects slotted picker content into the dialog', async () => {
@@ -176,9 +183,9 @@ describe('MasGroupedSelector', () => {
         const el = await render();
         const onOpen = sinon.spy();
         el.addEventListener('open', onOpen);
-        query(el, '.add-button').dispatchEvent(new Event('click'));
+        await keepDialogClosed(el);
+        query(el, '.add-button').click();
         expect(onOpen.calledOnce).to.be.true;
-        query(el, '.selector-dialog').dispatchEvent(new Event('close', { bubbles: true, composed: true }));
     });
 
     it('dispatches confirm on confirm', async () => {

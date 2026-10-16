@@ -106,6 +106,11 @@ content_probes:
       meaning: 'The item the ticket links to does not exist in the stage author.'
       next_step: 'Ask for a stage copy of the item, or check it by hand in production.'
 
+# The visual gate works signed in only inside Studio's sandbox folder (`path`, in
+# the hash: #...&path=sandbox). A signed-in capture of any other folder is refused
+# before it loads, and an exploration that leaves the sandbox is stopped.
+explore_scope: { path: sandbox }
+
 # This list qualifies pasted/generated URLs and selects authentication settings.
 # Declared surface URLs below are selected directly, not filtered by this list.
 # Public consumer hosts stay on the same host used by their declared surface;
@@ -114,7 +119,10 @@ capture_hosts:
     - '--cc--adobecom.aem.live'
     - '--da-express-milo--adobecom.aem.live'
     - '--milo--adobecom.aem.page'
-    - '--mas--adobecom.aem.page'
+    # Studio on a branch preview signs in through IMS like mas.adobe.com does; without
+    # the profile a pasted studio.html deep link photographs the Adobe Sign-in page.
+    - host: '--mas--adobecom.aem.page'
+      auth: ims
     # Studio deep links are pasted on the production domain. Without this entry
     # the URL is dropped and the gate has nothing to capture. The page is served
     # from the local worktree (own_hosts above), so production is never shot.
@@ -344,6 +352,18 @@ surfaces:
           projects table (project, status, last updated by, sent on, actions)
           and its toolbar. Pick for changes under studio/src/translation.
       match: 'studio/src/translation/*'
+      requires:
+          - /studio/libs/swc.js
+          - /web-components/dist/mas.js
+
+    - id: studio-promotions
+      url: https://mas.adobe.com/studio.html?aem.env=stage#page=promotions&path=sandbox
+      description: >-
+          M@S Studio Promotions page for the sandbox folder: the promotions
+          list, a promotion's editor (its Selected items: offers, fragments
+          and each fragment's promo variations). Pick for changes under
+          studio/src/promotions.
+      match: 'studio/src/promotions/*'
       requires:
           - /studio/libs/swc.js
           - /web-components/dist/mas.js

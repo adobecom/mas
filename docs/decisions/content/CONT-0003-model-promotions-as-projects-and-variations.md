@@ -3,7 +3,7 @@ id: CONT-0003
 title: Model promotions as cross-surface projects with per-locale variations
 status: active
 scope: project
-related: ['adr:adobecom/mas/CONT-0001', 'adr:adobecom/mas/CONT-0006']
+related: ['CONT-0001', 'CONT-0006']
 ---
 
 # CONT-0003. Model promotions as cross-surface projects with per-locale variations

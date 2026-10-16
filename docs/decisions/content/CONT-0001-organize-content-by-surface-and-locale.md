@@ -3,8 +3,7 @@ id: CONT-0001
 title: Organize merch content by surface and locale under /content/dam/mas
 status: active
 scope: project
-related:
-    ['adr:adobecom/mas/CONT-0002', 'adr:adobecom/mas/CONT-0003', 'adr:adobecom/mas/CONT-0004', 'adr:Adobe-acom/core/KNOW-0000']
+related: ['CONT-0002', 'CONT-0003', 'CONT-0004', 'adr:Adobe-acom/core/KNOW-0000']
 ---
 
 # CONT-0001. Organize merch content by surface and locale under /content/dam/mas

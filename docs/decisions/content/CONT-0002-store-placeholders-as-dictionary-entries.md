@@ -3,7 +3,7 @@ id: CONT-0002
 title: Store placeholders as indexed dictionary entries layered from acom
 status: active
 scope: project
-related: ['adr:adobecom/mas/CONT-0001', 'adr:adobecom/mas/CONT-0004']
+related: ['CONT-0001', 'CONT-0004']
 ---
 
 # CONT-0002. Store placeholders as indexed dictionary entries layered from acom

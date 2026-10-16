@@ -3,7 +3,7 @@ id: CONT-0004
 title: Scope settings and offer mappings per surface with targeted overrides
 status: active
 scope: project
-related: ['adr:adobecom/mas/CONT-0001', 'adr:adobecom/mas/CONT-0003']
+related: ['CONT-0001', 'CONT-0003']
 ---
 
 # CONT-0004. Scope settings and offer mappings per surface with targeted overrides

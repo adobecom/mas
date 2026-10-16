@@ -3,13 +3,7 @@ id: CONT-0005
 title: Layer merch content through product, template and market segment baselines
 status: active
 scope: project
-related:
-    [
-        'adr:adobecom/mas/CONT-0001',
-        'adr:adobecom/mas/CONT-0006',
-        'adr:Adobe-acom/core/KNOW-0000',
-        'adr:Adobe-acom/core/KNOW-0001',
-    ]
+related: ['CONT-0001', 'CONT-0006', 'adr:Adobe-acom/core/KNOW-0000', 'adr:Adobe-acom/core/KNOW-0001']
 ---
 
 # CONT-0005. Layer merch content through product, template and market segment baselines

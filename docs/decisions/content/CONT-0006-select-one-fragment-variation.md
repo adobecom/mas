@@ -3,8 +3,7 @@ id: CONT-0006
 title: Select one promotion, regional or PZN variation per fragment
 status: active
 scope: project
-related:
-    ['adr:adobecom/mas/CONT-0001', 'adr:adobecom/mas/CONT-0003', 'adr:adobecom/mas/CONT-0005', 'adr:Adobe-acom/core/KNOW-0000']
+related: ['CONT-0001', 'CONT-0003', 'CONT-0005', 'adr:Adobe-acom/core/KNOW-0000']
 ---
 
 # CONT-0006. Select one promotion, regional or PZN variation per fragment

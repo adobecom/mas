@@ -1392,6 +1392,42 @@ class AEM {
         return { ...item, parentReferences: contentFragmentRefs };
     }
 
+    /**
+     * Get parent content fragment references for a fragment by id (single page).
+     * Unlike getReferencedBy (POST by path), the by-id GET endpoint returns each parent's `id`
+     * and `model`, so references are link-ready without a second fetch. Page and experience
+     * fragment parents are excluded. Follow `cursor` across calls to page through large lists.
+     * @param {string} id - Fragment id (UUID)
+     * @param {Object} [options]
+     * @param {string} [options.cursor] - Opaque pagination cursor from a previous page
+     * @param {number} [options.limit=50] - Page size (server caps at 50)
+     * @param {AbortController} [options.abortController] - Optional abort controller
+     * @returns {Promise<{ items: Array<Object>, cursor?: string }>} Content-fragment parents + next cursor
+     */
+    async getReferencedByFragmentId(id, { cursor, limit = 50, abortController } = {}) {
+        if (!id) throw new Error('Fragment id is required');
+
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (cursor) params.set('cursor', cursor);
+        const url = `${this.cfFragmentsUrl}/${id}/referencedBy?${params.toString()}`;
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: this.headers,
+            signal: abortController?.signal,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to get referenced by fragment id: ${response.status} ${response.statusText}`);
+        }
+
+        const { items, cursor: nextCursor } = await response.json();
+        const contentFragmentRefs = (items || []).filter((ref) => ref.type === 'content-fragment');
+        return { items: contentFragmentRefs, cursor: nextCursor };
+    }
+
     sites = {
         cf: {
             fragments: {
@@ -1496,6 +1532,10 @@ class AEM {
                  * @see AEM#getReferencedBy
                  */
                 getReferencedBy: this.getReferencedBy.bind(this),
+                /**
+                 * @see AEM#getReferencedByFragmentId
+                 */
+                getReferencedByFragmentId: this.getReferencedByFragmentId.bind(this),
             },
         },
     };

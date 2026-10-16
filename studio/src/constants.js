@@ -134,6 +134,9 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    AI_ASSISTANT: 'ai-assistant',
+    PRODUCT_CATALOG: 'product-catalog',
+    PRODUCT_DETAIL: 'product-detail',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
     BULK_EDIT: 'bulkEdit',
@@ -144,6 +147,21 @@ export const PAGE_NAMES = {
     OFFER_MAPPING: 'offer-mapping',
 };
 
+/**
+ * Used only when the io-base-url meta tag is absent (tests, or a page that did
+ * not run studio.html's bootstrap). studio.html is the real source of the
+ * namespace, so point a developer workspace at it with ?io.studio.env=
+ * rather than editing this.
+ *
+ * One namespace serves the assistant: MerchAtScaleStudio (ai-chat,
+ * ost-products-read) and MerchAtScaleOperations must both be deployed to it, and both
+ * URLs are derived from this one base. MerchAtScaleKnowledge is not fetched
+ * over HTTP at all — the corpus ships inside the ai-chat action.
+ */
+export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
+
+export const TAG_STATUS_PUBLISHED = 'mas:status/published';
+export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';

@@ -4,6 +4,7 @@ import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from '
 import { debounce } from './utils.js';
 import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
@@ -294,6 +295,13 @@ export class Router extends EventTarget {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }
+                    // Clear the product-detail arrangement code when leaving
+                    // the product catalog so the hash-linked `arrangementCode`
+                    // param doesn't bleed into unrelated pages (MASA,
+                    // Fragments, etc.) where it's semantically meaningless.
+                    if (Store.page.value === PAGE_NAMES.PRODUCT_CATALOG && targetPage !== PAGE_NAMES.PRODUCT_CATALOG) {
+                        Store.productDetail.arrangementCode.set(null);
+                    }
                     if (
                         (Store.page.value === PAGE_NAMES.MASKS || Store.page.value === PAGE_NAMES.MASKS_EDITOR) &&
                         targetPage !== PAGE_NAMES.MASKS_EDITOR
@@ -541,6 +549,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.bulkEditProjects.projectId, 'bulkEditProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
@@ -714,6 +723,7 @@ export class Router extends EventTarget {
     }
 
     #getAuthorizedPage(page) {
+        if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;
@@ -753,6 +763,12 @@ export class Router extends EventTarget {
     }
 
     #enforceRestrictedAccessFromParams() {
+        if (!isFeaturePageEnabled(this.currentParams.get('page'))) {
+            this.currentParams.set('page', PAGE_NAMES.WELCOME);
+            this.currentParams.delete('arrangementCode');
+            Store.page.set(PAGE_NAMES.WELCOME);
+            return true;
+        }
         const canAccess = RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')];
         if (!canAccess) return false;
         if (!Store.users.getMeta('loaded')) {

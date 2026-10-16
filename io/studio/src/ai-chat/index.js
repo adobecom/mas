@@ -26,7 +26,7 @@ import { handleOperation, withResolvedArrangementCode } from './operations-handl
 import { validateAIConfig } from './validation.js';
 import { getVariantConfig } from './variant-configs.js';
 import { LocalKnowledgeRetriever } from './knowledge-retriever.js';
-import { KNOWLEDGE_CHUNKS } from './knowledge-corpus.js';
+import { ALL_KNOWLEDGE_CHUNKS, MASA_KNOWLEDGE_REVISION } from './knowledge-chunks.js';
 import { classifyIntent, createClassifierClient } from './intent-classifier.js';
 import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
@@ -36,6 +36,8 @@ import { getFlowForIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
 import { validateEnvelope, collectObservedIds, collectObservedSelectors } from './envelope-validator.js';
+
+console.log(JSON.stringify({ phase: 'knowledge', revision: MASA_KNOWLEDGE_REVISION, chunks: ALL_KNOWLEDGE_CHUNKS.length }));
 
 /**
  * IMS client_id allowlist for the AI Chat action.
@@ -343,7 +345,7 @@ function createKnowledgeClient(params) {
     if (params.RAG_ENABLED === 'false') {
         return null;
     }
-    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
+    return new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS);
 }
 
 /**

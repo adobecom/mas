@@ -1,0 +1,5 @@
+paths:
+    .github/workflows/io-studio-deploy.yaml:
+        ignore:
+            # GitHub supports concurrency.queue since 2026-05; actionlint 1.7.12 does not (rhysd/actionlint#657).
+            - 'unexpected key "queue" for "concurrency" section'

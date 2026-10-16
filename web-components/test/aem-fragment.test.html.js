@@ -56,6 +56,45 @@ function addFragment(fragment, loading) {
     return aemFragment;
 }
 
+function holdPznResponses() {
+    const baseFetch = window.fetch;
+    const gates = {};
+    const gate = (pzn) => {
+        if (!gates[pzn]) {
+            const entry = {};
+            entry.requested = new Promise((resolve) => {
+                entry.markRequested = resolve;
+            });
+            entry.released = new Promise((resolve) => {
+                entry.release = resolve;
+            });
+            gates[pzn] = entry;
+        }
+        return gates[pzn];
+    };
+    window.fetch = async (input, init) => {
+        const response = await baseFetch(input, init);
+        const pzn = new URL(String(input), window.location).searchParams.get(
+            'pzn',
+        );
+        if (!pzn) return response;
+        const { markRequested, released } = gate(pzn);
+        markRequested();
+        const body = await response.json();
+        await released;
+        return new Response(
+            JSON.stringify({ ...body, fields: { ...body.fields, pzn } }),
+        );
+    };
+    return {
+        requested: (pzn) => gate(pzn).requested,
+        release: (pzn) => gate(pzn).release(),
+        restore: () => {
+            window.fetch = baseFetch;
+        },
+    };
+}
+
 function compareSettings(fragment, settings) {
     expect(fragment.settings).include(settings);
 }
@@ -825,6 +864,58 @@ runTests(async () => {
                     'attr-instant-xyz',
                 );
             });
+
+            it('previews with the pzn captured when the fetch started', async () => {
+                cache.clear();
+                const existing = document.querySelector('mas-commerce-service');
+                const previewService = document.createElement(
+                    'mas-commerce-service',
+                );
+                for (const attr of existing.attributes) {
+                    previewService.setAttribute(attr.name, attr.value);
+                }
+                previewService.setAttribute('preview', 'on');
+                document.body.insertBefore(previewService, existing);
+
+                const moduleCode = `
+                    export const previewFragment = (id, { pzn = '' }) =>
+                        Promise.resolve({
+                            status: 200,
+                            body: { id, fields: { variant: 'ccd-slice', pzn } },
+                        });
+                `;
+                const blobUrl = URL.createObjectURL(
+                    new Blob([moduleCode], {
+                        type: 'application/javascript',
+                    }),
+                );
+
+                const AemFragment = customElements.get('aem-fragment');
+                const urlStub = sinon
+                    .stub(AemFragment.prototype, 'getFragmentClientUrl')
+                    .returns(blobUrl);
+                urlStub.onFirstCall().callsFake(function () {
+                    queueMicrotask(() => this.setAttribute('pzn', 'segment1'));
+                    return blobUrl;
+                });
+
+                let aemFragment;
+                try {
+                    aemFragment = addFragment('fragment-cc-all-apps');
+                    await oneEvent(aemFragment, EVENT_AEM_LOAD);
+                    expect(
+                        cache.get('fragment-cc-all-apps').fields.pzn,
+                    ).to.equal('');
+
+                    await oneEvent(aemFragment, EVENT_AEM_LOAD);
+                    expect(aemFragment.data.fields.pzn).to.equal('segment1');
+                } finally {
+                    urlStub.restore();
+                    previewService.remove();
+                    aemFragment?.remove();
+                    URL.revokeObjectURL(blobUrl);
+                }
+            });
             it('does not serve cached unmasked fragment to a masked aem-fragment', async () => {
                 cache.clear();
                 const count = aemMock.count;
@@ -943,6 +1034,174 @@ runTests(async () => {
                 expect(aemFragment.cacheKey()).to.equal(
                     'frag-id-p_seg1-m_story',
                 );
+            });
+
+            it('refetches when pzn is set after the fragment has loaded', async () => {
+                cache.clear();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('refetches when mask changes after the fragment has loaded', async () => {
+                cache.clear();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('mask', 'story');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                expect(fetch.lastCall.firstArg).to.include('&mask=story');
+                aemFragment.remove();
+            });
+
+            it('does not refetch when pzn is re-set to the same value', async () => {
+                cache.clear();
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
+                await oneEvent(aemFragment, 'aem:load');
+                const count = aemMock.count;
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await delay(50);
+
+                expect(aemMock.count).to.equal(count);
+                aemFragment.remove();
+            });
+
+            it('does not refetch when pzn is present before the first fetch', async () => {
+                cache.clear();
+                const count = aemMock.count;
+                const aemFragment = document.createElement('aem-fragment');
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                document.body.appendChild(aemFragment);
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemMock.count).to.equal(count + 1);
+                aemFragment.remove();
+            });
+
+            it('refetches with the new pzn when pzn changes during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(fetch.lastCall.firstArg).to.include('&pzn=segment1');
+                aemFragment.remove();
+            });
+
+            it('does not cache a pending response under a pzn set during the fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has('fragment-cc-all-apps-p_segment1')).to.be
+                    .false;
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
+
+            it('refetches once when pzn and mask both change during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('pzn', 'segment1');
+                aemFragment.setAttribute('mask', 'story');
+                await oneEvent(aemFragment, 'aem:load');
+                await oneEvent(aemFragment, 'aem:load');
+
+                const fragmentCalls = fetch
+                    .getCalls()
+                    .filter((call) =>
+                        String(call.firstArg).includes('/fragment?'),
+                    );
+                expect(fragmentCalls).to.have.length(2);
+                aemFragment.remove();
+            });
+
+            it('does not cache stale data under a pzn whose fetch failed', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps2');
+                await oneEvent(aemFragment, 'aem:load');
+
+                aemFragment.setAttribute('pzn', 'segment1');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has('fragment-cc-all-apps2-p_segment1')).to.be
+                    .false;
+                aemFragment.remove();
+            });
+
+            it('refetches when the fragment changes after a failed fetch', async () => {
+                const aemFragment = addFragment('notfound');
+                await oneEvent(aemFragment, 'aem:error');
+
+                aemFragment.setAttribute('fragment', 'fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(aemFragment.classList.contains('error')).to.be.false;
+                aemFragment.remove();
+            });
+
+            it('keeps the requested id as originalId when the fragment changes during a pending fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('fragment', 'fragment-segment');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(
+                    cache.get('fragment-cc-all-apps').fields.originalId,
+                ).to.equal('fragment-cc-all-apps');
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
+
+            it('caches a pending response by its own id when the fragment changes during the fetch', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                aemFragment.setAttribute('fragment', 'fragment-segment');
+                await oneEvent(aemFragment, 'aem:load');
+
+                expect(cache.has(cc.id)).to.be.true;
+                await oneEvent(aemFragment, 'aem:load');
+                aemFragment.remove();
+            });
+
+            it('keeps data in sync with the latest response when pzn changes during a cache wait', async () => {
+                cache.clear();
+                const held = holdPznResponses();
+                const aemFragment = addFragment('fragment-cc-all-apps');
+                try {
+                    await oneEvent(aemFragment, 'aem:load');
+                    aemFragment.setAttribute('loading', 'cache');
+                    aemFragment.setAttribute('timeout', '100');
+
+                    aemFragment.setAttribute('pzn', 'B');
+                    await delay(10);
+                    aemFragment.setAttribute('pzn', 'C');
+                    await delay(95);
+                    aemFragment.setAttribute('pzn', 'D');
+                    await delay(20);
+                    held.release('C');
+                    await held.requested('D');
+                    const loaded = oneEvent(aemFragment, 'aem:load');
+                    held.release('D');
+                    await loaded;
+
+                    expect(aemFragment.rawData.fields.pzn).to.equal('D');
+                    expect(aemFragment.data.fields.pzn).to.equal('D');
+                } finally {
+                    held.restore();
+                    aemFragment.remove();
+                }
             });
         });
 

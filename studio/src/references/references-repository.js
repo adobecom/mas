@@ -8,13 +8,8 @@ import {
     PROMOTION_MODEL_PATH,
     TRANSLATION_PROJECT_MODEL_PATH,
 } from '../constants.js';
-import { Fragment } from '../aem/fragment.js';
 import { getDefaultLocaleCode } from '../locales.js';
-import {
-    findPromotionProjectIdByTag,
-    getPromotionTagFromFragment,
-    isPromoVariationPath,
-} from '../promotions/promotion-model.js';
+import { findPromotionProjectIdByTag, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 
 /**
  * Verified cap for the GET-by-id `referencedBy` endpoint. `limit=99` is rejected with a 400;
@@ -76,9 +71,11 @@ export function isCrossSurfaceReference(path, surface) {
 /**
  * Runs the exclusion predicates against a single `referencedBy` item, relative to the fragment
  * currently open in the editor. Promotion projects skip them: they are stored globally under
- * `/content/dam/mas/promotions`, so every surface-based check would drop them. The promo-variation
- * and self-locale checks only apply to cards and collections: a project's folder is not a locale,
- * and a project named like the open card is not one of its variations.
+ * `/content/dam/mas/promotions`, so every surface-based check would drop them. The self-locale
+ * check only applies to cards and collections: a project's folder is not a locale, and a project
+ * named like the open card is not one of its variations. A pzn or promo collection variation is
+ * kept: a parent points at its variations, never the reverse, so one only shows up here when it
+ * holds the open card itself.
  *
  * @param {Object} reference raw `referencedBy` item
  * @param {{ surface: string, parsedLocale: string|null, fragmentPath: string }} openFragmentTokens
@@ -86,10 +83,8 @@ export function isCrossSurfaceReference(path, surface) {
  */
 export function isExcludedReference(reference, openFragmentTokens) {
     if (reference.model?.path === PROMOTION_MODEL_PATH) return false;
-    if (Fragment.isGroupedVariationPath(reference.path)) return true;
     if (isCrossSurfaceReference(reference.path, openFragmentTokens.surface)) return true;
     if (getReferenceType(reference).grouping !== 'locale') return false;
-    if (isPromoVariationPath(reference.path)) return true;
     const tokens = parsePathTokens(reference.path);
     if (!tokens) return false;
     return isSelfLocaleVariationReference(
@@ -303,9 +298,9 @@ async function findPromotionProjectForVariation(fragment, loadPromotionProjects)
 
 /**
  * Resolves the "referenced by" list for the details panel: fetches every page of the GET-by-id
- * `referencedBy` endpoint, drops false positives (grouped/pzn variations, promo variations,
- * self-locale variations, cross-surface clones), then buckets what remains by reference type
- * (collections, cards, promo/bulk-publish/localization projects, other) in display order.
+ * `referencedBy` endpoint, drops false positives (self-locale variations, cross-surface clones),
+ * then buckets what remains by reference type (collections, cards, promo/bulk-publish/localization
+ * projects, other) in display order.
  * A promo variation also lists its own promotion project, resolved from its tag.
  *
  * @param {import('../aem/aem.js').AEM} aem

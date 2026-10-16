@@ -3,6 +3,7 @@ import Store from './store.js';
 const MAS_ADMIN_GROUP = 'GRP-ODIN-MAS-ADMINS';
 
 const MAS_PROMO_EDITORS_GROUP = 'GRP-ODIN-MAS-PROMO-EDITORS';
+const MAS_PROMO_POWERUSERS_GROUP = 'GRP-ODIN-MAS-PROMO-POWERUSERS';
 
 /** Surface path segment → LDAP group required for Studio settings (non-admin). */
 const SETTINGS_ACCESS_GROUP_BY_SURFACE = new Map([
@@ -37,11 +38,22 @@ export function isMasAdmin() {
     return groups.includes(MAS_ADMIN_GROUP.toUpperCase());
 }
 
-/** Promotions authoring is gated to a single global editors group (admins always allowed). */
+/** Global promo editors, powerusers and admins can perform basic promotion authoring. */
 export function canEditPromotions() {
     const groups = getCurrentUserNormalizedGroups();
     if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP.toUpperCase()) || groups.includes(MAS_PROMO_EDITORS_GROUP.toUpperCase());
+    return (
+        groups.includes(MAS_ADMIN_GROUP) ||
+        groups.includes(MAS_PROMO_EDITORS_GROUP) ||
+        groups.includes(MAS_PROMO_POWERUSERS_GROUP)
+    );
+}
+
+/** Whether the current user can make advanced promotion project changes. */
+export function canManagePromotions() {
+    const groups = getCurrentUserNormalizedGroups();
+    if (!groups) return false;
+    return groups.includes(MAS_ADMIN_GROUP) || groups.includes(MAS_PROMO_POWERUSERS_GROUP);
 }
 
 export function canAccessSettings(surface) {

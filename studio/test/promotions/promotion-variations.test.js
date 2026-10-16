@@ -1122,6 +1122,61 @@ describe('promotion-variations', () => {
     describe('getAllAttachedPromoVariations', () => {
         const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
 
+        for (const { name, discover, status } of [
+            { name: 'all', discover: getAllAttachedPromoVariations, status: 'DRAFT' },
+            { name: 'unpublished', discover: getUnpublishedAttachedPromoVariations, status: 'DRAFT' },
+            { name: 'published', discover: getPublishedAttachedPromoVariations, status: 'PUBLISHED' },
+        ]) {
+            it(`discovers ${name} promo variations attached through the legacy collections field`, async () => {
+                const collectionPath = '/content/dam/mas/sandbox/en_US/my-collection';
+                const promoPath = `${promoFolder}/my-collection`;
+                const promotionFragment = {
+                    getFieldValues: (field) => (field === 'collections' ? [collectionPath] : []),
+                    tags: [{ id: 'mas:promotion/black-friday' }],
+                };
+                const aem = createAemMock({
+                    fragments: {
+                        search: makeSearchStub({
+                            [promoFolder]: [{ id: 'collection-variation', path: promoPath, status }],
+                        }),
+                    },
+                });
+
+                const result = await discover(aem, promotionFragment);
+
+                expect(result.map(({ path, parentPath }) => ({ path, parentPath }))).to.deep.equal([
+                    { path: promoPath, parentPath: collectionPath },
+                ]);
+            });
+        }
+
+        it('discovers the union of fragments and legacy collections without duplicate variations', async () => {
+            const cardPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const collectionPath = '/content/dam/mas/sandbox/en_US/my-collection';
+            const promotionFragment = {
+                getFieldValues: (field) =>
+                    ({
+                        fragments: [cardPath, collectionPath],
+                        collections: [collectionPath],
+                    })[field] || [],
+                tags: [{ id: 'mas:promotion/black-friday' }],
+            };
+            const aem = createAemMock({
+                fragments: {
+                    search: makeSearchStub({
+                        [promoFolder]: [
+                            { id: 'card-variation', path: `${promoFolder}/my-card`, status: 'DRAFT' },
+                            { id: 'collection-variation', path: `${promoFolder}/my-collection`, status: 'DRAFT' },
+                        ],
+                    }),
+                },
+            });
+
+            const result = await getAllAttachedPromoVariations(aem, promotionFragment);
+
+            expect(result.map(({ id }) => id)).to.deep.equal(['card-variation', 'collection-variation']);
+        });
+
         it('includes published promo variations', async () => {
             const promotionFragment = {
                 getFieldValues: sandbox.stub().callsFake((name) => {

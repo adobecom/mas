@@ -118,7 +118,115 @@ describe('MasPromotions', () => {
         return [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) => item.textContent.includes(text));
     }
 
+    it('hides project creation for editors', async () => {
+        const { el } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
+        expect(Boolean(el.shadowRoot.querySelector('.create-button'))).to.be.false;
+    });
+
+    it('rejects a stale create button click after poweruser access is lost', async () => {
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        const { el } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
+        const createButton = el.shadowRoot.querySelector('.create-button');
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        createButton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        expect(Store.page.get()).to.equal('promotions');
+    });
+
+    it('disables project duplication for editors', async () => {
+        const { el } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
+        expect(findMenuItem(el, 'Duplicate').disabled).to.be.true;
+    });
+
+    it('rejects dispatched project duplication requests from editors', async () => {
+        const { el } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
+        clickDuplicateMenuItem(el);
+        await el.updateComplete;
+        expect(el.duplicateDialogOpen).to.be.false;
+    });
+
+    it('rejects project duplication when poweruser access is lost during confirmation', async () => {
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        const { el, repo } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
+        clickDuplicateMenuItem(el);
+        await el.updateComplete;
+        expect(el.duplicateDialogOpen).to.be.true;
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        dispatchDuplicateConfirmed(el);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(repo.createFragment.called).to.be.false;
+    });
+
+    it('disables project deletion for editors even without promo variations', async () => {
+        const { el } = await mountWithRepo(makePromotion({ id: 'empty-project', title: 'Empty project' }));
+        expect(findMenuItem(el, 'Delete').disabled).to.be.true;
+    });
+
+    it('rejects editor delete events for projects without promo variations', async () => {
+        const promotion = makePromotion({ id: 'empty-project', title: 'Empty project' });
+        const { el, repo } = await mountWithRepo(promotion, { deleteFragment: sandbox.stub().resolves(true) });
+        findMenuItem(el, 'Delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(el.isDialogOpen).to.be.false;
+        expect(repo.deleteFragment.called).to.be.false;
+    });
+
+    it('rejects project deletion when poweruser access is lost during confirmation', async () => {
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        const { el, repo } = await mountWithRepo(makePromotion({ id: 'empty-project', title: 'Empty project' }), {
+            deleteFragment: sandbox.stub().resolves(true),
+        });
+        findMenuItem(el, 'Delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await el.updateComplete;
+        expect(el.isDialogOpen).to.be.true;
+        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        expect(repo.deleteFragment.called).to.be.false;
+        expect(Store.promotions.list.data.get()).to.have.length(1);
+    });
+
+    for (const attachmentField of ['fragments', 'collections']) {
+        it(`prevents editors deleting a project with promo variations attached through ${attachmentField} from the list`, async () => {
+            const promotion = makePromotion({
+                id: 'restricted-project',
+                title: 'Restricted project',
+                fragments: ['/content/dam/mas/sandbox/en_US/my-card'],
+                tags: [{ id: 'mas:promotion/summer' }],
+            });
+            promotion.getField('fragments').name = attachmentField;
+            const { el, repo } = await mountWithRepo(promotion, {
+                deleteFragment: sandbox.stub().resolves(true),
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSharedSearchStub(sandbox, {
+                                    '/content/dam/mas/sandbox/en_US/promotions/summer': [
+                                        {
+                                            id: 'variation',
+                                            path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                                            status: 'DRAFT',
+                                        },
+                                    ],
+                                }),
+                            },
+                        },
+                    },
+                },
+            });
+            findMenuItem(el, 'Delete').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(el.isDialogOpen).to.be.false;
+            expect(repo.deleteFragment.called).to.be.false;
+        });
+    }
+
     describe('#handleDuplicatePromotionFromList', () => {
+        beforeEach(() => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        });
+
         it('proposes a title and sources existingTitles from the promotions list before opening the dialog', async () => {
             const promotion = makePromotion({ id: 'src-1', title: 'Original' });
             const other = makePromotion({ id: 'other-1', title: 'Another promo' });
@@ -320,6 +428,7 @@ describe('MasPromotions', () => {
         });
 
         it('navigates to the editor from create, edit, and row double-click actions', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);
             const createButton = el.shadowRoot.querySelector('.create-button');
@@ -341,28 +450,31 @@ describe('MasPromotions', () => {
             expect(Store.page.get()).to.equal('promotions-editor');
         });
 
-        it('deletes a promotion after confirmation and removes its tag', async () => {
-            const promotion = makePromotion({ id: 'promo-1', title: 'Original', tags: ['mas:promotion/original'] });
-            const deleteFragment = sandbox.stub().resolves();
-            const toastStub = sandbox.stub(Events.toast, 'emit');
-            const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
+        for (const group of ['GRP-ODIN-MAS-PROMO-POWERUSERS', 'GRP-ODIN-MAS-ADMINS']) {
+            it(`allows ${group} to delete a promotion after confirmation and removes its tag`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [group] }]);
+                const promotion = makePromotion({ id: 'promo-1', title: 'Original', tags: ['mas:promotion/original'] });
+                const deleteFragment = sandbox.stub().resolves();
+                const toastStub = sandbox.stub(Events.toast, 'emit');
+                const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
 
-            const deleteItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
-                item.textContent.includes('Delete'),
-            );
-            deleteItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-            await new Promise((resolve) => setTimeout(resolve, 0));
-            await el.updateComplete;
-            el.shadowRoot
-                .querySelector('sp-dialog-wrapper')
-                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
-            await new Promise((resolve) => setTimeout(resolve, 20));
+                const deleteItem = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                    item.textContent.includes('Delete'),
+                );
+                deleteItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+                await new Promise((resolve) => setTimeout(resolve, 0));
+                await el.updateComplete;
+                el.shadowRoot
+                    .querySelector('sp-dialog-wrapper')
+                    .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+                await new Promise((resolve) => setTimeout(resolve, 20));
 
-            expect(deleteFragment.calledOnce).to.be.true;
-            expect(repo.aem.tags.delete.calledOnce).to.be.true;
-            expect(Store.promotions.list.data.get()).to.deep.equal([]);
-            expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.true;
-        });
+                expect(deleteFragment.calledOnce).to.be.true;
+                expect(repo.aem.tags.delete.calledOnce).to.be.true;
+                expect(Store.promotions.list.data.get()).to.deep.equal([]);
+                expect(toastStub.calledWith(sinon.match({ variant: 'positive' }))).to.be.true;
+            });
+        }
 
         it('ignores unpublish requests for a promotion without an id', async () => {
             const promotion = makePromotion({ title: 'Unsaved', id: null, status: 'PUBLISHED' });
@@ -397,6 +509,7 @@ describe('MasPromotions', () => {
         });
 
         it('closes the duplicate dialog when the dialog is cancelled', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);
             clickDuplicateMenuItem(el);
@@ -424,6 +537,7 @@ describe('MasPromotions', () => {
         });
 
         it('ignores delete requests while a confirmation dialog is already open', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const deleteFragment = sandbox.stub().resolves();
             const { el, repo } = await mountWithRepo(promotion, { deleteFragment });
@@ -437,6 +551,7 @@ describe('MasPromotions', () => {
         });
 
         it('shows a failure toast and does not clear the list when deleting a promotion fails', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'Original', tags: ['mas:promotion/original'] });
             const deleteFragment = sandbox.stub().rejects(new Error('boom'));
             const toastStub = sandbox.stub(Events.toast, 'emit');
@@ -456,6 +571,7 @@ describe('MasPromotions', () => {
         });
 
         it('ignores duplicate requests from the list while another duplicate is in progress', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
             const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
             const { el } = await mountWithRepo(promotion);
             el.duplicating = true;
@@ -571,6 +687,10 @@ describe('MasPromotions', () => {
     });
 
     describe('#onDuplicateConfirmed wiring (list-view duplication path)', () => {
+        beforeEach(() => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        });
+
         it('duplicates the source promotion, refreshes the list, and shows the success toast', async () => {
             const promotion = makePromotion({ id: 'src-1', title: 'Original' });
             const { el, repo } = await mountWithRepo(promotion);

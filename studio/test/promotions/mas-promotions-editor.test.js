@@ -94,9 +94,13 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.promotionId.set(null);
-        // Default to a promotions editor so mutating UI renders; viewer cases override this.
         Store.profile.set({ email: 'editor@adobe.com' });
-        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        Store.users.set([
+            {
+                userPrincipalName: 'editor@adobe.com',
+                groups: ['GRP-ODIN-MAS-PROMO-EDITORS', 'GRP-ODIN-MAS-PROMO-POWERUSERS'],
+            },
+        ]);
         setItemsSelectionStore(Store.promotions);
     });
 
@@ -194,6 +198,193 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
     }
+
+    describe('tiered permissions', () => {
+        function setGroups(groups) {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups }]);
+        }
+
+        async function mountExistingPromotion() {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'tiered-promo',
+                        title: 'Tiered promotion',
+                        surfaces: ['sandbox'],
+                        geos: ['mas:locale/us'],
+                    }),
+                ),
+            );
+            const el = await mountEditor();
+            Store.promotions.selectedOffers.set(['offer-1']);
+            await el.updateComplete;
+            return el;
+        }
+
+        it('keeps basic project dates editable for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            for (const id of ['startDate', 'cdtStart', 'cdtEnd']) {
+                expect(el.renderRoot.querySelector(`#${id}`).disabled).to.be.false;
+            }
+        });
+
+        it('disables project geos and surfaces for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field').disabled).to.be.true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-button').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-tag').hasAttribute('deletable')).to.be.false;
+        });
+
+        it('rejects dispatched geo changes from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const picker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            picker.setAttribute('value', 'mas:locale/gb');
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:locale/us']);
+        });
+
+        it('rejects surface deletion events from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            el.renderRoot
+                .querySelector('.promotions-form-surfaces sp-tag')
+                .dispatchEvent(new Event('delete', { bubbles: true }));
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['sandbox']);
+        });
+
+        it('disables the default promo code for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('#promoCode').hasAttribute('disabled')).to.be.true;
+        });
+
+        it('does not open promo mappings for an editor even on a dispatched click', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const button = [...el.renderRoot.querySelectorAll('sp-action-button')].find((item) =>
+                item.textContent.includes('Manage promo codes'),
+            );
+            button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await flushPromises();
+            expect(el.promoCodesManagerOpen).to.be.false;
+        });
+
+        it('rejects forged promo mappings save events for editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const before = [...el.fragment.getFieldValues('offers')];
+            el.renderRoot.querySelector('mas-promo-codes-manager').dispatchEvent(
+                new CustomEvent('promo-codes-save', {
+                    detail: { exceptions: new Map([['offer-1|US', 'FORBIDDEN']]) },
+                    bubbles: true,
+                }),
+            );
+            expect(el.fragment.getFieldValues('offers')).to.deep.equal(before);
+        });
+
+        it('allows powerusers without the editors group to manage promo mappings', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const el = await mountExistingPromotion();
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
+            expect(el.renderRoot.querySelector('#promoCode').hasAttribute('disabled')).to.be.false;
+        });
+
+        it('reacts to a poweruser membership being removed', async () => {
+            const el = await mountExistingPromotion();
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodesInEmptyState).to.be.false;
+        });
+
+        it('rejects staged tag changes by promo editors on existing projects', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const staged = el.renderRoot.querySelector('.end-date-row + sp-switch');
+            staged.checked = true;
+            staged.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal([]);
+        });
+
+        it('makes the new project form read-only for editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('#campaignTitle').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field').hasAttribute('disabled')).to.be
+                .true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-button').hasAttribute('disabled')).to.be.true;
+            expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
+        });
+
+        it('keeps existing fragments when an editor deselects them in the item picker', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const existing = '/content/dam/mas/sandbox/en_US/existing';
+            const added = '/content/dam/mas/sandbox/en_US/added';
+            Store.promotions.selectedCards.set([existing]);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            Store.promotions.selectedCards.set([added]);
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.include.members([existing, added]);
+            expect(el.fragment.getFieldValues('fragments')).to.include.members([existing, added]);
+        });
+
+        it('keeps a collection in only its refined category when classification finishes while the picker is open', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'classification-project',
+                        surfaces: ['sandbox'],
+                        fragments: [collectionPath],
+                    }),
+                ),
+            );
+            let finishClassification;
+            const classification = new Promise((resolve) => {
+                finishClassification = resolve;
+            });
+            const { el } = await mountEditorWithRepo({
+                getCollectionPathsForSurfaces: sandbox.stub().returns(classification),
+            });
+            await waitForEditorConnect(el);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.deep.equal([collectionPath]);
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            finishClassification(new Set([collectionPath]));
+            await classification;
+            await el.updateComplete;
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+
+            expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal([collectionPath]);
+        });
+    });
 
     describe('publishing overlay', () => {
         it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
@@ -899,6 +1090,33 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('create flow', () => {
+        it('rejects forged project save events from editors before creating the project tag', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('save', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(repo.aem.tags.create.called).to.be.false;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+        });
+
+        it('does not create a project when poweruser access is lost while creating its tag', async () => {
+            const createTag = sandbox.stub().callsFake(async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            });
+            const deleteTag = sandbox.stub().resolves();
+            const { el, repo } = await mountEditorWithRepo({
+                aem: { tags: { create: createTag, delete: deleteTag } },
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.createFragment.called).to.be.false;
+            expect(deleteTag.calledOnce).to.be.true;
+            expect(el.isCreated).to.be.false;
+        });
+
         it('aborts create and does not call repository when required fields are missing', async () => {
             const { el, repo } = await mountEditorWithRepo();
             clickPromotionQuickAction(el, 'Save');
@@ -917,16 +1135,19 @@ describe('MasPromotionsEditor', () => {
             expect(repo.createFragment.called).to.be.false;
         });
 
-        it('creates promotion when all required fields are valid', async () => {
-            const { el, repo } = await mountEditorWithRepo();
-            await fillValidFields(el);
-            clickPromotionQuickAction(el, 'Save');
-            await el.updateComplete;
-            await flushPromises();
-            await el.updateComplete;
-            expect(repo.createFragment.calledOnce).to.be.true;
-            expect(el.isCreated).to.be.true;
-        });
+        for (const group of ['GRP-ODIN-MAS-PROMO-POWERUSERS', 'GRP-ODIN-MAS-ADMINS']) {
+            it(`allows ${group} to create a promotion when all required fields are valid`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [group] }]);
+                const { el, repo } = await mountEditorWithRepo();
+                await fillValidFields(el);
+                clickPromotionQuickAction(el, 'Save');
+                await el.updateComplete;
+                await flushPromises();
+                await el.updateComplete;
+                expect(repo.createFragment.calledOnce).to.be.true;
+                expect(el.isCreated).to.be.true;
+            });
+        }
 
         it('handles create error gracefully without setting isCreated', async () => {
             const { el, repo } = await mountEditorWithRepo({
@@ -1154,6 +1375,123 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('update flow', () => {
+        async function mountBasicEditor({ collections = [], surfaces = ['sandbox'] } = {}) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const promotion = makePromotion({
+                id: 'editor-project',
+                title: 'Editor project',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                surfaces,
+                geos: ['mas:locale/us'],
+                fragments: [cardPath],
+            });
+            promotion.fields.push(
+                { name: 'offers', type: 'text', multiple: true, values: [] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: collections },
+            );
+            promotion.getField('tags').values = ['mas:promotion/editor-project'];
+            promotion.refreshFrom(promotion);
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const repo = makeRepo();
+            repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'card-a', path: cardPath, fields: [] });
+            const result = await mountEditorWithRepo(repo);
+            await waitForEditorConnect(result.el);
+            Store.promotions.selectedCards.set([cardPath]);
+            await result.el.updateComplete;
+            return { ...result, cardPath };
+        }
+
+        it('allows an editor to save date changes without changing project configuration', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('startDate', ['2030-02-01T00:00:00.000Z']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.calledOnce).to.be.true;
+        });
+
+        for (const failure of ['false result', 'rejected request']) {
+            it(`allows an editor to retry saving legacy surfaces after a ${failure}`, async () => {
+                const { el, repo } = await mountBasicEditor({ surfaces: ['Sandbox, CCD'] });
+                if (failure === 'false result') repo.saveFragment.onFirstCall().resolves(false);
+                else repo.saveFragment.onFirstCall().rejects(new Error('Temporary save failure'));
+                el.fragmentStore.updateField('startDate', ['2030-02-01T00:00:00.000Z']);
+                await el.updateComplete;
+                clickPromotionQuickAction(el, 'Save');
+                await flushPromises();
+                expect(repo.saveFragment.calledOnce).to.be.true;
+                expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['sandbox', 'ccd']);
+
+                clickPromotionQuickAction(el, 'Save');
+                await flushPromises();
+
+                expect(repo.saveFragment.callCount).to.equal(2);
+                expect(el.fragment.getFieldValue('startDate')).to.equal('2030-02-01T00:00:00.000Z');
+            });
+        }
+
+        it('rejects an actual surface change by an editor', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('surfaces', ['ccd']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('allows an editor to attach additional fragments', async () => {
+            const { el, repo, cardPath } = await mountBasicEditor();
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-b';
+            Store.promotions.selectedCards.set([cardPath, addedPath]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.calledOnce).to.be.true;
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal([cardPath, addedPath]);
+        });
+
+        it('rejects saving a restricted geo change made before poweruser membership was removed', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/gb']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving removal of an existing fragment by an editor', async () => {
+            const { el, repo } = await mountBasicEditor();
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/replacement']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving removal of an existing legacy collection by an editor', async () => {
+            const { el, repo } = await mountBasicEditor({
+                collections: ['/content/dam/mas/sandbox/en_US/collection-a'],
+            });
+            Store.promotions.selectedCollections.set([]);
+            el.fragmentStore.updateField('startDate', ['2030-02-01T00:00:00.000Z']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving modified promo-code mappings after poweruser permission is removed', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('offers', ['offer-1|NEWCODE|mas:pzn/country/us']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
         it('saves promotion when all required fields are valid', async () => {
             const { el, repo } = await mountEditorWithRepo();
             el.isNewPromotion = false;
@@ -1860,6 +2198,83 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('delete quick action', () => {
+        it('disables project deletion for editors even without promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' })));
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            expect(isPromotionQuickActionDisabled(el, 'Delete')).to.be.true;
+        });
+
+        it('rejects editor delete events for projects without promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' })));
+            const { el, repo } = await mountEditorWithRepo({ deleteFragment: sandbox.stub().resolves(true) });
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(el.isDialogOpen).to.be.false;
+            expect(repo.deleteFragment.called).to.be.false;
+        });
+
+        it('rejects project deletion when poweruser access is lost during confirmation', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const store = new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' }));
+            Store.promotions.inEdit.set(store);
+            const { el, repo } = await mountEditorWithRepo({ deleteFragment: sandbox.stub().resolves(true) });
+            clickPromotionQuickAction(el, 'Delete');
+            await flushPromises();
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await flushPromises();
+            expect(repo.deleteFragment.called).to.be.false;
+            expect(Store.promotions.inEdit.get()).to.equal(store);
+        });
+
+        for (const attachmentField of ['fragments', 'collections']) {
+            it(`prevents editors deleting projects with promo variations attached through ${attachmentField}`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                const promotion = makePromotion({
+                    id: 'restricted-project',
+                    title: 'Restricted project',
+                    fragments: ['/content/dam/mas/sandbox/en_US/my-card'],
+                    tags: [{ id: 'mas:promotion/summer' }],
+                });
+                promotion.getField('fragments').name = attachmentField;
+                Store.promotions.inEdit.set(new FragmentStore(promotion));
+                const { el, repo } = await mountEditorWithRepo({
+                    deleteFragment: sandbox.stub().resolves(true),
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: {
+                                    getById: sandbox.stub().resolves(null),
+                                    search: makeSearchStub({
+                                        '/content/dam/mas/sandbox/en_US/promotions/summer': [
+                                            {
+                                                id: 'variation',
+                                                path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                                                status: 'DRAFT',
+                                            },
+                                        ],
+                                    }),
+                                },
+                            },
+                        },
+                    },
+                });
+                clickPromotionQuickAction(el, 'Delete');
+                await flushPromises();
+                expect(el.isDialogOpen).to.be.false;
+                expect(repo.deleteFragment.called).to.be.false;
+            });
+        }
+
         it('opens confirmation dialog when Delete is clicked on a saved promotion', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-1', title: 'To Delete' })));
@@ -1909,21 +2324,24 @@ describe('MasPromotionsEditor', () => {
             );
         });
 
-        it('calls deleteFragment when delete dialog is confirmed', async () => {
-            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
-            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-2', title: 'Deletable' })));
-            const deleteFragment = sandbox.stub().resolves(true);
-            const { el, repo } = await mountEditorWithRepo({ deleteFragment });
-            await el.updateComplete;
-            clickPromotionQuickAction(el, 'Delete');
-            await new Promise((r) => setTimeout(r, 0));
-            await el.updateComplete;
-            el.renderRoot
-                .querySelector('#promotion-unsaved-changes-dialog')
-                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 0));
-            expect(repo.deleteFragment.calledOnce).to.be.true;
-        });
+        for (const group of ['GRP-ODIN-MAS-PROMO-POWERUSERS', 'GRP-ODIN-MAS-ADMINS']) {
+            it(`allows ${group} to delete a project after confirmation`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [group] }]);
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-2', title: 'Deletable' })));
+                const deleteFragment = sandbox.stub().resolves(true);
+                const { el, repo } = await mountEditorWithRepo({ deleteFragment });
+                await el.updateComplete;
+                clickPromotionQuickAction(el, 'Delete');
+                await new Promise((r) => setTimeout(r, 0));
+                await el.updateComplete;
+                el.renderRoot
+                    .querySelector('#promotion-unsaved-changes-dialog')
+                    .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+                await new Promise((r) => setTimeout(r, 0));
+                expect(repo.deleteFragment.calledOnce).to.be.true;
+            });
+        }
 
         it('does not delete attached promo variations when deleting the project', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
@@ -2008,6 +2426,58 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('duplicate quick action', () => {
+        it('disables project duplication for editors', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'existing-project', title: 'Existing project' })),
+            );
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            expect(isPromotionQuickActionDisabled(el, 'Duplicate')).to.be.true;
+        });
+
+        it('rejects dispatched project duplication requests from editors', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({
+                id: 'existing-project',
+                title: 'Existing project',
+                startDate: '2024-01-01T00:00:00.000Z',
+                endDate: '2024-12-31T00:00:00.000Z',
+                geos: ['mas:locale/us'],
+                surfaces: ['sandbox'],
+                fragments: ['/some/card'],
+            });
+            promotion.getField('tags').values = ['mas:promotion/existing-project'];
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { el } = await mountEditorWithRepo({ loadPromotions: sandbox.stub().resolves([]) });
+            await waitForEditorConnect(el);
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('duplicate', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(el.duplicateDialogOpen).to.be.false;
+        });
+
+        it('rejects project duplication confirmation after poweruser access is lost', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'existing-project', title: 'Existing project' })),
+            );
+            const { el, repo } = await mountEditorWithRepo();
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Existing project copy' },
+                }),
+            );
+            await flushPromises();
+            expect(repo.createFragment.called).to.be.false;
+        });
+
         afterEach(() => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');

@@ -13,6 +13,7 @@ import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import Store from '../store.js';
+import { canEditPromotions, canManagePromotions } from '../groups.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { Fragment } from '../aem/fragment.js';
 import {
@@ -187,7 +188,7 @@ class MasPromotionsItemsTable extends LitElement {
                 : this.type === TABLE_TYPE.CARDS
                   ? store.selectedCards
                   : store.selectedCollections;
-        const controllerStores = [selectionStore, Store.promotions.inEdit];
+        const controllerStores = [selectionStore, Store.promotions.inEdit, Store.profile, Store.users];
         // Offers render from offerRecordsCache, which is hydrated after first paint; refresh
         // when it lands.
         if (this.type === TABLE_TYPE.OFFERS) controllerStores.push(Store.promotions.offerRecordsHydrated);
@@ -549,6 +550,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #canCreatePromoVariation(item) {
+        if (!canEditPromotions()) return false;
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
         if (isPromoVariationPath(item.path)) return false;
         if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
@@ -589,6 +591,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #createPromoVariation(e, item) {
         e.stopPropagation();
+        if (!canEditPromotions()) {
+            this.#showToast('You do not have permission to create promo variations.', 'negative');
+            return;
+        }
         const promoTag = this.#promotionTagId;
         if (!promoTag || !item?.id || !this.repository) return;
 
@@ -643,6 +649,10 @@ class MasPromotionsItemsTable extends LitElement {
 
         const confirmed = await this.#confirmCreatePromoVariation();
         if (!confirmed) return;
+        if (!canEditPromotions()) {
+            this.#showToast('You do not have permission to create promo variations.', 'negative');
+            return;
+        }
 
         try {
             this.createPromoVariationLoading = true;
@@ -725,6 +735,10 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     async #applyOfferRemoval(selectorId) {
+        if (!canManagePromotions()) {
+            this.#showToast('Only promo powerusers can remove items from a promotion project.', 'negative');
+            return;
+        }
         const store = this.itemsSelection.value;
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
@@ -758,6 +772,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #removeFromList(e, item) {
         e.stopPropagation();
+        if (!canManagePromotions()) {
+            this.#showToast('Only promo powerusers can remove items from a promotion project.', 'negative');
+            return;
+        }
         const path = item?.path;
         if (!path) return;
         const store = this.itemsSelection.value;
@@ -899,7 +917,7 @@ class MasPromotionsItemsTable extends LitElement {
                       </sp-menu-item>`
                     : nothing}
                 ${this.type === TABLE_TYPE.OFFERS
-                    ? html`<sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                    ? html`<sp-menu-item ?disabled=${!canManagePromotions()} @click=${(e) => this.#removeFromList(e, item)}>
                           <sp-icon-delete slot="icon"></sp-icon-delete>
                           Remove from list
                       </sp-menu-item>`
@@ -915,7 +933,7 @@ class MasPromotionsItemsTable extends LitElement {
                                   ${this.type === TABLE_TYPE.COLLECTIONS ? 'View default collection' : 'View default fragment'}
                               </sp-link>
                           </sp-menu-item>
-                          <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                          <sp-menu-item ?disabled=${!canManagePromotions()} @click=${(e) => this.#removeFromList(e, item)}>
                               <sp-icon-delete slot="icon"></sp-icon-delete>
                               Remove from list
                           </sp-menu-item>`}

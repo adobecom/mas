@@ -187,7 +187,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (run !== this.#referencesMapRun || !this.isConnected) return;
         this.#fragmentReferencesMap = referencesMap;
         this.#referencesMapAppliedRun = run;
-        const stores = [this.fragmentStore, ...previewStores];
+        const stores = [this.fragmentStore, ...previewStores, Store.profile, Store.users];
         if (this.reactiveController) this.reactiveController.updateStores(stores);
         else this.reactiveController = new ReactiveController(this, stores);
 
@@ -1856,6 +1856,7 @@ class MerchCardCollectionEditor extends LitElement {
             disabled.add(QUICK_ACTION.SAVE);
             disabled.add(QUICK_ACTION.DISCARD);
         }
+        if (this.#hostFragmentEditor?.canDeleteFragment === false) disabled.add(QUICK_ACTION.DELETE);
         return disabled;
     }
 

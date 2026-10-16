@@ -41,3 +41,12 @@ test('AI secret retrieval is separate from required core secrets', async () => {
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs core'), true);
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs assistant'), true);
 });
+
+test('merging a stacked feature PR cannot trigger stage or production deployment', async () => {
+    const workflow = await readFile(new URL('../../.github/workflows/io-studio-merge.yaml', import.meta.url), 'utf8');
+    assert.match(workflow, /pull_request:\s*\n\s+branches: \[main\]/);
+    assert.match(
+        workflow,
+        /if: github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
+    );
+});

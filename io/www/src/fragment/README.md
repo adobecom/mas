@@ -28,7 +28,7 @@ Surface resolution: the `surface` parameter is the source of truth, then the sur
 
 Baselines locations (`<pa>` being the product arrangement code, e.g. `phsp_direct_individual`, `<segment>` the lower cased market segment of the resolved offer, e.g. `edu`, `gov`):
 
-- offer baseline (offer model, MCS copy & assets): `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to `en_US`. With ~1800 product arrangements per locale in MCS, that folder is too big to list per request: the `offers` action (every 15 minutes) syncs it into the namespace state, one `offer-<locale>-<pa>` key each (only changed ones are written, removed ones deleted), and the pipeline reads the keys it needs,
+- offer baseline (offer model, MCS copy & assets): `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to `en_US`. With ~1800 product arrangements per locale in MCS, that folder is too big to list per request: the `offers` action (every 15 minutes) syncs it into the namespace state, one `offer-<locale>-<pa>` key each (only changed ones are written, removed ones deleted), and the pipeline reads the keys it needs. Its MCS fields are mapped to card fields: `name` → `cardTitle`, first (svg) `icons` → `mnemonicIcon`; the other offer model fields are dropped (MCS `description` and `shortDescription` do not mean a card's),
 - fragment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/baseline`,
 - fragment market segment baseline: `/content/dam/mas/<surface>/<locale>/baselines/<template>/<pa>/<segment>/baseline`, only applied to offers of that market segment (COM offers use the fragment baseline only). Offer baselines have no market segment override.
 

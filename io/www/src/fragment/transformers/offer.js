@@ -90,11 +90,24 @@ const selectFragmentBaselines = (baselines, { productArrangementCode, marketSegm
 });
 
 /**
- * Offer baseline (offer model, MCS copy & assets) of a product arrangement, as synced in state by the `offers` action
- * from `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US.
+ * Card fields an offer baseline provides. Offer model fields are MCS's, not the card's: they are mapped explicitly, and
+ * the others are dropped (e.g. MCS `description` is a product name and `shortDescription` a marketing blurb, while a
+ * card's are its body copy and legal text). `icons` are MCS renditions, svg first: the card's icon is the first one.
  */
-const getOfferBaseline = (context, productArrangementCode) =>
-    readOfferBaseline(context, context.defaultLocale, productArrangementCode);
+const toCardFields = ({ name, icons }) => ({
+    ...(name && { cardTitle: name }),
+    ...(icons?.length && { mnemonicIcon: [icons[0]] }),
+});
+
+/**
+ * Offer baseline (offer model, MCS copy & assets) of a product arrangement, as synced in state by the `offers` action
+ * from `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US, with its fields mapped to
+ * card fields.
+ */
+async function getOfferBaseline(context, productArrangementCode) {
+    const offerBaseline = await readOfferBaseline(context, context.defaultLocale, productArrangementCode);
+    return offerBaseline && { ...offerBaseline, fields: toCardFields(offerBaseline.fields) };
+}
 
 /**
  * Request infos when no fragment `id` is requested (MWPW-186204): `offer`, `template` & `surface` select the main body,

@@ -22,13 +22,17 @@ const CARD_MODEL = { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ' }
 const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
 const OFFER_MODEL = { id: 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy' };
 
+const PS_ICON = 'https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/ps_appicon.svg';
+
 const OFFER_BASELINE = {
     id: 'offer-baseline-id',
     path: `/content/dam/mas/offers/en_US/baselines/${PA}/baseline`,
     model: OFFER_MODEL,
     fields: {
         name: 'Photoshop',
-        description: 'Creative Cloud single-app membership for Photoshop',
+        description: 'Photoshop',
+        shortDescription: 'Edit photos and create art with Photoshop.',
+        icons: [PS_ICON, 'https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/48x48/ps_appicon_48x48.png'],
         paCode: PA,
     },
 };
@@ -132,7 +136,7 @@ describe('offer transformer', () => {
             expect(body.id).to.equal('fragment-baseline-id');
             expect(body.offerBaselineId).to.equal('offer-baseline-id');
             expect(body.fields.cardTitle).to.equal('Photoshop baseline');
-            expect(body.fields.name).to.equal('Photoshop');
+            expect(body.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
             expect(body.fields.osi).to.equal(OSI);
             expect(body.wcs.prod[`${OSI}-us-mult`]).to.deep.equal(RESOLVED_OFFERS);
             expect(wcsCalls()).to.have.length(1);
@@ -155,7 +159,7 @@ describe('offer transformer', () => {
             expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
             expect(body.fields.cardTitle).to.equal('Photoshop for students');
             expect(body.fields.variant).to.equal('plans');
-            expect(body.fields.name).to.equal('Photoshop');
+            expect(body.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
         });
 
         it('uses the market segment override even without fragment baseline', async () => {
@@ -169,7 +173,7 @@ describe('offer transformer', () => {
             expect(statusCode).to.equal(200);
             expect(body.id).to.equal('edu-baseline-id');
             expect(body.fragmentBaselineId).to.be.undefined;
-            expect(body.fields.name).to.equal('Photoshop');
+            expect(body.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
         });
 
         it('ignores market segment overrides of other segments', async () => {
@@ -189,10 +193,25 @@ describe('offer transformer', () => {
             });
             expect(statusCode).to.equal(200);
             expect(body.id).to.equal('offer-baseline-id');
-            expect(body.fields.description).to.equal('Creative Cloud single-app membership for Photoshop');
+            // MCS fields are mapped to card fields, the others (e.g. MCS description & blurb) are dropped
+            expect(body.fields).to.deep.equal({ cardTitle: 'Photoshop', mnemonicIcon: [PS_ICON], osi: OSI });
             expect(body.fields.osi).to.equal(OSI);
             expect(body.wcs.prod[`${OSI}-us-mult`]).to.deep.equal(RESOLVED_OFFERS);
             expect(wcsCalls()).to.have.length(1);
+        });
+
+        it('only maps the MCS fields an offer baseline has', async () => {
+            mockOdin({ offerBaseline: { ...OFFER_BASELINE, fields: { paCode: PA, description: 'Photoshop' } } });
+            const { statusCode, body } = await getFragment({
+                offer: OSI,
+                template: 'plans',
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.offerBaselineId).to.equal('offer-baseline-id');
+            expect(body.fields.cardTitle).to.equal('Photoshop baseline');
+            expect(body.fields).to.not.have.any.keys('mnemonicIcon', 'description', 'paCode', 'name');
         });
 
         it('falls back to the en_US offer baseline for other locales', async () => {
@@ -285,7 +304,8 @@ describe('offer transformer', () => {
             expect(body.offerBaselineId).to.equal('offer-baseline-id');
             expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
             expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle ?? 'Photoshop baseline');
-            expect(body.fields.name).to.equal('Photoshop');
+            // the fragment's own icons win over the offer baseline's
+            expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
             expect(body.fields.osi).to.equal(OSI);
             expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
             expect(wcsCalls()).to.have.length(1);
@@ -300,7 +320,8 @@ describe('offer transformer', () => {
             expect(body.fragmentSegmentBaselineId).to.equal('edu-baseline-id');
             expect(body.fields.eduNote).to.equal('Students & teachers');
             expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle);
-            expect(body.fields.name).to.equal('Photoshop');
+            // the fragment's own icons win over the offer baseline's
+            expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
             expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
         });
 
@@ -463,7 +484,7 @@ describe('offer transformer', () => {
             expect(card1.fields.cardTitle).to.equal('own title');
             expect(card1.fragmentBaselineId).to.equal('fragment-baseline-id');
             expect(card2.fields.cardTitle).to.equal('Photoshop baseline');
-            expect(card2.fields.name).to.equal('Photoshop');
+            expect(card2.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
             expect(card3.offerBaselineId).to.equal('offer-baseline-id');
             expect(card3.fragmentBaselineId).to.be.undefined;
             expect(card4.offerBaselineId).to.be.undefined;

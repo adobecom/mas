@@ -29,6 +29,8 @@ We will resolve merch content as a stack of layers, from the lowest to the highe
     - Holds product default content, independent of any offer, pre-filled from MCS / NPI.
     - Falls back to `en_US`.
     - The `offers` I/O action syncs it into I/O state every 15 minutes, because the folder is too big to list per request.
+    - Only mapped fields reach a card: MCS `name` → `cardTitle`, the first (svg) of `icons` → `mnemonicIcon`. Other offer model fields stay in the offers API.
+    - It is the content shared across surfaces: placeholders holding product names move to it over time.
 2. **Template baseline**, at `{surface}/{locale}/baselines/{template}/{pa}/baseline`.
     - Holds content common to every card of a PA on a surface and template.
 3. **Market segment baseline**, at `{surface}/{locale}/baselines/{template}/{pa}/{segment}/baseline`.
@@ -53,6 +55,8 @@ Resolution rules:
 - **Full replacement per market segment** was rejected: an EDU baseline would duplicate everything that matches COM. Partial layers keep only the differences.
 - **Market segment overrides at the product level** were deferred: they would add a layer while no consumer needs them yet. Template-level overrides cover the known EDU cases. Product-level overrides can be added later as an additional layer below the template baseline.
 - **Encoding dimensions in the path, not in fields or tags**: one paginated listing of a template folder returns every baseline of that surface and template, including segment overrides. Authors also see the structure in the DAM.
+- **Merging product baseline fields by name** was rejected: MCS `description` is a product name and `short_description` a marketing blurb, while a card's `description` is its body copy and `shortDescription` often legal text. In published en_US `acom`, `acom-cc` and `acom-dc` cards (October 2026), 1 of 801 descriptions equals MCS's, and 86 cards without a description and 575 without a short description would have shown MCS copy.
+- **Customer segment overrides** (e.g. `{pa}/team`) were not added: the customer segment is part of the PA (`*_direct_individual`, `*_direct_indirect_team`, …), so a template baseline already applies to one customer segment. In the same content, no PA spans customer segments, and only `ccsn_direct_individual` spans market segments (COM, EDU).
 - **Product baselines in state rather than listed**: with ~1,800 PAs per locale, a listing per request is too slow. Reads by key (`offer-{locale}-{pa}`) are cheap and cached in container memory.
 
 ## Consequences

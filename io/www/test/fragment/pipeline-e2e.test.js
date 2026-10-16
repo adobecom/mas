@@ -1029,12 +1029,10 @@ describe('pipeline end to end', () => {
                 const label = `${segment} ${planType}`;
                 expect(card.offerBaselineId, label).to.equal(OFFER_BASELINE.id);
                 expect(card.fragmentBaselineId, label).to.equal(FRAGMENT_BASELINE.id);
+                // offer baseline fields are mapped to card fields (cardTitle, mnemonicIcon), the others dropped
+                expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
                 expect(card.fields, label).to.deep.include({
-                    // offer baseline (fields the plans baseline does not define)
-                    name: 'Photoshop',
-                    paCode: PA,
-                    icons: OFFER_BASELINE.fields.icons,
-                    // plans baseline, over the offer baseline (description) unless the card overrides it
+                    // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
                     variant: 'plans',
                     cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
                     mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
@@ -1190,9 +1188,8 @@ describe('pipeline end to end', () => {
                 expect(card.offerBaselineId, label).to.equal(offerBaseline.id);
                 expect(card.fragmentBaselineId, label).to.equal(fragmentBaseline.id);
                 expect(card.fields, label).to.deep.include({
-                    name: offerBaseline.fields.name,
-                    paCode: product.pa,
-                    icons: offerBaseline.fields.icons,
+                    // offer baseline: the plans baseline defines no icon
+                    mnemonicIcon: [offerBaseline.fields.icons[0]],
                     variant: 'plans',
                     cardTitle: fragmentBaseline.fields.cardTitle,
                     description: fragmentBaseline.fields.description,

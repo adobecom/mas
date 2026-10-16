@@ -153,6 +153,33 @@ describe('offers action', () => {
         expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal(['en_US']);
     });
 
+    it('tracks listed locales before writing their entries, so a sync failing midway is reconciled later', async () => {
+        const phsp = baseline('en_US', 'phsp_direct_individual');
+        const phspFr = baseline('fr_FR', 'phsp_direct_individual');
+        fetchStub.withArgs(listing(OFFERS)).returns(createResponse(200, { items: [phsp, phspFr] }));
+        state.put.restore();
+        const put = sinon.stub(state, 'put').callThrough();
+        // the tracked locales update closing the first sync fails
+        put.withArgs(OFFERS_LOCALES_STATE_KEY).onSecondCall().rejects(new Error('state unavailable'));
+        await main({ state }).then(
+            () => expect.fail('sync should fail'),
+            ({ message }) => expect(message).to.equal('state unavailable'),
+        );
+        expect(state.store[offerStateKey('fr_FR', 'phsp_direct_individual')]).to.equal(stored(phspFr));
+        expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal(['en_US', 'fr_FR']);
+        fetchStub.withArgs(listing(OFFERS)).returns(createResponse(200, { items: [phsp] }));
+
+        const { body } = await main({ state });
+
+        expect(body.locales).to.deep.equal([
+            { locale: 'en_US', total: 1, updated: 0, removed: 0 },
+            { locale: 'fr_FR', total: 0, updated: 0, removed: 1 },
+        ]);
+        expect(state.store[offerStateKey('fr_FR', 'phsp_direct_individual')]).to.be.undefined;
+        expect(state.store[offersBundleStateKey('fr_FR')]).to.be.undefined;
+        expect(JSON.parse(state.store[OFFERS_LOCALES_STATE_KEY])).to.deep.equal(['en_US']);
+    });
+
     it('rewrites unchanged baselines once their refresh deadline is passed, so they never expire', async () => {
         const day = 24 * 60 * 60 * 1000;
         const phsp = baseline('en_US', 'phsp_direct_individual');
@@ -315,6 +342,24 @@ describe('offers action', () => {
             const response = await get({ locale: 'en_US', pa: 'phsp_direct_individual' });
             expect(decode(response).phsp_direct_individual.fields.name).to.equal('Photoshop');
             expect(decode(await get({ locale: 'en_US' })).phsp_direct_individual.fields.name).to.equal('Photoshop');
+        });
+
+        it('stops serving offer baselines another container deleted once the cached response expires', async () => {
+            expect((await get({ locale: 'en_US' })).statusCode).to.equal(200);
+            // another container's sync deleted every bundle: this container's cache is not cleared
+            delete state.store[offersBundleStateKey('en_US')];
+            delete state.store[offersBundleStateKey('fr_FR')];
+            expect((await get({ locale: 'en_US' })).statusCode).to.equal(200);
+
+            const clock = sinon.useFakeTimers({ now: Date.now() + 10 * 60 * 1000, toFake: ['Date'] });
+            try {
+                // expired: served stale while refilling in the background
+                expect((await get({ locale: 'en_US' })).statusCode).to.equal(200);
+                await new Promise((resolve) => setImmediate(resolve));
+                expect((await get({ locale: 'en_US' })).statusCode).to.equal(404);
+            } finally {
+                clock.restore();
+            }
         });
     });
 });

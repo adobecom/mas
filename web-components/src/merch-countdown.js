@@ -42,7 +42,10 @@ export function remainingParts(start, end, now) {
 /** Fills the sentence's <unit>singular|plural</unit> pairs from `parts`; built-ins cover unresolved text. */
 export function renderSentence(parts, locale, template) {
     const language = locale.split(/[-_]/)[0];
-    const defaults = DEFAULTS[language] || DEFAULTS.en;
+    // Built-in text is English unless we ship the language. Its plural form follows its own language,
+    // so a ja page showing English still says "1 day" (ja has no singular rule).
+    const builtInLanguage = DEFAULTS[language] ? language : 'en';
+    const defaults = DEFAULTS[builtInLanguage];
     // Rich-text dictionary entries arrive wrapped in <p>.
     const authored = template?.replace(/<\/?p>/gi, '');
     const sentence =
@@ -50,14 +53,18 @@ export function renderSentence(parts, locale, template) {
             ? defaults.sentence
             : authored;
     // shortcut: singular|plural only, languages with more plural categories need more forms.
-    const plural = new Intl.PluralRules(language);
+    const formIndex = (lang, count) =>
+        new Intl.PluralRules(lang).select(count) === 'one' ? 0 : 1;
     return sentence.replace(COUNTDOWN_UNIT_PAIR, (_, name, pair) => {
+        const count = parts[name];
         const forms = pair.split('|');
-        const index = plural.select(parts[name]) === 'one' ? 0 : 1;
-        const form = forms[index] ?? forms[0];
-        const usable = form && !isUnresolvedCountdownToken(form);
-        const fallback = defaults[name][index] ?? defaults[name][0];
-        return (usable ? form : fallback).replace('{n}', parts[name]);
+        const form = forms[formIndex(language, count)] ?? forms[0];
+        const builtIn = defaults[name];
+        const text =
+            form && !isUnresolvedCountdownToken(form)
+                ? form
+                : (builtIn[formIndex(builtInLanguage, count)] ?? builtIn[0]);
+        return text.replace('{n}', count);
     });
 }
 

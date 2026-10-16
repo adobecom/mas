@@ -116,6 +116,13 @@
                             ),
                         ).to.equal('Fin dans 1 jour et 1 minute');
                     });
+                    it('keeps English singular wording for languages without a singular rule', () => {
+                        const one = '2026-11-02T01:01:00Z';
+                        for (const locale of ['ja_JP', 'zh_CN', 'vi_VN'])
+                            expect(
+                                countdownText(START, one, NOW, locale),
+                            ).to.equal('Ends in 1 day, 1 hour, 1 minute!');
+                    });
                     it('ignores the <p> wrapper of rich-text dictionary entries', () => {
                         expect(
                             countdownText(

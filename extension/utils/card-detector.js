@@ -23,6 +23,17 @@ const SELECTOR_MAS_FIELD_CONTENT = ':scope > [data-role="mas-field-content"]';
 // Everything the extension badges, so an added subtree is walked once.
 const SELECTOR_DETECTABLE = `${SELECTOR_CARD}, ${SELECTOR_BARE_ELEMENT}, ${SELECTOR_MAS_FIELD}`;
 
+// Custom elements whose upgrade means the page has something to detect. A
+// commerce-only page registers mas-field and the price/CTA elements without
+// ever defining merch-card, so the initial scan must proceed on any of these.
+const DETECTABLE_TAGS = ['merch-card', 'mas-field', 'inline-price', 'checkout-link', 'checkout-button'];
+
+// Resolves once any detectable element is defined, so the load-time scan does
+// not stall behind merch-card on a page that never registers it.
+function waitForDetectableElement(customElementsApi, tags) {
+    return Promise.race(tags.map((tag) => customElementsApi.whenDefined(tag)));
+}
+
 class CardDetector {
     constructor() {
         this.detectedCards = new Map();
@@ -131,14 +142,11 @@ class CardDetector {
             return;
         }
 
-        const merchCardDefined = customElements.get('merch-card') !== undefined;
-        if (!merchCardDefined) {
-            try {
-                await customElements.whenDefined('merch-card');
-            } catch (e) {
-                console.log('Merch At Scale Studio Extension: merch-card not defined, skipping');
-                return;
-            }
+        try {
+            await waitForDetectableElement(customElements, DETECTABLE_TAGS);
+        } catch (e) {
+            console.log('Merch At Scale Studio Extension: no detectable element defined, skipping');
+            return;
         }
 
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -314,6 +322,9 @@ class CardDetector {
     processBareElement(element) {
         if (this.elementIds.has(element)) return;
         if (this.isInsideCard(element)) return;
+        // A price or CTA rendered by a <mas-field> is detected as that field, not as a
+        // standalone offer, so it carries the field's identity and gets one badge.
+        if (element.closest?.(SELECTOR_MAS_FIELD)) return;
 
         const elementType = this.classifyBareElementType(element);
         if (!elementType) return;
@@ -352,14 +363,13 @@ class CardDetector {
     }
 
     /**
-     * Records a <mas-field> that renders a plain content field (title, description).
-     * Fields that render prices or CTAs are skipped: the commerce element inside is
-     * detected instead, so a single spot on the page never gets two badges.
+     * Records a <mas-field>, whatever it renders. A title or description is a plain
+     * content field; a price or CTA field owns the commerce element inside it, so that
+     * element is skipped in processBareElement and the whole field gets a single badge.
      */
     processMasField(element) {
         if (this.elementIds.has(element)) return;
         if (this.isInsideCard(element)) return;
-        if (element.querySelector(SELECTOR_BARE_ELEMENT)) return;
 
         // Absent until the backing fragment resolves; a later mutation retries.
         const sourceFragmentId = element.getAttribute('fragment-id');
@@ -373,8 +383,9 @@ class CardDetector {
         const localeInfo = this.pageLocale || this.getPageLocale();
         const fieldName = element.getAttribute('field') || 'field';
         const displayText = (element.textContent || '').trim();
+        const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
         // mas-field is display:contents, so it has no box of its own to anchor a badge to.
-        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || element;
+        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
 
         const elementData = {
             element,
@@ -382,6 +393,7 @@ class CardDetector {
             id,
             fragmentId: id,
             sourceFragmentId,
+            osi: commerceChild?.getAttribute('data-wcs-osi') || null,
             variant: fieldName,
             elementType: 'field',
             displayText,
@@ -473,5 +485,5 @@ if (typeof window !== 'undefined') {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { CardDetector, URL_SEGMENT_ALIASES };
+    module.exports = { CardDetector, URL_SEGMENT_ALIASES, DETECTABLE_TAGS, waitForDetectableElement };
 }

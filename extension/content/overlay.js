@@ -202,6 +202,7 @@ class CardOverlay {
             window.MASStudioLinker.openInStudio(sourceFragmentId, {
                 variant: cardData.variant,
                 locale: cardData.locale,
+                elementType: cardData.elementType,
             });
         });
 
@@ -597,7 +598,10 @@ class CardOverlay {
     }
 
     openParentFragment(fragmentId, variationInfo) {
-        const key = this.cacheKey(fragmentId, variationInfo.localeDefaultLocale, null);
+        // The overlay is keyed by a synthetic id for fields and bare offers, so the
+        // parent fetch must use the real source fragment, not that synthetic id.
+        const sourceFragmentId = this.overlays.get(fragmentId).cardData.sourceFragmentId;
+        const key = this.cacheKey(sourceFragmentId, variationInfo.localeDefaultLocale, null);
         const cached = this.fragmentDataCache.get(key);
         if (cached) {
             window.MASStudioLinker.openParentInStudio(variationInfo, cached.id);
@@ -607,7 +611,7 @@ class CardOverlay {
             chrome.runtime.sendMessage(
                 {
                     type: 'FETCH_FRAGMENT_DATA',
-                    fragmentId: fragmentId,
+                    fragmentId: sourceFragmentId,
                     locale: variationInfo.localeDefaultLocale,
                     ...window.MASCardDetector.getServiceConfig(),
                 },

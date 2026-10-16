@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 global.window = { MASLocales: require('../../utils/locales.js'), MASPromo: require('../../utils/promo.js') };
 global.document = { documentElement: { clientHeight: 800, clientWidth: 800 } };
-const { CardDetector } = require('../../utils/card-detector.js');
+const { CardDetector, DETECTABLE_TAGS, waitForDetectableElement } = require('../../utils/card-detector.js');
 
 const detector = new CardDetector();
 
@@ -322,10 +322,26 @@ test('processMasField records a field that loads after an earlier skipped attemp
     assert.equal(d.detectedCards.size, 1);
 });
 
-test('processMasField defers to the inner commerce element when the field renders one', () => {
+test('processMasField records a price field as a field, carrying the inner offer id', () => {
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
-    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'prices', commerceChild: {} }));
+    const commerceChild = {
+        getAttribute: (name) => (name === 'data-wcs-osi' ? 'abc123' : null),
+        getBoundingClientRect: () => ({ top: 0, left: 0, bottom: 0, right: 0 }),
+    };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'price', commerceChild }));
+    assert.equal(d.detectedCards.size, 1);
+    const [[, data]] = d.detectedCards.entries();
+    assert.equal(data.elementType, 'field');
+    assert.equal(data.variant, 'price');
+    assert.equal(data.osi, 'abc123');
+    assert.equal(data.anchorElement, commerceChild);
+});
+
+test('processBareElement skips a price rendered inside a mas-field', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processBareElement(fakeBareElement({ is: 'inline-price', osi: 'abc123', masFieldOwner: {} }));
     assert.equal(d.detectedCards.size, 0);
 });
 
@@ -386,4 +402,37 @@ test('getAllCards exposes the source fragment id and anchor rect for field eleme
     assert.equal(field.sourceFragmentId, 'frag-7');
     assert.equal(field.elementType, 'field');
     assert.equal(field.boundingRect.right, 40);
+});
+
+function fakeCustomElements(definedTags) {
+    const defined = new Set(definedTags);
+    const waiters = new Map();
+    return {
+        whenDefined(tag) {
+            if (defined.has(tag)) return Promise.resolve();
+            return new Promise((resolve) => waiters.set(tag, resolve));
+        },
+        define(tag) {
+            defined.add(tag);
+            waiters.get(tag)?.();
+        },
+    };
+}
+
+test('the initial scan proceeds when mas-field defines but merch-card never does', async () => {
+    const ce = fakeCustomElements(['mas-field']);
+    await assert.doesNotReject(waitForDetectableElement(ce, DETECTABLE_TAGS));
+});
+
+test('the initial scan proceeds once a commerce element upgrades after start', async () => {
+    const ce = fakeCustomElements([]);
+    const ready = waitForDetectableElement(ce, DETECTABLE_TAGS);
+    ce.define('inline-price');
+    await assert.doesNotReject(ready);
+});
+
+test('detectable tags cover the commerce-only elements, not just merch-card', () => {
+    assert.ok(DETECTABLE_TAGS.includes('mas-field'));
+    assert.ok(DETECTABLE_TAGS.includes('inline-price'));
+    assert.ok(DETECTABLE_TAGS.includes('merch-card'));
 });

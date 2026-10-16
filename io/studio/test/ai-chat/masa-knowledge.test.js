@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { createHash } = require('node:crypto');
 const { execFileSync, spawnSync } = require('node:child_process');
-const { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 
@@ -46,12 +46,8 @@ describe('ai-chat/mas-agent knowledge import', () => {
 
     it('requires knowledge locally and in CI without replacing a previous snapshot', () => {
         writeFileSync(output, 'previous validated snapshot');
-        for (const [args, overrides] of [
-            [[], {}],
-            [['--required'], {}],
-            [[], { CI: 'true' }],
-        ]) {
-            const result = spawnSync(process.execPath, [script, ...args], { env: { ...env, ...overrides }, encoding: 'utf8' });
+        for (const overrides of [{}, { CI: 'true' }]) {
+            const result = spawnSync(process.execPath, [script], { env: { ...env, ...overrides }, encoding: 'utf8' });
             expect(result.status).to.equal(1);
             expect(result.stderr).to.include('A mas-agent author export is required');
             expect(readFileSync(output, 'utf8')).to.equal('previous validated snapshot');
@@ -63,6 +59,25 @@ describe('ai-chat/mas-agent knowledge import', () => {
         expect(() => validateCorpus({ ...corpus, generatedAt: 'yesterday' })).to.throw('generation date');
         expect(() => validateCorpus({ ...corpus, chunks: [...corpus.chunks, ...corpus.chunks] })).to.throw('duplicate');
         expect(() => validateCorpus({ ...corpus, chunks: [{ ...corpus.chunks[0], text: '  ' }] })).to.throw('no text');
+    });
+
+    it('rejects keywords that are not nonempty strings', () => {
+        for (const keywords of ['catalog', ['catalog', 7], ['catalog', ' ']]) {
+            expect(() => validateCorpus({ ...corpus, chunks: [{ ...corpus.chunks[0], keywords }] })).to.throw(
+                'invalid keywords',
+            );
+        }
+    });
+
+    it('runs when invoked through a symlinked path', () => {
+        const linked = join(directory, 'linked');
+        symlinkSync(directory, linked);
+        const result = spawnSync(process.execPath, [join(linked, 'scripts/fetch-masa-knowledge.mjs')], {
+            env,
+            encoding: 'utf8',
+        });
+        expect(result.status).to.equal(1);
+        expect(result.stderr).to.include('A mas-agent author export is required');
     });
 
     it('keeps the previous snapshot when an export is malformed, empty, or not the tested version', () => {

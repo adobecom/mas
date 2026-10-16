@@ -109,6 +109,42 @@ const PROBES = [
  */
 const KNOWN_GAPS = {};
 
+/**
+ * Tool identifiers are verb-led (search_cards, create_grouped_variation). The
+ * export also names API fields and URL parameters (promotion_code,
+ * single_app), which are not tools, so only these verbs mark an identifier.
+ */
+const TOOL_VERBS = new Set([
+    'attach',
+    'copy',
+    'create',
+    'delete',
+    'find',
+    'get',
+    'link',
+    'list',
+    'open',
+    'publish',
+    'resolve',
+    'search',
+    'update',
+]);
+
+function unknownToolNames(chunks, known) {
+    const unknown = new Set();
+    for (const chunk of chunks) {
+        for (const [token, verb] of `${chunk.title} ${chunk.section} ${chunk.text}`.matchAll(/\b([a-z]+)(?:_[a-z]+){1,3}\b/g)) {
+            if (TOOL_VERBS.has(verb) && !known.has(token)) unknown.add(`${chunk.id}: ${token}`);
+        }
+    }
+    return [...unknown];
+}
+
+async function registryToolNames() {
+    const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
+    return new Set(INTENTS.flatMap((intent) => [intent.name, intent.tool_target].filter(Boolean)));
+}
+
 let retrieve;
 
 async function answersAbout(question, marker) {
@@ -155,6 +191,28 @@ describe('ai-chat/knowledge coverage', () => {
             expect(context).to.match(evidence);
         });
     }
+
+    /**
+     * A corpus that names a tool identifier lets the model connect a documented
+     * capability to an intent it can emit. That makes a stale identifier worse
+     * than a stale sentence: it reads like a real tool name, so it seeds a call
+     * the registry will reject.
+     *
+     * find_untranslated_cards survived in the corpus for a day after its intent
+     * was removed, purely because nothing checked.
+     */
+    it('names no tool the registry does not have', async () => {
+        const { chunks } = await loadRealCorpus();
+        const unknown = unknownToolNames(chunks, await registryToolNames());
+
+        expect(unknown, `corpus names tools that are not in the registry:\n  ${unknown.join('\n  ')}`).to.deep.equal([]);
+    });
+
+    it('flags a stale tool name but not an API field', async () => {
+        const chunk = { id: 'fixture', title: '', section: '', text: 'find_untranslated_cards reads promotion_code' };
+
+        expect(unknownToolNames([chunk], await registryToolNames())).to.deep.equal(['fixture: find_untranslated_cards']);
+    });
 
     describe('the known gaps', () => {
         it('shrinks: a question that now answers correctly must leave KNOWN_GAPS', async () => {

@@ -8,15 +8,15 @@
  *   node scripts/fetch-masa-knowledge.mjs [--file <knowledge-author.json>] [--expected-sha256 <hash>]
  *
  * MAS_AGENT_KNOWLEDGE_TOKEN reads adobecom/mas-agent releases. --file or MAS_AGENT_KNOWLEDGE_FILE
- * reads a local author export instead. A valid, nonempty source is always required; --required is
- * retained for existing callers. Failed refreshes leave the previous module intact. The optional
- * digest pins deployment to the exact export that passed tests, even if knowledge-latest changes.
+ * reads a local author export instead. A valid, nonempty source is always required. Failed
+ * refreshes leave the previous module intact. The optional digest pins deployment to the exact
+ * export that passed tests, even if knowledge-latest changes.
  */
 
 import { createHash } from 'node:crypto';
-import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -43,12 +43,15 @@ export function validateCorpus(corpus) {
         }
         if (ids.has(chunk.id)) throw new Error(`duplicate knowledge chunk id: ${chunk.id}`);
         ids.add(chunk.id);
+        const keywords = chunk.keywords ?? [];
+        if (!Array.isArray(keywords) || keywords.some((keyword) => typeof keyword !== 'string' || !keyword.trim()))
+            throw new Error(`chunk ${index} has invalid keywords`);
         return {
             id: `masa:${chunk.id}`,
             topic: chunk.topic,
             title: chunk.title,
             section: chunk.section,
-            keywords: Array.isArray(chunk.keywords) ? chunk.keywords : [],
+            keywords,
             text: chunk.text,
         };
     });
@@ -91,7 +94,6 @@ async function download(token) {
 async function main() {
     const { values } = parseArgs({
         options: {
-            required: { type: 'boolean', default: false },
             file: { type: 'string' },
             'expected-sha256': { type: 'string' },
         },
@@ -121,7 +123,8 @@ async function main() {
     );
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// Node resolves symlinks in import.meta.url but not in argv, e.g. macOS /var -> /private/var.
+if (process.argv[1] && pathToFileURL(realpathSync(process.argv[1])).href === import.meta.url) {
     main().catch((error) => {
         console.error(error.message);
         process.exitCode = 1;

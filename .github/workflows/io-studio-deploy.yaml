@@ -66,6 +66,8 @@ jobs:
         defaults:
             run:
                 working-directory: io/studio
+        outputs:
+            knowledge_sha256: ${{ steps.knowledge.outputs.sha256 }}
 
         steps:
             - name: Checkout repository
@@ -102,11 +104,21 @@ jobs:
                   MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
               run: npm test
 
+            - name: Record the tested knowledge export
+              id: knowledge
+              run: node --input-type=module -e "import { MASA_KNOWLEDGE } from './src/ai-chat/masa-knowledge.js'; console.log('sha256=' + MASA_KNOWLEDGE.sha256);" >> "$GITHUB_OUTPUT"
+
+    # Waits for the tests job so AI actions ship only the export it validated. Core actions still
+    # deploy whatever its outcome, so a knowledge outage cannot block them.
     deploy:
+        needs: tests
+        if: ${{ !cancelled() }}
         runs-on: self-hosted
         concurrency:
             group: io-studio-deploy-${{ inputs.vault-path }}
             cancel-in-progress: false
+            # By default a newly pending deployment cancels the one already waiting in the group.
+            queue: max
         defaults:
             run:
                 working-directory: io/studio
@@ -220,8 +232,14 @@ jobs:
               continue-on-error: true
               env:
                   MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
-                  MAS_AGENT_KNOWLEDGE_SHA256: ${{ inputs.knowledge_sha256 }}
-              run: npm run fetch:masa-knowledge -- --required --expected-sha256 "$MAS_AGENT_KNOWLEDGE_SHA256"
+                  MAS_AGENT_KNOWLEDGE_SHA256: ${{ inputs.knowledge_sha256 || needs.tests.outputs.knowledge_sha256 }}
+                  RUN_TESTS: ${{ inputs.run_tests }}
+              run: |
+                  if [ "$RUN_TESTS" = 'true' ] && [ -z "$MAS_AGENT_KNOWLEDGE_SHA256" ]; then
+                      echo '::error::The tests job did not validate a knowledge export.'
+                      exit 1
+                  fi
+                  npm run fetch:masa-knowledge -- --expected-sha256 "$MAS_AGENT_KNOWLEDGE_SHA256"
 
             # A scheduled refresh must not roll back application code if main advanced while it
             # waited for the workspace deployment lock. A subsequent refresh uses the newer main.

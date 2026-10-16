@@ -50,3 +50,20 @@ test('merging a stacked feature PR cannot trigger stage or production deployment
         /if: github\.event\.pull_request\.merged == true && github\.event\.pull_request\.base\.ref == 'main'/,
     );
 });
+
+test('a waiting deployment is queued, not replaced by the next one', async () => {
+    const workflow = await readFile(new URL('../../.github/workflows/io-studio-deploy.yaml', import.meta.url), 'utf8');
+    assert.match(
+        workflow,
+        /group: io-studio-deploy-\$\{\{ inputs\.vault-path \}\}\s*\n\s+cancel-in-progress: false\s*\n(\s+#.*\n)*\s+queue: max/,
+    );
+});
+
+test('AI actions deploy only the knowledge export the tests job validated', async () => {
+    const workflow = await readFile(new URL('../../.github/workflows/io-studio-deploy.yaml', import.meta.url), 'utf8');
+    assert.match(workflow, /knowledge_sha256: \$\{\{ steps\.knowledge\.outputs\.sha256 \}\}/);
+    assert.match(
+        workflow,
+        /MAS_AGENT_KNOWLEDGE_SHA256: \$\{\{ inputs\.knowledge_sha256 \|\| needs\.tests\.outputs\.knowledge_sha256 \}\}/,
+    );
+});

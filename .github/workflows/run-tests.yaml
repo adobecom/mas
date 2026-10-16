@@ -32,11 +32,18 @@ jobs:
             - name: Install XVFB
               run: sudo apt-get install xvfb
 
+            # Fork and Dependabot PRs receive no repository secrets, so they cannot read mas-agent.
+            - name: Check mas-agent read access
+              id: masa-access
+              env:
+                  AVAILABLE: ${{ secrets.MAS_AGENT_READER_APP_KEY != '' || secrets.MAS_AGENT_KNOWLEDGE_TOKEN != '' }}
+              run: echo "available=$AVAILABLE" >> "$GITHUB_OUTPUT"
+
             # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
             # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
             - name: Mint a mas-agent read token
               id: masa-token
-              if: ${{ vars.MAS_AGENT_READER_APP_ID != '' }}
+              if: steps.masa-access.outputs.available == 'true' && vars.MAS_AGENT_READER_APP_ID != ''
               uses: actions/create-github-app-token@v3
               with:
                   app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
@@ -49,7 +56,15 @@ jobs:
             - name: Run the tests
               env:
                   MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
-              run: xvfb-run -a npm test
+                  MAS_AGENT_ACCESS: ${{ steps.masa-access.outputs.available }}
+              run: |
+                  if [ "$MAS_AGENT_ACCESS" = 'true' ]; then
+                      xvfb-run -a npm test
+                  else
+                      echo '::notice::Skipping io/studio: its tests need mas-agent read access, which this run does not have.'
+                      mapfile -t workspaces < <(node -p "require('./package.json').workspaces.filter((name) => name !== 'io/studio').map((name) => '--workspace=' + name).join('\n')")
+                      xvfb-run -a npm run test:ci "${workspaces[@]}"
+                  fi
 
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v5

@@ -170,13 +170,14 @@ All fetched values — and the Vault token — are masked in the workflow logs.
 The assistant searches only mas-agent's author corpus. Maintain product facts, authoring guidance
 and troubleshooting in `adobecom/mas-agent/knowledge/`; Studio has no authored corpus or local
 knowledge fallback. Intent schemas, guided UI flows and confirmation rules remain in Studio.
-Test and
-deployment jobs download `knowledge-author.json` from the `knowledge-latest` release of
+
+Test and deployment jobs download `knowledge-author.json` from the `knowledge-latest` release of
 `adobecom/mas-agent` with Contents read access. CI mints a short-lived token when repository variable
 `MAS_AGENT_READER_APP_ID` is configured, using repository secret `MAS_AGENT_READER_APP_KEY`.
 Set the key first and then the App-ID variable. Use only the MASA knowledge reader App, installed
 on `adobecom/mas-agent`; MASA's writing App key stays on its host. Installation IDs are discovered
-by the token action and need no repository variable. The imported
+by the token action and need no repository variable. Fork and Dependabot PRs receive no repository
+secrets, so the repository-wide Unit Tests workflow skips io/studio for them. The imported
 module, `src/ai-chat/masa-knowledge.js`, is generated and gitignored. It contains the corpus revision
 and is bundled with the assistant; answering a question does not call mas-agent.
 

@@ -35,6 +35,16 @@ class MasGroupedSelector extends LitElement {
         this.applying = false;
     }
 
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener('cancel', this.#blockCancelWhileApplying, true);
+    }
+
+    disconnectedCallback() {
+        window.removeEventListener('cancel', this.#blockCancelWhileApplying, true);
+        super.disconnectedCallback();
+    }
+
     get showEmptyState() {
         return this.#dialogOpen ? this.#emptyOnOpen : this.selected.length === 0;
     }
@@ -99,6 +109,10 @@ class MasGroupedSelector extends LitElement {
             return;
         }
         this.#closeDialog(event.currentTarget);
+    };
+
+    #blockCancelWhileApplying = (event) => {
+        if (this.applying && event.composedPath().includes(this)) event.preventDefault();
     };
 
     #handleClose = async (event) => {

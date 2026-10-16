@@ -282,6 +282,28 @@ describe('MasGroupedSelector', () => {
         expect(onClose.called).to.be.false;
     });
 
+    it('keeps the open dialog open when its Cancel button is clicked while confirm is pending', async () => {
+        const el = await render();
+        const pending = holdConfirm(el);
+        await openDialog(el);
+        const dialog = query(el, '.selector-dialog');
+        dialog.dispatchEvent(new Event('confirm'));
+        await el.updateComplete;
+        const cancelButton = [...dialog.shadowRoot.querySelectorAll('sp-button')].find(
+            (button) => button.textContent.trim() === 'Cancel',
+        );
+        const onDialogCancel = sinon.spy();
+        dialog.addEventListener('cancel', onDialogCancel);
+        cancelButton.click();
+        await el.updateComplete;
+        expect(onDialogCancel.calledOnce).to.be.true;
+        expect(query(el, 'overlay-trigger').open).to.equal('click');
+        const closed = oneEvent(dialog, 'close');
+        pending.resolve(true);
+        await closed;
+        await el.updateComplete;
+    });
+
     it('does not dismiss on Escape while confirm is pending', async () => {
         const el = await render();
         holdConfirm(el);

@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-product-detail.js';
@@ -19,6 +20,11 @@ describe('MasProductDetail create flow', () => {
         globalThis.fetch = originalFetch;
         sessionStorage.removeItem('masAccessToken');
         sinon.restore();
+    });
+
+    it('renders product details inside the shared editor container', async () => {
+        const mounted = await fixture(html`<mas-product-detail .product=${{}}></mas-product-detail>`);
+        expect(mounted.querySelector('.product-detail.editor-container')).to.exist;
     });
 
     describe('handleMultiOfferSelect', () => {

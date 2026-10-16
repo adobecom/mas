@@ -321,72 +321,74 @@ class MasBulkPublish extends LitElement {
         const isLoading = this.loading.value;
         const showEmpty = !isLoading && projects.length === 0;
         return html`
-            <header>
-                <div class="header-row">
-                    <h1>Bulk publish</h1>
-                    <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create project
-                    </sp-button>
-                </div>
-                <sp-divider size="s"></sp-divider>
-            </header>
-            ${this.duplicatePending
-                ? html`<mas-bulk-publish-duplicate-dialog
-                      open
-                      .proposedTitle=${this.duplicatePending.proposedTitle}
-                      @duplicate-confirmed=${this.handleDuplicateConfirmed}
-                      @duplicate-cancelled=${this.handleDuplicateCancel}
-                  ></mas-bulk-publish-duplicate-dialog>`
-                : nothing}
-            ${this.deletePending
-                ? html`<mas-bulk-publish-delete-dialog
-                      open
-                      .projectTitle=${this.deletePending.title}
-                      @delete-confirmed=${this.handleDeleteConfirmed}
-                      @delete-cancelled=${this.handleDeleteCancel}
-                  ></mas-bulk-publish-delete-dialog>`
-                : nothing}
-            ${this.revertPending
-                ? html`<mas-bulk-publish-revert-dialog
-                      open
-                      .projectTitle=${this.revertPending.title}
-                      @revert-confirmed=${this.handleRevertConfirmed}
-                      @revert-cancelled=${this.handleRevertCancel}
-                  ></mas-bulk-publish-revert-dialog>`
-                : nothing}
-            ${this.resetPending
-                ? html`<mas-bulk-publish-reset-dialog
-                      open
-                      .projectTitle=${this.resetPending.title}
-                      @reset-confirmed=${this.handleResetConfirmed}
-                      @reset-cancelled=${this.handleResetCancel}
-                  ></mas-bulk-publish-reset-dialog>`
-                : nothing}
-            ${this.duplicating
-                ? html`<div class="duplicating-overlay">
-                      <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
-                  </div>`
-                : nothing}
-            ${showEmpty
-                ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
-                : html`
-                      <sp-table emphasized class="item-table">
-                          <sp-table-head>
-                              <sp-table-head-cell>Project</sp-table-head-cell>
-                              <sp-table-head-cell class="center">Fragment</sp-table-head-cell>
-                              <sp-table-head-cell class="center">Collection</sp-table-head-cell>
-                              <sp-table-head-cell class="center">Placeholder</sp-table-head-cell>
-                              <sp-table-head-cell>Created by</sp-table-head-cell>
-                              <sp-table-head-cell>Scheduled publish date</sp-table-head-cell>
-                              <sp-table-head-cell>Status</sp-table-head-cell>
-                              <sp-table-head-cell class="center">Actions</sp-table-head-cell>
-                          </sp-table-head>
-                          <sp-table-body>
-                              ${isLoading ? renderSkeletonRows(8) : projects.map((p) => this.renderRow(p))}
-                          </sp-table-body>
-                      </sp-table>
-                  `}
+            <div class="page-container">
+                <header>
+                    <div class="header-row">
+                        <h1>Bulk publish</h1>
+                        <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                            Create project
+                        </sp-button>
+                    </div>
+                    <sp-divider size="s"></sp-divider>
+                </header>
+                ${this.duplicatePending
+                    ? html`<mas-bulk-publish-duplicate-dialog
+                          open
+                          .proposedTitle=${this.duplicatePending.proposedTitle}
+                          @duplicate-confirmed=${this.handleDuplicateConfirmed}
+                          @duplicate-cancelled=${this.handleDuplicateCancel}
+                      ></mas-bulk-publish-duplicate-dialog>`
+                    : nothing}
+                ${this.deletePending
+                    ? html`<mas-bulk-publish-delete-dialog
+                          open
+                          .projectTitle=${this.deletePending.title}
+                          @delete-confirmed=${this.handleDeleteConfirmed}
+                          @delete-cancelled=${this.handleDeleteCancel}
+                      ></mas-bulk-publish-delete-dialog>`
+                    : nothing}
+                ${this.revertPending
+                    ? html`<mas-bulk-publish-revert-dialog
+                          open
+                          .projectTitle=${this.revertPending.title}
+                          @revert-confirmed=${this.handleRevertConfirmed}
+                          @revert-cancelled=${this.handleRevertCancel}
+                      ></mas-bulk-publish-revert-dialog>`
+                    : nothing}
+                ${this.resetPending
+                    ? html`<mas-bulk-publish-reset-dialog
+                          open
+                          .projectTitle=${this.resetPending.title}
+                          @reset-confirmed=${this.handleResetConfirmed}
+                          @reset-cancelled=${this.handleResetCancel}
+                      ></mas-bulk-publish-reset-dialog>`
+                    : nothing}
+                ${this.duplicating
+                    ? html`<div class="duplicating-overlay">
+                          <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                      </div>`
+                    : nothing}
+                ${showEmpty
+                    ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
+                    : html`
+                          <sp-table emphasized class="item-table">
+                              <sp-table-head>
+                                  <sp-table-head-cell>Project</sp-table-head-cell>
+                                  <sp-table-head-cell class="center">Fragment</sp-table-head-cell>
+                                  <sp-table-head-cell class="center">Collection</sp-table-head-cell>
+                                  <sp-table-head-cell class="center">Placeholder</sp-table-head-cell>
+                                  <sp-table-head-cell>Created by</sp-table-head-cell>
+                                  <sp-table-head-cell>Scheduled publish date</sp-table-head-cell>
+                                  <sp-table-head-cell>Status</sp-table-head-cell>
+                                  <sp-table-head-cell class="center">Actions</sp-table-head-cell>
+                              </sp-table-head>
+                              <sp-table-body>
+                                  ${isLoading ? renderSkeletonRows(8) : projects.map((p) => this.renderRow(p))}
+                              </sp-table-body>
+                          </sp-table>
+                      `}
+            </div>
         `;
     }
 }

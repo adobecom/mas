@@ -1,12 +1,13 @@
 ---
-id: CONT-0002
+id: CONT-0006
 title: Select one promotion, regional or PZN variation per fragment
 status: active
 scope: project
-related: ['adr:adobecom/mas/CONT-0001', 'adr:Adobe-acom/core/KNOW-0000']
+related:
+    ['adr:adobecom/mas/CONT-0001', 'adr:adobecom/mas/CONT-0003', 'adr:adobecom/mas/CONT-0005', 'adr:Adobe-acom/core/KNOW-0000']
 ---
 
-# CONT-0002. Select one promotion, regional or PZN variation per fragment
+# CONT-0006. Select one promotion, regional or PZN variation per fragment
 
 ## Context
 
@@ -18,14 +19,14 @@ A card or collection fragment is authored once in its default locale (e.g. `fr_F
 
 Duplicating the card for each case would break translation and the link to the parent card. The request carries the inputs: `locale`, `country`, and a comma-separated `pzn` parameter.
 
-The baseline layers below the fragment are defined in [CONT-0001](./CONT-0001-layer-merch-content-through-baselines.md). This ADR defines the top layer.
+The baseline layers below the fragment are defined in [CONT-0005](./CONT-0005-layer-merch-content-through-baselines.md). This ADR defines the top layer.
 
 ## Decision
 
-We will model these adaptations as **variations**: partial fragments of the same model, referenced by the parent's `variations` field and merged over it at field level. Exactly one variation is merged, picked in this order. Paths are relative to `/content/dam/mas` and `{fragmentPath}` is the parent's path below its locale folder:
+We will model these adaptations as **variations**: partial fragments of the same model, merged over the parent at field level. Regional and PZN variations are referenced by the parent's `variations` field; promotion variations are found by path ([CONT-0003](./CONT-0003-model-promotions-as-projects-and-variations.md)). Exactly one variation is merged, picked in this order. Paths are relative to `/content/dam/mas` and `{fragmentPath}` is the parent's path below its locale folder:
 
 1. **Promotion variation**, at `{surface}/{locale}/promotions/{campaign}/{fragmentPath}`.
-    - Applies while its promotion project is active for the request.
+    - Applies while its promotion project is active for the request ([CONT-0003](./CONT-0003-model-promotions-as-projects-and-variations.md)).
     - Several geo-targeted promotions of the same fragment use the suffixes `-2`, `-3` and so on, up to 50.
     - A promotion can also target a PZN variation, at `promotions/{campaign}/{fragmentPath}/pzn/{name}`.
 2. **Regional variation**, at `{surface}/{regionLocale}/{fragmentPath}`, e.g. `fr_LU` for `fr_FR` + `country=LU`.
@@ -36,7 +37,7 @@ We will model these adaptations as **variations**: partial fragments of the same
     - Scoring: each matched `pzn` token is worth 100 and a geo match 10. The highest non-zero score wins, and a score of zero applies nothing.
     - `{name}` describes the audience, e.g. `edu`, `trial`, `pzn-kw`. It is not interpreted: only `pznTags` select the variation.
 
-A PZN segment (request `pzn` parameter, chosen by the page) is not a WCS market segment (resolved from the offer, [CONT-0001](./CONT-0001-layer-merch-content-through-baselines.md)). An EDU offer gets the EDU baseline everywhere. An `edu` PZN variation only applies to EDU-targeted visitors, whatever the card's offer.
+A PZN segment (request `pzn` parameter, chosen by the page) is not a WCS market segment (resolved from the offer, [CONT-0005](./CONT-0005-layer-merch-content-through-baselines.md)). An EDU offer gets the EDU baseline everywhere. An `edu` PZN variation only applies to EDU-targeted visitors, whatever the card's offer.
 
 ## Rationale
 

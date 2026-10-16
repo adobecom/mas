@@ -1,12 +1,18 @@
 ---
-id: CONT-0001
+id: CONT-0005
 title: Layer merch content through product, template and market segment baselines
 status: active
 scope: project
-related: ['adr:adobecom/mas/CONT-0002', 'adr:Adobe-acom/core/KNOW-0000', 'adr:Adobe-acom/core/KNOW-0001']
+related:
+    [
+        'adr:adobecom/mas/CONT-0001',
+        'adr:adobecom/mas/CONT-0006',
+        'adr:Adobe-acom/core/KNOW-0000',
+        'adr:Adobe-acom/core/KNOW-0001',
+    ]
 ---
 
-# CONT-0001. Layer merch content through product, template and market segment baselines
+# CONT-0005. Layer merch content through product, template and market segment baselines
 
 ## Context
 
@@ -35,7 +41,7 @@ We will resolve merch content as a stack of layers, from the lowest to the highe
     - Applies only to offers whose resolved WCS market segment (the first of `marketSegments`) is `{segment}`.
     - COM is the default: it has no segment folder.
 4. **Fragment**: the card or collection's own fields.
-5. **Variation**: at most one promotion, regional or PZN variation of the fragment (see [CONT-0002](./CONT-0002-select-one-fragment-variation.md)).
+5. **Variation**: at most one promotion, regional or PZN variation of the fragment (see [CONT-0006](./CONT-0006-select-one-fragment-variation.md)).
 
 Resolution rules:
 
@@ -44,7 +50,7 @@ Resolution rules:
 - A baseline's own variations and references are ignored: a baseline only provides defaults.
 - Without a fragment, the most specific existing baseline is the main body, merged over the lower layers.
 - Market segment overrides exist only at the template level. Other offer dimensions (consumer segment, plan type, …) are out of scope until a later ADR.
-- Baselines have no PZN level. Audience-specific content goes into the card's PZN variations ([CONT-0002](./CONT-0002-select-one-fragment-variation.md)).
+- Baselines have no PZN level. Audience-specific content goes into the card's PZN variations ([CONT-0006](./CONT-0006-select-one-fragment-variation.md)).
 - Masks (badges, runtime promo values, add-ons) are not part of this stack. They are merged separately at render time.
 
 ## Rationale

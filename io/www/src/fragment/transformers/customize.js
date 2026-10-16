@@ -481,14 +481,26 @@ function prepareBaseline(baseline) {
 }
 
 /**
+ * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons.
+ */
+function withOfferIcon(offerBaseline, higherLayers) {
+    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon !== undefined)) return offerBaseline;
+    const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
+    return { ...offerBaseline, fields };
+}
+
+/**
  * MWPW-186204: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
  * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
  */
 function applyBaselines(fragment, { baselines }) {
     const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } = baselines?.[fragment.id] ?? {};
-    const layers = [offerBaseline, fragmentBaseline, fragmentSegmentBaseline].filter(
-        (baseline) => baseline && baseline.id !== fragment.id,
-    );
+    const higherLayers = [fragmentBaseline, fragmentSegmentBaseline, fragment].filter(Boolean);
+    const layers = [
+        offerBaseline && withOfferIcon(offerBaseline, higherLayers),
+        fragmentBaseline,
+        fragmentSegmentBaseline,
+    ].filter((baseline) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
     const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;

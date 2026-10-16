@@ -1031,6 +1031,8 @@ describe('pipeline end to end', () => {
                 expect(card.fragmentBaselineId, label).to.equal(FRAGMENT_BASELINE.id);
                 // offer baseline fields are mapped to card fields (cardTitle, mnemonicIcon), the others dropped
                 expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
+                // the plans baseline sets its own icon: the offer baseline's alt text, describing its icon, is dropped
+                expect(card.fields.mnemonicAlt, label).to.be.undefined;
                 expect(card.fields, label).to.deep.include({
                     // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
                     variant: 'plans',

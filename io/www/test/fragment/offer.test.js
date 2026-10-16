@@ -318,8 +318,9 @@ describe('offer transformer', () => {
             expect(body.offerBaselineId).to.equal('offer-baseline-id');
             expect(body.fragmentBaselineId).to.equal('fragment-baseline-id');
             expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle ?? 'Photoshop baseline');
-            // the fragment's own icons win over the offer baseline's
+            // the fragment's own icons win over the offer baseline's, and so does their alt text
             expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
+            expect(body.fields.mnemonicAlt).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicAlt);
             expect(body.fields.osi).to.equal(OSI);
             expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
             expect(wcsCalls()).to.have.length(1);
@@ -334,8 +335,9 @@ describe('offer transformer', () => {
             expect(body.fragmentSegmentBaselineId).to.equal('edu-baseline-id');
             expect(body.fields.eduNote).to.equal('Students & teachers');
             expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle);
-            // the fragment's own icons win over the offer baseline's
+            // the fragment's own icons win over the offer baseline's, and so does their alt text
             expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
+            expect(body.fields.mnemonicAlt).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicAlt);
             expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
         });
 

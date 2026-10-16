@@ -29,7 +29,7 @@ We will resolve merch content as a stack of layers, from the lowest to the highe
     - Holds product default content, independent of any offer, pre-filled from MCS / NPI.
     - Falls back to `en_US`.
     - The `offers` I/O action syncs it into I/O state every 15 minutes, because the folder is too big to list per request.
-    - Only mapped fields reach a card: MCS `name` → `cardTitle`, the first (svg) of `icons` → `mnemonicIcon`, with `name` as its `mnemonicAlt`. Other offer model fields stay in the offers API.
+    - Only mapped fields reach a card: MCS `name` → `cardTitle`, the first (svg) of `icons` → `mnemonicIcon`, with `name` as its `mnemonicAlt`; both are dropped when a higher layer sets its own icons. Other offer model fields stay in the offers API.
     - It is the content shared across surfaces: placeholders holding product names move to it over time.
 2. **Template baseline**, at `{surface}/{locale}/baselines/{template}/{pa}/baseline`.
     - Holds content common to every card of a PA on a surface and template.

@@ -106,8 +106,9 @@ async function inBatches(tasks) {
 
 /**
  * Writes changed baselines of a locale & deletes removed ones, or rewrites them all once the refresh deadline is passed so
- * that unchanged ones never expire. The index is only updated once they all succeeded, so a failed sync is fully retried
- * next time. A locale without baselines anymore has its index & bundle deleted too.
+ * that unchanged ones never expire. New keys are tracked in the index (with an unknown hash) before being written, and the
+ * index is only updated with their hashes once they all succeeded, so a sync failing midway is fully retried next time:
+ * changed keys are rewritten, removed ones deleted. A locale without baselines anymore has its index & bundle deleted too.
  */
 async function syncLocale(context, locale, baselines) {
     const { state } = context;
@@ -118,6 +119,11 @@ async function syncLocale(context, locale, baselines) {
     const updated = Object.keys(next).filter((key) => refresh || previous[key] !== next[key]);
     const removed = Object.keys(previous).filter((key) => !(key in next));
     const total = Object.keys(next).length;
+    const added = updated.filter((key) => !(key in previous));
+    if (added.length) {
+        const hashes = { ...previous, ...Object.fromEntries(added.map((key) => [key, ''])) };
+        await state.put(offersIndexStateKey(locale), JSON.stringify({ refreshAt: index?.refreshAt, hashes }), { ttl: TTL });
+    }
     await inBatches([
         ...updated.map((key) => () => state.put(key, baselines[key], { ttl: TTL })),
         ...removed.map((key) => () => state.delete(key)),

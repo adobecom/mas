@@ -8,6 +8,7 @@
         "studio",
         "web-components",
         "io/studio",
+        "io/operations",
         "ost",
         "scripts/content",
         "price"

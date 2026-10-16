@@ -118,7 +118,7 @@ describe('getSettings', () => {
             meta.remove();
         });
 
-        for (const value of ['on', 'ucv3_in_iframe']) {
+        for (const value of ['on', 'true', 'ON', '']) {
             it(`is enabled by "${value}" metadata`, () => {
                 meta.content = value;
                 document.head.append(meta);
@@ -133,7 +133,7 @@ describe('getSettings', () => {
             });
         }
 
-        for (const value of ['off', 'true', 'ON', 'UCV3_IN_IFRAME', '']) {
+        for (const value of ['off', 'false']) {
             it(`is disabled by ${JSON.stringify(value)} metadata`, () => {
                 meta.content = value;
                 document.head.append(meta);

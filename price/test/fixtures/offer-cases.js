@@ -1,5 +1,20 @@
 import { baseOffer, priceInfo } from './cases.js';
 
+export const planTypeCases = [
+    { id: 'annual-monthly', offer: { commitment: 'YEAR', term: 'MONTHLY' }, expected: 'ABM' },
+    { id: 'annual-upfront', offer: { commitment: 'YEAR', term: 'ANNUAL' }, expected: 'PUF' },
+    { id: 'annual-unsupported-term', offer: { commitment: 'YEAR', term: 'P1D' }, expected: '' },
+    { id: 'annual-missing-term', offer: { commitment: 'YEAR' }, expected: '' },
+    { id: 'monthly', offer: { commitment: 'MONTH', term: 'MONTHLY' }, expected: 'M2M' },
+    { id: 'monthly-unsupported-term', offer: { commitment: 'MONTH', term: 'ANNUAL' }, expected: '' },
+    { id: 'perpetual', offer: { commitment: 'PERPETUAL' }, expected: 'PERPETUAL' },
+    { id: 'term-license', offer: { commitment: 'TERM_LICENSE', term: 'P3Y' }, expected: 'P3Y' },
+    { id: 'term-license-unsupported-term', offer: { commitment: 'TERM_LICENSE', term: 'MONTHLY' }, expected: '' },
+    { id: 'unsupported-commitment', offer: { commitment: 'OTHER', term: 'MONTHLY' }, expected: '' },
+    { id: 'empty-commitment', offer: { commitment: '', term: 'MONTHLY' }, expected: '' },
+    { id: 'missing-commitment', offer: { term: 'MONTHLY' }, expected: 'Value is not an offer' },
+];
+
 export const selectionCases = [
     { id: 'empty', offers: [], options: {} },
     { id: 'single', offers: [baseOffer], options: {} },

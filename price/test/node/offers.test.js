@@ -1,7 +1,35 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { selectOffers, sumOffers } from '../../src/index.js';
+import { applyPlanType, selectOffers, sumOffers } from '../../src/index.js';
 import { baseOffer } from '../fixtures/cases.js';
+import { planTypeCases } from '../fixtures/offer-cases.js';
+
+describe('applyPlanType', () => {
+    for (const { id, offer, expected } of planTypeCases) {
+        it(`preserves the legacy ${id} mapping`, () => {
+            const result = applyPlanType(offer);
+            assert.deepEqual(result, { ...offer, planType: expected });
+        });
+    }
+    it('preserves other offer fields without mutating the input', () => {
+        const offer = structuredClone(baseOffer);
+        offer.planType = 'STALE';
+        const before = structuredClone(offer);
+        const result = applyPlanType(offer);
+        assert.notEqual(result, offer);
+        assert.deepEqual(result, { ...offer, planType: 'ABM' });
+        assert.equal(result.priceDetails, offer.priceDetails);
+        assert.deepEqual(offer, before);
+    });
+    for (const value of [undefined, false, 0, 'not an offer', () => {}]) {
+        it(`preserves the legacy non-object return for ${typeof value}`, () => {
+            assert.equal(applyPlanType(value), 'Value is not an offer');
+        });
+    }
+    it('preserves the legacy TypeError for null', () => {
+        assert.throws(() => applyPlanType(null), TypeError);
+    });
+});
 
 describe('selectOffers', () => {
     it('returns the original empty array', () => {

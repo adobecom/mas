@@ -13,8 +13,8 @@ describe('native package exports', () => {
     const value = { ...baseOffer, ...baseOffer.priceDetails };
     const options = { country: 'US', language: 'en' };
 
-    it('imports only the three public primitives through the package name', () => {
-        assert.deepEqual(Object.keys(pricing).sort(), ['buildPriceHTML', 'selectOffers', 'sumOffers']);
+    it('imports the public price primitives through the package name', () => {
+        assert.deepEqual(Object.keys(pricing).sort(), ['applyPlanType', 'buildPriceHTML', 'selectOffers', 'sumOffers']);
     });
     it('imports without defining browser globals', () => {
         assert.equal('document' in globalThis, false);

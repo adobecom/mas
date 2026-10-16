@@ -1,3 +1,34 @@
+import { Commitment, Term } from './constants.js';
+
+const getPlanType = (commitment, term) => {
+    switch (commitment) {
+        case undefined:
+            return 'Value is not an offer';
+        case '':
+            return '';
+        case Commitment.YEAR:
+            return term === Term.MONTHLY ? 'ABM' : term === Term.ANNUAL ? 'PUF' : '';
+        case Commitment.MONTH:
+            return term === Term.MONTHLY ? 'M2M' : '';
+        case Commitment.PERPETUAL:
+            return 'PERPETUAL';
+        case Commitment.TERM_LICENSE:
+            return term === Term.P3Y ? 'P3Y' : '';
+        default:
+            return '';
+    }
+};
+
+/**
+ * Copies an offer with its derived plan type, preserving the legacy
+ * tacocat 1.13.1 mapping and invalid-input behavior.
+ */
+export function applyPlanType(offer) {
+    if (typeof offer !== 'object') return 'Value is not an offer';
+    const { commitment, term } = offer;
+    return { ...offer, planType: getPlanType(commitment, term) };
+}
+
 const forceTaxExclusivePrice = (offer) => {
     const { priceDetails } = offer;
     const { price, priceWithoutDiscount, priceWithoutTax, priceWithoutDiscountAndTax, taxDisplay } = priceDetails;

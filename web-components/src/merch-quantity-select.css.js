@@ -147,7 +147,7 @@ export const styles = css`
     }
 
     .item.highlighted {
-        background-color: var(--qs-background-color-highlighted, #e8e8e8);
+        background-color: var(--qs-background-color-highlighted, #949494);
     }
 
     .item.selected {

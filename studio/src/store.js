@@ -364,6 +364,7 @@ function pageValidator(value) {
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,
         PAGE_NAMES.OFFER_MAPPING,
+        PAGE_NAMES.BASELINES,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }

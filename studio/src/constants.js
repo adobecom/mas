@@ -143,6 +143,7 @@ export const PAGE_NAMES = {
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
     OFFER_MAPPING: 'offer-mapping',
+    BASELINES: 'baselines',
 };
 
 /**

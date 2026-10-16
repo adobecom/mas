@@ -863,7 +863,7 @@ describe('aup-select checkout routing', () => {
         });
     }
 
-    for (const value of ['on']) {
+    for (const value of ['on', 'enabled', 'ucv3_in_iframe']) {
         it(`routes using commerce service initialization ${JSON.stringify(value)} without metadata`, async () => {
             meta.remove();
             removeMasCommerceService();
@@ -872,6 +872,22 @@ describe('aup-select checkout routing', () => {
                     'aup-select': value,
                     'checkout-client-id': 'creative',
                 },
+                () => ({ handler: legacy }),
+            );
+            const element = await create();
+            click(element);
+            await element.aupCheckoutPromise;
+            expect(launch.calledOnce).to.be.true;
+            expect(legacy.called).to.be.false;
+        });
+    }
+
+    for (const value of ['enabled', 'ucv3_in_iframe']) {
+        it(`routes using ${JSON.stringify(value)} metadata`, async () => {
+            meta.content = value;
+            removeMasCommerceService();
+            service = initMasCommerceService(
+                { 'checkout-client-id': 'creative' },
                 () => ({ handler: legacy }),
             );
             const element = await create();

@@ -3,6 +3,7 @@ import { Fragment } from './aem/fragment.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
+import { canEditPromotions, canManagePromotions } from './groups.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import {
@@ -636,6 +637,8 @@ export default class MasFragmentEditor extends LitElement {
         Store.promotions.inEdit,
         Store.search,
         Store.filters,
+        Store.profile,
+        Store.users,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
@@ -1316,6 +1319,7 @@ export default class MasFragmentEditor extends LitElement {
     async initFragment() {
         const fragmentId = this.fragmentId;
         this.#pendingPromoRefresh = null;
+        this.variationsToDelete = [];
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1576,7 +1580,19 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canDeleteFragment() {
+        return (
+            canManagePromotions() ||
+            (!isPromoVariationPath(this.fragment?.path) && !this.variationsToDelete.some(isPromoVariationPath))
+        );
+    }
+
     async deleteFragment() {
+        this.variationsToDelete = [];
+        if (!this.canDeleteFragment) {
+            showToast('Only promo powerusers can delete promo variations.', 'negative');
+            return;
+        }
         const isVariation = this.editorContextStore.isVariation(this.fragment.id);
         if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
             if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
@@ -1594,10 +1610,18 @@ export default class MasFragmentEditor extends LitElement {
         } else {
             this.variationsToDelete = [];
         }
+        if (!this.canDeleteFragment) {
+            showToast('Only promo powerusers can delete fragments with promo variations.', 'negative');
+            return;
+        }
         this.showDeleteDialog = true;
     }
 
     async confirmDelete() {
+        if (!this.canDeleteFragment) {
+            showToast('Only promo powerusers can delete promo variations.', 'negative');
+            return;
+        }
         this.deleteInProgress = true;
         showToast('Deleting fragment...');
         const wasPromoVariation = this.isPromoVariationFragment();
@@ -1642,6 +1666,7 @@ export default class MasFragmentEditor extends LitElement {
     cancelDelete() {
         if (this.deleteInProgress) return;
         this.showDeleteDialog = false;
+        this.variationsToDelete = [];
     }
 
     async showClone() {
@@ -1698,9 +1723,6 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
-                migrateLegacyVariant(this.fragmentStore);
-            }
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -1708,6 +1730,17 @@ export default class MasFragmentEditor extends LitElement {
                 dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
                     (store) => store.get?.().hasChanges,
                 );
+            }
+            if (
+                (this.isPromoVariationFragment() ||
+                    dirtyCardFragmentStores.some((store) => isPromoVariationPath(store.get().path))) &&
+                !canEditPromotions()
+            ) {
+                showToast('You do not have permission to update promo variations.', 'negative');
+                return;
+            }
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                migrateLegacyVariant(this.fragmentStore);
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {

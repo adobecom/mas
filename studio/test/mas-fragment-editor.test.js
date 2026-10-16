@@ -4,6 +4,7 @@ import '../src/mas-fragment-editor.js';
 import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
+import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
 import {
     PAGE_NAMES,
@@ -1097,11 +1098,93 @@ describe('MasFragmentEditor', () => {
         });
     });
 
+    describe('saving referenced fragments', () => {
+        let originalProfile;
+        let originalUsers;
+        let originalReferencedChanges;
+
+        beforeEach(() => {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            originalReferencedChanges = Store.editor.referencedFragmentStoresHaveChanges.get();
+            Store.profile.set({ email: 'author@adobe.com' });
+        });
+
+        afterEach(() => {
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+            Store.editor.referencedFragmentStoresHaveChanges.set(originalReferencedChanges);
+        });
+
+        for (const { group, promotional, allowed } of [
+            { group: 'GRP-ODIN-MAS-ACOM-EDITORS', promotional: true, allowed: false },
+            { group: 'GRP-ODIN-MAS-PROMO-EDITORS', promotional: true, allowed: true },
+            { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', promotional: true, allowed: true },
+            { group: 'GRP-ODIN-MAS-ADMINS', promotional: true, allowed: true },
+            { group: 'GRP-ODIN-MAS-ACOM-EDITORS', promotional: false, allowed: true },
+        ]) {
+            it(`saves referenced promotional=${promotional} fragments=${allowed} for ${group}`, async () => {
+                await import('../src/editors/mas-compare-chart-editor.js');
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                const el = document.createElement('mas-fragment-editor');
+                const collection = new FragmentStore(
+                    new Fragment({
+                        id: 'compare-chart',
+                        path: '/content/dam/mas/sandbox/en_US/compare-chart',
+                        model: { path: COLLECTION_MODEL_PATH },
+                        fields: [],
+                    }),
+                );
+                const cardPaths = [
+                    '/content/dam/mas/sandbox/en_US/regular-card',
+                    promotional
+                        ? '/content/dam/mas/sandbox/en_US/promotions/summer/promo-card'
+                        : '/content/dam/mas/sandbox/en_US/other-card',
+                ];
+                const cards = cardPaths.map(
+                    (path, index) =>
+                        new FragmentStore(
+                            new Fragment({
+                                id: `card-${index}`,
+                                path,
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'features', type: 'long-text', multiple: true, values: ['Original'] }],
+                            }),
+                        ),
+                );
+                el.inEdit.value = collection;
+                const compareChart = document.createElement('mas-compare-chart-editor');
+                sandbox.stub(compareChart, 'commitFeatureDrafts').callsFake(() => {
+                    for (const store of cards) store.updateField('features', ['Updated']);
+                });
+                sandbox.stub(compareChart, 'dirtyCardFragmentStores').get(() => cards);
+                el.appendChild(compareChart);
+                const savedPaths = [];
+                sandbox.stub(el, 'repository').get(() => ({
+                    async saveFragment(store) {
+                        savedPaths.push(store.get().path);
+                        return store.get();
+                    },
+                }));
+
+                await el.saveFragment();
+
+                expect(savedPaths).to.deep.equal(allowed ? [...cardPaths, collection.get().path] : []);
+            });
+        }
+    });
+
     describe('delete fragment', () => {
         let el;
         let mockRepo;
+        let originalProfile;
+        let originalUsers;
 
         beforeEach(() => {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            Store.profile.set({ email: 'author@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
             el = document.createElement('mas-fragment-editor');
             mockRepo = {
                 deleteFragmentWithVariations: sandbox.stub().resolves(),
@@ -1115,6 +1198,76 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(Store.fragments.inEdit, 'set').callsFake((val) => {
                 Store.fragments.inEdit.value = val;
             });
+        });
+
+        afterEach(() => {
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+        });
+
+        for (const { group, allowed } of [
+            { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: true },
+            { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', allowed: true },
+            { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
+        ]) {
+            it(`allows saving promo variations=${allowed} for ${group}`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                const fragment = new Fragment({
+                    id: 'promo-variation',
+                    path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                    fields: [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                mockRepo.saveFragment = sandbox.stub().resolves(fragment);
+
+                await el.saveFragment();
+
+                expect(mockRepo.saveFragment.calledOnce).to.equal(allowed);
+            });
+        }
+
+        it('rejects deleting a promo variation through a direct editor link for promo editors', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const fragment = new Fragment({
+                id: 'promo-variation',
+                path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.deleteFragment();
+
+            expect(el.showDeleteDialog).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+        });
+
+        it('rechecks the poweruser permission when deletion is confirmed', async () => {
+            const fragment = new Fragment({
+                id: 'promo-variation',
+                path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                fields: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
+            await el.deleteFragment();
+            expect(el.showDeleteDialog).to.be.true;
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteVariationFragment.called).to.be.false;
+        });
+
+        it('prevents promo editors deleting parent fragments with staged promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer/my-card'];
+
+            await el.confirmDelete();
+
+            expect(mockRepo.deleteFragmentWithVariations.called).to.be.false;
         });
 
         it('confirms delete for non-variation', async () => {

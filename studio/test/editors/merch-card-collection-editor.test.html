@@ -702,6 +702,12 @@
                         expect(disabled.has(QUICK_ACTION.HISTORY)).to.be.false;
                     });
 
+                    it('disables Delete when the host denies promo variation deletion', async () => {
+                        hostEditor.canDeleteFragment = false;
+                        const editor = await mountEditor({ isVariation: true });
+                        expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.DELETE)).to.be.true;
+                    });
+
                     it('delegates Discard and Create Variation to the fragment editor', async () => {
                         const editor = await mountEditor();
                         trigger(editor, QUICK_ACTION.DISCARD);

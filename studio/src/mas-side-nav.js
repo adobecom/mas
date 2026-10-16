@@ -1064,7 +1064,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item
+                label="Delete"
+                ?disabled=${loading || this.fragmentEditor?.canDeleteFragment === false}
+                @nav-click="${this.deleteFragment}"
+            >
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

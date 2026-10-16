@@ -1587,4 +1587,14 @@ describe('MasSideNav – editNavigation', () => {
         editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: true });
         expect(el.editNavigation.strings).to.not.equal(el.defaultNavigation.strings);
     });
+
+    it('disables deletion when the fragment editor denies promo variation deletion', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canDeleteFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Delete"]').hasAttribute('disabled')).to.be.true;
+    });
 });

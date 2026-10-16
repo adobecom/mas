@@ -20,11 +20,10 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
-
-            - name: Fetch the previous main commit
-              run: git fetch --depth=1 origin "$BEFORE_SHA"
-              env:
-                  BEFORE_SHA: ${{ github.event.before }}
+              with:
+                  # Full history, without old file contents, to tell older versions of a file from newer ones.
+                  fetch-depth: 0
+                  filter: blob:none
 
             - name: Set up Node.js
               uses: actions/setup-node@v4

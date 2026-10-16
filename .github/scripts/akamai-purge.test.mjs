@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test, { mock } from 'node:test';
 
-import { chunkUrls, formatTimestamp, run, selectPurgePaths, signRequest } from './akamai-purge.mjs';
+import { blobId, chunkUrls, formatTimestamp, olderVersions, run, selectPurgePaths, signRequest } from './akamai-purge.mjs';
 
 // Expected signatures come from Akamai's edgegrid-python (EdgeGridAuthHeaders.make_auth_header) with these dummy values.
 const credentials = {
@@ -19,8 +23,9 @@ const timing = { pollIntervalMs: 1, originTimeoutMs: 60, edgeTimeoutMs: 60, requ
 const ORIGIN = 'https://main--mas--adobecom.aem.live';
 const EDGE = 'https://mas.adobe.com';
 const PURGE = `https://${credentials.host}/ccu/v3/invalidate/url/production`;
-const previous = Buffer.from('old content');
-const studioJs = { path: 'studio/src/studio.js', previous };
+const original = Buffer.from('original content');
+const previous = Buffer.from('previous content');
+const studioJs = { path: 'studio/src/studio.js', older: new Set([blobId(original), blobId(previous)]) };
 
 function stubFetch({ origin, edge = () => new Response('new content'), purge = () => purgeAccepted() }) {
     const calls = [];
@@ -40,6 +45,38 @@ function purgeAccepted() {
 
 function purgedUrls(calls) {
     return calls.filter(({ url }) => url === PURGE).flatMap(({ init }) => JSON.parse(init.body).objects);
+}
+
+// Keeps the developer's signing and hook settings out of fixture commits.
+const FIXTURE_GIT_CONFIG = [
+    'user.name=test',
+    'user.email=test@example.com',
+    'commit.gpgsign=false',
+    'core.hooksPath=/dev/null',
+].flatMap((setting) => ['-c', setting]);
+
+// Commits each content to f.js in a fresh repo, then runs fn inside it with the commit SHAs.
+function inRepoWithVersions(contents, fn) {
+    const dir = mkdtempSync(join(tmpdir(), 'akamai-purge-'));
+    const git = (...args) =>
+        execFileSync('git', [...FIXTURE_GIT_CONFIG, ...args], { cwd: dir })
+            .toString()
+            .trim();
+    const cwd = process.cwd();
+    try {
+        git('init', '-q');
+        const shas = contents.map((content) => {
+            writeFileSync(join(dir, 'f.js'), content);
+            git('add', 'f.js');
+            git('commit', '-q', '-m', content);
+            return git('rev-parse', 'HEAD');
+        });
+        process.chdir(dir);
+        return fn(shas);
+    } finally {
+        process.chdir(cwd);
+        rmSync(dir, { recursive: true, force: true });
+    }
 }
 
 test.afterEach(() => mock.restoreAll());
@@ -95,6 +132,20 @@ test('chunkUrls keeps every purge body within the byte limit, in order', () => {
     for (const chunk of chunks) assert.ok(Buffer.byteLength(JSON.stringify({ objects: chunk })) <= 200);
 });
 
+test('blobId matches git hash-object', () => {
+    assert.equal(blobId(Buffer.from('hello\n')), 'ce013625030ba8dba906f756967f9e9ca394464a');
+});
+
+test('olderVersions lists every version main had up to the previous push', () => {
+    const versions = inRepoWithVersions(['a', 'b', 'c'], ([, before, after]) => olderVersions(before, after, 'f.js'));
+    assert.deepEqual(versions, new Set([blobId(Buffer.from('a')), blobId(Buffer.from('b'))]));
+});
+
+test('olderVersions leaves out the deployed version when a push reverts to it', () => {
+    const versions = inRepoWithVersions(['a', 'b', 'a'], ([, before, after]) => olderVersions(before, after, 'f.js'));
+    assert.deepEqual(versions, new Set([blobId(Buffer.from('b'))]));
+});
+
 test('run waits until aem.live moves past the previous version, purges, then checks the edge', async () => {
     let originCalls = 0;
     const calls = stubFetch({
@@ -117,13 +168,19 @@ test('run treats a new file as ready once aem.live serves it', async () => {
     const calls = stubFetch({
         origin: () => (++originCalls < 2 ? new Response('', { status: 404 }) : new Response('new content')),
     });
-    await run({ files: [{ path: 'studio/src/new-view.js', previous: null }], credentials, timing });
+    await run({ files: [{ path: 'studio/src/new-view.js', older: new Set() }], credentials, timing });
     assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/new-view.js`]);
 });
 
 test('run fails without purging when aem.live still serves the previous version', async () => {
     const calls = stubFetch({ origin: () => new Response(previous) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves the previous version/);
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
+    assert.deepEqual(purgedUrls(calls), []);
+});
+
+test('run fails without purging while aem.live serves a version older than the previous one', async () => {
+    const calls = stubFetch({ origin: () => new Response(original) });
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
     assert.deepEqual(purgedUrls(calls), []);
 });
 
@@ -131,7 +188,7 @@ test('run purges the ready files, then fails for the stale ones', async () => {
     const calls = stubFetch({
         origin: (url) => new Response(url.endsWith('studio.js') ? 'new content' : previous),
     });
-    const styleCss = { path: 'studio/style.css', previous };
+    const styleCss = { path: 'studio/style.css', older: new Set([blobId(previous)]) };
     await assert.rejects(run({ files: [studioJs, styleCss], credentials, timing }), /studio\/style\.css/);
     assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/studio.js`]);
 });
@@ -142,7 +199,7 @@ test('a hung aem.live request cannot outlive the polling deadline', async () => 
             new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
     });
     const started = Date.now();
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves the previous version/);
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
     assert.ok(Date.now() - started < 1000);
     assert.ok(calls.every(({ init }) => init.signal instanceof AbortSignal));
 });
@@ -157,6 +214,11 @@ test('run fails when Akamai rejects the purge', async () => {
 
 test('run fails when mas.adobe.com still serves the previous version after the purge', async () => {
     const calls = stubFetch({ origin: () => new Response('new content'), edge: () => new Response(previous) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves the previous/);
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves an older/);
     assert.ok(calls.filter(({ url }) => url === PURGE).every(({ init }) => init.signal instanceof AbortSignal));
+});
+
+test('run fails when mas.adobe.com serves a version older than the previous one after the purge', async () => {
+    stubFetch({ origin: () => new Response('new content'), edge: () => new Response(original) });
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves an older/);
 });

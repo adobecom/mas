@@ -64,26 +64,37 @@ function git(...args) {
     return execFileSync('git', args, { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
-function readPrevious(sha, path) {
-    try {
-        return git('show', `${sha}:${path}`);
-    } catch {
-        return null;
-    }
+// Git blob id of the content, to match a served file against the versions in history.
+export function blobId(content) {
+    return createHash('sha1').update(`blob ${content.length}\0`).update(content).digest('hex');
+}
+
+// Every version main had of the file up to the previous push, except the one being deployed, since a revert serves an
+// earlier version again. First-parent history holds exactly the states main went through.
+export function olderVersions(beforeSha, afterSha, path) {
+    const log = git('log', '--first-parent', '--format=', '--raw', '--no-abbrev', '--no-renames', beforeSha, '--', path);
+    const versions = new Set(
+        log
+            .toString()
+            .split('\n')
+            .filter(Boolean)
+            .map((line) => line.split(' ')[3]),
+    );
+    versions.delete(git('rev-parse', `${afterSha}:${path}`).toString().trim());
+    return versions;
 }
 
 function toUrl(base, path) {
     return `${base}/${encodeURI(path)}`;
 }
 
-// A file is served once the host no longer returns the version from before the push. Comparing against "not the
-// previous version" rather than "this push's version" lets a later merge that changed the same file count as served.
-async function isServed(url, previous, timeoutMs) {
+// A file is served once the host returns a version main didn't have before this push: this push's version or a later
+// merge's, never an older one that code sync hasn't replaced yet.
+async function isServed(url, older, timeoutMs) {
     try {
         const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
         if (!response.ok) return false;
-        const content = Buffer.from(await response.arrayBuffer());
-        return !previous || !content.equals(previous);
+        return !older.has(blobId(Buffer.from(await response.arrayBuffer())));
     } catch {
         return false;
     }
@@ -96,7 +107,7 @@ async function findStale(base, files, deadline, timing) {
         const remainingMs = deadline - Date.now();
         const served =
             remainingMs > 0 &&
-            (await isServed(toUrl(base, file.path), file.previous, Math.min(timing.requestTimeoutMs, remainingMs)));
+            (await isServed(toUrl(base, file.path), file.older, Math.min(timing.requestTimeoutMs, remainingMs)));
         if (!served) stale.push(file);
     }
     return stale;
@@ -161,14 +172,14 @@ export async function run({ files, credentials, timing = TIMING }) {
         : 0;
     if (stale.length) {
         throw new Error(
-            `aem.live still serves the previous version of ${stale.length} files (${listPaths(stale)}); re-run once code sync catches up`,
+            `aem.live still serves an older version of ${stale.length} files (${listPaths(stale)}); re-run once code sync catches up`,
         );
     }
 
     const [probe] = ready;
     await sleep(estimatedSeconds * 1000);
     if ((await waitUntilServed(EDGE, [probe], timing.edgeTimeoutMs, timing)).length) {
-        throw new Error(`mas.adobe.com still serves the previous ${probe.path} after the purge`);
+        throw new Error(`mas.adobe.com still serves an older ${probe.path} after the purge`);
     }
     console.log(`mas.adobe.com serves the new ${probe.path}`);
 }
@@ -190,6 +201,7 @@ async function main() {
         'diff',
         '-z',
         '--name-only',
+        '--no-renames',
         '--diff-filter=d',
         BEFORE_SHA,
         AFTER_SHA,
@@ -202,7 +214,7 @@ async function main() {
         console.log('No cached Studio files changed.');
         return;
     }
-    await run({ files: paths.map((path) => ({ path, previous: readPrevious(BEFORE_SHA, path) })), credentials });
+    await run({ files: paths.map((path) => ({ path, older: olderVersions(BEFORE_SHA, AFTER_SHA, path) })), credentials });
 }
 
 const isDirectRun = process.argv[1] && basename(process.argv[1]) === basename(fileURLToPath(import.meta.url));

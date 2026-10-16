@@ -55,10 +55,7 @@
             import '../src/mas.js';
             import '../src/merch-card-collection.js';
             import { countdownText } from '../src/merch-countdown.js';
-            import {
-                isCountdownLinkText,
-                supportsCountdown,
-            } from '../src/countdown.js';
+            import { isCountdownLinkText } from '../src/countdown.js';
             import { hydrate } from '../src/hydrate.js';
             import { mockFetch } from './mocks/fetch.js';
             import { withWcs } from './mocks/wcs.js';
@@ -79,17 +76,6 @@
                             .true;
                         expect(isCountdownLinkText('countdown timer')).to.be
                             .false;
-                    });
-                    it('supports Pro, bizpro and Plans variants only', () => {
-                        for (const variant of [
-                            'pro',
-                            'bizpro',
-                            'plans',
-                            'plans-students',
-                        ])
-                            expect(supportsCountdown(variant)).to.be.true;
-                        for (const variant of ['mini', undefined])
-                            expect(supportsCountdown(variant)).to.be.false;
                     });
                 });
                 describe('countdownText', () => {

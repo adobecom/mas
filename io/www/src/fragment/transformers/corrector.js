@@ -1,6 +1,6 @@
 import { getRequestInfos } from '../utils/common.js';
 import { logDebug } from '../utils/log.js';
-import { isCountdownLinkText } from '../../../../../web-components/src/countdown.js';
+import { isCountdownLinkText } from '../utils/countdown.js';
 const DATA_EXTRA_OPTIONS_REGEX = /data-extra-options="(\{[^}]*\})"/g;
 
 const SURFACES_TO_CORRECT = ['adobe-home', 'sandbox', 'ccd'];

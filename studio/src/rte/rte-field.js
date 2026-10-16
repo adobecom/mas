@@ -20,7 +20,7 @@ import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
 import './rte-icon-editor.js';
-import { COUNTDOWN_LINK_TEXT, isCountdownLinkText } from '../../../web-components/src/countdown.js';
+import { COUNTDOWN_LINK_TEXT, isCountdownLinkText } from '../../../io/www/src/fragment/utils/countdown.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';

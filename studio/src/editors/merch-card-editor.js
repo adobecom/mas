@@ -36,7 +36,7 @@ import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TA
 import Store from '../store.js';
 import Events from '../events.js';
 import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
-import { supportsCountdown } from '../../../web-components/src/countdown.js';
+import { supportsCountdown } from '../../../io/www/src/fragment/utils/countdown.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';

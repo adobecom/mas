@@ -10,7 +10,7 @@ import {
     matchesGeo,
 } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
-import { supportsCountdown } from '../../../../../web-components/src/countdown.js';
+import { supportsCountdown } from '../utils/countdown.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;

@@ -2,7 +2,7 @@ import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
-import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../../../../../web-components/src/countdown.js';
+import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const DICTIONARY_ID_PATH = 'dictionary/index';

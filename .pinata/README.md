@@ -69,10 +69,11 @@ The configuration CI check does not need secrets, call a model, launch real
 preview servers, or publish a PR. Model availability must additionally be
 verified in the runtime environment.
 
-The imported gate policy preserves the fork's explicit disabled unit-test
-gate; it does **not** claim unit tests passed. MAS's existing unit-test CI
-remains unchanged and must still pass before merge. Re-enabling that gate is
-a separate policy decision once its order-dependent failures are addressed.
+The `unit-tests` gate runs `npm test` across all workspaces on every
+candidate; a failure is blocking and sends the candidate back to be rebuilt.
+It was disabled on 2026-08-17 for order-dependent suite failures and
+re-enabled on 2026-10-01. MAS's existing unit-test CI remains unchanged and
+must still pass before merge.
 
 ### IO changes require manual verification
 

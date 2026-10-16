@@ -5,6 +5,7 @@ import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { FRAGMENT_STATUS_OPTIONS } from '../constants.js';
+import { VARIATION_FILTER_LABEL, VARIATION_FILTER_OPTIONS } from '../fragments/variation-filter.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -345,6 +346,7 @@ class MasFilterPanel extends LitElement {
             ...prev,
             tags: '',
             status: undefined,
+            variation: undefined,
             personalizationFilterEnabled: false,
         }));
 
@@ -383,6 +385,44 @@ class MasFilterPanel extends LitElement {
                 </sp-tag>
             `,
         );
+    }
+
+    #setVariation(variation) {
+        Store.filters.set((prev) => ({ ...prev, variation }));
+    }
+
+    #handleVariationChange(e) {
+        this.#setVariation(e.target.value || undefined);
+    }
+
+    #handleVariationDelete() {
+        this.#setVariation(undefined);
+    }
+
+    get variationPickerTemplate() {
+        return html`
+            <sp-picker
+                data-filter-type="variation"
+                label=${VARIATION_FILTER_LABEL}
+                quiet
+                .value=${Store.filters.get().variation ?? ''}
+                @change=${this.#handleVariationChange}
+            >
+                ${VARIATION_FILTER_OPTIONS.map(
+                    (option) => html`<sp-menu-item value=${option.id}>${option.title}</sp-menu-item>`,
+                )}
+            </sp-picker>
+        `;
+    }
+
+    get variationTag() {
+        const selected = VARIATION_FILTER_OPTIONS.find((option) => option.id === Store.filters.get().variation);
+        if (!selected) return nothing;
+        return html`
+            <sp-tag size="s" deletable data-filter-type="variation" @delete=${this.#handleVariationDelete}
+                >${selected.title}</sp-tag
+            >
+        `;
     }
 
     #renderStatusPicker() {
@@ -504,7 +544,7 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                ${this.#renderStatusPicker()}
+                ${this.#renderStatusPicker()} ${this.variationPickerTemplate}
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -572,7 +612,7 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
-                ${this.createdByUsersTags}
+                ${this.variationTag} ${this.createdByUsersTags}
             </sp-tags>
         `;
     }

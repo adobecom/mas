@@ -223,26 +223,28 @@ class MasOfferMapping extends LitElement {
 
     render() {
         return html`
-            <div class="offer-mapping-header">
-                <div class="header-left"><h2>Offer mapping</h2></div>
-                <sp-button variant="primary" @click=${this.startCreate} ?disabled=${Boolean(this.draft)}>
-                    <sp-icon-add slot="icon"></sp-icon-add>
-                    Create mapping
-                </sp-button>
+            <div class="editor-container">
+                <div class="offer-mapping-header">
+                    <div class="header-left"><h2>Offer mapping</h2></div>
+                    <sp-button variant="primary" @click=${this.startCreate} ?disabled=${Boolean(this.draft)}>
+                        <sp-icon-add slot="icon"></sp-icon-add>
+                        Create mapping
+                    </sp-button>
+                </div>
+                ${this.errorMessage}
+                <div class="toolbar">
+                    <sp-search
+                        class="offer-mapping-search"
+                        placeholder="Search OSI or promo code"
+                        value=${this.query}
+                        @input=${this.#handleSearch}
+                        @change=${this.#handleSearch}
+                        size="m"
+                    ></sp-search>
+                    <span class="total">${this.loading ? '' : `${this.rows.length} mapping(s)`}</span>
+                </div>
+                ${this.renderTable()}
             </div>
-            ${this.errorMessage}
-            <div class="toolbar">
-                <sp-search
-                    class="offer-mapping-search"
-                    placeholder="Search OSI or promo code"
-                    value=${this.query}
-                    @input=${this.#handleSearch}
-                    @change=${this.#handleSearch}
-                    size="m"
-                ></sp-search>
-                <span class="total">${this.loading ? '' : `${this.rows.length} mapping(s)`}</span>
-            </div>
-            ${this.renderTable()}
         `;
     }
 }

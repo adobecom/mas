@@ -738,7 +738,7 @@ class MasTranslationEditor extends LitElement {
         return html`
             ${this.renderConfirmDialog()}
 
-            <div class="translation-editor-form">
+            <div class="editor-container">
                 ${this.isProjectReadonly
                     ? html`<div class="metadata-info">
                           <sp-icon-alert></sp-icon-alert>

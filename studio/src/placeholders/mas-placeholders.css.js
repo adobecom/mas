@@ -1,18 +1,15 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
+import { editorContainerStyles } from '../common/styles/editor-styles.css.js';
 
 export default [
     skeletonStyles,
+    editorContainerStyles,
     css`
-        .placeholders-container {
+        .editor-container {
             height: 100%;
             min-height: 200px;
-            border-radius: 8px;
             padding: 24px;
-            background-color: var(--spectrum-white);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            position: relative;
         }
 
         .placeholders-header {

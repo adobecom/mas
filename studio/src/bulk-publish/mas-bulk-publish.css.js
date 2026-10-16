@@ -1,22 +1,28 @@
 import { css } from 'lit';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
 import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
+import { editorContainerStyles } from '../common/styles/editor-styles.css.js';
 
 export const styles = [
     skeletonStyles,
     tableHeaderBaseStyles,
     tableBodyBaseStyles,
     tableCellBaseStyles,
+    editorContainerStyles,
     css`
         :host {
             display: block;
             position: relative;
-            padding: 32px;
+            padding: 0;
             height: 100%;
             box-sizing: border-box;
             overflow-y: auto;
             border-top-left-radius: 16px;
             border-top-right-radius: 16px;
+        }
+
+        .editor-container {
+            padding: 32px;
         }
 
         header {

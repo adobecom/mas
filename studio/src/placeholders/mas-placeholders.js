@@ -330,7 +330,7 @@ class MasPlaceholders extends LitElement {
 
     render() {
         return html`
-            <div class="placeholders-container">
+            <div class="editor-container">
                 <div class="placeholders-header">
                     <div class="header-left">
                         <h2>Placeholders</h2>

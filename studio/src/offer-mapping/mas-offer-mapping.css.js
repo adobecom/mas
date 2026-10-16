@@ -1,11 +1,17 @@
 import { css } from 'lit';
+import { editorContainerStyles } from '../common/styles/editor-styles.css.js';
 
 export const styles = css`
+    ${editorContainerStyles}
+
     :host {
         display: block;
         box-sizing: border-box;
-        padding: 32px;
         min-width: 900px;
+    }
+
+    .editor-container {
+        padding: 32px;
     }
 
     :host *,

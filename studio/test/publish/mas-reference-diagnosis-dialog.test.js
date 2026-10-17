@@ -452,6 +452,47 @@ describe('reference diagnosis dialog', () => {
         expect(dialog.shadowRoot.querySelector('dialog').getAttribute('aria-busy')).to.equal('false');
     });
 
+    it('keeps incomplete inspection details collapsed by default', async () => {
+        const dialog = await fixture(html`<mas-reference-diagnosis-dialog .report=${report}></mas-reference-diagnosis-dialog>`);
+        const warning = dialog.shadowRoot.querySelector('.coverage-warning');
+
+        expect(warning.textContent).to.include('Some references could not be checked.');
+        expect(warning.textContent).to.include('Unchecked references are not confirmed missing.');
+        expect(warning.querySelector('summary').textContent).to.equal('Show details');
+        expect(warning.querySelector('details').open).to.be.false;
+    });
+
+    it('reveals the original coverage path and reason when details are opened', async () => {
+        const dialog = await fixture(html`<mas-reference-diagnosis-dialog .report=${report}></mas-reference-diagnosis-dialog>`);
+        const details = dialog.shadowRoot.querySelector('.coverage-warning details');
+
+        details.querySelector('summary').click();
+
+        expect(details.open).to.be.true;
+        expect(details.querySelector('.gap').textContent).to.include(report.coverageGaps[0].ownerPath);
+        expect(details.querySelector('.gap').textContent).to.include(report.coverageGaps[0].detail);
+    });
+
+    it('omits the coverage warning when inspection is complete', async () => {
+        const completeReport = { ...report, complete: true, coverageGaps: [] };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${completeReport}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelector('.coverage-warning')).to.be.null;
+    });
+
+    it('omits the disclosure when an incomplete inspection has no details', async () => {
+        const incompleteReport = { complete: false, issues: [], coverageGaps: [] };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${incompleteReport}></mas-reference-diagnosis-dialog>`,
+        );
+        const warning = dialog.shadowRoot.querySelector('.coverage-warning');
+
+        expect(warning).to.exist;
+        expect(warning.querySelector('details')).to.be.null;
+    });
+
     it('renders an inspection budget summary without an empty owner-path prefix', async () => {
         const summary = {
             complete: false,

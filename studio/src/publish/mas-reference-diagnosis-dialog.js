@@ -437,12 +437,24 @@ class MasReferenceDiagnosisDialog extends LitElement {
                             `,
                         )}
                     </div>
-                    ${!this.report.complete ? html`<h3>Inspection incomplete</h3>` : nothing}
-                    ${repeat(
-                        this.report.coverageGaps,
-                        (gap, index) => index,
-                        (gap) => html`<div class="gap">${gap.ownerPath ? `${gap.ownerPath}: ` : nothing}${gap.detail}</div>`,
-                    )}
+                    ${!this.report.complete
+                        ? html`<div class="coverage-warning" role="status">
+                              <p>Some references could not be checked. Unchecked references are not confirmed missing.</p>
+                              ${this.report.coverageGaps.length
+                                  ? html`<details>
+                                        <summary>Show details</summary>
+                                        ${repeat(
+                                            this.report.coverageGaps,
+                                            (gap, index) => index,
+                                            (gap) =>
+                                                html`<div class="gap">
+                                                    ${gap.ownerPath ? `${gap.ownerPath}: ` : nothing}${gap.detail}
+                                                </div>`,
+                                        )}
+                                    </details>`
+                                  : nothing}
+                          </div>`
+                        : nothing}
                     <div class="actions" slot="button" role="group" aria-label="Publish actions">
                         <sp-button
                             variant="secondary"

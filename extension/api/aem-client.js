@@ -16,7 +16,7 @@ function getValidators() {
 class AEMClient {
     constructor({ masIOUrl, wcsApiKey } = {}) {
         const validators = getValidators();
-        this.masIOUrl = validators?.isAllowedMasIOUrl(masIOUrl) ? masIOUrl.replace(/\/$/, '') : DEFAULT_MAS_IO_URL;
+        this.masIOUrl = validators?.resolveMasIOUrl(masIOUrl) ?? DEFAULT_MAS_IO_URL;
         this.wcsApiKey = wcsApiKey || DEFAULT_WCS_API_KEY;
         this.defaultLocale = 'en_US';
     }

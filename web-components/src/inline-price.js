@@ -244,6 +244,102 @@ export const resolvePriceTaxFlags = async (
 };
 
 /**
+ * Picks the offers to render from the WCS offers resolved for a price's OSIs: selects one offer
+ * per OSI, applies the FF_DEFAULTS per-unit and tax defaults and the annual-price flag to
+ * `options` (mutated), then combines the offers. Shared by `InlinePrice.render` and the
+ * server-side agent action so both price an offer the same way.
+ * @param {Offer[][]} resolvedOfferArrays - WCS offers, one array per OSI
+ * @param {Record<string, any>} options - settings merged with `priceOptions`; mutated
+ * @param {Record<string, any>} priceOptions - options set explicitly on the price
+ * @param {Record<string, boolean>} featureFlags - commerce service feature flags
+ * @returns {Promise<Offer[]>} the single offer to render, as an array
+ */
+export async function resolvePriceOffers(
+    resolvedOfferArrays,
+    options,
+    priceOptions,
+    featureFlags = {},
+) {
+    // Select best offer from each OSI, then sum them
+    const selectedOffers = resolvedOfferArrays.map((offerArray) => {
+        const selected = selectOffers(offerArray, options);
+        return selected?.length ? selected[0] : null;
+    });
+    // Check if any offer selection failed. `selectOffers` only ever returns an
+    // empty array when its input was already empty (a non-empty offer array always
+    // yields exactly 1 selected offer), so this is the same "WCS resolved this OSI
+    // to zero offers" condition the live-fetch rejection in render reports — unify on
+    // the same message so its catch block only has one signal to check.
+    if (selectedOffers.some((offer) => !offer)) {
+        throw new Error(ERROR_MESSAGE_OFFER_NOT_FOUND);
+    }
+    let offers = selectedOffers;
+    const offer = sumOffers(selectedOffers);
+
+    if (featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
+        if (priceOptions.displayPerUnit === undefined) {
+            options.displayPerUnit = offer.customerSegment !== 'INDIVIDUAL';
+        }
+        // if displayTax or forceTaxExclusive is not set, we need to resolve the values based on the geo and segment
+        if (
+            priceOptions.displayTax === undefined ||
+            priceOptions.forceTaxExclusive === undefined
+        ) {
+            const { country, language } = options;
+            const [marketSegment = ''] = offer.marketSegments;
+            // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
+            const flags = await resolvePriceTaxFlags(
+                country,
+                language,
+                offer.customerSegment,
+                marketSegment,
+            );
+            if (priceOptions.displayTax === undefined) {
+                options.displayTax = flags?.displayTax || options.displayTax;
+            }
+            if (priceOptions.forceTaxExclusive === undefined) {
+                options.forceTaxExclusive =
+                    flags?.forceTaxExclusive || options.forceTaxExclusive;
+            }
+            if (options.forceTaxExclusive) {
+                // Re-select offers with forceTaxExclusive applied, then re-sum
+                offers = resolvedOfferArrays.map((offerArray) => {
+                    const selected = selectOffers(offerArray, options);
+                    return selected?.length ? selected[0] : null;
+                });
+            }
+        }
+    } else {
+        if (priceOptions.displayOldPrice === undefined) {
+            options.displayOldPrice = true;
+        }
+    }
+
+    if (featureFlags[FF_ANNUAL_PRICE] && options.displayAnnual !== false) {
+        options.displayAnnual = true;
+    }
+
+    // Dual-OSI discount: use individual prices for cross-offer percentage
+    if (options.template === 'discount' && offers.length === 2) {
+        const [discountedOffer, referenceOffer] = offers;
+        return [
+            {
+                ...discountedOffer,
+                // Price computed here → drop stale WCS priceInfo.
+                priceInfo: undefined,
+                priceDetails: {
+                    ...discountedOffer.priceDetails,
+                    priceWithoutDiscount: referenceOffer.priceDetails?.price,
+                },
+            },
+        ];
+    }
+
+    // Sum the final offers for rendering
+    return [sumOffers(offers)];
+}
+
+/**
  * Renders the "no price available" fallback shown in the price slot when WCS
  * resolves an OSI to zero offers (200 OK, empty array) on the public side.
  * Sourced from price literals (defaultLiterals merged with any authored
@@ -262,7 +358,7 @@ function renderPriceUnavailable({
     return renderSpan('price-unavailable', text);
 }
 
-export class InlinePrice extends HTMLSpanElement {
+export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
     static is = 'inline-price';
     static tag = 'span';
     static get observedAttributes() {
@@ -400,88 +496,13 @@ export class InlinePrice extends HTMLSpanElement {
             const resolvedOfferArrays = await Promise.all(
                 offerSelectorPromises,
             );
-            // Select best offer from each OSI, then sum them
-            const selectedOffers = resolvedOfferArrays.map((offerArray) => {
-                const selected = selectOffers(offerArray, options);
-                return selected?.length ? selected[0] : null;
-            });
-            // Check if any offer selection failed. `selectOffers` only ever returns an
-            // empty array when its input was already empty (a non-empty offer array always
-            // yields exactly 1 selected offer), so this is the same "WCS resolved this OSI
-            // to zero offers" condition the live-fetch rejection below reports — unify on
-            // the same message so the catch block only has one signal to check.
-            if (selectedOffers.some((offer) => !offer)) {
-                throw new Error(ERROR_MESSAGE_OFFER_NOT_FOUND);
-            }
-            let offers = selectedOffers;
-            const offer = sumOffers(selectedOffers);
-
-            if (service.featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
-                if (priceOptions.displayPerUnit === undefined) {
-                    options.displayPerUnit =
-                        offer.customerSegment !== 'INDIVIDUAL';
-                }
-                // if displayTax or forceTaxExclusive is not set, we need to resolve the values based on the geo and segment
-                if (
-                    priceOptions.displayTax === undefined ||
-                    priceOptions.forceTaxExclusive === undefined
-                ) {
-                    const { country, language } = options;
-                    const [marketSegment = ''] = offer.marketSegments;
-                    // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
-                    const flags = await resolvePriceTaxFlags(
-                        country,
-                        language,
-                        offer.customerSegment,
-                        marketSegment,
-                    );
-                    if (priceOptions.displayTax === undefined) {
-                        options.displayTax =
-                            flags?.displayTax || options.displayTax;
-                    }
-                    if (priceOptions.forceTaxExclusive === undefined) {
-                        options.forceTaxExclusive =
-                            flags?.forceTaxExclusive ||
-                            options.forceTaxExclusive;
-                    }
-                    if (options.forceTaxExclusive) {
-                        // Re-select offers with forceTaxExclusive applied, then re-sum
-                        offers = resolvedOfferArrays.map((offerArray) => {
-                            const selected = selectOffers(offerArray, options);
-                            return selected?.length ? selected[0] : null;
-                        });
-                    }
-                }
-            } else {
-                if (priceOptions.displayOldPrice === undefined) {
-                    options.displayOldPrice = true;
-                }
-            }
-
-            if (
-                service.featureFlags[FF_ANNUAL_PRICE] &&
-                options.displayAnnual !== false
-            ) {
-                options.displayAnnual = true;
-            }
-
-            // Dual-OSI discount: use individual prices for cross-offer percentage
-            if (options.template === 'discount' && offers.length === 2) {
-                const [discountedOffer, referenceOffer] = offers;
-                const crossOffer = {
-                    ...discountedOffer,
-                    priceDetails: {
-                        ...discountedOffer.priceDetails,
-                        priceWithoutDiscount:
-                            referenceOffer.priceDetails?.price,
-                    },
-                };
-                return this.renderOffers([crossOffer], options, version);
-            }
-
-            // Sum the final offers for rendering
-            const finalOffer = sumOffers(offers);
-            return this.renderOffers([finalOffer], options, version);
+            const offers = await resolvePriceOffers(
+                resolvedOfferArrays,
+                options,
+                priceOptions,
+                service.featureFlags,
+            );
+            return this.renderOffers(offers, options, version);
         } catch (error) {
             // WCS finding no offer at all (200 OK, empty array) still errors/logs like any
             // other failure (below, via toggleFailed) - Studio/preview keeps today's blank
@@ -566,8 +587,11 @@ export class InlinePrice extends HTMLSpanElement {
 }
 
 // Define custom DOM element
-if (!window.customElements.get(InlinePrice.is)) {
-    window.customElements.define(InlinePrice.is, InlinePrice, {
+if (
+    globalThis.customElements &&
+    !globalThis.customElements.get(InlinePrice.is)
+) {
+    globalThis.customElements.define(InlinePrice.is, InlinePrice, {
         extends: InlinePrice.tag,
     });
 }

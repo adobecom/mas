@@ -32,6 +32,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     PZN_FOLDER,
     SURFACES,
+    STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
@@ -49,7 +50,7 @@ import {
 } from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
-import { getFragmentName } from './translation/translation-utils.js';
+import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,
@@ -1268,7 +1269,7 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.translationProjects.list.data.set(translationProjects);
+            Store.translationProjects.list.data.set(mergeTranslationProjectList(translationProjects, translationsPath));
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');
         } finally {
@@ -1402,13 +1403,19 @@ export class MasRepository extends LitElement {
             if (fragmentCache.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
-        let fragment = fragmentCache.get(fragmentData.id);
-        if (!fragment) {
-            fragment = new Fragment(fragmentData);
-            fragmentCache.add(fragment);
-        } else {
-            fragment.refreshFrom(fragmentData);
+        // The aem-fragment cache is shared with anything that renders a card,
+        // and those writers store plain fragment data (map-shaped fields) that
+        // the web component hydrates from — no refreshFrom, and a shape this
+        // repository cannot use. Only refresh an entry we put there ourselves;
+        // otherwise build our own Fragment from the data we just fetched and
+        // leave theirs alone, since it is what their rendered cards read.
+        const cached = fragmentCache.get(fragmentData.id);
+        if (cached instanceof Fragment) {
+            cached.refreshFrom(fragmentData);
+            return cached;
         }
+        const fragment = new Fragment(fragmentData);
+        if (!cached) fragmentCache.add(fragment);
         return fragment;
     }
 
@@ -1578,6 +1585,7 @@ export class MasRepository extends LitElement {
         try {
             this.operation.set(OPERATIONS.PUBLISH);
 
+            await this.clearStagedTag(fragment);
             if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
@@ -1605,6 +1613,41 @@ export class MasRepository extends LitElement {
         }
     }
 
+    /**
+     * Clears the internal staged tag once a fragment has been successfully published.
+     * No-ops when the fragment isn't staged. Persistence failures are reported via
+     * processError but never turn a successful publish into a reported failure.
+     * @param {Fragment|object} fragmentData
+     */
+    async clearStagedTag(fragmentData) {
+        if (!fragmentData) return;
+        const fragment = fragmentData instanceof Fragment ? fragmentData : new Fragment(fragmentData);
+        if (!fragment.isStaged) return;
+
+        if (fragment.model?.path === COLLECTION_MODEL_PATH) {
+            const index = fragment.tags?.findIndex((tag) => tag.id === STAGED.TAG) ?? -1;
+            if (index !== -1) fragment.tags.splice(index, 1);
+            fragment.newTags = fragment.tags?.map((tag) => tag.id) ?? [];
+            fragment.hasChanges = true;
+        } else {
+            const tags = fragment.getField('tags')?.values || [];
+            fragment.updateField(
+                'tags',
+                tags.filter((tag) => tag !== STAGED.TAG),
+            );
+        }
+
+        try {
+            const saved = await this.aem.sites.cf.fragments.save(fragment, { refetchEtag: true });
+            if (!saved) return;
+            fragment.refreshFrom(saved);
+            const store = findFragmentStoreById(fragment.id, Store.fragments.list.data.get());
+            if (typeof store?.refreshFrom === 'function') store.refreshFrom(saved);
+        } catch (error) {
+            this.processError(error, 'Failed to clear staged flag after publish.');
+        }
+    }
+
     async #publishRefIds(refIds) {
         const CHUNK_SIZE = 10;
         const valid = [];
@@ -1623,6 +1666,7 @@ export class MasRepository extends LitElement {
         if (valid.length === 0) throw new Error('Failed to fetch any ref for publishing');
         for (let i = 0; i < valid.length; i += CHUNK_SIZE) {
             const chunk = valid.slice(i, i + CHUNK_SIZE);
+            await Promise.all(chunk.map((ref) => this.clearStagedTag(ref)));
             await Promise.all(chunk.map((ref) => this.aem.sites.cf.fragments.publish(ref, [])));
         }
     }
@@ -1685,6 +1729,7 @@ export class MasRepository extends LitElement {
                 return false;
             }
 
+            await Promise.all(fragments.map((fragment) => this.clearStagedTag(fragment)));
             await this.aem.sites.cf.fragments.publishFragments(fragments, publishReferencesWithStatus);
 
             const refreshPromises = fragmentIds.map((id) => {

@@ -141,6 +141,32 @@ describe('Router', () => {
             .forEach((el) => el.remove());
     });
 
+    describe('feature rollout boundaries', () => {
+        beforeEach(() => {
+            const querySelector = document.querySelector.bind(document);
+            sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'meta[name="mas-assistant-enabled"]' || selector === 'meta[name="mas-offers-enabled"]') {
+                    return { content: 'false' };
+                }
+                return querySelector(selector);
+            });
+        });
+
+        it('redirects programmatic assistant navigation while disabled', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            await router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)();
+            expect(Store.page.value).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects disabled Offers deep links without loading a product', () => {
+            mockLocation.hash = '#page=product-detail&arrangementCode=test-product';
+            sandbox.stub(router, 'updateHistory');
+            router.start();
+            expect(Store.page.value).to.equal(PAGE_NAMES.WELCOME);
+            expect(router.currentParams.has('arrangementCode')).to.equal(false);
+        });
+    });
+
     describe('getActiveEditor', () => {
         it('should return null editor and false flags for non-editor pages', () => {
             Store.page.value = PAGE_NAMES.WELCOME;
@@ -765,29 +791,7 @@ describe('Router', () => {
             expect(Store.viewMode.get()).to.equal('editing');
         });
 
-        it('should use editor-panel for a collection with an empty compareChart field', async () => {
-            Store.page.set(PAGE_NAMES.CONTENT);
-            const collectionStore = new FragmentStore(
-                new Fragment({
-                    id: 'empty-compare-chart-collection-id',
-                    model: { path: COLLECTION_MODEL_PATH },
-                    fields: [{ name: COMPARE_CHART_FIELD, values: [''] }],
-                }),
-            );
-            const mockEditorPanel = {
-                editFragment: sandbox.stub().resolves(),
-            };
-            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
-
-            await router.navigateToFragmentEditor('empty-compare-chart-collection-id', {
-                fragmentStore: collectionStore,
-            });
-
-            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-        });
-
-        it('should use editor-panel for a provided collection fragment store', async () => {
+        it('should navigate a collection to the full-page fragment editor', async () => {
             Store.page.set(PAGE_NAMES.CONTENT);
             const collectionStore = new FragmentStore(
                 new Fragment({
@@ -796,41 +800,13 @@ describe('Router', () => {
                     fields: [],
                 }),
             );
-            const mockEditorPanel = {
-                editFragment: sandbox.stub().resolves(),
-            };
-            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
+            Store.fragments.list.data.set([collectionStore]);
 
-            await router.navigateToFragmentEditor('collection-variation-id', { fragmentStore: collectionStore });
+            await router.navigateToFragmentEditor('collection-variation-id', { locale: 'fr_FR' });
 
-            expect(mockEditorPanel.editFragment.calledOnceWith(collectionStore)).to.be.true;
-            expect(Store.page.get()).to.equal(PAGE_NAMES.CONTENT);
-            expect(Store.viewMode.get()).to.equal('editing');
-        });
-
-        it('should open full-page editor for collection when viewPage is true', async () => {
-            Store.page.set(PAGE_NAMES.CONTENT);
-            const collectionStore = new FragmentStore(
-                new Fragment({
-                    id: 'new-collection-variation-id',
-                    model: { path: COLLECTION_MODEL_PATH },
-                    fields: [],
-                }),
-            );
-            const mockEditorPanel = {
-                editFragment: sandbox.stub().resolves(),
-            };
-            sandbox.stub(document, 'querySelector').withArgs('editor-panel').returns(mockEditorPanel);
-
-            await router.navigateToFragmentEditor('new-collection-variation-id', {
-                fragmentStore: collectionStore,
-                locale: 'fr_FR',
-                viewPage: true,
-            });
-
-            expect(mockEditorPanel.editFragment.called).to.be.false;
-            expect(Store.fragmentEditor.fragmentId.get()).to.equal('new-collection-variation-id');
+            expect(Store.fragmentEditor.fragmentId.get()).to.equal('collection-variation-id');
             expect(Store.page.get()).to.equal(PAGE_NAMES.FRAGMENT_EDITOR);
+            expect(Store.viewMode.get()).to.equal('editing');
             expect(Store.search.get().region).to.equal('fr_FR');
         });
     });

@@ -76,6 +76,7 @@ export const styles = [
 
         .container.view-only {
             display: flex;
+            flex-direction: column;
             width: 100%;
             padding-bottom: 0;
         }

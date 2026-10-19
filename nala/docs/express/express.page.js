@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class ExpressCard {
     constructor(page, id) {
         this.page = page;
@@ -60,6 +62,15 @@ export default class ExpressCard {
     }
 
     // Helper method to ensure card is expanded on mobile/tablet (simplified-pricing-express)
+    async waitUntilReady() {
+        const ready = await this.card.evaluate(async (card) => {
+            await customElements.whenDefined('merch-card');
+            await card.checkReady();
+            return !card.failed;
+        });
+        expect(ready, `Express preview for ${this.id} must resolve`).toBe(true);
+    }
+
     async ensureExpanded() {
         const viewportWidth = this.page.viewportSize().width;
         if (viewportWidth < 1200) {
@@ -68,7 +79,7 @@ export default class ExpressCard {
                 const expanded = await this.isExpanded();
                 if (expanded !== 'true') {
                     await this.chevronButton.click();
-                    await this.page.waitForTimeout(300);
+                    await expect(this.card).toHaveAttribute('data-expanded', 'true');
                 }
             }
         }

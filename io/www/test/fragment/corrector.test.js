@@ -622,5 +622,66 @@ describe('corrector', () => {
             expect(result.body.cdtStart).to.be.undefined;
             expect(result.body.cdtEnd).to.be.undefined;
         });
+
+        const staleBody = (description) => ({
+            priceLiterals: {},
+            promoProject: 'Gone',
+            cdtStart: '2020-01-01T00:00:00Z',
+            cdtEnd: '2020-01-10T00:00:00Z',
+            fields: { description: { mimeType: 'text/html', value: description } },
+            references: {
+                'card-1': {
+                    type: 'content-fragment',
+                    value: {
+                        id: 'card-1',
+                        promoProject: 'Gone',
+                        cdtStart: '2020-01-01T00:00:00Z',
+                        cdtEnd: '2020-01-10T00:00:00Z',
+                        fields: { description: { mimeType: 'text/html', value: description } },
+                    },
+                },
+            },
+            referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+        });
+
+        it('clears stale dates when the promo project is gone', async () => {
+            const result = await transformer.process({ body: staleBody(CDT_LINK), promoProjects: [] });
+
+            expect(result.body.cdtStart).to.be.undefined;
+            expect(result.body.cdtEnd).to.be.undefined;
+            expect(result.body.references['card-1'].value.cdtStart).to.be.undefined;
+            expect(result.body.references['card-1'].value.cdtEnd).to.be.undefined;
+        });
+
+        it('clears stale dates when the countdown-timer link is gone', async () => {
+            const promoProjects = [
+                { label: 'Gone', project: { id: 'p', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: '2026-01-10T00:00:00Z' } },
+            ];
+            const result = await transformer.process({ body: staleBody('<p>no timer</p>'), promoProjects });
+
+            expect(result.body.cdtStart).to.be.undefined;
+            expect(result.body.references['card-1'].value.cdtStart).to.be.undefined;
+        });
+
+        it('replaces stale dates with the current project dates', async () => {
+            const promoProjects = [
+                { label: 'Gone', project: { id: 'p', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: '2026-01-10T00:00:00Z' } },
+            ];
+            const result = await transformer.process({ body: staleBody(CDT_LINK), promoProjects });
+
+            for (const target of [result.body, result.body.references['card-1'].value]) {
+                expect(target.cdtStart).to.equal('2026-01-01T00:00:00Z');
+                expect(target.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+            }
+        });
+
+        it('drops a lone date from an incomplete project', async () => {
+            const promoProjects = [{ label: 'Gone', project: { id: 'p', cdtStart: '2026-01-01T00:00:00Z' } }];
+            const result = await transformer.process({ body: staleBody(CDT_LINK), promoProjects });
+
+            expect(result.body.cdtStart).to.be.undefined;
+            expect(result.body.references['card-1'].value.cdtStart).to.be.undefined;
+            expect(result.body.references['card-1'].value.cdtEnd).to.be.undefined;
+        });
     });
 });

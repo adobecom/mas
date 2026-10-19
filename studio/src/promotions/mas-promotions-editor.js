@@ -440,7 +440,6 @@ class MasPromotionsEditor extends LitElement {
                 description=${hasSurfaces
                     ? 'Choose one or more countries for your promotion.'
                     : 'Countries will be generated automatically once surfaces are selected.'}
-                required
                 ?readonly=${!this.canEdit}
                 ?disabled=${!this.canEdit || !hasSurfaces}
                 .selected=${getSelectedCountries(this.geos)}

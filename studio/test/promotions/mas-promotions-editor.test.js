@@ -1404,17 +1404,31 @@ describe('MasPromotionsEditor', () => {
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
         });
 
-        it('blocks create when geos hold only legacy locale and personalization tags', async () => {
+        it('blocks create when geos hold neither countries nor personalization tags', async () => {
             const toastEmitStub = sandbox.stub(Events.toast, 'emit');
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
-            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US']);
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Save');
             await el.updateComplete;
             expect(repo.createFragment.called).to.be.false;
-            expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please select at least one country.' })).to.be
-                .true;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Please select at least one country or personalization tag.',
+                }),
+            ).to.be.true;
+        });
+
+        it('allows create when geos hold only personalization tags', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('geos', ['mas:pzn/edu']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
         });
 
         it('passes promoCode field values through unchanged in the create payload', async () => {

@@ -8,7 +8,7 @@ import { fromAttribute } from '../aem/tag-path-utils.js';
 import Store from '../store.js';
 import { closeOfferSelectorTool } from '../rte/ost.js';
 import { getService, isUUID, normalizeKey, parseStudioDeepLinksFromText } from '../utils.js';
-import { getSelectedCountries } from './promotion-countries.js';
+import { getSelectedCountries, hasPznGeos } from './promotion-countries.js';
 
 /**
  * True when title's normalizeKey slug collides with an existing one — same check AEM does on `name`, caught upfront instead of via a 409.
@@ -236,8 +236,9 @@ export function getPromotionRequiredFieldsValidation(fragment, itemCount, isEver
     if (splitPromotionTagsFieldValues(fragment.getFieldValues('tags')).promotion.length === 0) {
         return 'Please add at least one promotion tag.';
     }
-    if (!getSelectedCountries(fragment.getFieldValues('geos')).length) {
-        return 'Please select at least one country.';
+    const geos = fragment.getFieldValues('geos');
+    if (!getSelectedCountries(geos).length && !hasPznGeos(geos)) {
+        return 'Please select at least one country or personalization tag.';
     }
     if (!parsePromotionSurfacesFieldValues(fragment.getFieldValues('surfaces')).length) {
         return 'Please add at least one surface.';

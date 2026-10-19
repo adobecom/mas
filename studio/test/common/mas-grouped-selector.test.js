@@ -166,9 +166,24 @@ describe('MasGroupedSelector', () => {
         expect(el.expanded).to.be.true;
     });
 
-    it('does not toggle the list when the header outside the toggle button is clicked', async () => {
+    it('toggles the list when the header outside the toggle button is clicked', async () => {
         const el = await render(['fr_FR']);
-        query(el, '.selected-header').click();
+        query(el, '.selected-header h2').click();
+        await el.updateComplete;
+        expect(el.expanded).to.be.false;
+    });
+
+    it('does not toggle the list when the selected list is clicked', async () => {
+        const el = await render(['fr_FR']);
+        query(el, '.selected-list').click();
+        await el.updateComplete;
+        expect(el.expanded).to.be.true;
+    });
+
+    it('does not toggle the list when clicked in the empty state', async () => {
+        const el = await render();
+        await keepDialogClosed(el);
+        query(el, '.empty-state .label').click();
         await el.updateComplete;
         expect(el.expanded).to.be.true;
     });

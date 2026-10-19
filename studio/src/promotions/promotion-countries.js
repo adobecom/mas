@@ -13,10 +13,16 @@ export function toCountryTag(country, tags = []) {
 
 const isCountryGeo = (geo) => isPznCountryTagId(tagRefToTagId(geo));
 
-const isPersonalizationGeo = (geo) => {
+const isPznGeo = (geo) => {
     const tagId = tagRefToTagId(geo);
-    return isLocaleTagId(tagId) || (!!tagId?.startsWith(PZN_TAG_ID_PREFIX) && !isPznCountryTagId(tagId));
+    return !!tagId?.startsWith(PZN_TAG_ID_PREFIX) && !isPznCountryTagId(tagId);
 };
+
+const isPersonalizationGeo = (geo) => isLocaleTagId(tagRefToTagId(geo)) || isPznGeo(geo);
+
+export function hasPznGeos(geos = []) {
+    return geos.some(isPznGeo);
+}
 
 export function getSelectedCountries(geos = []) {
     const codes = geos

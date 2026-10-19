@@ -3,6 +3,7 @@ import {
     toCountryTag,
     getSelectedCountries,
     getPersonalizationGeos,
+    hasPznGeos,
     getEligibleCountries,
     setCountriesInGeos,
     setPersonalizationGeos,
@@ -56,6 +57,13 @@ describe('promotion-countries', () => {
             'mas:locale/en_US',
             '/content/cq:tags/mas/locale/fr_FR',
         ]);
+    });
+
+    it('detects pzn tags excluding country and locale tags', () => {
+        expect(hasPznGeos(['mas:pzn/edu'])).to.be.true;
+        expect(hasPznGeos(['/content/cq:tags/mas/pzn/teams'])).to.be.true;
+        expect(hasPznGeos(['mas:pzn/country/US', 'mas:locale/en_US', '/content/cq:tags/mas/locale/fr_FR'])).to.be.false;
+        expect(hasPznGeos()).to.be.false;
     });
 
     it('returns no eligible countries without surfaces', () => {

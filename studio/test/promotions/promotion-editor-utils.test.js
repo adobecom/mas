@@ -526,17 +526,46 @@ describe('promotion-editor-utils', () => {
             expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please enter a title.');
         });
 
-        it('returns a message when countries are missing', () => {
+        it('returns a message when countries and personalization tags are missing', () => {
             const f = {
                 ...baseFragment(),
                 getFieldValues: (name) => {
                     if (name === 'tags') return ['mas:promotion/test'];
                     if (name === 'surfaces') return ['sandbox'];
-                    if (name === 'geos') return ['mas:locale/en_US', 'mas:pzn/smb'];
                     return [];
                 },
             };
-            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal('Please select at least one country.');
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal(
+                'Please select at least one country or personalization tag.',
+            );
+        });
+
+        it('is valid with personalization tags and no countries', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValues: (name) => {
+                    if (name === 'tags') return ['mas:promotion/test'];
+                    if (name === 'surfaces') return ['sandbox'];
+                    if (name === 'geos') return ['mas:pzn/edu'];
+                    return [];
+                },
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.be.null;
+        });
+
+        it('returns a message when geos hold only obsolete locale tags', () => {
+            const f = {
+                ...baseFragment(),
+                getFieldValues: (name) => {
+                    if (name === 'tags') return ['mas:promotion/test'];
+                    if (name === 'surfaces') return ['sandbox'];
+                    if (name === 'geos') return ['mas:locale/en_US'];
+                    return [];
+                },
+            };
+            expect(getPromotionRequiredFieldsValidation(f, 1)).to.equal(
+                'Please select at least one country or personalization tag.',
+            );
         });
 
         it('returns a message when no promotion classification tag', () => {

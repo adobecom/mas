@@ -420,6 +420,34 @@ describe('processCTAs', async () => {
         const footer = getFooterElement(merchCard);
         expect(footer.children).to.have.lengthOf(2);
     });
+
+    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        await delay(50);
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const button = footer.querySelector('button');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+    });
+
+    it('should hide free-trial CTA when buy-now exists and hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        await delay(50);
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const button = footer.querySelector('button');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+    });
 });
 
 describe('processCTAs - headless CTA variant labels', async () => {

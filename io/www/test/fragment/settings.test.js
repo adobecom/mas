@@ -789,6 +789,40 @@ describe('settings', () => {
             expect(references.mini.value.placeholders).to.be.undefined;
         });
 
+        it('publishes and resolves the license label for Pro cards and Pro cards in a collection', async () => {
+            const dictionary = { 'license-label': 'Lizenz', 'licenses-label': 'Lizenzen' };
+            const ref = (variant) => ({ type: 'content-fragment', value: { fields: { variant } } });
+            for (const body of [
+                { fields: { variant: 'pro' } },
+                { fields: { variant: 'bizpro' } },
+                {
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: { pro: ref('pro'), mini: ref('mini') },
+                },
+            ]) {
+                const context = {
+                    locale: 'de_DE',
+                    body,
+                    promises: { settings: Promise.resolve({}), replace: Promise.resolve(dictionary) },
+                };
+                const { body: resolved } = await replace.process(await settings.process(context));
+                const card = resolved.references?.pro.value ?? resolved;
+                expect(card.placeholders.licenseLabel).to.equal('Lizenz|Lizenzen');
+                expect(resolved.references?.mini.value.placeholders).to.be.undefined;
+            }
+        });
+
+        it('does not publish the license label for other variants', async () => {
+            const context = {
+                locale: 'en_US',
+                body: { fields: { variant: 'plans' } },
+                promises: { settings: Promise.resolve({}) },
+            };
+            const result = await settings.process(context);
+            expect(result.body.placeholders.licenseLabel).to.be.undefined;
+        });
+
         it('does not publish countdown copy for other variants', async () => {
             const context = { locale: 'en_US', body: { fields: { variant: 'mini' } } };
             await settings.process(context);

@@ -55,9 +55,42 @@ Resolution rules:
 - **Full replacement per market segment** was rejected: an EDU baseline would duplicate everything that matches COM. Partial layers keep only the differences.
 - **Market segment overrides at the product level** were deferred: they would add a layer while no consumer needs them yet. Template-level overrides cover the known EDU cases. Product-level overrides can be added later as an additional layer below the template baseline.
 - **Encoding dimensions in the path, not in fields or tags**: one paginated listing of a template folder returns every baseline of that surface and template, including segment overrides. Authors also see the structure in the DAM.
-- **Merging product baseline fields by name** was rejected: MCS `description` is a product name and `short_description` a marketing blurb, while a card's `description` is its body copy and `shortDescription` often legal text. In published en_US `acom`, `acom-cc` and `acom-dc` cards (October 2026), 1 of 801 descriptions equals MCS's, and 86 cards without a description and 575 without a short description would have shown MCS copy.
-- **Customer segment overrides** (e.g. `{pa}/team`) were not added: the customer segment is part of the PA (`*_direct_individual`, `*_direct_indirect_team`, …), so a template baseline already applies to one customer segment. In the same content, no PA spans customer segments, and only `ccsn_direct_individual` spans market segments (COM, EDU).
+- **Merging product baseline fields by name** was rejected: MCS `description` is a product name and `short_description` a marketing blurb, while a card's `description` is its body copy and `shortDescription` often legal text. Merged by name, they would have shown on 86 en_US `acom` cards without a description and 575 without a short description (see [Evidence](#evidence)).
+- **Customer segment overrides** (e.g. `{pa}/team`) were not added: the customer segment is part of the PA (`*_direct_individual`, `*_direct_indirect_team`, …), so a template baseline already applies to one customer segment. They save nothing in the [projection](#evidence).
 - **Product baselines in state rather than listed**: with ~1,800 PAs per locale, a listing per request is too slow. Reads by key (`offer-{locale}-{pa}`) are cheap and cached in container memory.
+
+## Evidence
+
+Analysis of published en_US cards on `acom`, `acom-cc` and `acom-dc` (October 2026). Offers are resolved through WCS (PA, customer and market segment), and MCS merchandising data comes from AOS. Promotion and PZN variations are excluded.
+
+| Finding                                                        | Value                                                                 |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| PAs shared between customer segments (individual, team)        | 0: the customer segment is part of the PA                             |
+| PAs shared between market segments                             | 1: `ccsn_direct_individual` (COM, EDU)                                |
+| Values shared by TEAM and INDIVIDUAL cards (template, product) | 20% (icons, add-on, badge, subtitle; no prices or CTAs)               |
+| Values shared by EDU and COM cards                             | 13% (mostly icons)                                                    |
+| PA and market segments used by several templates               | 53 of 75 (863 cards); 38% of their values are shared across templates |
+| Most shared across templates                                   | icon link 81%, icon 75%, add-on 68%, title 62%, CTA labels 61%        |
+| Template-specific                                              | description 7–8%, subtitle 4%, badge and callout 0%                   |
+| Card titles equal to (containing) the MCS name                 | 307 (546) of 848                                                      |
+| Card descriptions equal to the MCS short description           | 1 of 801                                                              |
+| Card icons equal to the PA's most common icon                  | 83%, on `adobe.com` URLs rather than MCS's                            |
+
+Projected authoring effort of each structure, on the 890 cards with a PA, a template and MCS data (placeholders resolved to their text). "Authored" counts the values held by baselines and the values cards still hold, including explicit empties where a template renders the field. MCS-synced values cost nothing.
+
+| Structure                                                       | Authored values | Saved | Explicit empties |
+| --------------------------------------------------------------- | --------------- | ----- | ---------------- |
+| No baselines (today)                                            | 7,213           | –     | 0                |
+| Template baseline per surface                                   | 4,894           | 32%   | 106              |
+| Template baseline + market segment override                     | 4,803           | 33%   | 132              |
+| … + customer segment override                                   | 4,803           | 33%   | 132              |
+| Template baselines shared by surfaces + market segment override | 4,881           | 32%   | 134              |
+| Authored product baseline only                                  | 5,873           | 19%   | 467              |
+| Authored product baseline < template + market segment           | 4,623           | 36%   | 523              |
+| **MCS product baseline < template + market segment (decision)** | **4,877**       | 32%   | 362              |
+| … with `acom` icons aligned on MCS icons                        | 4,718           | 35%   | 362              |
+
+Cards keep about 3,800 values whatever the structure (descriptions, CTAs, prices), so about a third is the ceiling for baselines holding exact values. The product baseline adds little on `acom` alone: it pays off across surfaces (Unified Checkout, CCD) and as the home of product names now held in placeholders.
 
 ## Consequences
 
@@ -74,6 +107,7 @@ Resolution rules:
 - Template folders are listed recursively, so they must only hold baselines.
 - Product baseline changes reach the pipeline only after the next `offers` sync (up to 15 minutes) plus the container cache TTL (about 5 minutes).
 - Resolution depends on WCS: if an offer can't be resolved, no baseline applies for it.
+- Cards without a title or icon inherit the product baseline's: 41 and 166 en_US `acom` cards today (mostly `headless`, `mini-compare-chart`, `marquee` and `product`). They need an explicit empty or a template baseline before the product baselines are synced.
 
 ## References
 

@@ -251,6 +251,10 @@ class CardDetector {
             await cardElement.updateComplete;
         }
 
+        // A hidden responsive twin shares this fragment id; skip it so the visible copy is the one
+        // stored for this fragment rather than losing the dedupe race to an invisible element.
+        if (!this.hasBox(cardElement)) return;
+
         const localeInfo = this.pageLocale || this.getPageLocale();
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
         const rawVariant = cardElement.variant || cardElement.getAttribute('variant');
@@ -308,6 +312,18 @@ class CardDetector {
     }
 
     /**
+     * Whether an element currently renders a visible box. Adobe responsive pages ship both a
+     * desktop and a mobile-web copy of a block and hide one with display:none, which leaves a
+     * zero-size box. Badging that copy pins an invisible badge and makes its panel row scroll
+     * nowhere, so detection skips it.
+     */
+    hasBox(element) {
+        if (!element || typeof element.getBoundingClientRect !== 'function') return false;
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 || rect.height > 0;
+    }
+
+    /**
      * The AEM fragment an element came from, or null when it is a standalone offer.
      * mas-field stamps fragment-id on the elements it renders, so a price survives
      * Milo unwrapping its <mas-field>; the ancestor lookup covers the wrapped case.
@@ -331,6 +347,8 @@ class CardDetector {
 
         const osi = element.getAttribute('data-wcs-osi');
         if (!osi) return;
+
+        if (!this.hasBox(element)) return;
 
         if (this.detectedCards.size >= this.maxCards) return;
 
@@ -377,15 +395,20 @@ class CardDetector {
 
         if (this.detectedCards.size >= this.maxCards) return;
 
+        const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
+        // mas-field is display:contents, so it has no box of its own to anchor a badge to; use its
+        // rendered content span (or the commerce element it hosts). A field in a hidden responsive
+        // variant renders a zero-size content span, so skip it until it has a box -- a later mutation
+        // re-queues the field -- rather than badging an invisible duplicate.
+        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
+        if (!this.hasBox(anchorElement)) return;
+
         const id = `field-${++this.elementCounter}`;
         this.elementIds.set(element, id);
 
         const localeInfo = this.pageLocale || this.getPageLocale();
         const fieldName = element.getAttribute('field') || 'field';
         const displayText = (element.textContent || '').trim();
-        const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
-        // mas-field is display:contents, so it has no box of its own to anchor a badge to.
-        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
 
         const elementData = {
             element,
@@ -452,17 +475,23 @@ class CardDetector {
 
     highlightCard(fragmentId) {
         const cardData = this.detectedCards.get(fragmentId);
-        if (cardData) {
-            const target = cardData.anchorElement;
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.style.outline = '3px solid #ff0000';
-            target.style.outlineOffset = '4px';
+        if (!cardData) return;
 
-            setTimeout(() => {
-                target.style.outline = '';
-                target.style.outlineOffset = '';
-            }, 3000);
-        }
+        // The anchor had a box when detected, but a display:contents host or a responsive reflow can
+        // leave it boxless by now; climb to the nearest ancestor that still renders one so the scroll
+        // and outline land on something visible instead of silently doing nothing.
+        let target = cardData.anchorElement;
+        while (target && !this.hasBox(target)) target = target.parentElement;
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.style.outline = '3px solid #ff0000';
+        target.style.outlineOffset = '4px';
+
+        setTimeout(() => {
+            target.style.outline = '';
+            target.style.outlineOffset = '';
+        }, 3000);
     }
 
     updateCardName(fragmentId, cardName) {

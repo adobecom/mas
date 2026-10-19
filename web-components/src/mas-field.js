@@ -98,20 +98,15 @@ export async function stripTrialCtas(template, indexed, self) {
     let trialCtaSwapped = false;
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
-            const offerType = anchor.masElement?.value?.[0]?.offerType;
-            if (offerType === 'BASE') {
-                trialCtaSwapped = true;
-                if (buyNowCta) {
-                    anchor.remove();
-                } else {
-                    anchor.setAttribute('data-analytics-id', 'buy-now');
-                    if (anchor.hasAttribute('data-modal'))
-                        anchor.setAttribute('data-modal', 'crm');
-                    anchor.textContent =
-                        self.aemFragment?.data?.priceLiterals?.buyNow;
-                }
-            } else {
+            trialCtaSwapped = true;
+            if (buyNowCta) {
                 anchor.remove();
+            } else {
+                anchor.setAttribute('data-analytics-id', 'buy-now');
+                if (anchor.hasAttribute('data-modal'))
+                    anchor.setAttribute('data-modal', 'crm');
+                anchor.textContent =
+                    self.aemFragment?.data?.priceLiterals?.buyNow;
             }
         } else {
             anchor.remove();

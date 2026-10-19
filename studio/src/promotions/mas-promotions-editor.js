@@ -557,7 +557,7 @@ class MasPromotionsEditor extends LitElement {
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
-        if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
+        if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished && canManagePromotions()) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
                 fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
@@ -612,6 +612,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #publishOrSchedulePromotion() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast(PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE, 'info');
@@ -628,6 +629,7 @@ class MasPromotionsEditor extends LitElement {
         }
         const { confirmed, variationPaths, skippedCount } = await this.#confirmPublishWithUnpublishedPromoVariations();
         if (!confirmed) return;
+        if (!this.#checkPermission(canManagePromotions())) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'publish';
         try {
@@ -640,6 +642,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const confirmed =
             !this.fragment?.isStaged ||
             (await showConfirmDialog(this, STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
@@ -653,6 +656,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleUnpublishPromotion = async () => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (!this.fragment.isPromotionPublished) {
             showToast('This promotion is not published.', 'info');
@@ -664,6 +668,7 @@ class MasPromotionsEditor extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!this.#checkPermission(canManagePromotions())) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'unpublish';
         try {
@@ -758,11 +763,13 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handleEvergreenToggle = ({ target }) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         this.evergreenEnabled = target.checked;
         this.fragmentStore.updateField('endDate', ['']);
     };
 
     #handleDateUpdate({ target }) {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         const fieldName = target.dataset.field;
         const raw = target.value?.trim() ?? '';
         if (!raw) {
@@ -889,6 +896,13 @@ class MasPromotionsEditor extends LitElement {
     #hasRestrictedPromotionChanges() {
         const original = new Promotion(this.fragment.initialValue);
         if (
+            this.evergreenEnabled !== original.isEvergreen ||
+            ['startDate', 'endDate', 'cdtStart', 'cdtEnd'].some(
+                (name) => (original.getFieldValue(name) ?? '') !== (this.fragment.getFieldValue(name) ?? ''),
+            )
+        )
+            return true;
+        if (
             ['title', 'tags', 'geos', 'promoCode'].some(
                 (name) => JSON.stringify(original.getFieldValues(name)) !== JSON.stringify(this.fragment.getFieldValues(name)),
             ) ||
@@ -903,10 +917,10 @@ class MasPromotionsEditor extends LitElement {
             )
         )
             return true;
+        const originalOfferIds = parseSelectedOfferIdsFromOffersField(original.getFieldValues('offers'));
         if (
-            parseSelectedOfferIdsFromOffersField(original.getFieldValues('offers')).some(
-                (id) => !Store.promotions.selectedOffers.value.includes(id),
-            )
+            originalOfferIds.length !== Store.promotions.selectedOffers.value.length ||
+            originalOfferIds.some((id) => !Store.promotions.selectedOffers.value.includes(id))
         )
             return true;
         return (
@@ -1113,6 +1127,8 @@ class MasPromotionsEditor extends LitElement {
         if (!canManagePromotions()) {
             disabled.add(QUICK_ACTION.DELETE);
             disabled.add(QUICK_ACTION.DUPLICATE);
+            disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.UNPUBLISH);
         }
         if (!this.canEdit) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
@@ -1412,10 +1428,12 @@ class MasPromotionsEditor extends LitElement {
 
     #openPromotionsOst = (e) => {
         e?.stopPropagation?.();
+        if (!this.#checkPermission(canManagePromotions())) return;
         openOfferSelectorTool(document.createElement('osi-field'), null);
     };
 
     #handleOstOfferSelect = async (event) => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const added = await handlePromotionOstOfferSelect(event, Store.promotions);
         if (added) {
             this.#syncPromotionSelectionFieldsToFragment();
@@ -1524,7 +1542,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!canManagePromotions()} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1565,7 +1583,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!canManagePromotions()} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1803,7 +1821,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="startDate"
                                 value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="endDate" ?required=${!this.evergreenEnabled}>End Date (UTC)</sp-field-label>
@@ -1813,12 +1831,12 @@ class MasPromotionsEditor extends LitElement {
                                     id="endDate"
                                     value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
                                     data-field="endDate"
-                                    ?disabled=${readOnly || this.evergreenEnabled}
+                                    ?disabled=${!this.canConfigurePromotion || this.evergreenEnabled}
                                     @change=${this.#handleDateUpdate}
                                 />
                                 <sp-switch
                                     ?checked=${this.evergreenEnabled}
-                                    ?disabled=${readOnly}
+                                    ?disabled=${!this.canConfigurePromotion}
                                     @change=${this.#handleEvergreenToggle}
                                     >Evergreen promo</sp-switch
                                 >
@@ -1835,7 +1853,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtStart"
                                 value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtStart"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
@@ -1844,7 +1862,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtEnd"
                                 value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtEnd"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label required>Promotion tag</sp-field-label>
@@ -1953,7 +1971,7 @@ class MasPromotionsEditor extends LitElement {
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
                                               ? html`<sp-action-button
                                                     quiet
-                                                    ?disabled=${readOnly}
+                                                    ?disabled=${!canManagePromotions()}
                                                     @click=${this.#openPromotionsOst}
                                                 >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>

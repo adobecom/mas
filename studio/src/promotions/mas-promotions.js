@@ -399,7 +399,7 @@ class MasPromotions extends LitElement {
                         </sp-menu-item>
                         ${!promotion.get().isPromotionPublished || promotion.get().isPromotionModified
                             ? html`<sp-menu-item
-                                  ?disabled=${promotion.get().promotionStatus === 'expired'}
+                                  ?disabled=${!canManagePromotions() || promotion.get().promotionStatus === 'expired'}
                                   @click=${() => this.#handlePublishPromotionFromList(promotion)}
                               >
                                   <sp-icon-publish slot="icon"></sp-icon-publish>
@@ -407,7 +407,10 @@ class MasPromotions extends LitElement {
                               </sp-menu-item>`
                             : nothing}
                         ${promotion.get().isPromotionPublished
-                            ? html`<sp-menu-item @click=${() => this.#handleUnpublishPromotionFromList(promotion)}>
+                            ? html`<sp-menu-item
+                                  ?disabled=${!canManagePromotions()}
+                                  @click=${() => this.#handleUnpublishPromotionFromList(promotion)}
+                              >
                                   <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                                   Unpublish
                               </sp-menu-item>`
@@ -469,6 +472,10 @@ class MasPromotions extends LitElement {
     }
 
     async #handlePublishPromotionFromList(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
         const fragment = promotion.get();
         const stagedConfirmed =
             !fragment.isStaged ||
@@ -478,6 +485,10 @@ class MasPromotions extends LitElement {
                 variant: 'confirmation',
             }));
         if (!stagedConfirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
 
         if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {
             if (isPromotionExpiredForPublish(fragment)) {
@@ -491,6 +502,10 @@ class MasPromotions extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
         try {
             this.loading = true;
             const ok = await publishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
@@ -501,6 +516,10 @@ class MasPromotions extends LitElement {
     }
 
     async #handleUnpublishPromotionFromList(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to unpublish promotion projects.', 'negative');
+            return;
+        }
         const fragment = promotion.get();
         if (!fragment?.id) return;
         if (!fragment.isPromotionPublished) {
@@ -512,6 +531,10 @@ class MasPromotions extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to unpublish promotion projects.', 'negative');
+            return;
+        }
         try {
             this.loading = true;
             const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths, skippedCount);

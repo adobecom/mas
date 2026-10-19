@@ -137,6 +137,46 @@ describe('MasPromotions', () => {
         expect(findMenuItem(el, 'Duplicate').disabled).to.be.true;
     });
 
+    for (const action of ['Publish', 'Unpublish']) {
+        it(`disables project ${action} for editors`, async () => {
+            const { el } = await mountWithRepo(
+                makePromotion({
+                    id: 'existing-project',
+                    status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                }),
+            );
+            expect(findMenuItem(el, action).disabled).to.be.true;
+        });
+
+        it(`rejects dispatched project ${action} requests from editors`, async () => {
+            const operation = sandbox.stub().resolves();
+            const { el } = await mountWithRepo(
+                makePromotion({
+                    id: 'existing-project',
+                    status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                }),
+                {
+                    operation: { set: sandbox.stub() },
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: {
+                                    getWithEtag: sandbox.stub().resolves({ id: 'existing-project', etag: '"etag"' }),
+                                    [action.toLowerCase()]: operation,
+                                },
+                            },
+                        },
+                    },
+                },
+            );
+            findMenuItem(el, action).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(operation.called).to.be.false;
+        });
+    }
+
     it('rejects dispatched project duplication requests from editors', async () => {
         const { el } = await mountWithRepo(makePromotion({ id: 'existing-project', title: 'Existing project' }));
         clickDuplicateMenuItem(el);
@@ -584,6 +624,10 @@ describe('MasPromotions', () => {
     });
 
     describe('#handlePublishPromotionFromList', () => {
+        beforeEach(() => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        });
+
         function makePublishableRepo(overrides = {}) {
             return {
                 operation: { set: sandbox.stub() },
@@ -638,6 +682,50 @@ describe('MasPromotions', () => {
             expect(el.isDialogOpen).to.be.false;
         });
 
+        it('rejects publishing when poweruser access is lost during staged confirmation', async () => {
+            const promotion = stagePromotion(
+                makePromotion({
+                    id: 'promo-1',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                }),
+            );
+            const { el, repo } = await mountWithRepo(promotion, makePublishableRepo());
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        });
+
+        it('rejects publishing when poweruser access is lost during variation confirmation', async () => {
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/tiered';
+            const repoOverrides = makePublishableRepo();
+            repoOverrides.aem.sites.cf.fragments.search = makeSharedSearchStub(sandbox, {
+                [promoFolder]: [{ id: 'variation', path: `${promoFolder}/my-card`, status: 'DRAFT' }],
+            });
+            const { el, repo } = await mountWithRepo(
+                makePromotion({
+                    id: 'promo-1',
+                    startDate: '2020-01-01T00:00:00.000Z',
+                    endDate: '2099-12-31T00:00:00.000Z',
+                    fragments: [parentPath],
+                    tags: [{ id: 'mas:promotion/tiered' }],
+                }),
+                repoOverrides,
+            );
+            findMenuItem(el, 'Publish').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
+            await el.updateComplete;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        });
+
         it('skips publishing when a confirmation dialog is already open', async () => {
             const promotion = stagePromotion(
                 makePromotion({
@@ -660,6 +748,10 @@ describe('MasPromotions', () => {
     });
 
     describe('#handleUnpublishPromotionFromList', () => {
+        beforeEach(() => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        });
+
         it('unpublishes a promotion project and refreshes the list', async () => {
             const promotion = makePromotion({ id: 'promo-1', title: 'Live', status: 'PUBLISHED' });
             const { el, repo } = await mountWithRepo(promotion, {
@@ -805,6 +897,10 @@ describe('MasPromotions', () => {
     });
 
     describe('#handleUnpublishPromotionFromList (checkbox dialog)', () => {
+        beforeEach(() => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+        });
+
         const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
         const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/black-friday';
         const promoPath = `${promoFolder}/my-card`;
@@ -892,6 +988,17 @@ describe('MasPromotions', () => {
 
             expect(el.confirmDialogConfig).to.be.null;
             expect(el.isDialogOpen).to.be.false;
+        });
+
+        it('rejects unpublishing when poweruser access is lost during variation confirmation', async () => {
+            const { el, repo } = await mountWithPublishedVariation(makePublishedPromotionWithVariation());
+            clickMenuItem(el, 'Unpublish');
+            await waitUntil(() => el.isDialogOpen, 'confirm dialog should open');
+            await el.updateComplete;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.shadowRoot.querySelector('#promotion-delete-confirm-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
     });
 

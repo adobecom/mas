@@ -405,7 +405,9 @@ export class InvestigationSession extends EventTarget {
             if (this.now() < this.retryAt) throw this.error;
             if (this.createKey) await this.ensureSession();
             const ids = new Set(
-                [this.session?.id, this.restoreId, ...this.records.map((item) => item.sessionId)].filter(Boolean),
+                [this.session?.id, this.restoreId, ...this.records.filter(running).map((item) => item.sessionId)].filter(
+                    Boolean,
+                ),
             );
             for (const sessionId of ids) {
                 try {

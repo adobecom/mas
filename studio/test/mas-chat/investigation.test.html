@@ -375,6 +375,16 @@
                         expect(calls[0][1]).to.equal('session.end');
                         expect(current.pending).to.equal(null);
                     });
+                    it('ends current work without exhausting controls on a long history of completed leases', async () => {
+                        current.session = lease();
+                        current.records = Array.from({ length: 200 }, (_, index) => ({
+                            ...record(),
+                            sessionId: `old-session-${index}`,
+                        }));
+                        await current.end();
+                        expect(calls.map((call) => call.slice(1))).to.deep.equal([['session.end', { sessionId: sid }]]);
+                        expect(current.records).to.have.length(200);
+                    });
                     it('keeps the lease and credentials available when ending fails', async () => {
                         current.session = lease();
                         sinon.stub(current.client, 'control').rejects(new MasaClientError('connection-unavailable', 'Offline'));

@@ -441,7 +441,7 @@ async function wcs(context) {
         log('No WCS configurations available', context);
         return context;
     }
-    // Artifacts already fetched by the offer transformer (MWPW-186204) are reused instead of requested twice.
+    // Artifacts already fetched by the offer transformer (ADR CONT-0005) are reused instead of requested twice.
     const prefetched = context.wcsPrefetch ?? {};
     if (masElements.length > 0) {
         // Promo codes applied to referenced cards live on each card's fields.promoCode (keyed by its base osi),

@@ -111,7 +111,7 @@ async function getOfferBaseline(context, productArrangementCode) {
 }
 
 /**
- * Request infos when no fragment `id` is requested (MWPW-186204): `offer`, `template` & `surface` select the main body,
+ * Request infos when no fragment `id` is requested (ADR CONT-0005): `offer`, `template` & `surface` select the main body,
  * the most specific baseline: the fragment baseline for that template & the offer market segment, the fragment baseline
  * for that template, or the offer baseline.
  * Same shape as fetchFragment's request infos, plus the `wcsPrefetch` used to resolve the offer.
@@ -182,7 +182,7 @@ function collectTargets({ body, offer, template }) {
 }
 
 /**
- * Looks up offer & fragment baselines of the requested fragment and of each card it references (MWPW-186204), so a
+ * Looks up offer & fragment baselines of the requested fragment and of each card it references (ADR CONT-0005), so a
  * single baseline can hold the content common to all fragments of a product arrangement & template.
  * Each distinct offer, offer baseline & fragment baseline is requested once. Failures are not fatal.
  * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } }, wcsPrefetch }}

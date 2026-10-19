@@ -1,5 +1,5 @@
 /**
- * Creates the offer baseline fragment (offer model) of a product arrangement from its MCS merchandising data (MWPW-186204):
+ * Creates the offer baseline fragment (offer model) of a product arrangement from its MCS merchandising data (ADR CONT-0005):
  * /content/dam/mas/offers/<locale>/baselines/<productArrangementCode>/baseline
  * e.g: node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run
  */

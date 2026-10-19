@@ -8,7 +8,7 @@ import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
 import { createSwrCache } from '../fragment/utils/swr-cache.js';
 
 /**
- * MWPW-186204: keeps offer baselines (`/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`) in the namespace state, one key
+ * ADR CONT-0005: keeps offer baselines (`/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`) in the namespace state, one key
  * per locale & product arrangement, so the fragment pipeline reads the few it needs instead of listing the whole folder
  * (~1800 product arrangements per locale).
  * - sync: non web invocations (every 15 minutes alarm, or on demand), for one `locale` or all of them,

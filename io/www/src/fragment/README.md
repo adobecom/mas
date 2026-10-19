@@ -17,7 +17,9 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 You can see the full flow on below diagram:
 ![flow](image.png)
 
-## offer baselines (MWPW-186204)
+## offer baselines
+
+See ADR [CONT-0005](../../../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md).
 
 Request parameters: `locale` (required), `id`, `offer` (an OSI for now), `template` (a card variant), `surface`.
 

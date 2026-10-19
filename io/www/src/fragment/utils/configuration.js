@@ -90,7 +90,7 @@ export function validateApiKey(context) {
 
 /**
  * Surface bound to the request api key by the `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`),
- * most api keys serving a single surface (MWPW-186204).
+ * most api keys serving a single surface (ADR CONT-0001).
  * @returns {string|undefined}
  */
 export function getApiKeySurface({ api_key, apiKeySurfaces }) {

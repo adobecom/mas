@@ -903,7 +903,7 @@ describe('pipeline end to end', () => {
             expect(result.body.cdtEnd).to.be.undefined;
         });
     });
-    describe('collection of plans cards on one product with offer & fragment baselines (MWPW-186204)', () => {
+    describe('collection of plans cards on one product with offer & fragment baselines (ADR CONT-0005)', () => {
         const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
         const PA = 'phsp_direct_individual';
         const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
@@ -1067,7 +1067,7 @@ describe('pipeline end to end', () => {
             expect(callsTo(PLANS_LISTING)).to.have.length(1);
         });
     });
-    describe('collection of plans cards on 3 products & 3 plan types with offer & fragment baselines (MWPW-186204)', () => {
+    describe('collection of plans cards on 3 products & 3 plan types with offer & fragment baselines (ADR CONT-0005)', () => {
         const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
         const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
         const OFFER_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy';

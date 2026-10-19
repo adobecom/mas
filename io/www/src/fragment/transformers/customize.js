@@ -490,7 +490,7 @@ function withOfferIcon(offerBaseline, higherLayers) {
 }
 
 /**
- * MWPW-186204: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
+ * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
  * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
  */
 function applyBaselines(fragment, { baselines }) {

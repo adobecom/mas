@@ -113,6 +113,6 @@ Cards keep about 3,800 values whatever the structure (descriptions, CTAs, prices
 
 - Jira: [MWPW-186204](https://jira.corp.adobe.com/browse/MWPW-186204)
 - Pull requests: [adobecom/mas#1444](https://github.com/adobecom/mas/pull/1444) (offers action), [adobecom/mas#1445](https://github.com/adobecom/mas/pull/1445) (fragment pipeline)
-- Implementation: [`io/www/src/fragment/README.md`](../../../io/www/src/fragment/README.md#offer-baselines-mwpw-186204), `io/www/src/offers/index.js`, `io/www/src/fragment/transformers/offer.js`, `io/www/src/fragment/transformers/customize.js`
+- Implementation: [`io/www/src/fragment/README.md`](../../../io/www/src/fragment/README.md#offer-baselines), `io/www/src/offers/index.js`, `io/www/src/fragment/transformers/offer.js`, `io/www/src/fragment/transformers/customize.js`
 - Diagram: [M@S Content Structure](https://miro.com/app/board/uXjVHu0zLZA=/?moveToWidget=3458764683909791546)
 - ADR practice: [KNOW-0000](https://github.com/Adobe-acom/core/blob/main/decisions/knowledge/KNOW-0000-record-decisions-as-adrs.md), [KNOW-0001](https://github.com/Adobe-acom/core/blob/main/decisions/knowledge/KNOW-0001-adr-repository-topology.md)

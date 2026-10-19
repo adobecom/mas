@@ -120,7 +120,7 @@ async function main(params) {
 }
 
 async function mainProcess(context) {
-    // MWPW-186204: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
+    // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
     // A requested surface conflicting with the api key's (here) or the fragment's (fetchFragment) one is a 404.
     const apiKeySurface = getApiKeySurface(context);
     context.requestedSurface = context.surface;

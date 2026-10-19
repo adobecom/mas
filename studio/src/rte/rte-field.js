@@ -20,10 +20,17 @@ import throttle from '../utils/throttle.js';
 import './rte-mnemonic-editor.js';
 import './rte-link-editor.js';
 import './rte-icon-editor.js';
+import { COUNTDOWN_LINK_TEXT, isCountdownLinkText } from '../../../io/www/src/fragment/utils/countdown.js';
 
 const CUSTOM_ELEMENT_CHECKOUT_LINK = 'checkout-link';
 const CUSTOM_ELEMENT_INLINE_PRICE = 'inline-price';
 const LINK_KEY_ATTR = 'data-key';
+
+// Text-safe badge colors (no gray: it matches the text); each class is mapped to its color in merch-countdown.js.
+const COUNTDOWN_COLORS = [
+    ['spectrum-green-900', 'Green', '#05834E'],
+    ['spectrum-red-700', 'Red', '#EB1000'],
+];
 
 const DEFAULT_EMOJIS = ['ℹ️', '✅', '✓', '✔', '❌', '✗', '✘', '✖', '×', '—', '-'];
 
@@ -203,6 +210,7 @@ class RteField extends LitElement {
         icon: { type: Boolean, attribute: 'icon' },
         mnemonic: { type: Boolean, attribute: 'mnemonic' },
         divider: { type: Boolean, attribute: 'divider' },
+        countdown: { type: Boolean, attribute: 'countdown' },
         emoji: { type: Boolean, attribute: 'emoji' },
         marks: {
             type: Array,
@@ -221,6 +229,7 @@ class RteField extends LitElement {
         },
         uptLink: { type: Boolean, attribute: 'upt-link' },
         isLinkSelected: { type: Boolean, state: true },
+        countdownColor: { state: true },
         smallActive: { type: Boolean, state: true },
         priceSelected: { type: Boolean, state: true },
         readOnly: { type: Boolean, attribute: 'readonly' },
@@ -775,6 +784,11 @@ class RteField extends LitElement {
                     background-color: rgba(213, 213, 213);
                 }
 
+                /* A quiet picker offsets itself by label spacing + 1px; cancel it to sit on the toolbar baseline. */
+                #countdownColor {
+                    --mod-picker-spacing-label-to-picker-quiet: -1px;
+                }
+
                 .superscript-icon {
                     font-family: sans-serif;
                     font-size: 14px;
@@ -803,6 +817,7 @@ class RteField extends LitElement {
         super();
         this.readOnly = false;
         this.isLinkSelected = false;
+        this.countdownColor = null;
         this.smallActive = false;
         this.priceSelected = false;
         this.showLinkEditor = false;
@@ -1116,6 +1131,7 @@ class RteField extends LitElement {
                 attrs: {
                     class: { default: null },
                     href: { default: '' },
+                    translate: { default: null },
                     'data-key': { default: null },
                     'data-checkout-workflow': { default: null },
                     'data-checkout-workflow-step': { default: null },
@@ -1234,7 +1250,7 @@ class RteField extends LitElement {
     #collectDataAttributes(dom) {
         const attrs = {};
         for (const name of dom.getAttributeNames()) {
-            if (attributeFilter(name) || name === 'src' || name === 'alt' || name === 'size') {
+            if (attributeFilter(name) || name === 'src' || name === 'alt' || name === 'size' || name === 'translate') {
                 const value = dom.getAttribute(name);
                 if (value === null) continue;
                 attrs[name] = value;
@@ -1880,6 +1896,8 @@ class RteField extends LitElement {
     #updateSelection(state) {
         const { selection } = state;
         this.isLinkSelected = selection.node?.type.name === 'link' && !selection.node.attrs['data-wcs-osi'];
+        const isCountdown = this.isLinkSelected && isCountdownLinkText(selection.node.textContent);
+        this.countdownColor = isCountdown ? (selection.node.attrs.class ?? '') : null;
         this.smallActive = this.#isMarkActive(state, 'small');
     }
 
@@ -2202,7 +2220,8 @@ class RteField extends LitElement {
                 : html`<sp-action-group quiet size="m" aria-label="RTE toolbar actions">
                       ${this.#formatButtons} ${this.stylingButton} ${this.#listButtons} ${this.#linkEditorButton}
                       ${this.#unlinkEditorButton} ${this.#toolbarOfferSelectorButton} ${this.#iconsButton}
-                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#emojiButton}
+                      ${this.#uptLinkButton} ${this.#mnemonicButton} ${this.#dividerButton} ${this.#countdownButton}
+                      ${this.#emojiButton}
                   </sp-action-group>`}
             <div id="editor-row">
                 <div id="editor"></div>
@@ -2242,6 +2261,49 @@ class RteField extends LitElement {
                 <sp-icon-stroke-solid slot="icon"></sp-icon-stroke-solid>
             </sp-action-button>
         `;
+    }
+
+    get #countdownButton() {
+        if (!this.countdown) return nothing;
+        return html`<sp-action-button
+                id="addCountdownButton"
+                ?disabled=${this.readOnly}
+                @click=${this.addCountdown}
+                title="Add countdown timer (uses the promotion's UTC dates)"
+                >Countdown</sp-action-button
+            >
+            ${this.countdownColor === null
+                ? nothing
+                : html`<sp-picker
+                      id="countdownColor"
+                      quiet
+                      label="Countdown color"
+                      title="Countdown color"
+                      ?disabled=${this.readOnly}
+                      .value=${this.countdownColor || 'default'}
+                      @change=${this.#setCountdownColor}
+                  >
+                      <sp-menu-item value="default">No color</sp-menu-item>
+                      ${COUNTDOWN_COLORS.map(
+                          ([value, label, hex]) =>
+                              html`<sp-menu-item value=${value}>
+                                  <span slot="icon" style="width:12px;height:12px;border-radius:50%;background:${hex}"></span>
+                                  ${label}
+                              </sp-menu-item>`,
+                      )}
+                  </sp-picker>`}`;
+    }
+
+    #setCountdownColor(event) {
+        const { state, dispatch } = this.editorView;
+        const { node, from } = state.selection;
+        if (node?.type.name !== 'link') return;
+        const value = event.target.value;
+        const next = value === 'default' ? null : value;
+        if (next === (node.attrs.class ?? null)) return;
+        const tr = state.tr.setNodeMarkup(from, null, { ...node.attrs, class: next });
+        dispatch(tr.setSelection(NodeSelection.create(tr.doc, from)));
+        this.editorView.focus();
     }
 
     get #emojiButton() {
@@ -2437,6 +2499,18 @@ class RteField extends LitElement {
         const { selection } = state;
         const tr = state.tr.insertText(emoji, selection.from, selection.to);
         dispatch(tr);
+        this.editorView.focus();
+    }
+
+    addCountdown() {
+        const { state, dispatch } = this.editorView;
+        // Bold by default; authors can still toggle it off.
+        const node = state.schema.nodes.link.create(
+            { href: '#', translate: 'no' },
+            state.schema.text(COUNTDOWN_LINK_TEXT),
+            state.schema.marks.strong ? [state.schema.marks.strong.create()] : [],
+        );
+        dispatch(state.tr.insert(state.selection.to, node));
         this.editorView.focus();
     }
 

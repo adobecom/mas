@@ -377,6 +377,13 @@
                         expect(ctas.getAttribute('default-link-style')).to.equal('primary');
                     });
 
+                    it('keeps the editor usable when the card has no variant', async () => {
+                        await setupTestEnvironment({ variant: [], isVariation: false }, 'missing-variant');
+                        const description = editor.querySelector('rte-field#description');
+                        expect(description).to.exist;
+                        expect(description.hasAttribute('countdown')).to.be.false;
+                    });
+
                     it('renders card status on top of the editor', async () => {
                         await setupTestEnvironment();
                         const statusEl = editor.querySelector(

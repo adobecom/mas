@@ -37,6 +37,13 @@ export const parseQuantitySelectValue = (value) => {
     };
 };
 
+export const splitLicenseLabel = (title) => {
+    const [singular = '', plural = ''] = title.split('|');
+    return [singular, plural];
+};
+
+export const joinLicenseLabel = (singular, plural) => (singular || plural ? `${singular}|${plural}` : '');
+
 /**
  * Settings custom value editor for merch quantity select markup.
  */
@@ -44,6 +51,7 @@ export class QuantitySelectField extends LitElement {
     static properties = {
         value: { type: String },
         title: { type: String, state: true },
+        splitTitle: { type: Boolean },
         min: { type: String, state: true },
         step: { type: String, state: true },
         defaultValue: { type: String, state: true },
@@ -68,6 +76,7 @@ export class QuantitySelectField extends LitElement {
         super();
         this.value = '';
         this.title = '';
+        this.splitTitle = false;
         this.min = '1';
         this.step = '1';
         this.defaultValue = '1';
@@ -100,6 +109,13 @@ export class QuantitySelectField extends LitElement {
             }),
         );
     }
+
+    #handleLabelChange = (index) => (event) => {
+        const labels = splitLicenseLabel(this.title);
+        labels[index] = event.target.value;
+        this.title = joinLicenseLabel(...labels);
+        this.#dispatchChange();
+    };
 
     #defaultFitsStepLadder() {
         const min = Number(this.min);
@@ -163,7 +179,7 @@ export class QuantitySelectField extends LitElement {
         event.stopPropagation();
     };
 
-    render() {
+    #renderTitle() {
         return html`
             <sp-field-group>
                 <sp-field-label>Quantity selector title</sp-field-label>
@@ -179,6 +195,47 @@ export class QuantitySelectField extends LitElement {
                     ${this.fieldIndicatorTemplate('title')}
                 </div>
             </sp-field-group>
+        `;
+    }
+
+    #renderLabels() {
+        const [singular, plural] = splitLicenseLabel(this.title);
+        return html`
+            <sp-field-group>
+                <sp-field-label>Singular label</sp-field-label>
+                <div class="field-row">
+                    <sp-textfield
+                        id="quantity-selector-singular"
+                        size="m"
+                        placeholder="{{license-label}}"
+                        ?disabled=${this.disabled}
+                        .value=${singular}
+                        @change=${this.#suppressNativeChange}
+                        @input=${this.#handleLabelChange(0)}
+                    ></sp-textfield>
+                    ${this.fieldIndicatorTemplate('title')}
+                </div>
+            </sp-field-group>
+            <sp-field-group>
+                <sp-field-label>Plural label</sp-field-label>
+                <div class="field-row">
+                    <sp-textfield
+                        id="quantity-selector-plural"
+                        size="m"
+                        placeholder="{{licenses-label}}"
+                        ?disabled=${this.disabled}
+                        .value=${plural}
+                        @change=${this.#suppressNativeChange}
+                        @input=${this.#handleLabelChange(1)}
+                    ></sp-textfield>
+                </div>
+            </sp-field-group>
+        `;
+    }
+
+    render() {
+        return html`
+            ${this.splitTitle ? this.#renderLabels() : this.#renderTitle()}
             <sp-field-group>
                 <sp-field-label>Start quantity</sp-field-label>
                 <div class="field-row">

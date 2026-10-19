@@ -14,7 +14,12 @@
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
-            import { createQuantitySelectValue, parseQuantitySelectValue } from '../../../src/common/fields/quantity-select.js';
+            import {
+                createQuantitySelectValue,
+                joinLicenseLabel,
+                parseQuantitySelectValue,
+                splitLicenseLabel,
+            } from '../../../src/common/fields/quantity-select.js';
             import '../../../src/fields/quantity-select-settings-field.js';
             import Events from '../../../src/events.js';
 
@@ -120,6 +125,60 @@
                         expect(stub.firstCall.args[0].variant).to.equal('negative');
                         expect(el.defaultValue).to.equal('5');
                         stub.restore();
+                        el.remove();
+                    });
+                });
+
+                describe('singular and plural labels', () => {
+                    const renderSplit = async (title) => {
+                        const el = document.createElement('quantity-select-field');
+                        el.splitTitle = true;
+                        el.value = createQuantitySelectValue({ title, min: '1', step: '1', defaultValue: '1' });
+                        document.body.append(el);
+                        await el.updateComplete;
+                        return el;
+                    };
+                    const type = async (el, selector, value) => {
+                        const input = el.shadowRoot.querySelector(selector);
+                        input.value = value;
+                        input.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                        await el.updateComplete;
+                    };
+
+                    it('splits and joins "singular|plural"', () => {
+                        expect(splitLicenseLabel('Seat|Seats')).to.deep.equal(['Seat', 'Seats']);
+                        expect(splitLicenseLabel('Seat')).to.deep.equal(['Seat', '']);
+                        expect(splitLicenseLabel('')).to.deep.equal(['', '']);
+                        expect(joinLicenseLabel('Seat', 'Seats')).to.equal('Seat|Seats');
+                        expect(joinLicenseLabel('', '')).to.equal('');
+                    });
+
+                    it('shows an existing "A|B" title in the two fields', async () => {
+                        const el = await renderSplit('Seat|Seats');
+                        expect(el.shadowRoot.querySelector('#quantity-selector-title')).to.not.exist;
+                        expect(el.shadowRoot.querySelector('#quantity-selector-singular').value).to.equal('Seat');
+                        expect(el.shadowRoot.querySelector('#quantity-selector-plural').value).to.equal('Seats');
+                        el.remove();
+                    });
+
+                    it('stores both labels in the title as "singular|plural"', async () => {
+                        const el = await renderSplit('');
+                        await type(el, '#quantity-selector-singular', 'Seat');
+                        await type(el, '#quantity-selector-plural', 'Seats');
+                        expect(parseQuantitySelectValue(el.value).title).to.equal('Seat|Seats');
+                        await type(el, '#quantity-selector-singular', '');
+                        await type(el, '#quantity-selector-plural', '');
+                        expect(parseQuantitySelectValue(el.value).title).to.equal('');
+                        el.remove();
+                    });
+
+                    it('keeps the single title field when not split', async () => {
+                        const el = document.createElement('quantity-select-field');
+                        el.value = createQuantitySelectValue({ title: 'Seat', min: '1', step: '1', defaultValue: '1' });
+                        document.body.append(el);
+                        await el.updateComplete;
+                        expect(el.shadowRoot.querySelector('#quantity-selector-title')).to.exist;
+                        expect(el.shadowRoot.querySelector('#quantity-selector-singular')).to.not.exist;
                         el.remove();
                     });
                 });

@@ -10,6 +10,7 @@ export class QuantitySelectSettingsField extends LitElement {
         id: { type: String },
         label: { type: String },
         value: { type: String },
+        splitTitle: { type: Boolean },
         settingsDefaults: { type: String },
         indicatorTemplate: { attribute: false },
         fieldIndicatorTemplate: { attribute: false },
@@ -21,6 +22,7 @@ export class QuantitySelectSettingsField extends LitElement {
         this.id = '';
         this.label = '';
         this.value = '';
+        this.splitTitle = false;
         this.settingsDefaults = '';
         this.indicatorTemplate = nothing;
         this.fieldIndicatorTemplate = nothing;
@@ -59,6 +61,7 @@ export class QuantitySelectSettingsField extends LitElement {
         return html`
             <quantity-select-field
                 .value=${this.value}
+                .splitTitle=${this.splitTitle}
                 @change=${this.handleQuantityFieldChange}
                 .fieldIndicatorTemplate=${this.fieldIndicatorTemplate}
             ></quantity-select-field>

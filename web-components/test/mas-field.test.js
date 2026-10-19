@@ -1570,6 +1570,27 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(el.hidden).to.be.true;
     });
 
+    it('sets hidden when an non-indexed CTA is stripped by hideTrialCTAs', async () => {
+        const el = document.createElement('mas-field');
+        el.setAttribute('field', 'ctas');
+        const fragment = document.createElement('aem-fragment');
+        el.append(fragment);
+        document.body.append(el);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas: '<a is="checkout-link" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>',
+                    },
+                    settings: { hideTrialCTAs: true },
+                },
+            }),
+        );
+        await delay(50);
+        expect(el.hidden).to.be.true;
+    });
+
     it('clears hidden when re-rendered with content after being empty', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'missing');

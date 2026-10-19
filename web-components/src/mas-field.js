@@ -110,6 +110,8 @@ export async function stripTrialCtas(template, indexed, self) {
                     anchor.textContent =
                         self.aemFragment?.data?.priceLiterals?.buyNow;
                 }
+            } else {
+                anchor.remove();
             }
         } else {
             anchor.remove();

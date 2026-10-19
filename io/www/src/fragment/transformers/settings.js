@@ -367,7 +367,10 @@ const PLACEHOLDER_TEMPLATES = {
     },
     // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
     countdown: { countdownTimerText: '{{countdown-timer-text}}' },
+    license: { licenseLabel: '{{license-label}}|{{licenses-label}}' },
 };
+
+const supportsLicenseLabel = (variant) => ['pro', 'bizpro'].includes(variant);
 
 const addPlaceholders = (target, templates) => {
     target.placeholders = { ...target.placeholders, ...templates };
@@ -382,16 +385,16 @@ function applyEduPlaceholders(body) {
     addPlaceholders(body, body.settings?.hideEduDisclaimer ? withoutDisclaimer : PLACEHOLDER_TEMPLATES.edu);
 }
 
-// A collection card is hydrated from its own reference, so it carries the template too.
-function applyCountdownPlaceholders(body) {
+// A collection card is hydrated from its own reference, so it carries the templates too.
+function addPlaceholdersToCards(body, supports, templates) {
     if (body?.model?.id !== COLLECTION_MODEL_ID) {
-        if (supportsCountdown(body?.fields?.variant)) addPlaceholders(body, PLACEHOLDER_TEMPLATES.countdown);
+        if (supports(body?.fields?.variant)) addPlaceholders(body, templates);
         return;
     }
     const cards = Object.values(body.references ?? {})
         .map((ref) => ref?.value)
-        .filter((card) => supportsCountdown(card?.fields?.variant));
-    for (const target of [body, ...cards]) addPlaceholders(target, PLACEHOLDER_TEMPLATES.countdown);
+        .filter((card) => supports(card?.fields?.variant));
+    for (const target of [body, ...cards]) addPlaceholders(target, templates);
 }
 
 function applyPriceLiterals(fragment) {
@@ -433,7 +436,8 @@ async function settings(context) {
     }
 
     applyEduPlaceholders(body);
-    applyCountdownPlaceholders(body);
+    addPlaceholdersToCards(body, supportsCountdown, PLACEHOLDER_TEMPLATES.countdown);
+    addPlaceholdersToCards(body, supportsLicenseLabel, PLACEHOLDER_TEMPLATES.license);
 
     return context;
 }

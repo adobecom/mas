@@ -121,6 +121,17 @@ describe('MasStudio – Bulk Publish authorization', () => {
             expect(Store.page.get()).to.equal(page);
         });
 
+        it(`shows a loading indicator before mounting ${tag}`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+
+            const indicator = el.querySelector('sp-progress-circle');
+            expect(indicator).to.not.equal(null);
+            expect(indicator.hasAttribute('indeterminate')).to.equal(true);
+            expect(indicator.getAttribute('label')).to.equal('Loading users');
+        });
+
         it(`mounts ${tag} when membership confirms access`, async () => {
             Store.users.setMeta('loaded', false);
             Store.page.set(page);
@@ -128,10 +139,25 @@ describe('MasStudio – Bulk Publish authorization', () => {
             expect(el.querySelector(tag)).to.equal(null);
 
             Store.users.setMeta('loaded', true);
-            Store.users.set([...Store.users.get()]);
+            Store.users.notify();
             await el.updateComplete;
 
             expect(el.querySelector(tag)).to.not.equal(null);
+            expect(el.querySelector('sp-progress-circle')).to.equal(null);
+        });
+
+        it(`removes the loading indicator when access to ${tag} is denied`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+            expect(el.querySelector('sp-progress-circle')).to.not.equal(null);
+
+            Store.users.setMeta('loaded', true);
+            Store.users.set([]);
+            await el.updateComplete;
+
+            expect(el.querySelector('sp-progress-circle')).to.equal(null);
+            expect(el.querySelector(tag)).to.equal(null);
         });
 
         it(`does not mount ${tag} when membership denies access`, async () => {
@@ -154,6 +180,15 @@ describe('MasStudio – Bulk Publish authorization', () => {
             expect(el.querySelector(tag)).to.not.equal(null);
         });
     }
+
+    it('does not show membership loading on unrelated routes', async () => {
+        Store.users.setMeta('loaded', false);
+        Store.page.set(PAGE_NAMES.WELCOME);
+        await el.updateComplete;
+
+        expect(el.querySelector('sp-progress-circle')).to.equal(null);
+        expect(el.querySelector('mas-splash-screen')).to.not.equal(null);
+    });
 });
 
 describe('MasStudio – disconnectedCallback', () => {

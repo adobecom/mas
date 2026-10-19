@@ -312,6 +312,16 @@ class MasStudio extends LitElement {
     }
 
     get currentPage() {
+        if (
+            [PAGE_NAMES.BULK_PUBLISH, PAGE_NAMES.BULK_PUBLISH_EDITOR].includes(this.page.value) &&
+            !Store.users.getMeta('loaded')
+        ) {
+            return html`
+                <div class="loading-container">
+                    <sp-progress-circle indeterminate size="l" label="Loading users"></sp-progress-circle>
+                </div>
+            `;
+        }
         switch (this.page.value) {
             case PAGE_NAMES.WELCOME:
                 return this.splashScreen;

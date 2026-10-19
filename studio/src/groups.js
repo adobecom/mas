@@ -38,7 +38,7 @@ function getCurrentUserNormalizedGroups() {
 export function isMasAdmin() {
     const groups = getCurrentUserNormalizedGroups();
     if (!groups) return false;
-    return groups.includes(MAS_ADMIN_GROUP.toUpperCase());
+    return groups.includes(MAS_ADMIN_GROUP);
 }
 
 function isAdminOrInGroup(group) {

@@ -825,85 +825,109 @@ describe('pro license-zone gating', () => {
 });
 
 describe('pro license dropdown accessible name', () => {
-    let cardA;
-    let cardB;
+    let cards = [];
     afterEach(() => {
-        cardA?.remove();
-        cardB?.remove();
+        cards.forEach((card) => card.remove());
+        cards = [];
     });
 
-    const QUANTITY_SELECT =
-        '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>';
+    const qs = (title) =>
+        `<div slot="quantity-select"><merch-quantity-select${title === null ? '' : ` title="${title}"`} min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>`;
 
-    it('names each dropdown after its own card product, not the shared label', async () => {
-        cardA = await renderCard(
-            `<h3 slot="heading-xs">Photoshop</h3>${QUANTITY_SELECT}`,
+    async function render(heading, title = 'License|Licenses') {
+        const card = await renderCard(`${heading}${qs(title)}`);
+        cards.push(card);
+        return card;
+    }
+
+    // Unit tests can't compute accname, so a "name" here is the text of the
+    // referenced elements joined with a space, as aria-labelledby builds it.
+    function nameOf(card, selector) {
+        const el = card.shadowRoot.querySelector(selector);
+        return el
+            .getAttribute('aria-labelledby')
+            .split(' ')
+            .map((id) => card.shadowRoot.getElementById(id).textContent.trim())
+            .join(' ');
+    }
+    const triggerName = (card) => nameOf(card, '.license-select-trigger');
+    const listboxName = (card) => nameOf(card, '#license-popover');
+
+    it('names each card dropdown after its product', async () => {
+        const photoshop = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const illustrator = await render(
+            '<h3 slot="heading-xs">Illustrator</h3>',
         );
-        cardB = await renderCard(
-            `<h3 slot="heading-xs">Illustrator</h3>${QUANTITY_SELECT}`,
+        expect(triggerName(photoshop)).to.equal('Photoshop License');
+        expect(listboxName(photoshop)).to.equal('Photoshop License');
+        expect(triggerName(illustrator)).to.equal('Illustrator License');
+        expect(listboxName(illustrator)).to.equal('Illustrator License');
+    });
+
+    it('keeps the product copy hidden and out of the value', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const product = card.shadowRoot.getElementById(
+            'license-select-product',
         );
-        const triggerA = cardA.shadowRoot.querySelector(
+        expect(product.hidden).to.be.true;
+        expect(getComputedStyle(product).display).to.equal('none');
+        const trigger = card.shadowRoot.querySelector(
             '.license-select-trigger',
         );
-        const listboxA = cardA.shadowRoot.querySelector(
-            '.license-select-popover',
-        );
-        const triggerB = cardB.shadowRoot.querySelector(
-            '.license-select-trigger',
-        );
-        expect(triggerA.getAttribute('aria-label')).to.equal(
-            'Photoshop License',
-        );
-        expect(listboxA.getAttribute('aria-label')).to.equal(
-            'Photoshop License',
-        );
-        expect(triggerB.getAttribute('aria-label')).to.equal(
-            'Illustrator License',
-        );
-        expect(triggerA.getAttribute('aria-label')).to.not.equal(
-            triggerB.getAttribute('aria-label'),
+        expect(trigger.contains(product)).to.be.false;
+        expect(trigger.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+            '1 License',
         );
     });
 
-    it('does not leave aria-labelledby to override the computed name', async () => {
-        cardA = await renderCard(
-            `<h3 slot="heading-xs">Photoshop</h3>${QUANTITY_SELECT}`,
-        );
-        const trigger = cardA.shadowRoot.querySelector(
-            '.license-select-trigger',
-        );
-        const listbox = cardA.shadowRoot.querySelector(
-            '.license-select-popover',
-        );
-        expect(trigger.hasAttribute('aria-labelledby')).to.be.false;
-        expect(listbox.hasAttribute('aria-labelledby')).to.be.false;
+    it('follows the visible singular and plural label', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        card.variantLayout.selectLicenseQty('5');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop Licenses');
+        card.variantLayout.selectLicenseQty('1');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop License');
     });
 
-    it('keeps the visible label text unchanged', async () => {
-        cardA = await renderCard(
-            `<h3 slot="heading-xs">Photoshop</h3>${QUANTITY_SELECT}`,
+    it('uses the authored label as is, in any language', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            'ライセンス',
         );
-        const visibleLabel = cardA.shadowRoot.querySelector(
-            '.license-select-trigger .license-select-label',
-        );
-        expect(visibleLabel.textContent.trim()).to.equal(
-            cardA.variantLayout.licenseLabel(
-                Number(cardA.variantLayout.currentLicenseValue),
-            ),
-        );
+        expect(triggerName(card)).to.equal('Photoshop ライセンス');
     });
 
-    it('falls back to the visible label when no product name is resolvable', async () => {
-        cardA = await renderCard(QUANTITY_SELECT);
-        const trigger = cardA.shadowRoot.querySelector(
-            '.license-select-trigger',
-        );
-        expect(trigger.getAttribute('aria-label')).to.equal(
-            cardA.variantLayout.licenseLabel(
-                Number(cardA.variantLayout.currentLicenseValue),
-            ),
-        );
+    it('keeps the default label when none is authored', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+        expect(
+            card.querySelector('merch-quantity-select').hasAttribute('title'),
+        ).to.be.false;
+        expect(triggerName(card)).to.equal('Photoshop License');
     });
+
+    for (const [what, heading] of [
+        ['missing', ''],
+        ['empty', '<h3 slot="heading-xs"></h3>'],
+        ['blank', '<h3 slot="heading-xs">   </h3>'],
+    ]) {
+        it(`falls back to the label alone when the title is ${what}`, async () => {
+            const card = await render(heading);
+            expect(
+                card.shadowRoot
+                    .querySelector('.license-select-trigger')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(
+                card.shadowRoot
+                    .querySelector('#license-popover')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(card.shadowRoot.getElementById('license-select-product')).to
+                .be.null;
+            expect(triggerName(card)).to.equal('License');
+        });
+    }
 });
 
 describe('pro whats-included toggle label', () => {

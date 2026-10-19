@@ -521,17 +521,6 @@ export class Pro extends VariantLayout {
         return (this.licenseOptions?.length ?? 0) > 0;
     }
 
-    // Distinguishes this dropdown's accessible name from every other card's
-    // shared "Licenses" name (MWPW-198043), reusing the already-authored
-    // card title (merch-card.js `title`) rather than a new fragment field.
-    get licenseAccessibleName() {
-        const product = this.card.title;
-        if (!product) {
-            return this.licenseLabel(Number(this.currentLicenseValue));
-        }
-        return `${product} License`;
-    }
-
     get currentLicenseValue() {
         const opts = this.licenseOptions;
         if (!opts?.length) return null;
@@ -709,15 +698,26 @@ export class Pro extends VariantLayout {
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
         const label = this.licenseLabel(Number(current));
+        // The card title tells each card's dropdown apart. The title lives in
+        // light DOM, so a hidden copy in this shadow root is what gets referenced.
+        const product = this.card.title;
+        const labelledBy = product
+            ? 'license-select-product license-select-label'
+            : 'license-select-label';
         return html`
             <div class="license-select" ?data-open=${open}>
+                ${product
+                    ? html`<span id="license-select-product" hidden
+                          >${product}</span
+                      >`
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-label=${this.licenseAccessibleName}
+                    aria-labelledby=${labelledBy}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -741,7 +741,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-label=${this.licenseAccessibleName}
+                    aria-labelledby=${labelledBy}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}

@@ -195,8 +195,15 @@ test('run purges the ready files, then fails for the stale ones', async () => {
 
 test('a hung aem.live request cannot outlive the polling deadline', async () => {
     const calls = stubFetch({
+        // A real hung request keeps Node running through its open socket; AbortSignal.timeout does not.
         origin: (url, { signal }) =>
-            new Promise((resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason))),
+            new Promise((resolve, reject) => {
+                const socket = setTimeout(() => {}, 60_000);
+                signal.addEventListener('abort', () => {
+                    clearTimeout(socket);
+                    reject(signal.reason);
+                });
+            }),
     });
     const started = Date.now();
     await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);

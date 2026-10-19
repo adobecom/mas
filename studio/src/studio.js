@@ -9,6 +9,7 @@ import './fields/user-picker.js';
 import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
+import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from './mas-chat/chat-router.js';
 import { initUsers } from './users.js';
 import { canAccessBulkPublish } from './groups.js';
 import './mas-confirm-dialog.js';
@@ -38,6 +39,7 @@ class MasStudio extends LitElement {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
         masJsReady: { type: Boolean, state: true },
+        chatDrawerOpen: { state: true },
     };
 
     #unsubscribeLocaleObserver;
@@ -49,6 +51,7 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.masJsReady = false;
+        this.chatDrawerOpen = false;
     }
 
     connectedCallback() {
@@ -352,11 +355,21 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.masJsReady ? html`<div class="main-container">${this.currentPage}</div>` : nothing}
+                ${this.sideNav}
+                ${this.masJsReady
+                    ? html`<div class="main-container">
+                          ${this.currentPage}${renderChatPages(this.page.value, (name, path) => this.#lazyLoad(name, path))}
+                      </div>`
+                    : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
+            ${renderChatOverlay(
+                (event) => handleChatDrawerToggle(event, this),
+                (name, path) => this.#lazyLoad(name, path),
+                this.chatDrawerOpen && this.page.value !== PAGE_NAMES.AI_ASSISTANT,
+            )}
         `;
     }
 }

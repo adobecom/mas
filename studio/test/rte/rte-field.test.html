@@ -50,6 +50,7 @@
             import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
             import { withWcs } from '../../../web-components/test/mocks/wcs.js';
             import { EVENT_OST_SELECT } from '../../src/constants.js';
+            import { NodeSelection } from '../../libs/prosemirror.js';
 
             import {
                 createFromTemplate,
@@ -129,6 +130,91 @@
                     it('should render with default attributes', async function () {
                         const rte = await createFromTemplate('rte', this.test.title);
                         expect(rte.shadowRoot).exist;
+                    });
+
+                    it('inserts a non-translatable countdown link without changing surrounding copy', async function () {
+                        const rte = await createFromTemplate('rte-countdown', this.test.title);
+                        rte.shadowRoot.querySelector('#addCountdownButton').click();
+                        const anchor = rte.shadowRoot.querySelector('#editor a');
+                        expect(anchor.textContent).to.equal('countdown-timer');
+                        expect(anchor.getAttribute('href')).to.equal('#');
+                        expect(anchor.getAttribute('translate')).to.equal('no');
+                        expect(anchor.parentElement.tagName).to.equal('STRONG');
+                        expect(rte.value).to.include('Existing description');
+                        rte.updateContent(rte.value);
+                        expect(rte.shadowRoot.querySelector('#editor a').getAttribute('translate')).to.equal('no');
+                    });
+
+                    describe('countdown color picker', () => {
+                        const selectCountdownLink = async (rte) => {
+                            const { state } = rte.editorView;
+                            let pos;
+                            state.doc.descendants((node, nodePos) => {
+                                if (node.type.name === 'link') pos = nodePos;
+                            });
+                            rte.editorView.dispatch(state.tr.setSelection(NodeSelection.create(state.doc, pos)));
+                            await rte.updateComplete;
+                        };
+                        const picker = (rte) => rte.shadowRoot.querySelector('#countdownColor');
+
+                        it('shows only while the countdown link is selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link', this.test.title);
+                            expect(picker(rte)).to.not.exist;
+                            await selectCountdownLink(rte);
+                            expect(picker(rte)).to.exist;
+                            expect(picker(rte).value).to.equal('default');
+                            expect([...picker(rte).querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
+                                'default',
+                                'spectrum-green-900',
+                                'spectrum-red-700',
+                            ]);
+                        });
+
+                        it('stays hidden for other links and without the countdown flag', async function () {
+                            const other = await createFromTemplate('rte-countdown-other-link', this.test.title);
+                            await selectCountdownLink(other);
+                            expect(picker(other)).to.not.exist;
+                            const plain = await createFromTemplate('rte-countdown-link-plain', this.test.title);
+                            await selectCountdownLink(plain);
+                            expect(picker(plain)).to.not.exist;
+                        });
+
+                        it('sets and clears the link class and keeps the link selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link', this.test.title);
+                            await selectCountdownLink(rte);
+                            picker(rte).value = 'spectrum-green-900';
+                            picker(rte).dispatchEvent(new Event('change'));
+                            await rte.updateComplete;
+                            expect(rte.value).to.include('class="spectrum-green-900"');
+                            expect(rte.value).to.include('translate="no"');
+                            expect(picker(rte).value).to.equal('spectrum-green-900');
+                            picker(rte).value = 'default';
+                            picker(rte).dispatchEvent(new Event('change'));
+                            await rte.updateComplete;
+                            expect(rte.value).to.not.include('class=');
+                            expect(picker(rte).value).to.equal('default');
+                        });
+
+                        it('shows for any spelling the pipeline accepts', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link-spelling', this.test.title);
+                            await selectCountdownLink(rte);
+                            expect(picker(rte)).to.exist;
+                        });
+
+                        it('shows the stored class when the link is selected', async function () {
+                            const rte = await createFromTemplate('rte-countdown-link-red', this.test.title);
+                            await selectCountdownLink(rte);
+                            expect(picker(rte).value).to.equal('spectrum-red-700');
+                        });
+                    });
+
+                    it('pastes a plain URL without inserting HTML markup as text', async function () {
+                        const rte = await createFromTemplate('rte-empty', this.test.title);
+                        const url = 'https://www.adobe.com/products/photoshop.html';
+
+                        rte.editorView.pasteText(url);
+
+                        expect(rte.editorView.state.doc.textContent).to.equal(url);
                     });
 
                     it('should not emit change when syncing an external value update', async function () {
@@ -1099,6 +1185,35 @@
         </template>
         <template id="rte-marks">
             <rte-field styling marks="promo-text,promo-duration-text,renewal-text"> Styling </rte-field>
+        </template>
+        <template id="rte-countdown">
+            <rte-field link countdown><p>Existing description</p></rte-field>
+        </template>
+        <template id="rte-countdown-link">
+            <rte-field link countdown
+                ><p>Copy</p>
+                <p><a href="#" translate="no">countdown-timer</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-red">
+            <rte-field link countdown
+                ><p><a href="#" translate="no" class="spectrum-red-700">countdown-timer</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-spelling">
+            <rte-field link countdown
+                ><p><a href="#" translate="no"> Countdown-Timer </a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-other-link">
+            <rte-field link countdown
+                ><p><a href="/terms">See terms</a></p></rte-field
+            >
+        </template>
+        <template id="rte-countdown-link-plain">
+            <rte-field link
+                ><p><a href="#" translate="no">countdown-timer</a></p></rte-field
+            >
         </template>
         <template id="rte-mnemonic">
             <rte-field mnemonic><p></p></rte-field>

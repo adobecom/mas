@@ -1768,6 +1768,7 @@ export default class MasFragmentEditor extends LitElement {
     async publishFragment() {
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
+            let publishOptions;
             if (refs.variations.length || refs.cards.length) {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
@@ -1786,19 +1787,21 @@ export default class MasFragmentEditor extends LitElement {
                     if (!resultStaged.confirmed) return;
                 }
 
-                await this.repository.publishFragment(this.fragment, {
+                publishOptions = {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,
-                });
-            } else {
-                if (this.fragment.isStaged) {
-                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-                    const resultStaged = await MasPublishStagedDialog.show();
-                    if (!resultStaged.confirmed) return;
-                }
-
-                await this.repository.publishFragment(this.fragment);
+                };
+            } else if (this.fragment.isStaged) {
+                const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                const resultStaged = await MasPublishStagedDialog.show();
+                if (!resultStaged.confirmed) return;
             }
+
+            if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoVariationFragment() && !canEditPromotions()) {
+                showToast('You do not have permission to update promo variations.', 'negative');
+                return;
+            }
+            await this.repository.publishFragment(this.fragment, publishOptions);
         } catch (error) {
             console.error('Failed to publish fragment:', error);
             showToast(`Failed to publish fragment: ${error.message}`, 'negative');

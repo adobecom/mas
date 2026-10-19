@@ -4,6 +4,9 @@ import '../src/mas-fragment-editor.js';
 import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
 import Store from '../src/store.js';
 import { Fragment } from '../src/aem/fragment.js';
+import { MasRepository } from '../src/mas-repository.js';
+import { MasPublishDialog } from '../src/publish/mas-publish-dialog.js';
+import { MasPublishStagedDialog } from '../src/publish/mas-publish-staged-dialog.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
 import {
@@ -12,6 +15,7 @@ import {
     COLLECTION_MODEL_PATH,
     ODIN_PREVIEW_ORIGIN,
     COMPARE_CHART_FIELD,
+    STAGED,
 } from '../src/constants.js';
 import router from '../src/router.js';
 import Events from '../src/events.js';
@@ -1170,6 +1174,108 @@ describe('MasFragmentEditor', () => {
                 await el.saveFragment();
 
                 expect(savedPaths).to.deep.equal(allowed ? [...cardPaths, collection.get().path] : []);
+            });
+        }
+    });
+
+    describe('publishing promo variations', () => {
+        let originalProfile;
+        let originalUsers;
+        let originalOperation;
+        let repository;
+        let save;
+        let publish;
+
+        beforeEach(() => {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            originalOperation = Store.operation.get();
+            Store.profile.set({ email: 'author@adobe.com' });
+            repository = new MasRepository();
+            save = sandbox.stub().callsFake(async (fragment) => structuredClone(fragment));
+            publish = sandbox.stub().resolves();
+            repository.aem = { sites: { cf: { fragments: { save, publish } } } };
+            sandbox.stub(MasPublishStagedDialog, 'show').resolves({ confirmed: true });
+        });
+
+        afterEach(() => {
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+            Store.operation.set(originalOperation);
+        });
+
+        function createPublishingEditor({ model, promotional = true, staged = true, dirty = true }) {
+            const fragment = new Fragment({
+                id: 'publishing-fragment',
+                title: 'Saved title',
+                path: promotional
+                    ? '/content/dam/mas/sandbox/en_US/promotions/summer/my-fragment'
+                    : '/content/dam/mas/sandbox/en_US/my-fragment',
+                model: { path: model },
+                tags: model === COLLECTION_MODEL_PATH && staged ? [{ id: STAGED.TAG }] : [],
+                fields: [{ name: 'tags', type: 'tag', multiple: true, values: staged ? [STAGED.TAG] : [] }],
+            });
+            if (dirty) fragment.updateFieldInternal('title', 'Unsaved title');
+            const el = document.createElement('mas-fragment-editor');
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el, 'repository').get(() => repository);
+            return { el, fragment };
+        }
+
+        for (const model of [CARD_MODEL_PATH, COLLECTION_MODEL_PATH]) {
+            for (const { group, promotional = true, staged = true, dirty = true, allowed } of [
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: true },
+                { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', allowed: true },
+                { group: 'GRP-ODIN-MAS-ADMINS', allowed: true },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', dirty: false, allowed: true },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', promotional: false, allowed: true },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', staged: false, allowed: true },
+            ]) {
+                it(`publishes ${model} promo=${promotional} staged=${staged} dirty=${dirty} as ${group}: ${allowed}`, async () => {
+                    Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                    const { el, fragment } = createPublishingEditor({ model, promotional, staged, dirty });
+                    const toast = sandbox.spy(Events.toast, 'emit');
+
+                    await el.publishFragment();
+
+                    expect(save.calledOnce).to.equal(allowed && staged);
+                    expect(publish.calledOnce).to.equal(allowed);
+                    if (!allowed) {
+                        expect(fragment.title).to.equal('Unsaved title');
+                        expect(fragment.isStaged).to.be.true;
+                        expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+                    } else if (staged) {
+                        expect(save.firstCall.args[0].title).to.equal(dirty ? 'Unsaved title' : 'Saved title');
+                    }
+                });
+            }
+        }
+
+        for (const withReferences of [false, true]) {
+            it(`rechecks update permission after staged confirmation with references=${withReferences}`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                const { el } = createPublishingEditor({ model: CARD_MODEL_PATH });
+                if (withReferences) {
+                    sandbox.stub(el.fragment, 'getPublishableReferences').returns({
+                        variations: [{ id: 'reference', path: '/reference', fields: [] }],
+                        cards: [],
+                    });
+                    sandbox.stub(MasPublishDialog, 'show').resolves({
+                        confirmed: true,
+                        selectedIds: [],
+                        allSelected: false,
+                    });
+                }
+                MasPublishStagedDialog.show.callsFake(async () => {
+                    Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+                    return { confirmed: true };
+                });
+
+                await el.publishFragment();
+
+                expect(save.called).to.be.false;
+                expect(publish.called).to.be.false;
             });
         }
     });

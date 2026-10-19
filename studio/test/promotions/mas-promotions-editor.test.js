@@ -278,37 +278,57 @@ describe('MasPromotionsEditor', () => {
                 expect(repo.aem.sites.cf.fragments[action.toLowerCase()].called).to.be.false;
             });
 
-            it(`rejects ${action} when poweruser access is lost during variation confirmation`, async () => {
-                const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
-                const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/tiered';
-                const repo = makeRepo();
-                repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'parent', path: parentPath, fields: [] });
-                repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
-                repo.aem.sites.cf.fragments.getWithEtag.resolves({ id: 'tiered-promo', etag: '"etag"' });
-                repo.aem.sites.cf.fragments.search = makeSearchStub({
-                    [promoFolder]: [
-                        {
-                            id: 'variation',
-                            path: `${promoFolder}/my-card`,
-                            status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
-                        },
-                    ],
+            for (const revokeAccess of [true, false]) {
+                it(`${revokeAccess ? 'rejects' : 'allows'} ${action} when poweruser access is ${
+                    revokeAccess ? 'lost' : 'retained'
+                } during variation confirmation`, async () => {
+                    const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+                    const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/tiered';
+                    const variation = {
+                        id: 'variation',
+                        path: `${promoFolder}/my-card`,
+                        status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                        etag: '"variation-etag"',
+                    };
+                    const promotionWithEtag = { id: 'tiered-promo', etag: '"etag"' };
+                    const repo = makeRepo();
+                    repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'parent', path: parentPath, fields: [] });
+                    repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
+                    repo.aem.sites.cf.fragments.getByPath = sandbox.stub().withArgs(variation.path).resolves(variation);
+                    repo.aem.sites.cf.fragments.getWithEtag.withArgs('tiered-promo').resolves(promotionWithEtag);
+                    repo.aem.sites.cf.fragments.getWithEtag.withArgs(variation.id).resolves(variation);
+                    repo.aem.sites.cf.fragments.search = makeSearchStub({
+                        [promoFolder]: [variation],
+                    });
+                    setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+                    const el = await mountExistingPromotion(repo, {
+                        status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                        tags: [{ id: 'mas:promotion/tiered' }],
+                        fragments: [parentPath],
+                    });
+                    getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
+                    await flushPromises();
+                    await el.updateComplete;
+                    expect(el.isDialogOpen).to.be.true;
+                    if (revokeAccess) setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                    el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+                    await flushPromises();
+                    expect(repo.processError.called).to.be.false;
+                    expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+                    if (action === 'Publish') {
+                        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(revokeAccess ? 0 : 1);
+                        if (!revokeAccess) {
+                            expect(repo.aem.sites.cf.fragments.publishFragments.firstCall.args[0]).to.deep.equal([
+                                promotionWithEtag,
+                                variation,
+                            ]);
+                        }
+                    } else {
+                        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+                        expect(repo.aem.sites.cf.fragments.unpublish.callCount).to.equal(revokeAccess ? 0 : 2);
+                    }
                 });
-                setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
-                const el = await mountExistingPromotion(repo, {
-                    status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
-                    tags: [{ id: 'mas:promotion/tiered' }],
-                    fragments: [parentPath],
-                });
-                getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
-                await flushPromises();
-                await el.updateComplete;
-                expect(el.isDialogOpen).to.be.true;
-                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
-                el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
-                await flushPromises();
-                expect(repo.aem.sites.cf.fragments[action.toLowerCase()].called).to.be.false;
-            });
+            }
         }
 
         it('rejects publishing when poweruser access is lost during staged confirmation', async () => {

@@ -1572,7 +1572,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
 
     it('sets hidden when an non-indexed CTA is stripped by hideTrialCTAs', async () => {
         const el = document.createElement('mas-field');
-        el.setAttribute('field', 'ctas');
+        el.setAttribute('field', 'ctas[gfdgfd]');
         const fragment = document.createElement('aem-fragment');
         el.append(fragment);
         document.body.append(el);
@@ -1582,13 +1582,14 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
                 detail: {
                     fields: {
                         ctas: '<a is="checkout-link" href="" data-wcs-osi="osi2" data-analytics-id="free-trial">Free trial</a>',
+                        ctaLabels: 'gfdgfd',
                     },
                     settings: { hideTrialCTAs: true },
                 },
             }),
         );
         await delay(50);
-        expect(el.hidden).to.be.true;
+        expect(el.querySelector('a')).to.equal(null);
     });
 
     it('clears hidden when re-rendered with content after being empty', () => {

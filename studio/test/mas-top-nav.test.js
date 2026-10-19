@@ -143,6 +143,16 @@ describe('MasTopNav', () => {
     });
 
     describe('breadcrumbs', () => {
+        it('should render bulk edit breadcrumbs and navigate to advanced tools from first crumb', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Bulk edits']);
+            breadcrumbs[0].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.ADVANCED_TOOLS)).to.be.true;
+        });
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.promotions.promotionId.value = null;

@@ -153,6 +153,23 @@ describe('mas-bulk-edit-editor', () => {
         expect(el.projectTitle).to.equal('Existing');
     });
 
+    it('defaults the title to an empty string when the loaded project has none', async () => {
+        Store.bulkEditProjects.projectId.set('p1');
+        const el = connectEditor({
+            getFragmentById: sinon.stub().resolves({ id: 'p1', fields: [], model: { id: BULK_EDIT_PROJECT_MODEL_ID } }),
+        });
+        await el.connectedCallback();
+        expect(el.project.get().id).to.equal('p1');
+        expect(el.projectTitle).to.equal('');
+    });
+
+    it('resolves the repository from the document', async () => {
+        const repository = {};
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        sinon.stub(document, 'querySelector').callThrough().withArgs('mas-repository').returns(repository);
+        expect(el.repository).to.equal(repository);
+    });
+
     it('loads a cached project without fetching it from the repository', async () => {
         const projectId = 'cached-project';
         await prepopulateFragmentCache(projectId, {
@@ -254,10 +271,10 @@ describe('mas-bulk-edit-editor', () => {
         });
 
         it('blocks renaming to a title another project took after the list was loaded', async () => {
-            Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject())));
             const searchFragmentList = sinon.stub().resolves([{ ...rawProject('Taken-MWPW-1'), id: 'other' }]);
             const saveFragment = sinon.stub().resolves(true);
             const el = await editorWithTitle({ searchFragmentList, saveFragment }, 'Taken-MWPW-1');
+            Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject())));
             await el.save();
             expect(searchFragmentList.firstCall.args[0].path).to.match(/^\/content\/dam\/mas\/bulk-edit-projects\/[^/]+$/);
             expect(saveFragment.called).to.be.false;
@@ -290,9 +307,11 @@ describe('mas-bulk-edit-editor', () => {
         });
 
         it('keeps changes and skips the success toast when saving an existing project fails', async () => {
+            const saveFragment = sinon.stub().resolves(false);
+            const el = await editorWithTitle({ saveFragment }, 'Renamed-MWPW-42');
             Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject())));
-            const el = await editorWithTitle({ saveFragment: sinon.stub().resolves(false) }, 'Renamed-MWPW-42');
             await el.save();
+            expect(saveFragment.calledOnce).to.be.true;
             expect(toast.calledWithMatch({ variant: 'positive' })).to.be.false;
             expect(el.hasChanges).to.be.true;
             expect(el.saving).to.be.false;

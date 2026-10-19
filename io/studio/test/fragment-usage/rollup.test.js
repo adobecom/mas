@@ -55,6 +55,39 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null, lease
     };
 }
 
+/**
+ * Loads one rollup per window over a single in-memory State, with the real lease and storage, so
+ * overlapping runs contend for the same lease and records.
+ */
+function loadRollupsOverSharedState(windows) {
+    const entries = {};
+    const client = {
+        get: async (key) => (key in entries ? { value: entries[key] } : undefined),
+        put: async (key, value) => {
+            entries[key] = value;
+        },
+        delete: async (key) => {
+            delete entries[key];
+        },
+    };
+    const stateLib = { init: async () => client };
+    const state = proxyquire('../../src/fragment-usage/state', { '@adobe/aio-lib-state': stateLib });
+    const logger = { info: sinon.spy(), warn: sinon.spy(), error: sinon.spy() };
+
+    const runs = windows.map((pagesByFragment) => {
+        const fetchHourlyPages = sinon.stub().resolves(pagesByFragment);
+        const rollup = proxyquire('../../src/fragment-usage/rollup', {
+            '@adobe/aio-sdk': { Core: { Logger: () => logger } },
+            '@adobe/aio-lib-state': stateLib,
+            './grafana': { fetchHourlyPages },
+            './state': state,
+        });
+        return { rollup, fetchHourlyPages };
+    });
+
+    return { runs, state, client };
+}
+
 describe('fragment-usage rollup', () => {
     afterEach(() => sinon.restore());
 
@@ -363,6 +396,27 @@ describe('fragment-usage rollup', () => {
         await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
 
         expect(releaseRollupLease).to.not.have.been.called;
+    });
+
+    it('lets only one of two overlapping runs store its window', async () => {
+        // Both runs read the lease as free before either claims it, as in the reported interleaving.
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date', 'setTimeout'] });
+        const hour = toEpochHour(Date.now()) - 1;
+        const { runs, state, client } = loadRollupsOverSharedState([
+            { [FRAGMENT]: { [hour]: { [PAGE]: entry(10) } } },
+            { [FRAGMENT]: { [hour]: { [PAGE]: entry(90) } } },
+        ]);
+
+        const pending = Promise.all(runs.map(({ rollup }) => rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' })));
+        await clock.tickAsync(5000);
+        const statuses = (await pending).map((response) => response.statusCode);
+
+        const winner = statuses.indexOf(200);
+        const loser = statuses.indexOf(409);
+        expect([...statuses].sort()).to.deep.equal([200, 409]);
+        expect(runs[loser].fetchHourlyPages).to.not.have.been.called;
+        const stored = await state.readUsage(FRAGMENT, client);
+        expect(stored.pages[hour][PAGE]).to.deep.equal(entry(winner === 0 ? 10 : 90));
     });
 
     it('still reports the run when the lease cannot be released', async () => {

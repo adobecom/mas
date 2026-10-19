@@ -25,6 +25,17 @@ const ROLLUP_LEASE_KEY = 'fragment-usage-rollup.lease';
 /** The rollup action's timeout, so a run killed mid-way frees the lease when it would have ended anyway. */
 const ROLLUP_LEASE_TTL = 300;
 
+/** Longest a claim may take to land after the lease was read as free; a slower claim is abandoned. */
+const ROLLUP_LEASE_CLAIM_MS = 1000;
+
+/**
+ * How long a claim settles before it is confirmed. Longer than the claim bound, so every run that
+ * read the lease as free has landed its claim before any of them re-reads it.
+ */
+const ROLLUP_LEASE_SETTLE_MS = 2000;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function buildUsageKey(fragmentId) {
     return `fragment-usage.${fragmentId}`;
 }
@@ -69,17 +80,26 @@ function emptyRecord() {
 
 /**
  * Claims the single rollup slot, so overlapping runs cannot interleave their read-merge-write of
- * the same record. State has no conditional writes, so two runs starting within the same few
- * milliseconds can both claim it; anything wider is serialised.
+ * the same record.
+ *
+ * State has no conditional writes, so two runs can both read the lease as free. Each claims it,
+ * waits until every such claim has landed, and proceeds only if the lease still names it: the last
+ * claim wins and every other run backs off. That holds while claims land within
+ * ROLLUP_LEASE_CLAIM_MS, so a slower claim is abandoned rather than trusted.
  * @param {string} owner id unique to this run
  * @param {object} state pre-initialised State client
+ * @param {Function} sleep resolves after the given milliseconds; injectable for tests
  * @returns {Promise<boolean>} true when this run now holds the lease
  */
-async function acquireRollupLease(owner, state) {
+async function acquireRollupLease(owner, state, sleep = wait) {
+    const readAt = Date.now();
     const entry = await state.get(ROLLUP_LEASE_KEY);
     if (entry?.value) return false;
     await state.put(ROLLUP_LEASE_KEY, owner, { ttl: ROLLUP_LEASE_TTL });
-    return true;
+    if (Date.now() - readAt > ROLLUP_LEASE_CLAIM_MS) return false;
+    await sleep(ROLLUP_LEASE_SETTLE_MS);
+    const confirmed = await state.get(ROLLUP_LEASE_KEY);
+    return confirmed?.value === owner;
 }
 
 /**

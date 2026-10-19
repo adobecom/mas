@@ -36,6 +36,22 @@ function loadState(entries = {}) {
     return { state, client, entries, puts, init };
 }
 
+const noWait = async () => {};
+
+/** A settle that holds every claimant until `count` are waiting, so all claims land before any re-read. */
+function settleTogether(count) {
+    let waiting = 0;
+    let release;
+    const settled = new Promise((resolve) => {
+        release = resolve;
+    });
+    return async () => {
+        waiting += 1;
+        if (waiting === count) release();
+        return settled;
+    };
+}
+
 describe('fragment-usage state', () => {
     it('reads null for a fragment that has never been stored', async () => {
         const { state, client } = loadState();
@@ -81,16 +97,43 @@ describe('fragment-usage state', () => {
 });
 
 describe('fragment-usage rollup lease', () => {
+    afterEach(() => sinon.restore());
+
     it('grants the lease when no rollup holds it', async () => {
         const { state, client, entries } = loadState();
-        expect(await state.acquireRollupLease('run-a', client)).to.equal(true);
+        expect(await state.acquireRollupLease('run-a', client, noWait)).to.equal(true);
         expect(entries[LEASE_KEY]).to.equal('run-a');
     });
 
     it('lets the lease lapse when the rollup action would have timed out', async () => {
         const { state, client, puts } = loadState();
-        await state.acquireRollupLease('run-a', client);
+        await state.acquireRollupLease('run-a', client, noWait);
         expect(puts[0].options).to.deep.equal({ ttl: 300 });
+    });
+
+    it('grants the lease to only one of two runs that both read it as free', async () => {
+        const { state, client } = loadState();
+        const settle = settleTogether(2);
+
+        const granted = await Promise.all([
+            state.acquireRollupLease('run-a', client, settle),
+            state.acquireRollupLease('run-b', client, settle),
+        ]);
+
+        expect(granted.filter(Boolean)).to.have.length(1);
+    });
+
+    it('abandons a claim that landed too long after the lease was read as free', async () => {
+        // A slow claim can land after a competing run has already confirmed its own.
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const { state, client } = loadState();
+        const put = client.put;
+        client.put = async (...args) => {
+            clock.tick(5000);
+            return put(...args);
+        };
+
+        expect(await state.acquireRollupLease('run-a', client, noWait)).to.equal(false);
     });
 
     it('refuses the lease while another rollup holds it', async () => {

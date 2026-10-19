@@ -10,7 +10,7 @@ related: ['CONT-0001', 'CONT-0006', 'adr:Adobe-acom/core/KNOW-0000', 'adr:Adobe-
 
 ## Context
 
-M@S renders merch cards and collections for about 1,800 product arrangements (PA) per locale in MCS, on several surfaces (`acom-cc`, `sandbox`, …), each with several templates (`plans`, `mini`, …). Most of a card's copy and assets are the same for every card of a PA, and most of a surface's card content is the same for every card of a PA and template. Copying that content into each card fragment multiplies authoring, translation and drift.
+M@S renders merch cards and collections for about 1,800 product arrangements (PA) per locale in MCS, on several surfaces (`acom`, `acom-cc`, `ccd`, …), each with several templates (`plans`, `mini`, …). Most of a card's copy and assets are the same for every card of a PA, and most of a surface's card content is the same for every card of a PA and template. Copying that content into each card fragment multiplies authoring, translation and drift.
 
 Offers of the same PA also differ by market segment (`COM`, `EDU`, `GOV`): for example, `ccsn_direct_individual` has COM and EDU offers that need different copy.
 

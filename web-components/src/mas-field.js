@@ -59,9 +59,7 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
-async function stripTrialCtas(html, indexed, self) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
+export async function stripTrialCtas(template, indexed, self) {
     let buyNowCta = template.content.querySelector(
         'a[data-analytics-id="buy-now"]',
     );
@@ -71,11 +69,7 @@ async function stripTrialCtas(html, indexed, self) {
     );
     // Hand back the original string so non-trial markup never round-trips
     // through serialization, which could renormalize attribute quoting.
-    if (trials.length === 0) return html;
-
-    // All CTAs are trials: an indexed ref renders nothing, while the plain
-    // field keeps them all so a card is never left with no CTA.
-    // if (trials.length === anchors.length) return indexed ? null : html;
+    if (trials.length === 0) return template.innerHTML;
 
     if (indexed && !buyNowCta) {
         // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
@@ -104,15 +98,18 @@ async function stripTrialCtas(html, indexed, self) {
     let trialCtaSwapped = false;
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
-            trialCtaSwapped = true;
-            if (buyNowCta) {
-                anchor.remove();
-            } else {
-                anchor.setAttribute('data-analytics-id', 'buy-now');
-                if (anchor.hasAttribute('data-modal'))
-                    anchor.setAttribute('data-modal', 'crm');
-                anchor.textContent =
-                    self.aemFragment?.data?.priceLiterals?.buyNow;
+            const offerType = anchor.masElement?.value?.[0]?.offerType;
+            if (offerType === 'BASE') {
+                trialCtaSwapped = true;
+                if (buyNowCta) {
+                    anchor.remove();
+                } else {
+                    anchor.setAttribute('data-analytics-id', 'buy-now');
+                    if (anchor.hasAttribute('data-modal'))
+                        anchor.setAttribute('data-modal', 'crm');
+                    anchor.textContent =
+                        self.aemFragment?.data?.priceLiterals?.buyNow;
+                }
             }
         } else {
             anchor.remove();
@@ -665,7 +662,9 @@ class MasField extends HTMLElement {
                     return;
                 }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                    html = await stripTrialCtas(html, true, this);
+                    const template = document.createElement('template');
+                    template.innerHTML = html;
+                    html = await stripTrialCtas(template, true, this);
                     if (html === null) {
                         this.hidden = true;
                         return;
@@ -738,7 +737,9 @@ class MasField extends HTMLElement {
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                html = await stripTrialCtas(html, index !== null, this);
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                html = await stripTrialCtas(template, index !== null, this);
                 if (!html) {
                     this.hidden = true;
                     return;

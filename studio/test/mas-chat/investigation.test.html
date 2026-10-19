@@ -1,0 +1,607 @@
+<!doctype html>
+<html>
+    <head>
+        <title>MASA investigation sessions</title>
+        <meta name="mas-investigations-enabled" content="false" />
+        <script>
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <style>
+            body {
+                margin: 24px;
+                font-family: system-ui;
+                background: #fafafa;
+                color: #222;
+            }
+            .scenarios {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+                gap: 24px;
+            }
+            .scenario {
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 12px;
+                padding: 16px;
+            }
+            mas-chat-investigation {
+                max-height: none;
+            }
+            #interactive {
+                max-width: 600px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>MASA investigations in Studio</h1>
+        <p>Local fixtures only. No IMS, Runtime, MASA or Slack requests.</p>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <div class="scenarios" id="scenarios"></div>
+            <h2>Interactive regression fixture</h2>
+            <div id="interactive"></div>
+        </sp-theme>
+        <script type="module">
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import { html, render } from 'lit';
+            import '../../src/swc.js';
+            import '../../src/mas-chat-investigation.js';
+            import '../../src/mas-chat.js';
+            import '../../src/mas-top-nav.js';
+            import sessionManager from '../../src/services/chat-session-manager.js';
+            import {
+                getInvestigationSession,
+                endConversationInvestigations,
+            } from '../../src/mas-chat/investigation-session.js';
+            import {
+                InvestigationSession,
+                findingText,
+                investigationHistory,
+            } from '../../src/mas-chat/investigation-session.js';
+            import { MasaClient, MasaClientError, mediaDigest } from '../../src/mas-chat/masa-client.js';
+            import { isMasaInvestigationEnabled } from '../../src/mas-chat/features.js';
+            import { useIsolatedChatSessionStorage } from '../helpers/chat-session-storage.js';
+
+            const sid = 'ses_11111111-1111-4111-8111-111111111111';
+            const iid = 'inv_22222222-2222-4222-8222-222222222222';
+            const aid = 'art_33333333-3333-4333-8333-333333333333';
+            const tid = 'trf_44444444-4444-4444-8444-444444444444';
+            const imageId = 'att_55555555-5555-4555-8555-555555555555';
+            const now = Date.now();
+            const lease = () => ({
+                id: sid,
+                status: 'active',
+                expiresAt: new Date(now + 1800000).toISOString(),
+                activeInvestigations: 0,
+            });
+            const result = () => ({
+                answer: {
+                    type: 'diagnose',
+                    answer: 'The published Photoshop card has a different offer from the author version.',
+                    points: ['Compare the offer selector before publishing.'],
+                    confidence: 'high',
+                    next_check: 'Open the card in Studio.',
+                },
+                evidence: [{ id: 'E1', summary: 'Author and publish snapshots differ.' }],
+                artifacts: [
+                    { id: aid, sessionId: sid, filename: 'card-comparison.csv', mimetype: 'text/csv', available: true },
+                ],
+                lists: [
+                    {
+                        heading: 'Related card',
+                        items: [{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', title: 'Photoshop — individual plan' }],
+                    },
+                ],
+                limitations: ['partial-evidence'],
+            });
+            const job = (status = 'queued') => ({
+                id: iid,
+                session: lease(),
+                status,
+                result: status === 'completed' ? result() : null,
+                progress: { probeResults: 2, modelCalls: 1 },
+            });
+            const record = (status = 'completed') => ({
+                id: iid,
+                sessionId: sid,
+                question: 'Why is the Photoshop card different after publishing?',
+                text: status === 'completed' ? findingText(result()) : '',
+                status,
+                files: [{ name: 'card-comparison.csv' }],
+            });
+            const fixtureClient = () => ({
+                control: async (conversation, operation) => ({
+                    result: operation.startsWith('session.') ? lease() : job(),
+                    retryAfter: 10,
+                }),
+                upload: async () => ({ id: imageId }),
+                download: async () => new Blob(['card,offer\nPhotoshop,individual'], { type: 'text/csv' }),
+            });
+            const controller = (options = {}) =>
+                new InvestigationSession({
+                    conversationId: 'fixture-conversation',
+                    client: fixtureClient(),
+                    now: () => now,
+                    ...options,
+                });
+
+            const demos = [
+                ['Start an investigation', controller()],
+                ['Running — progress and cancellation', controller({ history: [record('running')] })],
+                ['Completed — findings, card and CSV', controller({ history: [record()] })],
+                ['Expired — text remains, files unavailable', controller({ history: [record()] })],
+                ['Capacity limit — wait before retry', controller()],
+            ];
+            demos[1][1].session = { ...lease(), activeInvestigations: 1 };
+            demos[1][1].records[0].files = [];
+            demos[1][1].records[0].progress = { probeResults: 2 };
+            demos[2][1].updateJob(job('completed'));
+            demos[3][1].session = { ...lease(), status: 'expired' };
+            demos[4][1].fail(new MasaClientError('capacity-exhausted', 'MASA is busy. Try again shortly.', 429, 30));
+            for (const [, demo] of demos) demo.attach = () => () => {};
+            render(
+                demos.map(
+                    ([title, demo]) =>
+                        html`<div class="scenario">
+                            <h2>${title}</h2>
+                            <mas-chat-investigation .controller=${demo}></mas-chat-investigation>
+                        </div>`,
+                ),
+                document.querySelector('#scenarios'),
+            );
+            window.investigationFixturesReady = true;
+
+            if (!new URLSearchParams(location.search).has('demo')) {
+                const { runTests } = await import('@web/test-runner-mocha');
+                runTests(() => {
+                    let current;
+                    let storage;
+                    let clockNow;
+                    let saved;
+                    let host;
+                    const flag = document.querySelector('meta[name="mas-investigations-enabled"]');
+                    const calls = [];
+                    beforeEach(() => {
+                        storage = useIsolatedChatSessionStorage();
+                        clockNow = now;
+                        calls.length = 0;
+                        current = controller({
+                            now: () => clockNow,
+                            save: (history, state) => {
+                                saved = { history, state };
+                            },
+                        });
+                        const real = current.client.control;
+                        current.client.control = async (...args) => {
+                            calls.push(args);
+                            return real(...args);
+                        };
+                    });
+                    afterEach(() => {
+                        host?.remove();
+                        host = null;
+                        clearTimeout(current.expiryTimer);
+                        clearInterval(current.timer);
+                        current.clearMedia();
+                        render(null, document.querySelector('#interactive'));
+                        flag.content = 'false';
+                        sinon.restore();
+                        storage.restore();
+                    });
+                    async function mount() {
+                        render(
+                            html`<mas-chat-investigation .controller=${current}></mas-chat-investigation>`,
+                            document.querySelector('#interactive'),
+                        );
+                        const element = document.querySelector('#interactive mas-chat-investigation');
+                        await element.updateComplete;
+                        return element;
+                    }
+                    it('defaults off and requires an explicit flag', () => {
+                        expect(isMasaInvestigationEnabled()).to.equal(false);
+                        flag.content = 'true';
+                        expect(isMasaInvestigationEnabled()).to.equal(true);
+                    });
+                    it('keeps Chat and release confirmations available when switching views', async () => {
+                        flag.content = 'true';
+                        host = document.createElement('mas-chat');
+                        document.querySelector('#interactive').append(host);
+                        await host.updateComplete;
+                        expect(host.querySelector('mas-chat-investigation')).to.equal(null);
+                        const composer = host.querySelector('mas-chat-input');
+                        host.selectedReleaseOsi = 'selected-offer';
+                        host.investigationMode = true;
+                        await host.updateComplete;
+                        expect(host.querySelector('mas-chat-investigation')).to.not.equal(null);
+                        host.investigationMode = false;
+                        await host.updateComplete;
+                        expect(host.querySelector('mas-chat-input')).to.equal(composer);
+                        const send = sinon.stub(host, 'handleSendMessage').resolves();
+                        host.handleConfirmationAction({ detail: { action: 'confirm', selectedVariants: ['catalog'] } });
+                        expect(send.firstCall.args[0].detail.context).to.include({
+                            intentHint: 'release',
+                            osi: 'selected-offer',
+                        });
+                    });
+                    it('shows progress, read-only findings, card links and file controls', async () => {
+                        current.records = [record()];
+                        current.updateJob(job('completed'));
+                        const element = await mount();
+                        const root = element.shadowRoot;
+                        expect(root.textContent).to.contain('Author and publish snapshots differ');
+                        expect(root.textContent).to.contain('Prepare download');
+                        const event = sinon.spy();
+                        element.addEventListener('open-card', event);
+                        [...root.querySelectorAll('sp-action-button')]
+                            .find((button) => button.textContent === 'Open in Studio')
+                            .click();
+                        expect(event.firstCall.args[0].detail.fragment.id).to.equal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+                    });
+                    it('uploads bounded images and submits opaque attachments', async () => {
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        await current.submit('Check this card', 'Studio page');
+                        expect(calls.at(-1)[2].attachmentIds).to.deep.equal([imageId]);
+                        expect(calls.at(-1)[2]).not.to.have.property('limitedContext');
+                        expect(current.records[0].status).to.equal('queued');
+                    });
+                    it('rejects oversized or unsupported images before creating a session', async () => {
+                        await current.addImage(new File([new Uint8Array(5000001)], 'large.png', { type: 'image/png' }));
+                        expect(current.error.code).to.equal('invalid-image');
+                        expect(calls).to.have.length(0);
+                        await current.addImage(new File(['x'], 'document.svg', { type: 'image/svg+xml' }));
+                        expect(calls).to.have.length(0);
+                    });
+                    it('limits a request to three images', async () => {
+                        for (let i = 0; i < 4; i++)
+                            await current.addImage(new File(['png'], `${i}.png`, { type: 'image/png' }));
+                        expect(current.images).to.have.length(3);
+                        expect(current.error.code).to.equal('invalid-image');
+                    });
+                    it('keeps credentials, binary data, grants and object URLs out of saved history', async () => {
+                        await current.addImage(new File(['secret-image-bytes'], 'card.png', { type: 'image/png' }));
+                        await current.submit('Check this card', 'Studio page');
+                        const serialized = JSON.stringify(saved);
+                        expect(serialized).to.contain(sid).and.to.contain('card.png');
+                        expect(serialized)
+                            .not.to.contain('blob:')
+                            .and.not.to.contain('secret-image-bytes')
+                            .and.not.to.contain('descriptor');
+                        expect(
+                            investigationHistory([{ ...record(), artifacts: [{ grant: 'secret' }] }])[0],
+                        ).not.to.have.property('artifacts');
+                    });
+                    it('persists an upload-only lease and revokes it after reload', async () => {
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        const restored = controller({ state: saved.state });
+                        const end = sinon.spy(restored.client, 'control');
+                        await restored.end();
+                        expect(end.firstCall.args.slice(1)).to.deep.equal(['session.end', { sessionId: sid }]);
+                    });
+                    it('revalidates a restored session before another submission', async () => {
+                        current.restoreId = sid;
+                        await current.submit('A follow-up', '');
+                        expect(calls.map((call) => call[1])).to.deep.equal(['session.get', 'investigation.submit']);
+                    });
+                    it('retries an uncertain submission with identical body and key after Retry-After', async () => {
+                        const control = sinon.stub(current.client, 'control');
+                        control.onCall(0).resolves({ result: lease(), retryAfter: 0 });
+                        control.onCall(1).rejects(new MasaClientError('connection-unavailable', 'Interrupted', 0, 5));
+                        control.onCall(2).resolves({ result: job(), retryAfter: 10 });
+                        await current.submit('Check this card', 'Context');
+                        const pending = structuredClone(saved.state.pending);
+                        await current.retrySubmission();
+                        expect(control.callCount).to.equal(2);
+                        clockNow += 5000;
+                        await current.retrySubmission();
+                        expect(control.getCall(1).args).to.deep.equal(control.getCall(2).args);
+                        expect(pending.idempotencyKey).to.equal(control.getCall(2).args[2].idempotencyKey);
+                        expect(current.records).to.have.length(1);
+                        expect(current.pending).to.equal(null);
+                    });
+                    it('allows editing after a permanent submission rejection', async () => {
+                        current.session = lease();
+                        sinon
+                            .stub(current.client, 'control')
+                            .rejects(new MasaClientError('invalid-request', 'Shorten the question', 413));
+                        await current.submit('Question', '');
+                        expect(current.pending).to.equal(null);
+                        expect(current.error.status).to.equal(413);
+                    });
+                    it('bounds UTF-8 request bytes and preserves whole prior findings only', async () => {
+                        await current.submit('界'.repeat(6000), '');
+                        expect(current.error.code).to.equal('question-too-large');
+                        expect(calls.map((call) => call[1])).not.to.include('investigation.submit');
+                        current.records = [{ ...record(), text: 'x'.repeat(6000) }];
+                        await current.submit('Short follow-up', 'Page');
+                        expect(calls.at(-1)[2].context).to.equal('Page');
+                        expect(current.records.at(-1).limitedContext).to.equal(true);
+                    });
+                    it('includes a prior finding as context when it fits', async () => {
+                        current.records = [record()];
+                        await current.submit('Which offer?', 'Page');
+                        expect(calls.at(-1)[2].context).to.contain('Earlier question:').and.to.contain(record().text);
+                    });
+                    it('recovers a queued investigation and respects polling delay', async () => {
+                        current.records = [record('queued')];
+                        sinon.stub(current.client, 'control').resolves({ result: job('completed'), retryAfter: 30 });
+                        await current.refresh();
+                        expect(current.records[0].status).to.equal('completed');
+                        expect(current.pollAfter).to.equal(now + 30000);
+                    });
+                    it('stops polling a job that is no longer retained', async () => {
+                        current.records = [record('running')];
+                        sinon
+                            .stub(current.client, 'control')
+                            .rejects(new MasaClientError('investigation-unavailable', 'No longer available', 404));
+                        await current.refresh();
+                        expect(current.records[0].status).to.equal('interrupted');
+                    });
+                    it('drawer detach does not cancel accepted work', async () => {
+                        current.records = [record('running')];
+                        current.pollAfter = now + 100000;
+                        const element = await mount();
+                        element.remove();
+                        expect(calls).to.have.length(0);
+                        expect(current.foreground).to.equal(0);
+                        expect(current.records[0].status).to.equal('running');
+                    });
+                    it('discards a poll result that arrives after cancellation', async () => {
+                        current.records = [record('running')];
+                        let resolvePoll;
+                        const control = sinon.stub(current.client, 'control');
+                        control.onCall(0).returns(
+                            new Promise((resolve) => {
+                                resolvePoll = resolve;
+                            }),
+                        );
+                        control.onCall(1).resolves({ result: job('cancelled') });
+                        const poll = current.refresh();
+                        await current.cancel(current.records[0]);
+                        resolvePoll({ result: job('completed'), retryAfter: 10 });
+                        await poll;
+                        expect(current.records[0].status).to.equal('cancelled');
+                    });
+                    it('ends an accepted but unconfirmed submission before dropping its state', async () => {
+                        current.session = lease();
+                        current.pending = {
+                            sessionId: sid,
+                            idempotencyKey: 'same-key',
+                            question: 'Q',
+                            context: '',
+                            attachmentIds: [],
+                        };
+                        await current.end();
+                        expect(calls[0][1]).to.equal('session.end');
+                        expect(current.pending).to.equal(null);
+                    });
+                    it('keeps the lease and credentials available when ending fails', async () => {
+                        current.session = lease();
+                        sinon.stub(current.client, 'control').rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        try {
+                            await current.end();
+                            throw new Error('Expected end to fail');
+                        } catch (error) {
+                            expect(error).to.be.instanceOf(MasaClientError);
+                        }
+                        expect(current.session.status).to.equal('active');
+                        expect(current.ending).to.equal(false);
+                    });
+                    it('revokes previews/downloads on expiry while preserving findings and filenames', async () => {
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        current.records = [record()];
+                        current.updateJob(job('completed'));
+                        await current.download(current.records[0], result().artifacts[0]);
+                        const revoke = sinon.spy(URL, 'revokeObjectURL');
+                        current.expire();
+                        expect(revoke.callCount).to.equal(2);
+                        expect(current.images).to.have.length(0);
+                        expect(current.downloads.size).to.equal(0);
+                        expect(current.records[0].text).to.contain('Photoshop');
+                        const element = await mount();
+                        expect(element.shadowRoot.textContent).to.contain('earlier view are unavailable');
+                    });
+                    it('does not revive uploaded files from saved text history', async () => {
+                        current.records = investigationHistory([{ ...record(), artifacts: result().artifacts }]);
+                        current.session = lease();
+                        const element = await mount();
+                        expect(element.shadowRoot.textContent).to.contain('earlier view are unavailable');
+                        expect(element.shadowRoot.querySelector('img')).to.equal(null);
+                    });
+                    it('renders near-expiry renewal and busy retry guidance', async () => {
+                        current.session = { ...lease(), expiresAt: new Date(now + 60000).toISOString() };
+                        current.fail(new MasaClientError('capacity-exhausted', 'MASA is busy', 429, 30));
+                        const element = await mount();
+                        const text = element.shadowRoot.textContent;
+                        expect(text)
+                            .to.contain('about to expire')
+                            .and.to.contain('Keep session active')
+                            .and.to.contain('Retry in 30 seconds');
+                    });
+
+                    it('revokes known leases before explicit sign-out, and keeps credentials on failure', async () => {
+                        flag.content = 'true';
+                        const chat = sessionManager.createSession();
+                        const owned = getInvestigationSession(chat.id);
+                        owned.session = lease();
+                        const end = sinon.stub(owned.client, 'control');
+                        end.onCall(0).rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        end.onCall(1).resolves({ result: { ...lease(), status: 'ended' } });
+                        const originalIMS = window.adobeIMS;
+                        const signOut = sinon.spy();
+                        window.adobeIMS = { signOut };
+                        try {
+                            const nav = document.createElement('mas-top-nav');
+                            await nav.signOut();
+                            expect(signOut.called).to.equal(false);
+                            expect(owned.session.status).to.equal('active');
+                            await nav.signOut();
+                            expect(signOut.calledOnce).to.equal(true);
+                            expect(owned.session.status).to.equal('ended');
+                        } finally {
+                            window.adobeIMS = originalIMS;
+                        }
+                    });
+                    it('keeps a conversation when server revocation fails before deletion', async () => {
+                        const chat = sessionManager.createSession();
+                        const owned = getInvestigationSession(chat.id);
+                        owned.session = lease();
+                        const end = sinon
+                            .stub(owned.client, 'control')
+                            .rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        try {
+                            await endConversationInvestigations(chat.id);
+                            throw new Error('Expected rejection');
+                        } catch (error) {
+                            expect(error).to.be.instanceOf(MasaClientError);
+                        }
+                        expect(sessionManager.getSession(chat.id)).not.to.equal(null);
+                        end.resolves({ result: { ...lease(), status: 'ended' } });
+                        await endConversationInvestigations(chat.id);
+                        sessionManager.deleteSession(chat.id);
+                        expect(sessionManager.getSession(chat.id)).to.equal(null);
+                    });
+                    it('retains the exact upload descriptor after an uncertain binary response', async () => {
+                        const upload = sinon.stub(current.client, 'upload');
+                        upload.onCall(0).callsFake(async (_conversation, _session, intent) => {
+                            intent.descriptor = { grant: 'only-in-memory', expiresAt: new Date(now + 120000).toISOString() };
+                            throw new MasaClientError('connection-unavailable', 'Offline', 0, 5);
+                        });
+                        upload.onCall(1).resolves({ id: imageId });
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        const intent = current.uploadIntent;
+                        clockNow += 5000;
+                        await current.retryUpload();
+                        expect(upload.secondCall.args[2]).to.equal(intent);
+                        expect(current.images).to.have.length(1);
+                        expect(JSON.stringify(saved)).not.to.contain('only-in-memory');
+                    });
+                    it('recovers the same session creation key after reload and an uncertain creation response', async () => {
+                        sinon.stub(current.client, 'control').rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        await current.submit('Question', '');
+                        const key = saved.state.createKey;
+                        expect(key).to.be.a('string');
+                        const restored = controller({ state: saved.state });
+                        const control = sinon.spy(restored.client, 'control');
+                        await restored.end();
+                        expect(control.firstCall.args[2]).to.deep.equal({ idempotencyKey: key });
+                        expect(control.secondCall.args[1]).to.equal('session.end');
+                    });
+                    it('does not renew or poll while the tab is hidden', async () => {
+                        current.session = lease();
+                        current.records = [record('running')];
+                        sinon.stub(document, 'hidden').get(() => true);
+                        await current.tick();
+                        expect(calls).to.have.length(0);
+                    });
+                    it('clears media when the server no longer recognizes the session', async () => {
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        current.records = [record('running')];
+                        current.fail(new MasaClientError('session-unavailable', 'Unavailable', 404));
+                        expect(current.images).to.have.length(0);
+                        expect(current.session.status).to.equal('expired');
+                        expect(current.records[0].status).to.equal('interrupted');
+                    });
+                    it('clears media and stops automatic polling when identity is rejected', async () => {
+                        await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                        current.fail(new MasaClientError('invalid-studio-identity', 'Sign in again', 401));
+                        calls.length = 0;
+                        await current.tick();
+                        expect(current.images).to.have.length(0);
+                        expect(calls).to.have.length(0);
+                    });
+                    describe('Authenticated transport', () => {
+                        const jsonResponse = (result, status = 200, headers = {}) =>
+                            new Response(JSON.stringify({ formatVersion: 1, result }), {
+                                status,
+                                headers: { 'Content-Type': 'application/json', ...headers },
+                            });
+                        const descriptor = (extra = {}) => ({
+                            id: tid,
+                            sessionId: sid,
+                            operation: 'upload',
+                            method: 'POST',
+                            grant: 'grant-only-in-memory',
+                            url: `https://media.example/v1/media/transfers/${tid}`,
+                            expiresAt: new Date(now + 120000).toISOString(),
+                            ...extra,
+                        });
+                        it('reads a fresh IMS token on every control and transfer, with redirects disabled', async () => {
+                            const file = new File(['png'], 'card.png', { type: 'image/png' });
+                            const hash = await mediaDigest(await file.arrayBuffer());
+                            const fetch = sinon.stub();
+                            fetch.onCall(0).resolves(jsonResponse(descriptor({ bytes: 3, mimetype: file.type, sha256: hash })));
+                            fetch.onCall(1).resolves(jsonResponse({ id: imageId }));
+                            const token = sinon.stub().onCall(0).returns('first').onCall(1).returns('second');
+                            const client = new MasaClient({
+                                url: 'https://runtime.example/masa-api.http',
+                                mediaOrigin: 'https://media.example',
+                                fetchImpl: fetch,
+                                getToken: token,
+                            });
+                            await client.upload('c', sid, { file, key: 'stable-upload-key' });
+                            expect(fetch.firstCall.args[1].headers.Authorization).to.equal('Bearer first');
+                            expect(fetch.secondCall.args[1].headers.Authorization).to.equal('Bearer second');
+                            expect(fetch.secondCall.args[1]).to.include({ credentials: 'omit', redirect: 'error' });
+                            expect(fetch.secondCall.args[1].body).to.equal(file);
+                        });
+                        it('rejects an unexpected media origin before sending IMS credentials', async () => {
+                            const fetch = sinon.stub().resolves(
+                                jsonResponse(
+                                    descriptor({
+                                        method: 'GET',
+                                        operation: 'download',
+                                        url: `https://evil.example/v1/media/transfers/${tid}`,
+                                    }),
+                                ),
+                            );
+                            const client = new MasaClient({
+                                mediaOrigin: 'https://media.example',
+                                fetchImpl: fetch,
+                                getToken: () => 'test',
+                            });
+                            try {
+                                await client.download('c', sid, iid, result().artifacts[0]);
+                                throw new Error('Expected rejection');
+                            } catch (error) {
+                                expect(error.code).to.equal('invalid-transfer');
+                            }
+                            expect(fetch.callCount).to.equal(1);
+                        });
+                        it('checks download bytes and digest before exposing a blob', async () => {
+                            const bytes = new TextEncoder().encode('csv');
+                            const sha256 = await mediaDigest(bytes);
+                            const fetch = sinon.stub();
+                            fetch.onCall(0).resolves(jsonResponse(descriptor({ method: 'GET', operation: 'download' })));
+                            fetch.onCall(1).resolves(new Response(bytes));
+                            const client = new MasaClient({
+                                mediaOrigin: 'https://media.example',
+                                fetchImpl: fetch,
+                                getToken: () => 'test',
+                            });
+                            const blob = await client.download('c', sid, iid, { ...result().artifacts[0], bytes: 3, sha256 });
+                            expect(await blob.text()).to.equal('csv');
+                        });
+                        it('honors server Retry-After without retrying automatically', async () => {
+                            const fetch = sinon.stub().resolves(
+                                new Response(JSON.stringify({ error: { code: 'busy', message: 'Busy' } }), {
+                                    status: 429,
+                                    headers: { 'Retry-After': '45' },
+                                }),
+                            );
+                            const client = new MasaClient({ fetchImpl: fetch, getToken: () => 'test' });
+                            try {
+                                await client.control('c', 'session.create');
+                                throw new Error('Expected rejection');
+                            } catch (error) {
+                                expect(error.retryAfter).to.equal(45);
+                                expect(error.status).to.equal(429);
+                            }
+                            expect(fetch.callCount).to.equal(1);
+                        });
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>

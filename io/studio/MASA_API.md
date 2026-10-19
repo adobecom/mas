@@ -1,14 +1,14 @@
-# MASA Runtime control adapter
+# MASA investigations in Studio
 
 `MerchAtScaleStudio/masa-api` connects Studio to the shared read-only MASA backend using short JSON
 controls. It creates/renews/ends sessions, submits/polls/cancels investigations and obtains upload/download
 grants. It is disabled unless `MASA_API_ENABLED=true`, and normal `core`/`assistant` deployments exclude it.
-This increment provides the backend boundary; it does not yet connect the chat UI or activate an API service.
+The same Studio PR includes the investigation UI behind `mas-investigations-enabled=false`. Merging it does not activate the API or enable investigations.
 
 The rollout plan is [mas-agent #127](https://github.com/adobecom/mas-agent/pull/127). The matching session
 and binary-transfer contracts shipped in [#139](https://github.com/adobecom/mas-agent/pull/139) and
-[#140](https://github.com/adobecom/mas-agent/pull/140). The separate knowledge cutover is
-[Studio #1414](https://github.com/adobecom/mas/pull/1414). Studio continues to own release creation,
+[#140](https://github.com/adobecom/mas-agent/pull/140). The knowledge cutover, Runtime adapter and investigation UI are combined in
+[Studio #1414](https://github.com/adobecom/mas/pull/1414), which incorporates the former #1465 adapter branch. Studio continues to own release creation,
 editing, publishing and every other write. Slack uses its existing gateway.
 
 ## Identity and configuration
@@ -107,9 +107,60 @@ The gateway revalidates identity and origin. Uploads return the owned attachment
 bytes. Upload retry uses the same descriptor and bytes. A consumed/expired download needs a fresh grant
 and a new key. Session end/expiry prevents new transfers regardless of a grant's printed expiry.
 
-Keep grants, bytes and object URLs in memory only; do not persist them in saved conversations. The later
-UI increment must implement expiry placeholders, foreground renewal, warnings, cleanup and explicit
-end/logout handling. It must not fall back to legacy media URLs after expiry.
+The UI keeps grants, bytes and object URLs in memory only. Saved conversations contain findings, original
+questions, filenames and opaque lifecycle IDs. An unconfirmed submission also saves its exact textual
+input, opaque attachment IDs and idempotency key so an explicit retry after reload checks the same intent.
+Session creation keys survive ambiguous responses, including sessions created by an upload before any job.
+Saved state contains no IMS tokens, transfer grants, binary files or blob/download URLs.
+
+## Studio experience and local verification
+
+The existing assistant gains an explicit **Chat / Investigate** switch only when the independent
+`mas-investigations-enabled` meta tag is `true`. Chat retains its current question, search, confirmation
+and release-card paths; Investigate submits read-only jobs to MASA. MASA owns findings and evidence.
+Studio renders results and opens matching card IDs through its existing editor route. It never interprets
+an investigation finding as an authoring command.
+
+Investigate supports three PNG/JPEG/GIF/WebP images of up to 5 MB each, queued/running progress,
+cancellation, complete finding text, evidence, card links, CSV downloads and PNG previews. Follow-ups
+include up to three complete recent findings when they fit the 6,000-character context and control-body
+budget. The UI discloses omitted context; it does not truncate displayed findings. Oversized questions
+are rejected with an editable error. Downloads verify byte count and SHA-256 before exposing a blob.
+
+While the investigation view is visible, it polls no faster than ten seconds and renews an idle session
+at most once per minute. It honors longer server Retry-After intervals and warns within two minutes of
+expiry, with an explicit renewal action. Hiding the tab or closing the drawer stops foreground polling
+and renewal; it does not cancel accepted backend work. Reload revalidates the saved lease and resumes
+pending jobs. Previously loaded files are not restored from browser storage; their names remain as
+unavailable placeholders. Backend expiry still controls transfer access.
+
+Ending a session clears file memory and revokes object URLs. Deleting a conversation or explicitly
+signing out first ends its known server sessions; a failed end keeps the conversation/credentials so the
+user can retry. Closing the browser or external IMS expiry cannot send a guaranteed end request; the
+server lease timeout provides cleanup. Findings remain available as saved text after file expiry.
+
+To test the UI without credentials or deployments, run from `studio`:
+
+```bash
+npx web-test-runner --config web-test-runner.config.mjs --files 'test/mas-chat/investigation.test.html' --watch
+```
+
+The HTML test page contains labelled, inspectable start/running/completed/expired/busy scenarios.
+A [fixture screenshot](../../studio/test/mas-chat/masa-investigations.png) is included for review.
+Append `?demo` when opening it through a local server with npm module resolution to inspect the fixtures
+without starting assertions. It uses simulated responses and sends no live MASA or Slack traffic.
+
+For the later stage pilot, configure the two meta tags in the test branch's `studio.html`:
+
+```html
+<meta name="mas-investigations-enabled" content="true" />
+<meta name="masa-media-origin" content="https://YOUR-EXACT-MEDIA-ORIGIN" />
+```
+
+The media origin must exactly match `MASA_MEDIA_BASE_URL`, without a trailing slash. Controls use the
+existing `io-base-url` environment and `/masa-api.http`. A mismatched media destination is rejected
+before IMS credentials are sent. Leave both defaults unchanged until the stage deployment gate below.
+No synchronous card-search cutover or automatic routing of ordinary chat questions is included.
 
 ## Limits and remaining rollout gates
 
@@ -152,7 +203,7 @@ node scripts/deploy-actions.mjs masa
 
 Never use an unfiltered deployment to activate this integration. The `core` and `assistant` CI groups
 exclude it even when MASA secrets exist in the workspace configuration. To disable a deployed adapter,
-set `MASA_API_ENABLED=false` and redeploy the `masa` group; separately disable the future UI flag.
+set `MASA_API_ENABLED=false` and redeploy the `masa` group; separately set `mas-investigations-enabled=false`.
 
 Before enabling the UI, verify the deployed action's `raw-http`, `final` and `web-custom-options`
 annotations, actual IMS admission, preflight, signed session lifecycle, idempotent retries, origin/user

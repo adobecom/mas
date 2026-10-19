@@ -1,5 +1,8 @@
 # SETUP
 
+The separately enabled MASA session/investigation adapter has its own
+[contract and deployment guide](MASA_API.md). It is excluded from the normal core/assistant deployments.
+
 ## Setup your workspace
 
 - install aio cli running `npm install -g @adobe/aio-cli`

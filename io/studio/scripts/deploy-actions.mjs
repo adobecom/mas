@@ -2,14 +2,14 @@ import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import appConfig from '@adobe/aio-cli-lib-app-config';
 
-/** Selects core or assistant actions from the existing runtime manifest. */
+/** Keep the separately provisioned MASA adapter out of automatic core/assistant deployments. */
 export function getDeploymentActions(config, group) {
-    if (!['core', 'assistant'].includes(group)) throw new Error(`Unknown deployment group: ${group}`);
+    if (!['core', 'assistant', 'masa'].includes(group)) throw new Error(`Unknown deployment group: ${group}`);
     const selected = [];
     for (const [packageName, pkg] of Object.entries(config.application.runtimeManifest.packages)) {
         for (const [actionName, action] of Object.entries(pkg.actions)) {
-            const assistant = Boolean(action.inputs?.AI_FOUNDRY_API_KEY);
-            if (assistant === (group === 'assistant')) selected.push(`${packageName}/${actionName}`);
+            const actionGroup = actionName === 'masa-api' ? 'masa' : action.inputs?.AI_FOUNDRY_API_KEY ? 'assistant' : 'core';
+            if (actionGroup === group) selected.push(`${packageName}/${actionName}`);
         }
     }
     return selected;

@@ -37,6 +37,8 @@ export const parseQuantitySelectValue = (value) => {
     };
 };
 
+export const DEFAULT_LICENSE_TITLE = '{{license-label}}|{{licenses-label}}';
+
 export const splitLicenseLabel = (title) => {
     const [singular = '', plural = ''] = title.split('|');
     return [singular, plural];

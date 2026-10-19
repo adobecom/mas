@@ -184,6 +184,25 @@
                 });
 
                 describe('quantity-select-settings-field', () => {
+                    it('turns the switch on with the license placeholders as title for Pro only', async () => {
+                        const titleAfterToggle = async (splitTitle) => {
+                            const el = document.createElement('quantity-select-settings-field');
+                            el.id = 'quantity-select-settings-field';
+                            el.splitTitle = splitTitle;
+                            el.value = '<merch-quantity-select/>';
+                            document.body.append(el);
+                            await el.updateComplete;
+                            const toggle = el.querySelector('#quantity-select-settings-field-toggle');
+                            toggle.checked = true;
+                            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+                            const { title } = parseQuantitySelectValue(el.value);
+                            el.remove();
+                            return title;
+                        };
+                        expect(await titleAfterToggle(true)).to.equal('{{license-label}}|{{licenses-label}}');
+                        expect(await titleAfterToggle(false)).to.equal('');
+                    });
+
                     it('renders the switch when settingsDefaults is empty', async () => {
                         const el = document.createElement('quantity-select-settings-field');
                         el.id = 'quantity-select-settings-field';

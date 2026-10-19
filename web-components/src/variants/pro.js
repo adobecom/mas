@@ -512,10 +512,7 @@ export class Pro extends VariantLayout {
     // placeholders, resolved per locale). No "|" → unchanged for every quantity;
     // pluralization is never derived in code (appending "s" breaks most locales).
     licenseLabel(count) {
-        const title =
-            this.quantitySelectEl?.getAttribute('title') ||
-            this.card.placeholders?.licenseLabel ||
-            '';
+        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
         const [singular, plural] = title.split('|').map((s) => s.trim());
         return Number(count) === 1 ? singular : plural || singular;
     }

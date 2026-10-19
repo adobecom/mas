@@ -667,7 +667,7 @@ class MasField extends HTMLElement {
                     const template = document.createElement('template');
                     template.innerHTML = html;
                     html = await stripTrialCtas(template, true, this);
-                    if (html === null) {
+                    if (!html) {
                         this.hidden = true;
                         return;
                     }

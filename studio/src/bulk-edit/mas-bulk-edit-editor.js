@@ -13,6 +13,7 @@ import {
     buildBulkEditProjectPayload,
     isBulkEditProjectTitleTaken,
     isValidBulkEditProjectTitle,
+    loadBulkEditProjects,
 } from './bulk-edit-repository.js';
 import { SAVE_SVG, DELETE_SVG } from '../bulk-publish/bulk-publish-icons.js';
 import '../bulk-publish/mas-bulk-publish-delete-dialog.js';
@@ -110,6 +111,11 @@ class MasBulkEditEditor extends LitElement {
         this.saving = true;
         try {
             const title = this.projectTitle.trim();
+            await loadBulkEditProjects(this.repository);
+            if (isBulkEditProjectTitleTaken(title, this.project?.get().id)) {
+                showToast(TITLE_TAKEN_MESSAGE, 'negative');
+                return;
+            }
             if (this.isNewProject) {
                 const raw = await this.repository.createFragment(
                     buildBulkEditProjectPayload({ title, status: BULK_EDIT_STATUS.DRAFT }),

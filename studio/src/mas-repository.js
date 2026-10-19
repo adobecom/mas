@@ -99,6 +99,7 @@ export async function removeFromFragmentCache(fragmentId) {
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     if (!previewFragment) return;
     await initFragmentCache();
+    if (!fragmentCache) return;
 
     fragmentCache.remove(fragmentId);
 
@@ -1404,7 +1405,7 @@ export class MasRepository extends LitElement {
     async #addToCache(fragmentData) {
         await initFragmentCache();
         for (const reference of fragmentData.references || []) {
-            if (fragmentCache.has(reference.id)) continue;
+            if (fragmentCache?.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
         // The aem-fragment cache is shared with anything that renders a card,
@@ -1413,13 +1414,13 @@ export class MasRepository extends LitElement {
         // repository cannot use. Only refresh an entry we put there ourselves;
         // otherwise build our own Fragment from the data we just fetched and
         // leave theirs alone, since it is what their rendered cards read.
-        const cached = fragmentCache.get(fragmentData.id);
+        const cached = fragmentCache?.get(fragmentData.id);
         if (cached instanceof Fragment) {
             cached.refreshFrom(fragmentData);
             return cached;
         }
         const fragment = new Fragment(fragmentData);
-        if (!cached) fragmentCache.add(fragment);
+        if (!cached) fragmentCache?.add(fragment);
         return fragment;
     }
 
@@ -1470,8 +1471,8 @@ export class MasRepository extends LitElement {
 
             fragmentStore.refreshFrom(savedFragment);
             await initFragmentCache();
-            fragmentCache.remove(savedFragment.id);
-            fragmentCache.add(new Fragment(savedFragment));
+            fragmentCache?.remove(savedFragment.id);
+            fragmentCache?.add(new Fragment(savedFragment));
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
             }
@@ -1779,7 +1780,7 @@ export class MasRepository extends LitElement {
 
             if (fragment?.id) {
                 await initFragmentCache();
-                fragmentCache.remove(fragment.id);
+                fragmentCache?.remove(fragment.id);
             }
 
             // Keep expanded variation rows in sync when a variation is deleted from editor.

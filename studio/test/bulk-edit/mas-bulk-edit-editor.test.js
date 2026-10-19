@@ -19,7 +19,10 @@ const rawProject = (title = 'Existing') => ({
     ],
 });
 
-const stubRepository = (el, repo) => Object.defineProperty(el, 'repository', { value: repo });
+const stubRepository = (el, repo) =>
+    Object.defineProperty(el, 'repository', {
+        value: { searchFragmentList: sinon.stub().resolves([]), processError: sinon.stub(), ...repo },
+    });
 
 describe('mas-bulk-edit-editor', () => {
     let navigate;
@@ -248,6 +251,35 @@ describe('mas-bulk-edit-editor', () => {
             expect(toast.calledWithMatch({ variant: 'negative', content: 'A project with this title already exists.' })).to.be
                 .true;
             expect(el.hasChanges).to.be.true;
+        });
+
+        it('blocks renaming to a title another project took after the list was loaded', async () => {
+            Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject())));
+            const searchFragmentList = sinon.stub().resolves([{ ...rawProject('Taken-MWPW-1'), id: 'other' }]);
+            const saveFragment = sinon.stub().resolves(true);
+            const el = await editorWithTitle({ searchFragmentList, saveFragment }, 'Taken-MWPW-1');
+            await el.save();
+            expect(searchFragmentList.firstCall.args[0].path).to.match(/^\/content\/dam\/mas\/bulk-edit-projects\/[^/]+$/);
+            expect(saveFragment.called).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative', content: 'A project with this title already exists.' })).to.be
+                .true;
+            expect(el.hasChanges).to.be.true;
+            expect(el.saving).to.be.false;
+        });
+
+        it('blocks creating a project whose title another project took after the list was loaded', async () => {
+            const createFragment = sinon.stub();
+            const el = await editorWithTitle(
+                {
+                    searchFragmentList: sinon.stub().resolves([{ ...rawProject('Taken-MWPW-1'), id: 'other' }]),
+                    createFragment,
+                },
+                'Taken-MWPW-1',
+            );
+            await el.save();
+            expect(createFragment.called).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative', content: 'A project with this title already exists.' })).to.be
+                .true;
         });
 
         it('shows a generic failure toast when create rejects', async () => {

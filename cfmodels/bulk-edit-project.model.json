@@ -42,5 +42,17 @@
     "snapshots": {
         "fieldLabel": "snapshots",
         "type": "string[]"
+    },
+    "searchTerm": {
+        "fieldLabel": "searchTerm",
+        "type": "string"
+    },
+    "replaceTerm": {
+        "fieldLabel": "replaceTerm",
+        "type": "string"
+    },
+    "fieldNames": {
+        "fieldLabel": "fieldNames",
+        "type": "string[]"
     }
 }

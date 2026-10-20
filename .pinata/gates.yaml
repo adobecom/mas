@@ -88,6 +88,25 @@ gates:
         # outside its mutation boundary), so the producer redoes the candidate.
         failure_route: regenerate
 
+    # A farm ticket's accessibility target (the run's work item): axe runs the
+    # ticket's rule on its element, on the ticket's page as this checkout
+    # serves it. Exit 0 = passes, 3 = still violated, anything else = could not
+    # check. Without a required work item it passes at once. See README.
+    a11y-target:
+        template: command
+        name: Accessibility target fixed (farm tickets)
+        # Run directly from .pinata/: the engine runs the base commit's copy.
+        cmd: node .pinata/scripts/a11y-target.mjs {work_item_file}
+        # The engine also runs it on the base commit, which must report the
+        # violation; that run installs its own dependencies within this limit.
+        timeout_s: 900
+        blocking: true
+        violation_exit_code: 3
+        # The engine cannot tell the exits apart here: any failure re-enters
+        # codegen with the script's output, and a person decides once the
+        # regeneration budget is spent.
+        failure_route: regenerate
+
     visual:
         template: visual
         name: Visual evidence (component demo surfaces)

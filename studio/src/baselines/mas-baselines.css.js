@@ -1,9 +1,8 @@
 import { css } from 'lit';
-import { editorContainerStyles, listPageContainerStyles } from '../common/styles/editor-styles.css.js';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 
 export default [
-    editorContainerStyles,
-    listPageContainerStyles,
+    pageContainerStyles,
     css`
         .baselines-header {
             display: flex;

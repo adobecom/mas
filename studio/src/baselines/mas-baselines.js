@@ -5,7 +5,7 @@ class MasBaselines extends LitElement {
     static styles = styles;
 
     render() {
-        return html`<div class="editor-container">
+        return html`<div class="page-container list-page">
             <div class="baselines-header">
                 <h2>Baselines</h2>
                 <sp-button variant="accent">

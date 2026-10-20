@@ -1,0 +1,458 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch-card inline countdown</title>
+        <style>
+            body {
+                font:
+                    16px Arial,
+                    sans-serif;
+                margin: 24px;
+            }
+            section {
+                margin-bottom: 24px;
+                max-width: 340px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Inline countdown states</h1>
+        <section>
+            <h2>English</h2>
+            <merch-countdown
+                start="2026-10-01T00:00:00Z"
+                end="2026-11-04T04:05:00Z"
+                instant="2026-11-01T00:00:00Z"
+            ></merch-countdown>
+        </section>
+        <section>
+            <h2>Korean</h2>
+            <merch-countdown
+                locale="ko_KR"
+                start="2026-10-01T00:00:00Z"
+                end="2026-11-04T04:05:00Z"
+                instant="2026-11-01T00:00:00Z"
+            ></merch-countdown>
+        </section>
+        <section>
+            <h2>Expired (timer hidden, copy preserved)</h2>
+            <p>
+                <merch-countdown
+                    start="2026-10-01T00:00:00Z"
+                    end="2026-11-01T00:00:00Z"
+                    instant="2026-11-01T00:00:00Z"
+                ></merch-countdown
+                >Product description. <a href="#terms">See terms.</a>
+            </p>
+        </section>
+        <div id="fixtures"></div>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import '../src/mas.js';
+            import '../src/merch-card-collection.js';
+            import { countdownText } from '../src/merch-countdown.js';
+            import { isCountdownLinkText } from '../src/countdown.js';
+            import { hydrate } from '../src/hydrate.js';
+            import { mockFetch } from './mocks/fetch.js';
+            import { withWcs } from './mocks/wcs.js';
+
+            await mockFetch(withWcs);
+            document.head.append(
+                document.createElement('mas-commerce-service'),
+            );
+            const NOW = Date.parse('2026-11-01T00:00:00Z');
+            const START = '2026-10-01T00:00:00Z';
+            const END = '2026-11-04T04:05:00Z';
+            const fixtures = document.querySelector('#fixtures');
+
+            runTests(() => {
+                describe('countdown rules', () => {
+                    it('matches the marker ignoring case and spacing', () => {
+                        expect(isCountdownLinkText(' COUNTDOWN-TIMER\n')).to.be
+                            .true;
+                        expect(isCountdownLinkText('countdown timer')).to.be
+                            .false;
+                    });
+                });
+                describe('countdownText', () => {
+                    it('formats full English and Korean sentences', () => {
+                        expect(countdownText(START, END, NOW)).to.equal(
+                            'Ends in 3 days, 4 hours, 5 minutes!',
+                        );
+                        expect(
+                            countdownText(START, END, NOW, 'ko_KR'),
+                        ).to.equal('3 일 4 시간 5 분 후 할인 종료!');
+                        expect(
+                            countdownText(START, END, NOW, 'ko-KR'),
+                        ).to.equal('3 일 4 시간 5 분 후 할인 종료!');
+                    });
+                    it('accepts timezone offsets and a translated sentence template', () => {
+                        expect(
+                            countdownText(
+                                START,
+                                '2026-11-01T09:01:00+09:00',
+                                NOW,
+                            ),
+                        ).to.equal('Ends in 0 days, 0 hours, 1 minute!');
+                        expect(
+                            countdownText(START, '2026-11-02T01:01:00Z', NOW),
+                        ).to.equal('Ends in 1 day, 1 hour, 1 minute!');
+                        const fr =
+                            'Fin dans <day>{n} jour|{n} jours</day> et <minute>{n} minute|{n} minutes</minute>';
+                        expect(
+                            countdownText(START, END, NOW, 'fr_FR', fr),
+                        ).to.equal('Fin dans 3 jours et 5 minutes');
+                        expect(
+                            countdownText(
+                                START,
+                                '2026-11-02T00:01:00Z',
+                                NOW,
+                                'fr_FR',
+                                fr,
+                            ),
+                        ).to.equal('Fin dans 1 jour et 1 minute');
+                    });
+                    it('keeps English singular wording for languages without a singular rule', () => {
+                        const one = '2026-11-02T01:01:00Z';
+                        for (const locale of ['ja_JP', 'zh_CN', 'vi_VN'])
+                            expect(
+                                countdownText(START, one, NOW, locale),
+                            ).to.equal('Ends in 1 day, 1 hour, 1 minute!');
+                    });
+                    it('ignores the <p> wrapper of rich-text dictionary entries', () => {
+                        expect(
+                            countdownText(
+                                START,
+                                END,
+                                NOW,
+                                'en_US',
+                                '<p>Ends in <day><p>{n} day</p>|<p>{n} days</p></day></p>',
+                            ),
+                        ).to.equal('Ends in 3 days');
+                    });
+                    it('falls back to EN/KO copy per part when the dictionary token is unresolved', () => {
+                        for (const token of [
+                            undefined,
+                            'countdown-timer-text',
+                            '{{countdown-timer-text}}',
+                        ]) {
+                            expect(
+                                countdownText(START, END, NOW, 'ko_KR', token),
+                            ).to.equal('3 일 4 시간 5 분 후 할인 종료!');
+                        }
+                        expect(
+                            countdownText(
+                                START,
+                                END,
+                                NOW,
+                                'en_US',
+                                'Ends in <day>countdown-day-singular|countdown-day-plural</day>, <hour>{n} hr|{n} hrs</hour>',
+                            ),
+                        ).to.equal('Ends in 3 days, 4 hrs');
+                    });
+                    it('hides missing, invalid, reversed, future and expired ranges', () => {
+                        for (const [start, end] of [
+                            [undefined, END],
+                            [START, undefined],
+                            ['invalid', END],
+                            [END, START],
+                            [END, '2026-12-01'],
+                            [START, '2026-11-01T00:00:00Z'],
+                        ]) {
+                            expect(countdownText(start, end, NOW)).to.equal('');
+                        }
+                    });
+                });
+
+                describe('merch-countdown clock', () => {
+                    let clock;
+                    beforeEach(() => {
+                        clock = sinon.useFakeTimers({
+                            now: NOW,
+                            toFake: ['Date', 'setTimeout', 'clearTimeout'],
+                        });
+                    });
+                    afterEach(() => {
+                        fixtures.replaceChildren();
+                        clock.restore();
+                    });
+                    const renderTimer = async (end, start = START) => {
+                        const timer = document.createElement('merch-countdown');
+                        timer.start = start;
+                        timer.end = end;
+                        fixtures.append(timer);
+                        await timer.updateComplete;
+                        await timer.updateComplete;
+                        return timer;
+                    };
+                    it('updates when the minute count changes and hides at expiry', async () => {
+                        const timer = await renderTimer('2026-11-01T00:02:00Z');
+                        expect(timer.text).to.include('2 minutes');
+                        expect(timer.getAttribute('role')).to.equal('timer');
+                        expect(timer.getAttribute('aria-live')).to.equal('off');
+                        clock.tick(1);
+                        expect(timer.text).to.include('1 minute!');
+                        clock.tick(60000);
+                        expect(timer.text).to.include('0 minutes');
+                        clock.tick(60000);
+                        expect(timer.hidden).to.equal(true);
+                        expect(timer.text).to.equal('');
+                        expect(clock.countTimers()).to.equal(0);
+                    });
+                    it('wakes at the next minute change, not a minute after mount', async () => {
+                        const timer = await renderTimer('2026-11-01T00:01:30Z');
+                        expect(timer.text).to.include('1 minute!');
+                        clock.tick(30001);
+                        expect(timer.text).to.include('0 minutes');
+                        clock.tick(60000);
+                        expect(timer.hidden).to.equal(true);
+                    });
+                    it('starts a scheduled timer and reads the clock after a suspended tab resumes', async () => {
+                        const timer = await renderTimer(
+                            '2026-11-01T00:10:00Z',
+                            '2026-11-01T00:01:00Z',
+                        );
+                        expect(timer.hidden).to.equal(true);
+                        clock.tick(60000);
+                        expect(timer.text).to.include('9 minutes');
+                        clock.setSystemTime(NOW + 9 * 60000);
+                        clock.tick(61000);
+                        expect(timer.hidden).to.equal(true);
+                    });
+                    it('stops on disconnect and restarts on reconnect', async () => {
+                        const timer = await renderTimer(END);
+                        expect(clock.countTimers()).to.equal(1);
+                        timer.remove();
+                        expect(clock.countTimers()).to.equal(0);
+                        fixtures.append(timer);
+                        expect(clock.countTimers()).to.equal(1);
+                    });
+                    it('freezes instant preview and updates when its dates or locale change', async () => {
+                        const timer = await renderTimer(END);
+                        timer.instant = '2026-11-01T00:00:00Z';
+                        timer.locale = 'ko_KR';
+                        await timer.updateComplete;
+                        await timer.updateComplete;
+                        expect(timer.text).to.equal(
+                            '3 일 4 시간 5 분 후 할인 종료!',
+                        );
+                        expect(clock.countTimers()).to.equal(0);
+                        timer.end = START;
+                        await timer.updateComplete;
+                        expect(timer.hidden).to.equal(true);
+                    });
+                });
+
+                describe('card hydration', () => {
+                    const payload = (
+                        variant = 'pro',
+                        dates = { cdtStart: START, cdtEnd: END },
+                    ) => ({
+                        id: 'countdown-card',
+                        ...dates,
+                        fields: {
+                            variant,
+                            cardTitle: 'Creative Cloud Pro',
+                            description:
+                                '<p><strong><a> COUNTDOWN-TIMER </a></strong></p><p>Product copy <a href="/terms">See terms</a></p>',
+                        },
+                    });
+                    afterEach(() => {
+                        fixtures.replaceChildren();
+                    });
+                    it('replaces only the sentinel in Pro regular, wide, edu and legacy Plans cards', async () => {
+                        for (const [variant, size] of [
+                            ['pro', ''],
+                            ['pro', 'wide'],
+                            ['pro', 'edu'],
+                            ['plans', ''],
+                            ['plans-students', ''],
+                            ['plans-education', ''],
+                        ]) {
+                            const card = document.createElement('merch-card');
+                            fixtures.append(card);
+                            const fragment = payload(variant);
+                            fragment.fields.size = size;
+                            await hydrate(fragment, card);
+                            const timer = card.querySelector(
+                                '[slot="body-xs"] merch-countdown',
+                            );
+                            timer.instant = '2026-11-01T00:00:00Z';
+                            await timer.updateComplete;
+                            await timer.updateComplete;
+                            expect(timer.text).to.equal(
+                                'Ends in 3 days, 4 hours, 5 minutes!',
+                            );
+                            expect(
+                                card.querySelectorAll('[slot="body-xs"] a')
+                                    .length,
+                            ).to.equal(1);
+                            expect(
+                                card.querySelector('[slot="body-xs"] a')
+                                    .textContent,
+                            ).to.equal('See terms');
+                        }
+                    });
+                    it('renders independent schedules within one collection and honors the preview locale', async () => {
+                        const collection = document.createElement(
+                            'merch-card-collection',
+                        );
+                        fixtures.append(collection);
+                        for (const [id, end, locale] of [
+                            ['first', END, 'en_US'],
+                            ['second', '2026-11-02T00:00:00Z', 'ko_KR'],
+                        ]) {
+                            const card = document.createElement('merch-card');
+                            collection.append(card);
+                            await hydrate(
+                                {
+                                    ...payload(),
+                                    id,
+                                    cdtEnd: end,
+                                    previewLocale: locale,
+                                },
+                                card,
+                            );
+                            const timer = card.querySelector('merch-countdown');
+                            timer.instant = '2026-11-01T00:00:00Z';
+                            await timer.updateComplete;
+                            await timer.updateComplete;
+                        }
+                        const timers =
+                            collection.querySelectorAll('merch-countdown');
+                        expect(timers.length).to.equal(2);
+                        expect(timers[0].text).to.equal(
+                            'Ends in 3 days, 4 hours, 5 minutes!',
+                        );
+                        expect(timers[1].text).to.equal(
+                            '1 일 0 시간 0 분 후 할인 종료!',
+                        );
+                    });
+                    it('uses the localized full-sentence template carried by the fragment', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        await hydrate(
+                            {
+                                ...payload(),
+                                placeholders: {
+                                    countdownTimerText:
+                                        'Fin dans <day>{n} jour|{n} jours</day> et <minute>{n} minute|{n} minutes</minute>',
+                                },
+                            },
+                            card,
+                        );
+                        const timer = card.querySelector('merch-countdown');
+                        timer.instant = '2026-11-01T00:00:00Z';
+                        await timer.updateComplete;
+                        expect(timer.text).to.equal(
+                            'Fin dans 3 jours et 5 minutes',
+                        );
+                    });
+                    it('inherits the description color by default, including on a dark Pro card', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        const fragment = payload();
+                        fragment.fields.backgroundColor = 'dark';
+                        await hydrate(fragment, card);
+                        const timer = card.querySelector('merch-countdown');
+                        expect(timer.className).to.equal('');
+                        const color = getComputedStyle(timer).color;
+                        expect(color).to.equal(
+                            getComputedStyle(timer.parentElement).color,
+                        );
+                        // dark Pro card: the description text, and so the timer, is light
+                        const [r, g, b] = color.match(/\d+/g).map(Number);
+                        expect(Math.min(r, g, b)).to.be.above(200);
+                    });
+                    it('copies the sentinel color class to the timer and colors it from the token', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        const fragment = payload();
+                        fragment.fields.description =
+                            '<p><a href="#" class="spectrum-green-900">countdown-timer</a></p>';
+                        await hydrate(fragment, card);
+                        const timer = card.querySelector('merch-countdown');
+                        expect(timer.className).to.equal('spectrum-green-900');
+                        expect(getComputedStyle(timer).color).to.equal(
+                            'rgb(5, 131, 78)',
+                        );
+                    });
+                    it('copies only the known color classes from the sentinel link', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        const fragment = payload();
+                        fragment.fields.description =
+                            '<p><a href="#" class="secondary-link spectrum-red-700 other">countdown-timer</a></p>';
+                        await hydrate(fragment, card);
+                        expect(
+                            card.querySelector('merch-countdown').className,
+                        ).to.equal('spectrum-red-700');
+                    });
+                    it('maps every picker color class to its own color', async () => {
+                        for (const [name, color] of [
+                            ['spectrum-green-900', 'rgb(5, 131, 78)'],
+                            ['spectrum-red-700', 'rgb(235, 16, 0)'],
+                        ]) {
+                            const timer =
+                                document.createElement('merch-countdown');
+                            timer.className = name;
+                            fixtures.append(timer);
+                            await timer.updateComplete;
+                            expect(getComputedStyle(timer).color).to.equal(
+                                color,
+                            );
+                        }
+                    });
+                    it('hides missing dates and replaces the old timer on rehydration', async () => {
+                        const card = document.createElement('merch-card');
+                        fixtures.append(card);
+                        await hydrate(payload(), card);
+                        const oldTimer = card.querySelector('merch-countdown');
+                        await hydrate(payload('pro', {}), card);
+                        const timer = card.querySelector('merch-countdown');
+                        await timer.updateComplete;
+                        expect(oldTimer.isConnected).to.equal(false);
+                        expect(timer.hidden).to.equal(true);
+                        expect(
+                            card.querySelectorAll('merch-countdown').length,
+                        ).to.equal(1);
+                    });
+                    it('preserves countdown dates in author and publish aem:load events', async () => {
+                        const AemFragment = customElements.get('aem-fragment');
+                        for (const author of [false, true]) {
+                            const id = `countdown-event-${author}`;
+                            AemFragment.cache.add({
+                                id,
+                                cdtStart: START,
+                                cdtEnd: END,
+                                previewLocale: 'ko_KR',
+                                fields: author
+                                    ? [{ name: 'variant', values: ['pro'] }]
+                                    : { variant: 'pro' },
+                            });
+                            const fragment =
+                                document.createElement('aem-fragment');
+                            fragment.setAttribute('fragment', id);
+                            if (author) fragment.setAttribute('author', '');
+                            const loaded = new Promise((resolve) =>
+                                fragment.addEventListener('aem:load', resolve, {
+                                    once: true,
+                                }),
+                            );
+                            fixtures.append(fragment);
+                            const { detail } = await loaded;
+                            expect(detail.cdtStart).to.equal(START);
+                            expect(detail.cdtEnd).to.equal(END);
+                            expect(detail.previewLocale).to.equal('ko_KR');
+                            fragment.remove();
+                        }
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

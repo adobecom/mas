@@ -2826,15 +2826,6 @@
     overflow: hidden;
 }
 
-:where(.mas-feature) .editor-container,
-:where(.mas-feature) .page-container {
-    position: relative;
-    background-color: var(--spectrum-white);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    box-sizing: border-box;
-    border-radius: 8px;
-}
-
 :where(.mas-feature) .product-catalog-header {
     display: flex;
     align-items: center;

@@ -190,7 +190,7 @@ class MasProductDetail extends LitElement {
         if (this.error) return this.errorTemplate;
         if (!this.product) return nothing;
         return html`
-            <div class="product-detail editor-container">
+            <div class="product-detail">
                 ${this.breadcrumbTemplate} ${this.headerTemplate} ${this.copySectionTemplate} ${this.tagsSectionTemplate}
                 ${this.detailsSectionTemplate} ${this.linksSectionTemplate} ${this.fulfillableItemsSectionTemplate}
             </div>

@@ -661,7 +661,7 @@ async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName)
 }
 
 /**
- * Resolves promo variations for fragments and legacy collections attached to a promotion project.
+ * Resolves promo variations for fragments attached to a promotion project.
  * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
  * @param {import('../aem/aem.js').AEM} aem
  * @param {Object} promotionFragment
@@ -672,12 +672,7 @@ async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpu
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];
 
-    const attachedPaths = [
-        ...new Set([
-            ...(promotionFragment.getFieldValues?.('fragments') || []),
-            ...(promotionFragment.getFieldValues?.('collections') || []),
-        ]),
-    ];
+    const attachedPaths = Array.from(new Set(promotionFragment.getFieldValues?.('fragments') || []));
     if (!attachedPaths.length) return [];
 
     const promoName = getPromoNameFromTag(promotionTagId);

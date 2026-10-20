@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup, oneEvent } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, oneEvent, waitUntil } from '@open-wc/testing-helpers/pure';
 import { sendKeys } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
@@ -23,10 +23,15 @@ const render = (selected = [], { readonly = false, required = true } = {}) =>
 
 const query = (el, selector) => el.shadowRoot.querySelector(selector);
 
+// sp-opened fires before the overlay moves focus into the dialog. Wait for that focus, or a key press
+// sent right after can miss the dialog on a slow runner.
 const openDialog = async (el) => {
     const opened = oneEvent(query(el, 'overlay-trigger'), 'sp-opened');
     query(el, '.add-button').click();
     await opened;
+    await waitUntil(() => query(el, '.selector-dialog').matches(':focus-within'), 'focus did not enter the dialog', {
+        timeout: 10000,
+    });
 };
 
 // The click tests check the component's own handlers. A real modal would stay in the top layer and
@@ -40,6 +45,14 @@ const keepDialogClosed = async (el) => {
 describe('MasGroupedSelector', () => {
     afterEach(() => {
         fixtureCleanup();
+        sinon.restore();
+    });
+
+    // Test pages run as background tabs where the browser never fires animation frames, and the Spectrum
+    // overlay waits on them to open. Drive frames with timers so the overlay opens regardless of tab state.
+    beforeEach(() => {
+        sinon.stub(window, 'requestAnimationFrame').callsFake((callback) => setTimeout(() => callback(performance.now()), 16));
+        sinon.stub(window, 'cancelAnimationFrame').callsFake((id) => clearTimeout(id));
     });
 
     it('renders the empty state when nothing is selected', async () => {

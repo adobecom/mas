@@ -198,6 +198,17 @@
                         await element.updateComplete;
                         return element;
                     }
+                    async function signOutFromNav() {
+                        const originalIMS = window.adobeIMS;
+                        const signOut = sinon.spy();
+                        window.adobeIMS = { signOut };
+                        try {
+                            await document.createElement('mas-top-nav').signOut();
+                        } finally {
+                            window.adobeIMS = originalIMS;
+                        }
+                        return signOut;
+                    }
                     it('defaults off and requires an explicit flag', () => {
                         expect(isMasaInvestigationEnabled()).to.equal(false);
                         flag.content = 'true';
@@ -452,6 +463,35 @@
                             window.adobeIMS = originalIMS;
                         }
                     });
+                    it('signs out after an explicit end while MASA is unavailable', async () => {
+                        flag.content = 'true';
+                        const owned = getInvestigationSession(sessionManager.createSession().id);
+                        owned.session = lease();
+                        const control = sinon
+                            .stub(owned.client, 'control')
+                            .resolves({ result: { ...lease(), status: 'ended' } });
+                        await owned.end();
+                        control.rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        const signOut = await signOutFromNav();
+                        expect(control.callCount).to.equal(1);
+                        expect(signOut.calledOnce).to.equal(true);
+                    });
+                    it('signs out after reloading an explicitly ended conversation while MASA is unavailable', async () => {
+                        flag.content = 'true';
+                        current.session = lease();
+                        await current.end();
+                        const chat = sessionManager.createSession();
+                        sessionManager.updateSession(chat.id, {
+                            investigations: saved.history,
+                            investigationState: saved.state,
+                        });
+                        const control = sinon
+                            .stub(MasaClient.prototype, 'control')
+                            .rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        const signOut = await signOutFromNav();
+                        expect(control.called).to.equal(false);
+                        expect(signOut.calledOnce).to.equal(true);
+                    });
                     it('keeps a conversation when server revocation fails before deletion', async () => {
                         const chat = sessionManager.createSession();
                         const owned = getInvestigationSession(chat.id);
@@ -592,6 +632,33 @@
                             const blob = await client.download('c', sid, iid, { ...result().artifacts[0], bytes: 3, sha256 });
                             expect(await blob.text()).to.equal('csv');
                         });
+                        for (const [mismatch, artifact] of [
+                            ['SHA-256', { sha256: '0'.repeat(64) }],
+                            ['byte count', { bytes: 4 }],
+                        ]) {
+                            it(`rejects a download whose ${mismatch} differs from the artifact`, async () => {
+                                const bytes = new TextEncoder().encode('csv');
+                                const fetch = sinon.stub();
+                                fetch.onCall(0).resolves(jsonResponse(descriptor({ method: 'GET', operation: 'download' })));
+                                fetch.onCall(1).resolves(new Response(bytes));
+                                const client = new MasaClient({
+                                    mediaOrigin: 'https://media.example',
+                                    fetchImpl: fetch,
+                                    getToken: () => 'test',
+                                });
+                                try {
+                                    await client.download('c', sid, iid, {
+                                        ...result().artifacts[0],
+                                        bytes: 3,
+                                        sha256: await mediaDigest(bytes),
+                                        ...artifact,
+                                    });
+                                    throw new Error('Expected rejection');
+                                } catch (error) {
+                                    expect(error.code).to.equal('invalid-transfer');
+                                }
+                            });
+                        }
                         it('honors server Retry-After without retrying automatically', async () => {
                             const fetch = sinon.stub().resolves(
                                 new Response(JSON.stringify({ error: { code: 'busy', message: 'Busy' } }), {

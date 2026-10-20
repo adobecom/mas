@@ -69,9 +69,14 @@ export class InvestigationSession extends EventTarget {
         this.foreground = 0;
     }
 
+    /** A lease MASA has not confirmed ended; only these are resumed after reload or revoked on end. */
+    get leaseId() {
+        return this.session?.status === 'ended' ? null : this.session?.id;
+    }
+
     notify() {
         this.save(investigationHistory(this.records), {
-            sessionId: this.session?.id ?? this.restoreId,
+            sessionId: this.leaseId ?? this.restoreId,
             createKey: this.createKey,
             pending: this.pending ? this.submissionFields(this.pending) : null,
         });
@@ -405,9 +410,7 @@ export class InvestigationSession extends EventTarget {
             if (this.now() < this.retryAt) throw this.error;
             if (this.createKey) await this.ensureSession();
             const ids = new Set(
-                [this.session?.id, this.restoreId, ...this.records.filter(running).map((item) => item.sessionId)].filter(
-                    Boolean,
-                ),
+                [this.leaseId, this.restoreId, ...this.records.filter(running).map((item) => item.sessionId)].filter(Boolean),
             );
             for (const sessionId of ids) {
                 try {

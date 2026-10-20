@@ -202,7 +202,7 @@ token failure does not silently use a personal token. Local downloads still acce
 The import accepts only the version 1 author profile and records its revision, generation date
 and SHA-256 digest. An invalid or failed fetch leaves the existing generated module intact;
 it never writes an empty replacement. Before deploying assistant actions locally,
-run `npm run fetch:masa-knowledge -- --required` with a read token or a local export configured.
+run `npm run fetch:masa-knowledge` with a read token or a local export configured.
 In CI, a failed corpus fetch skips the optional AI deployment and reports a warning; already
 deployed core Studio actions are unaffected.
 

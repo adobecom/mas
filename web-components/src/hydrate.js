@@ -1072,7 +1072,10 @@ export async function processCTAs(
                 });
                 trialCtaSwappedPromises.push(promise);
                 const checkout = cta.source ?? cta;
-                if (!checkout.onceSettled) return;
+                if (!checkout.onceSettled) {
+                    trialCtaSwapped(false);
+                    return;
+                }
                 cta.hidden = true;
                 checkout
                     .onceSettled()
@@ -1099,18 +1102,31 @@ export async function processCTAs(
                                 cta.classList.remove('blue');
                                 cta.removeAttribute('data-analytics-id');
                                 cta.remove();
-                            } else {
+                                trialCtaSwapped(true);
+                            } else if (merchCard.priceLiterals?.buyNow) {
                                 checkout.setAttribute(
                                     'data-analytics-id',
                                     'buy-now',
                                 );
                                 if (checkout.hasAttribute('data-modal'))
                                     checkout.setAttribute('data-modal', 'crm');
+                                const daall = checkout.getAttribute('daa-ll');
+                                if (daall) {
+                                    checkout.setAttribute(
+                                        'daa-ll',
+                                        daall.replaceAll(
+                                            'free-trial',
+                                            'buy-now',
+                                        ),
+                                    );
+                                }
                                 checkout.textContent =
                                     merchCard.priceLiterals?.buyNow;
                                 cta.hidden = false;
+                                trialCtaSwapped(true);
+                            } else {
+                                trialCtaSwapped(false);
                             }
-                            trialCtaSwapped(true);
                         } else {
                             cta.hidden = false;
                             trialCtaSwapped(false);

@@ -90,7 +90,7 @@ export async function stripTrialCtas(template, indexed, self) {
         await Promise.all(masFieldsReadyPromises);
         masFields.forEach((c) => {
             if (c.getAttribute('field') !== thisField) {
-                buyNowCta = c.querySelector('a[data-analytics-id="buy-now"]');
+                buyNowCta ??= c.querySelector('a[data-analytics-id="buy-now"]');
             }
         });
     }
@@ -99,14 +99,14 @@ export async function stripTrialCtas(template, indexed, self) {
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
             trialCtaSwapped = true;
-            if (buyNowCta) {
+            const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
+            if (buyNowCta || !buyNowText) {
                 anchor.remove();
             } else {
                 anchor.setAttribute('data-analytics-id', 'buy-now');
                 if (anchor.hasAttribute('data-modal'))
                     anchor.setAttribute('data-modal', 'crm');
-                anchor.textContent =
-                    self.aemFragment?.data?.priceLiterals?.buyNow;
+                anchor.textContent = buyNowText;
             }
         } else {
             anchor.remove();
@@ -117,8 +117,7 @@ export async function stripTrialCtas(template, indexed, self) {
         template.content.querySelector('a[data-analytics-id="buy-now"]') ||
         buyNowCta;
     if (buyNowCtaNew && trialCtaSwapped) {
-        buyNowCtaNew.classList.remove('primary-outline');
-        buyNowCtaNew.classList.add('accent', 'button', 'con-button', 'blue');
+        buyNowCtaNew.classList.add('blue');
     }
 
     return template.innerHTML;
@@ -481,12 +480,12 @@ class MasField extends HTMLElement {
     };
 
     /** Extracts the target field from the fragment data and renders it as innerHTML. */
-    #onFragmentLoad = (event) => {
+    #onFragmentLoad = async (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
         this.settings = event.detail?.settings ?? null;
         this.#loaded = true;
-        this.#renderField();
+        await this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
         // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(

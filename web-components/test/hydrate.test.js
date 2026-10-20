@@ -53,6 +53,9 @@ const mockMerchCard = () => {
     const merchCard = document.createElement('div');
     merchCard.spectrum = 'css';
     merchCard.loading = 'lazy';
+    merchCard.priceLiterals = {
+        buyNow: 'Buy now',
+    };
     merchCard.attachShadow({ mode: 'open' });
 
     document.body.appendChild(merchCard);

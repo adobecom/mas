@@ -1216,7 +1216,7 @@ describe('mas-field – mas:ready event', () => {
             .forEach((el) => el.remove());
     });
 
-    it('dispatches a bubbling mas:ready after rendering on aem:load', () => {
+    it('dispatches a bubbling mas:ready after rendering on aem:load', async () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'title');
         const fragment = document.createElement('aem-fragment');
@@ -1231,7 +1231,7 @@ describe('mas-field – mas:ready event', () => {
                 detail: { fields: { title: 'CC' } },
             }),
         );
-
+        await delay(50);
         expect(onReady.calledOnce).to.be.true;
         expect(onReady.firstCall.args[0].target).to.equal(el);
     });
@@ -1664,6 +1664,11 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', 'ctas[78]');
         const fragment = document.createElement('aem-fragment');
+        fragment.data = {
+            priceLiterals: {
+                buyNow: 'Buy now',
+            },
+        };
         el.append(fragment);
         document.body.append(el);
         fragment.dispatchEvent(

@@ -108,10 +108,12 @@ class MasBulkEditEditor extends LitElement {
 
     async save() {
         if (this.titleError) return;
+        const { signal } = this.#abortController;
         this.saving = true;
         try {
             const title = this.projectTitle.trim();
             await loadBulkEditProjects(this.repository);
+            if (signal.aborted) return;
             if (isBulkEditProjectTitleTaken(title, this.project?.get().id)) {
                 showToast(TITLE_TAKEN_MESSAGE, 'negative');
                 return;
@@ -121,7 +123,7 @@ class MasBulkEditEditor extends LitElement {
                     buildBulkEditProjectPayload({ title, status: BULK_EDIT_STATUS.DRAFT }),
                     false,
                 );
-                if (!raw) return;
+                if (!raw || signal.aborted) return;
                 Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                 Store.bulkEditProjects.projectId.set(raw.id);
             } else {
@@ -131,7 +133,7 @@ class MasBulkEditEditor extends LitElement {
                     refetchEtag: false,
                     errorMessage: 'Failed to save the project.',
                 });
-                if (!saved) return;
+                if (!saved || signal.aborted) return;
             }
             this.projectTitle = title;
             this.hasChanges = false;
@@ -218,6 +220,7 @@ class MasBulkEditEditor extends LitElement {
                     data-testid="title-input"
                     placeholder="Project title-MWPW-123456"
                     .value=${this.projectTitle}
+                    ?disabled=${this.saving}
                     ?invalid=${this.hasChanges && !!this.titleError}
                     @input=${this.handleTitleInput}
                 >

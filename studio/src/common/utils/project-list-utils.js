@@ -61,10 +61,12 @@ export function renderSkeletonRows(columns) {
 
 /**
  * Loads project fragments under `path`, newest first, into a `{ data, loading }` list store.
+ * An aborted request is treated as superseded: it neither publishes results nor clears the loading flag.
  * @param {object} repository - mas-repository element
  * @param {{ path: string, list: { data, loading }, abortController?: AbortController, errorMessage: string }} options
  */
 export async function loadProjectList(repository, { path, list, abortController, errorMessage }) {
+    const isActive = () => !abortController?.signal.aborted;
     list.loading.set(true);
     try {
         const fragments = await repository.searchFragmentList(
@@ -72,10 +74,12 @@ export async function loadProjectList(repository, { path, list, abortController,
             50,
             abortController,
         );
+        if (!isActive()) return;
         list.data.set(fragments.map((fragment) => new FragmentStore(new Fragment(fragment))));
     } catch (error) {
+        if (!isActive()) return;
         repository.processError(error, errorMessage);
     } finally {
-        list.loading.set(false);
+        if (isActive()) list.loading.set(false);
     }
 }

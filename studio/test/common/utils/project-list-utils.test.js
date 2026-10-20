@@ -121,6 +121,51 @@ describe('loadProjectList()', () => {
         expect(repository.processError.calledWith(error, 'err')).to.be.true;
         expect(list.loading.get()).to.be.false;
     });
+
+    it('keeps loading while a newer request is pending after the previous one is aborted', async () => {
+        const list = createList();
+        const abortError = new DOMException('aborted', 'AbortError');
+        let resolveSecond;
+        const searchFragmentList = sinon.stub();
+        searchFragmentList
+            .onFirstCall()
+            .callsFake(
+                (options, limit, controller) =>
+                    new Promise((resolve, reject) => controller.signal.addEventListener('abort', () => reject(abortError))),
+            );
+        searchFragmentList.onSecondCall().returns(
+            new Promise((resolve) => {
+                resolveSecond = resolve;
+            }),
+        );
+        const repository = createRepository(searchFragmentList);
+        const first = new AbortController();
+        const firstLoad = loadProjectList(repository, { path: '/a', list, abortController: first, errorMessage: 'err' });
+        first.abort();
+        const second = new AbortController();
+        const secondLoad = loadProjectList(repository, { path: '/b', list, abortController: second, errorMessage: 'err' });
+        await firstLoad;
+        expect(list.loading.get()).to.be.true;
+        expect(repository.processError.called).to.be.false;
+        resolveSecond([{ id: 'b1', fields: [] }]);
+        await secondLoad;
+        expect(list.loading.get()).to.be.false;
+        expect(list.data.get()[0].get().id).to.equal('b1');
+    });
+
+    it('does not publish results of a request aborted after it resolved', async () => {
+        const list = createList();
+        const abortController = new AbortController();
+        const repository = createRepository(
+            sinon.stub().callsFake(async () => {
+                abortController.abort();
+                return [{ id: 'stale', fields: [] }];
+            }),
+        );
+        await loadProjectList(repository, { path: '/p', list, abortController, errorMessage: 'err' });
+        expect(list.data.get()).to.deep.equal([]);
+        expect(list.loading.get()).to.be.true;
+    });
 });
 
 describe('getSearchSurface()', () => {

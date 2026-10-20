@@ -1,4 +1,4 @@
-import { fixture, html, expect } from '@open-wc/testing';
+import { fixture, html, expect, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import router from '../../src/router.js';
@@ -99,6 +99,23 @@ describe('mas-bulk-edit-editor', () => {
         await el.save();
         expect(saveFragment.calledOnce).to.be.true;
         expect(el.project.get().getFieldValue('title')).to.equal('Renamed-MWPW-42');
+    });
+
+    it('disables the title field while saving', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        let resolve;
+        const createFragment = sinon.stub().callsFake(() => new Promise((r) => (resolve = r)));
+        stubRepository(el, { createFragment });
+        el.handleTitleInput({ target: { value: 'New one-MWPW-123456' } });
+        const saving = el.save();
+        await waitUntil(() => createFragment.called);
+        await el.updateComplete;
+        const input = el.shadowRoot.querySelector('[data-testid="title-input"]');
+        expect(input.hasAttribute('disabled')).to.be.true;
+        resolve(rawProject('New one-MWPW-123456'));
+        await saving;
+        await el.updateComplete;
+        expect(input.hasAttribute('disabled')).to.be.false;
     });
 
     it('blocks saving a title already used by another project', async () => {
@@ -352,6 +369,25 @@ describe('mas-bulk-edit-editor', () => {
             reject(new Error('aborted'));
             await loading;
             expect(el.loadFailed).to.be.false;
+        });
+
+        it('does not publish a created project after the editor is disconnected', async () => {
+            let resolve;
+            const createFragment = sinon.stub().callsFake(() => new Promise((r) => (resolve = r)));
+            const el = connectEditor({ createFragment });
+            await el.connectedCallback();
+            el.handleTitleInput({ target: { value: 'New one-MWPW-123456' } });
+            const saving = el.save();
+            await waitUntil(() => createFragment.called);
+            el.disconnectedCallback();
+            const projectB = new FragmentStore(new Fragment({ ...rawProject('Project B-MWPW-2'), id: 'p2' }));
+            Store.bulkEditProjects.projectId.set('p2');
+            Store.bulkEditProjects.inEdit.set(projectB);
+            resolve(rawProject('New one-MWPW-123456'));
+            await saving;
+            expect(Store.bulkEditProjects.projectId.get()).to.equal('p2');
+            expect(Store.bulkEditProjects.inEdit.get()).to.equal(projectB);
+            expect(toast.calledWithMatch({ variant: 'positive' })).to.be.false;
         });
     });
 

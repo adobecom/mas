@@ -1766,6 +1766,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async publishFragment() {
+        if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoReadOnly) {
+            showToast('You do not have permission to update promo variations.', 'negative');
+            return;
+        }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
             let publishOptions;
@@ -1797,7 +1801,7 @@ export default class MasFragmentEditor extends LitElement {
                 if (!resultStaged.confirmed) return;
             }
 
-            if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoVariationFragment() && !canEditPromotions()) {
+            if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoReadOnly) {
                 showToast('You do not have permission to update promo variations.', 'negative');
                 return;
             }
@@ -1983,6 +1987,10 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;
+    }
+
+    get isPromoReadOnly() {
+        return this.isPromoVariationFragment() && !canEditPromotions();
     }
 
     isPromoVariationFragment() {
@@ -2302,7 +2310,10 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
+            ${this.isPromoReadOnly
+                ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
+                : nothing}
+            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;

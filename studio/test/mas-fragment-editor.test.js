@@ -1,4 +1,4 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/mas-fragment-editor.js';
 import MasFragmentEditor, { snapFilterToPathDefault, syncGroupedPreviewLocale } from '../src/mas-fragment-editor.js';
@@ -1242,6 +1242,7 @@ describe('MasFragmentEditor', () => {
                     expect(save.calledOnce).to.equal(allowed && staged);
                     expect(publish.calledOnce).to.equal(allowed);
                     if (!allowed) {
+                        expect(MasPublishStagedDialog.show.called).to.be.false;
                         expect(fragment.title).to.equal('Unsaved title');
                         expect(fragment.isStaged).to.be.true;
                         expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
@@ -1251,6 +1252,24 @@ describe('MasFragmentEditor', () => {
                 });
             }
         }
+
+        it('rejects unauthorized staged promo changes before showing the references dialog', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+            const { el } = createPublishingEditor({ model: CARD_MODEL_PATH });
+            sandbox.stub(el.fragment, 'getPublishableReferences').returns({
+                variations: [{ id: 'reference', path: '/reference', fields: [] }],
+                cards: [],
+            });
+            const dialog = sandbox.stub(MasPublishDialog, 'show').resolves({ confirmed: false });
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.publishFragment();
+
+            expect(dialog.called).to.be.false;
+            expect(MasPublishStagedDialog.show.called).to.be.false;
+            expect(publish.called).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+        });
 
         for (const withReferences of [false, true]) {
             it(`rechecks update permission after staged confirmation with references=${withReferences}`, async () => {
@@ -1277,6 +1296,61 @@ describe('MasFragmentEditor', () => {
                 expect(save.called).to.be.false;
                 expect(publish.called).to.be.false;
             });
+        }
+    });
+
+    describe('promo variation read-only form', () => {
+        let originalProfile;
+        let originalUsers;
+        let originalInEdit;
+
+        beforeEach(() => {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            originalInEdit = Store.fragments.inEdit.get();
+            Store.profile.set({ email: 'author@adobe.com' });
+        });
+
+        afterEach(() => {
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+            Store.fragments.inEdit.value = originalInEdit;
+        });
+
+        for (const model of [CARD_MODEL_PATH, COLLECTION_MODEL_PATH]) {
+            for (const { group, promotional = true, readOnly } of [
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', readOnly: true },
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', readOnly: false },
+                { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', readOnly: false },
+                { group: 'GRP-ODIN-MAS-ADMINS', readOnly: false },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', promotional: false, readOnly: false },
+                { group: null, readOnly: true },
+            ]) {
+                it(`renders ${model} promo=${promotional} read-only=${readOnly} for ${group ?? 'unloaded users'}`, () => {
+                    Store.users.set(group ? [{ userPrincipalName: 'author@adobe.com', groups: [group] }] : []);
+                    const el = document.createElement('mas-fragment-editor');
+                    const fragment = new Fragment({
+                        id: 'readonly-fragment',
+                        path: promotional
+                            ? '/content/dam/mas/sandbox/en_US/promotions/summer/my-fragment'
+                            : '/content/dam/mas/sandbox/en_US/my-fragment',
+                        model: { path: model },
+                        fields: [],
+                        tags: [],
+                    });
+                    el.inEdit.value = { get: () => fragment };
+                    const container = fixtureSync(html`<section></section>`);
+
+                    render(el.fragmentEditor, container);
+
+                    expect(container.querySelector('.section').inert).to.equal(readOnly);
+                    expect(Boolean(container.querySelector('[role="status"]'))).to.equal(readOnly);
+                    if (readOnly) {
+                        expect(container.querySelector('[role="status"]').textContent).to.match(/read-only/i);
+                        expect(container.querySelector('[role="status"]').closest('[inert]')).to.be.null;
+                    }
+                });
+            }
         }
     });
 

@@ -7,14 +7,23 @@ import { Fragment } from '../aem/fragment.js';
 import { MasRepository, getFromFragmentCache } from '../mas-repository.js';
 import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
+import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
-import './mas-translation-languages.js';
+import '../common/components/mas-region-picker.js';
+import { getLocalePickerItems } from '../locales.js';
 import router from '../router.js';
-import { normalizeKey, showToast, getCreateProjectErrorMessage } from '../utils.js';
+import { normalizeKey, showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
-import { renderFragmentStatusCell, getOdinLocTaskNameValidationError } from './translation-utils.js';
+import {
+    renderFragmentStatusCell,
+    getOdinLocTaskNameValidationError,
+    duplicateTranslationProject,
+    getTranslationProjectTitles,
+    canDuplicateTranslationProject,
+} from './translation-utils.js';
 import './mas-collapsible-table-row.js';
+import './mas-translation-duplicate-dialog.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -27,10 +36,11 @@ class MasTranslationEditor extends LitElement {
         disabledActions: { type: Set, state: true },
         isSelectedItemsOpen: { type: Boolean, state: true },
         showSelectedEmptyState: { type: Boolean, state: true },
-        isSelectedLangsOpen: { type: Boolean, state: true },
-        showLangSelectedEmptyState: { type: Boolean, state: true },
         ioBaseUrl: { type: String, state: true },
         isProjectReadonly: { type: Boolean, state: true },
+        duplicateDialogOpen: { type: Boolean, state: true },
+        duplicating: { type: Boolean, state: true },
+        sending: { type: Boolean, state: true },
     };
 
     #cardsSnapshot = [];
@@ -39,6 +49,8 @@ class MasTranslationEditor extends LitElement {
     #targetLocalesSnapshot = [];
     #itemsSelectionStoreToken = null;
     #itemsConfirmed = false;
+    #duplicateProposedTitle = '';
+    #duplicateExistingTitles = [];
 
     constructor() {
         super();
@@ -50,16 +62,16 @@ class MasTranslationEditor extends LitElement {
             QUICK_ACTION.SAVE,
             QUICK_ACTION.DISCARD,
             QUICK_ACTION.DELETE,
-            QUICK_ACTION.DUPLICATE,
             QUICK_ACTION.CANCEL,
             QUICK_ACTION.COPY,
             QUICK_ACTION.LOCK,
             QUICK_ACTION.LOC,
         ]);
+        this.duplicateDialogOpen = false;
+        this.duplicating = false;
+        this.sending = false;
         this.isSelectedItemsOpen = false;
         this.showSelectedEmptyState = true;
-        this.showLangSelectedEmptyState = true;
-        this.isSelectedLangsOpen = false;
         this.ioBaseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
         this.isProjectReadonly = false;
     }
@@ -93,7 +105,6 @@ class MasTranslationEditor extends LitElement {
         const translationProjectId = Store.translationProjects.translationProjectId.get();
         if (translationProjectId) {
             await this.#loadTranslationProjectById(translationProjectId);
-            this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
             this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
         } else {
             this.#initializeNewTranslationProject(fragmentPath, targetLocale, Boolean(isCollection));
@@ -148,8 +159,22 @@ class MasTranslationEditor extends LitElement {
         return Store.translationProjects.targetLocales.value.length;
     }
 
-    get selectedLangsList() {
-        return Store.translationProjects.targetLocales.value.sort().join(', ');
+    get #canDuplicateTranslationProject() {
+        if (this.isNewTranslationProject || this.duplicating || this.sending) return false;
+        const hasUnsavedChanges = !this.disabledActions.has(QUICK_ACTION.SAVE);
+        if (hasUnsavedChanges) return false;
+        return canDuplicateTranslationProject(this.translationProject?.getFieldValue('status'));
+    }
+
+    get #quickActionsDisabled() {
+        const disabled = new Set(this.disabledActions);
+        if (!this.#canDuplicateTranslationProject) disabled.add(QUICK_ACTION.DUPLICATE);
+        if (this.duplicating || this.sending) {
+            for (const action of [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD, QUICK_ACTION.DELETE, QUICK_ACTION.LOC]) {
+                disabled.add(action);
+            }
+        }
+        return disabled;
     }
 
     #updateDisabledActions({ add = [], remove = [] }) {
@@ -159,14 +184,74 @@ class MasTranslationEditor extends LitElement {
         this.disabledActions = newSet;
     }
 
+    #ownsProject(projectStore) {
+        return this.isConnected && this.translationProjectStore === projectStore;
+    }
+
+    async #handleDuplicateTranslationProject() {
+        if (!this.#canDuplicateTranslationProject) return;
+        const sourceProjectStore = this.translationProjectStore;
+        this.duplicating = true;
+        try {
+            const fragment = new Fragment(await this.repository.aem.sites.cf.fragments.getById(sourceProjectStore.id));
+            if (!this.#ownsProject(sourceProjectStore)) return;
+            if (!canDuplicateTranslationProject(fragment.getFieldValue('status'))) {
+                showToast('This project cannot be duplicated in its current status.', 'negative');
+                return;
+            }
+            this.#duplicateProposedTitle = `${fragment.title}-copy`;
+            await this.repository.loadTranslationProjects();
+            if (!this.#ownsProject(sourceProjectStore)) return;
+            this.#duplicateExistingTitles = getTranslationProjectTitles(
+                Store.translationProjects.list.data.get().map((project) => project.get()),
+            );
+            this.duplicateDialogOpen = true;
+        } catch (error) {
+            console.error('Error preparing translation project duplicate dialog:', error);
+            showToast('Failed to prepare duplicate dialog.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
+    }
+
+    #onDuplicateConfirmed = async ({ detail: { title } }) => {
+        const sourceProjectStore = this.translationProjectStore;
+        const sourceProject = sourceProjectStore?.get();
+        this.duplicateDialogOpen = false;
+        if (!sourceProject || this.duplicating || this.sending) return;
+        this.duplicating = true;
+        try {
+            const newProject = await duplicateTranslationProject(this.repository, sourceProject, title);
+            showToast('Project successfully duplicated.', 'positive');
+            if (!this.#ownsProject(sourceProjectStore)) return;
+            Store.translationProjects.translationProjectId.set(newProject.id);
+            this.isNewTranslationProject = false;
+            if (!(await this.#loadTranslationProjectById(newProject.id))) return;
+            this.#updateDisabledActions({ remove: [QUICK_ACTION.DELETE, QUICK_ACTION.LOC] });
+            this.isProjectReadonly = !!this.translationProject?.getFieldValue('submissionDate');
+            if (this.isProjectReadonly) {
+                this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
+            }
+        } catch (error) {
+            console.error('Error duplicating translation project:', error);
+            if (!error.alreadyToasted) {
+                showToast(error instanceof UserFriendlyError ? error.message : getCreateProjectErrorMessage(error), 'negative');
+            }
+        } finally {
+            this.duplicating = false;
+        }
+    };
+
     async #loadTranslationProjectById(id) {
-        if (!id) return;
+        if (!id) return false;
+        const sourceProjectStore = this.translationProjectStore;
         this.isLoading = true;
         try {
             let fragment = await getFromFragmentCache(id);
             if (!fragment) {
                 fragment = await this.repository.aem.sites.cf.fragments.getById(id);
             }
+            if (!this.#ownsProject(sourceProjectStore)) return false;
             if (fragment) {
                 const translationProject = new Fragment(fragment);
                 this.translationProjectStore = new FragmentStore(translationProject);
@@ -176,7 +261,7 @@ class MasTranslationEditor extends LitElement {
                 Store.translationProjects.targetLocales.set(translationProject.getFieldValues('targetLocales'));
                 Store.translationProjects.projectType.set(translationProject.getFieldValue('projectType') ?? 'translation');
                 this.showSelectedEmptyState = this.selectedCount === 0;
-                this.showLangSelectedEmptyState = Store.translationProjects.targetLocales.value.length === 0;
+                return true;
             }
         } catch (err) {
             console.error('Failed to load translation project:', err);
@@ -184,6 +269,7 @@ class MasTranslationEditor extends LitElement {
         } finally {
             this.isLoading = false;
         }
+        return false;
     }
 
     #initializeNewTranslationProject(fragmentPath, targetLocale, isCollection = false) {
@@ -221,7 +307,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.projectType.set('translation');
 
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
     }
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -373,6 +458,7 @@ class MasTranslationEditor extends LitElement {
             },
         );
         if (!confirmed) return;
+        const projectId = this.translationProjectStore.id;
         try {
             this.isLoading = true;
             showToast('Deleting translation project...');
@@ -380,6 +466,7 @@ class MasTranslationEditor extends LitElement {
                 startToast: false,
                 endToast: false,
             });
+            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(projectId);
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             Store.translationProjects.showSelected.set(false);
@@ -413,7 +500,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.inEdit.set(new FragmentStore(this.translationProject));
         Store.translationProjects.translationProjectId.set(this.translationProject.id);
         this.showSelectedEmptyState = this.selectedCount === 0;
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
         Store.translationProjects.selectedCards.set(this.translationProject.getFieldValues('fragments'));
         Store.translationProjects.selectedCollections.set(this.translationProject.getFieldValues('collections'));
         Store.translationProjects.selectedPlaceholders.set(this.translationProject.getFieldValues('placeholders'));
@@ -423,6 +509,10 @@ class MasTranslationEditor extends LitElement {
     }
 
     async #sendTranslationProject() {
+        if (this.duplicating || this.sending) return;
+        const sourceProjectStore = this.translationProjectStore;
+        const sourceProject = sourceProjectStore.get();
+        this.sending = true;
         showToast('Sending translation project to localization...', 'positive');
         this.#updateDisabledActions({ add: [QUICK_ACTION.LOC] });
 
@@ -433,24 +523,29 @@ class MasTranslationEditor extends LitElement {
                     Authorization: `Bearer ${window.adobeIMS?.getAccessToken()?.token}`,
                 },
             };
-            const url = `${this.ioBaseUrl}/translation-project-start?projectId=${this.translationProject.id}&surface=${Store.surface()}`;
+            const url = `${this.ioBaseUrl}/translation-project-start?projectId=${sourceProject.id}&surface=${Store.surface()}`;
             const response = await fetch(url, params);
             if (!response.ok) {
                 throw new Error('Failed to send translation project to localization');
             }
             const data = await response.json();
-            const submissionDateField = this.translationProject.getField('submissionDate');
+            const submissionDateField = sourceProject.getField('submissionDate');
             if (submissionDateField) {
                 submissionDateField.values = [data.submissionDate];
+            }
+            showToast('Translation project sent to localization successfully.', 'positive');
+            if (this.#ownsProject(sourceProjectStore)) {
+                this.isProjectReadonly = true;
             }
         } catch (error) {
             console.error('Error sending translation project to localization:', error);
             showToast('Failed to send translation project to localization.', 'negative');
-            this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
-            return;
+            if (this.#ownsProject(sourceProjectStore)) {
+                this.#updateDisabledActions({ remove: [QUICK_ACTION.LOC] });
+            }
+        } finally {
+            this.sending = false;
         }
-        showToast('Translation project sent to localization successfully.', 'positive');
-        this.isProjectReadonly = true;
     }
 
     async #showDialog(title, message, options = {}) {
@@ -533,22 +628,16 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
     }
 
-    #openAddLanguagesOverlay() {
+    #openLangSelection = () => {
         this.#targetLocalesSnapshot = Store.translationProjects.targetLocales.value;
-    }
-
-    #confirmLangSelection = ({ target }) => {
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
-        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
-        const closeEvent = new Event('close', { bubbles: true, composed: true });
-        target.dispatchEvent(closeEvent);
     };
 
-    #cancelLangSelection = ({ target }) => {
+    #confirmLangSelection = () => {
+        this.#updateDisabledActions({ remove: [QUICK_ACTION.SAVE, QUICK_ACTION.DISCARD] });
+    };
+
+    #cancelLangSelection = () => {
         Store.translationProjects.targetLocales.set(this.#targetLocalesSnapshot);
-        this.showLangSelectedEmptyState = this.targetLocalesCount === 0;
-        const closeEvent = new Event('close', { bubbles: true, composed: true });
-        target.dispatchEvent(closeEvent);
     };
 
     #toggleSelectedItemsOpen = ({ target }) => {
@@ -596,24 +685,6 @@ class MasTranslationEditor extends LitElement {
         Store.translationProjects.selectedPlaceholders.set(this.#placeholdersSnapshot);
         this.showSelectedEmptyState = this.selectedCount === 0;
     };
-
-    renderAddLanguagesDialog() {
-        return html`
-            <sp-dialog-wrapper
-                class="add-langs-dialog"
-                slot="click-content"
-                headline="Select languages"
-                confirm-label="Confirm"
-                cancel-label="Cancel"
-                underlay
-                no-divider
-                @confirm=${this.#confirmLangSelection}
-                @cancel=${this.#cancelLangSelection}
-            >
-                <mas-translation-languages></mas-translation-languages>
-            </sp-dialog-wrapper>
-        `;
-    }
 
     renderConfirmDialog() {
         if (!this.confirmDialogConfig) return nothing;
@@ -726,71 +797,26 @@ class MasTranslationEditor extends LitElement {
                         </div>
                     </div>
                 </div>
-                ${
-                    this.showLangSelectedEmptyState
-                        ? html`
-                              <div class="form-field select-langs">
-                                  <h2>Select languages <sp-icon-asterisk100></sp-icon-asterisk100></h2>
-                                  <div class="languages-empty-state">
-                                      <div class="icon">
-                                          <overlay-trigger
-                                              type="modal"
-                                              id="add-languages-overlay"
-                                              triggered-by="click"
-                                              @sp-opened=${this.#openAddLanguagesOverlay}
-                                          >
-                                              ${this.renderAddLanguagesDialog()}
-                                              <sp-button
-                                                  slot="trigger"
-                                                  variant="secondary"
-                                                  size="xl"
-                                                  icon-only
-                                                  class="ghost-button"
-                                              >
-                                                  <sp-icon-add size="xxl" slot="icon" label="Add Languages"></sp-icon-add>
-                                              </sp-button>
-                                          </overlay-trigger>
-                                      </div>
-                                      <div class="label">
-                                          <strong>Add languages</strong><br />
-                                          <span>Choose one or more languages for your translation project.</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          `
-                        : html`<div
-                              class="form-field selected-langs"
-                              @click=${() => (this.isSelectedLangsOpen = !this.isSelectedLangsOpen)}
-                          >
-                              <div class="selected-langs-header">
-                                  <h2>
-                                      Selected languages
-                                      <span>(${this.targetLocalesCount})</span>
-                                      <sp-icon-asterisk100></sp-icon-asterisk100>
-                                  </h2>
-                                  <div>
-                                      ${!this.isProjectReadonly
-                                          ? html` <overlay-trigger type="modal" id="add-languages-overlay" triggered-by="click">
-                                                ${this.renderAddLanguagesDialog()}
-                                                <sp-action-button slot="trigger" quiet @click=${this.#openAddLanguagesOverlay}>
-                                                    <sp-icon-edit slot="icon" label="Edit Languages"></sp-icon-edit>
-                                                    Edit
-                                                </sp-action-button>
-                                            </overlay-trigger>`
-                                          : nothing}
-                                      <sp-button icon-only class="toggle-btn ghost-button">
-                                          <sp-icon-chevron-down
-                                              slot="icon"
-                                              label="${this.isSelectedLangsOpen ? 'Close' : 'Open'}"
-                                          ></sp-icon-chevron-down>
-                                      </sp-button>
-                                  </div>
-                              </div>
-                              ${this.isSelectedLangsOpen
-                                  ? html` <div class="selected-langs-list">${this.selectedLangsList}</div> `
-                                  : nothing}
-                          </div>`
-                }
+                <mas-grouped-selector
+                    class="form-field"
+                    label="Selected languages"
+                    heading="Select languages"
+                    add-label="Add languages"
+                    description="Choose one or more languages for your translation project."
+                    required
+                    ?readonly=${this.isProjectReadonly}
+                    .selected=${Store.translationProjects.targetLocales.value}
+                    @open=${this.#openLangSelection}
+                    @confirm=${this.#confirmLangSelection}
+                    @cancel=${this.#cancelLangSelection}
+                >
+                    <mas-region-picker
+                        .store=${Store.translationProjects.targetLocales}
+                        .items=${getLocalePickerItems(Store.search.value.path)}
+                        noun="language"
+                        search-placeholder="Search locale"
+                    ></mas-region-picker>
+                </mas-grouped-selector>
                 ${
                     this.showSelectedEmptyState
                         ? html`
@@ -867,12 +893,29 @@ class MasTranslationEditor extends LitElement {
                         QUICK_ACTION.DISCARD,
                         QUICK_ACTION.DELETE,
                     ]}
-                    .disabled=${this.disabledActions}
+                    .disabled=${this.#quickActionsDisabled}
                     @save=${this.isNewTranslationProject ? this.#createTranslationProject : this.#updateTranslationProject}
                     @delete=${this.#deleteTranslationProject}
                     @discard=${this.#discardUnsavedChanges}
                     @loc=${this.#sendTranslationProject}
+                    @duplicate=${this.#handleDuplicateTranslationProject}
                 ></mas-quick-actions>
+                ${
+                    this.duplicating
+                        ? html`<div class="duplicating-overlay">
+                              <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                          </div>`
+                        : nothing
+                }
+                <mas-translation-duplicate-dialog
+                    .open=${this.duplicateDialogOpen}
+                    .proposedTitle=${this.#duplicateProposedTitle}
+                    .existingTitles=${this.#duplicateExistingTitles}
+                    @duplicate-confirmed=${this.#onDuplicateConfirmed}
+                    @duplicate-cancelled=${() => {
+                        this.duplicateDialogOpen = false;
+                    }}
+                ></mas-translation-duplicate-dialog>
             </div>`}
             </div>
         `;

@@ -62,12 +62,19 @@ export function hostOsi(host) {
 }
 
 /**
- * Sentence-boundary casing for the token: 'upper' at a sentence start,
- * 'lower' mid-sentence.
+ * Sentence-boundary casing for the token, from the last non-space character
+ * rendered before it: 'upper' at a sentence start, 'lower' mid-sentence.
+ */
+export function planTypeCaseForPrecedingChar(char) {
+    return !char || SENTENCE_TERMINATORS.includes(char) ? 'upper' : 'lower';
+}
+
+/**
+ * Sentence-boundary casing for the token, from the copy rendered before
+ * `element`.
  */
 export function planTypeCaseFor(element) {
-    const char = precedingChar(element);
-    return !char || SENTENCE_TERMINATORS.includes(char) ? 'upper' : 'lower';
+    return planTypeCaseForPrecedingChar(precedingChar(element));
 }
 
 /**

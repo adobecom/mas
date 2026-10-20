@@ -1,6 +1,8 @@
 import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
 import { UptLink } from './upt-link.js';
-import { createTag } from './utils.js';
+import { createTag, getService } from './utils.js';
+import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
+import { isCountdownLinkText } from './countdown.js';
 import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
@@ -706,6 +708,26 @@ export function processDescription(fields, merchCard, mapping, settings) {
     );
 }
 
+function processCountdown(merchCard, mapping, fragment) {
+    const description = merchCard.querySelector(
+        `[slot="${mapping.description?.slot}"]`,
+    );
+    const settings = getService()?.settings;
+    for (const anchor of description?.querySelectorAll('a') ?? []) {
+        if (!isCountdownLinkText(anchor.textContent)) continue;
+        const timer = document.createElement('merch-countdown');
+        timer.className = [...anchor.classList]
+            .filter((name) => COUNTDOWN_COLOR_CLASSES.includes(name))
+            .join(' ');
+        timer.start = fragment.cdtStart;
+        timer.end = fragment.cdtEnd;
+        timer.locale = fragment.previewLocale ?? settings?.locale ?? 'en_US';
+        timer.instant = settings?.instant;
+        timer.template = fragment.placeholders?.countdownTimerText;
+        anchor.replaceWith(timer);
+    }
+}
+
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
     if (!mapping.quantitySelect) return;
     if (!fields.quantitySelect) fields.quantitySelect = settings.quantitySelect;
@@ -1001,6 +1023,11 @@ function createConsonantButton(
     return button;
 }
 
+// Filled (accent) CTA first, so Tab and screen-reader order match what is shown.
+const isFilled = (cta) => cta.classList.contains('blue');
+const filledFirst = (ctas) =>
+    [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+
 export function processCTAs(
     fields,
     merchCard,
@@ -1026,7 +1053,11 @@ export function processCTAs(
         );
 
         footer.textContent = '';
-        footer.append(...ctas);
+        footer.append(
+            ...(['pro', 'product-pricing'].includes(merchCard.variant)
+                ? filledFirst(ctas)
+                : ctas),
+        );
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
@@ -1177,7 +1208,12 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
-    if (mapping.style === 'consonant') {
+    // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
+    if (
+        mapping.style === 'consonant' &&
+        !merchCard.hasAttribute('consonant') &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
@@ -1199,6 +1235,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processCountdown(merchCard, mapping, fragment);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);

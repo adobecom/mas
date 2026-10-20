@@ -3737,6 +3737,132 @@ describe('customize with multiple active promotion projects', function () {
         expect(result.body.promoProject).to.equal('proj-seasonal');
         expect(result.body.fields.promoCode).to.be.undefined;
     });
+
+    describe('collections (no offer attached)', function () {
+        const collectionProject = (id, { endDate } = {}) => ({
+            id,
+            path: `/content/dam/mas/promotions/${id}`,
+            ...(endDate && { endDate }),
+            defaultVariations: {
+                'coll-a': {
+                    id: `var-${id}`,
+                    path: `/content/dam/mas/sandbox/en_US/promotions/${id}/coll-a`,
+                    fields: { cards: ['card-2', 'card-1'] },
+                },
+            },
+            regionVariations: {},
+        });
+        const collectionRoot = () => ({
+            id: 'coll-a',
+            path: '/content/dam/mas/sandbox/en_US/coll-a',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { cards: ['card-1', 'card-2'], collections: [] },
+            references: {},
+            referencesTree: [],
+        });
+        const processCollection = (entries) =>
+            processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'coll-a', body: collectionRoot() }, entries);
+
+        it('applies an evergreen promo variation without any mapping or wildcard', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: {}, fragmentPaths: new Set(['coll-a']) },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-evergreen');
+            expect(result.body.fields.cards).to.deep.equal(['card-2', 'card-1']);
+            expect(result.body.promoProject).to.equal('proj-evergreen');
+        });
+
+        it('prefers a seasonal project over an evergreen one', async function () {
+            const result = await processCollection([
+                { project: collectionProject('proj-evergreen'), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['coll-a']) },
+                {
+                    project: collectionProject('proj-seasonal', { endDate: '2026-09-01T00:00:00.000Z' }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal');
+            expect(result.body.promoProject).to.equal('proj-seasonal');
+        });
+
+        // promoProjects arrive sorted by the promotions transformer: seasonal first, newest startDate first.
+        it('takes the first (most recently started) of several seasonal projects', async function () {
+            const endDate = '2026-09-01T00:00:00.000Z';
+            const result = await processCollection([
+                {
+                    project: collectionProject('proj-seasonal-new', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+                {
+                    project: collectionProject('proj-seasonal-old', { endDate }),
+                    promoMap: {},
+                    fragmentPaths: new Set(['coll-a']),
+                },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('var-proj-seasonal-new');
+            expect(result.body.promoProject).to.equal('proj-seasonal-new');
+        });
+
+        it('resolves and customizes cards and collections that only the promo variation references', async function () {
+            const card = (id) => ({
+                type: 'content-fragment',
+                value: { id, path: `/content/dam/mas/sandbox/en_US/${id}`, model: { id: CARD_MODEL_ID }, fields: {} },
+            });
+            const collection = (id) => ({
+                type: 'content-fragment',
+                value: { id, path: `/content/dam/mas/sandbox/en_US/${id}`, model: { id: COLLECTION_MODEL_ID }, fields: {} },
+            });
+            const cardEntry = (id) => ({ fieldName: 'cards', identifier: id, referencesTree: [] });
+            const project = {
+                id: 'proj-evergreen',
+                path: '/content/dam/mas/promotions/proj-evergreen',
+                defaultVariations: {
+                    'coll-a': {
+                        id: 'var-coll-a',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/proj-evergreen/coll-a',
+                        model: { id: COLLECTION_MODEL_ID },
+                        fields: { cards: ['card-1', 'card-2'], collections: ['coll-b'] },
+                        references: {
+                            'card-1': card('card-1'),
+                            'card-2': card('card-2'),
+                            'coll-b': collection('coll-b'),
+                        },
+                        referencesTree: [
+                            cardEntry('card-1'),
+                            cardEntry('card-2'),
+                            { fieldName: 'collections', identifier: 'coll-b', referencesTree: [] },
+                        ],
+                    },
+                },
+                regionVariations: {},
+            };
+            const body = {
+                ...collectionRoot(),
+                fields: { cards: ['card-1'], collections: [] },
+                references: { 'card-1': card('card-1') },
+                referencesTree: [cardEntry('card-1')],
+            };
+            const result = await processWithPromoProjects({ ...FAKE_CONTEXT, fragmentPath: 'coll-a', body }, [
+                { project, promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['coll-a', 'card-2']) },
+            ]);
+            expect(result.status).to.equal(200);
+            expect(result.body.fields.cards).to.deep.equal(['card-1', 'card-2']);
+            expect(result.body.referencesTree.map(({ identifier }) => identifier)).to.deep.equal([
+                'card-1',
+                'card-2',
+                'coll-b',
+            ]);
+            expect(result.body.references['card-2'].value.id).to.equal('card-2');
+            // the added card is customized recursively, like any other card of the collection
+            expect(result.body.references['card-2'].value.promoProject).to.equal('proj-evergreen');
+            expect(result.body.fields.collections).to.deep.equal(['coll-b']);
+            expect(result.body.references['coll-b'].value.id).to.equal('coll-b');
+        });
+    });
 });
 
 describe('customize OSI substitution', function () {
@@ -4096,6 +4222,104 @@ describe('countdown timer dates', function () {
         expect(result.status).to.equal(200);
         expect(result.body.cdtStart).to.be.undefined;
         expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('stamps each timed card with its own promo project dates, nested collections included', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: ['sub'] },
+                    references: {
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                        'card-plain': makeCard('card-plain', { osi: 'OSI-P', description: '<p>no timer</p>' }),
+                        sub: makeCard('sub', { cards: ['card-3', 'card-4'] }),
+                        'card-3': makeCard('card-3', { osi: 'OSI-3', description: CDT_LINK }),
+                        'card-4': makeCard('card-4', { osi: 'OSI-4', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-plain', referencesTree: [] },
+                        {
+                            fieldName: 'collections',
+                            identifier: 'sub',
+                            referencesTree: [
+                                { fieldName: 'cards', identifier: 'card-3', referencesTree: [] },
+                                { fieldName: 'cards', identifier: 'card-4', referencesTree: [] },
+                            ],
+                        },
+                    ],
+                },
+            },
+            [
+                {
+                    project: makeProject({ id: 'proj-1', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: '2026-01-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE1' },
+                    fragmentPaths: new Set(['card-1', 'card-plain']),
+                },
+                {
+                    project: makeProject({ id: 'proj-2', cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE2' },
+                    fragmentPaths: new Set(['card-2']),
+                },
+                {
+                    project: makeProject({ id: 'proj-3', cdtStart: '2026-03-01T00:00:00Z', cdtEnd: '2026-03-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE3' },
+                    fragmentPaths: new Set(['card-3']),
+                },
+                {
+                    // lone start: no usable dates
+                    project: makeProject({ id: 'proj-4', cdtEnd: null }),
+                    promoMap: { '*': 'CODE4' },
+                    fragmentPaths: new Set(['card-4']),
+                },
+            ],
+        );
+        const { body } = result;
+        expect(result.status).to.equal(200);
+        // root keeps the first timed card's dates
+        expect(body.cdtStart).to.equal('2026-01-01T00:00:00Z');
+        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        const dates = (id) => [body.references[id].value.cdtStart, body.references[id].value.cdtEnd];
+        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z']);
+        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00Z', '2026-02-10T00:00:00Z']);
+        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00Z', '2026-03-10T00:00:00Z']);
+        // no usable project dates, no sentinel, or a container without a sentinel: nothing stamped
+        expect(dates('card-4')).to.deep.equal([undefined, undefined]);
+        expect(dates('card-plain')).to.deep.equal([undefined, undefined]);
+        expect(dates('sub')).to.deep.equal([undefined, undefined]);
+    });
+
+    it('does not stamp the root dates onto cards without a promo project', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: {
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-1']) }],
+        );
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START);
+        expect(result.body.references['card-2'].value.cdtStart).to.be.undefined;
+        expect(result.body.references['card-2'].value.cdtEnd).to.be.undefined;
     });
 
     it('takes the main body over its references', async function () {

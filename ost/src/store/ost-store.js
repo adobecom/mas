@@ -141,6 +141,7 @@ export class OstStore extends EventTarget {
     // it with the current value, mangling the stored callback.
     onSelect = null;
     onCancel = null;
+    onMultiSelect = null;
 
     constructor() {
         super();
@@ -388,7 +389,13 @@ export class OstStore extends EventTarget {
         if (config.authoringFlow && VALID_FLOWS.includes(config.authoringFlow)) {
             this.authoringFlow = config.authoringFlow;
         }
-        const CALLBACK_KEYS = ['onSelect', 'onCancel'];
+        const CALLBACK_KEYS = ['onSelect', 'onCancel', 'onMultiSelect'];
+        // Reset callbacks each open: the loop below skips keys the caller omits,
+        // so without this a later open that omits onMultiSelect would reuse the
+        // previous open's handler and send footer Use down the multi-select path.
+        CALLBACK_KEYS.forEach((key) => {
+            this[key] = null;
+        });
         Object.keys(config).forEach((key) => {
             if (key === 'multiSelect' || key === 'bundleSelect' || key === 'authoringFlow') return;
             if (config[key] === undefined) return;
@@ -879,7 +886,13 @@ export class OstStore extends EventTarget {
         // here so type routing resumes on the next pick.
         const manualTarget = this.#slotManuallyTargeted;
         this.#slotManuallyTargeted = false;
-        const targetRole = role || (manualTarget ? this.currentSlot : this.#defaultSlotFor(offer)) || this.currentSlot;
+        // A typed offer decides its own slot (a BASE never lands in trial);
+        // only an untyped offer falls back to the empty slot, so a second
+        // untyped pick lands in trial without first clicking the free-trial
+        // slot. #defaultSlotFor returns undefined for untyped offers.
+        const typed = this.#defaultSlotFor(offer);
+        const emptySlot = this.#emptyTryBuySlot();
+        const targetRole = role || (manualTarget ? this.currentSlot : (typed ?? emptySlot)) || this.currentSlot;
         this.#batch(() => this.#addOffer(offer, osi, targetRole, !role && !manualTarget));
         // Auto-fill the counterpart unless the user manually targeted a slot —
         // a manual target means "put it exactly here", so don't also touch the
@@ -900,6 +913,16 @@ export class OstStore extends EventTarget {
         if (offer?.offer_type === 'TRIAL') return 'trial';
         if (offer?.offer_type === 'BASE') return 'base';
         return undefined;
+    }
+
+    // The single empty tryBuy slot when exactly one is filled; undefined when
+    // both are empty (first pick) or both already filled.
+    #emptyTryBuySlot() {
+        if (this.authoringFlow !== 'tryBuy') return undefined;
+        const baseFilled = !!this.selectedBaseOsi;
+        const trialFilled = !!this.selectedTrialOsi;
+        if (baseFilled === trialFilled) return undefined;
+        return baseFilled ? 'trial' : 'base';
     }
 
     #addOffer(offer, osi, role, autoAdvance = false) {

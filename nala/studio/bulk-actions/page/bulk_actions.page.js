@@ -1,8 +1,10 @@
 import { expect } from '@playwright/test';
+import BulkPublishPage from '../../bulk-publish/bulk-publish.page.js';
 
 export default class BulkActionsPage {
     constructor(page) {
         this.page = page;
+        this.bulkPublish = new BulkPublishPage(page);
         this.bulkPublishList = page.locator('mas-bulk-publish');
         this.createProjectButton = this.bulkPublishList.locator('[data-testid="create-btn"]');
         this.bulkPublishEditor = page.locator('mas-bulk-publish-editor');
@@ -23,6 +25,7 @@ export default class BulkActionsPage {
         const url = `${baseURL}/studio.html${miloLibs}#page=bulkPublish&path=nala`;
         await this.page.goto(url);
         await this.page.waitForLoadState('domcontentloaded');
+        await this.bulkPublish.waitForAccess();
         await this.bulkPublishList.waitFor({ state: 'visible' });
     }
 

@@ -16,6 +16,27 @@ export default class BulkPublishPage {
         this.itemRows = this.itemsPanel.locator('[data-testid="item-row"]');
     }
 
+    async waitForAccess() {
+        await expect
+            .poll(
+                () =>
+                    this.page.evaluate(async () => {
+                        const { default: Store } = await import('/studio/src/store.js');
+                        return Store.users.getMeta('loaded');
+                    }),
+                { message: 'Bulk Publish requires membership loading to complete' },
+            )
+            .toBe(true);
+
+        const allowed = await this.page.evaluate(async () => {
+            const { canAccessBulkPublish } = await import('/studio/src/groups.js');
+            return canAccessBulkPublish();
+        });
+        expect(allowed, 'Bulk Publish E2E requires an account listed in /listMembers as an ACOM Curator or MAS Admin').toBe(
+            true,
+        );
+    }
+
     async enterUrlAndValidate(url) {
         await this.urlInput.evaluate((input, value) => {
             input.value = value;

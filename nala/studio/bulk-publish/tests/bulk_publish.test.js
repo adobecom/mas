@@ -30,6 +30,7 @@ test.describe('M@S Studio Bulk Publish Test Suite', () => {
         await test.step('step-2: Open a new in-memory Bulk Publish project', async () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
+            await bulkPublish.waitForAccess();
             await expect(bulkPublish.editor).toBeVisible({ timeout: 15000 });
             await expect(bulkPublish.heading).toHaveText('Create bulk publish project');
             await expect(bulkPublish.urlInput).toBeVisible();

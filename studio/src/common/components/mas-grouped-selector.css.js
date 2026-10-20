@@ -48,6 +48,7 @@ export const styles = [
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
 
             h2 {
                 margin: 0;

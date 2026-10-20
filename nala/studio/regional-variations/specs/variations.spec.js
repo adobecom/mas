@@ -1,13 +1,5 @@
 import { PRICE_PATTERN } from '../../../utils/commerce.js';
 
-const groupedData = {
-    cardid: '6f189be0-d64b-468f-b340-92888206cce8',
-    locales: ['fr_FR'],
-    price: PRICE_PATTERN.FR.mo,
-    // editor RTE renders FR price formatting with the English recurrence term
-    editorPrice: /\d+,\d\d\s€\/mo/,
-};
-
 export default {
     FeatureName: 'M@S Studio - Variations Page',
     features: [
@@ -16,7 +8,12 @@ export default {
             name: '@studio-create-grouped-variation-editor',
             path: '/studio.html',
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            data: { ...groupedData },
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                locales: ['fr_FR'],
+                price: PRICE_PATTERN.FR.mo,
+                editorPrice: PRICE_PATTERN.FR.mo_en,
+            },
             tags: '@mas-studio @grouped-variations',
         },
         {
@@ -24,7 +21,12 @@ export default {
             name: '@studio-create-grouped-variation-table-view',
             path: '/studio.html',
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            data: { ...groupedData },
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                locales: ['fr_FR'],
+                price: PRICE_PATTERN.FR.mo,
+                editorPrice: PRICE_PATTERN.FR.mo_en,
+            },
             tags: '@mas-studio @grouped-variations',
         },
         {
@@ -35,9 +37,9 @@ export default {
             data: {
                 osi: 'yIcVsmjmQCHKQ-TvUJxH3-kop4ifvwoMBBzVg3qfaTg',
                 variant: 'plans',
-                locales: groupedData.locales,
-                price: groupedData.price,
-                editorPrice: groupedData.editorPrice,
+                locales: ['fr_FR'],
+                price: PRICE_PATTERN.FR.mo,
+                editorPrice: PRICE_PATTERN.FR.mo_en,
             },
             tags: '@mas-studio @grouped-variations',
         },
@@ -46,7 +48,12 @@ export default {
             name: '@studio-delete-grouped-variation',
             path: '/studio.html',
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
-            data: { ...groupedData },
+            data: {
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                locales: ['fr_FR'],
+                price: PRICE_PATTERN.FR.mo,
+                editorPrice: PRICE_PATTERN.FR.mo_en,
+            },
             tags: '@mas-studio @grouped-variations',
         },
         {
@@ -55,7 +62,10 @@ export default {
             path: '/studio.html',
             browserParams: '#page=fragment-editor&path=nala&fragmentId=',
             data: {
-                ...groupedData,
+                cardid: '6f189be0-d64b-468f-b340-92888206cce8',
+                locales: ['fr_FR'],
+                price: PRICE_PATTERN.FR.mo,
+                editorPrice: PRICE_PATTERN.FR.mo_en,
                 referencesBaseUrl: 'https://odinpreview.corp.adobe.com/adobe/contentFragments',
                 editedTitle: '[selfref] Edited title',
             },

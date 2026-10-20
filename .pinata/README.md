@@ -10,7 +10,7 @@ ecosystem package.
 | File                                 | Purpose                                                                                                |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `manifest.yaml`                      | MAS identity and shared planning models.                                                               |
-| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection. |
+| `gates.yaml`                         | Lint, formatting, generated files, farm accessibility targets, visual evidence, review, and lockfiles. |
 | `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                          |
 | `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                       |
 | `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                    |
@@ -110,30 +110,45 @@ result for the element and everything inside it, across shadow roots:
 | others | The target could not be checked. This is never a verdict on the change. |
 
 The engine gives command gates no preview URL; it runs them in a checkout. So
-the script serves the page the way `aem up` serves a local checkout: requests
-to a MAS branch host (`<branch>--mas--adobecom.aem.page` or `.aem.live`) for a
-file the checkout has are answered from the checkout, while content, fragments,
-and services come from the network. The engine runs the check on the
-candidate, and on a passing candidate also on the base commit's own checkout;
-publishing without a person's approval needs, among other things, the base to
-exit `3` and the candidate to exit `0`. The engine runs a pinned copy of the
-script from outside the checkout, so the script resolves everything from its
-working directory.
+the script serves the page the way `aem up` serves a local checkout. The page
+must be on a MAS preview host (`https://<branch>--mas--adobecom.aem.page`, never
+the `.aem.live` production CDN) and still be there after any redirect. Requests
+to that host for a file the checkout has are answered from the checkout, while
+content, fragments, services, and CDNs come from the network. The engine runs
+the check on the candidate, and on a passing candidate also on the base
+commit's own checkout; publishing without a person's approval needs, among
+other things, the base to exit `3` and the candidate to exit `0`. The engine
+runs a pinned copy of the script from outside the checkout, so the script
+resolves everything from its working directory.
 
 It uses `@playwright/test` and the axe-core that `@axe-core/playwright` ships,
 both already in `package.json`; no dependency is added. When the browser build
 of that Playwright version is missing, it drives the `chromium` on `PATH`,
 which the Piñata runtime provides.
 
+States: `focus` and `hover` act on the element. For `expanded`, `menu-open`,
+and `dialog-open`, a state that already holds is left as it is (the element's
+control is expanded, the element is in an open menu, or a dialog is open);
+otherwise the element is clicked, and the click counts only if it changed the
+page into that state.
+
 These targets cannot be checked (exit `1`):
 
-- Studio pages, which need an IMS session that a command gate does not have.
-- Pages on any host but a MAS branch host, which cannot show this checkout.
+- Studio pages: they need an IMS sign-in, which a command gate does not have.
+  This gate cannot check Studio targets.
+- Pages on any other host, including `.aem.live`, and URLs with a user name or
+  password.
 - Published content pages whose `head.html` differs from the checkout's.
 - An element that is missing, a rule that does not apply to it or needs
-  review, or a state that is not reached. `focus` and `hover` act on the
-  element; `menu-open`, `expanded`, and `dialog-open` click it and then need it
-  to report itself expanded or open, or a dialog to be open.
+  review, or a state that is not reached.
+
+**Every non-zero exit fails the gate the same way.** The gate's
+`failure_route: regenerate` cannot tell exit `1` from exit `3`. A target the
+check cannot reach (a Studio page, an outage) therefore also spends producer
+candidates, up to `regeneration.max_candidates`, before a person sees it.
+`regenerate` is the default because a fix that still fails should be retried
+without waiting for a person. Choosing `escalate_to_human` instead, which
+stops at the first failure, is the MAS owners' decision.
 
 To try a target locally, after `npm ci`:
 

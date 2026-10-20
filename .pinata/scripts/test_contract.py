@@ -2,6 +2,7 @@
 
 import fnmatch
 import json
+import os
 from pathlib import Path
 import shlex
 import shutil
@@ -185,25 +186,29 @@ class ViolationExitCodeCheckTests(unittest.TestCase):
         self.assertIn("does not read {work_item_file}", result.stdout)
 
 
+SCRIPT = CONTRACT / "scripts/a11y-target.mjs"
+# Node reads these from the environment; either could load modules the checkout does not have.
+NODE_ENV = {name: value for name, value in os.environ.items() if name not in ("NODE_PATH", "NODE_OPTIONS")}
+PREVIEW = "https://main--mas--adobecom.aem.page"
+
+
+def run_target_check(document, checkout, timeout=30):
+    item = Path(checkout) / "work-item.json"
+    item.write_text(document if isinstance(document, str) else json.dumps(document))
+    return subprocess.run(
+        ["node", str(SCRIPT), str(item)], cwd=checkout, env=NODE_ENV, text=True, capture_output=True, timeout=timeout,
+    )
+
+
 @unittest.skipUnless(shutil.which("node"), "node is not installed")
 class A11yTargetScriptTests(unittest.TestCase):
     """Exit codes on the paths that need no browser: only 0 and 3 are verdicts."""
 
-    TARGET = {
-        "page": "https://main--mas--adobecom.aem.page/web-components/docs/plans.html",
-        "element": "merch-card",
-        "rule": "button-name",
-        "state": "none",
-    }
+    TARGET = {"page": f"{PREVIEW}/web-components/docs/plans.html", "element": "merch-card", "rule": "button-name", "state": "none"}
 
     def run_check(self, document):
         with tempfile.TemporaryDirectory() as checkout:
-            item = Path(checkout) / "work-item.json"
-            item.write_text(document if isinstance(document, str) else json.dumps(document))
-            return subprocess.run(
-                ["node", str(CONTRACT / "scripts/a11y-target.mjs"), str(item)],
-                cwd=checkout, text=True, capture_output=True, timeout=30,
-            )
+            return run_target_check(document, checkout)
 
     def test_a_run_without_a_required_work_item_passes(self):
         for document in ({"required": False}, {"ticket": "MWPW-1"}):
@@ -218,23 +223,112 @@ class A11yTargetScriptTests(unittest.TestCase):
             {"required": True},
             {"required": True, "target": {**self.TARGET, "rule": "Button Name"}},
             {"required": True, "target": {**self.TARGET, "state": "pressed"}},
-            {"required": True, "target": {**self.TARGET, "page": "http://main--mas--adobecom.aem.page/"}},
         )
         for document in broken:
             with self.subTest(document=document):
                 result = self.run_check(document)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 
-    def test_a_page_no_mas_branch_host_serves_is_not_a_verdict(self):
-        page = "https://main--cc--adobecom.aem.live/creativecloud/plans"
-        result = self.run_check({"required": True, "target": {**self.TARGET, "page": page}})
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn("not on a MAS branch host", result.stdout)
+    def test_only_an_https_mas_preview_page_is_checked(self):
+        refused = {
+            "https://main--cc--adobecom.aem.live/creativecloud/plans": "not on a MAS preview host",
+            "https://main--mas--adobecom.aem.live/web-components/docs/plans.html": "not on a MAS preview host",
+            "http://main--mas--adobecom.aem.page/web-components/docs/plans.html": "not on a MAS preview host",
+            "https://main--mas--adobecom.aem.page:8443/web-components/docs/plans.html": "not on a MAS preview host",
+            "https://user:secret@main--mas--adobecom.aem.page/web-components/docs/plans.html": "user name or password",
+        }
+        for page, message in refused.items():
+            with self.subTest(page=page):
+                result = self.run_check({"required": True, "target": {**self.TARGET, "page": page}})
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(message, result.stdout)
+                self.assertNotIn("secret", result.stdout)
 
     def test_a_checkout_without_its_dependencies_is_not_a_verdict(self):
         result = self.run_check({"required": True, "target": self.TARGET})
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assertIn("Could not check the target", result.stdout)
+        self.assertIn("has no @playwright/test or @axe-core/playwright installed", result.stdout)
+
+
+STATES_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head><title>Target states</title></head>
+<body>
+<main>
+<button id="open" aria-expanded="true" aria-controls="open-menu">Filters</button>
+<ul id="open-menu" role="menu"><li role="menuitem">Newest</li></ul>
+<button id="closed" aria-expanded="false" aria-controls="closed-menu">Sort</button>
+<ul id="closed-menu" role="menu" hidden><li role="menuitem">Oldest</li></ul>
+<button id="inert" aria-expanded="false">Inert</button>
+<button id="unnamed" aria-expanded="true"></button>
+<button id="details">Details</button>
+<dialog id="details-dialog"><p>Details</p></dialog>
+</main>
+<script>
+for (const id of ['open', 'closed']) {
+    const button = document.getElementById(id);
+    button.addEventListener('click', () => {
+        const expanded = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', String(!expanded));
+        document.getElementById(`${id}-menu`).hidden = expanded;
+    });
+}
+document.getElementById('details').addEventListener('click', () => document.getElementById('details-dialog').show());
+</script>
+</body>
+</html>
+"""
+
+
+@unittest.skipUnless(shutil.which("node"), "node is not installed")
+@unittest.skipUnless((CONTRACT.parent / "node_modules/@playwright/test").is_dir(), "needs `npm ci`")
+class A11yTargetStateTests(unittest.TestCase):
+    """States on a page that exists only in the checkout, so no network is needed: a state that already holds is
+    not clicked away, and a click counts only when it changed the state."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.checkout = Path(cls.temp.name)
+        (cls.checkout / "node_modules").symlink_to(CONTRACT.parent / "node_modules")
+        (cls.checkout / "a11y-states.html").write_text(STATES_PAGE)
+        probe = cls.check("#open", "none")
+        if "no browser to run" in probe.stdout:
+            cls.temp.cleanup()
+            raise unittest.SkipTest("no Chromium for Playwright here")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    @classmethod
+    def check(cls, element, state):
+        target = {"page": f"{PREVIEW}/a11y-states.html", "element": element, "rule": "button-name", "state": state}
+        return run_target_check({"required": True, "target": target}, cls.checkout, timeout=120)
+
+    def assertExit(self, element, state, code, message=None):
+        result = self.check(element, state)
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        if message:
+            self.assertIn(message, result.stdout)
+
+    def test_an_open_control_is_not_clicked_shut(self):
+        self.assertExit("#open", "expanded", 0, "already held")
+        self.assertExit("#open", "menu-open", 0, "already held")
+
+    def test_a_click_that_opens_the_control_reaches_the_state(self):
+        self.assertExit("#closed", "expanded", 0, "reached by clicking")
+        self.assertExit("#closed", "menu-open", 0, "reached by clicking")
+
+    def test_a_click_that_changes_nothing_is_not_a_verdict(self):
+        self.assertExit("#inert", "expanded", 1, "did not reach")
+        self.assertExit("#inert", "dialog-open", 1, "did not reach")
+
+    def test_a_click_that_opens_a_dialog_reaches_dialog_open(self):
+        self.assertExit("#details", "dialog-open", 0, "reached by clicking")
+
+    def test_a_violation_in_a_state_that_already_holds_is_reported(self):
+        self.assertExit("#unnamed", "expanded", 3)
 
 
 if __name__ == "__main__":

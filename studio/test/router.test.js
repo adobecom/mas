@@ -141,6 +141,32 @@ describe('Router', () => {
             .forEach((el) => el.remove());
     });
 
+    describe('feature rollout boundaries', () => {
+        beforeEach(() => {
+            const querySelector = document.querySelector.bind(document);
+            sandbox.stub(document, 'querySelector').callsFake((selector) => {
+                if (selector === 'meta[name="mas-assistant-enabled"]' || selector === 'meta[name="mas-offers-enabled"]') {
+                    return { content: 'false' };
+                }
+                return querySelector(selector);
+            });
+        });
+
+        it('redirects programmatic assistant navigation while disabled', async () => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+            await router.navigateToPage(PAGE_NAMES.AI_ASSISTANT)();
+            expect(Store.page.value).to.equal(PAGE_NAMES.WELCOME);
+        });
+
+        it('redirects disabled Offers deep links without loading a product', () => {
+            mockLocation.hash = '#page=product-detail&arrangementCode=test-product';
+            sandbox.stub(router, 'updateHistory');
+            router.start();
+            expect(Store.page.value).to.equal(PAGE_NAMES.WELCOME);
+            expect(router.currentParams.has('arrangementCode')).to.equal(false);
+        });
+    });
+
     describe('getActiveEditor', () => {
         it('should return null editor and false flags for non-editor pages', () => {
             Store.page.value = PAGE_NAMES.WELCOME;

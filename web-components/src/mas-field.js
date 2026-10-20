@@ -105,10 +105,8 @@ export async function stripTrialCtas(template, indexed, self) {
         });
     }
 
-    let trialCtaSwapped = false;
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
-            trialCtaSwapped = true;
             const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
             if (buyNowCta || !buyNowText) {
                 anchor.remove();
@@ -126,8 +124,9 @@ export async function stripTrialCtas(template, indexed, self) {
     const buyNowCtaNew =
         template.content.querySelector('a[data-analytics-id="buy-now"]') ||
         buyNowCta;
-    if (buyNowCtaNew && trialCtaSwapped) {
-        buyNowCtaNew.classList.add('blue');
+    if (buyNowCtaNew) {
+        buyNowCtaNew.classList.remove('primary-outline');
+        buyNowCtaNew.classList.add('button', 'con-button', 'blue');
     }
 
     return template.innerHTML;

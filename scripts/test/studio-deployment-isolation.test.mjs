@@ -37,7 +37,7 @@ test('unknown deployment groups fail closed', () => {
 
 test('AI secret retrieval is separate from required core secrets', async () => {
     const workflow = await readFile(new URL('../../.github/workflows/io-studio-deploy.yaml', import.meta.url), 'utf8');
-    assert.equal(/env-fields: aos_url,aos_api_key,ost_write_api_key\s*\n/.test(workflow), true);
+    assert.equal(/env-fields: aos_url,aos_api_key,ost_write_api_key,grafana_service_token\s*\n/.test(workflow), true);
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs core'), true);
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs assistant'), true);
 });

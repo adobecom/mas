@@ -74,10 +74,6 @@ export const styles = [
             gap: 20px;
         }
 
-        .promotions-form-items-outer .form-field {
-            margin-top: 0;
-        }
-
         .promotions-form-surfaces-panel sp-button {
             background: white;
         }

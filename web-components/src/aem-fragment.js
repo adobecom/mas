@@ -20,7 +20,6 @@ const ATTRIBUTE_LOADING = 'loading';
 const ATTRIBUTE_MASK = 'mask';
 const ATTRIBUTE_PZN = 'pzn';
 const ATTRIBUTE_TIMEOUT = 'timeout';
-const ENDPOINT_ATTRIBUTES = [ATTRIBUTE_FRAGMENT, ATTRIBUTE_MASK, ATTRIBUTE_PZN];
 const AEM_FRAGMENT_TAG_NAME = 'aem-fragment';
 const LOADING_EAGER = 'eager';
 const LOADING_CACHE = 'cache';
@@ -181,8 +180,6 @@ export class AemFragment extends HTMLElement {
      * Internal promise to track if fetching is in progress.
      */
     #fetchPromise;
-    #fetching = false;
-    #loadAttempted = false;
 
     #author = false;
     #fetchCount = 0;
@@ -228,21 +225,6 @@ export class AemFragment extends HTMLElement {
         if (name === ATTRIBUTE_PREVIEW) {
             this.#preview = newValue;
         }
-        if (
-            ENDPOINT_ATTRIBUTES.includes(name) &&
-            oldValue !== newValue &&
-            this.#loadAttempted
-        ) {
-            this.#queueRefresh();
-        }
-    }
-
-    /**
-     * Refetches once the current fetch settles; changes made before then share that refetch.
-     */
-    #queueRefresh() {
-        const run = () => this.refresh(false);
-        Promise.resolve(this.#fetchPromise).then(run, run);
     }
 
     connectedCallback() {
@@ -282,13 +264,13 @@ export class AemFragment extends HTMLElement {
      * @param {string} endpoint url to fetch fragment from
      * @returns {Promise<Object>} the raw fragment item
      */
-    async #getFragment(endpoint, request) {
+    async #getFragment(endpoint) {
         this.#fetchCount++;
         const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.cacheKey()}:${this.#fetchCount}`;
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            const preview = await this.generatePreview(request);
+            const preview = await this.generatePreview();
             if (preview.status === 200) {
                 return preview.body;
             } else {
@@ -340,19 +322,28 @@ export class AemFragment extends HTMLElement {
     }
 
     async refresh(flushCache = true) {
-        if (this.#fetching) return; // already fetching data
-        this.#fetching = true;
+        if (this.#fetchPromise) {
+            const ready = await Promise.race([
+                this.#fetchPromise,
+                Promise.resolve(false),
+            ]);
+            if (!ready) return; // already fetching data
+        }
         if (flushCache) {
             cache.remove(this.cacheKey());
         }
+        if (this.#loading === LOADING_CACHE) {
+            await Promise.race([
+                cache.getAsPromise(this.cacheKey()),
+                new Promise((resolve) => setTimeout(resolve, this.#timeout)),
+            ]);
+        }
         try {
-            this.#fetchPromise = this.#load();
+            this.#fetchPromise = this.#fetchData();
             await this.#fetchPromise;
         } catch (e) {
             this.#fail(e.message);
             return false;
-        } finally {
-            this.#fetching = false;
         }
         const { references, referencesTree, placeholders, wcs } =
             this.#rawData || {};
@@ -377,19 +368,7 @@ export class AemFragment extends HTMLElement {
         return this.#fetchPromise;
     }
 
-    async #load() {
-        if (this.#loading === LOADING_CACHE) {
-            await Promise.race([
-                cache.getAsPromise(this.cacheKey()),
-                new Promise((resolve) => setTimeout(resolve, this.#timeout)),
-            ]);
-        }
-        this.#loadAttempted = true;
-        return this.#fetchData();
-    }
-
     #fail(message) {
-        this.#loadAttempted = true;
         this.#fetchPromise = null;
         this.#fetchInfo.message = message;
         this.classList.add('error');
@@ -410,13 +389,7 @@ export class AemFragment extends HTMLElement {
     async #fetchData() {
         this.classList.remove('error');
         this.#data = null;
-        const requestedCacheKey = this.cacheKey();
-        const request = {
-            fragmentId: this.#fragmentId,
-            mask: this.#mask,
-            pzn: this.#pzn,
-        };
-        let fragment = cache.get(requestedCacheKey);
+        let fragment = cache.get(this.cacheKey());
         if (fragment) {
             this.#rawData = fragment;
             return true;
@@ -449,12 +422,10 @@ export class AemFragment extends HTMLElement {
             endpoint += `&pzn=${this.#pzn}`;
         }
 
-        fragment = await this.#getFragment(endpoint, request);
-        const servedStale = fragment === this.#rawData;
-        if (servedStale) return true;
-        fragment.fields.originalId ??= request.fragmentId;
-        if (requestedCacheKey !== request.fragmentId) {
-            cache.set(requestedCacheKey, fragment);
+        fragment = await this.#getFragment(endpoint);
+        fragment.fields.originalId ??= this.#fragmentId;
+        if (this.#mask || this.#pzn) {
+            cache.set(this.cacheKey(), fragment);
         } else {
             cache.add(fragment);
         }
@@ -570,7 +541,7 @@ export class AemFragment extends HTMLElement {
         return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
-    async generatePreview({ fragmentId, mask, pzn }) {
+    async generatePreview() {
         const fragmentClientUrl = this.getFragmentClientUrl();
         const { previewFragment } = await import(fragmentClientUrl);
         const defaultOptions = {
@@ -584,10 +555,10 @@ export class AemFragment extends HTMLElement {
         const options = {
             ...defaultOptions,
             ...(instant != null ? { instant } : {}),
-            ...(mask != null ? { mask } : {}),
-            ...(pzn != null ? { pzn } : {}),
+            ...(this.#mask != null ? { mask: this.#mask } : {}),
+            ...(this.#pzn != null ? { pzn: this.#pzn } : {}),
         };
-        const data = await previewFragment(fragmentId, options);
+        const data = await previewFragment(this.#fragmentId, options);
         return data;
     }
 }

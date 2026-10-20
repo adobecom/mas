@@ -63,18 +63,15 @@ gates:
         repair:
             cmd: npx prettier --write {changed_files} --ignore-unknown
 
-    # unit-tests: DISABLED 2026-08-17 (operator decision). `npm test` across the
-    # workspaces is order-dependent/flaky (web-components merch-card.adjustAddon
-    # "(global CSS)" suites, mas-promotions-items-table): every run escalated on
-    # failures that pass on the base branch and pass with the candidate applied
-    # in isolation. Re-enable once the suites are stable:
-    #   unit-tests:
-    #     template: command
-    #     name: Unit suites, all workspaces
-    #     cmd: npm test
-    #     timeout_s: 600
-    #     blocking: true
-    #     failure_route: regenerate
+    # Re-enabled 2026-10-01 (operator decision; disabled 2026-08-17 for flaky
+    # workspace suites).
+    unit-tests:
+        template: command
+        name: Unit suites, all workspaces
+        cmd: npm test
+        timeout_s: 600
+        blocking: true
+        failure_route: regenerate
 
     dist-sync:
         template: command
@@ -105,6 +102,7 @@ gates:
             neighboring cards are not regressed.
         require_human: false
         blocking: false
+        explore: true
 
     # Last on purpose: the adversary reviews the code together with every
     # deterministic and visual gate result, not blind of them.

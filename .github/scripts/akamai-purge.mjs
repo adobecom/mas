@@ -61,7 +61,7 @@ function sleep(ms) {
 }
 
 function git(...args) {
-    return execFileSync('git', args, { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
 // A new branch or a force push leaves no usable pushed-from commit; compare against the pushed commit's parent instead.
@@ -70,7 +70,7 @@ export function previousCommit(beforeSha, afterSha) {
         git('cat-file', '-e', `${beforeSha}^{commit}`);
         return beforeSha;
     } catch {
-        return git('rev-parse', `${afterSha}^`).toString().trim();
+        return git('rev-parse', `${afterSha}^`).trim();
     }
 }
 
@@ -85,12 +85,11 @@ export function olderVersions(beforeSha, afterSha, path) {
     const log = git('log', '--first-parent', '--format=', '--raw', '--no-abbrev', '--no-renames', beforeSha, '--', path);
     const versions = new Set(
         log
-            .toString()
             .split('\n')
             .filter(Boolean)
             .map((line) => line.split(' ')[3]),
     );
-    versions.delete(git('rev-parse', `${afterSha}:${path}`).toString().trim());
+    versions.delete(git('rev-parse', `${afterSha}:${path}`).trim());
     return versions;
 }
 
@@ -173,13 +172,11 @@ export async function run({ files, credentials, timing = TIMING }) {
     console.log(`Waiting for aem.live to serve ${files.length} changed files`);
     const stale = await waitUntilServed(ORIGIN, files, timing.originTimeoutMs, timing);
     const ready = files.filter((file) => !stale.includes(file));
-    const estimatedSeconds = ready.length
-        ? await purge(
-              credentials,
-              ready.map(({ path }) => toUrl(EDGE, path)),
-              timing,
-          )
-        : 0;
+    const estimatedSeconds = await purge(
+        credentials,
+        ready.map(({ path }) => toUrl(EDGE, path)),
+        timing,
+    );
     if (stale.length) {
         throw new Error(
             `aem.live still serves an older version of ${stale.length} files (${listPaths(stale)}); re-run once code sync catches up`,
@@ -223,7 +220,7 @@ async function main() {
         'web-components/src',
         'io/www/src',
     );
-    const paths = selectPurgePaths(diff.toString());
+    const paths = selectPurgePaths(diff);
     if (!paths.length) {
         console.log('No cached Studio files changed.');
         return;

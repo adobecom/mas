@@ -36,7 +36,7 @@ const original = Buffer.from('original content');
 const previous = Buffer.from('previous content');
 const studioJs = { path: 'studio/src/studio.js', older: new Set([blobId(original), blobId(previous)]) };
 
-function stubFetch({ origin, edge = () => new Response('new content'), purge = () => purgeAccepted() }) {
+function stubFetch({ origin, edge = () => new Response('new content'), purge = purgeAccepted }) {
     const calls = [];
     mock.method(globalThis, 'fetch', async (url, init = {}) => {
         calls.push({ url, init });
@@ -237,9 +237,15 @@ test('run fails when Akamai rejects the purge', async () => {
 });
 
 test('run fails when mas.adobe.com still serves the previous version after the purge', async () => {
-    const calls = stubFetch({ origin: () => new Response('new content'), edge: () => new Response(previous) });
+    stubFetch({ origin: () => new Response('new content'), edge: () => new Response(previous) });
     await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves an older/);
-    assert.ok(calls.filter(({ url }) => url === PURGE).every(({ init }) => init.signal instanceof AbortSignal));
+});
+
+test('purge requests carry a timeout signal', async () => {
+    const calls = stubFetch({ origin: () => new Response('new content') });
+    await run({ files: [studioJs], credentials, timing });
+    const purges = calls.filter(({ url }) => url === PURGE);
+    assert.ok(purges.length && purges.every(({ init }) => init.signal instanceof AbortSignal));
 });
 
 test('run fails when mas.adobe.com serves a version older than the previous one after the purge', async () => {

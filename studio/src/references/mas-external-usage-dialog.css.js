@@ -2,22 +2,33 @@ import { css } from 'lit';
 
 // Layered over dialogTableStyles, which supplies the flex column and scroll plumbing.
 export const styles = css`
+    /* The dialog owns the width and the content fills it. A content width of its own outgrows the
+       640px size="l" frame, and sp-dialog clips the overflow without a scrollbar. The modal still
+       caps the dialog at 90% of a narrow screen. */
+    sp-dialog-wrapper {
+        --mod-dialog-confirm-large-width: 800px;
+    }
+
     .dialog-content {
-        width: min(720px, 90vw);
         /* Sized to content so a fragment with three pages does not open a modal two thirds empty,
            while a busy fragment still scrolls inside the table rather than growing off screen. */
         min-height: 240px;
         max-height: 70vh;
     }
 
+    /* Still clips to the rounded corners, and scrolls the table sideways once a narrow screen
+       shrinks the dialog below the table's minimum. Rows scroll vertically in the table body. */
     .table-wrapper {
         border: 1px solid var(--spectrum-gray-300);
         border-radius: 12px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 
+    /* Below this the page column is too narrow to read, so the table scrolls instead of shrinking. */
     .pages-table {
         --spectrum-table-row-height: 48px;
+        min-width: 560px;
     }
 
     /* The table markup lives in this shadow root, so the cells are styled by element selector.

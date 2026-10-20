@@ -1,5 +1,5 @@
 import { expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
-import { sendKeys } from '@web/test-runner-commands';
+import { sendKeys, setViewport } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
 import '../../src/references/mas-external-usage-dialog.js';
@@ -35,6 +35,25 @@ async function openDialog(data = usage) {
     await waitUntil(() => wrapperOf(element)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
     return element;
 }
+
+/** Opens the dialog under the theme Studio uses, without which the dialog's size tokens never resolve. */
+async function openThemedDialog(viewport) {
+    await setViewport(viewport);
+    const theme = await fixture(html`
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <mas-external-usage-dialog .usage=${usage}></mas-external-usage-dialog>
+        </sp-theme>
+    `);
+    const element = theme.querySelector('mas-external-usage-dialog');
+    element.open = true;
+    await element.updateComplete;
+    await waitUntil(() => wrapperOf(element)?.matches(':focus-within'), 'Focus never moved into the dialog', modalTransition);
+    return element;
+}
+
+/** The box sp-dialog clips its content to, which is what the author can actually see. */
+const visibleBoxOf = (element) =>
+    wrapperOf(element).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.content').getBoundingClientRect();
 
 async function closeFixture() {
     const overlay = document.querySelector('mas-external-usage-dialog')?.shadowRoot.querySelector('sp-overlay');
@@ -84,6 +103,29 @@ describe('mas-external-usage-dialog', () => {
         // which is what sp-table-body checks before granting itself overflow:auto.
         expect(getComputedStyle(element.shadowRoot.querySelector('.dialog-table')).display).to.equal('flex');
         expect(body.scrollHeight).to.be.greaterThan(body.clientHeight);
+    });
+
+    describe('layout', () => {
+        afterEach(() => setViewport({ width: 800, height: 600 }));
+
+        it('fits every column inside the dialog on a desktop screen', async () => {
+            const element = await openThemedDialog({ width: 1440, height: 900 });
+            const lastColumn = headerCell(element, 2).getBoundingClientRect();
+            expect(lastColumn.right).to.be.at.most(visibleBoxOf(element).right);
+        });
+
+        it('wraps the bounded-sample note inside the dialog', async () => {
+            const element = await openThemedDialog({ width: 1440, height: 900 });
+            const note = element.shadowRoot.querySelector('.usage-note').getBoundingClientRect();
+            expect(note.right).to.be.at.most(visibleBoxOf(element).right);
+        });
+
+        it('scrolls the table sideways when the dialog is too narrow for it', async () => {
+            const element = await openThemedDialog({ width: 600, height: 800 });
+            const wrapper = element.shadowRoot.querySelector('.table-wrapper');
+            expect(getComputedStyle(wrapper).overflowX).to.equal('auto');
+            expect(wrapper.scrollWidth).to.be.greaterThan(wrapper.clientWidth);
+        });
     });
 
     it('lists every consuming page', async () => {

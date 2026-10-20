@@ -23,14 +23,9 @@ const render = (selected = [], { readonly = false, required = true } = {}) =>
 
 const query = (el, selector) => el.shadowRoot.querySelector(selector);
 
-const openDialog = async (el) => {
-    const opened = oneEvent(query(el, 'overlay-trigger'), 'sp-opened');
-    query(el, '.add-button').click();
-    await opened;
-};
-
 // The click tests check the component's own handlers. A real modal would stay in the top layer and
-// block clicks in later tests, so keep the overlay from opening at all.
+// block clicks in later tests, and never finishes opening in background tabs when WTR runs files
+// concurrently, so keep the overlay from opening at all.
 const keepDialogClosed = async (el) => {
     const trigger = query(el, 'overlay-trigger');
     trigger.disabled = true;
@@ -166,9 +161,24 @@ describe('MasGroupedSelector', () => {
         expect(el.expanded).to.be.true;
     });
 
-    it('does not toggle the list when the header outside the toggle button is clicked', async () => {
+    it('toggles the list when the header outside the toggle button is clicked', async () => {
         const el = await render(['fr_FR']);
-        query(el, '.selected-header').click();
+        query(el, '.selected-header h2').click();
+        await el.updateComplete;
+        expect(el.expanded).to.be.false;
+    });
+
+    it('does not toggle the list when the selected list is clicked', async () => {
+        const el = await render(['fr_FR']);
+        query(el, '.selected-list').click();
+        await el.updateComplete;
+        expect(el.expanded).to.be.true;
+    });
+
+    it('does not toggle the list when clicked in the empty state', async () => {
+        const el = await render();
+        await keepDialogClosed(el);
+        query(el, '.empty-state .label').click();
         await el.updateComplete;
         expect(el.expanded).to.be.true;
     });
@@ -282,11 +292,12 @@ describe('MasGroupedSelector', () => {
         expect(onClose.called).to.be.false;
     });
 
-    it('keeps the open dialog open when its Cancel button is clicked while confirm is pending', async () => {
+    it('ignores the dialog Cancel button while confirm is pending', async () => {
         const el = await render();
         const pending = holdConfirm(el);
-        await openDialog(el);
         const dialog = query(el, '.selector-dialog');
+        const onClose = sinon.spy();
+        dialog.addEventListener('close', onClose);
         dialog.dispatchEvent(new Event('confirm'));
         await el.updateComplete;
         const cancelButton = [...dialog.shadowRoot.querySelectorAll('sp-button')].find(
@@ -295,26 +306,29 @@ describe('MasGroupedSelector', () => {
         const onDialogCancel = sinon.spy();
         dialog.addEventListener('cancel', onDialogCancel);
         cancelButton.click();
-        await el.updateComplete;
         expect(onDialogCancel.calledOnce).to.be.true;
-        expect(query(el, 'overlay-trigger').open).to.equal('click');
+        expect(onClose.called).to.be.false;
         const closed = oneEvent(dialog, 'close');
         pending.resolve(true);
         await closed;
-        await el.updateComplete;
     });
 
-    it('does not dismiss on Escape while confirm is pending', async () => {
+    const dispatchComposedCancel = (el) => {
+        const cancel = new Event('cancel', { cancelable: true, composed: true });
+        query(el, 'overlay-trigger').dispatchEvent(cancel);
+        return cancel;
+    };
+
+    it('prevents a cancel from inside the selector while confirm is pending', async () => {
         const el = await render();
         holdConfirm(el);
-        await openDialog(el);
-        const onCancel = sinon.spy();
-        el.addEventListener('cancel', onCancel);
         query(el, '.selector-dialog').dispatchEvent(new Event('confirm'));
-        await sendKeys({ press: 'Escape' });
-        await el.updateComplete;
-        expect(onCancel.called).to.be.false;
-        expect(query(el, 'overlay-trigger').open).to.equal('click');
+        expect(dispatchComposedCancel(el).defaultPrevented).to.be.true;
+    });
+
+    it('allows a cancel from inside the selector when idle', async () => {
+        const el = await render();
+        expect(dispatchComposedCancel(el).defaultPrevented).to.be.false;
     });
 
     it('prevents default on Escape keydown while confirm is pending', async () => {
@@ -404,21 +418,26 @@ describe('MasGroupedSelector', () => {
         expect(onCancel.calledOnce).to.be.true;
     });
 
+    const pressEscapeInDialog = (el) =>
+        query(el, '.selector-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+
     it('dispatches cancel when Escape dismisses the dialog', async () => {
         const el = await render();
-        await openDialog(el);
+        query(el, '.add-button').dispatchEvent(new Event('click'));
         const cancelled = oneEvent(el, 'cancel');
-        await sendKeys({ press: 'Escape' });
+        pressEscapeInDialog(el);
         expect(await cancelled).to.exist;
     });
 
-    it('returns focus to the add trigger when Escape dismisses the dialog', async () => {
+    it('keeps focus on the add trigger when Escape dismisses the dialog', async () => {
         const el = await render();
-        await openDialog(el);
-        const closed = oneEvent(query(el, 'overlay-trigger'), 'sp-closed');
-        await sendKeys({ press: 'Escape' });
-        await closed;
-        expect(el.shadowRoot.activeElement?.matches('.add-button')).to.be.true;
+        const addButton = query(el, '.add-button');
+        addButton.focus();
+        addButton.dispatchEvent(new Event('click'));
+        pressEscapeInDialog(el);
+        await el.updateComplete;
+        await el.updateComplete;
+        expect(el.shadowRoot.activeElement).to.equal(addButton);
     });
 
     it('ignores close when the dialog is not open', async () => {

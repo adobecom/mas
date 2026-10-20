@@ -33,6 +33,7 @@ class MasGroupedSelector extends LitElement {
         this.selected = [];
         this.expanded = true;
         this.applying = false;
+        this.addEventListener('click', this.#toggleExpanded);
     }
 
     connectedCallback() {
@@ -125,7 +126,11 @@ class MasGroupedSelector extends LitElement {
         if (this.showEmptyState !== wasEmpty) this.shadowRoot.querySelector('.edit-button, .add-button')?.focus();
     };
 
-    #toggleExpanded = () => {
+    #toggleExpanded = (event) => {
+        if (this.showEmptyState) return;
+        const path = event.composedPath();
+        const ignored = this.shadowRoot.querySelectorAll('.selected-list, overlay-trigger');
+        if ([...ignored].some((element) => path.includes(element))) return;
         this.expanded = !this.expanded;
     };
 
@@ -204,13 +209,7 @@ class MasGroupedSelector extends LitElement {
                                   Edit
                               </sp-action-button>
                           `)}
-                    <sp-button
-                        icon-only
-                        label=${this.label}
-                        class="toggle-btn ghost-button"
-                        aria-expanded=${this.expanded}
-                        @click=${this.#toggleExpanded}
-                    >
+                    <sp-button icon-only label=${this.label} class="toggle-btn ghost-button" aria-expanded=${this.expanded}>
                         <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                     </sp-button>
                 </div>

@@ -1,13 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import Store from '../src/store.js';
-import {
-    canAccessSettings,
-    canAccessMasks,
-    canAccessOfferMapping,
-    canEditBaselines,
-    canEditPromotions,
-    isMasAdmin,
-} from '../src/groups.js';
+import { canAccessSettings, canAccessMasks, canAccessOfferMapping, canEditPromotions, isMasAdmin } from '../src/groups.js';
 
 describe('groups', () => {
     let originalProfile;
@@ -95,29 +88,27 @@ describe('groups', () => {
         expect(canAccessSettings(undefined)).to.be.false;
     });
 
-    for (const check of [canEditPromotions, canEditBaselines]) {
-        it(`${check.name} is true for admins and promo editors, false otherwise`, () => {
-            Store.profile.set({ email: 'a@adobe.com' });
-            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
-            expect(check()).to.be.true;
+    it('canEditPromotions is true for admins and promo editors, false otherwise', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canEditPromotions()).to.be.true;
 
-            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            expect(check()).to.be.true;
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        expect(canEditPromotions()).to.be.true;
 
-            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
-            expect(check()).to.be.false;
-        });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        expect(canEditPromotions()).to.be.false;
+    });
 
-        it(`${check.name} matches user email case-insensitively`, () => {
-            Store.users.set([{ userPrincipalName: 'promo.editor@adobe.com', groups: ['grp-odin-mas-promo-editors'] }]);
-            Store.profile.set({ email: 'Promo.Editor@adobe.com' });
-            expect(check()).to.be.true;
-        });
+    it('canEditPromotions matches user email case-insensitively', () => {
+        Store.users.set([{ userPrincipalName: 'promo.editor@adobe.com', groups: ['grp-odin-mas-promo-editors'] }]);
+        Store.profile.set({ email: 'Promo.Editor@adobe.com' });
+        expect(canEditPromotions()).to.be.true;
+    });
 
-        it(`${check.name} is false when the user is not found`, () => {
-            Store.profile.set({ email: 'unknown@adobe.com' });
-            Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            expect(check()).to.be.false;
-        });
-    }
+    it('canEditPromotions is false when the user is not found', () => {
+        Store.profile.set({ email: 'unknown@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        expect(canEditPromotions()).to.be.false;
+    });
 });

@@ -96,8 +96,8 @@ const EXPECTED_BODY = {
     id: 'some-fr-fr-fragment',
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
-// EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = 'cfe5b00b617513ded591975867ddedbc68158c2e623c960ea23aa9cea15613ae';
+// Includes the settings, price literals and countdown-copy placeholder.
+const EXPECTED_BODY_HASH = '4dabb3118d14b2fb0670e62d455d6fe36e8ced4576546445a784d0bf345f84cb';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 

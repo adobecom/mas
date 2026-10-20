@@ -5,12 +5,12 @@ import { Fragment } from '../aem/fragment.js';
 import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
 import { INHERITED_SETTINGS_FIELDS } from '../reactivity/preview-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
+import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
     buildPromotionsRootPath,
-    getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,

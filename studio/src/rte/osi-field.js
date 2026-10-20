@@ -13,6 +13,7 @@ class OsiField extends LitElement {
         // Slash (not comma) so the value can never collide with a discount-badge multi-OSI pair (`A,B`);
         // off by default so bare-osi and discount-badge fields are unaffected.
         allowPromotionCode: { type: Boolean, attribute: 'allow-promotion-code' },
+        suppressError: { type: Boolean, attribute: 'suppress-error' },
     };
 
     static styles = css`
@@ -27,6 +28,7 @@ class OsiField extends LitElement {
         this.value = '';
         this.showOfferSelector = false;
         this.allowPromotionCode = false;
+        this.suppressError = false;
         this.#boundHandlers = {
             escKey: this.#handleEscKey.bind(this),
             ostEvent: this.#handleOstEvent.bind(this),
@@ -71,6 +73,10 @@ class OsiField extends LitElement {
         }
     }
 
+    get #showError() {
+        return !this.value && !this.suppressError;
+    }
+
     get #offerSelectorToolButton() {
         return html`
             <sp-action-button
@@ -78,8 +84,8 @@ class OsiField extends LitElement {
                 @click=${this.handleOpenOfferSelector}
                 title="Offer Selector Tool"
             >
-                <sp-icon-shopping-cart slot="icon" class="${!this.value ? 'error-state' : ''}"></sp-icon-shopping-cart>
-                ${!this.value ? html` <sp-icon-alert size="m" slot="icon" class="error-state"></sp-icon-alert> ` : nothing}
+                <sp-icon-shopping-cart slot="icon" class="${this.#showError ? 'error-state' : ''}"></sp-icon-shopping-cart>
+                ${this.#showError ? html` <sp-icon-alert size="m" slot="icon" class="error-state"></sp-icon-alert> ` : nothing}
             </sp-action-button>
         `;
     }

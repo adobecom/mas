@@ -1,10 +1,14 @@
 import { LitElement, html, css, nothing } from 'lit';
+import { classMap } from 'lit/directives/class-map.js';
 import {
+    BASELINE_CREATE_TYPE,
     COMPARE_CHART_CREATE_TYPE,
     COMPARE_CHART_FIELD,
     COMPAT_VERSION,
     EVENT_KEYDOWN,
+    EVENT_OST_CLOSE,
     EVENT_OST_OFFER_SELECT,
+    SURFACES,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
@@ -17,12 +21,44 @@ import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
+import { getSurfacesVariantNames } from './editors/variant-picker.js';
+import { createBaseline, resolveProductArrangementCode } from './baselines/baseline-model.js';
+import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
+
+const BASELINE_EXISTS_ERROR = 'A baseline with this title already exists';
+const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
+const MISSING_PA_CODE_ERROR = 'No PA code found for this offer';
+
+const INITIAL_TOUCHED = { title: false, osi: false, surface: false, template: false };
+const INITIAL_ERRORS = { title: '', offer: '' };
+
+const fieldMessage = (id, message) =>
+    html`<div class="field-message" aria-live="polite">
+        ${message ? html`<sp-help-text id=${id} variant="negative">${message}</sp-help-text>` : nothing}
+    </div>`;
+
+const DEFAULT_TYPE_CONFIG = {
+    label: 'Merch Card Collection',
+    titleLabel: 'Internal title',
+    placeholder: 'Enter internal fragment title',
+};
+
+const TYPE_CONFIG = {
+    'merch-card': { ...DEFAULT_TYPE_CONFIG, label: 'Merch Card' },
+    [COMPARE_CHART_CREATE_TYPE]: { ...DEFAULT_TYPE_CONFIG, label: 'Compare Chart' },
+    [BASELINE_CREATE_TYPE]: { label: 'Baseline', titleLabel: 'Title', placeholder: '' },
+};
 
 export class MasCreateDialog extends LitElement {
     static properties = {
         type: { type: String, reflect: true },
         title: { state: true },
+        touched: { state: true },
+        errors: { state: true },
         loading: { state: true },
+        productArrangementCode: { state: true },
+        surface: { state: true },
+        template: { state: true },
     };
 
     static styles = css`
@@ -88,27 +124,63 @@ export class MasCreateDialog extends LitElement {
         }
 
         .form-field {
-            margin-bottom: var(calc(var(--swc-scale-factor) * 32px));
+            margin-bottom: calc(var(--swc-scale-factor) * 32px);
         }
 
-        sp-field-label {
-            display: block;
-            margin-bottom: var(calc(var(--swc-scale-factor) * 8px));
+        .form-field.with-message {
+            margin-bottom: calc(var(--swc-scale-factor) * 12px);
+        }
+
+        .field-message {
+            min-height: calc(var(--swc-scale-factor) * 20px);
         }
 
         sp-picker,
         sp-textfield {
             width: 100%;
         }
+
+        .full-width {
+            width: 100%;
+        }
+
+        .full-width.invalid {
+            --spectrum-actionbutton-border-color-default: var(--spectrum-negative-border-color-default);
+            border: 1px solid var(--spectrum-negative-border-color-default);
+        }
+
+        .offer-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid var(--spectrum-gray-300);
+            border-radius: 8px;
+        }
+
+        .offer-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .offer-details p {
+            margin: 0;
+        }
+
+        sp-help-text {
+            display: flex;
+            align-items: center;
+        }
     `;
 
     constructor() {
         super();
         this.type = 'merch-card';
-        this.title = '';
-        this.osi = '';
         this.tags = [];
-        this.loading = false;
+        this.#resetForm();
 
         this.handleTitleChange = this.handleTitleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
@@ -121,12 +193,14 @@ export class MasCreateDialog extends LitElement {
         super.connectedCallback();
         document.addEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
+        document.addEventListener(EVENT_OST_CLOSE, this.#onOstClose);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         document.removeEventListener(EVENT_KEYDOWN, this.handleKeyDown);
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.#onOstSelect);
+        document.removeEventListener(EVENT_OST_CLOSE, this.#onOstClose);
     }
 
     handleKeyDown(event) {
@@ -159,12 +233,57 @@ export class MasCreateDialog extends LitElement {
 
     handleTitleChange(value) {
         this.title = value;
+        this.#setError('title', '');
     }
 
-    #onOstSelect = ({ detail: { offerSelectorId, offer } }) => {
+    #resetForm() {
+        this.title = '';
+        this.touched = INITIAL_TOUCHED;
+        this.errors = INITIAL_ERRORS;
+        this.offerSelectorOpened = false;
+        this.osi = '';
+        this.productArrangementCode = '';
+        this.surface = '';
+        this.template = '';
+        this.loading = false;
+    }
+
+    #touch(...fields) {
+        this.touched = { ...this.touched, ...Object.fromEntries(fields.map((field) => [field, true])) };
+    }
+
+    #setError(field, message) {
+        this.errors = { ...this.errors, [field]: message };
+    }
+
+    #onOstClose = () => {
+        if (!this.offerSelectorOpened) return;
+        this.offerSelectorOpened = false;
+        this.#touch('osi');
+    };
+
+    #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
+        if (this.type !== BASELINE_CREATE_TYPE) return;
+        this.productArrangementCode = '';
+        this.#setError('offer', '');
+        const productArrangementCode = await resolveProductArrangementCode(offerSelectorId, offer);
+        if (this.osi !== offerSelectorId) return;
+        this.productArrangementCode = productArrangementCode ?? '';
+        this.#setError('offer', productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
     };
+
+    #handleSurfaceChange(event) {
+        this.#touch('surface');
+        this.surface = event.target.value;
+        if (!getSurfacesVariantNames([this.surface]).has(this.template)) this.template = '';
+    }
+
+    #handleTemplateChange(event) {
+        this.#touch('template');
+        this.template = event.target.value;
+    }
 
     _onTagSelect = ({ detail: { tags } }) => {
         this.tags = tags;
@@ -185,7 +304,16 @@ export class MasCreateDialog extends LitElement {
         const currentList = Store.fragments.list.data.get() ?? [];
         Store.fragments.list.data.set([sourceStore, ...currentList]);
         this.close();
-        await router.navigateToFragmentEditor(fragment.id);
+        await this.#openFragmentEditor(fragment.id);
+    }
+
+    async #openFragmentEditor(fragmentId) {
+        try {
+            await router.navigateToFragmentEditor(fragmentId);
+        } catch (error) {
+            console.error(error.message, error.stack);
+            showToast(`${this.typeConfig.label} was created but could not be opened: ${error.message}`, 'negative');
+        }
     }
 
     async tryToCreateFragment(masRepository, fragmentData) {
@@ -217,7 +345,21 @@ export class MasCreateDialog extends LitElement {
             event.preventDefault();
         }
 
+        this.#touch('title', 'osi', 'surface', 'template');
+
         if (!this.title) {
+            return;
+        }
+
+        if (!this.normalizeFragmentName(this.title)) {
+            this.#setError('title', INVALID_TITLE_ERROR);
+            return;
+        }
+
+        if (this.type === BASELINE_CREATE_TYPE) {
+            if (this.osi && !this.productArrangementCode) this.#setError('offer', MISSING_PA_CODE_ERROR);
+            if (!this.osi || !this.productArrangementCode || !this.surface || !this.template) return;
+            await this.#submitBaseline();
             return;
         }
 
@@ -250,7 +392,7 @@ export class MasCreateDialog extends LitElement {
             }
         }
 
-        const masRepository = document.querySelector('mas-repository');
+        const masRepository = this.repository;
         const firstName = fragmentData.name;
         let nmbOfTries = 0;
         let created = false;
@@ -271,21 +413,155 @@ export class MasCreateDialog extends LitElement {
         }
     }
 
+    async #submitBaseline() {
+        this.loading = true;
+        let result;
+        try {
+            result = await createBaseline(this.repository, {
+                title: this.title,
+                name: this.normalizeFragmentName(this.title),
+                osi: this.osi,
+                surface: this.surface,
+                template: this.template,
+                productArrangementCode: this.productArrangementCode,
+            });
+        } catch (error) {
+            console.error(error.message, error.stack);
+            showToast(`Failed to create baseline: ${error.message}`, 'negative');
+        } finally {
+            this.loading = false;
+        }
+        if (result?.exists) {
+            this.#setError('title', BASELINE_EXISTS_ERROR);
+            return;
+        }
+        if (!result?.fragment?.id) return;
+        applySearchSurfaceFromPath(result.folder);
+        this.close();
+        await this.#openFragmentEditor(result.fragment.id);
+    }
+
     close() {
-        this.title = '';
-        this.osi = '';
-        this.loading = false;
+        this.#resetForm();
         this.dispatchEvent(new CustomEvent('close'));
     }
 
+    get typeConfig() {
+        return TYPE_CONFIG[this.type] ?? DEFAULT_TYPE_CONFIG;
+    }
+
     get dialogTitle() {
-        const typeLabel =
-            this.type === 'merch-card'
-                ? 'Merch Card'
-                : this.type === COMPARE_CHART_CREATE_TYPE
-                  ? 'Compare Chart'
-                  : 'Merch Card Collection';
-        return `Create New ${typeLabel}`;
+        return `Create New ${this.typeConfig.label}`;
+    }
+
+    get titleErrorMessage() {
+        return this.touched.title && !this.title ? 'Enter a title' : this.errors.title;
+    }
+
+    get repository() {
+        return document.querySelector('mas-repository');
+    }
+
+    get osiField() {
+        return this.shadowRoot.querySelector('osi-field');
+    }
+
+    #markOfferSelectorOpened() {
+        this.offerSelectorOpened = true;
+    }
+
+    openOfferSelector() {
+        this.#markOfferSelectorOpened();
+        this.osiField.handleOpenOfferSelector();
+    }
+
+    get offerErrorMessage() {
+        return this.touched.osi && !this.osi ? 'Select an offer' : this.errors.offer;
+    }
+
+    get offerFieldTemplate() {
+        const errorMessage = this.offerErrorMessage;
+        const pendingProductArrangementCode = this.errors.offer ? '—' : '…';
+        return html`
+            <div class="form-field with-message">
+                <sp-field-label id="offer-label" required>Offer</sp-field-label>
+                <osi-field hidden></osi-field>
+                <div role="group" aria-labelledby="offer-label" class=${this.osi ? 'offer-card' : nothing}>
+                    ${this.osi
+                        ? html`<sp-icon-shopping-cart></sp-icon-shopping-cart>
+                              <div class="offer-details">
+                                  <p>OSI: <strong>${this.osi}</strong></p>
+                                  <p>
+                                      PA code:
+                                      <strong>${this.productArrangementCode || pendingProductArrangementCode}</strong>
+                                  </p>
+                              </div>`
+                        : nothing}
+                    <sp-action-button
+                        class=${classMap({ 'full-width': !this.osi, invalid: !this.osi && Boolean(errorMessage) })}
+                        ?quiet=${Boolean(this.osi)}
+                        aria-invalid=${errorMessage ? 'true' : nothing}
+                        aria-describedby=${errorMessage ? 'offer-error' : nothing}
+                        @click=${this.openOfferSelector}
+                    >
+                        ${this.osi
+                            ? html`<sp-icon-edit slot="icon"></sp-icon-edit>`
+                            : html`<sp-icon-shopping-cart slot="icon"></sp-icon-shopping-cart>`}
+                        ${this.osi ? 'Change offer' : 'Select offer…'}
+                    </sp-action-button>
+                </div>
+                ${fieldMessage('offer-error', errorMessage)}
+            </div>
+        `;
+    }
+
+    get surfaceFieldTemplate() {
+        const errorMessage = this.touched.surface && !this.surface ? 'Select a surface' : '';
+        return html`
+            <div class="form-field with-message">
+                <sp-field-label id="surface-label" for="surface" required>Surface</sp-field-label>
+                <sp-picker
+                    id="surface"
+                    label="Select a surface"
+                    aria-describedby=${errorMessage ? 'surface-error' : nothing}
+                    .value=${this.surface}
+                    ?invalid=${Boolean(errorMessage)}
+                    @change=${this.#handleSurfaceChange}
+                >
+                    ${Object.values(SURFACES).map(
+                        ({ label, name }) => html`<sp-menu-item value=${name}>${label}</sp-menu-item>`,
+                    )}
+                </sp-picker>
+                ${fieldMessage('surface-error', errorMessage)}
+            </div>
+        `;
+    }
+
+    get templateFieldTemplate() {
+        const errorMessage = this.touched.template && !this.template ? 'Select a template' : '';
+        return html`
+            <div class="form-field with-message">
+                <sp-field-label id="template-label" for="template" required>Template</sp-field-label>
+                <variant-picker
+                    id="template"
+                    .value=${this.template}
+                    .surface=${this.surface}
+                    .description=${errorMessage}
+                    ?disabled=${!this.surface}
+                    ?invalid=${Boolean(errorMessage)}
+                    @change=${this.#handleTemplateChange}
+                ></variant-picker>
+                <div class="field-message" aria-hidden="true">
+                    ${errorMessage
+                        ? html`<sp-help-text id="template-error" variant="negative">${errorMessage}</sp-help-text>`
+                        : nothing}
+                </div>
+            </div>
+        `;
+    }
+
+    get baselineFields() {
+        return html`${this.offerFieldTemplate} ${this.surfaceFieldTemplate} ${this.templateFieldTemplate}`;
     }
 
     render() {
@@ -303,21 +579,30 @@ export class MasCreateDialog extends LitElement {
                     <div class="dialog-header">${this.dialogTitle}</div>
                     <div class="dialog-content">
                         <form @submit=${this.handleSubmit}>
-                            <div class="form-field">
-                                <sp-field-label for="fragment-title" required>Internal title</sp-field-label>
+                            <div class="form-field with-message">
+                                <sp-field-label for="fragment-title" required>${this.typeConfig.titleLabel}</sp-field-label>
                                 <sp-textfield
                                     id="fragment-title"
-                                    placeholder="Enter internal fragment title"
+                                    placeholder=${this.typeConfig.placeholder}
                                     value=${this.title}
+                                    ?required=${this.touched.title && !this.errors.title}
+                                    ?invalid=${Boolean(this.errors.title)}
+                                    aria-describedby=${this.titleErrorMessage ? 'title-error' : nothing}
                                     @input=${(e) => this.handleTitleChange(e.target.value)}
-                                    required
+                                    @focusout=${() => this.#touch('title')}
                                 ></sp-textfield>
+                                ${fieldMessage('title-error', this.titleErrorMessage)}
                             </div>
                             ${this.type === 'merch-card'
                                 ? html`
                                       <div class="form-field">
                                           <sp-field-label for="osi" required>OSI Search</sp-field-label>
-                                          <osi-field id="osi" data-field="osi"></osi-field>
+                                          <osi-field
+                                              id="osi"
+                                              data-field="osi"
+                                              ?suppress-error=${!this.touched.osi}
+                                              @click=${this.#markOfferSelectorOpened}
+                                          ></osi-field>
                                       </div>
                                       <aem-tag-picker-field
                                           label="Tags"
@@ -327,6 +612,7 @@ export class MasCreateDialog extends LitElement {
                                       ></aem-tag-picker-field>
                                   `
                                 : nothing}
+                            ${this.type === BASELINE_CREATE_TYPE ? this.baselineFields : nothing}
                         </form>
                     </div>
                     <div class="dialog-footer">

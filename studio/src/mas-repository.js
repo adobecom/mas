@@ -65,7 +65,7 @@ import {
     resolvePromoVariationParentPath,
     VARIATION_SEARCH_TABS,
 } from './utils/variation-search.js';
-import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
+import { getFragmentByPathOrNull } from './common/utils/fragment-api.js';
 import { Promotion } from './aem/promotion.js';
 
 let fragmentCache;
@@ -327,7 +327,7 @@ export class MasRepository extends LitElement {
     }
 
     #skipVariant(variants, item) {
-        if (Fragment.isGroupedVariationPath(item.path)) return true;
+        if (Fragment.isHiddenFromSearch(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !isVariantMatch(variants, variant);
     }
@@ -411,7 +411,7 @@ export class MasRepository extends LitElement {
         return stores.filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
-            if (Fragment.isGroupedVariationPath(item.path)) return false;
+            if (Fragment.isHiddenFromSearch(item.path)) return false;
             if (this.#skipVariant(variants, item)) return false;
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
@@ -542,7 +542,7 @@ export class MasRepository extends LitElement {
         if (identicalFilters) {
             let filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
-                return !Fragment.isGroupedVariationPath(fragmentPath);
+                return !Fragment.isHiddenFromSearch(fragmentPath);
             });
             filteredData = this.#applyFragmentListFilters(filteredData);
             if (filteredData.length !== currentData.length) {
@@ -726,7 +726,7 @@ export class MasRepository extends LitElement {
                     (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
                     matchesContentTypeFilter(contentTypes, displayFragment) &&
-                    (isVariation || !Fragment.isGroupedVariationPath(fragmentData?.path))
+                    !Fragment.isHiddenFromSearch(displayFragment.path)
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
@@ -1379,7 +1379,9 @@ export class MasRepository extends LitElement {
                 latest = await this.aem.sites.cf.fragments.getById(result.id);
             }
             // Apply corrector transformer before caching
-            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            const surface = (
+                extractSurfaceFromPath(latest.path) ?? this.search.value.path?.split('/').filter(Boolean)[0]
+            )?.toLowerCase();
             applyCorrectorToFragment(latest, surface);
             const fragment = await this.#addToCache(latest);
 

@@ -229,11 +229,13 @@ class AEM {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });
         if (!response.ok) {
-            throw new Error(`Failed to get fragment: ${response.status} ${response.statusText}`);
+            throw Object.assign(new Error(`Failed to get fragment: ${response.status} ${response.statusText}`), {
+                status: response.status,
+            });
         }
         const { items } = await response.json();
         if (!items || items.length === 0) {
-            throw new Error('Fragment not found');
+            throw Object.assign(new Error('Fragment not found'), { status: 404 });
         }
         return items[0];
     }

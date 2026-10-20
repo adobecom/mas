@@ -72,6 +72,7 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_CLOSE = 'ost-close';
 export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
@@ -175,6 +176,7 @@ export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const BASELINE_CREATE_TYPE = 'baseline';
 export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
@@ -256,6 +258,8 @@ export const VARIATION_TYPES = {
 };
 
 export const PZN_FOLDER = 'pzn';
+
+export const BASELINES_FOLDER = 'baselines';
 
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
 

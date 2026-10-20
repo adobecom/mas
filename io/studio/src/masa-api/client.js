@@ -69,7 +69,10 @@ export async function requestJson(url, options, fetchImpl, maxBytes) {
     return { status: response.status, headers: response.headers, raw, body: JSON.parse(raw) };
 }
 
-/** Sign the exact route/body/key with fresh replay protection for every attempt. */
+/**
+ * Sign the exact route/body/key with fresh replay protection for every attempt. The iPaaS gateway
+ * validates the Studio IMS token, then moves Target-Authorization into MASA's Authorization header.
+ */
 export function signedHeaders(config, identity, operation, now) {
     const iat = Math.floor(now / 1000);
     const claims = {
@@ -91,7 +94,8 @@ export function signedHeaders(config, identity, operation, now) {
         .map((item) => Buffer.from(JSON.stringify(item)).toString('base64url'))
         .join('.');
     return {
-        Authorization: `Bearer ${config.serviceToken}`,
+        Authorization: `Bearer ${identity.token}`,
+        'Target-Authorization': `Bearer ${config.serviceToken}`,
         'X-Masa-User-Assertion': `${encoded}.${sign(null, Buffer.from(encoded), config.privateKey).toString('base64url')}`,
         Accept: 'application/json',
         ...(operation.method === 'POST' ? { 'Content-Type': 'application/json' } : {}),

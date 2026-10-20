@@ -20,6 +20,12 @@ The assertion binds the configured issuer/audience, conversation, shared interna
 HTTP method/path/body hash, idempotency key and a fresh nonce. MASA independently validates ownership
 and current admission. Cancellation first reads the job and checks its session binding.
 
+Controls reach MASA through the iPaaS API Gateway ([IPAASOPS-5173](https://jira.corp.adobe.com/browse/IPAASOPS-5173)).
+The adapter forwards the verified Studio IMS token in `Authorization` for the gateway's own IMS check and
+sends the service token in `Target-Authorization`. The gateway moves it into MASA's `Authorization`, so MASA
+never receives the user's IMS token. The gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and
+`Content-Type` through unchanged, with no path prefix and the body byte-for-byte, or the assertion fails.
+
 The current pilot shares MASA's internal read policy. Studio editing permissions do not become a new
 fragment-level read ACL. Opening access to every eligible Studio user requires the entitlement increment
 in #127; a maintained pilot allowlist is not the final all-user access model.

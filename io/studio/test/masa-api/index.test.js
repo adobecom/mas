@@ -129,7 +129,7 @@ function inspectAssertion(call, method, path, body, idempotencyKey = null) {
     assert.equal(call.init.method, method);
     assert.equal(call.init.redirect, 'manual');
     assert.equal(call.init.body ?? '', body);
-    assert.equal(call.init.headers.Authorization, `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
+    assert.equal(call.init.headers['Target-Authorization'], `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
     assert.equal(call.init.headers['Idempotency-Key'] ?? null, idempotencyKey);
     const [header, payload, signature] = call.init.headers['X-Masa-User-Assertion'].split('.');
     assert.deepEqual(JSON.parse(Buffer.from(header, 'base64url')), { alg: 'EdDSA', typ: 'JWT' });
@@ -272,6 +272,14 @@ describe('Studio MASA Runtime adapter', function () {
             h.logs.some((line) => line.includes(subject) || line.includes(token())),
             false,
         );
+    });
+
+    it('sends the verified Studio IMS token for the iPaaS gateway and the service token for it to move', async () => {
+        const h = harness();
+        await h.handler(params());
+        const { headers } = h.backendCalls()[0].init;
+        assert.equal(headers.Authorization, `Bearer ${token()}`);
+        assert.equal(headers['Target-Authorization'], `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
     });
 
     it('rejects remotely invalid, wrong-client, wrong-type, sub-only and unadmitted identities before MASA', async () => {

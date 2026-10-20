@@ -1125,13 +1125,16 @@ export async function processCTAs(
                                 cta.hidden = false;
                                 trialCtaSwapped(true);
                             } else {
+                                cta.remove();
                                 trialCtaSwapped(false);
                             }
                         } else {
+                            cta.hidden = false;
                             trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
+                        cta.hidden = false;
                         trialCtaSwapped(false);
                     });
             });

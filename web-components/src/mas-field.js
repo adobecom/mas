@@ -5,6 +5,7 @@ import {
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
+    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
 import { getService } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
@@ -78,16 +79,25 @@ export async function stripTrialCtas(template, indexed, self) {
         const masFieldsReadyPromises = [];
         const masFields =
             self.parentElement.querySelectorAll('mas-field').length > 1
-                ? self.parentElement.querySelectorAll('mas-field')
+                ? self.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  )
                 : self.parentElement.parentElement.querySelectorAll(
-                      'mas-field',
+                      'mas-field[field^="ctas"]',
                   );
         masFields.forEach(async (c) => {
             if (c.getAttribute('field') !== thisField) {
                 masFieldsReadyPromises.push(c.checkReady());
             }
         });
-        await Promise.all(masFieldsReadyPromises);
+        const settleAll = Promise.all(masFieldsReadyPromises);
+        let timeoutId;
+        const timeout = new Promise((resolve) => {
+            timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+        });
+        await Promise.race([settleAll, timeout]);
+        clearTimeout(timeoutId);
+
         masFields.forEach((c) => {
             if (c.getAttribute('field') !== thisField) {
                 buyNowCta ??= c.querySelector('a[data-analytics-id="buy-now"]');

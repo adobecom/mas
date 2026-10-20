@@ -410,7 +410,9 @@ describe('processCTAs', async () => {
         expect(footer.children).to.have.lengthOf(2);
         const trialButton = footer.children[1];
         await trialButton.onceSettled();
-        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.children).to.have.lengthOf(2);
+        expect(footer.children[0].hidden).to.be.true;
+        expect(footer.children[1].hidden).to.be.false;
     });
 
     it('should keep all CTAs when hideTrialCTAs is false', async () => {

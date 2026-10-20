@@ -1128,12 +1128,10 @@ export async function processCTAs(
                                 trialCtaSwapped(false);
                             }
                         } else {
-                            cta.hidden = false;
                             trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
-                        cta.hidden = false;
                         trialCtaSwapped(false);
                     });
             });

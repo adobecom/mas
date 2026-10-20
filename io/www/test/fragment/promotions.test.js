@@ -1587,7 +1587,7 @@ describe('promotions', () => {
             expect(second.activeProjects[0].groupedVariationReferences).to.equal(
                 first.activeProjects[0].groupedVariationReferences,
             );
-            expect(second.activeProjects[0].groupedVariationReferences.get('PA-123/pzn/edu')).to.equal(
+            expect(second.activeProjects[0].groupedVariationReferences.get('PA-123/pzn/edu')).to.deep.equal(
                 hydrated.references['frag-1'].value,
             );
             clock.returns(T0 + 60001);
@@ -1608,6 +1608,24 @@ describe('promotions', () => {
             expect((await promotionsTransformer.init(previewCtx())).activeProjects).to.have.length(0);
             const recovered = await promotionsTransformer.init(previewCtx());
             expect(recovered.activeProjects[0].promoCode).to.equal('RECOVERED');
+        });
+
+        it('downloads a project and its variation listing once for preview runs that start together', async () => {
+            const project = makeProject({ id: 'proj-1', surfaces: ['acom'], geos: ['/content/cq:tags/mas/locale/en_US'] });
+            const listingUrl =
+                'https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/acom/en_US/promotions/black-friday&limit=50';
+            fetchStub.withArgs(FOLDER_URL).callsFake(() => createResponse(200, { items: [project] }));
+            fetchStub
+                .withArgs(hydrateUrl('proj-1'))
+                .callsFake(() => createResponse(200, makeHydratedProject({ promoCode: 'SAVE20' })));
+            const previewCtx = () =>
+                createContext({ regionLocale: 'en_US', preview: { url: 'https://odin.adobe.com/adobe/contentFragments' } });
+
+            const results = await Promise.all([1, 2, 3].map(() => promotionsTransformer.init(previewCtx())));
+
+            expect(fetchStub.withArgs(hydrateUrl('proj-1')).callCount).to.equal(1);
+            expect(fetchStub.withArgs(listingUrl).callCount).to.equal(1);
+            results.forEach((result) => expect(result.activeProjects[0].promoCode).to.equal('SAVE20'));
         });
 
         it('blocks for a fresh preview listing after one minute instead of serving the expired listing', async () => {

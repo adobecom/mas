@@ -7,6 +7,9 @@ const { CardDetector, DETECTABLE_TAGS, waitForDetectableElement } = require('../
 
 const detector = new CardDetector();
 
+const VISIBLE_BOX = { top: 0, left: 0, right: 120, bottom: 24, width: 120, height: 24 };
+const HIDDEN_BOX = { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 };
+
 function fakeBareElement({
     is,
     osi,
@@ -15,6 +18,7 @@ function fakeBareElement({
     text = '',
     fragmentId = null,
     masFieldOwner = null,
+    visible = true,
 } = {}) {
     return {
         tagName: is === 'inline-price' ? 'SPAN' : is === 'checkout-button' ? 'BUTTON' : 'A',
@@ -34,7 +38,7 @@ function fakeBareElement({
             return [];
         },
         getBoundingClientRect() {
-            return { top: 0, left: 0, bottom: 0, right: 0 };
+            return visible ? VISIBLE_BOX : HIDDEN_BOX;
         },
     };
 }
@@ -45,8 +49,14 @@ function fakeMasField({
     text = '',
     insideCard = false,
     commerceChild = null,
-    contentSpan = null,
+    contentSpan = undefined,
+    visible = true,
 } = {}) {
+    // mas-field renders its content inside a [data-role="mas-field-content"] span; a visible field
+    // has a boxed span, a hidden responsive variant a zero-size one. Tests pass contentSpan: null to
+    // model a field whose content element the detector must fall back past.
+    const span =
+        contentSpan === undefined ? { getBoundingClientRect: () => (visible ? VISIBLE_BOX : HIDDEN_BOX) } : contentSpan;
     return {
         tagName: 'MAS-FIELD',
         textContent: text,
@@ -60,7 +70,7 @@ function fakeMasField({
             return insideCard && selector.includes('merch-card') ? {} : null;
         },
         querySelector(selector) {
-            if (selector.includes('mas-field-content')) return contentSpan;
+            if (selector.includes('mas-field-content')) return span;
             if (selector.includes('inline-price')) return commerceChild;
             return null;
         },
@@ -68,12 +78,19 @@ function fakeMasField({
             return [];
         },
         getBoundingClientRect() {
-            return { top: 0, left: 0, bottom: 0, right: 0 };
+            return HIDDEN_BOX;
         },
+        parentElement: null,
     };
 }
 
-function fakeCard({ fragmentId = 'frag-1', variant = 'plans', name = 'Photoshop', tagName = 'MERCH-CARD' } = {}) {
+function fakeCard({
+    fragmentId = 'frag-1',
+    variant = 'plans',
+    name = 'Photoshop',
+    tagName = 'MERCH-CARD',
+    visible = true,
+} = {}) {
     const aemFragment = {
         getAttribute(attr) {
             if (attr === 'fragment') return fragmentId;
@@ -97,7 +114,7 @@ function fakeCard({ fragmentId = 'frag-1', variant = 'plans', name = 'Photoshop'
             return [];
         },
         getBoundingClientRect() {
-            return { top: 0, left: 0, bottom: 0, right: 0 };
+            return visible ? VISIBLE_BOX : HIDDEN_BOX;
         },
     };
 }
@@ -223,6 +240,13 @@ test('processBareElement surfaces a real promotion code', () => {
     assert.equal(data.promotion.effectiveCode, 'SAVE20');
 });
 
+test('processBareElement skips a hidden (zero-size) price', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processBareElement(fakeBareElement({ is: 'inline-price', osi: 'abc123', visible: false }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
 test('processBareElement does not create duplicate entries for the same element', () => {
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
@@ -284,6 +308,24 @@ test('processCard exposes its fragment id as the source fragment id', async () =
     assert.equal(data.sourceFragmentId, 'frag-card');
 });
 
+test('processCard skips a hidden (zero-size) card', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    await d.processCard(fakeCard({ fragmentId: 'frag-card', visible: false }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
+test('processCard keeps the visible twin when a hidden duplicate shares its fragment id', async () => {
+    // Responsive pages ship a desktop and a mobile-web copy of a card with the same fragment id;
+    // whichever is walked first must not claim the fragment and leave the visible one unbadged.
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    await d.processCard(fakeCard({ fragmentId: 'dup', visible: false, name: 'Hidden' }));
+    await d.processCard(fakeCard({ fragmentId: 'dup', visible: true, name: 'Visible' }));
+    assert.equal(d.detectedCards.size, 1);
+    assert.equal(d.detectedCards.get('dup').cardName, 'Visible');
+});
+
 test('processMasField records a loaded content field with its fragment id', () => {
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
@@ -327,9 +369,9 @@ test('processMasField records a price field as a field, carrying the inner offer
     d.pageLocale = { locale: 'en_US', country: 'US' };
     const commerceChild = {
         getAttribute: (name) => (name === 'data-wcs-osi' ? 'abc123' : null),
-        getBoundingClientRect: () => ({ top: 0, left: 0, bottom: 0, right: 0 }),
+        getBoundingClientRect: () => VISIBLE_BOX,
     };
-    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'price', commerceChild }));
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'price', commerceChild, contentSpan: null }));
     assert.equal(d.detectedCards.size, 1);
     const [[, data]] = d.detectedCards.entries();
     assert.equal(data.elementType, 'field');
@@ -364,7 +406,7 @@ test('processMasField does not create duplicate entries for the same field', () 
 test('processMasField anchors positioning on the rendered content span', () => {
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
-    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40 }) };
+    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40, width: 35, height: 15 }) };
     const el = fakeMasField({ fragmentId: 'frag-7', contentSpan });
     d.processMasField(el);
     const [[, data]] = d.detectedCards.entries();
@@ -372,13 +414,20 @@ test('processMasField anchors positioning on the rendered content span', () => {
     assert.equal(data.element, el);
 });
 
-test('processMasField anchors on the field itself when it has no content span', () => {
+test('processMasField skips a field that renders no visible content', () => {
+    // A field whose content span and commerce child have no box is a hidden responsive variant;
+    // badging it would pin an invisible badge, so it is not detected.
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
-    const el = fakeMasField({ fragmentId: 'frag-7' });
-    d.processMasField(el);
-    const [[, data]] = d.detectedCards.entries();
-    assert.equal(data.anchorElement, el);
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', contentSpan: null }));
+    assert.equal(d.detectedCards.size, 0);
+});
+
+test('processMasField skips a field hidden behind a zero-size content span', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    d.processMasField(fakeMasField({ fragmentId: 'frag-7', visible: false }));
+    assert.equal(d.detectedCards.size, 0);
 });
 
 test('cards and bare elements anchor positioning on themselves', async () => {
@@ -396,7 +445,7 @@ test('cards and bare elements anchor positioning on themselves', async () => {
 test('getAllCards exposes the source fragment id and anchor rect for field elements', () => {
     const d = new CardDetector();
     d.pageLocale = { locale: 'en_US', country: 'US' };
-    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40 }) };
+    const contentSpan = { getBoundingClientRect: () => ({ top: 5, left: 5, bottom: 20, right: 40, width: 35, height: 15 }) };
     d.processMasField(fakeMasField({ fragmentId: 'frag-7', field: 'title', contentSpan }));
     const [field] = d.getAllCards();
     assert.equal(field.sourceFragmentId, 'frag-7');
@@ -435,4 +484,45 @@ test('detectable tags cover the commerce-only elements, not just merch-card', ()
     assert.ok(DETECTABLE_TAGS.includes('mas-field'));
     assert.ok(DETECTABLE_TAGS.includes('inline-price'));
     assert.ok(DETECTABLE_TAGS.includes('merch-card'));
+});
+
+function fakeTarget({ box, parentElement = null } = {}) {
+    let scrolled = false;
+    const t = {
+        style: {},
+        parentElement,
+        getBoundingClientRect: () => box,
+        scrollIntoView: () => {
+            scrolled = true;
+        },
+    };
+    Object.defineProperty(t, 'scrolled', { get: () => scrolled });
+    return t;
+}
+
+test('highlightCard scrolls the detected anchor into view', () => {
+    const d = new CardDetector();
+    const anchor = fakeTarget({ box: VISIBLE_BOX });
+    d.detectedCards.set('x', { anchorElement: anchor });
+    d.highlightCard('x');
+    assert.equal(anchor.scrolled, true);
+    assert.equal(anchor.style.outline, '3px solid #ff0000');
+});
+
+test('highlightCard climbs to the nearest boxed ancestor when the anchor has no box', () => {
+    const d = new CardDetector();
+    const parent = fakeTarget({ box: VISIBLE_BOX });
+    const anchor = fakeTarget({ box: HIDDEN_BOX, parentElement: parent });
+    d.detectedCards.set('x', { anchorElement: anchor });
+    d.highlightCard('x');
+    assert.equal(anchor.scrolled, false);
+    assert.equal(parent.scrolled, true);
+});
+
+test('highlightCard does nothing when no ancestor renders a box', () => {
+    const d = new CardDetector();
+    const anchor = fakeTarget({ box: HIDDEN_BOX });
+    d.detectedCards.set('x', { anchorElement: anchor });
+    assert.doesNotThrow(() => d.highlightCard('x'));
+    assert.equal(anchor.scrolled, false);
 });

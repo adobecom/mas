@@ -39,7 +39,7 @@ The commerce service resolves `service.settings.aupSelect` during initialization
 
 When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
 
-Only exact `on` enables routing; the default is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or empty value. Storage overrides are ignored.
+Any value other than `off` or `false` enables routing (for example `on` or an empty value); the default, when no value is set, is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or `false` value. Storage overrides are ignored.
 
 AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Upgrade and perpetual offers, downloads, and links targeting another window retain their existing URLs.
 
@@ -51,7 +51,7 @@ Upgrade CTAs retain their existing checkout action. Perpetual offers also retain
 
 The main resolved offer supplies product arrangement, optional product code, and segments. Checkout options supply country, language, and segment overrides. Optional `svar`, `customerIntent`, and `sid` go in the recommendation context. All resolved offer IDs are passed in the checkout workflow's `items` format (`offerId|quantity,offerId|quantity`), preserving promotional offers and selected addons. Per-item quantities are used when supplied; otherwise the main quantity applies to each item. An explicit `q` overrides those quantities.
 
-Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `af`, and the workflow's supported tracking, subscription, authentication, and display parameters. M@S maps `checkoutWorkflowStep` to `step`, `promotionCode` to `apc`, `addonProductArrangementCode` to `ao`, and dotted checkout names such as `so.su` to `soSu`. Explicit workflow parameter names take precedence over these aliases. The return URL defaults to the current page. Internal Select variants and SDK rendering-mode flags are not forwarded.
+Checkout workflow params include `step`, `apc`, `ao`, `ctxrturl`, `rtc`, `lo`, `af`, and the workflow's supported tracking, subscription, authentication, and display parameters. M@S maps `checkoutWorkflowStep` to `step`, `promotionCode` to `apc`, `addonProductArrangementCode` to `ao`, and dotted checkout names such as `so.su` to `soSu`. On the `segmentation` step, `ao` defaults to the product arrangement of the first cart offer that differs from the main offer (for example a checked Stock add-on), matching the checkout URL; an explicit `addonProductArrangementCode` takes precedence. Explicit workflow parameter names take precedence over these aliases. The return URL defaults to the current page. Internal Select variants and SDK rendering-mode flags are not forwarded.
 
 The [AUP integration contract](https://wiki.corp.adobe.com/spaces/BPS/pages/3985062578/Client+team+integration+details) merges these runtime params with the recommendation, with recommendation values taking precedence. Availability and behavior depend on the host's SDK release and campaign configuration; forwarding a parameter does not guarantee a particular Select experience.
 

@@ -668,6 +668,16 @@ export class MerchCardCollection extends LitElement {
 
     get showMoreButton() {
         if (!this.hasMore) return;
+        // product-pricing loads no Spectrum, so it gets a native button.
+        if (this.classList.contains('product-pricing')) {
+            return html`<button
+                type="button"
+                class="show-more"
+                @click="${this.showMore}"
+            >
+                <slot name="showMoreText"></slot>
+            </button>`;
+        }
         return html`<sp-button
             variant="secondary"
             treatment="outline"
@@ -742,6 +752,36 @@ export class MerchCardCollection extends LitElement {
             justify-self: stretch;
             color: var(--merch-color-grey-80);
             order: 1000;
+        }
+
+        :host(.product-pricing) #footer {
+            display: flex;
+            justify-content: center;
+            /* 24px below the last row, less the grid gap and the padding. */
+            margin-top: calc(24px - 8px - 4px);
+            /* Room for the button's focus ring, which an ancestor would clip. */
+            padding-block: 4px;
+        }
+
+        /* Same look as the outlined product-pricing CTAs. */
+        :host(.product-pricing) .show-more {
+            box-sizing: border-box;
+            min-height: 40px;
+            padding: 8px 22px;
+            border: 2px solid #000;
+            border-radius: 999px;
+            background: transparent;
+            color: #000;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 18px;
+            cursor: pointer;
+        }
+
+        :host(.product-pricing) .show-more:focus-visible {
+            outline: 2px solid #3b63fb;
+            outline-offset: 2px;
         }
 
         sp-theme {

@@ -285,14 +285,11 @@ merch-card[variant="plans-v2"] [slot="heading-m"] .price-legal {
     line-height: 1.375;
 }
 
-merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence,
-merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence"] {
-    text-transform: lowercase;
+merch-card[variant="plans-v2"] [slot="heading-m"] .price-recurrence {
     line-height: 1.4;
 }
 
-merch-card[variant="plans-v2"] [slot="heading-m"] .price:not(.price-annual) .price-recurrence:not(.disabled)::after,
-merch-card[variant="plans-v2"] [slot="heading-m"] span[data-template="recurrence"]:not(.disabled)::after {
+merch-card[variant="plans-v2"] [slot="heading-m"] .price:not(.price-annual) .price-recurrence:not(.disabled)::after {
     content: ' ';
     white-space: pre;
 }

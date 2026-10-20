@@ -324,6 +324,7 @@ describe('common.js - fetchOdin', () => {
 
             expect(error).to.be.an.instanceOf(Error);
             expect(error.message).to.equal('GET /api/broken failed with status 500: Internal Server Error');
+            expect(error.status).to.equal(500);
         });
 
         it('should log error with JSON body when available', async () => {
@@ -1237,5 +1238,28 @@ describe('common.js - putToOdin retry behaviour', () => {
         expect(fetchStub).to.have.been.calledOnce;
         expect(error).to.be.an.instanceOf(Error);
         expect(error.message).to.include('status 500');
+    });
+});
+
+describe('common.js - parseOdinHttpStatus', () => {
+    const common = require('../src/common.js');
+
+    it('prefers the status property attached by fetchOdin over parsing the message', () => {
+        const error = new Error('some unrelated message with no status text');
+        error.status = 412;
+
+        expect(common.parseOdinHttpStatus(error)).to.equal(412);
+    });
+
+    it('falls back to parsing "status NNN" from the message when no status property is set', () => {
+        expect(common.parseOdinHttpStatus(new Error('PATCH /x failed with status 412: Precondition Failed'))).to.equal(412);
+    });
+
+    it('falls back to parsing ": NNN: " from the message when no status property is set', () => {
+        expect(common.parseOdinHttpStatus(new Error('request failed: 429: Too Many Requests'))).to.equal(429);
+    });
+
+    it('returns 0 when no status can be determined', () => {
+        expect(common.parseOdinHttpStatus(new Error('boom'))).to.equal(0);
     });
 });

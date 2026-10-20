@@ -110,7 +110,7 @@ export class MasCommerceService extends HTMLElement {
         const config = this.#config;
         // Load settings and literals
         const settings = getSettings(config, this);
-        updateLanaConfig(config.lana);
+        updateLanaConfig({ ...config.lana, country: settings.country });
         const log = Log.init(config.hostEnv).module('service');
         log.debug('Activating:', config);
 

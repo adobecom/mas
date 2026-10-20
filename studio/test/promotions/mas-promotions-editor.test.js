@@ -15,9 +15,13 @@ import {
     STAGED,
 } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
-import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
+import {
+    buildPromotionTagPath,
+    serializePromotionSurfacesForAem,
+    GROUP_BY,
+} from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
-import { resetTagCache } from '../helpers/tag-cache.js';
+import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '@spectrum-web-components/tabs/sp-tab.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
@@ -148,6 +152,7 @@ describe('MasPromotionsEditor', () => {
             getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
                     cf: {
@@ -184,11 +189,46 @@ describe('MasPromotionsEditor', () => {
         el.fragmentStore.updateField('startDate', ['2024-01-01T00:00:00.000Z']);
         el.fragmentStore.updateField('endDate', ['2024-12-31T00:00:00.000Z']);
         el.fragmentStore.updateField('tags', ['mas:promotion/code-test']);
-        el.fragmentStore.updateField('geos', ['mas:locale/us']);
+        el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
         el.fragmentStore.updateField('surfaces', ['sandbox']);
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
     }
+
+    describe('publishing overlay', () => {
+        it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+
+            el.promotionPublish = true;
+            await el.updateComplete;
+            const overlay = el.renderRoot.querySelector('.publishing-overlay');
+            expect(overlay).to.not.be.null;
+            expect(overlay.querySelector('sp-progress-circle')).to.not.be.null;
+
+            el.promotionPublish = false;
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('.publishing-overlay')).to.be.null;
+        });
+
+        it('labels the progress circle as "Publishing project" for a publish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'publish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Publishing project');
+        });
+
+        it('labels the progress circle as "Unpublishing project" for an unpublish action', async () => {
+            const el = await mountEditor();
+            el.promotionPublish = true;
+            el.promotionPublishAction = 'unpublish';
+            await el.updateComplete;
+            const progressCircle = el.renderRoot.querySelector('.publishing-overlay sp-progress-circle');
+            expect(progressCircle.getAttribute('label')).to.equal('Unpublishing project');
+        });
+    });
 
     describe('selectedItemsCount', () => {
         it('sums selected offers, cards and collections from the promotions store', async () => {
@@ -227,6 +267,26 @@ describe('MasPromotionsEditor', () => {
             expect(el.canManagePromoCodesInEmptyState).to.be.false;
             const editBtn = el.renderRoot.querySelector('.promotion-empty-actions sp-action-button');
             expect(editBtn?.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('disables manage promo codes when geos contain no country', async () => {
+            const el = await mountEditor();
+            el.canEdit = true;
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodes).to.be.false;
+            expect(el.canManagePromoCodesInEmptyState).to.be.false;
+        });
+
+        it('enables manage promo codes when a country geo is selected', async () => {
+            const el = await mountEditor();
+            el.canEdit = true;
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodes).to.be.true;
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
         });
 
         it('shows Add offer for offers on Offers tab and Edit for fragments on Fragments tab', async () => {
@@ -327,12 +387,15 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             document.dispatchEvent(
                 new CustomEvent(EVENT_OST_OFFER_SELECT, {
-                    detail: { offerSelectorId: 'ffsa-osi', offer: { product_code: 'FFSA', offer_id: 'wcs-1' } },
+                    detail: {
+                        offerSelectorId: 'ffsa-osi',
+                        offer: { product_code: 'FFSA', offer_id: 'wcs-1', product_arrangement_code: 'ffsa_direct_individual' },
+                    },
                     bubbles: true,
                     composed: true,
                 }),
             );
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await flushPromises();
             await el.updateComplete;
             expect(Store.promotions.selectedOffers.value).to.include('ffsa-osi');
             expect(el.fragment.getFieldValues('offers')).to.include('ffsa-osi');
@@ -640,6 +703,7 @@ describe('MasPromotionsEditor', () => {
                     },
                     getFragmentByPath: sandbox.stub().resolves(null),
                 },
+                clearStagedTag: sandbox.stub().resolves(null),
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Publish');
@@ -831,16 +895,256 @@ describe('MasPromotionsEditor', () => {
             expect(tagsPicker.getAttribute('value')).to.equal('mas:promotion/new');
         });
 
-        it('updates geos via change on geos tag-picker-field', async () => {
+        it('removes locale tags from the picker and keeps country geos', async () => {
+            seedTagCache(MAS_TAG_NAMESPACE, []);
             const el = await mountEditor();
-            const tagPickers = el.renderRoot.querySelectorAll('aem-tag-picker-field');
-            const geosPicker = tagPickers[1];
-            expect(geosPicker).to.not.be.null;
-            geosPicker.setAttribute('value', 'mas:locale/us');
-            geosPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
             await el.updateComplete;
-            const geos = el.fragment.getFieldValues('geos');
-            expect(geos).to.deep.equal(['mas:locale/us']);
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            await geosPicker.updateComplete;
+            const localeTag = geosPicker.shadowRoot.querySelector('sp-tag[data-path="/content/cq:tags/mas/locale/en_US"]');
+            expect(localeTag.hasAttribute('deletable')).to.be.true;
+            localeTag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+            await flushPromises();
+            await geosPicker.updateComplete;
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US', 'mas:pzn/smb']);
+        });
+
+        it('shows Personalization tags in the picker', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            expect(geosPicker.getAttribute('top')).to.equal('locale,pzn');
+            expect(geosPicker.getAttribute('label')).to.equal('Personalization tags');
+            expect(geosPicker.value).to.deep.equal(['/content/cq:tags/mas/locale/en_US', '/content/cq:tags/mas/pzn/smb']);
+        });
+
+        it('disables the countries selector with a hint when no surface is selected', async () => {
+            const el = await mountEditor();
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            expect(selector.disabled).to.be.true;
+            expect(selector.addLabel).to.equal('Select surfaces first');
+            expect(selector.description).to.equal('Countries will be generated automatically once surfaces are selected.');
+        });
+
+        it('offers only countries available on every selected surface', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom', 'ccd']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-region-picker');
+            const countries = picker.items.map(({ country }) => country);
+            expect(selector.disabled).to.be.false;
+            expect(countries).to.include('US');
+            expect(countries).to.not.include('BG');
+        });
+
+        it('keeps the same country items reference across unrelated field edits', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            await el.updateComplete;
+            const picker = el.renderRoot.querySelector('#promotion-countries mas-region-picker');
+            const items = picker.items;
+            el.fragmentStore.updateField('title', ['Renamed']);
+            await el.updateComplete;
+            expect(picker.items).to.equal(items);
+        });
+
+        it('rebuilds country items when surfaces change', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            await el.updateComplete;
+            const picker = el.renderRoot.querySelector('#promotion-countries mas-region-picker');
+            const items = picker.items;
+            el.fragmentStore.updateField('surfaces', ['acom', 'ccd']);
+            await el.updateComplete;
+            expect(picker.items).to.not.equal(items);
+        });
+
+        it('hides selected country editing controls without edit permission', async () => {
+            Store.users.set([]);
+            const el = await mountEditor();
+            el.canEdit = false;
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            await selector.updateComplete;
+            expect(selector.hasAttribute('readonly')).to.be.true;
+            expect(selector.shadowRoot.querySelector('.edit-button')).to.be.null;
+            expect(selector.shadowRoot.querySelector('.add-button')).to.be.null;
+        });
+
+        it('shows selected countries from pzn country tags only', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#promotion-countries').selected).to.deep.equal(['US']);
+        });
+
+        it('writes confirmed countries as pzn country tags and keeps other geos', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().resolves({
+                hits: [{ path: '/content/cq:tags/mas/pzn/country/fr' }, { path: '/content/cq:tags/mas/pzn/country/DE' }],
+            });
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-region-picker');
+            selector.dispatchEvent(new Event('open'));
+            expect(picker.store.value).to.deep.equal(['US']);
+            picker.store.set(['FR', 'DE']);
+            selector.dispatchEvent(new CustomEvent('confirm', { detail: {} }));
+            await flushPromises();
+            await el.updateComplete;
+            expect(repo.aem.tags.list.calledOnceWithExactly('/content/cq:tags/mas/pzn/country')).to.be.true;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal([
+                'mas:locale/en_US',
+                'mas:pzn/smb',
+                'mas:pzn/country/fr',
+                'mas:pzn/country/DE',
+            ]);
+        });
+
+        it('keeps original country geos on unchanged confirmation without loading taxonomy', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub();
+            const geos = ['mas:pzn/country/fr_FR', '/content/cq:tags/mas/pzn/country/au', 'mas:pzn/smb'];
+            el.fragmentStore.updateField('geos', geos);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.dispatchEvent(new CustomEvent('confirm', { detail: {} }));
+            await flushPromises();
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(geos);
+            expect(repo.aem.tags.list.called).to.be.false;
+        });
+
+        it('leaves geos untouched and reports a missing taxonomy tag', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().resolves({ hits: [] });
+            const toast = sandbox.spy();
+            Events.toast.subscribe(toast);
+            try {
+                const geos = ['mas:pzn/country/fr_FR', 'mas:pzn/smb'];
+                el.fragmentStore.updateField('geos', geos);
+                await el.updateComplete;
+                const selector = el.renderRoot.querySelector('#promotion-countries');
+                selector.dispatchEvent(new Event('open'));
+                selector.querySelector('mas-region-picker').store.set(['AU']);
+                const confirmEvent = new CustomEvent('confirm', { detail: {} });
+                selector.dispatchEvent(confirmEvent);
+                expect(await confirmEvent.detail.pending).to.be.false;
+                expect(el.fragment.getFieldValues('geos')).to.deep.equal(geos);
+                expect(toast.lastCall.args[0].variant).to.equal('negative');
+                expect(toast.lastCall.args[0].content).to.include('AU');
+            } finally {
+                Events.toast.unsubscribe(toast);
+            }
+        });
+
+        it('keeps geos and resolves pending false when the country taxonomy lookup fails', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().rejects(new Error('Tags unavailable'));
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['US', 'FR']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+            expect(toastStub.lastCall.args[0]).to.include({ content: 'Tags unavailable', variant: 'negative' });
+        });
+
+        it('does not change geos when country selection is cancelled', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['FR']);
+            selector.dispatchEvent(new Event('cancel'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('removes countries not available on newly added surfaces', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/BG']);
+            await el.updateComplete;
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/smb', 'mas:pzn/country/US']);
+        });
+
+        it('shows an info toast listing countries removed by a surface change', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US', 'mas:pzn/country/BG']);
+            await el.updateComplete;
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.lastCall.args[0].variant).to.equal('info');
+            expect(toastStub.lastCall.args[0].content).to.equal(
+                'Removed countries not available on the selected surfaces: BG.',
+            );
+        });
+
+        it('does not rewrite geos when all countries remain eligible after adding a surface', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            const geos = el.geos;
+            const updateField = sandbox.spy(el.fragmentStore, 'updateField');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
+            expect(updateField.calledWith('geos')).to.be.false;
+            expect(el.geos).to.equal(geos);
+        });
+
+        it('does not write geos on surface change when the fragment has no geos field', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const fields = makeFragmentData({ surfaces: ['acom'] }).fields.filter(({ name }) => name !== 'geos');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ fields })));
+            const el = await mountEditor();
+            const updateField = sandbox.spy(el.fragmentStore, 'updateField');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(updateField.calledWith('geos')).to.be.false;
+        });
+
+        it('removes all countries when the last surface is deleted', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('sp-tag[deletable][value="acom"]')
+                .dispatchEvent(new Event('delete', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal([]);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:locale/en_US']);
         });
 
         it('removes surface on delete event from sp-tag', async () => {
@@ -1100,6 +1404,33 @@ describe('MasPromotionsEditor', () => {
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
         });
 
+        it('blocks create when geos hold neither countries nor personalization tags', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Please select at least one country or personalization tag.',
+                }),
+            ).to.be.true;
+        });
+
+        it('allows create when geos hold only personalization tags', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('geos', ['mas:pzn/edu']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+        });
+
         it('passes promoCode field values through unchanged in the create payload', async () => {
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
@@ -1263,7 +1594,7 @@ describe('MasPromotionsEditor', () => {
             el.disconnectedCallback();
             await el.connectedCallback();
             await el.updateComplete;
-            await new Promise((r) => setTimeout(r, 50));
+            await getCollectionPathsForSurfaces.lastCall.returnValue;
             expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
@@ -1295,7 +1626,7 @@ describe('MasPromotionsEditor', () => {
             // User adds a card while the surface search is still pending.
             Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
             releaseSearch();
-            await new Promise((r) => setTimeout(r, 50));
+            await getCollectionPathsForSurfaces.lastCall.returnValue;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
@@ -1470,6 +1801,83 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.unpublish.called).to.be.false;
         });
+
+        it('ignores a second unpublish click while the checkbox dialog is open, and applies the checked value on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'PUBLISHED',
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'PUBLISHED', title: 'Published variation' }],
+            });
+            const unpublish = sandbox.stub().resolves();
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                getWithEtag,
+                                getByPath,
+                                search,
+                                unpublish,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Unpublish');
+            clickPromotionQuickAction(el, 'Unpublish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.isDialogOpen).to.be.true;
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+            expect(el.dialogCheckboxChecked).to.be.true;
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(el.confirmDialogConfig).to.be.null;
+            expect(el.isDialogOpen).to.be.false;
+            expect(unpublish.calledTwice).to.be.true;
+            expect(unpublish.calledWith(sinon.match({ id: 'promo-var-id', path: promoVarPath }))).to.be.true;
+        });
     });
 
     describe('publish reminder flow', () => {
@@ -1529,6 +1937,81 @@ describe('MasPromotionsEditor', () => {
             expect(repo.aem.sites.cf.fragments.search.calledWith({ path: promoFolder }, 50)).to.be.true;
             expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
             expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+        });
+
+        it('publishes the attached promo variation together with the project when the checkbox is checked on confirm', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+            const promoVarPath = '/content/dam/mas/sandbox/en_US/promotions/code-test/my-card';
+            const promotion = makePromotion({
+                id: 'promo-1',
+                title: 'Test Promotion',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                status: 'DRAFT',
+                fragments: [parentPath],
+                fields: [
+                    { name: 'title', type: 'text', values: ['Test Promotion'] },
+                    { name: 'promoCode', type: 'text', values: ['TEST'] },
+                    { name: 'startDate', values: ['2030-01-01T00:00:00.000Z'] },
+                    { name: 'endDate', values: ['2030-12-31T00:00:00.000Z'] },
+                    { name: 'tags', values: ['mas:promotion/code-test'], multiple: true },
+                    { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: [parentPath] },
+                ],
+            });
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/code-test';
+            const search = makeSearchStub({
+                [promoFolder]: [{ id: 'promo-var-id', path: promoVarPath, status: 'DRAFT', title: 'Unpublished variation' }],
+            });
+            const getWithEtag = sandbox.stub();
+            getWithEtag
+                .withArgs('promo-1')
+                .resolves({ id: 'promo-1', path: '/content/dam/mas/promotions/test', etag: 'etag-promo' });
+            getWithEtag.withArgs('promo-var-id').resolves({ id: 'promo-var-id', path: promoVarPath, etag: 'etag-var' });
+            const getByPath = sandbox.stub().withArgs(promoVarPath).resolves({ id: 'promo-var-id', path: promoVarPath });
+            const publishFragments = sandbox.stub().resolves();
+            const { el } = await mountEditorWithRepo({
+                aem: {
+                    getFragmentByPath: sandbox.stub().resolves({
+                        path: parentPath,
+                        model: { path: CARD_MODEL_PATH },
+                    }),
+                    sites: {
+                        cf: {
+                            fragments: {
+                                getById: sandbox.stub().resolves(null),
+                                publish: sandbox.stub().resolves(),
+                                publishFragments,
+                                getWithEtag,
+                                getByPath,
+                                search,
+                            },
+                        },
+                    },
+                },
+            });
+            Store.promotions.selectedCollections.set([]);
+            await el.updateComplete;
+
+            clickPromotionQuickAction(el, 'Publish');
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            const checkbox = el.renderRoot.querySelector('sp-checkbox');
+            expect(checkbox).to.not.be.null;
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change'));
+
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            await el.updateComplete;
+
+            expect(publishFragments.calledOnce).to.be.true;
+            const [fragments] = publishFragments.firstCall.args;
+            expect(fragments.map((fragment) => fragment.path)).to.include(promoVarPath);
         });
     });
 
@@ -1854,7 +2337,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });
@@ -1904,7 +2387,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });
@@ -2777,6 +3260,28 @@ describe('MasPromotionsEditor', () => {
                 const toast = selector.shadowRoot.querySelector('sp-toast');
                 expect(toast.textContent).to.equal('Toast text');
                 expect(toast.variant).to.equal('positive');
+            });
+
+            it('updates promotionGroupBy when mas-group-by-select emits change', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                const groupBySelect = selector.shadowRoot.querySelector('mas-group-by-select');
+                expect(groupBySelect).to.not.be.null;
+                groupBySelect.dispatchEvent(new CustomEvent('change', { detail: { value: GROUP_BY.OFFER } }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.OFFER);
+            });
+
+            it('resets promotionGroupBy when the items table cancels a pending grouping', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                el.promotionGroupBy = GROUP_BY.TEMPLATE;
+                await el.updateComplete;
+                const table = viewSelector(el).shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.NONE);
             });
         });
     });

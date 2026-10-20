@@ -7,6 +7,7 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { ReactiveStore } from '../reactivity/reactive-store.js';
 import styles from './mas-promotions-editor-css.js';
 import {
     SURFACES,
@@ -16,6 +17,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    PZN_COUNTRY_TAG_PATH_PREFIX,
     STAGED,
     VARIATION_TAB_NAME,
 } from '../constants.js';
@@ -36,8 +38,21 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
+import '../common/components/mas-grouped-selector.js';
+import '../common/components/mas-region-picker.js';
+import {
+    getEligibleCountries,
+    getPersonalizationGeos,
+    getSelectedCountries,
+    pruneIneligibleCountries,
+    setCountriesInGeos,
+    setPersonalizationGeos,
+} from './promotion-countries.js';
+import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
+import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
+import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
     applyPromotionItemSelectionToFragment,
     buildPromotionOffersFieldValues,
@@ -61,6 +76,7 @@ import {
     buildDuplicatePromotionToastArgs,
     getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
+    GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import './mas-promo-codes-manager.js';
@@ -105,9 +121,17 @@ const PROMOTION_VIEW_TABS = [
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
 ];
 
+const PROMOTION_GROUP_BY_OPTIONS = [
+    { value: GROUP_BY.TEMPLATE, label: 'Template' },
+    { value: GROUP_BY.OFFER, label: 'Offer' },
+    { value: GROUP_BY.NONE, label: 'None' },
+];
+
 const PROMOTION_ITEM_PICKER_ALLOWED_TYPES = [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS];
 const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
 const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
+const PROMOTION_ITEM_VARIATION_COLUMNS = promoVariationColumns.filter(({ key }) => !['actions', 'relatedPages'].includes(key));
+const PROMOTION_ITEM_VARIATION_CELLS = promoVariationCells.filter((cell) => !['Actions', 'RelatedPages'].includes(cell));
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -141,13 +165,17 @@ class MasPromotionsEditor extends LitElement {
         isCreated: { type: Boolean, state: true },
         isDialogOpen: { type: Boolean, state: true },
         confirmDialogConfig: { type: Object, state: true },
+        dialogCheckboxChecked: { type: Boolean, state: true },
         isSelectedItemsOpen: { type: Boolean, state: true },
         promoCodesManagerOpen: { type: Boolean, state: true },
         promoManagerOffers: { type: Array, state: true },
         promotionItemsAddButtonLabel: { type: String, state: true },
         promotionEmptyItemsTab: { type: String, state: true },
         selectedItemsViewTab: { type: String, state: true },
+        promotionGroupBy: { type: String, state: true },
+        promotionItemsLoading: { type: Boolean, state: true },
         promotionPublish: { type: Boolean, state: true },
+        promotionPublishAction: { type: String, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
@@ -170,8 +198,11 @@ class MasPromotionsEditor extends LitElement {
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
+    #countryItemsKey = null;
+    #countryItems = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
+    #countriesStore = new ReactiveStore([]);
 
     constructor() {
         super();
@@ -180,13 +211,17 @@ class MasPromotionsEditor extends LitElement {
         this.isCreated = false;
         this.isDialogOpen = false;
         this.confirmDialogConfig = null;
+        this.dialogCheckboxChecked = false;
         this.isSelectedItemsOpen = true;
         this.promoCodesManagerOpen = false;
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
         this.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
+        this.promotionGroupBy = GROUP_BY.NONE;
+        this.promotionItemsLoading = true;
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionPublish = false;
+        this.promotionPublishAction = null;
         this.duplicateDialogOpen = false;
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
@@ -291,15 +326,13 @@ class MasPromotionsEditor extends LitElement {
 
     get canManagePromoCodes() {
         if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
-        return hasOffers && geos.length > 0;
+        return hasOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
         if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
-        return this.hasSelectedOffers && geos.length > 0;
+        return this.hasSelectedOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
@@ -379,6 +412,49 @@ class MasPromotionsEditor extends LitElement {
 
     get promotionPickerSurfaces() {
         return parsePromotionSurfacesFieldValues(this.fragment?.fields?.find((f) => f.name === 'surfaces')?.values ?? []);
+    }
+
+    get geos() {
+        return this.fragment?.getFieldValues('geos') ?? [];
+    }
+
+    get countryItems() {
+        const surfaces = this.promotionPickerSurfaces;
+        const key = surfaces.join(',');
+        if (key !== this.#countryItemsKey) {
+            this.#countryItemsKey = key;
+            this.#countryItems = getEligibleCountries(surfaces).map((country) => ({ value: country, country }));
+        }
+        return this.#countryItems;
+    }
+
+    get countriesSelector() {
+        const hasSurfaces = this.promotionPickerSurfaces.length > 0;
+        return html`
+            <mas-grouped-selector
+                id="promotion-countries"
+                class="form-field"
+                label="Selected countries"
+                heading="Select countries"
+                add-label=${hasSurfaces ? 'Add countries' : 'Select surfaces first'}
+                description=${hasSurfaces
+                    ? 'Choose one or more countries for your promotion.'
+                    : 'Countries will be generated automatically once surfaces are selected.'}
+                ?readonly=${!this.canEdit}
+                ?disabled=${!this.canEdit || !hasSurfaces}
+                .selected=${getSelectedCountries(this.geos)}
+                @open=${this.#openCountriesSelection}
+                @confirm=${this.#confirmCountriesSelection}
+            >
+                <mas-region-picker
+                    .store=${this.#countriesStore}
+                    .items=${this.countryItems}
+                    noun="country"
+                    noun-plural="countries"
+                    search-placeholder="Search country"
+                ></mas-region-picker>
+            </mas-grouped-selector>
+        `;
     }
 
     get #itemsSelectionDirty() {
@@ -568,7 +644,7 @@ class MasPromotionsEditor extends LitElement {
 
     async #confirmPublishWithUnpublishedPromoVariations() {
         return confirmPublishDespiteUnpublishedPromoVariations(this.repository.aem, this.fragment, (title, message, options) =>
-            this.#showDialog(title, message, options),
+            showConfirmDialog(this, title, message, options),
         );
     }
 
@@ -594,21 +670,23 @@ class MasPromotionsEditor extends LitElement {
             }
             return;
         }
-        const { confirmed, variationPaths } = await this.#confirmPublishWithUnpublishedPromoVariations();
+        const { confirmed, variationPaths, skippedCount } = await this.#confirmPublishWithUnpublishedPromoVariations();
         if (!confirmed) return;
         this.promotionPublish = true;
+        this.promotionPublishAction = 'publish';
         try {
-            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths);
+            const ok = await publishPromotionProject(this.repository, this.fragment, variationPaths, skippedCount);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
+            this.promotionPublishAction = null;
         }
     }
 
     #handlePublishPromotion = async () => {
         const confirmed =
             !this.fragment?.isStaged ||
-            (await this.#showDialog(STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
+            (await showConfirmDialog(this, STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
                 confirmText: 'Publish',
                 cancelText: 'Cancel',
                 variant: 'confirmation',
@@ -624,18 +702,20 @@ class MasPromotionsEditor extends LitElement {
             showToast('This promotion is not published.', 'info');
             return;
         }
-        const { confirmed, variationPaths } = await confirmUnpublishAlongsidePromoVariations(
+        const { confirmed, variationPaths, skippedCount } = await confirmUnpublishAlongsidePromoVariations(
             this.repository.aem,
             this.fragment,
-            (title, message, options) => this.#showDialog(title, message, options),
+            (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
         this.promotionPublish = true;
+        this.promotionPublishAction = 'unpublish';
         try {
-            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths);
+            const ok = await unpublishPromotionProject(this.repository, this.fragment, variationPaths, skippedCount);
             if (ok) await this.#reloadPromotionFromServer();
         } finally {
             this.promotionPublish = false;
+            this.promotionPublishAction = null;
         }
     };
 
@@ -661,9 +741,43 @@ class MasPromotionsEditor extends LitElement {
 
     #handleGeosChange = (event) => {
         const value = event.target.getAttribute('value');
-        const newGeos = value ? value.split(',') : [];
-        this.fragmentStore.updateField('geos', newGeos);
+        const personalizationGeos = value ? value.split(',') : [];
+        this.fragmentStore.updateField('geos', setPersonalizationGeos(this.geos, personalizationGeos));
     };
+
+    #openCountriesSelection = () => {
+        this.#countriesStore.set(getSelectedCountries(this.geos));
+    };
+
+    #confirmCountriesSelection = ({ detail }) => {
+        detail.pending = this.#applyCountriesSelection();
+    };
+
+    async #applyCountriesSelection() {
+        const countries = this.#countriesStore.value;
+        const existing = new Set(getSelectedCountries(this.geos));
+        try {
+            const tags = countries.some((country) => !existing.has(country))
+                ? (await this.repository.aem.tags.list(PZN_COUNTRY_TAG_PATH_PREFIX)).hits
+                : [];
+            this.fragmentStore.updateField('geos', setCountriesInGeos(this.geos, countries, tags));
+            return true;
+        } catch (error) {
+            showToast(error.message, 'negative');
+            return false;
+        }
+    }
+
+    #updateSurfaces(surfaces) {
+        this.fragmentStore.updateField('surfaces', surfaces);
+        const { geos } = this;
+        const prunedGeos = pruneIneligibleCountries(geos, this.promotionPickerSurfaces);
+        if (prunedGeos === geos) return;
+        const kept = new Set(getSelectedCountries(prunedGeos));
+        const removed = getSelectedCountries(geos).filter((country) => !kept.has(country));
+        this.fragmentStore.updateField('geos', prunedGeos);
+        showToast(`Removed countries not available on the selected surfaces: ${removed.join(', ')}.`, 'info');
+    }
 
     #handleCloseAddSurfacesDialog = (event) => {
         // Get the table element and its selected rows
@@ -672,7 +786,7 @@ class MasPromotionsEditor extends LitElement {
 
         // Update the fragment with the selected surfaces
         if (selectedSurfaces.length > 0) {
-            this.fragmentStore.updateField('surfaces', selectedSurfaces);
+            this.#updateSurfaces(selectedSurfaces);
         }
 
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -695,10 +809,7 @@ class MasPromotionsEditor extends LitElement {
     #handleSurfaceDelete = (event) => {
         const deletedSurface = event.target.attributes.getNamedItem('value').value;
         const surfaces = this.fragment.fields.find((field) => field.name === 'surfaces')?.values || [];
-        this.fragmentStore.updateField(
-            'surfaces',
-            surfaces.filter((surface) => surface !== deletedSurface),
-        );
+        this.#updateSurfaces(surfaces.filter((surface) => surface !== deletedSurface));
     };
 
     #handleFragmentUpdate({ target, detail, values }) {
@@ -991,7 +1102,8 @@ class MasPromotionsEditor extends LitElement {
     async #handleDeletePromotion() {
         if (!this.fragment?.id || this.isNewPromotion) return;
         const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
-        const confirmed = await this.#showDialog(
+        const confirmed = await showConfirmDialog(
+            this,
             'Confirm Delete',
             promotionDeleteConfirmMessage(this.fragment.title, attachedVariations.length),
             {
@@ -1076,45 +1188,18 @@ class MasPromotionsEditor extends LitElement {
         return getPromotionRequiredFieldsValidation(fragment, itemCount, this.evergreenEnabled);
     }
 
-    /**
-     * Display a dialog for confirmation
-     * @param {string} title - Dialog title
-     * @param {string} message - Dialog message
-     * @param {Object} options - Additional options
-     * @returns {Promise<boolean>} - True if confirmed, false if canceled
-     */
-    async #showDialog(title, message, options = {}) {
-        if (this.isDialogOpen) {
-            return false;
-        }
-
-        this.isDialogOpen = true;
-        const { confirmText = 'OK', cancelText = 'Cancel', variant = 'primary' } = options;
-
-        return new Promise((resolve) => {
-            this.confirmDialogConfig = {
-                title,
-                message,
-                confirmText,
-                cancelText,
-                variant,
-                onConfirm: () => {
-                    resolve(true);
-                },
-                onCancel: () => {
-                    resolve(false);
-                },
-            };
-        });
-    }
-
     async promptDiscardChanges() {
         if (!this.fragment?.hasChanges && !this.#itemsSelectionDirty) return true;
-        return this.#showDialog('Discard Changes', 'You have unsaved changes. Are you sure you want to leave this page?', {
-            confirmText: 'Discard',
-            cancelText: 'Cancel',
-            variant: 'confirmation',
-        });
+        return showConfirmDialog(
+            this,
+            'Discard Changes',
+            'You have unsaved changes. Are you sure you want to leave this page?',
+            {
+                confirmText: 'Discard',
+                cancelText: 'Cancel',
+                variant: 'confirmation',
+            },
+        );
     }
 
     #clearPromotionItemPickerSurface() {
@@ -1296,14 +1381,35 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #renderPromotionViewTable = (tab, host) => {
-        return html`<mas-promotions-items-table
-            .type=${tab.value}
-            .getDisplayName=${host.getDisplayName}
-            .renderFragmentStatusCell=${host.renderFragmentStatusCell}
-            @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
-            @promotion-offer-removed=${() =>
-                host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
-        ></mas-promotions-items-table>`;
+        const groupByEnabled = tab.value === TABLE_TYPE.CARDS;
+        return html`${groupByEnabled
+                ? html`<mas-group-by-select
+                      .options=${PROMOTION_GROUP_BY_OPTIONS}
+                      .value=${this.promotionGroupBy}
+                      ?pending=${this.promotionItemsLoading && this.promotionGroupBy !== GROUP_BY.NONE}
+                      @change=${this.#onPromotionGroupByChange}
+                  ></mas-group-by-select>`
+                : nothing}
+            <mas-promotions-items-table
+                .type=${tab.value}
+                .groupBy=${groupByEnabled ? this.promotionGroupBy : GROUP_BY.NONE}
+                .getDisplayName=${host.getDisplayName}
+                .renderFragmentStatusCell=${host.renderFragmentStatusCell}
+                @view-only-loading-change=${this.#onPromotionItemsLoadingChange}
+                @group-by-cancel=${() => (this.promotionGroupBy = GROUP_BY.NONE)}
+                @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
+                @promotion-offer-removed=${() =>
+                    host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
+            ></mas-promotions-items-table>`;
+    };
+
+    #onPromotionGroupByChange = (e) => {
+        this.promotionGroupBy = e.detail.value ?? GROUP_BY.NONE;
+    };
+
+    #onPromotionItemsLoadingChange = (e) => {
+        if (e.target.type !== TABLE_TYPE.CARDS) return;
+        this.promotionItemsLoading = e.detail.loading;
     };
 
     #onPromotionOfferRemoved = () => {
@@ -1590,6 +1696,9 @@ class MasPromotionsEditor extends LitElement {
                     .hideGroupedVariations=${true}
                     .variationTabs=${PROMOTION_ITEM_VARIATION_TABS}
                     .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
+                    .variationColumns=${PROMOTION_ITEM_VARIATION_COLUMNS}
+                    .variationCells=${PROMOTION_ITEM_VARIATION_CELLS}
+                    .hideVariationExpand=${true}
                     .restrictImportSurface=${this.promotionPickerSurfaces}
                     .validateImportFragment=${this.#validatePromotionImportFragment}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
@@ -1642,6 +1751,15 @@ class MasPromotionsEditor extends LitElement {
             ${this.duplicating
                 ? html`<div class="duplicating-overlay">
                       <sp-progress-circle label="Duplicating project" indeterminate size="l"></sp-progress-circle>
+                  </div>`
+                : nothing}
+            ${this.promotionPublish
+                ? html`<div class="publishing-overlay">
+                      <sp-progress-circle
+                          label=${this.promotionPublishAction === 'unpublish' ? 'Unpublishing project' : 'Publishing project'}
+                          indeterminate
+                          size="l"
+                      ></sp-progress-circle>
                   </div>`
                 : nothing}
             <mas-promotion-duplicate-dialog
@@ -1749,16 +1867,17 @@ class MasPromotionsEditor extends LitElement {
                                 class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label required>Geos</sp-field-label>
+                                <sp-field-label>Personalization tags</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
-                                    label="Locale tags"
+                                    label="Personalization tags"
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
+                                    exclude-country-tags
                                     multiple
                                     ?disabled=${readOnly}
-                                    value="${form.geos?.values.join(',') || ''}"
+                                    value="${getPersonalizationGeos(this.geos).join(',')}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
                             </sp-field-group>
@@ -1823,6 +1942,7 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                     </div>
                 </div>
+                ${this.countriesSelector}
                 <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState
@@ -1888,6 +2008,10 @@ class MasPromotionsEditor extends LitElement {
                                             .getDisplayName=${getPromotionPickerFragmentLabel}
                                             .renderFragmentStatusCell=${renderFragmentStatusCell}
                                             .renderTable=${this.#renderPromotionViewTable}
+                                            .renderData=${{
+                                                groupBy: this.promotionGroupBy,
+                                                loading: this.promotionItemsLoading,
+                                            }}
                                             .onTabChange=${this.#onSelectedItemsViewTabChange}
                                             @promotion-offer-removed=${this.#onPromotionOfferRemoved}
                                         ></mas-items-selector>`
@@ -1962,35 +2086,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get confirmDialog() {
-        if (!this.confirmDialogConfig) return nothing;
-
-        const { title, message, onConfirm, onCancel, confirmText, cancelText, variant } = this.confirmDialogConfig;
-
-        return html`
-            <div class="confirm-dialog-overlay">
-                <sp-dialog-wrapper
-                    open
-                    underlay
-                    id="promotion-unsaved-changes-dialog"
-                    .headline=${title}
-                    .variant=${variant || 'negative'}
-                    .confirmLabel=${confirmText}
-                    .cancelLabel=${cancelText}
-                    @confirm=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onConfirm && onConfirm();
-                    }}
-                    @cancel=${() => {
-                        this.confirmDialogConfig = null;
-                        this.isDialogOpen = false;
-                        onCancel && onCancel();
-                    }}
-                >
-                    <div>${message}</div>
-                </sp-dialog-wrapper>
-            </div>
-        `;
+        return renderConfirmDialog(this, 'promotion-unsaved-changes-dialog');
     }
 }
 

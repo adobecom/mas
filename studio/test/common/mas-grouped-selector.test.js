@@ -23,9 +23,18 @@ const render = (selected = [], { readonly = false, required = true } = {}) =>
 
 const query = (el, selector) => el.shadowRoot.querySelector(selector);
 
+// Test pages run as background tabs where the browser never fires animation frames, and the Spectrum
+// overlay waits on them to open. Drive frames with timers so the overlay opens regardless of tab state.
+// sinon.restore() in afterEach undoes the stubs.
+const useTimerFrames = () => {
+    sinon.stub(window, 'requestAnimationFrame').callsFake((callback) => setTimeout(() => callback(performance.now()), 16));
+    sinon.stub(window, 'cancelAnimationFrame').callsFake((id) => clearTimeout(id));
+};
+
 // sp-opened fires before the overlay moves focus into the dialog. Wait for that focus, or a key press
 // sent right after can miss the dialog on a slow runner.
 const openDialog = async (el) => {
+    useTimerFrames();
     const opened = oneEvent(query(el, 'overlay-trigger'), 'sp-opened');
     query(el, '.add-button').click();
     await opened;
@@ -46,13 +55,6 @@ describe('MasGroupedSelector', () => {
     afterEach(() => {
         fixtureCleanup();
         sinon.restore();
-    });
-
-    // Test pages run as background tabs where the browser never fires animation frames, and the Spectrum
-    // overlay waits on them to open. Drive frames with timers so the overlay opens regardless of tab state.
-    beforeEach(() => {
-        sinon.stub(window, 'requestAnimationFrame').callsFake((callback) => setTimeout(() => callback(performance.now()), 16));
-        sinon.stub(window, 'cancelAnimationFrame').callsFake((id) => clearTimeout(id));
     });
 
     it('renders the empty state when nothing is selected', async () => {

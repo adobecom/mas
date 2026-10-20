@@ -21,9 +21,10 @@ describe('Product body-xs inline price font-weight', () => {
                 <p><strong><span is="inline-price" data-template="price" id="bold">50%</span></strong> off</p>
                 <p><span is="inline-price" data-template="price" id="plain">US$10</span></p>
             </div>
-            <merch-addon><span is="inline-price" data-template="price" id="addon">US$5</span></merch-addon>`;
+            <merch-addon slot="addon"><span is="inline-price" data-template="price" id="addon">US$5</span></merch-addon>`;
         document.body.appendChild(card);
         await card.updateComplete;
+        await card.querySelector('merch-addon').updateComplete;
     });
 
     afterEach(() => {

@@ -1204,7 +1204,7 @@ describe('MasFragmentEditor', () => {
             Store.operation.set(originalOperation);
         });
 
-        function createPublishingEditor({ model, promotional = true, staged = true, dirty = true }) {
+        function createPublishingEditor({ model, promotional = true, staged = true, hasUnsavedChanges = true }) {
             const fragment = new Fragment({
                 id: 'publishing-fragment',
                 title: 'Saved title',
@@ -1215,7 +1215,7 @@ describe('MasFragmentEditor', () => {
                 tags: model === COLLECTION_MODEL_PATH && staged ? [{ id: STAGED.TAG }] : [],
                 fields: [{ name: 'tags', type: 'tag', multiple: true, values: staged ? [STAGED.TAG] : [] }],
             });
-            if (dirty) fragment.updateFieldInternal('title', 'Unsaved title');
+            if (hasUnsavedChanges) fragment.updateFieldInternal('title', 'Unsaved title');
             const el = document.createElement('mas-fragment-editor');
             el.inEdit.value = { get: () => fragment };
             sandbox.stub(el, 'repository').get(() => repository);
@@ -1223,31 +1223,35 @@ describe('MasFragmentEditor', () => {
         }
 
         for (const model of [CARD_MODEL_PATH, COLLECTION_MODEL_PATH]) {
-            for (const { group, promotional = true, staged = true, dirty = true, allowed } of [
+            for (const { group, promotional = true, staged = true, hasUnsavedChanges = true, allowed } of [
                 { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
                 { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: true },
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', hasUnsavedChanges: false, allowed: true },
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', staged: false, allowed: true },
                 { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', allowed: true },
                 { group: 'GRP-ODIN-MAS-ADMINS', allowed: true },
-                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', dirty: false, allowed: true },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', hasUnsavedChanges: false, allowed: false },
                 { group: 'GRP-ODIN-MAS-ACOM-EDITORS', promotional: false, allowed: true },
-                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', staged: false, allowed: true },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', staged: false, allowed: false },
+                { group: null, staged: false, hasUnsavedChanges: false, allowed: false },
             ]) {
-                it(`publishes ${model} promo=${promotional} staged=${staged} dirty=${dirty} as ${group}: ${allowed}`, async () => {
-                    Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
-                    const { el, fragment } = createPublishingEditor({ model, promotional, staged, dirty });
+                it(`publishes ${model} promo=${promotional} staged=${staged} hasUnsavedChanges=${hasUnsavedChanges} as ${group}: ${allowed}`, async () => {
+                    Store.users.set(group ? [{ userPrincipalName: 'author@adobe.com', groups: [group] }] : []);
+                    const { el, fragment } = createPublishingEditor({ model, promotional, staged, hasUnsavedChanges });
                     const toast = sandbox.spy(Events.toast, 'emit');
 
                     await el.publishFragment();
 
+                    expect(el.canPublishFragment).to.equal(allowed);
                     expect(save.calledOnce).to.equal(allowed && staged);
                     expect(publish.calledOnce).to.equal(allowed);
                     if (!allowed) {
                         expect(MasPublishStagedDialog.show.called).to.be.false;
-                        expect(fragment.title).to.equal('Unsaved title');
-                        expect(fragment.isStaged).to.be.true;
+                        expect(fragment.title).to.equal(hasUnsavedChanges ? 'Unsaved title' : 'Saved title');
+                        expect(fragment.isStaged).to.equal(staged);
                         expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
                     } else if (staged) {
-                        expect(save.firstCall.args[0].title).to.equal(dirty ? 'Unsaved title' : 'Saved title');
+                        expect(save.firstCall.args[0].title).to.equal(hasUnsavedChanges ? 'Unsaved title' : 'Saved title');
                     }
                 });
             }
@@ -1272,7 +1276,7 @@ describe('MasFragmentEditor', () => {
         });
 
         for (const withReferences of [false, true]) {
-            it(`rechecks update permission after staged confirmation with references=${withReferences}`, async () => {
+            it(`rechecks publish permission after staged confirmation with references=${withReferences}`, async () => {
                 Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
                 const { el } = createPublishingEditor({ model: CARD_MODEL_PATH });
                 if (withReferences) {
@@ -1296,6 +1300,72 @@ describe('MasFragmentEditor', () => {
                 expect(save.called).to.be.false;
                 expect(publish.called).to.be.false;
             });
+        }
+
+        it('preserves Select all for parent locale and grouped variations without including discovered promos', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { el, fragment } = createPublishingEditor({
+                model: CARD_MODEL_PATH,
+                promotional: false,
+                staged: false,
+                hasUnsavedChanges: false,
+            });
+            const locale = { id: 'locale-ref', path: '/content/dam/mas/sandbox/en_DZ/my-fragment', fields: [] };
+            const grouped = { id: 'grouped-ref', path: '/content/dam/mas/sandbox/en_US/pzn/my-fragment', fields: [] };
+            const promo = {
+                id: 'promo-ref',
+                path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-fragment',
+                fields: [],
+            };
+            fragment.fields.push({ name: 'variations', values: [locale.path, grouped.path] });
+            fragment.references = [locale, grouped, promo];
+            const selectedIds = [locale.id, grouped.id];
+            const dialog = sandbox.stub(MasPublishDialog, 'show').resolves({
+                confirmed: true,
+                selectedIds,
+                allSelected: true,
+            });
+            const publishFragment = sandbox.spy(repository, 'publishFragment');
+            const getWithEtag = sandbox.stub();
+            getWithEtag.withArgs(locale.id).resolves(locale);
+            getWithEtag.withArgs(grouped.id).resolves(grouped);
+            repository.aem.sites.cf.fragments.getWithEtag = getWithEtag;
+
+            await el.publishFragment();
+
+            expect(dialog.firstCall.args[0]).to.deep.equal({ variations: [locale, grouped], cards: [] });
+            expect(publishFragment.firstCall.args[1]).to.deep.equal({ selectedRefIds: selectedIds, allSelected: true });
+            expect(publish.getCalls().map(({ args }) => args[0].id)).to.deep.equal([fragment.id, ...selectedIds]);
+            expect(getWithEtag.calledWith(promo.id)).to.be.false;
+        });
+
+        for (const { group, allowed } of [
+            { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: true },
+            { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
+        ]) {
+            for (const source of ['metadata', 'field', 'context']) {
+                it(`publishes clean ${source}-identified promos=${allowed} for ${group}`, async () => {
+                    Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                    const { el, fragment } = createPublishingEditor({
+                        model: CARD_MODEL_PATH,
+                        promotional: false,
+                        staged: false,
+                        hasUnsavedChanges: false,
+                    });
+                    if (source === 'metadata') fragment.tags = [{ id: 'mas:promotion/summer' }];
+                    if (source === 'field') fragment.getField('tags').values = ['mas:promotion/summer'];
+                    if (source === 'context') {
+                        sandbox.stub(el.editorContextStore, 'isPromoVariationByPath').get(() => true);
+                    }
+                    const toast = sandbox.spy(Events.toast, 'emit');
+
+                    await el.publishFragment();
+
+                    expect(el.canPublishFragment).to.equal(allowed);
+                    expect(publish.calledOnce).to.equal(allowed);
+                    expect(toast.calledWithMatch({ variant: 'negative' })).to.equal(!allowed);
+                });
+            }
         }
     });
 
@@ -1422,6 +1492,30 @@ describe('MasFragmentEditor', () => {
             expect(el.showDeleteDialog).to.be.false;
             expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
         });
+
+        for (const source of ['metadata', 'field', 'context']) {
+            it(`rejects deleting a promo variation identified by ${source} outside the promo folder`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                const fragment = new Fragment({
+                    id: 'legacy-promo',
+                    path: '/content/dam/mas/sandbox/en_US/legacy-promo',
+                    fields: source === 'field' ? [{ name: 'tags', values: ['mas:promotion/summer'] }] : [],
+                    tags: source === 'metadata' ? [{ id: 'mas:promotion/summer' }] : [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                if (source === 'context') {
+                    sandbox.stub(el.editorContextStore, 'isPromoVariationByPath').get(() => true);
+                }
+
+                await el.deleteFragment();
+                await el.confirmDelete();
+
+                expect(el.canDeleteFragment).to.be.false;
+                expect(el.showDeleteDialog).to.be.false;
+                expect(mockRepo.deleteVariationFragment.called).to.be.false;
+                expect(mockRepo.deleteFragmentWithVariations.called).to.be.false;
+            });
+        }
 
         it('rechecks the poweruser permission when deletion is confirmed', async () => {
             const fragment = new Fragment({

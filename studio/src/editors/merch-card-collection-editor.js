@@ -1857,6 +1857,7 @@ class MerchCardCollectionEditor extends LitElement {
             disabled.add(QUICK_ACTION.DISCARD);
         }
         if (this.#hostFragmentEditor?.canDeleteFragment === false) disabled.add(QUICK_ACTION.DELETE);
+        if (this.#hostFragmentEditor?.canPublishFragment === false) disabled.add(QUICK_ACTION.PUBLISH);
         return disabled;
     }
 

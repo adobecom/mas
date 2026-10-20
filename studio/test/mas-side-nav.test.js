@@ -1597,4 +1597,14 @@ describe('MasSideNav – editNavigation', () => {
         render(el.editNavigation, container);
         expect(container.querySelector('mas-side-nav-item[label="Delete"]').hasAttribute('disabled')).to.be.true;
     });
+
+    it('disables publishing when the fragment editor denies promo variation publishing', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canPublishFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Publish"]').hasAttribute('disabled')).to.be.true;
+    });
 });

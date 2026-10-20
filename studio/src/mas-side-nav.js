@@ -1048,7 +1048,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
                 <sp-icon-preview slot="icon"></sp-icon-preview>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item
+                label="Publish"
+                ?disabled=${loading || this.fragmentEditor?.canPublishFragment === false}
+                @nav-click="${this.publishFragment}"
+            >
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" disabled>

@@ -1582,8 +1582,7 @@ export default class MasFragmentEditor extends LitElement {
 
     get canDeleteFragment() {
         return (
-            canManagePromotions() ||
-            (!isPromoVariationPath(this.fragment?.path) && !this.variationsToDelete.some(isPromoVariationPath))
+            canManagePromotions() || (!this.isPromoVariationFragment() && !this.variationsToDelete.some(isPromoVariationPath))
         );
     }
 
@@ -1765,9 +1764,13 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canPublishFragment() {
+        return canEditPromotions() || !this.isPromoVariationFragment();
+    }
+
     async publishFragment() {
-        if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoReadOnly) {
-            showToast('You do not have permission to update promo variations.', 'negative');
+        if (!this.canPublishFragment) {
+            showToast('You do not have permission to publish promo variations.', 'negative');
             return;
         }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
@@ -1801,8 +1804,8 @@ export default class MasFragmentEditor extends LitElement {
                 if (!resultStaged.confirmed) return;
             }
 
-            if (this.fragment.isStaged && this.fragment.hasChanges && this.isPromoReadOnly) {
-                showToast('You do not have permission to update promo variations.', 'negative');
+            if (!this.canPublishFragment) {
+                showToast('You do not have permission to publish promo variations.', 'negative');
                 return;
             }
             await this.repository.publishFragment(this.fragment, publishOptions);

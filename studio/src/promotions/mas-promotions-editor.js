@@ -1296,17 +1296,19 @@ class MasPromotionsEditor extends LitElement {
         if (!this.#checkPermission(canEditPromotions())) return;
         if (!canManagePromotions()) {
             const selected = new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]);
+            let restoredItems = false;
             for (const [store, snapshot] of [
                 [Store.promotions.selectedCards, this.#cardsSnapshot],
                 [Store.promotions.selectedCollections, this.#collectionsSnapshot],
             ]) {
                 const removed = snapshot.filter((path) => !selected.has(path));
                 if (removed.length) {
-                    this.#checkPermission(false);
+                    restoredItems = true;
                     store.set([...new Set([...removed, ...store.value])]);
                     for (const path of removed) selected.add(path);
                 }
             }
+            if (restoredItems) this.#checkPermission(false);
         }
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];

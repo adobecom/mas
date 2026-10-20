@@ -486,6 +486,37 @@ describe('MasPromotionsEditor', () => {
             expect(el.fragment.getFieldValues('fragments')).to.include.members([existing, added]);
         });
 
+        it('restores cards and collections with a single permission toast', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const repo = makeRepo();
+            repo.aem.getFragmentByPath = sandbox.stub().resolves(null);
+            const tableClass = customElements.get('mas-promotions-items-table');
+            sandbox.stub(tableClass.prototype, 'repository').get(() => repo);
+            const el = await mountExistingPromotion(repo);
+            const card = '/content/dam/mas/sandbox/en_US/existing-card';
+            const collection = '/content/dam/mas/sandbox/en_US/existing-collection';
+            Store.promotions.selectedCards.set([card]);
+            Store.promotions.selectedCollections.set([collection]);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set([]);
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+
+            expect(Store.promotions.selectedCards.value).to.deep.equal([card]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collection]);
+            expect(toast.getCalls().filter(({ args }) => args[0].variant === 'negative')).to.have.length(1);
+        });
+
         it('keeps a collection in only its refined category when classification finishes while the picker is open', async () => {
             setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');

@@ -48,6 +48,17 @@ export default class MerchAddon extends LitElement {
         if (this.background) {
             this.style.setProperty('--merch-addon-background', this.background);
         }
+        // In page markup the add-on can render before its card is ready to
+        // report a title, so render once more when the card is.
+        const card = this.closest('merch-card');
+        if (card) {
+            customElements
+                .whenDefined('merch-card')
+                .then(() => card.updateComplete)
+                .then(() => {
+                    this.requestUpdate();
+                });
+        }
     }
 
     disconnectedCallback() {
@@ -96,15 +107,18 @@ export default class MerchAddon extends LitElement {
         }
     }
 
-    get productName() {
-        return this.closest('merch-card')?.title || '';
-    }
-
     render() {
-        const productName = this.productName;
+        // The same add-on copy repeats on every card, so the card title tells
+        // the checkboxes apart. The title lives in the card's light DOM, so a
+        // hidden copy in this shadow root is what gets referenced.
+        const product = this.closest('merch-card')?.title;
+        const labelledBy = product
+            ? 'custom-checkbox-label addon-product'
+            : 'custom-checkbox-label';
         return html` <input
                 type="checkbox"
                 id="addon-checkbox"
+                aria-labelledby=${product ? labelledBy : nothing}
                 .checked=${this.checked}
                 @change=${this.handleChange}
             />
@@ -112,7 +126,7 @@ export default class MerchAddon extends LitElement {
                 role="checkbox"
                 aria-checked=${this.checked}
                 tabindex="0"
-                aria-labelledby="custom-checkbox-label"
+                aria-labelledby=${labelledBy}
                 id="custom-checkbox"
                 @click=${this.handleCustomClick}
                 @keydown=${this.handleKeyDown}
@@ -120,12 +134,10 @@ export default class MerchAddon extends LitElement {
             </span>
             <label id="custom-checkbox-label" for="addon-checkbox">
                 <slot></slot>
-                ${productName
-                    ? html`<span class="addon-plan-name">
-                          ${productName}
-                      </span>`
-                    : nothing}
-            </label>`;
+            </label>
+            ${product
+                ? html`<span id="addon-product" hidden>${product}</span>`
+                : nothing}`;
     }
 
     static styles = css`
@@ -184,16 +196,6 @@ export default class MerchAddon extends LitElement {
 
         ::slotted(p[data-plan-type]) {
             display: none;
-        }
-
-        .addon-plan-name {
-            position: absolute;
-            clip: rect(0 0 0 0);
-            clip-path: inset(50%);
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
-            white-space: nowrap;
         }
 
         :host([plan-type='PUF']) ::slotted(p[data-plan-type='PUF']) {

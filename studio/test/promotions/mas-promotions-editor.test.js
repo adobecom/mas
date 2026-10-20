@@ -433,13 +433,13 @@ describe('MasPromotionsEditor', () => {
 
         it('allows powerusers without the editors group to manage promo mappings', async () => {
             setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
-            const el = await mountExistingPromotion();
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
             expect(el.canManagePromoCodesInEmptyState).to.be.true;
             expect(el.renderRoot.querySelector('#promoCode').hasAttribute('disabled')).to.be.false;
         });
 
         it('reacts to a poweruser membership being removed', async () => {
-            const el = await mountExistingPromotion();
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
             expect(el.canManagePromoCodesInEmptyState).to.be.true;
             setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
             await el.updateComplete;
@@ -1837,7 +1837,7 @@ describe('MasPromotionsEditor', () => {
                 startDate: '2030-01-01T00:00:00.000Z',
                 endDate: '2030-12-31T00:00:00.000Z',
                 surfaces,
-                geos: ['mas:locale/us'],
+                geos: ['mas:pzn/country/US'],
                 fragments: [cardPath],
             });
             promotion.fields.push(

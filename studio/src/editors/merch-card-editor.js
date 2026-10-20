@@ -2133,6 +2133,7 @@ class MerchCardEditor extends LitElement {
                             id="quantity-select-settings-field"
                             label="Show quantity selector"
                             data-field="quantitySelect"
+                            .splitTitle=${normalizeVariantName(this.fragment.variant) === VARIANT_NAMES.PRO}
                             data-field-state="${this.isQuantitySelectVariationOverridden() ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.effectiveIsVariation
                                 ? this.renderQuantitySelectOverrideIndicator()

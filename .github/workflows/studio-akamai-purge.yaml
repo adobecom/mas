@@ -7,6 +7,14 @@ on:
         paths:
             - 'studio/**'
             - 'web-components/dist/**'
+            - 'web-components/src/**'
+            - 'io/www/src/**'
+    workflow_dispatch:
+        inputs:
+            before_sha:
+                description: 'Purge the files changed on main since this commit'
+                required: true
+                type: string
 
 permissions:
     contents: read
@@ -33,7 +41,7 @@ jobs:
             - name: Invalidate changed files on mas.adobe.com
               run: node .github/scripts/akamai-purge.mjs
               env:
-                  BEFORE_SHA: ${{ github.event.before }}
+                  BEFORE_SHA: ${{ inputs.before_sha || github.event.before }}
                   AFTER_SHA: ${{ github.sha }}
                   AKAMAI_HOST: ${{ secrets.AKAMAI_HOST }}
                   AKAMAI_CLIENT_TOKEN: ${{ secrets.AKAMAI_CLIENT_TOKEN }}

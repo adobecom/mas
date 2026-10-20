@@ -1,6 +1,6 @@
 // Invalidates changed Studio files in mas.adobe.com's Akamai cache once aem.live serves them, so authors
-// get new Studio code right after a merge instead of after the 2h edge TTL (MWPW-204762).
-// Run by .github/workflows/studio-akamai-purge.yaml on pushes to main.
+// get new Studio code right after a merge instead of after the 1-day edge TTL (MWPW-204762).
+// Run by .github/workflows/studio-akamai-purge.yaml on pushes to main, or manually from a given main commit.
 //
 // Usage:
 //   BEFORE_SHA=<sha> AFTER_SHA=<sha> AKAMAI_HOST=... AKAMAI_CLIENT_TOKEN=... AKAMAI_CLIENT_SECRET=... \
@@ -62,6 +62,16 @@ function sleep(ms) {
 
 function git(...args) {
     return execFileSync('git', args, { maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+}
+
+// A new branch or a force push leaves no usable pushed-from commit; compare against the pushed commit's parent instead.
+export function previousCommit(beforeSha, afterSha) {
+    try {
+        git('cat-file', '-e', `${beforeSha}^{commit}`);
+        return beforeSha;
+    } catch {
+        return git('rev-parse', `${afterSha}^`).toString().trim();
+    }
 }
 
 // Git blob id of the content, to match a served file against the versions in history.
@@ -196,25 +206,29 @@ async function main() {
         throw new Error('Set BEFORE_SHA, AKAMAI_HOST, AKAMAI_CLIENT_TOKEN, AKAMAI_CLIENT_SECRET and AKAMAI_ACCESS_TOKEN.');
     }
 
-    // Deleted files stay cached on purpose: tabs still running the old Studio may lazy-load them.
+    const previous = previousCommit(BEFORE_SHA, AFTER_SHA);
+    // Deleted files stay cached on purpose: tabs still running the old Studio may lazy-load them. Studio also loads
+    // io/www/src (through studio/libs/fragment-client.js) and some web-components/src modules unbundled.
     const diff = git(
         'diff',
         '-z',
         '--name-only',
         '--no-renames',
         '--diff-filter=d',
-        BEFORE_SHA,
+        previous,
         AFTER_SHA,
         '--',
         'studio',
         'web-components/dist',
+        'web-components/src',
+        'io/www/src',
     );
     const paths = selectPurgePaths(diff.toString());
     if (!paths.length) {
         console.log('No cached Studio files changed.');
         return;
     }
-    await run({ files: paths.map((path) => ({ path, older: olderVersions(BEFORE_SHA, AFTER_SHA, path) })), credentials });
+    await run({ files: paths.map((path) => ({ path, older: olderVersions(previous, AFTER_SHA, path) })), credentials });
 }
 
 const isDirectRun = process.argv[1] && basename(process.argv[1]) === basename(fileURLToPath(import.meta.url));

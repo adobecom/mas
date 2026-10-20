@@ -5,7 +5,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 
-import { blobId, chunkUrls, formatTimestamp, olderVersions, run, selectPurgePaths, signRequest } from './akamai-purge.mjs';
+import {
+    blobId,
+    chunkUrls,
+    formatTimestamp,
+    olderVersions,
+    previousCommit,
+    run,
+    selectPurgePaths,
+    signRequest,
+} from './akamai-purge.mjs';
 
 // Expected signatures come from Akamai's edgegrid-python (EdgeGridAuthHeaders.make_auth_header) with these dummy values.
 const credentials = {
@@ -144,6 +153,14 @@ test('olderVersions lists every version main had up to the previous push', () =>
 test('olderVersions leaves out the deployed version when a push reverts to it', () => {
     const versions = inRepoWithVersions(['a', 'b', 'a'], ([, before, after]) => olderVersions(before, after, 'f.js'));
     assert.deepEqual(versions, new Set([blobId(Buffer.from('b'))]));
+});
+
+test('previousCommit keeps the pushed-from commit when it exists', () => {
+    inRepoWithVersions(['a', 'b'], ([before, after]) => assert.equal(previousCommit(before, after), before));
+});
+
+test("previousCommit falls back to the pushed commit's parent when the pushed-from commit is missing", () => {
+    inRepoWithVersions(['a', 'b'], ([parent, after]) => assert.equal(previousCommit('0'.repeat(40), after), parent));
 });
 
 test('run waits until aem.live moves past the previous version, purges, then checks the edge', async () => {

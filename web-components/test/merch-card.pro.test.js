@@ -835,8 +835,8 @@ describe('pro license dropdown accessible name', () => {
     const qs = (title) =>
         `<div slot="quantity-select"><merch-quantity-select${title === null ? '' : ` title="${title}"`} min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>`;
 
-    async function render(heading, title = 'License|Licenses') {
-        const card = await renderCard(`${heading}${qs(title)}`);
+    async function render(heading, title = 'License|Licenses', props) {
+        const card = await renderCard(`${heading}${qs(title)}`, props);
         cards.push(card);
         return card;
     }
@@ -899,12 +899,24 @@ describe('pro license dropdown accessible name', () => {
         expect(triggerName(card)).to.equal('Photoshop ライセンス');
     });
 
-    it('keeps the default label when none is authored', async () => {
-        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+    it('uses the published license label when none is authored', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            null,
+            {
+                placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+            },
+        );
         expect(
             card.querySelector('merch-quantity-select').hasAttribute('title'),
         ).to.be.false;
-        expect(triggerName(card)).to.equal('Photoshop License');
+        expect(triggerName(card)).to.equal('Photoshop Lizenz');
+    });
+
+    it('names the dropdown after the product when no label exists', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+        expect(triggerName(card).trim()).to.equal('Photoshop');
+        expect(listboxName(card).trim()).to.equal('Photoshop');
     });
 
     for (const [what, heading] of [

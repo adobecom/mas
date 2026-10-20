@@ -1030,6 +1030,27 @@
                         });
                     });
 
+                    it('asks for singular and plural labels on Pro cards only', async () => {
+                        for (const [variant, expected] of [
+                            ['pro', 'quantity-selector-singular'],
+                            ['bizpro', 'quantity-selector-singular'],
+                            ['plans', 'quantity-selector-title'],
+                        ]) {
+                            await setupTestEnvironment(
+                                {
+                                    isVariation: false,
+                                    variant: [variant],
+                                    quantitySelect: [
+                                        '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>',
+                                    ],
+                                },
+                                `quantity-labels-${variant}`,
+                            );
+                            const root = editor.querySelector('quantity-select-field').shadowRoot;
+                            expect(root.querySelector(`#${expected}`), variant).to.exist;
+                        }
+                    });
+
                     it('update quantity selection value and then rollback to the settings value', async () => {
                         await setupTestEnvironment();
 

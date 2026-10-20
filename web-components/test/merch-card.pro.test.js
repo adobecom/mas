@@ -24,8 +24,9 @@ before(async () => {
     ({ Pro } = await import('../src/variants/pro.js'));
 });
 
-async function renderCard(innerHTML) {
+async function renderCard(innerHTML, props) {
     const card = document.createElement('merch-card');
+    Object.assign(card, props);
     card.setAttribute('variant', 'pro');
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
@@ -1609,6 +1610,22 @@ describe('pro license label pluralization', () => {
         expect(labelText()).to.equal('Licenses');
         // the "|" form never leaks into the UI
         expect(card.shadowRoot.textContent).to.not.contain('|');
+    });
+
+    it('uses the published license label when the title is empty', async () => {
+        card = await renderCard(QS('', '2'), {
+            placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+        });
+        expect(labelText()).to.equal('Lizenzen');
+        await selectQty('1');
+        expect(labelText()).to.equal('Lizenz');
+    });
+
+    it('prefers an authored title over the published license label', async () => {
+        card = await renderCard(QS('Seat|Seats', '2'), {
+            placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+        });
+        expect(labelText()).to.equal('Seats');
     });
 
     it('never derives plurals for plain-text titles (CJK-safe)', async () => {

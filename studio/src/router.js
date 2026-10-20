@@ -1,9 +1,10 @@
-import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED, COLLECTION_MODEL_PATH } from './constants.js';
+import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.js';
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
-import { debounce, hasNonEmptyCompareChart } from './utils.js';
+import { debounce } from './utils.js';
 import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
@@ -285,6 +286,13 @@ export class Router extends EventTarget {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
                     }
+                    // Clear the product-detail arrangement code when leaving
+                    // the product catalog so the hash-linked `arrangementCode`
+                    // param doesn't bleed into unrelated pages (MASA,
+                    // Fragments, etc.) where it's semantically meaningless.
+                    if (Store.page.value === PAGE_NAMES.PRODUCT_CATALOG && targetPage !== PAGE_NAMES.PRODUCT_CATALOG) {
+                        Store.productDetail.arrangementCode.set(null);
+                    }
                     if (
                         (Store.page.value === PAGE_NAMES.MASKS || Store.page.value === PAGE_NAMES.MASKS_EDITOR) &&
                         targetPage !== PAGE_NAMES.MASKS_EDITOR
@@ -320,8 +328,6 @@ export class Router extends EventTarget {
      * @param {string} fragmentId - The fragment ID to edit
      * @param {Object} options - Navigation options
      * @param {string} options.locale - Optional locale to set before navigation
-     * @param {import('./reactivity/fragment-store.js').FragmentStore} [options.fragmentStore] - Optional pre-resolved fragment store
-     * @param {boolean} [options.viewPage] - View page instead of editing
      */
     async navigateToFragmentEditor(fragmentId, options = {}) {
         if (!fragmentId) {
@@ -329,31 +335,11 @@ export class Router extends EventTarget {
             return;
         }
 
-        const { locale, fragmentStore: providedFragmentStore, viewPage } = options;
+        const { locale } = options;
 
         this.isNavigating = true;
         try {
-            // Check if this is a collection to use editor-panel instead
-            const fragmentList = Store.fragments.list.data.get();
-            const fragmentStore = providedFragmentStore ?? fragmentList?.find((f) => f.get()?.id === fragmentId);
-
-            const fragment = fragmentStore?.get();
-            const isCompareChart = hasNonEmptyCompareChart(fragment);
-            if (!viewPage && fragment?.model?.path === COLLECTION_MODEL_PATH && !isCompareChart) {
-                // Use editor-panel for collections
-                const editorPanel = document.querySelector('editor-panel');
-                if (editorPanel) {
-                    if (Store.editor.hasChanges) {
-                        const confirmed = await editorPanel.promptDiscardChanges();
-                        if (!confirmed) return;
-                    }
-                    await editorPanel.editFragment(fragmentStore);
-                    Store.viewMode.set('editing');
-                    return;
-                }
-            }
-
-            // Default: use full-page fragment editor for regular cards
+            // Always use the full-page fragment editor, for cards and collections alike.
             if (locale && locale !== Store.filters.value.locale) {
                 Store.search.set((prev) => ({ ...prev, region: locale }));
             }
@@ -550,6 +536,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
@@ -723,6 +710,7 @@ export class Router extends EventTarget {
     }
 
     #getAuthorizedPage(page) {
+        if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;
@@ -762,6 +750,12 @@ export class Router extends EventTarget {
     }
 
     #enforceRestrictedAccessFromParams() {
+        if (!isFeaturePageEnabled(this.currentParams.get('page'))) {
+            this.currentParams.set('page', PAGE_NAMES.WELCOME);
+            this.currentParams.delete('arrangementCode');
+            Store.page.set(PAGE_NAMES.WELCOME);
+            return true;
+        }
         const canAccess = RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')];
         if (!canAccess) return false;
         if (!Store.users.getMeta('loaded')) {

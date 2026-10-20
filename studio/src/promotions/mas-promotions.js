@@ -3,12 +3,13 @@ import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
-import { PAGE_NAMES, PROMOTION_MODEL_ID, STAGED } from '../constants.js';
+import { PAGE_NAMES, STAGED } from '../constants.js';
 import { fromAttribute } from '../aem/tag-path-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { showToast, UserFriendlyError } from '../utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
 import { canEditPromotions } from '../groups.js';
@@ -196,7 +197,12 @@ class MasPromotions extends LitElement {
                                 data-id=${promo.id}
                                 @dblclick=${(e) => this.#handlePromotionRowDblClick(e, promotion)}
                             >
-                                <sp-table-cell>${promo.title}</sp-table-cell>
+                                ${renderRowLinkOverlay(promo, { page: PAGE_NAMES.PROMOTIONS_EDITOR })}
+                                <sp-table-cell
+                                    >${renderEditorLink(promo, promo.title, {
+                                        page: PAGE_NAMES.PROMOTIONS_EDITOR,
+                                    })}</sp-table-cell
+                                >
                                 <sp-table-cell>
                                     <span class="timeline-cell">
                                         ${promo.timeline}
@@ -285,12 +291,8 @@ class MasPromotions extends LitElement {
                             ></sp-search>
                         </div>
                         <span class="promotions-result-count">${this.filteredPromotions.length} results</span>
-                        <div class="filters-container">
-                            <sp-icon-filter></sp-icon-filter><span>Filters:</span>
-                            ${this.renderEnvironmentFilterPicker}
-                        </div>
                     </div>
-                    ${this.renderAppliedEnvironmentFilters()}
+                    ${this.renderEnvironmentFilterPicker} ${this.renderAppliedEnvironmentFilters()}
                 </div>
 
                 <div class="promotions-content">${this.renderPromotionsContent()}</div>

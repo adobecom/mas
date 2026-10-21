@@ -36,6 +36,7 @@ import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TA
 import Store from '../store.js';
 import Events from '../events.js';
 import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
+import { supportsCountdown } from '../../../io/www/src/fragment/utils/countdown.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
@@ -1990,6 +1991,7 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="description"
                         ?styling=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
                         link
                         upt-link
                         list
@@ -2131,6 +2133,7 @@ class MerchCardEditor extends LitElement {
                             id="quantity-select-settings-field"
                             label="Show quantity selector"
                             data-field="quantitySelect"
+                            .splitTitle=${normalizeVariantName(this.fragment.variant) === VARIANT_NAMES.PRO}
                             data-field-state="${this.isQuantitySelectVariationOverridden() ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.effectiveIsVariation
                                 ? this.renderQuantitySelectOverrideIndicator()

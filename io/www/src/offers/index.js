@@ -49,7 +49,7 @@ export const OFFERS_LOCALES_STATE_KEY = 'offers-locales';
 // Container memory cache of what web requests read from state (jittered 5 minutes TTL, stale-while-revalidate, single
 // flight), so a warm container neither re-reads state nor re-encodes a locale for every request:
 // - `offer-<locale>-<pa>`: stored offer baseline, '' when there is none (absence is cached too),
-// - `locale-<locale>`: encoded response (`{ etag, body }`) of every offer baseline of a locale.
+// - `locale-<locale>`: encoded response (`{ etag, body }`) of every offer baseline of a locale, '' when there is none.
 // State errors throw, so they are never cached. Room for a few locales of ~1800 offers (≤ ~2KB each) besides every locale
 // response (~250KB each).
 const offersCache = createSwrCache({ name: 'offers', maxEntries: 10000 });
@@ -108,8 +108,9 @@ async function inBatches(tasks) {
 
 /**
  * Writes changed baselines of a locale & deletes removed ones, or rewrites them all once the refresh deadline is passed so
- * that unchanged ones never expire. The index is only updated once they all succeeded, so a failed sync is fully retried
- * next time. A locale without baselines anymore has its index & bundle deleted too.
+ * that unchanged ones never expire. New keys are tracked in the index (with an unknown hash) before being written, and the
+ * index is only updated with their hashes once they all succeeded, so a sync failing midway is fully retried next time:
+ * changed keys are rewritten, removed ones deleted. A locale without baselines anymore has its index & bundle deleted too.
  */
 async function syncLocale(context, locale, baselines) {
     const { state } = context;
@@ -120,6 +121,11 @@ async function syncLocale(context, locale, baselines) {
     const updated = Object.keys(next).filter((key) => refresh || previous[key] !== next[key]);
     const removed = Object.keys(previous).filter((key) => !(key in next));
     const total = Object.keys(next).length;
+    const added = updated.filter((key) => !(key in previous));
+    if (added.length) {
+        const hashes = { ...previous, ...Object.fromEntries(added.map((key) => [key, ''])) };
+        await state.put(offersIndexStateKey(locale), JSON.stringify({ refreshAt: index?.refreshAt, hashes }), { ttl: TTL });
+    }
     await inBatches([
         ...updated.map((key) => () => state.put(key, baselines[key], { ttl: TTL })),
         ...removed.map((key) => () => state.delete(key)),
@@ -138,27 +144,35 @@ async function syncLocale(context, locale, baselines) {
     return { locale, total, updated: updated.length, removed: removed.length };
 }
 
-/**
- * Locales to sync: the requested one, or every listed one plus those having baselines in state (to delete them when they
- * have none anymore).
- */
-async function localesToSync(context, locale, grouped) {
-    if (locale) return [locale];
-    const { json: synced } = await getJsonFromState(OFFERS_LOCALES_STATE_KEY, context);
-    return [...new Set([...Object.keys(grouped), ...(synced ?? [])])];
-}
+const writeTrackedLocales = (context, tracked) =>
+    context.state.put(OFFERS_LOCALES_STATE_KEY, JSON.stringify([...tracked].sort()), { ttl: TTL });
 
 /**
- * Updates the locales having baselines in state with the sync results (rewritten every sync, so it never expires).
+ * Syncs the requested locale, or every listed one plus those tracked in state (to delete them when they have none
+ * anymore). Listed locales are tracked before any of their entries is written, and untracked only once they are all
+ * deleted, so that a sync failing midway never leaves entries of an untracked locale behind. The tracked locales are
+ * rewritten every sync, so they never expire.
  */
-async function writeSyncedLocales(context, results) {
+async function syncLocales(context, locale, grouped) {
     const { json: synced } = await getJsonFromState(OFFERS_LOCALES_STATE_KEY, context);
-    const locales = new Set(synced);
-    for (const { locale, total } of results) {
-        if (total) locales.add(locale);
-        else locales.delete(locale);
+    const tracked = new Set(synced);
+    const listed = Object.keys(grouped);
+    const untracked = listed.filter((listedLocale) => !tracked.has(listedLocale));
+    if (untracked.length) {
+        for (const untrackedLocale of untracked) tracked.add(untrackedLocale);
+        await writeTrackedLocales(context, tracked);
     }
-    await context.state.put(OFFERS_LOCALES_STATE_KEY, JSON.stringify([...locales].sort()), { ttl: TTL });
+    // a requested locale is synced even when empty, so that its removed baselines are deleted
+    const locales = locale ? [locale] : [...new Set([...listed, ...tracked])];
+    const results = [];
+    for (const syncedLocale of locales) {
+        results.push(await syncLocale(context, syncedLocale, grouped[syncedLocale] ?? {}));
+    }
+    for (const { locale: syncedLocale, total } of results) {
+        if (!total) tracked.delete(syncedLocale);
+    }
+    await writeTrackedLocales(context, tracked);
+    return results;
 }
 
 function compressBundle(locale, baselines) {
@@ -200,15 +214,16 @@ function offersResponse(context, { etag, body }) {
 }
 
 /**
- * Every offer baseline of a locale, falling back to en_US ones not localized yet, encoded. Resolves null (not cached)
- * when there is none.
+ * Every offer baseline of a locale, falling back to en_US ones not localized yet, encoded. Resolves '' when there is none:
+ * absence is cached too, so that it replaces what another container's sync deleted once the cached entry expires (a null
+ * value would keep serving the stale one).
  */
 function readLocaleBaselines(context, locale) {
     return offersCache.get(context, `locale-${locale}`, async () => {
         const locales = [...new Set([OFFER_BASELINE_FALLBACK_LOCALE, locale])];
         const bundles = await Promise.all(locales.map((bundleLocale) => readBundle(context, bundleLocale)));
         const baselines = Object.assign({}, ...bundles);
-        return Object.keys(baselines).length ? encode(baselines) : null;
+        return Object.keys(baselines).length ? encode(baselines) : '';
     });
 }
 
@@ -269,14 +284,7 @@ export async function main(params) {
         logError(`failed to list offer baselines of ${folder}`, context);
         return { statusCode: 503, headers: RESPONSE_HEADERS, body: { message: `failed to list ${folder}` } };
     }
-    const grouped = groupBaselines(items);
-    // a requested locale is synced even when empty, so that its removed baselines are deleted
-    const locales = await localesToSync(context, locale, grouped);
-    const results = [];
-    for (const syncedLocale of locales) {
-        results.push(await syncLocale(context, syncedLocale, grouped[syncedLocale] ?? {}));
-    }
-    await writeSyncedLocales(context, results);
+    const results = await syncLocales(context, locale, groupBaselines(items));
     log(`synced offer baselines: ${JSON.stringify(results)}`, context);
     // this container may serve web requests too: don't let it serve what it just replaced
     if (results.some(({ updated, removed }) => updated || removed)) clearOffersCache();

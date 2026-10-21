@@ -25,6 +25,7 @@ import {
     matchesTagGroups,
     groupTagFilters,
     cardFilterTags,
+    isExcluded,
 } from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
@@ -69,21 +70,21 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-// Filters cards against every author-defined tag group. No-op when a
-// collection has no tag groups.
+// Filters cards against every author-defined tag group, then drops the tags
+// excluded for the current category. No-op when a collection has no tag groups.
 const tagGroupFilter = (elements, collection) => {
     const groups = collection.tagGroups;
     if (!groups?.length) return elements;
     const state = parseState();
-    return elements.filter((element) =>
-        matchesTagGroups(
-            (element.getAttribute('filter-tags') || '')
-                .split(',')
-                .filter(Boolean),
-            groups,
-            state,
-        ),
-    );
+    return elements.filter((element) => {
+        const tags = (element.getAttribute('filter-tags') || '')
+            .split(',')
+            .filter(Boolean);
+        return (
+            matchesTagGroups(tags, groups, state) &&
+            !isExcluded(tags, collection.excludeTags, collection.filter)
+        );
+    });
 };
 
 const alphabeticalSorter = (elements) =>
@@ -123,6 +124,8 @@ export class MerchCardCollection extends LitElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
+        // { <category>: ['group:tag', ...] } cards never shown under a category.
+        excludeTags: { type: Object, attribute: false },
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
@@ -668,6 +671,16 @@ export class MerchCardCollection extends LitElement {
 
     get showMoreButton() {
         if (!this.hasMore) return;
+        // product-pricing loads no Spectrum, so it gets a native button.
+        if (this.classList.contains('product-pricing')) {
+            return html`<button
+                type="button"
+                class="show-more"
+                @click="${this.showMore}"
+            >
+                <slot name="showMoreText"></slot>
+            </button>`;
+        }
         return html`<sp-button
             variant="secondary"
             treatment="outline"
@@ -754,28 +767,24 @@ export class MerchCardCollection extends LitElement {
         }
 
         /* Same look as the outlined product-pricing CTAs. */
-        :host(.product-pricing) sp-button {
-            --outline-ink: #000;
-            --outline-fill: transparent;
-            --mod-button-height: 40px;
-            --mod-button-border-width: 2px;
-            --mod-button-edge-to-text: 22px;
-            /* The label hugs the top, so padding centers it in 40px. */
-            --mod-button-line-height: 18px;
-            --mod-button-top-to-text: 11px;
-            --mod-button-bottom-to-text: 11px;
-            --mod-button-border-color-default: var(--outline-ink);
-            --mod-button-border-color-hover: var(--outline-ink);
-            --mod-button-border-color-down: var(--outline-ink);
-            --mod-button-border-color-focus: var(--outline-ink);
-            --mod-button-content-color-default: var(--outline-ink);
-            --mod-button-content-color-hover: var(--outline-ink);
-            --mod-button-content-color-down: var(--outline-ink);
-            --mod-button-content-color-focus: var(--outline-ink);
-            --mod-button-background-color-default: var(--outline-fill);
-            --mod-button-background-color-hover: var(--outline-fill);
-            --mod-button-background-color-down: var(--outline-fill);
-            --mod-button-background-color-focus: var(--outline-fill);
+        :host(.product-pricing) .show-more {
+            box-sizing: border-box;
+            min-height: 40px;
+            padding: 8px 22px;
+            border: 2px solid #000;
+            border-radius: 999px;
+            background: transparent;
+            color: #000;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 18px;
+            cursor: pointer;
+        }
+
+        :host(.product-pricing) .show-more:focus-visible {
+            outline: 2px solid #3b63fb;
+            outline-offset: 2px;
         }
 
         sp-theme {

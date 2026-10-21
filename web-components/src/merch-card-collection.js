@@ -25,6 +25,7 @@ import {
     matchesTagGroups,
     groupTagFilters,
     cardFilterTags,
+    isExcluded,
 } from './tag-groups.js';
 import { normalizeVariant } from './hydrate.js';
 import './mas-commerce-service';
@@ -69,21 +70,21 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-// Filters cards against every author-defined tag group. No-op when a
-// collection has no tag groups.
+// Filters cards against every author-defined tag group, then drops the tags
+// excluded for the current category. No-op when a collection has no tag groups.
 const tagGroupFilter = (elements, collection) => {
     const groups = collection.tagGroups;
     if (!groups?.length) return elements;
     const state = parseState();
-    return elements.filter((element) =>
-        matchesTagGroups(
-            (element.getAttribute('filter-tags') || '')
-                .split(',')
-                .filter(Boolean),
-            groups,
-            state,
-        ),
-    );
+    return elements.filter((element) => {
+        const tags = (element.getAttribute('filter-tags') || '')
+            .split(',')
+            .filter(Boolean);
+        return (
+            matchesTagGroups(tags, groups, state) &&
+            !isExcluded(tags, collection.excludeTags, collection.filter)
+        );
+    });
 };
 
 const alphabeticalSorter = (elements) =>
@@ -123,6 +124,8 @@ export class MerchCardCollection extends LitElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
+        // { <category>: ['group:tag', ...] } cards never shown under a category.
+        excludeTags: { type: Object, attribute: false },
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },

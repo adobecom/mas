@@ -21,8 +21,8 @@ const OFFERS_FETCH_TIMEOUT = 10000;
 const baselineCache = createSwrCache({ name: 'baselines' });
 const offersCache = createSwrCache({ name: 'offers', maxEntries: 50 });
 
-export const clearBaselineCache = () => {
-    baselineCache.clear();
+export const clearBaselineCache = (preview = false) => {
+    baselineCache.clear(preview);
     offersCache.clear();
 };
 

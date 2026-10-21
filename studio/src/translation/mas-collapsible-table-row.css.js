@@ -241,7 +241,7 @@ export const styles = [
             flex-shrink: 0;
         }
 
-        .nested-content sp-table-body sp-table-row:first-of-type {
+        .nested-content sp-table-body > sp-table-row:first-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-top-left-radius: 12px;
             }
@@ -251,7 +251,7 @@ export const styles = [
             }
         }
 
-        .nested-content sp-table-body sp-table-row:last-of-type {
+        .nested-content sp-table-body > sp-table-row:last-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-bottom-left-radius: 12px;
             }

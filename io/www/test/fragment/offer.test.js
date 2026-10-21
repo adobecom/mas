@@ -124,6 +124,14 @@ describe('offer transformer', () => {
     });
 
     describe('without fragment id', () => {
+        it('keeps the offer baseline icon when higher layers deliver unset icons as empty arrays', async () => {
+            const fields = { ...FRAGMENT_BASELINE.fields, mnemonicIcon: [], mnemonicAlt: [] };
+            mockOdin({ fragmentBaseline: { ...FRAGMENT_BASELINE, fields } });
+            const { body } = await getFragment({ offer: OSI, template: 'plans', surface: 'sandbox', locale: 'en_US' });
+            expect(body.fields.mnemonicIcon).to.deep.equal([PS_ICON]);
+            expect(body.fields.mnemonicAlt).to.deep.equal(['Photoshop']);
+        });
+
         it('uses the fragment baseline as main body, merged over the offer baseline', async () => {
             mockOdin();
             const { statusCode, body } = await getFragment({

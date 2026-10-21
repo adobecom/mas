@@ -481,10 +481,11 @@ function prepareBaseline(baseline) {
 }
 
 /**
- * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons.
+ * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Unset
+ * icons are delivered as `[]`, which merging skips: they don't count.
  */
 function withOfferIcon(offerBaseline, higherLayers) {
-    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon !== undefined)) return offerBaseline;
+    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon?.length)) return offerBaseline;
     const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
     return { ...offerBaseline, fields };
 }

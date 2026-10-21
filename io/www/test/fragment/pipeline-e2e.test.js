@@ -4,8 +4,7 @@ import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
-import { clearBaselineCache } from '../../src/fragment/transformers/offer.js';
-import { offerStateKey } from '../../src/offers/index.js';
+import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/offer.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
@@ -1002,7 +1001,6 @@ describe('pipeline end to end', () => {
                 : null;
         const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
         let state;
-        const stateGets = (key) => state.get.getCalls().filter(({ args: [called] }) => called === key);
         const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
 
         beforeEach(() => {
@@ -1014,8 +1012,7 @@ describe('pipeline end to end', () => {
                     .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
             }
             state = new MockState();
-            state.store[offerStateKey('en_US', PA)] = JSON.stringify(OFFER_BASELINE);
-            sinon.spy(state, 'get');
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
             fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: [FRAGMENT_BASELINE] }));
         });
 
@@ -1063,7 +1060,7 @@ describe('pipeline end to end', () => {
                 const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
                 expect(calls, osi).to.have.length(1);
             }
-            expect(stateGets(offerStateKey('en_US', PA))).to.have.length(1);
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
             expect(callsTo(PLANS_LISTING)).to.have.length(1);
         });
     });
@@ -1159,7 +1156,6 @@ describe('pipeline end to end', () => {
                 : null;
         const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
         let state;
-        const stateGets = (key) => state.get.getCalls().filter(({ args: [called] }) => called === key);
         const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
 
         beforeEach(() => {
@@ -1171,10 +1167,8 @@ describe('pipeline end to end', () => {
                     .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
             }
             state = new MockState();
-            for (const { pa, offerBaseline } of PRODUCTS) {
-                state.store[offerStateKey('en_US', pa)] = JSON.stringify(offerBaseline);
-            }
-            sinon.spy(state, 'get');
+            const offerBaselines = Object.fromEntries(PRODUCTS.map(({ pa, offerBaseline }) => [pa, offerBaseline]));
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, offerBaselines));
             const fragmentBaselines = PRODUCTS.map(({ fragmentBaseline }) => fragmentBaseline);
             fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: fragmentBaselines }));
         });
@@ -1211,15 +1205,13 @@ describe('pipeline end to end', () => {
             }
         });
 
-        it('requests each of the 9 offers, the 3 offer baselines and the plans baselines once', async () => {
+        it('requests each of the 9 offers, the offer baselines and the plans baselines once', async () => {
             await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
             for (const { osi } of CARDS) {
                 const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
                 expect(calls, osi).to.have.length(1);
             }
-            for (const { pa } of PRODUCTS) {
-                expect(stateGets(offerStateKey('en_US', pa)), pa).to.have.length(1);
-            }
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
             expect(callsTo(PLANS_LISTING)).to.have.length(1);
         });
     });

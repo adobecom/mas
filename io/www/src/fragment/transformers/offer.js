@@ -5,21 +5,28 @@ import { createSwrCache } from '../utils/swr-cache.js';
 import { getDefaultLocaleCode, resolveCommerceCountries } from '../locales.js';
 import { computeRegionLocale } from './defaultLanguage.js';
 import { computeWcsCaches, createWcsContext, wcsCacheKey } from './wcs.js';
-import { clearOffersCache, readOfferBaseline } from '../../offers/index.js';
-
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
 const REFERENCE_FIELDS = ['cards', 'collections'];
+// every offer baseline of a locale (en_US fallback included), as served by the `offers` action behind the CDN. The bare
+// `id` parameter is only there for www.adobe.com/mas/io to accept the request, to be removed with WPS-36294
+const OFFERS_URL = 'https://www.adobe.com/mas/io/offers';
+const OFFERS_API_KEY = 'wcms-commerce-ims-ro-user-milo';
+// a locale weighs megabytes (~600 product arrangements for en_US today, ~1800 eventually)
+const OFFERS_FETCH_TIMEOUT = 10000;
 
-// Fragment baselines folders (listed in bulk) are shared by every fragment & request on the same locale / template:
-// single-flight + TTL, absence included, so each is requested once whatever the size of a collection. Offer baselines
-// are cached the same way by the offers module.
+// Fragment baselines folders (listed in bulk) and offer baselines of a locale are shared by every fragment & request on
+// the same locale / template: single-flight + TTL, absence included, so each is requested once whatever the size of a
+// collection.
 const baselineCache = createSwrCache({ name: 'baselines' });
+const offersCache = createSwrCache({ name: 'offers', maxEntries: 50 });
 
 export const clearBaselineCache = () => {
     baselineCache.clear();
-    clearOffersCache();
+    offersCache.clear();
 };
+
+export const offersUrl = (locale) => `${OFFERS_URL}?api_key=${OFFERS_API_KEY}&locale=${locale}&id`;
 
 const offerToken = ({ fields }, osi) => ({ osi, promotionCode: fields?.promoCode || undefined });
 
@@ -101,12 +108,28 @@ const toCardFields = ({ name, icons }) => ({
 });
 
 /**
- * Offer baseline (offer model, MCS copy & assets) of a product arrangement, as synced in state by the `offers` action
- * from `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US, with its fields mapped to
- * card fields.
+ * `{ [pa]: offerBaseline }` of a locale, fetched once for all product arrangements (`{}` when the locale has none);
+ * failures are not cached and retried next time.
+ */
+function fetchOfferBaselines(context, locale) {
+    // offers have no preview: `preview` would move offersCache to localStorage
+    return offersCache.get({ ...context, preview: false }, locale, async () => {
+        const networkConfig = { ...context.networkConfig, fetchTimeout: OFFERS_FETCH_TIMEOUT };
+        const response = await fetch(offersUrl(locale), { ...context, networkConfig }, `offers-${locale}`);
+        if (response.status == 200) return response.body;
+        if (response.status == 404) return {};
+        logError(`failed to fetch offer baselines of ${locale}: ${response.status} ${response.message}`, context);
+        return null;
+    });
+}
+
+/**
+ * Offer baseline (offer model, MCS copy & assets) of a product arrangement, from
+ * `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US, with its fields mapped to card
+ * fields.
  */
 async function getOfferBaseline(context, productArrangementCode) {
-    const offerBaseline = await readOfferBaseline(context, context.defaultLocale, productArrangementCode);
+    const offerBaseline = (await fetchOfferBaselines(context, context.defaultLocale))?.[productArrangementCode];
     return offerBaseline && { ...offerBaseline, fields: toCardFields(offerBaseline.fields) };
 }
 

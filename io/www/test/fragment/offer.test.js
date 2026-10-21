@@ -5,10 +5,10 @@ import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import {
     clearBaselineCache,
+    offersUrl,
     resolveOfferInfos,
     transformer as offerTransformer,
 } from '../../src/fragment/transformers/offer.js';
-import { offerStateKey } from '../../src/offers/index.js';
 import { mockDictionary } from './replace.test.js';
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
 import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
@@ -93,7 +93,7 @@ function mockOdin({
         .withArgs(sinon.match((url) => typeof url === 'string' && url.includes('web_commerce_artifact')))
         .returns(createResponse(200, { resolvedOffers: [] }));
     fetchStub.withArgs(sinon.match((url) => isWcsCall(url))).returns(createResponse(200, { resolvedOffers }));
-    if (offerBaseline) state.store[offerStateKey(offerLocale, PA)] = JSON.stringify(offerBaseline);
+    if (offerBaseline) fetchStub.withArgs(offersUrl(offerLocale)).returns(createResponse(200, { [PA]: offerBaseline }));
     const plansItems = [...noise(PLANS_FOLDER), ...(fragmentBaseline ? [fragmentBaseline] : []), EDU_BASELINE];
     fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(200, { items: plansItems }));
     fetchStub
@@ -228,8 +228,8 @@ describe('offer transformer', () => {
             expect(body.fields).to.deep.equal({ cardTitle: 'Photoshop', osi: OSI });
         });
 
-        it('falls back to the en_US offer baseline for other locales', async () => {
-            mockOdin({ fragmentBaseline: null });
+        it('fetches the offer baselines of the default locale, en_US fallback included', async () => {
+            mockOdin({ fragmentBaseline: null, offerLocale: 'fr_FR' });
             const { statusCode, body } = await getFragment({
                 offer: OSI,
                 template: 'plans',
@@ -479,10 +479,8 @@ describe('offer transformer', () => {
         };
         const MINI_LISTING = listing('/content/dam/mas/sandbox/en_US/baselines/mini');
         const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
-        const stateGets = (key) => state.get.getCalls().filter(({ args: [called] }) => called === key);
 
         beforeEach(() => {
-            sinon.spy(state, 'get');
             mockOdin();
             fetchStub.withArgs(`${ODIN}/collection-id?references=all-hydrated`).returns(createResponse(200, COLLECTION));
             fetchStub
@@ -509,7 +507,7 @@ describe('offer transformer', () => {
             expect(wcsCalls(OTHER_OSI)).to.have.length(1);
             expect(callsTo(listing(PLANS_FOLDER))).to.have.length(1);
             expect(callsTo(MINI_LISTING)).to.have.length(1);
-            expect(stateGets(offerStateKey('en_US', PA))).to.have.length(1);
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
         });
 
         it('caches baselines and their absence across requests', async () => {
@@ -517,7 +515,18 @@ describe('offer transformer', () => {
             await getFragment({ id: 'collection-id', locale: 'en_US' });
             expect(callsTo(MINI_LISTING)).to.have.length(1);
             expect(callsTo(listing(PLANS_FOLDER))).to.have.length(1);
-            expect(stateGets(offerStateKey('en_US', PA))).to.have.length(1);
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
+        });
+
+        it('retries offer baselines that failed to load on the next request', async () => {
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(500, { detail: 'boom' }, 'Internal Server Error'));
+            const failed = await getFragment({ id: 'collection-id', locale: 'en_US' });
+            expect(failed.statusCode).to.equal(200);
+            expect(failed.body.references['card-3'].value.offerBaselineId).to.be.undefined;
+            expect(failed.body.references['card-2'].value.fragmentBaselineId).to.equal('fragment-baseline-id');
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
+            const { body } = await getFragment({ id: 'collection-id', locale: 'en_US' });
+            expect(body.references['card-3'].value.offerBaselineId).to.equal('offer-baseline-id');
         });
     });
 

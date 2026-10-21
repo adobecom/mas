@@ -48,6 +48,11 @@ describe('fragment-usage pages', () => {
             });
         });
 
+        it('derives regions from the countries of a record stored before regions were', () => {
+            const stored = { url: 'https://a.com', locale: 'en_GB', requests: 100, countries: { GB: 100 } };
+            expect(readEntry(stored).regions).to.deep.equal({ EMEA: 100 });
+        });
+
         it('recovers the url from the key when the record predates storing it', () => {
             expect(readEntry({ requests: 5 }, 'https://a.com').url).to.equal('https://a.com');
         });
@@ -150,6 +155,16 @@ describe('fragment-usage pages', () => {
                 11: { 'https://a.com': entry(4, { US: 1, CA: 3 }, '', '', { 'LATAM/Americas': 4 }) },
             };
             expect(topPages(pages)[0].regions).to.deep.equal({ 'LATAM/Americas': 7 });
+        });
+
+        it('counts hours stored before regions toward the region totals of newer hours', () => {
+            // honstar's case: 100 GB requests in an hour stored before regions, then 10 in a newer
+            // hour. Summing only the stored regions gives EMEA 10 of 110, which reads as Global.
+            const pages = {
+                10: { 'https://a.com#en_GB': { url: 'https://a.com', locale: 'en_GB', requests: 100, countries: { GB: 100 } } },
+                11: { 'https://a.com#en_GB': entry(10, { GB: 10 }, 'https://a.com', 'en_GB', { EMEA: 10 }) },
+            };
+            expect(topPages(pages)[0].regions).to.deep.equal({ EMEA: 110 });
         });
 
         it('keeps only the busiest countries once a page is summed across hours', () => {

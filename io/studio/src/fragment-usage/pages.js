@@ -18,6 +18,8 @@
  * per-hour integers.
  */
 
+const { sumRegions } = require('./regions');
+
 /** Seven days: long enough that a weekly-traffic page still shows up, short enough to stay small. */
 const PAGE_RETENTION_HOURS = 24 * 7;
 
@@ -82,6 +84,9 @@ function pageKey(url, locale) {
  * than one that throws. The key is the fallback URL, so no key parsing is needed to recover it.
  * The fallback is on a falsy url, not just a missing one, so a blank stored value recovers too.
  *
+ * Records written before regions were summed get them from their countries, so their hours still
+ * count toward a page's region totals once newer hours, which do carry regions, are added to them.
+ *
  * @param {number|object} entry stored value
  * @param {string} [key] storage key the entry was read from
  * @returns {{ url: string, locale: string, requests: number, countries: object, regions: object }} normalised entry
@@ -93,7 +98,7 @@ function readEntry(entry, key = '') {
         locale: entry?.locale ?? '',
         requests: Number(entry?.requests) || 0,
         countries: entry?.countries ?? {},
-        regions: entry?.regions ?? {},
+        regions: entry?.regions ?? sumRegions(entry?.countries),
     };
 }
 

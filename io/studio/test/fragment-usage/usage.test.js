@@ -115,8 +115,14 @@ describe('fragment-usage usage action', () => {
             const { body } = await action.main({ ...INPUTS, fragmentId: VALID_ID, __ow_headers: AUTH });
 
             expect(body.pages).to.deep.equal([
-                { url: 'https://www.adobe.com/a', locale: '', requests: 12, countries: { US: 9, CA: 3 }, regions: {} },
-                { url: 'https://www.adobe.com/b', locale: '', requests: 9, countries: { JP: 9 }, regions: {} },
+                {
+                    url: 'https://www.adobe.com/a',
+                    locale: '',
+                    requests: 12,
+                    countries: { US: 9, CA: 3 },
+                    regions: { 'LATAM/Americas': 12 },
+                },
+                { url: 'https://www.adobe.com/b', locale: '', requests: 9, countries: { JP: 9 }, regions: { JAPAC: 9 } },
             ]);
         });
 
@@ -145,8 +151,14 @@ describe('fragment-usage usage action', () => {
             const { body } = await action.main({ ...INPUTS, fragmentId: VALID_ID, __ow_headers: AUTH });
 
             expect(body.pages).to.deep.equal([
-                { url: 'https://www.adobe.com/a', locale: 'en_GB', requests: 9, countries: { GB: 9 }, regions: {} },
-                { url: 'https://www.adobe.com/a', locale: 'en_US', requests: 5, countries: { US: 5 }, regions: {} },
+                { url: 'https://www.adobe.com/a', locale: 'en_GB', requests: 9, countries: { GB: 9 }, regions: { EMEA: 9 } },
+                {
+                    url: 'https://www.adobe.com/a',
+                    locale: 'en_US',
+                    requests: 5,
+                    countries: { US: 5 },
+                    regions: { 'LATAM/Americas': 5 },
+                },
             ]);
         });
 

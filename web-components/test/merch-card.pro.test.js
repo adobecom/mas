@@ -624,6 +624,27 @@ describe('pro edu heading semantics', () => {
         expect(slot.querySelector('.section p').textContent).to.equal('Apps');
     });
 
+    it('keeps the H4 when the page wraps the card in a section', async () => {
+        const page = document.createElement('div');
+        page.className = 'section';
+        document.body.append(page);
+        card = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${PROMO}</p>${SECTION}</div>`,
+        );
+        page.append(card);
+        card.setAttribute('size', 'edu');
+        card.placeholders = { whatsIncludedLabel: "What's included:" };
+        card.requestUpdate();
+        await card.updateComplete;
+        const slot = card.querySelector('[slot="whats-included"]');
+        const headings = headingsIn(slot);
+        page.remove();
+        expect(headings.length).to.equal(1);
+        expect(headings[0].tagName).to.equal('H4');
+        expect(headings[0].className).to.equal('whats-included-label');
+    });
+
     for (const [what, placeholders, text] of [
         ['missing', undefined, ''],
         ['absent', {}, ''],

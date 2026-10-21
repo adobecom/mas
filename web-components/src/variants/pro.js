@@ -290,13 +290,13 @@ export class Pro extends VariantLayout {
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);
-        slot.querySelectorAll('.section h4:not(.whats-included-title)').forEach(
-            (h4) => {
-                const row = document.createElement('p');
-                row.innerHTML = h4.innerHTML;
-                h4.replaceWith(row);
-            },
-        );
+        // :scope keeps page wrappers (Milo's div.section) from matching the
+        // label above.
+        slot.querySelectorAll(':scope .section h4').forEach((h4) => {
+            const row = document.createElement('p');
+            row.innerHTML = h4.innerHTML;
+            h4.replaceWith(row);
+        });
         if (eduDisclaimer) {
             const disclaimer = document.createElement('div');
             disclaimer.className = 'whats-included-disclaimer';

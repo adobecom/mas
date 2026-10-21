@@ -736,7 +736,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #applyOfferRemoval(selectorId) {
         if (!canManagePromotions()) {
-            this.#showToast('Only promo powerusers can remove items from a promotion project.', 'negative');
+            this.#showToast('You do not have permission to remove items from a promotion project.', 'negative');
             return;
         }
         const store = this.itemsSelection.value;
@@ -773,7 +773,7 @@ class MasPromotionsItemsTable extends LitElement {
     async #removeFromList(e, item) {
         e.stopPropagation();
         if (!canManagePromotions()) {
-            this.#showToast('Only promo powerusers can remove items from a promotion project.', 'negative');
+            this.#showToast('You do not have permission to remove items from a promotion project.', 'negative');
             return;
         }
         const path = item?.path;

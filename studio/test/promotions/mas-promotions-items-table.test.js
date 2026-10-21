@@ -812,11 +812,17 @@ describe('MasPromotionsItemsTable', () => {
         await el.updateComplete;
         expect(el.confirmDialogConfig).to.exist;
         Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        const toast = sandbox.spy();
+        el.addEventListener('show-toast', toast);
         el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
         await el.updateComplete;
         await Promise.resolve();
         expect(Store.promotions.selectedOffers.value).to.deep.equal(['ffsa-osi']);
         expect(Store.promotions.selectedCards.value).to.deep.equal([path]);
+        expect(toast.firstCall.args[0].detail).to.deep.equal({
+            text: 'You do not have permission to remove items from a promotion project.',
+            variant: 'negative',
+        });
     });
 
     it('removes offer by OST selector id when offerData.offerId differs', async () => {

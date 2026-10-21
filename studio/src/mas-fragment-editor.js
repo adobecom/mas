@@ -1589,7 +1589,7 @@ export default class MasFragmentEditor extends LitElement {
     async deleteFragment() {
         this.variationsToDelete = [];
         if (!this.canDeleteFragment) {
-            showToast('Only promo powerusers can delete promo variations.', 'negative');
+            showToast('You do not have permission to delete promo variations.', 'negative');
             return;
         }
         const isVariation = this.editorContextStore.isVariation(this.fragment.id);
@@ -1610,7 +1610,7 @@ export default class MasFragmentEditor extends LitElement {
             this.variationsToDelete = [];
         }
         if (!this.canDeleteFragment) {
-            showToast('Only promo powerusers can delete fragments with promo variations.', 'negative');
+            showToast('You do not have permission to delete fragments with promo variations.', 'negative');
             return;
         }
         this.showDeleteDialog = true;
@@ -1618,7 +1618,7 @@ export default class MasFragmentEditor extends LitElement {
 
     async confirmDelete() {
         if (!this.canDeleteFragment) {
-            showToast('Only promo powerusers can delete promo variations.', 'negative');
+            showToast('You do not have permission to delete promo variations.', 'negative');
             return;
         }
         this.deleteInProgress = true;

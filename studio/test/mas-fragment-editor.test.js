@@ -1490,7 +1490,12 @@ describe('MasFragmentEditor', () => {
             await el.deleteFragment();
 
             expect(el.showDeleteDialog).to.be.false;
-            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+            expect(
+                toast.calledWithMatch({
+                    content: 'You do not have permission to delete promo variations.',
+                    variant: 'negative',
+                }),
+            ).to.be.true;
         });
 
         for (const source of ['metadata', 'field', 'context']) {
@@ -1528,10 +1533,40 @@ describe('MasFragmentEditor', () => {
             await el.deleteFragment();
             expect(el.showDeleteDialog).to.be.true;
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const toast = sandbox.spy(Events.toast, 'emit');
 
             await el.confirmDelete();
 
             expect(mockRepo.deleteVariationFragment.called).to.be.false;
+            expect(
+                toast.calledWithMatch({
+                    content: 'You do not have permission to delete promo variations.',
+                    variant: 'negative',
+                }),
+            ).to.be.true;
+        });
+
+        it('uses a neutral permission message when a parent has promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/summer/my-card';
+            const fragment = new Fragment({
+                id: 'parent',
+                path: '/content/dam/mas/sandbox/en_US/my-card',
+                fields: [{ name: 'variations', values: [promoPath] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.deleteFragment();
+
+            expect(el.showDeleteDialog).to.be.false;
+            expect(
+                toast.calledWithMatch({
+                    content: 'You do not have permission to delete fragments with promo variations.',
+                    variant: 'negative',
+                }),
+            ).to.be.true;
         });
 
         it('prevents promo editors deleting parent fragments with staged promo variations', async () => {

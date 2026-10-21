@@ -452,8 +452,8 @@ class MasPromotionsEditor extends LitElement {
                 description=${hasSurfaces
                     ? 'Choose one or more countries for your promotion.'
                     : 'Countries will be generated automatically once surfaces are selected.'}
-                ?readonly=${!this.canEdit}
-                ?disabled=${!this.canEdit || !hasSurfaces}
+                ?readonly=${!this.canConfigurePromotion}
+                ?disabled=${!this.canConfigurePromotion || !hasSurfaces}
                 .selected=${getSelectedCountries(this.geos)}
                 @open=${this.#openCountriesSelection}
                 @confirm=${this.#confirmCountriesSelection}
@@ -772,12 +772,14 @@ class MasPromotionsEditor extends LitElement {
     };
 
     async #applyCountriesSelection() {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return false;
         const countries = this.#countriesStore.value;
         const existing = new Set(getSelectedCountries(this.geos));
         try {
             const tags = countries.some((country) => !existing.has(country))
                 ? (await this.repository.aem.tags.list(PZN_COUNTRY_TAG_PATH_PREFIX)).hits
                 : [];
+            if (!this.#checkPermission(this.canConfigurePromotion)) return false;
             this.fragmentStore.updateField('geos', setCountriesInGeos(this.geos, countries, tags));
             return true;
         } catch (error) {

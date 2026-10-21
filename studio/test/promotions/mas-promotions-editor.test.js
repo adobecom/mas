@@ -383,6 +383,75 @@ describe('MasPromotionsEditor', () => {
             expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-tag').hasAttribute('deletable')).to.be.false;
         });
 
+        it('makes selected countries read-only for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            await selector.updateComplete;
+            expect(selector.readonly).to.be.true;
+            expect(selector.disabled).to.be.true;
+            expect(selector.selected).to.deep.equal(['US']);
+            expect(selector.shadowRoot.querySelector('.edit-button')).to.be.null;
+        });
+
+        for (const group of ['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']) {
+            it(`allows country selection changes for ${group} without editor membership`, async () => {
+                setGroups([group]);
+                const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+                const selector = el.renderRoot.querySelector('#promotion-countries');
+                expect(selector.readonly).to.be.false;
+                expect(selector.disabled).to.be.false;
+                selector.dispatchEvent(new Event('open'));
+                selector.querySelector('mas-region-picker').store.set([]);
+                const confirmEvent = new CustomEvent('confirm', { detail: {} });
+                selector.dispatchEvent(confirmEvent);
+                expect(await confirmEvent.detail.pending).to.be.true;
+                expect(el.fragment.getFieldValues('geos')).to.deep.equal([]);
+            });
+        }
+
+        it('rejects dispatched country confirmations from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set([]);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('rejects country confirmation when poweruser access is lost with the selector open', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set([]);
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('rejects country changes when poweruser access is lost during taxonomy loading', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const repo = makeRepo();
+            repo.aem.tags.list = sandbox.stub().callsFake(async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                return { hits: [{ path: '/content/cq:tags/mas/pzn/country/FR' }] };
+            });
+            const el = await mountExistingPromotion(repo, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['FR']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
         it('rejects dispatched geo changes from promo editors', async () => {
             setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
             const el = await mountExistingPromotion();

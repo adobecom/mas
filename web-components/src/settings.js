@@ -15,7 +15,8 @@ import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 import { toQuantity } from './utilities.js';
 import { resolveMasIOUrl } from './utils.js';
 
-const AUP_SELECT_VALUES = ['on', 'ucv3_in_iframe'];
+const isAupSelectEnabled = (value) =>
+    value != null && value !== 'off' && value !== 'false';
 
 const PREVIEW_REGISTERED_SURFACE = {
     'wcms-commerce-ims-ro.+': 'acom',
@@ -134,7 +135,7 @@ function getSettings(config = {}, service) {
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
-        aupSelect: AUP_SELECT_VALUES.includes(
+        aupSelect: isAupSelectEnabled(
             getParameter(
                 'aup-select',
                 { 'aup-select': service.getAttribute('aup-select') },

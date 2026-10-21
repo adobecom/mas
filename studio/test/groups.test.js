@@ -16,16 +16,20 @@ import '../src/mas-advanced-tools.js';
 describe('groups', () => {
     let originalProfile;
     let originalUsers;
+    let originalImsAccess;
 
     beforeEach(() => {
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
+        originalImsAccess = Store.users.getMeta('imsBulkPublishAccess');
+        Store.users.setMeta('imsBulkPublishAccess', null);
     });
 
     afterEach(() => {
         fixtureCleanup();
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('imsBulkPublishAccess', originalImsAccess);
     });
 
     it('isMasAdmin is true only for GRP-ODIN-MAS-ADMINS', () => {
@@ -55,6 +59,39 @@ describe('groups', () => {
         Store.profile.set({ email: 'a@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
         expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('canAccessBulkPublish allows an IMS-approved test identity missing from LDAP', () => {
+        Store.profile.set({ email: 'Automation@AdobeTest.com' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('rejects IMS approval belonging to a different test identity', () => {
+        Store.profile.set({ email: 'other@adobetest.com' });
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('keeps test identities denied until IMS approves access even with LDAP admin membership', () => {
+        Store.profile.set({ email: 'automation@adobetest.com' });
+        Store.users.set([{ userPrincipalName: 'automation@adobetest.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('does not grant Settings access through IMS Bulk Publish approval', () => {
+        Store.profile.set({ email: 'automation@adobetest.com' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessSettings('acom')).to.be.false;
+    });
+
+    it('does not use IMS approval for a lookalike test domain', () => {
+        Store.profile.set({ email: 'automation@adobetest.com.example.org' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com.example.org', allowed: true });
+        expect(canAccessBulkPublish()).to.be.false;
     });
 
     it('canAccessBulkPublish denies non-members', () => {

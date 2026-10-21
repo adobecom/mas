@@ -33,6 +33,7 @@ describe('router + bulk publish', () => {
             profile: structuredClone(Store.profile.get()),
             users: structuredClone(Store.users.get()),
             loaded: Store.users.getMeta('loaded'),
+            imsAccess: Store.users.getMeta('imsBulkPublishAccess'),
             page: Store.page.get(),
             search: structuredClone(Store.search.get()),
             projectId: Store.bulkPublishProjects.projectId.get(),
@@ -59,6 +60,7 @@ describe('router + bulk publish', () => {
         Store.profile.set(original.profile);
         Store.users.set(original.users);
         Store.users.setMeta('loaded', original.loaded);
+        Store.users.setMeta('imsBulkPublishAccess', original.imsAccess);
         Store.page.set(original.page);
         Store.search.set(original.search);
         Store.bulkPublishProjects.projectId.set(original.projectId);
@@ -148,4 +150,77 @@ describe('router + bulk publish', () => {
         await initUsers();
         expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
     });
+
+    it('waits for IMS approval before completing a test identity cold load', async () => {
+        Store.users.setMeta('loaded', false);
+        router.location.hash = '#page=bulkPublishEditor&path=acom&bulkPublishProjectId=abc';
+        router.start();
+        window.adobeIMS = { getProfile: async () => ({ email: 'Automation@AdobeTest.com' }) };
+        let resolveAccess;
+        const accessResponse = new Promise((resolve) => {
+            resolveAccess = resolve;
+        });
+        const fetchStub = sandbox.stub(window, 'fetch').callsFake(async (url) => {
+            if (url.endsWith('/bulk-publish-access')) return accessResponse;
+            return { ok: true, json: async () => [] };
+        });
+        const loading = initUsers();
+        await delay(0);
+        expect(Store.users.getMeta('loaded')).not.to.equal(true);
+        resolveAccess({ ok: true, json: async () => ({ allowed: true }) });
+        await loading;
+        expect(Store.page.get()).to.equal(PAGE_NAMES.BULK_PUBLISH_EDITOR);
+        expect(Store.users.getMeta('imsBulkPublishAccess')).to.deep.equal({ email: 'automation@adobetest.com', allowed: true });
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('denies a test identity when the IMS endpoint fails and clears stale approval', async () => {
+        Store.users.setMeta('loaded', false);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        router.location.hash = '#page=bulkPublish&path=acom';
+        router.start();
+        window.adobeIMS = { getProfile: async () => ({ email: 'automation@adobetest.com' }) };
+        sandbox.stub(window, 'fetch').callsFake(async (url) => {
+            if (url.endsWith('/bulk-publish-access')) return { ok: false, status: 502, statusText: 'Bad Gateway' };
+            return { ok: true, json: async () => [] };
+        });
+        await initUsers();
+        expect(Store.users.getMeta('imsBulkPublishAccess')?.allowed).not.to.equal(true);
+        expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+        expect(Store.users.getMeta('loaded')).to.be.true;
+    });
+
+    for (const email of ['author@adobe.com', 'automation@adobetest.com.example.org']) {
+        it(`keeps LDAP as the only source for ${email}`, async () => {
+            window.adobeIMS = { getProfile: async () => ({ email }) };
+            const fetchStub = sandbox.stub(window, 'fetch').resolves({ ok: true, json: async () => [] });
+            await initUsers();
+            expect(fetchStub.calledOnce).to.be.true;
+            expect(fetchStub.firstCall.args[0]).to.match(/\/listMembers$/);
+            expect(Store.users.getMeta('imsBulkPublishAccess')).to.be.null;
+        });
+    }
+
+    for (const failure of ['no membership', 'network error', 'invalid JSON']) {
+        it(`denies a test identity on ${failure}`, async () => {
+            Store.users.setMeta('loaded', false);
+            router.location.hash = '#page=bulkPublish&path=acom';
+            router.start();
+            window.adobeIMS = { getProfile: async () => ({ email: 'automation@adobetest.com' }) };
+            sandbox.stub(window, 'fetch').callsFake(async (url) => {
+                if (url.endsWith('/listMembers')) return { ok: true, json: async () => [] };
+                if (failure === 'network error') throw new Error('Network unavailable');
+                return {
+                    ok: true,
+                    json: async () => {
+                        if (failure === 'invalid JSON') throw new SyntaxError('Invalid JSON');
+                        return { allowed: false };
+                    },
+                };
+            });
+            await initUsers();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+            expect(Store.users.getMeta('imsBulkPublishAccess')?.allowed).to.be.false;
+        });
+    }
 });

@@ -49,6 +49,11 @@ function isAdminOrInGroup(group) {
 
 /** Studio UI access across all surfaces; AEM publish permissions remain unchanged. */
 export function canAccessBulkPublish() {
+    const email = Store.profile.get().email?.toLowerCase();
+    if (email?.endsWith('@adobetest.com')) {
+        const access = Store.users.getMeta('imsBulkPublishAccess');
+        return access?.email === email && access.allowed === true;
+    }
     return isAdminOrInGroup(MAS_BULK_PUBLISH_GROUP);
 }
 

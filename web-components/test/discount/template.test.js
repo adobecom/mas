@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { discount } from '@adobecom/mas-price/discount';
+import { discount } from '../../../price/src/discount/index.js';
 
 describe('discount template', () => {
     [

@@ -1,6 +1,6 @@
 import { expect } from '../utilities.js';
 import * as snapshots from './__snapshots__/legal.snapshots.js';
-import { legalTemplate } from '@adobecom/mas-price/price/legal';
+import { legalTemplate } from '../../../price/src/price/legal.js';
 
 const root = document.createElement('div');
 document.body.append(root);

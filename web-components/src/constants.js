@@ -1,4 +1,4 @@
-export { Commitment, Term } from '@adobecom/mas-price/constants';
+export { Commitment, Term } from '../../price/src/constants.js';
 
 /**
  * Common namespace prefix for CSS classes and DOM event types.

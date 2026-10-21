@@ -1,10 +1,10 @@
 import { createLog } from '../log.js';
-import { formatLiteral as renderLiteral } from '@adobecom/mas-price/price/template';
+import { formatLiteral as renderLiteral } from '../../../price/src/price/template.js';
 
 export {
     defaultLiterals,
     renderSpan,
-} from '@adobecom/mas-price/price/template';
+} from '../../../price/src/price/template.js';
 
 const log = createLog('ConsonantTemplates/price');
 

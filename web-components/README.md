@@ -41,8 +41,7 @@ Generic commerce-related logic, including:
 
 ### Installation
 
-Install from the repository root so npm links the `@adobecom/mas-price` workspace
-dependency.
+Install development dependencies from the repository root.
 
 ```sh
 npm install
@@ -50,10 +49,12 @@ npm install
 
 ### Shared price rendering
 
-`@adobecom/mas-price` owns offer selection, soft-bundle summation, price/discount
+The shared source in `../price/src/` owns offer selection, soft-bundle summation, price/discount
 templates, number formatting, and localized price literals. Web-components keeps
 option collection, tax-default resolution, WCS fetching, DOM updates, and
 browser diagnostic adapters; there is no separate browser renderer.
+Consumers use relative `.js` imports, such as `../../price/src/index.js` from
+`src/price.js`, without an installed-package dependency.
 
 The commerce service's `buildPriceHTML(offers, options)` API is unchanged.
 Service settings provide formatting defaults, while template selection stays
@@ -61,7 +62,7 @@ per-price. Explicit `instant` wins over the query string; `?instant=` fallback
 applies only to promotional monthly-with-annual rendering, as before.
 
 Use Node 22 or newer for web-components testing and the build command (which
-runs tests). Browser parity computes native Node output using the shared package,
+runs tests). Browser parity computes native Node output using the shared source,
 whose supported runtime is Node 22+. The dedicated web-components build CI job
 uses Node 22; Studio's build job and the repository-wide `.nvmrc` stay at Node 20.
 This validation requirement does not change the browser bundle's target or

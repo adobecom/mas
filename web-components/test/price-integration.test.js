@@ -2,11 +2,11 @@ import { expect, sinon } from './utilities.js';
 import {
     buildPriceHTML as sharedBuildPriceHTML,
     selectOffers as sharedSelectOffers,
-} from '@adobecom/mas-price';
+} from '../../price/src/index.js';
 import {
     Commitment as sharedCommitment,
     Term as sharedTerm,
-} from '@adobecom/mas-price/constants';
+} from '../../price/src/constants.js';
 import { Price } from '../src/price.js';
 import { Commitment, Term } from '../src/constants.js';
 import { selectOffers, sumOffers } from '../src/utilities.js';

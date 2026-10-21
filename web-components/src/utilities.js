@@ -3,8 +3,8 @@ import {
     isPositiveFiniteNumber,
     toPositiveFiniteInteger,
 } from '@dexter/tacocat-core/src/utilities.js';
-import { sumOffers as combineOffers } from '@adobecom/mas-price';
-export { selectOffers } from '@adobecom/mas-price';
+import { sumOffers as combineOffers } from '../../price/src/index.js';
+export { selectOffers } from '../../price/src/index.js';
 import { HEADER_X_REQUEST_ID } from './constants.js';
 import { Log } from './log.js';
 

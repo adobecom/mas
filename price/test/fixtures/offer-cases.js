@@ -12,7 +12,6 @@ export const planTypeCases = [
     { id: 'term-license-unsupported-term', offer: { commitment: 'TERM_LICENSE', term: 'MONTHLY' }, expected: '' },
     { id: 'unsupported-commitment', offer: { commitment: 'OTHER', term: 'MONTHLY' }, expected: '' },
     { id: 'empty-commitment', offer: { commitment: '', term: 'MONTHLY' }, expected: '' },
-    { id: 'missing-commitment', offer: { term: 'MONTHLY' }, expected: 'Value is not an offer' },
 ];
 
 export const selectionCases = [

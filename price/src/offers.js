@@ -2,8 +2,6 @@ import { Commitment, Term } from './constants.js';
 
 const getPlanType = (commitment, term) => {
     switch (commitment) {
-        case undefined:
-            return 'Value is not an offer';
         case '':
             return '';
         case Commitment.YEAR:
@@ -19,12 +17,8 @@ const getPlanType = (commitment, term) => {
     }
 };
 
-/**
- * Copies an offer with its derived plan type, preserving the legacy
- * tacocat 1.13.1 mapping and invalid-input behavior.
- */
+/** Copies a WCS offer with its plan type derived from commitment and term. */
 export function applyPlanType(offer) {
-    if (typeof offer !== 'object') return 'Value is not an offer';
     const { commitment, term } = offer;
     return { ...offer, planType: getPlanType(commitment, term) };
 }

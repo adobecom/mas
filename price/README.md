@@ -12,7 +12,8 @@ The existing web-components implementation is unchanged by this integration.
 ## API
 
 ```js
-import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
+// Example run from price/; consumers use the relative path from their file.
+import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from './src/index.js';
 
 const options = {
     country: 'GB',
@@ -36,7 +37,7 @@ or fetching occurs here.
 
 | Export                                                 | Contract                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `applyPlanType(offer)`                                 | Returns a shallow copy with `planType` derived from commitment/term, overwriting any stale value without mutating the input. Preserves tacocat 1.13.1 behavior; see normalization below.                                                                                                                                                                                                                                          |
+| `applyPlanType(offer)`                                 | Returns a shallow copy of a WCS offer with `planType` derived from commitment/term, overwriting any stale value without mutating the input. See normalization below.                                                                                                                                                                                                                                                              |
 | `selectOffers(offers, options)`                        | Prefers offers without a term, then the preferred language (EN in GB, MULT elsewhere). Sorts input arrays in place. Preserves zero/single-array identity unless `forceTaxExclusive` is enabled, which always maps the array. Rewriting creates amended offers and clears stale gross `priceInfo`; already-exclusive offers retain identity.                                                                                       |
 | `sumOffers(offers, { logger }?)`                       | Returns null for absent/empty arrays and the same object for one offer. Combines OSIs and positive numeric/annualized sums rounded to two decimals; retains first-offer metadata and regular price fields where a sum is non-positive. Annualized output includes only positive sums. Clears `priceInfo` for bundles. Does not mutate offers. Warns on mismatched commitment, term, or currency format without rejecting the sum. |
 | `buildPriceHTML(offers, resolvedOptions, { logger }?)` | Dispatches the first offer to existing templates and flattens its `priceDetails`. Returns the exact markup string, including whitespace/entities/classes/accessibility labels. Returns `''` for non-array/empty offers or missing options; invalid offer entries and missing required price inputs can throw. Does not select/sum offers, merge service settings, or collect options.                                             |
@@ -55,14 +56,13 @@ MONTH/MONTHLY -> M2M, PERPETUAL -> PERPETUAL, and TERM_LICENSE/P3Y -> P3Y.
 Other commitment/term combinations return an empty plan type. The helper uses
 the package's existing constants and introduces no runtime dependencies.
 
-Legacy edge behavior is intentionally preserved: missing commitment produces
-`planType: 'Value is not an offer'`; non-object inputs return that string rather
-than an offer; null throws a TypeError. Consumers should supply valid WCS offers.
+Consumers must supply WCS offer objects; legacy invalid-input sentinels and
+non-object compatibility are not part of this API.
 Nested properties retain identity because the returned offer is a shallow copy.
 
-The current browser helper remains unchanged. Node/Chrome tests cover the
-extracted mapping and its mutation contract; extraction parity is checked against
-the existing vendored browser helper without adding it as a package dependency.
+The current browser helper remains unchanged. Direct Node unit tests cover
+the supported mappings and mutation contract. Node/Chrome parity remains focused
+on price rendering and offer selection/summation, not the pure plan-type mapping.
 
 Templates: default, optical, strikethrough, promo-strikethrough, annual, legal,
 discount, alternative, optical-alternative, and monthly-with-annual equivalents.
@@ -113,12 +113,13 @@ Consumer adapters must supply the required logger methods and forward
 diagnostics to the existing Lana-backed browser logging or IO request logging,
 rather than relying on the standalone console default.
 
-### Compatibility subpaths
+### Source entry points
 
-Explicit subpaths preserve the extracted formatting APIs needed by the later
-browser refactor: `/constants`, `/price`, `/price/template`, `/price/utilities`,
-`/price/legal`, and `/discount`. They point to the same implementation, not
-alternate browser/Node versions. All imports use `.js` extensions.
+Consumers import the shared primitives from `src/index.js` using relative paths.
+Supporting entry points include `src/constants.js`, `src/price/index.js`,
+`src/price/template.js`, `src/price/utilities.js`, `src/price/legal.js` and
+`src/discount/index.js`. All imports use `.js` extensions. Node smoke tests cover
+these source entry points; they do not assert an installed-package contract.
 
 The small internal boolean/predicate/escaping helpers and net-price rewrite
 preserve `@dexter/tacocat-core` 1.13.1 semantics without importing its

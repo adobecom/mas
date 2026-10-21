@@ -6,7 +6,7 @@ import { planTypeCases } from '../fixtures/offer-cases.js';
 
 describe('applyPlanType', () => {
     for (const { id, offer, expected } of planTypeCases) {
-        it(`preserves the legacy ${id} mapping`, () => {
+        it(`maps ${id} offers to the expected plan type`, () => {
             const result = applyPlanType(offer);
             assert.deepEqual(result, { ...offer, planType: expected });
         });
@@ -20,14 +20,6 @@ describe('applyPlanType', () => {
         assert.deepEqual(result, { ...offer, planType: 'ABM' });
         assert.equal(result.priceDetails, offer.priceDetails);
         assert.deepEqual(offer, before);
-    });
-    for (const value of [undefined, false, 0, 'not an offer', () => {}]) {
-        it(`preserves the legacy non-object return for ${typeof value}`, () => {
-            assert.equal(applyPlanType(value), 'Value is not an offer');
-        });
-    }
-    it('preserves the legacy TypeError for null', () => {
-        assert.throws(() => applyPlanType(null), TypeError);
     });
 });
 

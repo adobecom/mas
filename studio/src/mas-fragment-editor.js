@@ -12,6 +12,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
+    PROMOTION_MODEL_ID,
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
@@ -1062,6 +1063,8 @@ export default class MasFragmentEditor extends LitElement {
             this.operation,
             Store.search,
             Store.filters,
+            Store.profile,
+            Store.users,
         ]);
     }
 
@@ -1763,12 +1766,15 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get canPublishFragment() {
+        if (this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID)) {
+            return canManagePromotions();
+        }
         return canEditPromotions() || !this.isPromoVariationFragment();
     }
 
     async publishFragment() {
         if (!this.canPublishFragment) {
-            showToast('You do not have permission to publish promo variations.', 'negative');
+            showToast('You do not have permission to publish this content.', 'negative');
             return;
         }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
@@ -1803,7 +1809,7 @@ export default class MasFragmentEditor extends LitElement {
             }
 
             if (!this.canPublishFragment) {
-                showToast('You do not have permission to publish promo variations.', 'negative');
+                showToast('You do not have permission to publish this content.', 'negative');
                 return;
             }
             await this.repository.publishFragment(this.fragment, publishOptions);

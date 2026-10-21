@@ -14,6 +14,7 @@ import {
     PAGE_NAMES,
     CARD_MODEL_PATH,
     COLLECTION_MODEL_PATH,
+    PROMOTION_MODEL_ID,
     ODIN_PREVIEW_ORIGIN,
     COMPARE_CHART_FIELD,
     STAGED,
@@ -376,6 +377,8 @@ describe('MasFragmentEditor', () => {
                 filters: structuredClone(Store.filters.get()),
                 translatedLocales: Store.fragmentEditor.translatedLocales.get(),
                 placeholdersPreview: Store.placeholders.previewByLocale.get(),
+                profile: Store.profile.get(),
+                users: Store.users.get(),
             };
 
             Store.fragments.list.data.value = [];
@@ -389,6 +392,7 @@ describe('MasFragmentEditor', () => {
         });
 
         afterEach(() => {
+            el.remove();
             disposePreviewStore(Store.fragments.inEdit.get());
             Store.fragments.list.data.get().forEach((store) => disposePreviewStore(store));
 
@@ -400,6 +404,8 @@ describe('MasFragmentEditor', () => {
             Store.filters.value = originalStoreState.filters;
             Store.fragmentEditor.translatedLocales.value = originalStoreState.translatedLocales;
             Store.placeholders.previewByLocale.value = originalStoreState.placeholdersPreview;
+            Store.profile.set(originalStoreState.profile);
+            Store.users.set(originalStoreState.users);
         });
 
         it('returns early when no fragment ID exists', async () => {
@@ -431,6 +437,38 @@ describe('MasFragmentEditor', () => {
             expect(Store.fragmentEditor.loading.get()).to.equal(false);
             expect(existingStore.previewStore.resolved).to.equal(false);
         });
+
+        for (const identityStore of ['profile', 'users']) {
+            for (const readOnly of [false, true]) {
+                it(`updates the active promo form to read-only=${readOnly} when ${identityStore} changes`, async () => {
+                    const profile = { email: 'author@adobe.com' };
+                    const users = [{ userPrincipalName: profile.email, groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }];
+                    Store.profile.set(identityStore === 'profile' && !readOnly ? {} : profile);
+                    Store.users.set(identityStore === 'users' && !readOnly ? [] : users);
+                    const fragment = new Fragment({
+                        ...createFragmentData({ id: 'active-promo', slug: 'promotions/summer/my-card' }),
+                        tags: [],
+                    });
+                    const store = generateFragmentStore(fragment);
+                    Store.fragments.list.data.value = [store];
+                    Store.fragmentEditor.fragmentId.value = fragment.id;
+                    el.reactiveController.updateStores.restore();
+                    sandbox.stub(el, 'render').callsFake(() => el.fragmentEditor);
+                    sandbox.stub(el, 'updated');
+
+                    await el.initFragment();
+                    fixtureSync(el);
+                    await el.updateComplete;
+                    expect(el.querySelector('.section').inert).to.equal(!readOnly);
+
+                    Store[identityStore].set(identityStore === 'profile' ? (readOnly ? {} : profile) : readOnly ? [] : users);
+                    await el.updateComplete;
+
+                    expect(el.querySelector('.section').inert).to.equal(readOnly);
+                    expect(Boolean(el.querySelector('[role="status"]'))).to.equal(readOnly);
+                });
+            }
+        }
 
         it('deleteFragment awaits a still-pending cached-store promo refresh before staging variations', async () => {
             const existingData = createFragmentData({ id: 'existing-id', locale: 'en_US', slug: 'existing' });
@@ -1223,6 +1261,50 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el, 'repository').get(() => repository);
             return { el, fragment };
         }
+
+        for (const modelKey of ['id', 'path']) {
+            for (const { group, allowed } of [
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: false },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
+                { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', allowed: true },
+                { group: 'GRP-ODIN-MAS-ADMINS', allowed: true },
+                { group: null, allowed: false },
+            ]) {
+                it(`publishes a promotion project identified by model ${modelKey} as ${group}: ${allowed}`, async () => {
+                    Store.users.set(group ? [{ userPrincipalName: 'author@adobe.com', groups: [group] }] : []);
+                    const { el, fragment } = createPublishingEditor({
+                        model: atob(PROMOTION_MODEL_ID),
+                        promotional: false,
+                    });
+                    fragment.model = { [modelKey]: modelKey === 'id' ? PROMOTION_MODEL_ID : atob(PROMOTION_MODEL_ID) };
+                    const toast = sandbox.spy(Events.toast, 'emit');
+
+                    await el.publishFragment();
+
+                    expect(el.canPublishFragment).to.equal(allowed);
+                    expect(publish.calledOnce).to.equal(allowed);
+                    if (!allowed) {
+                        expect(save.called).to.be.false;
+                        expect(MasPublishStagedDialog.show.called).to.be.false;
+                        expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+                    }
+                });
+            }
+        }
+
+        it('rechecks project management permission after staged confirmation', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            const { el } = createPublishingEditor({ model: atob(PROMOTION_MODEL_ID), promotional: false });
+            MasPublishStagedDialog.show.callsFake(async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                return { confirmed: true };
+            });
+
+            await el.publishFragment();
+
+            expect(save.called).to.be.false;
+            expect(publish.called).to.be.false;
+        });
 
         for (const model of [CARD_MODEL_PATH, COLLECTION_MODEL_PATH]) {
             for (const { group, promotional = true, staged = true, hasUnsavedChanges = true, allowed } of [

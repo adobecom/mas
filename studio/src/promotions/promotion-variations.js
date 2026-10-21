@@ -625,14 +625,6 @@ export async function resolveDefaultFragmentForPromoVariation(
 }
 
 /**
- * Resolves promo variations for fragments attached to a promotion project.
- * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
- * @param {import('../aem/aem.js').AEM} aem
- * @param {Object} promotionFragment
- * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
- * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
- */
-/**
  * Probes the `pzn` subfolder under a fragment's promo-variation path for promo variations
  * created from that fragment's own grouped variations.
  * @param {import('../aem/aem.js').AEM} aem
@@ -668,6 +660,14 @@ async function probeGroupedVariationPromoVariations(aem, defaultPath, promoName)
         });
 }
 
+/**
+ * Resolves promo variations for fragments attached to a promotion project.
+ * Discovered via project promo tag + buildPromoVariationPathForTag (not parent variations field).
+ * @param {import('../aem/aem.js').AEM} aem
+ * @param {Object} promotionFragment
+ * @param {{ onlyUnpublished?: boolean, onlyPublished?: boolean }} [options]
+ * @returns {Promise<Array<{ path: string, status: string, title: string, parentPath: string, fields: Array, tags: Array }>>}
+ */
 async function collectAttachedPromoVariations(aem, promotionFragment, { onlyUnpublished = false, onlyPublished = false } = {}) {
     const promotionTagId = getPromotionTagFromFragment(promotionFragment);
     if (!promotionTagId) return [];

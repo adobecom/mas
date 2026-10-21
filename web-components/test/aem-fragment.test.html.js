@@ -189,6 +189,76 @@ runTests(async () => {
                 expect(cache.has('ref456')).to.false;
                 cache.clear();
             });
+
+            describe('regional and default ids', () => {
+                const regional = {
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id' },
+                };
+
+                it('resolves both ids when the regional id is cached first', () => {
+                    cache.add({ id: 'kr-id' });
+                    cache.add(regional);
+                    expect(cache.has('kr-id')).to.true;
+                    expect(cache.has('default-id')).to.true;
+                    expect(cache.get('default-id')).to.equal(regional);
+                });
+
+                it('resolves both ids when the default id is cached first', () => {
+                    cache.add({ id: 'default-id' });
+                    cache.add(regional);
+                    expect(cache.has('default-id')).to.true;
+                    expect(cache.has('kr-id')).to.true;
+                    expect(cache.get('kr-id')).to.equal(regional);
+                });
+
+                it('resolves a pending default-id waiter without the timeout', async () => {
+                    cache.add({ id: 'kr-id' });
+                    const waiter = cache
+                        .getAsPromise('default-id')
+                        .then(() => 'resolved');
+                    cache.add(regional);
+                    const outcome = await Promise.race([
+                        waiter,
+                        delay(200).then(() => 'timeout'),
+                    ]);
+                    expect(outcome).to.equal('resolved');
+                });
+
+                it('resolves a pending regional-id waiter without the timeout', async () => {
+                    cache.add({ id: 'default-id' });
+                    const waiter = cache
+                        .getAsPromise('kr-id')
+                        .then(() => 'resolved');
+                    cache.add(regional);
+                    const outcome = await Promise.race([
+                        waiter,
+                        delay(200).then(() => 'timeout'),
+                    ]);
+                    expect(outcome).to.equal('resolved');
+                });
+
+                it('keeps the first fragment when both ids are already cached', () => {
+                    const first = {
+                        id: 'kr-id',
+                        fields: { originalId: 'default-id' },
+                    };
+                    cache.add(first);
+                    cache.add({ ...first });
+                    expect(cache.get('kr-id')).to.equal(first);
+                    expect(cache.get('default-id')).to.equal(first);
+                });
+
+                it('terminates on reference cycles', () => {
+                    const a = { id: 'a', references: {} };
+                    const b = { id: 'b', references: {} };
+                    a.references.b = { type: 'content-fragment', value: b };
+                    b.references.a = { type: 'content-fragment', value: a };
+                    cache.add(a);
+                    expect(cache.has('a')).to.true;
+                    expect(cache.has('b')).to.true;
+                });
+            });
         });
 
         describe('aem-fragment with merch-card', () => {
@@ -524,7 +594,7 @@ runTests(async () => {
                 expect(aemFragment.fetchInfo).to.include({
                     'aem-fragment:status': 404,
                     'aem-fragment:url':
-                        'http://localhost:2023/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                        'https://www.adobe.com/mas/io/fragment?id=notfound&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                     'aem-fragment:serverTiming':
                         'cdn-cache|desc=HIT|edge|dur=1|sis|desc=0|ak_p|desc="1748272422155_390603879_647296830_1088_9412_44_0_219"|dur=1',
                 });
@@ -543,7 +613,7 @@ runTests(async () => {
                 addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US',
                 );
             });
             it('fetches fragment from freyja on publish with overriden country', async () => {
@@ -557,7 +627,7 @@ runTests(async () => {
                 const aemFragment = addFragment('fragment-cc-all-apps');
                 await aemFragment.updateComplete;
                 expect(fetch.lastCall.firstArg).to.equal(
-                    'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
+                    'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=CA',
                 );
             });
 
@@ -583,7 +653,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=en_US&country=KR',
                     );
                 } finally {
                     publishService.remove();
@@ -612,7 +682,7 @@ runTests(async () => {
                     const aemFragment = addFragment('fragment-cc-all-apps');
                     await aemFragment.updateComplete;
                     expect(fetch.lastCall.firstArg).to.equal(
-                        'https://www.stage.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
+                        'https://mas.adobe.com/mas/io/fragment?id=fragment-cc-all-apps&api_key=wcms-commerce-ims-ro-user-milo&locale=es_ES',
                     );
                 } finally {
                     publishService.remove();
@@ -1070,26 +1140,10 @@ runTests(async () => {
             });
 
             it('resolves checkReady after aem:load', async () => {
-                const masField = document.createElement('mas-field');
-                masField.setAttribute('field', 'promoText');
-                const fragment = document.createElement('aem-fragment');
-                masField.append(fragment);
+                const [masField] = getTemplateContent('mas-field-render-field');
                 spTheme.append(masField);
 
-                const readyPromise = masField.checkReady();
-                fragment.dispatchEvent(
-                    new CustomEvent(EVENT_AEM_LOAD, {
-                        bubbles: true,
-                        composed: true,
-                        detail: {
-                            fields: {
-                                promoText: '<p>Ready</p>',
-                            },
-                        },
-                    }),
-                );
-
-                await expect(readyPromise).to.eventually.equal(true);
+                await expect(masField.checkReady()).to.eventually.equal(true);
             });
 
             it('resolves checkReady immediately when already loaded', async () => {

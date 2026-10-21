@@ -96,8 +96,8 @@ const EXPECTED_BODY = {
     id: 'some-fr-fr-fragment',
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
-// EXPECTED BODY SHA256 hash (includes settings/priceLiterals from mocked settings)
-const EXPECTED_BODY_HASH = '53e93f636fc6ff1d38b8508a2e5e4568914bca44d2f308deb7cf47f5d1024165';
+// Includes the settings, price literals and countdown-copy placeholder.
+const EXPECTED_BODY_HASH = '306da70c01f5149b51ce6317675859b545fa99a5107ffecc900b4e75045d2eeb';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 
@@ -177,6 +177,38 @@ describe('pipeline corner cases', () => {
 
     afterEach(() => {
         fetchStub.restore();
+    });
+
+    it('includes init-phase fetch durations in the final pipeline timings log', async () => {
+        setupFragmentMocks(fetchStub, {});
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/?path=/content/dam/mas/promotions&limit=50').returns(
+            createResponse(200, {
+                items: [
+                    {
+                        id: 'timed-project',
+                        path: '/content/dam/mas/promotions/sale',
+                        fields: { surfaces: ['sandbox'], tags: ['mas:promotion/sale'] },
+                    },
+                ],
+            }),
+        );
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/timed-project?references=all-hydrated')
+            .returns(createResponse(200, { fields: { offers: ['|SAVE|'] } }));
+        const output = sinon.stub(console, 'log');
+        try {
+            const result = await getFragment({
+                id: 'some-en-us-fragment',
+                locale: 'en_US',
+                state: new MockState(),
+            });
+            expect(result.statusCode).to.equal(200);
+            const timings = output.getCalls().find(({ args }) => args[0].includes('timings (time and duration)'));
+            expect(timings.args[0]).to.match(/main-fetch-fragment t:[\d.]+, d:[\d.]+/);
+            expect(timings.args[0]).to.match(/main-fetch-promotions-hydrate-timed-project t:[\d.]+, d:[\d.]+/);
+        } finally {
+            output.restore();
+        }
     });
 
     it('should handle main timeout', async () => {

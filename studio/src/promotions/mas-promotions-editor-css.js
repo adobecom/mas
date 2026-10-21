@@ -75,10 +75,6 @@ export const styles = [
             gap: 20px;
         }
 
-        .promotions-form-items-outer .form-field {
-            margin-top: 0;
-        }
-
         .promotions-form-surfaces-panel sp-button {
             background: white;
         }
@@ -126,7 +122,6 @@ export const styles = [
 
         .form-field {
             padding: 20px;
-            margin-top: 20px;
             border: 1px solid var(--spectrum-gray-300, #dadada);
             border-radius: 16px;
             box-shadow:
@@ -312,13 +307,18 @@ export const styles = [
             }
         }
 
-        .duplicating-overlay {
+        .duplicating-overlay,
+        .publishing-overlay {
             position: fixed;
             inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+        }
+
+        .publishing-overlay {
+            background: rgba(0, 0, 0, 0.5);
         }
 
         .end-date-row {

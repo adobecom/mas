@@ -1,10 +1,10 @@
 import {
-    forceTaxExclusivePrice,
     isNotEmptyString,
     isPositiveFiniteNumber,
     toPositiveFiniteInteger,
-} from '@dexter/tacocat-core';
-import { HEADER_X_REQUEST_ID } from './constants';
+} from '@dexter/tacocat-core/src/utilities.js';
+import { forceTaxExclusivePrice } from '@dexter/tacocat-core/src/wcsUtils.js';
+import { HEADER_X_REQUEST_ID } from './constants.js';
 import { Log } from './log.js';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
@@ -40,7 +40,13 @@ export function selectOffers(offers, { country, forceTaxExclusive }) {
         selected = [offers[0]];
     }
     if (forceTaxExclusive) {
-        selected = selected.map(forceTaxExclusivePrice);
+        selected = selected.map((offer) => {
+            const amended = forceTaxExclusivePrice(offer);
+            // Net rewrite invalidates the gross priceInfo tree; drop it.
+            return amended === offer
+                ? offer
+                : { ...amended, priceInfo: undefined };
+        });
     }
     return selected;
 }
@@ -143,6 +149,8 @@ export function sumOffers(offers) {
     return {
         ...firstOffer,
         offerSelectorIds: offers.flatMap((o) => o.offerSelectorIds || []),
+        // Summed price has no WCS string → drop priceInfo, render numeric sum.
+        priceInfo: undefined,
         priceDetails: {
             ...firstOffer.priceDetails,
             ...summedPrices,
@@ -218,6 +226,8 @@ export function toWcsOsiAndPromotionCodes(osiValue, promotionCodeValue) {
  * @returns
  */
 export function getService() {
+    /* c8 ignore next */
+    if (typeof document === 'undefined') return null;
     return document.getElementsByTagName(MAS_COMMERCE_SERVICE)?.[0];
 }
 

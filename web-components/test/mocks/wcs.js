@@ -1,7 +1,13 @@
 import { HEADER_X_REQUEST_ID } from '../../src/constants.js';
 import { FETCH_INFO_HEADERS } from '../../src/utilities.js';
 
-export async function withWcs(originalFetch) {
+/**
+ * @param {Function} originalFetch
+ * @param {object} [options]
+ * @param {Record<string, object>} [options.priceInfo] - pre-split trees keyed
+ *   by osi, merged onto resolved offers. Omit for the legacy format.
+ */
+export async function withWcs(originalFetch, { priceInfo = {} } = {}) {
     const offers = JSON.parse(
         await originalFetch('/test/mocks/offers.json').then((r) => r.text()),
     );
@@ -33,6 +39,9 @@ export async function withWcs(originalFetch) {
                     )?.map((offer) => ({
                         ...offer,
                         offerSelectorIds: [osi],
+                        ...(priceInfo[osi]
+                            ? { priceInfo: priceInfo[osi] }
+                            : {}),
                     }));
                 });
 

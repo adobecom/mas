@@ -84,9 +84,39 @@ describe('commerce service', () => {
                 expect(service.settings.aupSelect).to.be.true;
             });
 
-            for (const value of ['on', 'off', 'true', 'ON', '']) {
+            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
+                meta.content = 'off';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'on' });
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('is disabled when the attribute is not set', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            for (const value of ['on', 'true', 'ON', '']) {
+                it(`enables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.true;
+                });
+            }
+
+            for (const value of ['off', 'false']) {
+                it(`disables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.false;
+                });
+            }
+
+            for (const value of ['on', 'off', 'true', 'false', 'ON', '']) {
                 it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
-                    const enabled = value === 'on';
+                    const enabled = value !== 'off' && value !== 'false';
                     const fallback = enabled ? 'off' : 'on';
                     meta.content = fallback;
                     document.head.append(meta);
@@ -242,7 +272,20 @@ describe('commerce service', () => {
                     severity: 'e',
                     tags: 'ccd',
                     isProdDomain: false,
+                    country: 'US',
                 });
+            });
+
+            it('logs the resolved country in lana facts', async () => {
+                const el = await initMasCommerceService({
+                    'lana-sample-rate': '100',
+                    locale: 'fr_LU',
+                });
+                el.log.error('MERCH-CARD failed to initialize');
+                const [msg] = window.lana.log.lastCall.args;
+                expect(msg).to.match(
+                    /¶facts=\[\{"mas-commerce-service:country":"LU"\}\]$/,
+                );
             });
         });
 

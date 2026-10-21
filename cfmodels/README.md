@@ -52,6 +52,7 @@ Writes `cfmodels/promotion.model.json`.
 | dictionary           | `/conf/mas/settings/dam/cfm/models/dictionary`           |
 | translation-project  | `/conf/mas/settings/dam/cfm/models/translation-project`  |
 | bulk-publish-project | `/conf/mas/settings/dam/cfm/models/bulk-publish-project` |
+| offer                | `/conf/mas/settings/dam/cfm/models/offer`                |
 
 ## Notes
 

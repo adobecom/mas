@@ -1641,15 +1641,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p><p><mas-field field="ctas[99]"><span data-role="mas-field-content">${CTA_HTML}</span></mas-field></p></div>`;
         const template = document.createElement('template');
         template.innerHTML = html;
-        template.content.querySelector(
-            '[data-analytics-id="free-trial"]',
-        ).masElement = {
-            value: [
-                {
-                    offerType: 'BASE',
-                },
-            ],
-        };
+
         const resultHtml = await stripTrialCtas(template, true, el);
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
         const trialEl = doc.querySelector(
@@ -1681,15 +1673,6 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
         const template = document.createElement('template');
         template.innerHTML = html;
-        template.content.querySelector(
-            '[data-analytics-id="free-trial"]',
-        ).masElement = {
-            value: [
-                {
-                    offerType: 'BASE',
-                },
-            ],
-        };
 
         const resultHtml = await stripTrialCtas(template, true, el);
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
@@ -1702,15 +1685,6 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field><mas-field field="ctas[22]"><span data-role="mas-field-content">EMPTY</span></mas-field></p></div>`;
         const template = document.createElement('template');
         template.innerHTML = html;
-        template.content.querySelector(
-            '[data-analytics-id="free-trial"]',
-        ).masElement = {
-            value: [
-                {
-                    offerType: 'BASE',
-                },
-            ],
-        };
 
         const el = template.content.querySelector(
             'mas-field[field="ctas[77]"]',

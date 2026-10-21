@@ -86,7 +86,7 @@ class MasSearchAndFilters extends LitElement {
         promotionSurfaceOptions: { type: Array },
         promotionSurface: { type: String },
         offerFilterOptions: { type: Array },
-        offerFilterValues: { type: Array },
+        offerFilterValue: { type: String },
         /** If true, don't overwrite productFilter — the consumer controls it (offers for promotions). */
         externalProductFilter: { type: Boolean },
         /** When set, card search also matches grouped variation ids and personalization tags (promotions picker). */
@@ -122,7 +122,7 @@ class MasSearchAndFilters extends LitElement {
         this.promotionSurfaceOptions = [];
         this.promotionSurface = '';
         this.offerFilterOptions = [];
-        this.offerFilterValues = [];
+        this.offerFilterValue = '';
         this.externalProductFilter = false;
         this.matchVariationsAndTags = false;
     }
@@ -757,11 +757,11 @@ class MasSearchAndFilters extends LitElement {
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
-        if (this.offerFilterValues.length) {
-            this.offerFilterValues = [];
+        if (this.offerFilterValue) {
+            this.offerFilterValue = '';
             this.dispatchEvent(
                 new CustomEvent('offer-filter-change', {
-                    detail: { value: this.offerFilterValues },
+                    detail: { value: this.offerFilterValue },
                     bubbles: true,
                     composed: true,
                 }),
@@ -799,24 +799,14 @@ class MasSearchAndFilters extends LitElement {
         `;
     }
 
-    #renderFilterPicker(
-        label,
-        options,
-        selectedValues,
-        filterType,
-        {
-            locked = false,
-            className = 'template-filter',
-            onChange = (id, event) => this.#handleCheckboxChange(filterType, id, event),
-        } = {},
-    ) {
+    #renderFilterPicker(label, options, selectedValues, filterType, { locked = false } = {}) {
         if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
             <overlay-trigger placement="bottom-start" ?disabled=${locked}>
-                <sp-action-button class=${className} dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
+                <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -830,7 +820,7 @@ class MasSearchAndFilters extends LitElement {
                                     value=${optionId}
                                     ?checked=${isChecked}
                                     ?disabled=${locked}
-                                    @change=${(e) => onChange(optionId, e)}
+                                    @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
                                 >
                                     ${option.title || option.label}
                                 </sp-checkbox>
@@ -902,22 +892,26 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #renderOfferPicker() {
-        return this.#renderFilterPicker('Offer', this.offerFilterOptions, this.offerFilterValues, null, {
-            className: 'offer-filter',
-            onChange: (id, event) => {
-                event.stopPropagation();
-                const value = event.target.checked
-                    ? [...this.offerFilterValues, id]
-                    : this.offerFilterValues.filter((selectedId) => selectedId !== id);
+        if (!this.offerFilterOptions?.length || this.offerFilterOptions.length < 2) return nothing;
+        return html`<sp-picker
+            class="offer-filter"
+            size="m"
+            label="Offer"
+            .value=${this.offerFilterValue}
+            @change=${(e) => {
+                e.stopPropagation();
                 this.dispatchEvent(
                     new CustomEvent('offer-filter-change', {
-                        detail: { value },
+                        detail: { value: e.target.value },
                         bubbles: true,
                         composed: true,
                     }),
                 );
-            },
-        });
+            }}
+        >
+            <sp-menu-item value="all">All offers</sp-menu-item>
+            ${this.offerFilterOptions.map(({ id, label }) => html`<sp-menu-item value=${id}>${label}</sp-menu-item>`)}
+        </sp-picker>`;
     }
 
     #fragmentMatchesAnyTag(fragment, selectedIds) {

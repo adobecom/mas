@@ -2992,6 +2992,16 @@ describe('MasPromotionsEditor', () => {
         }
 
         describe('picker (non-viewOnly) mas-items-selector', () => {
+            async function openPicker(el) {
+                el.promotionEmptyItemsTab = TABLE_TYPE.CARDS;
+                await el.updateComplete;
+                el.renderRoot.querySelector('.promotion-empty-panel sp-button').click();
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                return selector;
+            }
+
             it('renders exactly two picker tabs: fragments and collections', async () => {
                 const { el } = await mountEditorWithRepo();
                 await el.updateComplete;
@@ -3006,16 +3016,14 @@ describe('MasPromotionsEditor', () => {
                 expect(selector.shadowRoot.querySelector('.import-url-btn')).to.exist;
             });
 
-            it('starts the fragment picker without product filters from the selected offers', async () => {
+            it('opens the fragment picker with product filters from the selected offers', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
                 el.fragmentStore.updateField('surfaces', ['sandbox']);
-                await el.updateComplete;
-                const selector = pickerSelector(el);
-                await selector.updateComplete;
+                const selector = await openPicker(el);
                 const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
-                expect(cardsFilter.productFilter).to.deep.equal([]);
+                expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
                 expect(cardsFilter.matchVariationsAndTags).to.be.true;
                 const collectionsFilter = [...selector.searchFilterElements].find(
                     (filter) => filter.type === TABLE_TYPE.COLLECTIONS,
@@ -3028,15 +3036,8 @@ describe('MasPromotionsEditor', () => {
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
                 el.fragmentStore.updateField('surfaces', ['sandbox']);
-                await el.updateComplete;
-                const selector = pickerSelector(el);
-                await selector.updateComplete;
+                const selector = await openPicker(el);
                 const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
-                cardsFilter.dispatchEvent(
-                    new CustomEvent('offer-filter-change', { detail: { value: ['offer-1'] }, bubbles: true, composed: true }),
-                );
-                await el.updateComplete;
-                await selector.updateComplete;
                 cardsFilter.productOptions = [{ id: 'mas:product_code/phsp', title: 'Photoshop' }];
                 await cardsFilter.updateComplete;
                 const chip = cardsFilter.shadowRoot.querySelector('sp-tag');
@@ -3085,17 +3086,10 @@ describe('MasPromotionsEditor', () => {
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
                 el.fragmentStore.updateField('surfaces', ['sandbox']);
-                await el.updateComplete;
-                const selector = pickerSelector(el);
-                await selector.updateComplete;
+                const selector = await openPicker(el);
                 const cardsFilterBefore = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
-                cardsFilterBefore.dispatchEvent(
-                    new CustomEvent('offer-filter-change', { detail: { value: ['offer-1'] }, bubbles: true, composed: true }),
-                );
-                await el.updateComplete;
-                await selector.updateComplete;
                 expect(cardsFilterBefore.productFilter).to.deep.equal(['mas:product_code/phsp']);
 
                 selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
@@ -3111,7 +3105,7 @@ describe('MasPromotionsEditor', () => {
                 expect(cardsFilterAfter.productFilter).to.deep.equal(['mas:product_code/phsp']);
             });
 
-            describe('multiple offer filters', () => {
+            describe('offer picker filtering', () => {
                 let el;
                 let selector;
                 let cardsFilter;
@@ -3122,9 +3116,7 @@ describe('MasPromotionsEditor', () => {
                     Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
                     Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
                     el.fragmentStore.updateField('surfaces', ['sandbox']);
-                    await el.updateComplete;
-                    selector = pickerSelector(el);
-                    await selector.updateComplete;
+                    selector = await openPicker(el);
                     cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
                     Store.promotions.allCards.set([
                         { id: 'photoshop', path: '/phsp', fields: [], tags: [{ id: 'mas:product_code/phsp' }] },
@@ -3134,44 +3126,29 @@ describe('MasPromotionsEditor', () => {
                     await cardsFilter.updateComplete;
                 });
 
-                async function selectOffers(value) {
-                    cardsFilter.dispatchEvent(
-                        new CustomEvent('offer-filter-change', { detail: { value }, bubbles: true, composed: true }),
-                    );
+                async function selectOffer(value) {
+                    const picker = cardsFilter.shadowRoot.querySelector('sp-picker.offer-filter');
+                    picker.value = value;
+                    picker.dispatchEvent(new Event('change', { bubbles: true }));
                     await el.updateComplete;
                     await selector.updateComplete;
                     await cardsFilter.updateComplete;
                 }
 
-                it('matches cards from either selected offer', async () => {
-                    for (const id of ['offer-1', 'offer-2']) {
-                        const checkbox = cardsFilter.shadowRoot
-                            .querySelector('.offer-filter')
-                            .parentElement.querySelector(`sp-checkbox[value="${id}"]`);
-                        checkbox.checked = true;
-                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                        await el.updateComplete;
-                        await selector.updateComplete;
-                        await cardsFilter.updateComplete;
-                    }
+                it('matches cards from all project offers by default', async () => {
+                    expect(cardsFilter.offerFilterValue).to.equal('all');
                     expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop', 'illustrator']);
                 });
 
-                it('keeps only the remaining offer results after unchecking one of two offers', async () => {
-                    await selectOffers(['offer-1', 'offer-2']);
-                    const checkbox = cardsFilter.shadowRoot
-                        .querySelector('.offer-filter')
-                        .parentElement.querySelector('sp-checkbox[value="offer-1"]');
-                    checkbox.checked = false;
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    await el.updateComplete;
-                    await selector.updateComplete;
-                    await cardsFilter.updateComplete;
+                it('filters by the chosen offer and restores all project offers when All offers is selected', async () => {
+                    await selectOffer('offer-2');
                     expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                    await selectOffer('all');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop', 'illustrator']);
                 });
 
-                it('preserves both checked offers when returning from Import via URL', async () => {
-                    await selectOffers(['offer-1', 'offer-2']);
+                it('preserves the chosen offer when returning from Import via URL', async () => {
+                    await selectOffer('offer-1');
                     selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
                     await selector.updateComplete;
                     const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
@@ -3181,51 +3158,86 @@ describe('MasPromotionsEditor', () => {
                     const restoredFilter = [...selector.searchFilterElements].find(
                         (filter) => filter.type === TABLE_TYPE.CARDS,
                     );
-                    expect(restoredFilter.offerFilterValues).to.deep.equal(['offer-1', 'offer-2']);
-                    expect(restoredFilter.productFilter).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
+                    expect(restoredFilter.offerFilterValue).to.equal('offer-1');
+                    expect(restoredFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
                 });
 
-                it('removes the offer restriction when every offer is unchecked', async () => {
-                    await selectOffers(['offer-1', 'offer-2']);
-                    await selectOffers([]);
+                it('removes all offer restrictions after Clear all without changing the project offers', async () => {
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
                     expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal([
                         'photoshop',
                         'illustrator',
                         'other',
                     ]);
                     expect(Store.filters.get().tags).to.be.undefined;
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                    expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
                 });
 
-                it('does not reapply a cleared offer when another offer is checked after Clear all', async () => {
-                    await selectOffers(['offer-1']);
+                it('applies only the chosen offer after Clear all', async () => {
                     cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
                     await el.updateComplete;
                     await selector.updateComplete;
                     await cardsFilter.updateComplete;
-                    const checkbox = cardsFilter.shadowRoot
-                        .querySelector('.offer-filter')
-                        .parentElement.querySelector('sp-checkbox[value="offer-2"]');
+                    await selectOffer('offer-2');
 
-                    checkbox.checked = true;
-                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-                    await el.updateComplete;
-                    await selector.updateComplete;
-                    await cardsFilter.updateComplete;
-
-                    expect(cardsFilter.offerFilterValues).to.deep.equal(['offer-2']);
+                    expect(cardsFilter.offerFilterValue).to.equal('offer-2');
                     expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
                     expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
                     expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
                 });
 
-                it('preserves the remaining checked offer when another offer is removed from the project', async () => {
-                    await selectOffers(['offer-1', 'offer-2']);
+                it('updates All offers when an offer is removed from the project', async () => {
                     Store.promotions.selectedOffers.set(['offer-2']);
                     await el.updateComplete;
                     await selector.updateComplete;
                     await cardsFilter.updateComplete;
-                    expect(cardsFilter.offerFilterValues).to.deep.equal(['offer-2']);
+                    expect(cardsFilter.offerFilterValue).to.equal('all');
                     expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
+                });
+
+                it('keeps Clear all applied across UUID searches, result refreshes and Import via URL', async () => {
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await cardsFilter.updateComplete;
+                    const search = selector.shadowRoot.querySelector('sp-search');
+                    for (const query of ['09f5c8af-4a7d-497b-a579-70d2f3794a2c', 'test', '']) {
+                        search.value = query;
+                        search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+                        Store.promotions.allCards.set([...Store.promotions.allCards.get()]);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+                        expect(cardsFilter.productFilter).to.deep.equal([]);
+                        expect(Store.filters.get().tags).to.be.undefined;
+                    }
+                    selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                    await selector.updateComplete;
+                    const tabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                    tabs.selected = TABLE_TYPE.CARDS;
+                    tabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                    await selector.updateComplete;
+                    const restoredFilter = [...selector.searchFilterElements].find(
+                        (filter) => filter.type === TABLE_TYPE.CARDS,
+                    );
+                    expect(restoredFilter.productFilter).to.deep.equal([]);
+                    expect(restoredFilter.offerFilterValue).to.equal('');
+                });
+
+                it('restores automatic offer filters when the dialog is reopened', async () => {
+                    cardsFilter.resetFilters();
+                    await cardsFilter.updateComplete;
+                    el.renderRoot
+                        .querySelector('.add-items-dialog')
+                        .dispatchEvent(new CustomEvent('cancel', { bubbles: true, composed: true }));
+                    await el.updateComplete;
+                    selector = await openPicker(el);
+                    cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.offerFilterValue).to.equal('all');
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
                 });
             });
 

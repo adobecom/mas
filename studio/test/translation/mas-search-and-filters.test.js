@@ -195,23 +195,17 @@ describe('MasSearchAndFilters', () => {
         });
     });
 
-    describe('offer checkbox filter', () => {
+    describe('offer picker', () => {
         const options = [
             { id: 'offer-1', label: 'CC_ALL_APPS' },
             { id: 'offer-2', label: 'ACROBAT' },
         ];
 
-        it('renders a single available offer as an unchecked checkbox', async () => {
+        it('does not render the offer picker for a single available offer', async () => {
             const el = await fixture(html`
                 <mas-search-and-filters type="cards" .offerFilterOptions=${[options[0]]}></mas-search-and-filters>
             `);
-            const trigger = el.shadowRoot.querySelector('.offer-filter');
-            expect(trigger).to.exist;
-            expect(trigger.textContent.trim()).to.equal('Offer');
-            const checkboxes = trigger.parentElement.querySelectorAll('sp-checkbox');
-            expect(checkboxes).to.have.length(1);
-            expect(checkboxes[0].getAttribute('value')).to.equal('offer-1');
-            expect(checkboxes[0].checked).to.be.false;
+            expect(el.shadowRoot.querySelector('.offer-filter')).not.to.exist;
         });
 
         it('does not render the offer filter without available offers', async () => {
@@ -219,60 +213,63 @@ describe('MasSearchAndFilters', () => {
             expect(el.shadowRoot.querySelector('.offer-filter')).not.to.exist;
         });
 
-        it('renders independently checked offers and a selection count', async () => {
+        it('renders a single-choice picker with All offers selected', async () => {
             const el = await fixture(html`
                 <mas-search-and-filters
                     type="cards"
                     .offerFilterOptions=${options}
-                    .offerFilterValues=${['offer-1', 'offer-2']}
+                    .offerFilterValue=${'all'}
                 ></mas-search-and-filters>
             `);
-            const trigger = el.shadowRoot.querySelector('.offer-filter');
-            expect(trigger).to.exist;
-            expect(trigger.textContent).to.include('Offer (2)');
-            const checkboxes = trigger.parentElement.querySelectorAll('sp-checkbox');
-            expect([...checkboxes].map((checkbox) => checkbox.checked)).to.deep.equal([true, true]);
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            expect(picker).to.exist;
+            expect(picker.value).to.equal('all');
+            expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
+                'all',
+                'offer-1',
+                'offer-2',
+            ]);
         });
 
-        it('adds a checked offer without replacing the existing selection', async () => {
+        it('emits the selected offer as a single value', async () => {
             const el = await fixture(html`
                 <mas-search-and-filters
                     type="cards"
                     .offerFilterOptions=${options}
-                    .offerFilterValues=${['offer-1']}
+                    .offerFilterValue=${'offer-1'}
                 ></mas-search-and-filters>
             `);
             const listener = sandbox.spy();
             el.addEventListener('offer-filter-change', listener);
-            const checkbox = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelectorAll('sp-checkbox')[1];
-            checkbox.checked = true;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            picker.value = 'offer-2';
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
             expect(listener.calledOnce).to.be.true;
-            expect(listener.firstCall.args[0].detail.value).to.deep.equal(['offer-1', 'offer-2']);
+            expect(listener.firstCall.args[0].detail.value).to.equal('offer-2');
         });
 
-        it('emits an empty selection when the last checked offer is unchecked', async () => {
+        it('emits All offers when it is selected', async () => {
             const el = await fixture(html`
                 <mas-search-and-filters
                     type="cards"
                     .offerFilterOptions=${options}
-                    .offerFilterValues=${['offer-1']}
+                    .offerFilterValue=${'offer-1'}
                 ></mas-search-and-filters>
             `);
             const listener = sandbox.spy();
             el.addEventListener('offer-filter-change', listener);
-            const checkbox = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelector('sp-checkbox');
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            expect(listener.firstCall.args[0].detail.value).to.deep.equal([]);
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            picker.value = 'all';
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(listener.firstCall.args[0].detail.value).to.equal('all');
         });
 
-        it('resets checked offers and notifies the consumer when filters are reset', async () => {
+        it('clears the offer picker and notifies the consumer when filters are reset', async () => {
             const el = await fixture(html`
                 <mas-search-and-filters
                     type="cards"
                     .offerFilterOptions=${options}
-                    .offerFilterValues=${['offer-1', 'offer-2']}
+                    .offerFilterValue=${'all'}
                 ></mas-search-and-filters>
             `);
             const listener = sandbox.spy();
@@ -281,11 +278,10 @@ describe('MasSearchAndFilters', () => {
             el.resetFilters();
             await el.updateComplete;
 
-            expect(el.offerFilterValues).to.deep.equal([]);
+            expect(el.offerFilterValue).to.equal('');
             expect(listener.calledOnce).to.be.true;
-            expect(listener.firstCall.args[0].detail.value).to.deep.equal([]);
-            const checkboxes = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelectorAll('sp-checkbox');
-            expect([...checkboxes].every((checkbox) => !checkbox.checked)).to.be.true;
+            expect(listener.firstCall.args[0].detail.value).to.equal('');
+            expect(el.shadowRoot.querySelector('sp-picker.offer-filter').value).to.equal('');
         });
 
         it('does not notify the offer consumer when no offer filter is selected', async () => {

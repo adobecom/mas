@@ -114,6 +114,7 @@ function getPromotionPickerFragmentLabel(data) {
 }
 
 const EMPTY_PRODUCT_FILTER = Object.freeze([]);
+const OFFER_FILTER_ALL = 'all';
 
 const PROMOTION_VIEW_TABS = [
     { value: TABLE_TYPE.OFFERS, label: 'Offers' },
@@ -180,7 +181,7 @@ class MasPromotionsEditor extends LitElement {
         duplicating: { type: Boolean, state: true },
         promotionItemsPickerOpen: { type: Boolean, state: true },
         evergreenEnabled: { type: Boolean, state: true },
-        activeFilterOfferIds: { type: Array, state: true },
+        activeFilterOfferId: { type: String, state: true },
     };
 
     #promotionItemsReactive;
@@ -226,7 +227,7 @@ class MasPromotionsEditor extends LitElement {
         this.duplicating = false;
         this.promotionItemsPickerOpen = false;
         this.evergreenEnabled = true;
-        this.activeFilterOfferIds = [];
+        this.activeFilterOfferId = '';
         this.itemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
     }
 
@@ -1254,6 +1255,15 @@ class MasPromotionsEditor extends LitElement {
         this.selectedItemsViewTab = tab ?? TABLE_TYPE.OFFERS;
     };
 
+    get #activeOfferFilterIds() {
+        const s = getItemsSelectionStore({ allowUnset: true });
+        return this.activeFilterOfferId === OFFER_FILTER_ALL
+            ? (s?.selectedOffers.value ?? [])
+            : this.activeFilterOfferId
+              ? [this.activeFilterOfferId]
+              : [];
+    }
+
     get #offerFilterOptions() {
         const s = getItemsSelectionStore({ allowUnset: true });
         return (s?.selectedOffers.value ?? []).map((id) => ({
@@ -1267,13 +1277,19 @@ class MasPromotionsEditor extends LitElement {
 
     #onPromotionOffersFilterChange = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
-        this.activeFilterOfferIds = this.activeFilterOfferIds.filter((id) => s?.selectedOffers.value.includes(id));
+        if (
+            this.activeFilterOfferId &&
+            this.activeFilterOfferId !== OFFER_FILTER_ALL &&
+            !s?.selectedOffers.value.includes(this.activeFilterOfferId)
+        ) {
+            this.activeFilterOfferId = OFFER_FILTER_ALL;
+        }
         this.#syncOfferProductTagsToFragmentSearch();
     };
 
     #handleOfferFilterChange = (e) => {
         e.stopPropagation();
-        this.activeFilterOfferIds = e.detail.value;
+        this.activeFilterOfferId = e.detail.value;
         this.#syncOfferProductTagsToFragmentSearch();
     };
 
@@ -1289,7 +1305,7 @@ class MasPromotionsEditor extends LitElement {
     #syncOfferProductTagsToFragmentSearch = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
-        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.activeFilterOfferIds);
+        const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
         this.#pickerProductFilter = tags;
         const picker = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         picker?.searchFilterElements.forEach((el) => {
@@ -1375,7 +1391,7 @@ class MasPromotionsEditor extends LitElement {
                 .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#pickerProductFilter : EMPTY_PRODUCT_FILTER}
                 .matchVariationsAndTags=${tab.value === TABLE_TYPE.CARDS}
                 .offerFilterOptions=${tab.value === TABLE_TYPE.CARDS ? this.#offerFilterOptions : []}
-                .offerFilterValues=${this.activeFilterOfferIds}
+                .offerFilterValue=${this.activeFilterOfferId}
                 @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                 @offer-filter-change=${this.#handleOfferFilterChange}
                 @product-filter-change=${this.#handleProductFilterChange}
@@ -1482,9 +1498,9 @@ class MasPromotionsEditor extends LitElement {
         }
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
-        this.activeFilterOfferIds = [];
         this.#syncPromotionSearchToRepository('');
         selector?.resetFilters();
+        this.activeFilterOfferId = OFFER_FILTER_ALL;
         this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
@@ -1710,7 +1726,7 @@ class MasPromotionsEditor extends LitElement {
                     .renderSearchFilters=${this.#renderPromotionPickerSearchFilters}
                     .renderData=${{
                         surfaces: this.promotionPickerSurfaces,
-                        offerFilterIds: this.activeFilterOfferIds,
+                        offerFilterId: this.activeFilterOfferId,
                     }}
                     .normalizeSearchInput=${normalizePromotionSearchInput}
                     .onSearchChange=${this.#syncPromotionSearchToRepository}

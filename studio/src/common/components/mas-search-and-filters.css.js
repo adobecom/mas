@@ -38,8 +38,7 @@ export const styles = css`
         flex-direction: row-reverse;
     }
 
-    sp-action-button.template-filter,
-    sp-action-button.offer-filter {
+    sp-action-button.template-filter {
         height: 32px;
     }
 
@@ -74,5 +73,10 @@ export const styles = css`
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+    }
+
+    .offer-filter {
+        width: fit-content;
+        --mod-picker-inline-size: auto;
     }
 `;

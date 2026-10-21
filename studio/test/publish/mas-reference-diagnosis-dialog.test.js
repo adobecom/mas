@@ -638,7 +638,65 @@ describe('reference diagnosis dialog', () => {
         expect(panel.editFragment.called).to.be.false;
     });
 
-    it('shows an owner once when several missing references belong to the same collection', async () => {
+    it('shows a shared missing target once with each parent listed once', async () => {
+        const sharedReport = {
+            ...report,
+            issues: [
+                report.issues[0],
+                { ...report.issues[0], valueIndex: 3 },
+                { ...report.issues[0], ownerId: 'other', ownerTitle: 'Other collection', ownerPath: '/content/dam/mas/other' },
+            ],
+        };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${sharedReport}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelectorAll('.target')).to.have.length(1);
+        expect(dialog.shadowRoot.querySelectorAll('.owner')).to.have.length(2);
+        expect(dialog.shadowRoot.querySelector('.reference-owners').open).to.be.false;
+        expect(dialog.report.issues).to.have.length(3);
+    });
+
+    it('shows a confirmed problem when another owner has only an unverified issue for the same target', async () => {
+        const sharedReport = {
+            ...report,
+            issues: [
+                { ...report.issues[0], category: 'needs-review' },
+                { ...report.issues[0], ownerId: 'other' },
+            ],
+        };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${sharedReport}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelector('.status').textContent).to.equal('Problem');
+        expect(dialog.shadowRoot.querySelectorAll('.target')).to.have.length(1);
+    });
+
+    it('preserves every removable occurrence when shared targets are grouped', async () => {
+        const sharedReport = {
+            ...report,
+            issues: [0, 3].map((valueIndex) => ({ ...report.issues[0], valueIndex, removable: true })),
+        };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${sharedReport} .aem=${{}}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelectorAll('.target')).to.have.length(1);
+        expect(dialog.removableIssues.map((issue) => issue.valueIndex)).to.deep.equal([0, 3]);
+        expect(dialog.shadowRoot.querySelector('.remove-missing').textContent).to.include('(2)');
+    });
+
+    it('shows duplicate coverage gaps once in details', async () => {
+        const repeatedReport = { ...report, coverageGaps: [...report.coverageGaps, ...report.coverageGaps] };
+        const dialog = await fixture(
+            html`<mas-reference-diagnosis-dialog .report=${repeatedReport}></mas-reference-diagnosis-dialog>`,
+        );
+
+        expect(dialog.shadowRoot.querySelectorAll('.coverage-warning .gap')).to.have.length(1);
+    });
+
+    it('shows an owner once when several occurrences reference the same missing target', async () => {
         const groupedReport = {
             ...report,
             issues: [7, 15, 32].map((valueIndex) => ({ ...report.issues[0], valueIndex })),
@@ -649,7 +707,7 @@ describe('reference diagnosis dialog', () => {
 
         expect(dialog.shadowRoot.querySelectorAll('.owner')).to.have.length(1);
         expect(dialog.shadowRoot.querySelectorAll('.edit-owner')).to.have.length(1);
-        expect(dialog.shadowRoot.querySelectorAll('.issue')).to.have.length(3);
+        expect(dialog.shadowRoot.querySelectorAll('.issue')).to.have.length(1);
     });
 
     it('keeps original reference positions in details instead of presenting them as visible card numbers', async () => {
@@ -676,7 +734,7 @@ describe('reference diagnosis dialog', () => {
 
         expect(dialog.shadowRoot.querySelectorAll('.owner')).to.have.length(2);
         expect(dialog.shadowRoot.querySelectorAll('.detail')).to.have.length(1);
-        expect(dialog.shadowRoot.querySelector('.detail').textContent).to.include('cards[9]');
+        expect(dialog.shadowRoot.querySelector('.detail').textContent).to.include('product[0]');
     });
 
     it('rebuilds owner groups when a new report is supplied', async () => {
@@ -690,17 +748,21 @@ describe('reference diagnosis dialog', () => {
         expect(dialog.shadowRoot.textContent).not.to.include('All plans');
     });
 
-    it('renders every issue when the report contains more than 100 items', async () => {
+    it('renders every unique target when the report contains more than 100 items', async () => {
         const largeReport = {
             ...report,
-            issues: Array.from({ length: 125 }, (value, index) => ({ ...report.issues[0], valueIndex: index })),
+            issues: Array.from({ length: 125 }, (value, index) => ({
+                ...report.issues[0],
+                valueIndex: index,
+                targetPath: `/content/dam/mas/missing-${index}`,
+            })),
         };
         const dialog = await fixture(
             html`<mas-reference-diagnosis-dialog .report=${largeReport}></mas-reference-diagnosis-dialog>`,
         );
 
         expect(dialog.shadowRoot.querySelectorAll('.issue').length).to.equal(125);
-        expect(dialog.shadowRoot.querySelectorAll('.owner')).to.have.length(1);
+        expect(dialog.shadowRoot.querySelectorAll('.owner')).to.have.length(125);
     });
 
     it('opens a modal dialog so background controls cannot receive focus', async () => {
@@ -729,6 +791,21 @@ describe('reference diagnosis dialog', () => {
         expect(dialog).to.exist;
         dialog.finish(false);
         expect(await decision).to.be.false;
+    });
+
+    it('does not inspect unselected reference contents when confirming a publish', async () => {
+        const context = removalContext();
+        const root = {
+            ...context.roots[0],
+            fields: [{ name: 'cards', type: 'content-fragment', values: ['/content/dam/mas/child'] }],
+            validationStatus: [],
+        };
+        const child = { id: 'child', path: '/content/dam/mas/child', fields: context.roots[0].fields };
+        context.fragments.getById.resolves(root);
+        context.fragments.getByPath.withArgs(child.path).resolves(child);
+
+        expect(await MasReferenceDiagnosisDialog.confirmFor(context.aem, [root])).to.be.true;
+        expect(context.fragments.getByPath.withArgs('/content/dam/mas/missing').called).to.be.false;
     });
 
     it('returns true only when Continue Publish is explicitly selected', async () => {

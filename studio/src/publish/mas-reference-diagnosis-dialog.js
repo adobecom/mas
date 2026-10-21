@@ -6,6 +6,8 @@ import { Fragment } from '../aem/fragment.js';
 import { stripHtml } from '../utils.js';
 import { inspectReferences, removeMissingReferences } from './reference-inspector.js';
 
+const INSPECTION_OPTIONS = { recursive: false };
+
 class MasReferenceDiagnosisDialog extends LitElement {
     static properties = {
         report: { attribute: false },
@@ -193,7 +195,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
             this.syncSavedFragments(result.savedFragments);
             this.cleanupErrors = result.failures;
             this.expanded = new Set();
-            this.report = await inspectReferences(this.aem, this.roots);
+            this.report = await inspectReferences(this.aem, this.roots, INSPECTION_OPTIONS);
             const pendingOwners = new Set(
                 result.failures.filter((failure) => failure.pending).map((failure) => failure.ownerId),
             );
@@ -284,7 +286,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                 this.waitingForSave = false;
                 return;
             }
-            if (this.isConnected) this.report = await inspectReferences(this.aem, this.roots);
+            if (this.isConnected) this.report = await inspectReferences(this.aem, this.roots, INSPECTION_OPTIONS);
             if (failedOwners.size) {
                 this.cleanupMessage = 'A cleanup save failed. Review the result before deciding whether to publish.';
                 this.waitingForSave = false;
@@ -308,11 +310,47 @@ class MasReferenceDiagnosisDialog extends LitElement {
         if (!changedProperties.has('report')) return;
         const groups = new Map();
         for (const [index, issue] of this.report.issues.entries()) {
-            const key = issue.ownerId || issue.ownerPath || index;
-            if (!groups.has(key)) groups.set(key, { owner: issue, issues: [] });
-            groups.get(key).issues.push({ issue, index });
+            const key = issue.targetPath;
+            if (!groups.has(key)) groups.set(key, { issue, index, owners: new Map() });
+            this.addReferenceOwner(groups.get(key), issue, index);
         }
         this.groups = [...groups.values()];
+    }
+
+    addReferenceOwner(group, issue, index) {
+        if (issue.category === 'confirmed-problem' && group.issue.category !== 'confirmed-problem') {
+            group.issue = issue;
+            group.index = index;
+        }
+        const key = issue.ownerId || issue.ownerPath;
+        if (!group.owners.has(key)) group.owners.set(key, { issue, locations: new Set(), details: new Set() });
+        const owner = group.owners.get(key);
+        owner.locations.add(`${issue.fieldName}${issue.valueIndex === null ? '' : `[${issue.valueIndex}]`}`);
+        if (issue.detail) owner.details.add(issue.detail);
+    }
+
+    get coverageGaps() {
+        return [...new Map(this.report.coverageGaps.map((gap) => [JSON.stringify([gap.ownerPath, gap.detail]), gap])).values()];
+    }
+
+    renderReferenceOwner(owner) {
+        return html`
+            ${this.renderFragment(
+                {
+                    id: owner.issue.ownerId,
+                    label: owner.issue.ownerLabel,
+                    title: owner.issue.ownerTitle,
+                    path: owner.issue.ownerPath,
+                },
+                'owner',
+            )}
+            <div class="locations">${[...owner.locations].join(', ')}</div>
+            ${repeat(
+                owner.details,
+                (detail) => detail,
+                (detail) => html`<div>${detail}</div>`,
+            )}
+        `;
     }
 
     renderFragment(fragment, role) {
@@ -418,22 +456,20 @@ class MasReferenceDiagnosisDialog extends LitElement {
                     <div class="issues">
                         ${repeat(
                             this.groups,
-                            (group, index) => group.owner.ownerId || group.owner.ownerPath || index,
+                            (group) => group.issue.targetPath,
                             (group) => html`
-                                ${this.renderFragment(
-                                    {
-                                        id: group.owner.ownerId,
-                                        label: group.owner.ownerLabel,
-                                        title: group.owner.ownerTitle,
-                                        path: group.owner.ownerPath,
-                                    },
-                                    'owner',
-                                )}
-                                ${repeat(
-                                    group.issues,
-                                    (entry) => entry.index,
-                                    (entry) => this.renderIssue(entry.issue, entry.index),
-                                )}
+                                ${this.renderIssue(group.issue, group.index)}
+                                <details class="reference-owners">
+                                    <summary>
+                                        Show details (${group.owners.size} referring
+                                        ${group.owners.size === 1 ? 'fragment' : 'fragments'})
+                                    </summary>
+                                    ${repeat(
+                                        group.owners.values(),
+                                        (owner) => owner.issue.ownerId || owner.issue.ownerPath,
+                                        (owner) => this.renderReferenceOwner(owner),
+                                    )}
+                                </details>
                             `,
                         )}
                     </div>
@@ -444,7 +480,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
                                   ? html`<details>
                                         <summary>Show details</summary>
                                         ${repeat(
-                                            this.report.coverageGaps,
+                                            this.coverageGaps,
                                             (gap, index) => index,
                                             (gap) =>
                                                 html`<div class="gap">
@@ -503,7 +539,7 @@ class MasReferenceDiagnosisDialog extends LitElement {
     }
 
     static async confirmFor(aem, roots) {
-        const report = await inspectReferences(aem, roots);
+        const report = await inspectReferences(aem, roots, INSPECTION_OPTIONS);
         if (report.complete && !report.issues.length) return true;
         return this.show(report, { aem, roots });
     }

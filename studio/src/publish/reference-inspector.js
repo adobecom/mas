@@ -189,7 +189,7 @@ function enqueueReferences(owner, queue) {
 export async function inspectReferences(
     aem,
     roots,
-    { maxFragments = 500, requestTimeoutMs = 10000, timeoutMs = 30000, concurrency = 4 } = {},
+    { maxFragments = 500, requestTimeoutMs = 10000, timeoutMs = 30000, concurrency = 4, recursive = true } = {},
 ) {
     if (!Number.isInteger(concurrency) || concurrency < 1) throw new RangeError('Concurrency must be a positive integer.');
     const report = { complete: true, inspectedCount: 0, issues: [], coverageGaps: [] };
@@ -258,7 +258,7 @@ export async function inspectReferences(
             if (visited.has(fragment.id)) continue;
             visited.add(fragment.id);
             report.inspectedCount += 1;
-            enqueueReferences(fragment, queue);
+            if (job.root || recursive) enqueueReferences(fragment, queue);
         }
     }
     for (const [reason, count] of budgetGaps) {

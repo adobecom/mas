@@ -644,6 +644,41 @@ describe('publish reference inspector', () => {
         expect(report.inspectedCount).to.equal(1);
     });
 
+    it('checks direct references without inspecting unselected target contents', async () => {
+        const root = makeFragment('root', ROOT_PATH, [SECOND_PATH]);
+        const child = makeFragment('child', SECOND_PATH, [FIRST_PATH]);
+        const fragments = {
+            getById: sinon.stub().resolves(root),
+            getByPath: sinon.stub().resolves(child),
+        };
+        fragments.getByPath.withArgs(FIRST_PATH).rejects(new Error('Fragment not found'));
+        const aem = { sites: { cf: { fragments } } };
+
+        const report = await inspectReferences(aem, [root], { recursive: false });
+
+        expect(fragments.getByPath.withArgs(FIRST_PATH).called).to.be.false;
+        expect(report.issues).to.have.length(0);
+    });
+
+    it('checks an explicitly selected target even when it is also referenced by another root', async () => {
+        const root = makeFragment('root', ROOT_PATH, [SECOND_PATH]);
+        const child = makeFragment('child', SECOND_PATH, [FIRST_PATH]);
+        const fragments = {
+            getById: sinon.stub(),
+            getByPath: sinon.stub(),
+        };
+        fragments.getById.withArgs('root').resolves(root);
+        fragments.getById.withArgs('child').resolves(child);
+        fragments.getByPath.withArgs(SECOND_PATH).resolves(child);
+        fragments.getByPath.withArgs(FIRST_PATH).rejects(new Error('Fragment not found'));
+        const aem = { sites: { cf: { fragments } } };
+
+        const report = await inspectReferences(aem, [root, child], { recursive: false });
+
+        expect(report.issues.map((issue) => issue.ownerId)).to.deep.equal(['child']);
+        expect(report.issues[0].targetPath).to.equal(FIRST_PATH);
+    });
+
     it('continues into readable branches after a lookup failure', async () => {
         const root = makeFragment('root', ROOT_PATH, [FIRST_PATH, SECOND_PATH]);
         const child = makeFragment('child', SECOND_PATH, ['/content/dam/mas/sandbox/en_US/nested']);

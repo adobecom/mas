@@ -4,14 +4,16 @@ Framework-free, source-ESM price rendering extracted from M@S web-components.
 Runs natively in Node 22+ and browsers, with **no runtime dependencies**, DOM,
 network calls, or import-time browser configuration.
 
-This private workspace is not published. Consumer integration is intentionally
-separate: this change does **not** switch web-components or io/www to the package.
-The original browser implementation remains in place until its integration PR.
+This private workspace is not published. The inactive io/www price transformer
+imports `price/src/index.js` directly via a relative path, without installing
+this workspace as a server dependency. Production pipeline rendering is not enabled.
+The existing web-components implementation is unchanged by this integration.
 
 ## API
 
 ```js
-import { selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
+// Example run from price/; consumers use the relative path from their file.
+import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from './src/index.js';
 
 const options = {
     country: 'GB',
@@ -24,8 +26,8 @@ const options = {
 };
 
 // resolvedOfferGroups contains one WCS result array per OSI.
-// Selection sorts each supplied array in place, so copy cached arrays.
-const selected = resolvedOfferGroups.map((offers) => selectOffers([...offers], options)[0]);
+// Normalize raw WCS offers into copies before selection sorts the arrays.
+const selected = resolvedOfferGroups.map((offers) => selectOffers(offers.map(applyPlanType), options)[0]);
 const combined = sumOffers(selected);
 const html = buildPriceHTML([combined], options);
 ```
@@ -35,6 +37,7 @@ or fetching occurs here.
 
 | Export                                                 | Contract                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `applyPlanType(offer)`                                 | Returns a shallow copy of a WCS offer with `planType` derived from commitment/term, overwriting any stale value without mutating the input. See normalization below.                                                                                                                                                                                                                                                              |
 | `selectOffers(offers, options)`                        | Prefers offers without a term, then the preferred language (EN in GB, MULT elsewhere). Sorts input arrays in place. Preserves zero/single-array identity unless `forceTaxExclusive` is enabled, which always maps the array. Rewriting creates amended offers and clears stale gross `priceInfo`; already-exclusive offers retain identity.                                                                                       |
 | `sumOffers(offers, { logger }?)`                       | Returns null for absent/empty arrays and the same object for one offer. Combines OSIs and positive numeric/annualized sums rounded to two decimals; retains first-offer metadata and regular price fields where a sum is non-positive. Annualized output includes only positive sums. Clears `priceInfo` for bundles. Does not mutate offers. Warns on mismatched commitment, term, or currency format without rejecting the sum. |
 | `buildPriceHTML(offers, resolvedOptions, { logger }?)` | Dispatches the first offer to existing templates and flattens its `priceDetails`. Returns the exact markup string, including whitespace/entities/classes/accessibility labels. Returns `''` for non-array/empty offers or missing options; invalid offer entries and missing required price inputs can throw. Does not select/sum offers, merge service settings, or collect options.                                             |
@@ -44,6 +47,22 @@ the browser's `{ ...settings, ...options }` precedence. Supply resolved
 country/language, literals, display flags, quantity, promotion code, and template
 options. Geo/segment tax-default resolution, offer fetching, OSI/promo alignment,
 checkout URLs, DOM updates, and hydration are not part of this package.
+
+### Plan-type normalization
+
+Call `applyPlanType` on raw WCS offers before selection/summation and formatting.
+The supported mappings are YEAR/MONTHLY -> ABM, YEAR/ANNUAL -> PUF,
+MONTH/MONTHLY -> M2M, PERPETUAL -> PERPETUAL, and TERM_LICENSE/P3Y -> P3Y.
+Other commitment/term combinations return an empty plan type. The helper uses
+the package's existing constants and introduces no runtime dependencies.
+
+Consumers must supply WCS offer objects; legacy invalid-input sentinels and
+non-object compatibility are not part of this API.
+Nested properties retain identity because the returned offer is a shallow copy.
+
+The current browser helper remains unchanged. Direct Node unit tests cover
+the supported mappings and mutation contract. Node/Chrome parity remains focused
+on price rendering and offer selection/summation, not the pure plan-type mapping.
 
 Templates: default, optical, strikethrough, promo-strikethrough, annual, legal,
 discount, alternative, optical-alternative, and monthly-with-annual equivalents.
@@ -94,12 +113,13 @@ Consumer adapters must supply the required logger methods and forward
 diagnostics to the existing Lana-backed browser logging or IO request logging,
 rather than relying on the standalone console default.
 
-### Compatibility subpaths
+### Source entry points
 
-Explicit subpaths preserve the extracted formatting APIs needed by the later
-browser refactor: `/constants`, `/price`, `/price/template`, `/price/utilities`,
-`/price/legal`, and `/discount`. They point to the same implementation, not
-alternate browser/Node versions. All imports use `.js` extensions.
+Consumers import the shared primitives from `src/index.js` using relative paths.
+Supporting entry points include `src/constants.js`, `src/price/index.js`,
+`src/price/template.js`, `src/price/utilities.js`, `src/price/legal.js` and
+`src/discount/index.js`. All imports use `.js` extensions. Node smoke tests cover
+these source entry points; they do not assert an installed-package contract.
 
 The small internal boolean/predicate/escaping helpers and net-price rewrite
 preserve `@dexter/tacocat-core` 1.13.1 semantics without importing its

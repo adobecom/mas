@@ -1669,10 +1669,22 @@ export default class MasFragmentEditor extends LitElement {
         this.variationsToDelete = [];
     }
 
+    get isPromotionProject() {
+        return this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID);
+    }
+
+    get canDuplicateFragment() {
+        return !this.isPromotionProject || canManagePromotions();
+    }
+
     async showClone() {
-        if (Store.editor.hasChanges) {
+        if (this.canDuplicateFragment && Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
+        }
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
@@ -1687,6 +1699,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async confirmClone() {
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         const osi = this.fragment.getFieldValue('osi', 0);
         if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
             showToast('Please select an offer', 'negative');
@@ -1766,7 +1782,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get canPublishFragment() {
-        if (this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID)) {
+        if (this.isPromotionProject) {
             return canManagePromotions();
         }
         return canEditPromotions() || !this.isPromoVariationFragment();
@@ -1934,7 +1950,12 @@ export default class MasFragmentEditor extends LitElement {
                       `
                     : nothing}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelClone}"> Cancel </sp-button>
-                <sp-button slot="button" variant="accent" ?disabled=${this.cloneInProgress} @click="${this.confirmClone}">
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.cloneInProgress || !this.canDuplicateFragment}
+                    @click="${this.confirmClone}"
+                >
                     ${this.cloneInProgress
                         ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                         : html`Clone`}

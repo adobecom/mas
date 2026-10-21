@@ -714,6 +714,12 @@
                         expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.PUBLISH)).to.be.true;
                     });
 
+                    it('disables Duplicate when the host denies duplication', async () => {
+                        hostEditor.canDuplicateFragment = false;
+                        const editor = await mountEditor();
+                        expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
+                    });
+
                     it('delegates Discard and Create Variation to the fragment editor', async () => {
                         const editor = await mountEditor();
                         trigger(editor, QUICK_ACTION.DISCARD);

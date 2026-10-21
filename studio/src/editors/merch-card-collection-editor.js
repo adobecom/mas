@@ -1858,6 +1858,7 @@ class MerchCardCollectionEditor extends LitElement {
         }
         if (this.#hostFragmentEditor?.canDeleteFragment === false) disabled.add(QUICK_ACTION.DELETE);
         if (this.#hostFragmentEditor?.canPublishFragment === false) disabled.add(QUICK_ACTION.PUBLISH);
+        if (this.#hostFragmentEditor?.canDuplicateFragment === false) disabled.add(QUICK_ACTION.DUPLICATE);
         return disabled;
     }
 

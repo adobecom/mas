@@ -1782,14 +1782,35 @@ describe('MasFragmentEditor', () => {
     describe('cloning', () => {
         let el;
         let mockRepo;
+        let originalProfile;
+        let originalUsers;
+        let originalShowCloneDialog;
+        let hasChanges;
 
         beforeEach(() => {
+            originalProfile = Store.profile.get();
+            originalUsers = Store.users.get();
+            originalShowCloneDialog = Store.showCloneDialog.get();
+            Store.profile.set({ email: 'author@adobe.com' });
+            Store.users.set([]);
+            Store.showCloneDialog.set(false);
+            hasChanges = false;
+            sandbox.stub(Store.editor, 'hasChanges').get(() => hasChanges);
             el = document.createElement('mas-fragment-editor');
             mockRepo = { copyFragment: sandbox.stub().resolves() };
             sandbox.stub(el, 'repository').get(() => mockRepo);
-            el.inEdit.value = {
-                get: () => ({ id: 'test-id', model: { path: CARD_MODEL_PATH }, getFieldValue: () => 'osi' }),
-            };
+            const fragment = new Fragment({
+                id: 'test-id',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'osi', values: ['osi'] }],
+            });
+            el.inEdit.value = { get: () => fragment };
+        });
+
+        afterEach(() => {
+            Store.profile.set(originalProfile);
+            Store.users.set(originalUsers);
+            Store.showCloneDialog.set(originalShowCloneDialog);
         });
 
         it('confirms clone', async () => {
@@ -1798,6 +1819,101 @@ describe('MasFragmentEditor', () => {
             expect(mockRepo.copyFragment.calledWith('New Title')).to.be.true;
             expect(el.showCloneDialog).to.be.false;
         });
+
+        for (const modelKey of ['id', 'path']) {
+            for (const { group, allowed } of [
+                { group: 'GRP-ODIN-MAS-PROMO-EDITORS', allowed: false },
+                { group: 'GRP-ODIN-MAS-ACOM-EDITORS', allowed: false },
+                { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', allowed: true },
+                { group: 'GRP-ODIN-MAS-ADMINS', allowed: true },
+                { group: null, allowed: false },
+            ]) {
+                describe(`promotion project with model ${modelKey} as ${group}`, () => {
+                    beforeEach(() => {
+                        Store.users.set(group ? [{ userPrincipalName: 'author@adobe.com', groups: [group] }] : []);
+                        el.fragment.model = { [modelKey]: modelKey === 'id' ? PROMOTION_MODEL_ID : atob(PROMOTION_MODEL_ID) };
+                    });
+
+                    it(`allows opening the clone dialog: ${allowed}`, async () => {
+                        hasChanges = true;
+                        const discard = sandbox.stub(el, 'promptDiscardChanges').resolves(true);
+                        const toast = sandbox.spy(Events.toast, 'emit');
+
+                        await el.showClone();
+
+                        expect(el.showCloneDialog).to.equal(allowed);
+                        expect(Store.showCloneDialog.get()).to.equal(allowed);
+                        expect(discard.calledOnce).to.equal(allowed);
+                        if (!allowed) {
+                            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+                        }
+                    });
+
+                    it(`allows copying the project: ${allowed}`, async () => {
+                        const toast = sandbox.spy(Events.toast, 'emit');
+
+                        await el.confirmClone();
+
+                        expect(mockRepo.copyFragment.calledOnce).to.equal(allowed);
+                        if (!allowed) expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+                    });
+                });
+            }
+        }
+
+        it('rechecks project management permission after discard confirmation', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            el.fragment.model = { path: atob(PROMOTION_MODEL_ID) };
+            hasChanges = true;
+            sandbox.stub(el, 'promptDiscardChanges').callsFake(async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                return true;
+            });
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.showClone();
+
+            expect(el.showCloneDialog).to.be.false;
+            expect(Store.showCloneDialog.get()).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+        });
+
+        it('rechecks project management permission before confirming an open clone dialog', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            el.fragment.model = { path: atob(PROMOTION_MODEL_ID) };
+            await el.showClone();
+            expect(el.showCloneDialog).to.be.true;
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.confirmClone();
+
+            expect(mockRepo.copyFragment.called).to.be.false;
+            expect(toast.calledWithMatch({ variant: 'negative' })).to.be.true;
+        });
+
+        it('disables clone confirmation when project management permission is revoked', async () => {
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            el.fragment.model = { path: atob(PROMOTION_MODEL_ID) };
+            await el.showClone();
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const container = document.createElement('div');
+
+            render(el.cloneConfirmationDialog, container);
+
+            expect(container.querySelector('sp-button[variant="accent"]').hasAttribute('disabled')).to.be.true;
+        });
+
+        for (const path of [CARD_MODEL_PATH, COLLECTION_MODEL_PATH]) {
+            it(`still duplicates ordinary fragments with model ${path} without promotion management permission`, async () => {
+                el.fragment.model = { path };
+
+                await el.showClone();
+                await el.confirmClone();
+
+                expect(mockRepo.copyFragment.calledOnce).to.be.true;
+            });
+        }
     });
 
     describe('updateFragment', () => {

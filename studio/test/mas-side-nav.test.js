@@ -1607,4 +1607,16 @@ describe('MasSideNav – editNavigation', () => {
         render(el.editNavigation, container);
         expect(container.querySelector('mas-side-nav-item[label="Publish"]').hasAttribute('disabled')).to.be.true;
     });
+
+    for (const allowed of [true, false]) {
+        it(`allows duplication according to the fragment editor permission: ${allowed}`, () => {
+            editorStub.withArgs('mas-fragment-editor').returns({
+                ...mockEditor(mockFragment()),
+                canDuplicateFragment: allowed,
+            });
+            const container = document.createElement('div');
+            render(el.editNavigation, container);
+            expect(container.querySelector('mas-side-nav-item[label="Duplicate"]').hasAttribute('disabled')).to.equal(!allowed);
+        });
+    }
 });

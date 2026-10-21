@@ -143,7 +143,8 @@ export const styles = [
             --actions-column-width: 6rem;
             --status-column-width: 7rem;
 
-            border: 1px solid var(--spectrum-gray-300);
+            border-top: 1px solid var(--spectrum-gray-300);
+            border-bottom: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
 
             .actions-head-cell,
@@ -177,6 +178,7 @@ export const styles = [
 
             sp-table-head {
                 width: max-content;
+                height: 44px;
                 min-width: 100%;
                 background: var(--spectrum-gray-75);
                 border-top-left-radius: 12px;
@@ -198,6 +200,29 @@ export const styles = [
             .select-all-row {
                 border-top-right-radius: 12px;
             }
+
+            sp-table-head,
+            sp-table-row:not(.grouped-promo-variation-row) {
+                border-left: 1px solid var(--spectrum-gray-300);
+                border-right: 1px solid var(--spectrum-gray-300);
+            }
+
+            sp-table-row[expanded]:not(.grouped-promo-variation-row) {
+                border-bottom: 1px solid var(--spectrum-gray-300);
+            }
+
+            sp-table-row:last-of-type {
+                border-bottom-right-radius: 12px;
+                border-bottom-left-radius: 12px;
+            }
+
+            .table-icon-cell--chevron {
+                padding: 21px 35px;
+            }
+
+            .grouped-promo-variation-row .table-icon-cell--chevron {
+                padding: 0px 35px;
+            }
         }
 
         .related-pages sp-action-button {
@@ -215,41 +240,24 @@ export const styles = [
             --mod-tag-border-color: transparent;
         }
 
-        .grouped-promo-variation-row sp-table-cell {
-            background-color: var(--spectrum-gray-50);
+        .grouped-promo-variation-row {
+            margin: 12px 0;
         }
 
-        .grouped-promo-variation-row sp-table-cell:first-of-type {
+        .grouped-promo-variation-row sp-table-cell:not(.table-cell--invisible) {
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .grouped-promo-variation-row sp-table-cell:nth-of-type(2) {
             border-left: 1px solid var(--spectrum-gray-300);
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
         }
 
         .grouped-promo-variation-row sp-table-cell:last-of-type {
             border-right: 1px solid var(--spectrum-gray-300);
-        }
-
-        sp-table-row:not(.grouped-promo-variation-row) + .grouped-promo-variation-row sp-table-cell {
-            border-top: 1px solid var(--spectrum-gray-300);
-
-            &:first-of-type {
-                border-top-left-radius: 12px;
-            }
-
-            &:last-of-type {
-                border-top-right-radius: 12px;
-            }
-        }
-
-        .grouped-promo-variation-row:has(+ sp-table-row:not(.grouped-promo-variation-row)) sp-table-cell,
-        .grouped-promo-variation-row:last-child sp-table-cell {
-            border-bottom: 1px solid var(--spectrum-gray-300);
-
-            &:first-of-type {
-                border-bottom-left-radius: 12px;
-            }
-
-            &:last-of-type {
-                border-bottom-right-radius: 12px;
-            }
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
         }
 
         sp-tabs {

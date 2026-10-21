@@ -176,6 +176,11 @@ export const tableCellBaseStyles = css`
             word-break: break-all;
         }
     }
+
+    .table-cell--invisible {
+        background: transparent;
+        border: none;
+    }
 `;
 
 export const textWithTooltipStyles = css`

@@ -411,9 +411,9 @@ export class MasCollapsibleTableRow extends LitElement {
                             const isExpanded =
                                 promoVariations.length > 0 && this.expandedGroupedVariationPaths.has(variation.path);
                             const linkOptions = { ...this.#getEditorLinkOptions(variation), nativeKeyboard: true };
-                            return html`<sp-table-row value=${variation.path}>
+                            return html`<sp-table-row value=${variation.path} ?expanded=${isExpanded}>
                                     ${renderRowLinkOverlay(variation, linkOptions)}
-                                    <sp-table-cell class="table-icon-cell table-icon-cell--chevron">
+                                    <sp-table-cell class="table-icon-cell">
                                         <sp-button
                                             class="ghost-button expand-button"
                                             icon-only
@@ -454,7 +454,7 @@ export class MasCollapsibleTableRow extends LitElement {
             @dblclick=${(event) => this.#handlePromoVariationRowDblClick(event, editUrl)}
         >
             ${renderRowLinkOverlay(variation, linkOptions)}
-            <sp-table-cell class="table-icon-cell table-icon-cell--chevron"></sp-table-cell>
+            <sp-table-cell class="table-icon-cell table-icon-cell--chevron table-cell--invisible"></sp-table-cell>
             ${repeat(this.groupedVariationCells, (cell) => this[`render${cell}`](variation, linkOptions, editUrl) ?? nothing)}
         </sp-table-row>`;
     }
@@ -557,6 +557,7 @@ export class MasCollapsibleTableRow extends LitElement {
                               const row = html` <sp-table-row
                                   value=${path}
                                   ?selected=${isSelected}
+                                  ?expanded=${isExpanded}
                                   aria-selected=${isSelected ? 'true' : 'false'}
                                   @click=${(event) => isSelectable && this.#onRowClickForSelection(event, path)}
                                   @dblclick=${(event) => this.#handlePromoVariationRowDblClick(event, editUrl)}

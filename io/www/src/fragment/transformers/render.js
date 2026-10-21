@@ -64,18 +64,19 @@ async function render(context, { environment, resolveOptions } = {}) {
     };
     if (!environment) fail('Render requires an explicit environment');
     if (!resolveOptions) fail('Render requires a resolveOptions provider');
+    const cache = context.body.wcs?.[environment];
     const logger = {
         warn: (message, details) => log(`${message} ${JSON.stringify(details)}`, loggingContext),
         error: (message, literal) => logError(`${message} ${JSON.stringify(literal)}`, loggingContext),
     };
     const renderValue = async (html, fragment, fieldName, valueIndex) => {
         const fieldFail = (message) => fail(`${fragment.id ?? context.id}.${fieldName} (${environment}): ${message}`);
+        const prices = priceElements(html, fieldFail);
+        if (prices.length && !cache) fieldFail(`No WCS cache for environment ${environment}`);
         const replacements = [];
-        for (const { attributes, location } of priceElements(html, fieldFail)) {
+        for (const { attributes, location } of prices) {
             const options = await resolveOptions({ context, fragment, fieldName, valueIndex, attributes });
             checkOptions(options, fieldFail);
-            const cache = context.body.wcs?.[environment];
-            if (!cache) fieldFail(`No WCS cache for environment ${environment}`);
             const selected = options.wcsOsi.map((osi, index) => {
                 const key = [
                     osi,

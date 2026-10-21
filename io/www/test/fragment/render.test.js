@@ -125,6 +125,30 @@ describe('inactive inline-price render transformer', () => {
         expect(context.body.fields.description).to.include(golden.results['US-en/INDIVIDUAL/default/regular']);
     });
 
+    it('looks up the environment cache once across multiple prices and fields', async () => {
+        const context = contextFor(`${placeholder}${placeholder}`);
+        context.body.fields.other = placeholder;
+        const cache = context.body.wcs.prod;
+        const readCache = sinon.stub().returns(cache);
+        sinon.stub(context.body.wcs, 'prod').get(readCache);
+        await render.process(context, invocation());
+        expect(readCache.callCount).to.equal(1);
+        const resolved = `${wrapper}${golden.results['US-en/INDIVIDUAL/default/regular']}</span>`;
+        expect(context.body.fields.description).to.equal(`${resolved}${resolved}`);
+        expect(context.body.fields.other).to.equal(resolved);
+    });
+
+    it('reports a missing environment cache before requesting per-price options', async () => {
+        const context = contextFor('ordinary');
+        context.body.fields.other = placeholder;
+        delete context.body.wcs;
+        const before = structuredClone(context);
+        const resolveOptions = sinon.stub().returns(resolvedOptions());
+        await expectFailure(context, { environment: 'prod', resolveOptions }, 'fragment.other (prod): No WCS cache');
+        expect(resolveOptions.called).to.equal(false);
+        expect(context).to.deep.equal(before);
+    });
+
     it('requires a resolved-options provider instead of inferring browser policy', async () => {
         await expectFailure(contextFor(), { environment: 'prod' }, 'resolveOptions');
     });

@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { resolveHeadlessDisplayVariant, getCtaEmphasis } from '../../src/rte/link-variant-utils.js';
+import { resolveHeadlessDisplayVariant } from '../../src/rte/link-variant-utils.js';
 
 describe('link-variant-utils', () => {
     describe('resolveHeadlessDisplayVariant', () => {
@@ -22,31 +22,6 @@ describe('link-variant-utils', () => {
         it('resolves a variant alongside unrelated classes', () => {
             expect(resolveHeadlessDisplayVariant('upt-link secondary')).to.equal('secondary');
             expect(resolveHeadlessDisplayVariant('primary-link button-l')).to.equal('secondary-link');
-        });
-    });
-
-    describe('getCtaEmphasis', () => {
-        it('returns null for a falsy className', () => {
-            expect(getCtaEmphasis('')).to.be.null;
-            expect(getCtaEmphasis(undefined)).to.be.null;
-        });
-
-        it('returns bold for a primary (non-link) className', () => {
-            expect(getCtaEmphasis('primary')).to.equal('bold');
-        });
-
-        it('returns bold for an accent className', () => {
-            expect(getCtaEmphasis('accent')).to.equal('bold');
-        });
-
-        it('returns italic for a secondary (non-link) className', () => {
-            expect(getCtaEmphasis('secondary')).to.equal('italic');
-        });
-
-        it('returns null for a link-style className', () => {
-            expect(getCtaEmphasis('secondary-link')).to.be.null;
-            expect(getCtaEmphasis('accent-link')).to.be.null;
-            expect(getCtaEmphasis('primary-link')).to.be.null;
         });
     });
 });

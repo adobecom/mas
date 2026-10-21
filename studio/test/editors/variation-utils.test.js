@@ -23,23 +23,25 @@ import {
 
 describe('variation-utils', () => {
     describe('parseCtas', () => {
-        it('copies CTA emphasis from explicit variants, not text formatting', () => {
+        it('preserves CTA metadata without deriving label formatting from variants', () => {
             const ctas = parseCtas(
                 '<strong><a class="secondary" data-key="trial" href="/trial">Trial</a></strong>' +
                     '<em><a class="primary" data-key="buy" href="/buy">Buy</a></em>' +
                     '<strong><a class="secondary-link" data-key="details" href="/details">Details</a></strong>',
             );
-            expect(ctas.map(({ key }) => key)).to.deep.equal(['trial', 'buy', 'details']);
-            expect(ctas.map(({ formattedText }) => formattedText)).to.deep.equal([
-                '<em>Trial</em>',
-                '<strong>Buy</strong>',
-                'Details',
+            expect(ctas).to.deep.equal([
+                { text: 'Trial', href: '/trial', key: 'trial', className: 'secondary' },
+                { text: 'Buy', href: '/buy', key: 'buy', className: 'primary' },
+                { text: 'Details', href: '/details', key: 'details', className: 'secondary-link' },
             ]);
         });
 
-        it('retains emphasis for legacy wrapper-only CTAs', () => {
+        it('extracts plain labels from legacy wrapper-only CTAs', () => {
             const ctas = parseCtas('<strong><a href="/buy">Buy</a></strong><em><a href="/trial">Trial</a></em>');
-            expect(ctas.map(({ formattedText }) => formattedText)).to.deep.equal(['<strong>Buy</strong>', '<em>Trial</em>']);
+            expect(ctas).to.deep.equal([
+                { text: 'Buy', href: '/buy', key: null, className: '' },
+                { text: 'Trial', href: '/trial', key: null, className: '' },
+            ]);
         });
     });
     it('effectiveIsVariation requires a parent fragment', () => {

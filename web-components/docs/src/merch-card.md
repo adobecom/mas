@@ -17,7 +17,9 @@ Bold and italic remain text formatting, not CTA variant controls.
 New commerce CTAs default to Primary button; new web links default to Link.
 
 `<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
-button decoration. Groups inherit the surrounding Milo block's button size,
+button decoration. This applies to references from any source template, not only
+the headless-family templates that use the simplified Studio picker.
+Groups inherit the surrounding Milo block's button size,
 utility classes, and responsive action-area layout, retaining explicitly
 authored button sizes.
 
@@ -28,6 +30,8 @@ presentation: MAS preserves those wrappers, skips fragment styling, and lets
 Milo decorate the CTA. Existing formatted references keep their page-owned styles.
 An unformatted reference outside a `feds-cta-wrapper` inherits Studio, including when the stored variant is Link;
 absence of formatting does not override a Studio button to Link.
+Link references within a sentence remain inline; standalone references and buttons
+use the surrounding block's action-area layout.
 
 Individual Copy Field links do not add variant-derived emphasis, so newly copied
 references inherit subsequent Studio changes rather than creating a page override.

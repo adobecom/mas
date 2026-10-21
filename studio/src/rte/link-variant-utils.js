@@ -22,11 +22,3 @@ export function resolveHeadlessDisplayVariant(storedVariant) {
             return 'secondary-link';
     }
 }
-
-/** Variant-derived emphasis for copying an individual CTA into a Milo document. */
-export function getCtaEmphasis(className) {
-    const variant = resolveHeadlessDisplayVariant(className);
-    if (variant === 'primary') return 'bold';
-    if (variant === 'secondary') return 'italic';
-    return null;
-}

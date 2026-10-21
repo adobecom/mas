@@ -12,6 +12,7 @@ import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
+import { HEADLESS_STYLE_CTA_VARIANTS } from '../../../web-components/src/constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
@@ -109,9 +110,6 @@ const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
     VARIANT_NAMES.FAQ,
     VARIANT_NAMES.BANNER_BLADE,
 ]);
-
-/** Headless and headless-family templates use the 3-option CTA variant picker (Primary button / Secondary button / Link). */
-const HEADLESS_STYLE_CTA_VARIANTS = new Set([VARIANT_NAMES.HEADLESS, VARIANT_NAMES.MARQUEE, VARIANT_NAMES.BANNER_BLADE]);
 
 class MerchCardEditor extends LitElement {
     static properties = {
@@ -2072,15 +2070,15 @@ class MerchCardEditor extends LitElement {
                         id="ctas"
                         link
                         divider="${this.fragment.variant === 'product' ? '' : nothing}"
-                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? [] : undefined}
+                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue) ? [] : undefined}
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)}
-                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)
+                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)}
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)
                             ? 'secondary-link'
                             : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"

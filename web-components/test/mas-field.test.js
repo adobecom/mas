@@ -643,6 +643,82 @@ describe('mas-field – Studio defaults and page-owned individual overrides', ()
         });
     }
 
+    for (const field of ['ctas', 'ctas[link]']) {
+        for (const tag of ['strong', 'em']) {
+            for (const checkout of [false, true]) {
+                it(`does not duplicate ${tag} in the ${field} ${checkout ? 'checkout' : 'web'} label`, () => {
+                    const html =
+                        `<${tag}><a class="secondary-link" data-key="link" ${checkout ? 'data-wcs-osi="ABC"' : 'href="/plans"'}>` +
+                        ` <${tag}>Get started</${tag}> </a></${tag}>`;
+                    const element = renderField(field, 'headless', html);
+                    const link = element.querySelector('a[data-key="link"]');
+                    expect(link.querySelectorAll(tag)).to.have.lengthOf(1);
+                    expect(link.querySelector(tag).textContent).to.equal(
+                        'Get started',
+                    );
+                });
+            }
+        }
+    }
+
+    it('retains outer formatting when only part of the label already has it', () => {
+        const element = renderField(
+            'ctas[link]',
+            'headless',
+            '<strong><a class="secondary-link" data-key="link" href="/plans"><strong>Get</strong> started</a></strong>',
+        );
+        expect(element.querySelector('a > strong').textContent).to.equal(
+            'Get started',
+        );
+    });
+
+    for (const variant of ['headless', 'marquee', 'banner-blade', 'plans']) {
+        it(`keeps a ${variant} Link reference inline within a sentence`, () => {
+            const paragraph = document.createElement('p');
+            paragraph.innerHTML =
+                'Read <mas-field field="ctas[details]"><aem-fragment></aem-fragment></mas-field> about plans.';
+            fixture.querySelector('.text').append(paragraph);
+            const field = paragraph.querySelector('mas-field');
+            field.querySelector('aem-fragment').dispatchEvent(
+                new CustomEvent('aem:load', {
+                    bubbles: true,
+                    detail: {
+                        fields: {
+                            ctas: '<a class="secondary-link" data-key="details" href="/details">more</a>',
+                            variant,
+                        },
+                    },
+                }),
+            );
+            expect(paragraph.textContent).to.equal('Read more about plans.');
+            expect(paragraph.classList.contains('action-area')).to.be.false;
+            expect(getComputedStyle(paragraph).display).to.equal('block');
+            expect(field.querySelector('a').classList.contains('con-button')).to
+                .be.false;
+        });
+    }
+
+    it('keeps action-area presentation for a button reference beside text', () => {
+        const paragraph = document.createElement('p');
+        paragraph.innerHTML =
+            'Next: <mas-field field="ctas[buy]"><aem-fragment></aem-fragment></mas-field>';
+        fixture.querySelector('.text').append(paragraph);
+        paragraph.querySelector('aem-fragment').dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: {
+                    fields: {
+                        ctas: '<a class="primary" data-key="buy" href="/buy">Buy</a>',
+                        variant: 'headless',
+                    },
+                },
+            }),
+        );
+        expect(paragraph.classList.contains('action-area')).to.be.true;
+        expect(paragraph.querySelector('a').classList.contains('con-button')).to
+            .be.true;
+    });
+
     for (const [classes, size] of [
         ['marquee', 'button-l'],
         ['marquee large', 'button-xl'],

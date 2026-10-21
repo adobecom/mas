@@ -967,7 +967,19 @@ class MasField extends HTMLElement {
             }
             button.classList.add(...utilities);
         }
-        this.closest('p')?.classList.add('action-area');
+        const paragraph = this.closest('p');
+        if (
+            paragraph &&
+            (buttons.length ||
+                [...paragraph.childNodes].every(
+                    (node) =>
+                        node === this ||
+                        (node.nodeType === Node.TEXT_NODE &&
+                            !node.textContent.trim()),
+                ))
+        ) {
+            paragraph.classList.add('action-area');
+        }
     }
 
     /**

@@ -63,9 +63,19 @@ export function hydrateHeadlessCta(link) {
     if ([...link.classList].some((value) => CTA_VARIANT_PATTERN.test(value))) {
         let parent = link.parentElement;
         while (parent?.matches('strong, em')) {
-            source.replaceChildren(
-                createTag(parent.tagName.toLowerCase(), {}, source.innerHTML),
-            );
+            const label = source.firstElementChild;
+            if (
+                label?.tagName !== parent.tagName ||
+                source.innerHTML.trim() !== label.outerHTML
+            ) {
+                source.replaceChildren(
+                    createTag(
+                        parent.tagName.toLowerCase(),
+                        {},
+                        source.innerHTML,
+                    ),
+                );
+            }
             parent = parent.parentElement;
         }
     }

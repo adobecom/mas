@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import appConfig from '@adobe/aio-cli-lib-app-config';
-import { getDeploymentActions } from '../../io/studio/scripts/deploy-actions.mjs';
+import { getDeploymentActions, getDeploymentRules } from '../../io/studio/scripts/deploy-actions.mjs';
 
 const manifest = await appConfig.coalesce(new URL('../../io/studio/app.config.yaml', import.meta.url).pathname);
 
@@ -27,6 +27,32 @@ test('deployment groups cover every action without overlap', () => {
     assert.equal(new Set([...core, ...assistant]).size, total);
     assert.equal(
         core.some((action) => assistant.includes(action)),
+        false,
+    );
+});
+
+test('core deployment schedules the hourly usage rollup', () => {
+    assert.deepEqual(getDeploymentRules(manifest.config, 'core'), {
+        actions: ['MerchAtScaleStudio/fragment-usage-rollup'],
+        triggers: ['fragment-usage-hourly'],
+        rules: ['fragment-usage-rollup-rule'],
+    });
+});
+
+test('assistant deployment schedules nothing', () => {
+    assert.deepEqual(getDeploymentRules(manifest.config, 'assistant'), { actions: [], triggers: [], rules: [] });
+});
+
+test('deployment groups cover every rule without overlap', () => {
+    const core = getDeploymentRules(manifest.config, 'core').rules;
+    const assistant = getDeploymentRules(manifest.config, 'assistant').rules;
+    const total = Object.values(manifest.config.application.runtimeManifest.packages).reduce(
+        (count, pkg) => count + Object.keys(pkg.rules ?? {}).length,
+        0,
+    );
+    assert.equal(new Set([...core, ...assistant]).size, total);
+    assert.equal(
+        core.some((rule) => assistant.includes(rule)),
         false,
     );
 });

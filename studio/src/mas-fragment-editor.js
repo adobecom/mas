@@ -1581,9 +1581,7 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     get canDeleteFragment() {
-        return (
-            canManagePromotions() || (!this.isPromoVariationFragment() && !this.variationsToDelete.some(isPromoVariationPath))
-        );
+        return canManagePromotions() || !this.isPromoVariationFragment();
     }
 
     async deleteFragment() {
@@ -1610,7 +1608,7 @@ export default class MasFragmentEditor extends LitElement {
             this.variationsToDelete = [];
         }
         if (!this.canDeleteFragment) {
-            showToast('You do not have permission to delete fragments with promo variations.', 'negative');
+            showToast('You do not have permission to delete promo variations.', 'negative');
             return;
         }
         this.showDeleteDialog = true;

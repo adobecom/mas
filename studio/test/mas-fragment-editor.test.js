@@ -1546,38 +1546,43 @@ describe('MasFragmentEditor', () => {
             ).to.be.true;
         });
 
-        it('uses a neutral permission message when a parent has promo variations', async () => {
-            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/summer/my-card';
-            const fragment = new Fragment({
-                id: 'parent',
-                path: '/content/dam/mas/sandbox/en_US/my-card',
-                fields: [{ name: 'variations', values: [promoPath] }],
+        for (const group of ['GRP-ODIN-MAS-PROMO-EDITORS', 'GRP-ODIN-MAS-ACOM-EDITORS']) {
+            it(`allows parent deletion with promo variations for ${group}`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                const promoPath = '/content/dam/mas/sandbox/en_US/promotions/summer/my-card';
+                const fragment = new Fragment({
+                    id: 'parent',
+                    path: '/content/dam/mas/sandbox/en_US/my-card',
+                    fields: [{ name: 'variations', values: [promoPath] }],
+                    references: [{ id: 'promo', path: promoPath, fields: [] }],
+                });
+                el.inEdit.value = { get: () => fragment };
+                sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+
+                await el.deleteFragment();
+
+                expect(el.canDeleteFragment).to.be.true;
+                expect(el.showDeleteDialog).to.be.true;
+                expect(el.variationsToDelete).to.deep.equal([promoPath]);
             });
-            el.inEdit.value = { get: () => fragment };
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            const toast = sandbox.spy(Events.toast, 'emit');
 
-            await el.deleteFragment();
+            it(`deletes the parent and its staged promo variations for ${group}`, async () => {
+                Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+                const fragment = new Fragment({
+                    id: 'parent',
+                    path: '/content/dam/mas/sandbox/en_US/my-card',
+                    fields: [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+                const promoPaths = ['/content/dam/mas/sandbox/en_US/promotions/summer/my-card'];
+                el.variationsToDelete = promoPaths;
 
-            expect(el.showDeleteDialog).to.be.false;
-            expect(
-                toast.calledWithMatch({
-                    content: 'You do not have permission to delete fragments with promo variations.',
-                    variant: 'negative',
-                }),
-            ).to.be.true;
-        });
+                await el.confirmDelete();
 
-        it('prevents promo editors deleting parent fragments with staged promo variations', async () => {
-            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
-            el.variationsToDelete = ['/content/dam/mas/sandbox/en_US/promotions/summer/my-card'];
-
-            await el.confirmDelete();
-
-            expect(mockRepo.deleteFragmentWithVariations.called).to.be.false;
-        });
+                expect(mockRepo.deleteFragmentWithVariations.calledOnceWithExactly(fragment, promoPaths)).to.be.true;
+            });
+        }
 
         it('confirms delete for non-variation', async () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(false);

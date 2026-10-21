@@ -426,7 +426,7 @@ describe('processCTAs', async () => {
 
     it('should replace free-trial CTA with buy-now when hideTrialCTAs is true', async () => {
         const fields = {
-            ctas: `<p><a href="#" data-wcs-osi="abm" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
         };
         processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
             hideTrialCTAs: true,
@@ -436,6 +436,24 @@ describe('processCTAs', async () => {
         expect(footer.children).to.have.lengthOf(1);
         const button = footer.querySelector('button');
         expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
+        expect(button.getAttribute('data-modal')).to.equal('crm');
+        expect(button.getAttribute('aria-label')).to.equal(null);
+    });
+
+    it('should just remove free-trial CTA if buy-now PH is not resolved when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+        };
+        merchCard.priceLiterals = {
+            buyNow: 'buy-now',
+        };
+        processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        await delay(50);
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(0);
     });
 
     it('should hide free-trial CTA when buy-now exists and hideTrialCTAs is true', async () => {

@@ -1638,7 +1638,7 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
             }),
         );
 
-        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p><p>${CTA_HTML}</p></div>`;
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p><p><mas-field field="ctas[99]"><span data-role="mas-field-content">${CTA_HTML}</span></mas-field></p></div>`;
         const template = document.createElement('template');
         template.innerHTML = html;
         template.content.querySelector(
@@ -1689,6 +1689,52 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
                     offerType: 'BASE',
                 },
             ],
+        };
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.exist;
+        expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+    });
+
+    it('replace free-trial CTA with buy-now CTA with stripTrialCtas when other mas-fields are next to it', async () => {
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field><mas-field field="ctas[22]"><span data-role="mas-field-content">EMPTY</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+        template.content.querySelector(
+            '[data-analytics-id="free-trial"]',
+        ).masElement = {
+            value: [
+                {
+                    offerType: 'BASE',
+                },
+            ],
+        };
+
+        const el = template.content.querySelector(
+            'mas-field[field="ctas[77]"]',
+        );
+        const fragment = document.createElement('aem-fragment');
+        fragment.data = {
+            priceLiterals: {
+                buyNow: 'Buy now',
+            },
+        };
+        el.append(fragment);
+        fragment.dispatchEvent(
+            new CustomEvent('aem:load', {
+                bubbles: true,
+                detail: { fields: { ctas: CTA_TRIAL_HTML } },
+            }),
+        );
+
+        el.aemFragment = {
+            data: {
+                priceLiterals: {
+                    buyNow: 'Buy now',
+                },
+            },
         };
 
         const resultHtml = await stripTrialCtas(template, true, el);

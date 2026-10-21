@@ -1,6 +1,6 @@
 ---
 name: splunk-referer-analysis
-description: Analyze a Splunk LANA CSV export for one referer URL and decide whether the errors are an authoring issue or a code issue, with direct calls to action.
+description: Analyze one or more Splunk LANA CSV exports (one per referer URL) and decide whether the errors are an authoring issue or a code issue, with reproducible, owner-assigned calls to action.
 ---
 
 Analyze the Splunk LANA export attached / referenced in the request and classify the
@@ -8,7 +8,31 @@ errors on that referer page as an **authoring** issue (content fragment misconfi
 or a **code** issue (io pipeline / merch-card / mas.js bug), then give direct,
 actionable calls to action.
 
-Input: `$ARGUMENTS` — a path to the CSV export (or it is attached to the message).
+Input: `$ARGUMENTS` — one or more paths to CSV exports (or attached to the message).
+With several exports, run the whole workflow per export (each is usually one referer),
+then merge the findings into a single report (see "Several exports").
+
+## No reproduction, no call to action
+
+**Every issue you put in a call to action must come with a URL that reproduces it, and
+you must have opened that URL yourself and seen the failure** (headless Chrome via the
+repo's Playwright, or the chrome-devtools MCP). Splunk tells you _that_ something broke;
+only a reproduction tells you _what_ to fix and lets the owner confirm the fix.
+
+- Reproduce with the top sample referer from the export, plus the market parameters
+  `akamaiLocale=<geo>&country=<CC>` taken from the events' `facts` (country, locale).
+  Keep the campaign query keys (`sdid`, `mv`, `mv2`, …) if the failures cluster on them.
+- Count it as reproduced only when you observe the logged symptom on the page: the
+  failing element (`.placeholder-failed`, empty price, missing label, broken card) or the
+  same console/LANA message.
+- If you **cannot** reproduce it after honest attempts (vary geo, cookies such as
+  `ims_country_code`, device/user agent), **leave it out of the Slack message**. Say so
+  explicitly in the engineering report under "Not reproduced": what the logs show, what
+  you tried, and what is still needed to reproduce it (e.g. a HAR from an affected
+  session). Never fill the gap with a guessed cause or an untested "How to check" URL.
+- A wrong guess is worse than no call to action: it sends someone to fix the wrong thing.
+  Only assert a cause (MEP, Target, promotion, author) after you've checked it against
+  live data.
 
 ## What the data is
 
@@ -75,13 +99,27 @@ Consequences for every number you report:
    fragment rendered as a card" below). This is what separates an authoring fault from a
    Milo autoblock/rollout fault — do it before you blame the author.
 
-6. **Build a Studio link** for each culprit fragment so the author/engineer can open it
+6. **Find the culprit card even when the parser finds none.** `culprit_fragment_ids` is
+   empty for price/checkout errors (`Commerce offer not found`, `Failed to format
+literal`): the id is not in the message. Read the OSI / promo code / country from the
+   events' `facts`, open the referer, and find the `merch-card` / `mas-field` whose
+   `data-wcs-osi` matches. Its fragment id (and `data-promotion-project` if any) is the
+   culprit (see "Offer not found: trace the OSI back to a card or promotion").
+
+7. **Reproduce** each issue you intend to report (see "No reproduction, no call to
+   action"). Record the exact URL that shows the failure.
+
+8. **Build a Studio link** for each culprit fragment so the author/engineer can open it
    in one click (see "Studio deep link" below).
 
-7. **Report** in the output format below. Lead with the verdict. Present all volumes
-   as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
-   Whenever a human must fix content, the call to action is a Slack-ready message
-   with human actions, cards to fix and sample pages (see "Whenever a human must act").
+9. **Name an owner for every action**: the author of the card, the owner of the
+   promotion project, the MEP manifest owner, or the M@S engineering team. "Someone
+   should…" is not a call to action.
+
+10. **Report** in the output format below. Lead with the verdict. Present all volumes
+    as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
+    Whenever a human must fix content, the call to action is a Slack-ready message
+    with human actions, cards to fix and sample pages (see "Whenever a human must act").
 
 ## Studio deep link
 
@@ -172,6 +210,46 @@ owner concrete links, not just prose:
 - If the swap targets the wrong fragment or a variation id, the fix is in the **manifest
   row** (change `all`/`selector`), not the card — say which row.
 
+## Offer not found: trace the OSI back to a card or promotion
+
+`inline-price` / `checkout-link: Failed to render: Commerce offer not found` means WCS
+returned no offer for the OSI in the pricing country. The event `facts` carry
+`offerSelectorIds`, `promotionCode`, `country`, `locale`, `language`.
+
+1. **Check the OSI per country** against WCS (same api key as the page):
+
+    ```sh
+    curl -s "https://www.adobe.com/web_commerce_artifact?offer_selector_ids=<osi>&country=<CC>&locale=en_<CC>&language=MULT&landscape=PUBLISHED&api_key=<wcs-api-key>[&promotion_code=<code>]"
+    ```
+
+    `resolvedOffers: []` in the logged country but offers elsewhere = the OSI is
+    market-restricted and is being priced in the wrong market.
+
+2. **Find who put the OSI on the page.** It is often **not** in the authored page
+   (`<referer>.plain.html`) nor in MEP manifests. io/www promotions substitute OSIs per
+   geo (`io/www/src/fragment/transformers/promotions.js`, `wcs.js`): the rendered element
+   carries `data-replaced-osi="<base osi>"` and its host carries
+   `data-promotion-project="<project>"` / `data-promotion-code`. Open the page in the
+   affected market and read those attributes; the fragment id on the host `mas-field` /
+   `merch-card` is the card, the project is the promotion.
+
+3. **Confirm delivery per country** — fetch the fragment with each relevant `country=`
+   and grep for the OSI. If io/www only substitutes for the right markets, delivery is
+   correct and the fault is a fragment-country vs pricing-country mismatch on the client
+   (the fragment request may use the `ims_country_code` cookie — `aem-fragment.js` —
+   while prices use the page country). That is a CODE finding, and it needs a
+   reproduction before it reaches anyone's backlog.
+
+## Literal formatting errors
+
+`Failed to format literal:` (`web-components/src/price/template.js` `formatLiteral`)
+logs only the literal text (in `facts[1]`); the label is replaced by `''`, so prices lose
+"/mo", tax labels, strikethrough/discount labels. If **every** literal of a locale fails
+(even `{discount}%`), the literals are fine and the problem is the locale passed to the
+formatter (e.g. an invalid BCP-47 tag) — CODE. If only one literal fails, its ICU syntax
+is broken — authoring of the price literals. Check the literal with
+`formatMessage(literal, '<lang>-<CC>', params)` in Node before deciding.
+
 ## Decision table
 
 Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
@@ -190,6 +268,9 @@ Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
 | fetch `status` 5xx / 504 / timeout                                                                                                         | io pipeline failure                                                                                              | **CODE / pipeline** — investigate the fragment delivery pipeline                                                                                                                          |
 | high `retryCount` / `stale=true` / many `REVALIDATE`                                                                                       | cache thrash / origin unhealthy                                                                                  | **CODE / pipeline**                                                                                                                                                                       |
 | `status` 200 + cdn HIT + a client error message                                                                                            | delivery healthy                                                                                                 | **AUTHORING or client CODE** per the message                                                                                                                                              |
+| `Commerce offer not found` (`inline-price` / `checkout-link`)                                                                              | WCS has no offer for the OSI in the pricing country                                                              | OSI authored for wrong market = **AUTHORING**; promotion targets wrong geos = **promotion owner**; fragment/pricing country mismatch = **CODE** — see "Offer not found"                   |
+| `Failed to format literal:`                                                                                                                | ICU formatting of a price label threw; label rendered empty                                                      | all literals of a locale fail = **CODE** (locale); one literal fails = **AUTHORING** (literal syntax) — see "Literal formatting errors"                                                   |
+| mostly bot user agents (`bot`, `spider`, `crawl`)                                                                                          | crawler environment, not shoppers                                                                                | **No action** — mention as noise only                                                                                                                                                     |
 
 ## Output format
 
@@ -226,7 +307,9 @@ instead of repeating them.
 URLs that simulate the affected market with the `akamaiLocale` (geo, lowercase) and
 `country` (uppercase) query parameters, one per affected market seen in the export
 (e.g. `country=IN` → `?akamaiLocale=in&country=IN`, `country=AU` →
-`?akamaiLocale=au&country=AU`). Use the top sample page.
+`?akamaiLocale=au&country=AU`). Use the top sample page. **Every one of these URLs must
+be one you opened and saw fail** (see "No reproduction, no call to action"); drop any you
+could not reproduce.
 
 ```
 :rotating_light: *<Short plain headline — what's broken, for whom>*
@@ -278,9 +361,46 @@ The reader is an engineer. Include the evidence:
 - Note magnitude is a 1% sampling estimate; low-count secondary messages (raw <~10) are directional only.
 
 ### Calls to action
-1. <concrete engineering step>
+1. <owner> — <concrete engineering step>
 2. Propose a MWPW ticket (offer to run the `mwpw-ticket` skill).
+
+### Not reproduced
+- <issue> — what the logs show · what you tried (URLs, geo, cookies, UA) · what is
+  needed to reproduce. Not included in any Slack message.
 ```
 
 For a **MIXED** verdict, follow the engineering report with the Slack-ready author
 message above, covering only the content part of the fix.
+
+### Several exports
+
+Produce **one** engineering report with a section per referer, and **one** Slack message
+that only contains reproduced issues, grouped by owner:
+
+```
+:rotating_light: *<N> merch issues on adobe.com — <window>*
+
+*1. <Owner> — <plain headline>* (~<est.> <unit>)
+<1 plain sentence: what shoppers see.>
+*What to do:* <imperative steps joined with →>
+   Studio: https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
+   Reproduce:
+   https://www.adobe.com/<path>?akamaiLocale=<geo>&country=<CC>
+
+*2. …*
+
+*Not included (could not reproduce yet):* <page> — <one plain line>, being investigated.
+
+Thanks! :pray:
+```
+
+If nothing reproduces, say so instead of sending a message: no Slack message is better
+than one that sends people after a guess.
+
+### Before you answer — self-check
+
+- Every action has an **owner**, imperative **steps**, a **Studio link** (if a card or
+  promotion is involved) and a **reproduce URL you opened and saw fail**.
+- Every asserted cause was verified against live data (fragment, WCS, page attributes).
+- Unreproduced issues are listed under "Not reproduced", not in Slack.
+- Author-facing text has no jargon (MEP, Target, OSI, locale, geo-IP, file names).

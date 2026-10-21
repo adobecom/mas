@@ -14,6 +14,8 @@ import {
 import AHTryBuyWidgetSpec from '../specs/try_buy_widget_edit_and_discard.spec.js';
 
 const { features } = AHTryBuyWidgetSpec;
+
+test.use({ reuseEditor: true });
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-edit-discard-bg-color - Validate editing background color for try buy widget card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -22,7 +24,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -32,12 +34,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-2: Edit background color field', async () => {
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundColor).toHaveAttribute('value', data.color.original);
-            await editor.backgroundColor.scrollIntoViewIfNeeded();
-            await editor.backgroundColor.click();
-            const colorOption = page.getByRole('option', { name: data.color.updated });
-            await expect(colorOption).toBeVisible();
-            await colorOption.click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.backgroundColor, data.color.updated);
         });
 
         await test.step('step-3: Validate background color of the card', async () => {
@@ -60,7 +57,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -69,11 +66,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
 
         await test.step('step-2: Edit border color field', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-3: Validate border color of the card', async () => {
@@ -102,7 +95,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();

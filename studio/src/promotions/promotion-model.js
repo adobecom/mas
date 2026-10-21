@@ -1,4 +1,4 @@
-import { COLLECTION_MODEL_PATH, PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { PATH_TOKENS, PROMOTIONS_PATH_PREFIX, ROOT_PATH, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 
 /**
@@ -14,13 +14,12 @@ export function isPromoVariationPath(path) {
 }
 
 /**
- * True when a default fragment path can have probed promo variation copies (MAS DAM card paths only).
+ * True when a default fragment path can have probed promo variation copies (MAS DAM card and collection paths).
  * @param {{ path?: string, model?: { path?: string } }} fragmentData
  * @returns {boolean}
  */
 export function canProbePromoVariationsForFragment(fragmentData) {
     if (!fragmentData?.path || isPromoVariationPath(fragmentData.path)) return false;
-    if (fragmentData.model?.path === COLLECTION_MODEL_PATH) return false;
     return !!PATH_TOKENS.exec(fragmentData.path);
 }
 

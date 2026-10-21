@@ -9,6 +9,7 @@ import './fields/user-picker.js';
 import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
+import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from './mas-chat/chat-router.js';
 import { initUsers } from './users.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
@@ -18,6 +19,7 @@ import router from './router.js';
 import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+import { startOdinTelemetry } from './utils/odin-telemetry.js';
 
 const LAZY_IMPORT_RETRIES = 2;
 const LAZY_IMPORT_RETRY_DELAY = 1000;
@@ -29,12 +31,14 @@ const BUCKET_TO_ENV = {
 };
 
 router.start();
+startOdinTelemetry();
 
 class MasStudio extends LitElement {
     static properties = {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
         masJsReady: { type: Boolean, state: true },
+        chatDrawerOpen: { state: true },
     };
 
     #unsubscribeLocaleObserver;
@@ -46,6 +50,7 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.masJsReady = false;
+        this.chatDrawerOpen = false;
     }
 
     connectedCallback() {
@@ -261,7 +266,7 @@ class MasStudio extends LitElement {
 
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true" lana-tags="studio"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -297,18 +302,12 @@ class MasStudio extends LitElement {
         return html`<mas-side-nav></mas-side-nav>`;
     }
 
-    get editorPanel() {
-        if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
-        if (!this.#lazyLoad('editor-panel', './editor-panel.js')) return nothing;
-        return html`<editor-panel></editor-panel>`;
-    }
-
     get currentPage() {
         switch (this.page.value) {
             case PAGE_NAMES.WELCOME:
                 return this.splashScreen;
             case PAGE_NAMES.CONTENT:
-                return html`${this.content}${this.editorPanel}`;
+                return this.content;
             case PAGE_NAMES.PLACEHOLDERS:
                 return this.placeholders;
             case PAGE_NAMES.FRAGMENT_EDITOR:
@@ -347,11 +346,21 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.masJsReady ? html`<div class="main-container">${this.currentPage}</div>` : nothing}
+                ${this.sideNav}
+                ${this.masJsReady
+                    ? html`<div class="main-container">
+                          ${this.currentPage}${renderChatPages(this.page.value, (name, path) => this.#lazyLoad(name, path))}
+                      </div>`
+                    : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
+            ${renderChatOverlay(
+                (event) => handleChatDrawerToggle(event, this),
+                (name, path) => this.#lazyLoad(name, path),
+                this.chatDrawerOpen && this.page.value !== PAGE_NAMES.AI_ASSISTANT,
+            )}
         `;
     }
 }

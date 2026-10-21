@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { waitUntil } from '@open-wc/testing-helpers/pure';
+import { setViewport } from '@web/test-runner-commands';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import '../../src/promotions/mas-promotions.js';
@@ -136,6 +137,54 @@ describe('MasPromotions', () => {
     });
 
     describe('rendering and guards', () => {
+        it('renders promotion editor links on the project title and row overlay', async () => {
+            const { el } = await mountWithRepo(makePromotion({ id: 'promotion-1', title: 'Promotion' }));
+            const row = el.shadowRoot.querySelector('sp-table-row');
+            for (const selector of ['a.fragment-editor-link', 'a.row-link-overlay']) {
+                const link = row.querySelector(selector);
+                expect(link).to.exist;
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('page')).to.equal('promotions-editor');
+                expect(params.get('promotionId')).to.equal('promotion-1');
+            }
+        });
+
+        describe('promotion badge layout', () => {
+            let viewport;
+
+            beforeEach(async () => {
+                viewport = { width: window.innerWidth, height: window.innerHeight };
+                await setViewport({ width: 1920, height: 1080 });
+            });
+
+            afterEach(async () => {
+                await setViewport(viewport);
+            });
+
+            for (const { label, selector, column } of [
+                { label: 'Evergreen', selector: '.evergreen-badge', column: 1 },
+                { label: 'Staged', selector: '.staged-badge', column: 2 },
+            ]) {
+                it(`keeps the ${label} badge visible in its own column without hover`, async () => {
+                    const promotion = stagePromotion(makePromotion({ id: 'promo-1', title: 'Evergreen', endDate: '' }));
+                    const { el } = await mountWithRepo(promotion);
+                    const row = el.shadowRoot.querySelector('sp-table-row');
+                    const badge = row.querySelector(selector);
+                    await waitUntil(() => badge.getBoundingClientRect().width > 0, 'The badge should have visible bounds');
+                    const cell = row.querySelectorAll('sp-table-cell')[column];
+                    const header = el.shadowRoot.querySelectorAll('sp-table-head-cell')[column];
+                    const cellBounds = cell.getBoundingClientRect();
+                    const badgeBounds = badge.getBoundingClientRect();
+                    const headerBounds = header.getBoundingClientRect();
+
+                    expect(badgeBounds.left).to.be.at.least(cellBounds.left);
+                    expect(badgeBounds.right).to.be.at.most(cellBounds.right);
+                    expect(cellBounds.left).to.be.closeTo(headerBounds.left, 1);
+                    expect(cellBounds.right).to.be.closeTo(headerBounds.right, 1);
+                });
+            }
+        });
+
         it('sets an error when connected without a repository', async () => {
             const el = document.createElement('mas-promotions');
             sandbox.stub(el, 'repository').get(() => null);
@@ -875,6 +924,54 @@ describe('MasPromotions', () => {
             expect(searchRow).to.exist;
             expect(searchRow.querySelector('sp-search')).to.exist;
             expect(searchRow.querySelector('.promotions-result-count')).to.exist;
+        });
+    });
+
+    describe('environment filter layout', () => {
+        it('places the environment filter picker below the search row', async () => {
+            const promotion = makePromotion({ id: 'promo-1', title: 'Original' });
+            const { el } = await mountWithRepo(promotion);
+            await el.updateComplete;
+
+            expect(el.shadowRoot.querySelector('sp-icon-filter')).to.not.exist;
+            const filtersPicker = el.shadowRoot.querySelector('.environment-filter-picker');
+            expect(filtersPicker).to.exist;
+
+            const searchRow = el.shadowRoot.querySelector('.promotions-search-row');
+            expect(searchRow.contains(filtersPicker)).to.be.false;
+            const position = searchRow.compareDocumentPosition(filtersPicker);
+            expect(position & Node.DOCUMENT_POSITION_FOLLOWING).to.be.above(0);
+        });
+
+        it('keeps environment filtering behaviour unchanged: selecting and clearing values updates the results', async () => {
+            const production = makePromotion({ id: 'promo-1', title: 'Prod Promo', surfaces: ['acom'] });
+            const test = makePromotion({ id: 'promo-2', title: 'Test Promo', surfaces: ['sandbox'] });
+            const { el } = await mountWithRepo(production);
+            Store.promotions.list.data.set([new FragmentStore(production), new FragmentStore(test)]);
+            el.environmentFilter = [];
+            await el.updateComplete;
+
+            expect(el.filteredPromotions).to.have.lengthOf(2);
+
+            const testCheckbox = [...el.shadowRoot.querySelectorAll('sp-checkbox')].find(
+                (checkbox) => checkbox.getAttribute('value') === 'test',
+            );
+            testCheckbox.checked = true;
+            testCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+            await el.updateComplete;
+
+            expect(el.environmentFilter).to.include('test');
+            expect(el.filteredPromotions).to.have.lengthOf(1);
+            expect(el.filteredPromotions[0].get().title).to.equal('Test Promo');
+
+            const clearButton = [...el.shadowRoot.querySelectorAll('sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Clear all',
+            );
+            clearButton.click();
+            await el.updateComplete;
+
+            expect(el.environmentFilter).to.have.lengthOf(0);
+            expect(el.filteredPromotions).to.have.lengthOf(2);
         });
     });
 });

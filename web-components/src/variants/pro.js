@@ -34,6 +34,14 @@ const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
 
+// A hidden CTA has no box, so only visible ones count as wrapped.
+const hasWrappedCtas = (card) =>
+    new Set(
+        [...card.querySelectorAll('[slot="footer"] a, [slot="footer"] button')]
+            .filter((cta) => cta.getClientRects().length)
+            .map((cta) => Math.round(cta.getBoundingClientRect().top)),
+    ).size > 1;
+
 export const PRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     subtitle: { tag: 'p', slot: 'subtitle' },
@@ -359,6 +367,9 @@ export class Pro extends VariantLayout {
             row.forEach((card) => this.clearSyncedHeights(card));
             // A lone card has nothing to match, so it keeps its natural height.
             if (row.length < 2) continue;
+            // A wrapped CTA stacks every card in the row so the buttons line up.
+            const stack = row.some(hasWrappedCtas);
+            row.forEach((card) => card.toggleAttribute('stacked', stack));
             // Reserve first — it grows the price block everything below measures.
             // A per-card shortfall covers short, wrapped and missing strikes alike.
             const strikes = row.map((card) =>
@@ -397,6 +408,7 @@ export class Pro extends VariantLayout {
     }
 
     clearSyncedHeights(card) {
+        card.removeAttribute('stacked');
         card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
         card.style.removeProperty(STRIKE_RESERVE_PROP);
         SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
@@ -500,7 +512,10 @@ export class Pro extends VariantLayout {
     // placeholders, resolved per locale). No "|" → unchanged for every quantity;
     // pluralization is never derived in code (appending "s" breaks most locales).
     licenseLabel(count) {
-        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const title =
+            this.quantitySelectEl?.getAttribute('title') ||
+            this.card.placeholders?.licenseLabel ||
+            '';
         const [singular, plural] = title.split('|').map((s) => s.trim());
         return Number(count) === 1 ? singular : plural || singular;
     }
@@ -1010,6 +1025,8 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) footer ::slotted([slot='footer']) {
             display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
             gap: 8px;
             flex: 1;
         }

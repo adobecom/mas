@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
+import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
@@ -910,6 +911,47 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 expect(searchStub.called).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('loads fragments when the shared cache already holds a non-Fragment entry for the same id', async () => {
+            // The AI assistant seeds the shared aem-fragment cache with plain
+            // fragment data (map-shaped fields) so its cards can hydrate. That
+            // entry has no refreshFrom, so the repository must not assume every
+            // hit is one of its own Fragment instances.
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const cursor = createMockCursor([[createFragment({ id: 'chat-cached-fragment' })]]);
+            const searchStub = sandbox.stub().resolves(cursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            sandbox
+                .stub(mockFragmentCache, 'get')
+                .callsFake((id) => (id === 'chat-cached-fragment' ? { id, fields: { cardTitle: 'From chat' } } : null));
+            const processErrorSpy = sandbox.spy(repository, 'processError');
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+
+                expect(processErrorSpy.called).to.be.false;
+                const listed = mockDataStore.set.lastCall.args[0];
+                expect(listed).to.have.lengthOf(1);
+                expect(listed[0].value).to.be.instanceOf(Fragment);
+                expect(listed[0].value.id).to.equal('chat-cached-fragment');
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -4793,9 +4835,11 @@ describe('MasRepository dictionary helpers', () => {
 
 describe('MasRepository publishFragment', () => {
     let sandbox;
+    let diagnosis;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
 
     afterEach(() => {
@@ -4823,6 +4867,33 @@ describe('MasRepository publishFragment', () => {
     };
 
     const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+
+    it('does not activate the fragment when diagnosis is closed', async () => {
+        const repo = makeRepo();
+        diagnosis.resolves(false);
+
+        const result = await repo.publishFragment(fragment);
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+    });
+
+    it('waits for an explicit diagnosis decision before activation', async () => {
+        const repo = makeRepo();
+        let decide;
+        diagnosis.returns(
+            new Promise((resolve) => {
+                decide = resolve;
+            }),
+        );
+
+        const publishing = repo.publishFragment(fragment);
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        decide(true);
+        await publishing;
+
+        expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+    });
 
     it('publishes with empty filterReferencesByStatus when no options given', async () => {
         const repo = makeRepo();
@@ -4896,6 +4967,7 @@ describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', ()
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
     afterEach(() => sandbox.restore());
 
@@ -4968,12 +5040,14 @@ describe('MasRepository bulkPublishFragments', () => {
     let sandbox;
     let repo;
     let originalStoreData;
+    let diagnosis;
 
     const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', etag: 'etag-1' };
     const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2', etag: 'etag-2' };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
         repo = new MasRepository();
         repo.operation = { set: sandbox.stub() };
         repo.aem = {
@@ -5004,6 +5078,15 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls publishFragments with default statuses when no options given', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'UNPUBLISHED'])).to.be.true;
+    });
+
+    it('does not activate any selected root when diagnosis is closed', async () => {
+        diagnosis.resolves(false);
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
     it('calls publishFragments with custom publishReferencesWithStatus when provided', async () => {

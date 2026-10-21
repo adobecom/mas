@@ -70,44 +70,53 @@ describe('commerce service', () => {
                 history.replaceState(null, '', originalUrl);
             });
 
-            for (const value of ['on', 'ucv3_in_iframe']) {
-                it(`reads the service attribute ${JSON.stringify(value)} on initialization`, () => {
+            it('reads the service attribute on initialization', () => {
+                const service = initMasCommerceService({
+                    'aup-select': 'on',
+                });
+                expect(service.settings.aupSelect).to.be.true;
+            });
+
+            it('uses metadata ahead of the service attribute on initialization', () => {
+                meta.content = 'on';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'off' });
+                expect(service.settings.aupSelect).to.be.true;
+            });
+
+            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
+                meta.content = 'off';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'on' });
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('is disabled when the attribute is not set', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            for (const value of ['on', 'true', 'ON', '']) {
+                it(`enables with attribute ${JSON.stringify(value)}`, () => {
                     const service = initMasCommerceService({
                         'aup-select': value,
                     });
                     expect(service.settings.aupSelect).to.be.true;
                 });
+            }
 
-                it(`uses metadata ${JSON.stringify(value)} ahead of the service attribute on initialization`, () => {
-                    meta.content = value;
-                    document.head.append(meta);
+            for (const value of ['off', 'false']) {
+                it(`disables with attribute ${JSON.stringify(value)}`, () => {
                     const service = initMasCommerceService({
-                        'aup-select': 'off',
+                        'aup-select': value,
                     });
-                    expect(service.settings.aupSelect).to.be.true;
+                    expect(service.settings.aupSelect).to.be.false;
                 });
             }
 
-            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
-                meta.content = 'off';
-                document.head.append(meta);
-                const service = initMasCommerceService({
-                    'aup-select': 'ucv3_in_iframe',
-                });
-                expect(service.settings.aupSelect).to.be.false;
-            });
-
-            for (const value of [
-                'on',
-                'ucv3_in_iframe',
-                'off',
-                'true',
-                'ON',
-                'UCV3_IN_IFRAME',
-                '',
-            ]) {
+            for (const value of ['on', 'off', 'true', 'false', 'ON', '']) {
                 it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
-                    const enabled = ['on', 'ucv3_in_iframe'].includes(value);
+                    const enabled = value !== 'off' && value !== 'false';
                     const fallback = enabled ? 'off' : 'on';
                     meta.content = fallback;
                     document.head.append(meta);

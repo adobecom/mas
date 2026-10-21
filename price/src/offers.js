@@ -1,3 +1,28 @@
+import { Commitment, Term } from './constants.js';
+
+const getPlanType = (commitment, term) => {
+    switch (commitment) {
+        case '':
+            return '';
+        case Commitment.YEAR:
+            return term === Term.MONTHLY ? 'ABM' : term === Term.ANNUAL ? 'PUF' : '';
+        case Commitment.MONTH:
+            return term === Term.MONTHLY ? 'M2M' : '';
+        case Commitment.PERPETUAL:
+            return 'PERPETUAL';
+        case Commitment.TERM_LICENSE:
+            return term === Term.P3Y ? 'P3Y' : '';
+        default:
+            return '';
+    }
+};
+
+/** Copies a WCS offer with its plan type derived from commitment and term. */
+export function applyPlanType(offer) {
+    const { commitment, term } = offer;
+    return { ...offer, planType: getPlanType(commitment, term) };
+}
+
 const forceTaxExclusivePrice = (offer) => {
     const { priceDetails } = offer;
     const { price, priceWithoutDiscount, priceWithoutTax, priceWithoutDiscountAndTax, taxDisplay } = priceDetails;

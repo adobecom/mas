@@ -89,11 +89,13 @@
                         // Submit the form by clicking the Create button
                         const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
                         createButton.click();
-                        await dialog.updateComplete;
+                        await delay();
 
-                        // Verify fetch was called with correct parameters
+                        // Verify fetch was called with correct parameters. A duplicate-title lookup may
+                        // also fetch the search endpoint first, so find the actual create POST request.
                         expect(fetchStub.called).to.be.true;
-                        const fetchCall = fetchStub.getCall(0);
+                        const fetchCall = fetchStub.getCalls().find((call) => call.args[1]?.method === 'POST');
+                        expect(fetchCall).to.exist;
                         expect(fetchCall.args[0]).to.include('/test/mocks/adobe/sites/cf/fragments');
 
                         // Verify it was a POST request with correct data
@@ -147,7 +149,7 @@
 
                         const createButton = dialog.shadowRoot.querySelector('sp-button[variant="accent"]');
                         createButton.click();
-                        await dialog.updateComplete;
+                        await delay();
 
                         expect(fetchStub.called).to.be.true;
                         const options = fetchStub.getCall(0).args[1];

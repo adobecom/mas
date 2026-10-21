@@ -1,6 +1,6 @@
 ---
 name: splunk-referer-analysis
-description: Analyze one or more Splunk LANA CSV exports (one per referer URL) and decide whether the errors are an authoring issue or a code issue, with reproducible, owner-assigned calls to action.
+description: Analyze one or more Splunk LANA CSV exports (one per referer URL, given or pulled from Splunk via the browser) and decide whether the errors are an authoring issue or a code issue, with reproducible, owner-assigned calls to action.
 ---
 
 Analyze the Splunk LANA export attached / referenced in the request and classify the
@@ -11,6 +11,50 @@ actionable calls to action.
 Input: `$ARGUMENTS` — one or more paths to CSV exports (or attached to the message).
 With several exports, run the whole workflow per export (each is usually one referer),
 then merge the findings into a single report (see "Several exports").
+If no export is given, pull them yourself (see "Getting the exports from Splunk").
+
+## Getting the exports from Splunk
+
+Use the chrome-devtools MCP browser. **Never type, ask for or store credentials**: open
+the dashboard, and if it lands on the Okta sign-in page, ask the user to sign in (SSO +
+MFA) in that browser window, then continue.
+
+1. Open the M@S LANA dashboard (default window: last 12 hours):
+   `https://splunk-us.corp.adobe.com/en-US/app/app_log_always_never_assume/ms_lana_logs?form.global_time.earliest=-12h%40h&form.global_time.latest=now&form.txt_filter=*`
+2. **List top sources** by running the dashboard's search through Splunk's REST API from
+   the page (`evaluate_script`), reusing the session: POST to
+   `/en-US/splunkd/__raw/servicesNS/<user>/app_log_always_never_assume/search/jobs`
+   with header `X-Splunk-Form-Key: <value of the splunkweb_csrf_token_* cookie>`, and
+   form fields `exec_mode=oneshot`, `output_mode=json`, `count=0`, `earliest_time`,
+   `latest_time` and:
+    ```
+    search index=lana_prod l_client=merch-at-scale
+    | rex field=_raw "referer=(?<referer>[^¦^?]+)"
+    | rex field=_raw "user-agent=(?<user_agent>[^¦]+)"
+    | eval source=if(referer="none", mvindex(split(user_agent, " "), -1), referer)
+    | stats count by source | sort - count
+    ```
+3. **Pick the referers**: the top N (ask the user, default 4) from `https://www.adobe.com/`
+   or Creative Cloud Desktop (a `referer=none` event, whose source is the last token of
+   its user agent). Skip Studio (`mas.adobe.com`), stage, `*.aem.page` and other hosts.
+4. **Create one job per referer** (same endpoint, without `exec_mode=oneshot`; keep the
+   returned `sid`):
+    ```
+    search index=lana_prod l_client=merch-at-scale
+    | rex field=_raw "referer=(?<referer>[^¦^?]+)"
+    | rex field=_raw "user-agent=(?<user_agent>[^¦]+)"
+    | where referer="<referer>" | table _time _raw referer user_agent
+    ```
+    Poll `/en-US/splunkd/__raw/services/search/jobs/<sid>?output_mode=json` until
+    `isDone`.
+5. **Download** each job by opening a new page on
+   `https://splunk-us.corp.adobe.com/en-US/api/search/jobs/<sid>/results?isDownload=true&maxLines=0&count=0&outputMode=csv&filename=lana-<slug>`.
+   `net::ERR_ABORTED` is expected (Chrome hands the response to the downloader); the
+   file lands in `~/Downloads/lana-<slug>.csv`. Check it's there, then parse it as usual.
+
+Pitfalls: Chrome blocks repeated blob (`a.download`) downloads from one page, the
+Splunk CSP blocks posting to a localhost receiver, and `oneshot` CSV starts with a blank
+line that breaks `csv.DictReader`. The job-results URL above avoids all three.
 
 ## No reproduction, no call to action
 

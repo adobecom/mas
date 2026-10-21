@@ -1103,11 +1103,16 @@ export async function processCTAs(
                                 cta.removeAttribute('data-analytics-id');
                                 cta.remove();
                                 trialCtaSwapped(true);
-                            } else if (merchCard.priceLiterals?.buyNow) {
+                            } else if (
+                                merchCard.priceLiterals?.buyNow &&
+                                merchCard.priceLiterals.buyNow !== 'buy-now'
+                            ) {
                                 checkout.setAttribute(
                                     'data-analytics-id',
                                     'buy-now',
                                 );
+                                if (checkout.hasAttribute('aria-label'))
+                                    checkout.removeAttribute('aria-label');
                                 if (checkout.hasAttribute('data-modal'))
                                     checkout.setAttribute('data-modal', 'crm');
                                 const daall = checkout.getAttribute('daa-ll');
@@ -1121,7 +1126,7 @@ export async function processCTAs(
                                     );
                                 }
                                 checkout.textContent =
-                                    merchCard.priceLiterals?.buyNow;
+                                    merchCard.priceLiterals.buyNow;
                                 cta.hidden = false;
                                 trialCtaSwapped(true);
                             } else {
@@ -1142,8 +1147,8 @@ export async function processCTAs(
                 trialCtaSwappedPromises,
             );
             if (trialCtaSwappedResults.some((c) => c === true)) {
-                const hasBlueCta = ctas.some((c) =>
-                    c.classList.contains('blue'),
+                const hasBlueCta = ctas.some(
+                    (c) => footer.contains(c) && c.classList.contains('blue'),
                 );
                 const buyNowCta = ctas.find(
                     (c) => c.getAttribute('data-analytics-id') === 'buy-now',

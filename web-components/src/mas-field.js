@@ -68,8 +68,6 @@ export async function stripTrialCtas(template, indexed, self) {
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
     );
-    // Hand back the original string so non-trial markup never round-trips
-    // through serialization, which could renormalize attribute quoting.
     if (trials.length === 0) return template.innerHTML;
 
     if (indexed && !buyNowCta) {
@@ -108,9 +106,11 @@ export async function stripTrialCtas(template, indexed, self) {
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
             const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
-            if (buyNowCta || !buyNowText) {
+            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
                 anchor.remove();
             } else {
+                if (anchor.hasAttribute('aria-label'))
+                    anchor.removeAttribute('aria-label');
                 anchor.setAttribute('data-analytics-id', 'buy-now');
                 if (anchor.hasAttribute('data-modal'))
                     anchor.setAttribute('data-modal', 'crm');
@@ -125,7 +125,7 @@ export async function stripTrialCtas(template, indexed, self) {
         template.content.querySelector('a[data-analytics-id="buy-now"]') ||
         buyNowCta;
     if (buyNowCtaNew) {
-        buyNowCtaNew.classList.remove('primary-outline');
+        buyNowCtaNew.className = '';
         buyNowCtaNew.classList.add('button', 'con-button', 'blue');
     }
 
@@ -670,7 +670,7 @@ class MasField extends HTMLElement {
                     const template = document.createElement('template');
                     template.innerHTML = html;
                     html = await stripTrialCtas(template, true, this);
-                    if (!html) {
+                    if (!html.trim()) {
                         this.hidden = true;
                         return;
                     }
@@ -745,7 +745,7 @@ class MasField extends HTMLElement {
                 const template = document.createElement('template');
                 template.innerHTML = html;
                 html = await stripTrialCtas(template, index !== null, this);
-                if (!html) {
+                if (!html.trim()) {
                     this.hidden = true;
                     return;
                 }

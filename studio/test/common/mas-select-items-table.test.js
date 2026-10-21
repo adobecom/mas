@@ -2017,6 +2017,24 @@ describe('MasSelectItemsTable column overrides and sorting', () => {
         expect(row.hideVariationExpand).to.be.true;
     });
 
+    it('forwards the grouped variation column and cell props to mas-collapsible-table-row', async () => {
+        const groupedVariationCells = ['OfferName', 'PersonalizationTags'];
+        const groupedVariationColumns = [{ label: 'Offer', key: 'offer', sortable: true }];
+        setupCards([createCard('/p/a', 'A')]);
+        const el = await fixture(
+            html`<mas-select-items-table
+                .type=${TABLE_TYPE.CARDS}
+                .groupedVariationCells=${groupedVariationCells}
+                .groupedVariationColumns=${groupedVariationColumns}
+            ></mas-select-items-table>`,
+        );
+        el.dataReady = true;
+        await el.updateComplete;
+        const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+        expect(row.groupedVariationCells).to.equal(groupedVariationCells);
+        expect(row.groupedVariationColumns).to.equal(groupedVariationColumns);
+    });
+
     it('sorts items by offer name when the Offer column is sorted', async () => {
         setupCards([createCard('/p/a', 'A', 'Zebra'), createCard('/p/b', 'B', 'Acrobat'), createCard('/p/c', 'C')]);
         const el = await fixture(html`<mas-select-items-table .type=${TABLE_TYPE.CARDS}></mas-select-items-table>`);

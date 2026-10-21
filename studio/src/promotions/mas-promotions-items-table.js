@@ -66,20 +66,19 @@ const cardsTableColumns = [
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
     { label: 'Fragment title', key: 'fragmentTitle' },
     { label: 'Path', key: 'path' },
-    { label: 'Related pages', key: 'relatedPages' },
     { label: 'Offer ID', key: 'offerId' },
     { label: 'OSI', key: 'osi' },
     { label: 'Status', key: 'status' },
+    { label: 'Related pages', key: 'relatedPages' },
 ];
 
-const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
+const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'OfferId', 'Osi', 'Status', 'RelatedPages'];
 
 export const promoVariationColumns = [
     { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
     { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
     { label: 'Path', key: 'path', class: 'path-head-cell' },
-    { label: 'Applies to', key: 'applies-to', class: 'applies-to-head-cell' },
     { label: 'Country', key: 'country', class: 'country-head-cell' },
     { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
     { label: 'OSI', key: 'osi', class: 'osi-head-cell' },
@@ -92,12 +91,36 @@ export const promoVariationCells = [
     'Actions',
     'Title',
     'StudioPath',
-    'AppliesTo',
     'Country',
     'OfferId',
     'Osi',
     'RelatedPages',
     'Status',
+];
+
+export const groupedVariationColumns = [
+    { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
+    { label: 'Offer', key: 'offer', class: 'offer-head-cell', sortable: true },
+    { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
+    { label: 'Path', key: 'path', class: 'path-head-cell' },
+    { label: 'Personalization tags', key: 'pznTags', class: 'pzn-tags-head-cell' },
+    { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
+    { label: 'OSI', key: 'osi', class: 'osi-head-cell' },
+    { label: 'Status', key: 'status', class: 'status-head-cell' },
+    { label: 'Related pages', key: 'relatedPages', class: 'related-pages-head-cell' },
+];
+
+export const groupedVariationCells = [
+    'OfferName',
+    'Actions',
+    'Title',
+    'StudioPath',
+    'PersonalizationTags',
+    'OfferId',
+    'Osi',
+    'Status',
+    'RelatedPages',
 ];
 
 class MasPromotionsItemsTable extends LitElement {
@@ -475,7 +498,11 @@ class MasPromotionsItemsTable extends LitElement {
                         const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
                         for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
-                    allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);
+                    allVariations = [item.path, ...groupedVariationPaths].flatMap((path) =>
+                        (probedByPath.get(path) || []).map((variation) =>
+                            path === item.path ? variation : { ...variation, groupedVariationPath: path },
+                        ),
+                    );
                 } catch {
                     preservePrevious(item.path);
                     return;
@@ -1145,6 +1172,8 @@ class MasPromotionsItemsTable extends LitElement {
             .cellsOverride=${cardsTableCells}
             .variationColumns=${promoVariationColumns}
             .variationCells=${promoVariationCells}
+            .groupedVariationColumns=${groupedVariationColumns}
+            .groupedVariationCells=${groupedVariationCells}
             .hideVariationExpand=${true}
             .openVariationOnActivate=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}

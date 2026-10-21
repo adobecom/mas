@@ -10,6 +10,7 @@ import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import '../../src/promotions/mas-promotions-items-table.js';
+import { groupedVariationCells, groupedVariationColumns } from '../../src/promotions/mas-promotions-items-table.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
@@ -1995,6 +1996,7 @@ describe('MasPromotionsItemsTable', () => {
 
             const variations = el.existingPromoVariationsByPath.get(defaultPath);
             expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            expect(variations.find((v) => v.id === 'grouped-promo-var-id').groupedVariationPath).to.equal(groupedPath);
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -2740,10 +2742,10 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Fragment title',
                 'Path',
-                'Related pages',
                 'Offer ID',
                 'OSI',
                 'Status',
+                'Related pages',
             ]);
             const container = el.shadowRoot.querySelector('.scrollable-table-container');
             expect(container).to.exist;
@@ -2755,27 +2757,26 @@ describe('MasPromotionsItemsTable', () => {
                 'actions',
                 'fragmentTitle',
                 'path',
-                'relatedPages',
                 'offerId',
                 'osi',
                 'status',
+                'relatedPages',
             ]);
             expect(selectItemsTable.cellsOverride).to.deep.equal([
                 'OfferName',
                 'Actions',
                 'Title',
                 'StudioPath',
-                'RelatedPages',
                 'OfferId',
                 'Osi',
                 'Status',
+                'RelatedPages',
             ]);
             expect(selectItemsTable.variationColumns.map(({ key }) => key)).to.deep.equal([
                 'offer',
                 'actions',
                 'fragmentTitle',
                 'path',
-                'applies-to',
                 'country',
                 'offerId',
                 'osi',
@@ -2787,13 +2788,14 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Title',
                 'StudioPath',
-                'AppliesTo',
                 'Country',
                 'OfferId',
                 'Osi',
                 'RelatedPages',
                 'Status',
             ]);
+            expect(selectItemsTable.groupedVariationColumns).to.equal(groupedVariationColumns);
+            expect(selectItemsTable.groupedVariationCells).to.equal(groupedVariationCells);
             expect(selectItemsTable.hideVariationExpand).to.be.true;
             expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
         });
@@ -2844,7 +2846,6 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Fragment title',
                 'Path',
-                'Applies to',
                 'Country',
                 'Offer ID',
                 'OSI',
@@ -2856,7 +2857,6 @@ describe('MasPromotionsItemsTable', () => {
                 'actions-head-cell',
                 'title-head-cell',
                 'path-head-cell',
-                'applies-to-head-cell',
                 'country-head-cell',
                 'offer-id-head-cell',
                 'osi-head-cell',

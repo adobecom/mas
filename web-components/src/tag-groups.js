@@ -53,3 +53,7 @@ export const matchesTagGroups = (cardTags, groups, state) =>
             cardTags.includes(`${group.deeplink}:${value}`),
         );
     });
+
+// True when the card carries a tag the author excluded for the current category.
+export const isExcluded = (cardTags, excludeTags, category) =>
+    (excludeTags?.[category] ?? []).some((tag) => cardTags.includes(tag));

@@ -75,7 +75,7 @@ merch-card-collection.product merch-card {
   }
 
   merch-card[variant="product"] [slot="body-xs"] [is="inline-price"] {
-    font-weight: 400;
+    font-weight: inherit;
   }
 
   merch-card[variant="product"] merch-addon [is="inline-price"] {

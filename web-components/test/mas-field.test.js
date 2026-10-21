@@ -293,6 +293,25 @@ describe('mas-field – indexed CTA fields (ctas[N])', () => {
         expect(a.getAttribute('is')).to.equal('checkout-link');
         expect(a.isCheckoutLink).to.be.true;
     });
+
+    it('hide free-trial CTA with stripTrialCtas when buy-now CTA is outside template', async () => {
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const el1 = makeIndexedField(1, CTA_HTML);
+        const el2 = makeIndexedField(2, CTA_HTML);
+
+        const div = document.createElement('div');
+        div.appendChild(el1);
+        div.appendChild(el2);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el2);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
+        expect(ctas.length).to.equal(0);
+    });
 });
 
 describe('mas-field – label-keyed fields (customFields[label])', () => {

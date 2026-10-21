@@ -251,6 +251,7 @@ class MasSearchAndFilters extends LitElement {
             if (!this.isConnected) return;
             this.#tagCachePromise = null;
             if (!this.searchOnly) this.#extractFilterOptions();
+            if (this.matchVariationsAndTags) this.#applyFilters();
             this.requestUpdate();
         });
     }

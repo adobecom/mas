@@ -6,6 +6,7 @@ import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import { CARD_MODEL_PATH, FILTER_TYPE, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
 import { Fragment } from '../../src/aem/fragment.js';
+import { ensureNamespaceTags } from '../../src/aem/tag-cache.js';
 import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
 import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
@@ -163,6 +164,34 @@ describe('MasSearchAndFilters', () => {
 
         it('does not match personalization tags without the flag', async () => {
             expect(await search('edu', false)).to.deep.equal([]);
+        });
+
+        it('refilters the current personalization title search when tags finish loading', async () => {
+            let resolveTags;
+            const loading = ensureNamespaceTags(
+                MAS_TAG_NAMESPACE,
+                () =>
+                    new Promise((resolve) => {
+                        resolveTags = resolve;
+                    }),
+            );
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.search.set({});
+            Store.promotions.filters.set({ locale: 'en_US' });
+            Store.promotions.allCards.set(cards());
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(
+                html`<mas-search-and-filters type="cards" .matchVariationsAndTags=${true}></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'education';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
+
+            resolveTags({ hits: [{ path: `${MAS_TAG_NAMESPACE}/pzn/segment/edu`, title: 'Education' }] });
+            await loading;
+            await el.updateComplete;
+
+            expect(Store.promotions.displayCards.get().map((card) => card.id)).to.deep.equal(['edu-parent']);
         });
     });
 

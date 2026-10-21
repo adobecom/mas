@@ -4,6 +4,7 @@
  * Mirrors REGION_GROUPS in studio/src/locales.js, the grouping the locale picker uses. It is copied
  * rather than imported because the rollup is a CommonJS Adobe I/O action while studio/src/locales.js
  * is a browser ES module, and the two runtimes share no module format here -- keep the lists in sync.
+ * Akamai reports ISO 3166-1 codes, so both lists hold ISO codes only: `LA`, for instance, is Laos.
  *
  * Region totals are summed here, over every country a page was served from, so the reader can file a
  * page by region without the per-country display cap deciding the outcome. A country in no list
@@ -12,7 +13,7 @@
  */
 
 const REGION_GROUPS = [
-    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'] },
+    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC'] },
     { name: 'JAPAC', countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'] },
     {
         name: 'EMEA',

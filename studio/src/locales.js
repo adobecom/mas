@@ -16,8 +16,9 @@ import { getDefaultLocales, getSurfaceLocales, getLocaleCode } from '../../io/ww
 
 // Studio-side UI grouping: organizes locales into named regions for the locale
 // picker. Lives here (not in io/www) because no io/www runtime code consumes it.
+// Fragment usage files Akamai traffic by it too, so list ISO 3166-1 codes only.
 export const REGION_GROUPS = [
-    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'] },
+    { name: 'LATAM/Americas', countries: ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC'] },
     { name: 'JAPAC', countries: ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH', 'VN'] },
     {
         name: 'EMEA',

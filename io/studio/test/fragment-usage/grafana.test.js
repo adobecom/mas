@@ -195,17 +195,17 @@ describe('fragment-usage grafana', () => {
         });
 
         it('sums regions over every country, even those dropped from the capped display set', async () => {
-            // Thirteen LATAM/Americas countries: the thirteenth is dropped from the twelve-country
-            // display cap, but its requests must still land in the region total, or a page spread
-            // across a region's long tail would be misread as Global.
-            const latam = ['US', 'CA', 'MX', 'AR', 'BR', 'CL', 'CO', 'CR', 'GT', 'PE', 'PR', 'EC', 'LA'];
-            stubFetch(frame([1700000000], [FRAGMENT], ['https://a.com'], [latam], [latam.map(() => 10)]));
+            // Thirteen JAPAC countries: the thirteenth is dropped from the twelve-country display
+            // cap, but its requests must still land in the region total, or a page spread across a
+            // region's long tail would be misread as Global.
+            const japac = ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH', 'TH'];
+            stubFetch(frame([1700000000], [FRAGMENT], ['https://a.com'], [japac], [japac.map(() => 10)]));
 
             const result = await fetchHourlyPages(...oneHour, { token: 't' });
 
             const page = result[FRAGMENT][472222]['https://a.com'];
             expect(Object.keys(page.countries)).to.have.length(MAX_COUNTRIES_PER_PAGE);
-            expect(page.regions).to.deep.equal({ 'LATAM/Americas': 130 });
+            expect(page.regions).to.deep.equal({ JAPAC: 130 });
         });
 
         it('takes a page total from the query rather than from its kept countries', async () => {

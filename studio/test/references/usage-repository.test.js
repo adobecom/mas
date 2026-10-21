@@ -45,6 +45,10 @@ describe('usage-repository', () => {
             expect(resolveRegion({ US: 70, DZ: 30 })).to.equal(GLOBAL_REGION);
         });
 
+        it('files Laos traffic as Global, since Akamai reports LA as the ISO code for Laos', () => {
+            expect(resolveRegion({ LA: 100 })).to.equal(GLOBAL_REGION);
+        });
+
         it('counts requests outside the listed countries toward the total', () => {
             // The action lists only a page's busiest countries, so they can add up to less than
             // the page served. The rest must still dilute the leading region's share.

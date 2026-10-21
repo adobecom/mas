@@ -12,6 +12,10 @@ describe('fragment-usage regions', () => {
             expect(sumRegions({ US: 5, ZZ: 9 })).to.deep.equal({ 'LATAM/Americas': 5 });
         });
 
+        it('files Laos traffic under no region, since Akamai reports LA as the ISO code for Laos', () => {
+            expect(sumRegions({ LA: 100 })).to.deep.equal({});
+        });
+
         it('upper-cases country codes before mapping them', () => {
             expect(sumRegions({ gb: 4 })).to.deep.equal({ EMEA: 4 });
         });

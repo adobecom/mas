@@ -188,6 +188,22 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: publishFragments', () => {
+        it('splits more than 50 fragments into batches of 50', async () => {
+            const bodies = [];
+            window.fetch = async (url, options) => {
+                bodies.push({ ifMatch: options.headers['If-Match'], ...JSON.parse(options.body) });
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(fragments);
+
+            expect(bodies.map(({ paths }) => paths.length)).to.deep.equal([50, 13]);
+            expect(bodies.map(({ ifMatch }) => ifMatch)).to.deep.equal(['e0', 'e50']);
+        });
+    });
+
     describe('method: saveFragment', () => {
         it('uses stored etag without fresh GET when refetchEtag is false', async () => {
             const fetchCalls = [];

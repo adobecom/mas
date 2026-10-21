@@ -7,6 +7,7 @@ import { Fragment } from '../src/aem/fragment.js';
 import { MasRepository } from '../src/mas-repository.js';
 import { MasPublishDialog } from '../src/publish/mas-publish-dialog.js';
 import { MasPublishStagedDialog } from '../src/publish/mas-publish-staged-dialog.js';
+import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import generateFragmentStore from '../src/reactivity/source-fragment-store.js';
 import {
@@ -1196,6 +1197,7 @@ describe('MasFragmentEditor', () => {
             publish = sandbox.stub().resolves();
             repository.aem = { sites: { cf: { fragments: { save, publish } } } };
             sandbox.stub(MasPublishStagedDialog, 'show').resolves({ confirmed: true });
+            sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
         });
 
         afterEach(() => {

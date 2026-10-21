@@ -19,6 +19,14 @@
         "fieldLabel": "Fragments",
         "type": "content-fragment[]"
     },
+    "collections": {
+        "fieldLabel": "Collections",
+        "type": "content-fragment[]"
+    },
+    "placeholders": {
+        "fieldLabel": "Placeholders",
+        "type": "content-fragment"
+    },
     "locales": {
         "fieldLabel": "Locales",
         "type": "string[]"

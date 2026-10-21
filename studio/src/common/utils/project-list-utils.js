@@ -64,6 +64,7 @@ export function renderSkeletonRows(columns) {
  * An aborted request is treated as superseded: it neither publishes results nor clears the loading flag.
  * @param {object} repository - mas-repository element
  * @param {{ path: string, list: { data, loading }, abortController?: AbortController, errorMessage: string }} options
+ * @returns {Promise<boolean>} true when the results were published
  */
 export async function loadProjectList(repository, { path, list, abortController, errorMessage }) {
     const isActive = () => !abortController?.signal.aborted;
@@ -74,11 +75,12 @@ export async function loadProjectList(repository, { path, list, abortController,
             50,
             abortController,
         );
-        if (!isActive()) return;
+        if (!isActive()) return false;
         list.data.set(fragments.map((fragment) => new FragmentStore(new Fragment(fragment))));
+        return true;
     } catch (error) {
-        if (!isActive()) return;
-        repository.processError(error, errorMessage);
+        if (isActive()) repository.processError(error, errorMessage);
+        return false;
     } finally {
         if (isActive()) list.loading.set(false);
     }

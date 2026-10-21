@@ -316,6 +316,40 @@ describe('mas-bulk-edit-editor', () => {
                 .true;
         });
 
+        it('stops saving when reloading the project list fails', async () => {
+            const error = new Error('Network down');
+            const createFragment = sinon.stub();
+            const el = await editorWithTitle({ searchFragmentList: sinon.stub().rejects(error), createFragment });
+            await el.save();
+            expect(el.repository.processError.calledWith(error, 'Could not load bulk edit projects.')).to.be.true;
+            expect(createFragment.called).to.be.false;
+            expect(toast.called).to.be.false;
+            expect(el.hasChanges).to.be.true;
+            expect(el.saving).to.be.false;
+        });
+
+        it('cancels the project list reload when the editor is disconnected', async () => {
+            const createFragment = sinon.stub();
+            const searchFragmentList = sinon
+                .stub()
+                .callsFake(
+                    (options, limit, controller) =>
+                        new Promise((resolve, reject) =>
+                            controller.signal.addEventListener('abort', () =>
+                                reject(new DOMException('aborted', 'AbortError')),
+                            ),
+                        ),
+                );
+            const el = await editorWithTitle({ searchFragmentList, createFragment });
+            const saving = el.save();
+            await waitUntil(() => searchFragmentList.called);
+            el.disconnectedCallback();
+            await saving;
+            expect(el.repository.processError.called).to.be.false;
+            expect(createFragment.called).to.be.false;
+            expect(toast.called).to.be.false;
+        });
+
         it('shows a generic failure toast when create rejects', async () => {
             const el = await editorWithTitle({ createFragment: sinon.stub().rejects(new Error('Network down')) });
             await el.save();
@@ -371,7 +405,7 @@ describe('mas-bulk-edit-editor', () => {
             expect(el.loadFailed).to.be.false;
         });
 
-        it('does not publish a created project after the editor is disconnected', async () => {
+        it('confirms a created project with a toast but does not publish it after the editor is disconnected', async () => {
             let resolve;
             const createFragment = sinon.stub().callsFake(() => new Promise((r) => (resolve = r)));
             const el = connectEditor({ createFragment });
@@ -387,7 +421,8 @@ describe('mas-bulk-edit-editor', () => {
             await saving;
             expect(Store.bulkEditProjects.projectId.get()).to.equal('p2');
             expect(Store.bulkEditProjects.inEdit.get()).to.equal(projectB);
-            expect(toast.calledWithMatch({ variant: 'positive' })).to.be.false;
+            expect(toast.calledOnceWithMatch({ variant: 'positive', content: 'Project "New one-MWPW-123456" was created.' })).to
+                .be.true;
         });
     });
 

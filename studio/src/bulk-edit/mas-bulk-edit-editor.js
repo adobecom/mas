@@ -112,8 +112,8 @@ class MasBulkEditEditor extends LitElement {
         this.saving = true;
         try {
             const title = this.projectTitle.trim();
-            await loadBulkEditProjects(this.repository);
-            if (signal.aborted) return;
+            const loaded = await loadBulkEditProjects(this.repository, this.#abortController);
+            if (!loaded) return;
             if (isBulkEditProjectTitleTaken(title, this.project?.get().id)) {
                 showToast(TITLE_TAKEN_MESSAGE, 'negative');
                 return;
@@ -123,7 +123,11 @@ class MasBulkEditEditor extends LitElement {
                     buildBulkEditProjectPayload({ title, status: BULK_EDIT_STATUS.DRAFT }),
                     false,
                 );
-                if (!raw || signal.aborted) return;
+                if (!raw) return;
+                if (signal.aborted) {
+                    showToast(`Project "${title}" was created.`, 'positive');
+                    return;
+                }
                 Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
                 Store.bulkEditProjects.projectId.set(raw.id);
             } else {

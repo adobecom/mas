@@ -34,8 +34,8 @@ export function buildBulkEditProjectPayload({ title, status }) {
     };
 }
 
-export async function loadBulkEditProjects(repository, abortController) {
-    await loadProjectList(repository, {
+export function loadBulkEditProjects(repository, abortController) {
+    return loadProjectList(repository, {
         path: getBulkEditProjectsPath(),
         list: Store.bulkEditProjects.list,
         abortController,

@@ -98,7 +98,8 @@ describe('loadProjectList()', () => {
     it('stores the found fragments as fragment stores', async () => {
         const list = createList();
         const repository = createRepository(sinon.stub().resolves([{ id: 'f1', fields: [] }]));
-        await loadProjectList(repository, { path: '/p', list, errorMessage: 'err' });
+        const loaded = await loadProjectList(repository, { path: '/p', list, errorMessage: 'err' });
+        expect(loaded).to.be.true;
         expect(list.data.get()[0].get().id).to.equal('f1');
     });
 
@@ -117,7 +118,8 @@ describe('loadProjectList()', () => {
         const list = createList();
         const error = new Error('boom');
         const repository = createRepository(sinon.stub().rejects(error));
-        await loadProjectList(repository, { path: '/p', list, errorMessage: 'err' });
+        const loaded = await loadProjectList(repository, { path: '/p', list, errorMessage: 'err' });
+        expect(loaded).to.be.false;
         expect(repository.processError.calledWith(error, 'err')).to.be.true;
         expect(list.loading.get()).to.be.false;
     });
@@ -162,7 +164,8 @@ describe('loadProjectList()', () => {
                 return [{ id: 'stale', fields: [] }];
             }),
         );
-        await loadProjectList(repository, { path: '/p', list, abortController, errorMessage: 'err' });
+        const loaded = await loadProjectList(repository, { path: '/p', list, abortController, errorMessage: 'err' });
+        expect(loaded).to.be.false;
         expect(list.data.get()).to.deep.equal([]);
         expect(list.loading.get()).to.be.true;
     });

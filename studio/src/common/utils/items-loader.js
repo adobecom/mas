@@ -4,13 +4,12 @@ import { Fragment } from '../../aem/fragment.js';
 import { loadOfferData } from './item-loading-browser.js';
 import {
     processConcurrently,
-    yieldToMain,
     OFFER_DATA_CONCURRENCY_LIMIT,
     VARIATIONS_CONCURRENCY_LIMIT,
-    LARGE_BATCH_YIELD_THRESHOLD,
     flattenGroupedVariationsByParent,
     parseFragmentsFromStore,
     enrichCards,
+    hasGroupedVariationTags,
 } from './item-loading.js';
 
 /**
@@ -46,59 +45,6 @@ async function loadOfferDataForViewOnlyCard({ card, repository, cache = new Map(
 }
 
 /**
- * Loads grouped variations for a card fragment
- * @param {Object} card - Card object with path, references, fields
- * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
- * @param {AbortSignal} signal - Optional abort signal for cancellation
- * @param {Function} getDisplayName - Display label for a Fragment
- * @param {Object} store - Items-selection store slice bound at the caller's connect time
- * @returns {Promise<Array<Object>>} Array of variation objects with studioPath and offerData
- */
-async function loadGroupedVariations(card, repository, signal, getDisplayName, store) {
-    if (!repository?.aem?.getFragmentByPath) return [];
-    const fragment = new Fragment(card);
-    const groupedRefs = fragment.listGroupedVariations();
-    if (!groupedRefs?.length) return [];
-
-    const variations = await processConcurrently(
-        groupedRefs,
-        async (ref) => {
-            if (signal?.aborted) return null;
-            try {
-                return await repository.aem.getFragmentByPath(ref.path);
-            } catch (err) {
-                console.warn(`Failed to fetch grouped variation at ${ref.path}:`, err.message);
-                return null;
-            }
-        },
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-
-    const validVariations = variations.filter(
-        (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
-    );
-
-    const parentWcsOsi = new Fragment(card).getFieldValue('osi');
-
-    const offerDataResults = await processConcurrently(
-        validVariations,
-        (variation) =>
-            loadOfferData(variation, {
-                cache: store.offerDataCache,
-                signal,
-                fallbackWcsOsi: parentWcsOsi,
-            }),
-        VARIATIONS_CONCURRENCY_LIMIT,
-    );
-
-    return validVariations.map((variation, i) => ({
-        ...variation,
-        studioPath: getDisplayName(new Fragment(variation)),
-        offerData: offerDataResults[i] ?? null,
-    }));
-}
-
-/**
  * Fetches a single variation by path and merges it into groupedVariationsByParent
  * @param {string} variationPath - Full path to the variation fragment
  * @param {Object} repository - MasRepository instance with aem.getFragmentByPath
@@ -114,7 +60,7 @@ export async function fetchVariationByPath(variationPath, repository, { getDispl
 
     try {
         const variation = await repository.aem.getFragmentByPath(variationPath);
-        if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return false;
+        if (!hasGroupedVariationTags(variation, store === Store.promotions)) return false;
 
         const parentWcsOsi = await resolveParentWcsOsi(variation, parentCardPath, repository, store);
         const offerData = await loadOfferData(variation, {
@@ -157,11 +103,12 @@ export function setCardVariationsByPaths(groupedVariationsByParentValue, store) 
  * preserves the latest snapshot rather than dropping it on the floor.
  * @param {Array<Object>} allCards - Array of card objects
  * @param {Object} repository - MasRepository instance
- * @param {Object} state - Mutable state { isProcessingCards, pendingCards, abortController }
+ * @param {Object} state - Mutable state { isProcessingCards, pendingCards, abortController, onProcessingChange }
  * @param {Function} getDisplayName - Display label for raw fragment data
  * @param {Object} store - Items-selection store slice bound at the caller's connect time
+ * @param {Function} onReady - Signals that fully enriched cards have been published.
  */
-async function processCardsData(allCards, repository, state, getDisplayName, store) {
+async function processCardsData(allCards, repository, state, getDisplayName, store, onReady) {
     if (state.isProcessingCards) {
         state.pendingCards = allCards;
         return;
@@ -172,6 +119,7 @@ async function processCardsData(allCards, repository, state, getDisplayName, sto
         state.isProcessingCards = false;
         return;
     }
+    state.onProcessingChange?.();
 
     try {
         const existingCards = store.allCards.get() || [];
@@ -184,72 +132,41 @@ async function processCardsData(allCards, repository, state, getDisplayName, sto
                 .map((card) => [card.path, card.groupedVariations]),
         );
 
-        const cardsNeedingOfferData = allCards.filter((card) => !existingOfferDataByPath.has(card.path));
-        if (cardsNeedingOfferData.length > 0) {
-            const offerDataResults = await processConcurrently(
-                cardsNeedingOfferData,
-                (card) => loadOfferData(card, { cache: store.offerDataCache, signal }),
-                OFFER_DATA_CONCURRENCY_LIMIT,
-            );
-            if (signal?.aborted) return;
-            await yieldToMain();
-            cardsNeedingOfferData.forEach((card, i) => {
-                existingOfferDataByPath.set(card.path, offerDataResults[i]);
-            });
-        }
-
-        const cardsNeedingGroupedVariations = allCards.filter((card) => !existingGroupedVariationsByPath.has(card.path));
-        if (cardsNeedingGroupedVariations.length > 0 && repository) {
-            const groupedVariationsResults = await processConcurrently(
-                cardsNeedingGroupedVariations,
-                (card) => loadGroupedVariations(card, repository, signal, getDisplayName, store),
-                OFFER_DATA_CONCURRENCY_LIMIT,
-            );
-            if (signal?.aborted) return;
-            await yieldToMain();
-            cardsNeedingGroupedVariations.forEach((card, i) => {
-                existingGroupedVariationsByPath.set(card.path, groupedVariationsResults[i] ?? []);
-            });
-        }
-
+        const enrichedCards = await enrichCards(allCards, {
+            getByPath: repository ? (path) => repository.aem.getFragmentByPath(path) : undefined,
+            getOfferData: loadOfferData,
+            signal,
+            offerDataCache: store.offerDataCache,
+            getDisplayName,
+            existingOfferDataByPath,
+            existingGroupedVariationsByPath,
+            includePersonalizationVariations: store === Store.promotions,
+        });
         if (signal?.aborted) return;
-
-        const enrichedCards = allCards.map((card) => ({
-            ...card,
-            offerData: existingOfferDataByPath.get(card.path) ?? null,
-            groupedVariations: existingGroupedVariationsByPath.get(card.path) ?? [],
-        }));
-
-        if (enrichedCards.length > LARGE_BATCH_YIELD_THRESHOLD) {
-            await yieldToMain();
-        }
-        if (signal?.aborted) return;
-
         const cardsByPaths = new Map(store.cardsByPaths.get() || []);
-        enrichedCards.forEach((card) => cardsByPaths.set(card.path, card));
-        const displayCards = enrichedCards;
-        const prefetchedVariations = new Map(
-            enrichedCards
-                .filter((card) => card.groupedVariations?.length)
-                .map((card) => [card.path, new Map(card.groupedVariations.map((v) => [v.path, v]))]),
-        );
-        if (prefetchedVariations.size > 0) {
-            const existing = store.groupedVariationsByParent.value || new Map();
-            const merged = new Map(existing);
-            for (const [cardPath, varMap] of prefetchedVariations) {
-                merged.set(cardPath, varMap);
+        const mergedVariations = new Map(store.groupedVariationsByParent.get());
+        for (const card of enrichedCards) {
+            cardsByPaths.set(card.path, card);
+            if (card.groupedVariations.length) {
+                mergedVariations.set(
+                    card.path,
+                    new Map(card.groupedVariations.map((variation) => [variation.path, variation])),
+                );
             }
-            setCardVariationsByPaths(merged, store);
         }
-        store.displayCards.set(displayCards);
-        store.allCards.set(displayCards);
+        setCardVariationsByPaths(mergedVariations, store);
+        store.displayCards.set(enrichedCards);
+        store.allCards.set(enrichedCards);
         store.cardsByPaths.set(cardsByPaths);
+        onReady();
     } finally {
         state.isProcessingCards = false;
         if (state.pendingCards && !signal?.aborted) {
             const next = state.pendingCards;
             state.pendingCards = null;
-            await processCardsData(next, repository, state, getDisplayName, store);
+            await processCardsData(next, repository, state, getDisplayName, store, onReady);
+        } else {
+            state.onProcessingChange?.();
         }
     }
 }
@@ -304,11 +221,12 @@ export function loadAllFragments(type, repository, state = {}, { getDisplayName,
     let firstCall = true;
     const callback = async () => {
         const { allCards } = parseFragmentsFromStore(Store.fragments.list.data.get() || [], { getDisplayName });
-        await processCardsData(allCards, repository, state, getDisplayName, store);
-        if (firstCall && (allCards.length > 0 || Store.fragments.list.firstPageLoaded.get() !== false)) {
-            firstCall = false;
-            onReady?.();
-        }
+        await processCardsData(allCards, repository, state, getDisplayName, store, () => {
+            if (firstCall && (store.allCards.get().length > 0 || Store.fragments.list.firstPageLoaded.get() !== false)) {
+                firstCall = false;
+                onReady?.();
+            }
+        });
     };
     Store.fragments.list.data.subscribe(callback);
     return {
@@ -386,6 +304,7 @@ export async function loadSelectedFragments(selectedPaths, type, repository, opt
                 offerDataCache: store?.offerDataCache,
                 existingOfferDataByPath: new Map(),
                 existingGroupedVariationsByPath: new Map(),
+                includePersonalizationVariations: store === Store.promotions,
             });
             if (!signal?.aborted && onItems) onItems(enriched);
         } else if (onItems) {
@@ -460,8 +379,8 @@ export async function loadCardVariations(cardPath, variationPaths, repository, {
             VARIATIONS_CONCURRENCY_LIMIT,
         );
 
-        const validVariations = variations.filter(
-            (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
+        const validVariations = variations.filter((variation) =>
+            hasGroupedVariationTags(variation, store === Store.promotions),
         );
 
         const parentWcsOsi = await resolveParentWcsOsiForVariations(validVariations, cardPath, repository, store);

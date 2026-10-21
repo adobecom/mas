@@ -60,4 +60,20 @@ describe('fragment-list-filters', () => {
 
         expect(filtered).to.have.lengthOf(1);
     });
+
+    for (const page of [PAGE_NAMES.CONTENT, PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR]) {
+        it(`keeps the personalization toggle scoped correctly on ${page}`, () => {
+            const stores = [
+                makeStore({
+                    path: '/content/dam/mas/acom/en_US/cards/edu',
+                    fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                }),
+                makeStore({ path: '/content/dam/mas/acom/en_US/cards/plain', tags: [] }),
+            ];
+            const filtered = applyFragmentListFilters(stores, { page, personalizationFilterEnabled: false });
+            expect(filtered.map((store) => store.get().path)).to.deep.equal(
+                page === PAGE_NAMES.PROMOTIONS_EDITOR ? stores.map((store) => store.get().path) : [stores[1].get().path],
+            );
+        });
+    }
 });

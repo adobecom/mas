@@ -53,7 +53,7 @@ import {
     loadPlaceholders,
     loadPreviewPlaceholders,
 } from './placeholders/mas-placeholders-repository.js';
-import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import { isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
 import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
 import {
@@ -224,6 +224,8 @@ export class MasRepository extends LitElement {
     #onSearchChange = () => {
         clearDictionaryCache();
         this.#searchCursor = null;
+        this.#abortControllers.search?.abort();
+        this.#abortControllers.search = null;
     };
 
     /**
@@ -411,10 +413,9 @@ export class MasRepository extends LitElement {
 
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
-        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
         const createdByLc = createdBy.map((value) => value.toLowerCase());
-        return stores.filter((store) => {
+        return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
             if (Fragment.isGroupedVariationPath(item.path)) return false;
@@ -427,7 +428,6 @@ export class MasRepository extends LitElement {
                 if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
             }
             if (this.#skipQuery(lowerQuery, item)) return false;
-            if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;
         });
     }
@@ -665,12 +665,11 @@ export class MasRepository extends LitElement {
 
         if (tracing) console.time('searchFragments:aem');
         let refilling = false;
+        this.#abortControllers.search?.abort();
+        this.#searchCursor = null;
+        const searchController = new AbortController();
+        this.#abortControllers.search = searchController;
         try {
-            if (this.#abortControllers.search) this.#abortControllers.search.abort();
-            this.#searchCursor = null;
-            this.#abortControllers.search = new AbortController();
-            const searchController = this.#abortControllers.search;
-
             if (isUUID(query)) {
                 const [currentFragment] = dataStore.get() ?? [];
                 const highlightedId = Store.fragments.highlightedVariationId.get();
@@ -686,16 +685,14 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
-                const fragmentData = await this.aem.sites.cf.fragments.getById(query, this.#abortControllers.search);
+                const fragmentData = await this.aem.sites.cf.fragments.getById(query, searchController);
+                if (this.#abortControllers.search !== searchController) return;
                 let displayFragment = fragmentData;
                 const { isVariation, tab } = classifyVariationByPath(fragmentData?.path);
 
                 if (isVariation && fragmentData) {
                     const parentData = await this.#resolveParentForVariationSearch(fragmentData);
-                    if (this.#abortControllers.search !== searchController) {
-                        Store.fragments.list.loading.set(false);
-                        return;
-                    }
+                    if (this.#abortControllers.search !== searchController) return;
                     if (!parentData) {
                         Store.fragments.expandedId.set(null);
                         Store.fragments.highlightedVariationId.set(null);
@@ -742,11 +739,9 @@ export class MasRepository extends LitElement {
                         displayFragment,
                         () => this.loadPromotions(),
                     );
-                    if (this.#abortControllers.search !== searchController) {
-                        Store.fragments.list.loading.set(false);
-                        return;
-                    }
+                    if (this.#abortControllers.search !== searchController) return;
                     const fragment = await this.#addToCache(displayFragment);
+                    if (this.#abortControllers.search !== searchController) return;
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set(this.#applyFragmentListFilters([sourceStore]));
 
@@ -796,11 +791,7 @@ export class MasRepository extends LitElement {
                     // first try to find the card that matches the full query
                     const reducedQuery = localSearch.query;
                     localSearch.query = lowerClientQuery;
-                    const cursorExact = await this.aem.sites.cf.fragments.search(
-                        localSearch,
-                        null,
-                        this.#abortControllers.search,
-                    );
+                    const cursorExact = await this.aem.sites.cf.fragments.search(localSearch, null, searchController);
                     await this.#fillPage(
                         cursorExact,
                         variants,
@@ -810,13 +801,14 @@ export class MasRepository extends LitElement {
                         lowerClientQuery,
                         searchController.signal,
                     );
+                    if (this.#abortControllers.search !== searchController) return;
                     Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                     Store.fragments.list.firstPageLoaded.set(true);
                     // then load cards that contain the longest word and do the filtering
                     localSearch.query = reducedQuery;
                 }
 
-                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
+                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, searchController);
                 const done = await this.#fillPage(
                     cursor,
                     variants,
@@ -826,10 +818,7 @@ export class MasRepository extends LitElement {
                     lowerClientQuery,
                     searchController.signal,
                 );
-                if (this.#abortControllers.search !== searchController) {
-                    Store.fragments.list.loading.set(false);
-                    return;
-                }
+                if (this.#abortControllers.search !== searchController) return;
                 Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
                 const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
@@ -839,7 +828,6 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.hasMore.set(false);
                     this.#eagerLoadAllPznPages(cursorState, searchController);
                 } else {
-                    this.#abortControllers.search = null;
                     if (cursorState) {
                         refilling = true;
                         this.#refillBelowThreshold(cursorState, searchController);
@@ -859,6 +847,7 @@ export class MasRepository extends LitElement {
             }
             dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
+            if (this.#abortControllers.search !== searchController) return;
             if (error.name !== 'AbortError') {
                 Store.fragments.list.loading.set(false);
             }
@@ -866,7 +855,7 @@ export class MasRepository extends LitElement {
             return;
         }
 
-        if (!refilling) Store.fragments.list.loading.set(false);
+        if (!refilling && this.#abortControllers.search === searchController) Store.fragments.list.loading.set(false);
         if (tracing) console.timeEnd('searchFragments:aem');
     }
 
@@ -1019,7 +1008,7 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.hasMore.set(true);
             }
         } finally {
-            if (this.#searchCursor === cursorSnapshot || this.#searchCursor === null) {
+            if (this.#abortControllers.search === searchController) {
                 Store.fragments.list.loading.set(false);
             }
         }
@@ -1029,6 +1018,7 @@ export class MasRepository extends LitElement {
         if (Store.fragments.list.loading.get()) return;
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
+        const searchController = this.#abortControllers.search;
         Store.fragments.list.loading.set(true);
         const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         try {
@@ -1039,7 +1029,7 @@ export class MasRepository extends LitElement {
                 surface,
                 fragmentStores,
                 lowerClientQuery,
-                this.#abortControllers.search?.signal,
+                searchController?.signal,
             );
             if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
@@ -1048,11 +1038,12 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.hasMore.set(false);
             }
         } catch (error) {
+            if (this.#searchCursor !== cursorSnapshot) return;
             this.processError(error, 'Could not load next page.');
             this.#searchCursor = null;
             Store.fragments.list.hasMore.set(false);
         } finally {
-            Store.fragments.list.loading.set(false);
+            if (this.#abortControllers.search === searchController) Store.fragments.list.loading.set(false);
         }
     }
 

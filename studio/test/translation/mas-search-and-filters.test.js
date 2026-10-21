@@ -1,14 +1,16 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { FILTER_TYPE, PAGE_NAMES } from '../../src/constants.js';
+import { CARD_MODEL_PATH, FILTER_TYPE, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
+import { Fragment } from '../../src/aem/fragment.js';
 import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
 import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-search-and-filters.js';
+import '../../src/common/components/mas-select-items-table.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 const seedCustomTagTaxonomy = (titles = ['Accordion', 'Marquee', 'Test']) => {
@@ -161,6 +163,387 @@ describe('MasSearchAndFilters', () => {
 
         it('does not match personalization tags without the flag', async () => {
             expect(await search('edu', false)).to.deep.equal([]);
+        });
+    });
+
+    describe('offer checkbox filter', () => {
+        const options = [
+            { id: 'offer-1', label: 'CC_ALL_APPS' },
+            { id: 'offer-2', label: 'ACROBAT' },
+        ];
+
+        it('renders a single available offer as an unchecked checkbox', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters type="cards" .offerFilterOptions=${[options[0]]}></mas-search-and-filters>
+            `);
+            const trigger = el.shadowRoot.querySelector('.offer-filter');
+            expect(trigger).to.exist;
+            expect(trigger.textContent.trim()).to.equal('Offer');
+            const checkboxes = trigger.parentElement.querySelectorAll('sp-checkbox');
+            expect(checkboxes).to.have.length(1);
+            expect(checkboxes[0].getAttribute('value')).to.equal('offer-1');
+            expect(checkboxes[0].checked).to.be.false;
+        });
+
+        it('does not render the offer filter without available offers', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.shadowRoot.querySelector('.offer-filter')).not.to.exist;
+        });
+
+        it('renders independently checked offers and a selection count', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValues=${['offer-1', 'offer-2']}
+                ></mas-search-and-filters>
+            `);
+            const trigger = el.shadowRoot.querySelector('.offer-filter');
+            expect(trigger).to.exist;
+            expect(trigger.textContent).to.include('Offer (2)');
+            const checkboxes = trigger.parentElement.querySelectorAll('sp-checkbox');
+            expect([...checkboxes].map((checkbox) => checkbox.checked)).to.deep.equal([true, true]);
+        });
+
+        it('adds a checked offer without replacing the existing selection', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValues=${['offer-1']}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+            const checkbox = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelectorAll('sp-checkbox')[1];
+            checkbox.checked = true;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(listener.calledOnce).to.be.true;
+            expect(listener.firstCall.args[0].detail.value).to.deep.equal(['offer-1', 'offer-2']);
+        });
+
+        it('emits an empty selection when the last checked offer is unchecked', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValues=${['offer-1']}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+            const checkbox = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelector('sp-checkbox');
+            checkbox.checked = false;
+            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(listener.firstCall.args[0].detail.value).to.deep.equal([]);
+        });
+
+        it('resets checked offers and notifies the consumer when filters are reset', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValues=${['offer-1', 'offer-2']}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(el.offerFilterValues).to.deep.equal([]);
+            expect(listener.calledOnce).to.be.true;
+            expect(listener.firstCall.args[0].detail.value).to.deep.equal([]);
+            const checkboxes = el.shadowRoot.querySelector('.offer-filter').parentElement.querySelectorAll('sp-checkbox');
+            expect([...checkboxes].every((checkbox) => !checkbox.checked)).to.be.true;
+        });
+
+        it('does not notify the offer consumer when no offer filter is selected', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(listener.called).to.be.false;
+        });
+    });
+
+    describe('promotion variation matching', () => {
+        const variationId = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+        const smbTag = 'mas:pzn/segment/smb';
+        let originalPromotionSearch;
+        let originalPromotionFilters;
+
+        beforeEach(() => {
+            originalPromotionSearch = Store.promotions.search.get();
+            originalPromotionFilters = Store.promotions.filters.get();
+            Store.promotions.search.set({});
+            Store.promotions.filters.set({ locale: 'en_US' });
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set([
+                createMockFragment({
+                    id: 'parent',
+                    groupedVariations: [
+                        {
+                            id: variationId,
+                            fieldTags: [{ id: smbTag, title: 'Small and Medium Business' }],
+                            fields: [{ name: 'pznTags', values: [smbTag] }],
+                        },
+                    ],
+                }),
+                createMockFragment({ id: 'plain' }),
+            ]);
+        });
+
+        afterEach(() => {
+            fixtureCleanup();
+            Store.promotions.search.set(originalPromotionSearch);
+            Store.promotions.filters.set(originalPromotionFilters);
+            Store.promotions.allCards.set([]);
+            Store.promotions.displayCards.set([]);
+        });
+
+        const mountSearch = (enabled = true) =>
+            fixture(html`<mas-search-and-filters type="cards" .matchVariationsAndTags=${enabled}></mas-search-and-filters>`);
+
+        it('finds the parent of a grouped variation by UUID', async () => {
+            const el = await mountSearch();
+            el.searchQuery = variationId;
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('matches a grouped variation personalization tag case-insensitively', async () => {
+            const el = await mountSearch();
+            el.searchQuery = 'SMB';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('matches the title of a grouped variation personalization tag', async () => {
+            const el = await mountSearch();
+            el.searchQuery = 'small and medium';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('applies the Personalization picker to grouped variation field tags', async () => {
+            const el = await mountSearch();
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+            picker.value = ['/content/cq:tags/mas/pzn/segment/smb'];
+            picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        describe('personalization selection during catalog refresh', () => {
+            const smbPath = '/content/cq:tags/mas/pzn/segment/smb';
+            const eduPath = '/content/cq:tags/mas/pzn/edu';
+
+            const mountPicker = async (selected = []) => {
+                seedTagCache(MAS_TAG_NAMESPACE, [
+                    [smbPath, { path: smbPath, name: 'smb', title: 'SMB' }],
+                    [eduPath, { path: eduPath, name: 'edu', title: 'EDU' }],
+                ]);
+                const el = await mountSearch();
+                el.pznFilter = selected;
+                await el.updateComplete;
+                const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+                await waitUntil(() => picker.ready);
+                await picker.updateComplete;
+                return { el, picker };
+            };
+
+            const toggleCheckbox = async (picker, path, checked) => {
+                const checkbox = picker.shadowRoot.querySelector(`sp-checkbox[value="${path}"]`);
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await picker.updateComplete;
+            };
+
+            const refreshCards = async (el, picker, id = 'new-parent') => {
+                Store.promotions.allCards.set([...Store.promotions.allCards.get(), createMockFragment({ id })]);
+                await el.updateComplete;
+                await picker.updateComplete;
+            };
+
+            for (const checked of [true, false]) {
+                it(`preserves a pending ${checked ? 'check' : 'uncheck'} when new fragments arrive`, async () => {
+                    const { el, picker } = await mountPicker(checked ? [] : [smbTag]);
+                    await toggleCheckbox(picker, smbPath, checked);
+                    expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.equal(checked);
+
+                    await refreshCards(el, picker);
+
+                    expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.equal(checked);
+                    expect(Store.promotions.allCards.get().at(-1).id).to.equal('new-parent');
+                });
+            }
+
+            it('preserves multiple pending checks through repeated catalog updates', async () => {
+                const { el, picker } = await mountPicker();
+                await toggleCheckbox(picker, smbPath, true);
+                await refreshCards(el, picker, 'first-page');
+                await toggleCheckbox(picker, eduPath, true);
+                await refreshCards(el, picker, 'second-page');
+
+                expect(
+                    [...picker.shadowRoot.querySelectorAll('sp-checkbox[checked]')].map((checkbox) =>
+                        checkbox.getAttribute('value'),
+                    ),
+                ).to.have.members([smbPath, eduPath]);
+            });
+
+            it('preserves pending checks when the search text changes', async () => {
+                const { el, picker } = await mountPicker();
+                await toggleCheckbox(picker, smbPath, true);
+
+                el.searchQuery = 'plain';
+                await el.updateComplete;
+                await picker.updateComplete;
+
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.true;
+            });
+
+            for (const checked of [true, false]) {
+                it(`applies a pending ${checked ? 'check' : 'uncheck'} after a catalog refresh`, async () => {
+                    const { el, picker } = await mountPicker(checked ? [] : [smbTag]);
+                    await toggleCheckbox(picker, smbPath, checked);
+                    await refreshCards(el, picker);
+
+                    await picker.applySelection();
+                    await waitUntil(() => el.pznFilter.length === (checked ? 1 : 0));
+
+                    expect(el.pznFilter).to.deep.equal(checked ? [smbTag] : []);
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(
+                        checked ? ['parent'] : ['parent', 'plain', 'new-parent'],
+                    );
+                });
+            }
+
+            it('keeps applied personalization filtering active as additional fragments arrive', async () => {
+                const { el, picker } = await mountPicker([smbTag]);
+
+                await refreshCards(el, picker);
+
+                expect(el.pznFilter).to.deep.equal([smbTag]);
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.true;
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+            });
+
+            it('still clears the picker when the user explicitly resets filters', async () => {
+                const { el, picker } = await mountPicker([smbTag]);
+
+                el.resetFilters();
+                await el.updateComplete;
+                await picker.updateComplete;
+
+                expect(el.pznFilter).to.deep.equal([]);
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.false;
+            });
+        });
+
+        it('matches personalization tag paths stored only in the pznTags field', async () => {
+            const el = await mountSearch();
+            Store.promotions.allCards.set([
+                createMockFragment({
+                    id: 'edu-parent',
+                    groupedVariations: [{ fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/pzn/segment/edu'] }] }],
+                }),
+            ]);
+            el.pznFilter = ['mas:pzn/segment/edu'];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['edu-parent']);
+        });
+
+        for (const fieldTags of [undefined, []]) {
+            it(`filters EDU through actual fragment and variation loading with fieldTags=${JSON.stringify(fieldTags)}`, async () => {
+                Store.promotions.allCards.set([]);
+                Store.fragments.list.data.set([]);
+                const el = await mountSearch();
+                const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+                picker.value = ['/content/cq:tags/mas/pzn/edu'];
+                picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+                const variationPath = `${parentPath}/pzn/edu`;
+                const repository = {
+                    aem: {
+                        getFragmentByPath: sandbox.stub().resolves({
+                            id: variationId,
+                            path: variationPath,
+                            fieldTags,
+                            fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/pzn/edu'] }],
+                        }),
+                    },
+                };
+                const table = document.createElement('mas-select-items-table');
+                table.type = TABLE_TYPE.CARDS;
+                table.getDisplayName = (fragment) => fragment.path;
+                sandbox.stub(table, 'repository').get(() => repository);
+                await fixture(table);
+                try {
+                    Store.fragments.list.data.set([
+                        {
+                            value: new Fragment({
+                                id: 'edu-parent',
+                                path: parentPath,
+                                tags: [],
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variations', values: [variationPath] }],
+                                references: [{ path: variationPath }],
+                            }),
+                        },
+                        {
+                            value: new Fragment({
+                                id: 'plain-parent',
+                                path: '/content/dam/mas/acom/en_US/cards/plain',
+                                tags: [],
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [],
+                            }),
+                        },
+                    ]);
+                    await waitUntil(() => Store.promotions.allCards.get().length === 2 && !table.dataState.isProcessingCards);
+                    await el.updateComplete;
+                    await table.updateComplete;
+                    expect(repository.aem.getFragmentByPath.calledOnceWith(variationPath)).to.be.true;
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['edu-parent']);
+                    expect(table.shadowRoot.querySelectorAll('mas-collapsible-table-row')).to.have.lengthOf(1);
+                    expect(table.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+                } finally {
+                    table.remove();
+                    Store.fragments.list.data.set([]);
+                    Store.promotions.cardsByPaths.set(new Map());
+                    Store.promotions.groupedVariationsByParent.set(new Map());
+                    Store.promotions.groupedVariationsData.set(new Map());
+                }
+            });
+        }
+
+        it('keeps parent personalization tag matching when variation matching is enabled', async () => {
+            const el = await mountSearch();
+            Store.promotions.allCards.set([createMockFragment({ id: 'tagged-parent', tags: [{ id: smbTag }] })]);
+            el.pznFilter = [smbTag];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['tagged-parent']);
+        });
+
+        it('does not match grouped variation tags in other pickers', async () => {
+            const el = await mountSearch(false);
+            el.pznFilter = [smbTag];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
+        });
+
+        it('does not match grouped variation UUIDs in other pickers', async () => {
+            const el = await mountSearch(false);
+            el.searchQuery = variationId;
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
         });
     });
 

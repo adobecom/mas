@@ -2881,7 +2881,7 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('reopening the add-items dialog', () => {
-        it('clears the cards search cache on close so results reload next open, preserving the selection', async () => {
+        it('clears search results on close while preserving cached card details for the selection sidebar', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ surfaces: ['sandbox'] })));
             const { el, repo } = await mountEditorWithRepo();
@@ -2906,7 +2906,7 @@ describe('MasPromotionsEditor', () => {
 
             expect(Store.promotions.allCards.value).to.deep.equal([]);
             expect(Store.promotions.displayCards.value).to.deep.equal([]);
-            expect(Store.promotions.cardsByPaths.value.size).to.equal(0);
+            expect([...Store.promotions.cardsByPaths.value.keys()]).to.deep.equal(['/card/a', '/card/b']);
             expect(Store.promotions.selectedCards.value).to.deep.equal(['/card/a', '/card/b']);
             expect(repo.searchFragments.called).to.be.true;
         });
@@ -3006,7 +3006,7 @@ describe('MasPromotionsEditor', () => {
                 expect(selector.shadowRoot.querySelector('.import-url-btn')).to.exist;
             });
 
-            it('opens with no pre-applied product filter and flags variation and tag matching', async () => {
+            it('starts the fragment picker without product filters from the selected offers', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
@@ -3014,14 +3014,16 @@ describe('MasPromotionsEditor', () => {
                 await el.updateComplete;
                 const selector = pickerSelector(el);
                 await selector.updateComplete;
-                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
-                    (f) => f.type === TABLE_TYPE.CARDS,
-                );
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
                 expect(cardsFilter.productFilter).to.deep.equal([]);
-                expect(cardsFilter.matchVariationsAndTags).to.equal(true);
+                expect(cardsFilter.matchVariationsAndTags).to.be.true;
+                const collectionsFilter = [...selector.searchFilterElements].find(
+                    (filter) => filter.type === TABLE_TYPE.COLLECTIONS,
+                );
+                expect(collectionsFilter.matchVariationsAndTags).to.be.false;
             });
 
-            it('keeps a cleared filter cleared while typing', async () => {
+            it('does not reapply a deleted product chip while searching or clearing the query', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                 Store.promotions.selectedOffers.set(['offer-1']);
@@ -3029,22 +3031,53 @@ describe('MasPromotionsEditor', () => {
                 await el.updateComplete;
                 const selector = pickerSelector(el);
                 await selector.updateComplete;
-                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
-                    (f) => f.type === TABLE_TYPE.CARDS,
-                );
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
                 cardsFilter.dispatchEvent(
-                    new CustomEvent('offer-filter-change', { detail: { value: 'offer-1' }, bubbles: true, composed: true }),
+                    new CustomEvent('offer-filter-change', { detail: { value: ['offer-1'] }, bubbles: true, composed: true }),
                 );
                 await el.updateComplete;
-                expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+                await selector.updateComplete;
+                cardsFilter.productOptions = [{ id: 'mas:product_code/phsp', title: 'Photoshop' }];
+                await cardsFilter.updateComplete;
+                const chip = cardsFilter.shadowRoot.querySelector('sp-tag');
+                expect(chip).to.exist;
+                chip.dispatchEvent(new Event('delete'));
+                await cardsFilter.updateComplete;
+                expect(cardsFilter.productFilter, 'product filter after deleting its chip').to.deep.equal([]);
+                expect(Store.filters.get().tags, 'repository product filter after deleting its chip').to.be.undefined;
 
-                cardsFilter.productFilter = [];
-                for (const query of ['a', 'ab']) {
+                for (const query of ['s', 'smb', '']) {
                     selector.searchQuery = query;
-                    selector.requestUpdate();
                     await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.productFilter, `product filter after query "${query}"`).to.deep.equal([]);
                 }
-                expect(cardsFilter.productFilter).to.deep.equal([]);
+
+                selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                await selector.updateComplete;
+                const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                importTabs.selected = TABLE_TYPE.CARDS;
+                importTabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+                const restoredFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                expect(restoredFilter.productFilter, 'product filter after returning from import').to.deep.equal([]);
+            });
+
+            it('finds a grouped variation from the promotion picker search input', async () => {
+                const { el } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const variationId = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+                Store.promotions.allCards.set([
+                    { id: 'parent', path: '/card', tags: [], fields: [], groupedVariations: [{ id: variationId }] },
+                ]);
+                const search = selector.shadowRoot.querySelector('sp-search');
+                search.value = variationId;
+                search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+                await selector.updateComplete;
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                await cardsFilter.updateComplete;
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
             });
 
             it('keeps the offer-based product filter active after leaving and returning from Import via URL', async () => {
@@ -3059,7 +3092,7 @@ describe('MasPromotionsEditor', () => {
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
                 cardsFilterBefore.dispatchEvent(
-                    new CustomEvent('offer-filter-change', { detail: { value: 'offer-1' }, bubbles: true, composed: true }),
+                    new CustomEvent('offer-filter-change', { detail: { value: ['offer-1'] }, bubbles: true, composed: true }),
                 );
                 await el.updateComplete;
                 await selector.updateComplete;
@@ -3076,6 +3109,124 @@ describe('MasPromotionsEditor', () => {
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
                 expect(cardsFilterAfter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+            });
+
+            describe('multiple offer filters', () => {
+                let el;
+                let selector;
+                let cardsFilter;
+
+                beforeEach(async () => {
+                    ({ el } = await mountEditorWithRepo());
+                    Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
+                    Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                    Store.promotions.selectedOffers.set(['offer-1', 'offer-2']);
+                    el.fragmentStore.updateField('surfaces', ['sandbox']);
+                    await el.updateComplete;
+                    selector = pickerSelector(el);
+                    await selector.updateComplete;
+                    cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                    Store.promotions.allCards.set([
+                        { id: 'photoshop', path: '/phsp', fields: [], tags: [{ id: 'mas:product_code/phsp' }] },
+                        { id: 'illustrator', path: '/ilst', fields: [], tags: [{ id: 'mas:product_code/ilst' }] },
+                        { id: 'other', path: '/other', fields: [], tags: [{ id: 'mas:product_code/other' }] },
+                    ]);
+                    await cardsFilter.updateComplete;
+                });
+
+                async function selectOffers(value) {
+                    cardsFilter.dispatchEvent(
+                        new CustomEvent('offer-filter-change', { detail: { value }, bubbles: true, composed: true }),
+                    );
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                }
+
+                it('matches cards from either selected offer', async () => {
+                    for (const id of ['offer-1', 'offer-2']) {
+                        const checkbox = cardsFilter.shadowRoot
+                            .querySelector('.offer-filter')
+                            .parentElement.querySelector(`sp-checkbox[value="${id}"]`);
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+                    }
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop', 'illustrator']);
+                });
+
+                it('keeps only the remaining offer results after unchecking one of two offers', async () => {
+                    await selectOffers(['offer-1', 'offer-2']);
+                    const checkbox = cardsFilter.shadowRoot
+                        .querySelector('.offer-filter')
+                        .parentElement.querySelector('sp-checkbox[value="offer-1"]');
+                    checkbox.checked = false;
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                });
+
+                it('preserves both checked offers when returning from Import via URL', async () => {
+                    await selectOffers(['offer-1', 'offer-2']);
+                    selector.shadowRoot.querySelector('sp-button.import-url-btn').click();
+                    await selector.updateComplete;
+                    const importTabs = selector.shadowRoot.querySelector('.tabs-container.import-mode sp-tabs');
+                    importTabs.selected = TABLE_TYPE.CARDS;
+                    importTabs.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                    await selector.updateComplete;
+                    const restoredFilter = [...selector.searchFilterElements].find(
+                        (filter) => filter.type === TABLE_TYPE.CARDS,
+                    );
+                    expect(restoredFilter.offerFilterValues).to.deep.equal(['offer-1', 'offer-2']);
+                    expect(restoredFilter.productFilter).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
+                });
+
+                it('removes the offer restriction when every offer is unchecked', async () => {
+                    await selectOffers(['offer-1', 'offer-2']);
+                    await selectOffers([]);
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal([
+                        'photoshop',
+                        'illustrator',
+                        'other',
+                    ]);
+                    expect(Store.filters.get().tags).to.be.undefined;
+                });
+
+                it('does not reapply a cleared offer when another offer is checked after Clear all', async () => {
+                    await selectOffers(['offer-1']);
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    const checkbox = cardsFilter.shadowRoot
+                        .querySelector('.offer-filter')
+                        .parentElement.querySelector('sp-checkbox[value="offer-2"]');
+
+                    checkbox.checked = true;
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.offerFilterValues).to.deep.equal(['offer-2']);
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
+                    expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
+                });
+
+                it('preserves the remaining checked offer when another offer is removed from the project', async () => {
+                    await selectOffers(['offer-1', 'offer-2']);
+                    Store.promotions.selectedOffers.set(['offer-2']);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+                    expect(cardsFilter.offerFilterValues).to.deep.equal(['offer-2']);
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
+                });
             });
 
             describe('Import via URL restrictions (surface + offer)', () => {
@@ -3230,6 +3381,46 @@ describe('MasPromotionsEditor', () => {
                 search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
                 await selector.updateComplete;
                 expect(Store.search.get().query).to.equal('12345678-1234-1234-1234-123456789012');
+            });
+
+            it('marks a UUID search as loading before the repository debounce runs', async () => {
+                const { el, repo } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                Store.fragments.list.loading.set(false);
+                repo.searchFragments.resetHistory();
+                const search = selector.shadowRoot.querySelector('sp-search');
+                search.value = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+
+                search.dispatchEvent(new Event('submit', { bubbles: true, composed: true }));
+
+                expect(repo.searchFragments.called).to.be.false;
+                expect(Store.fragments.list.loading.get()).to.be.true;
+            });
+
+            it('keeps loading when replacing a UUID with text before the new repository search starts', async () => {
+                const { el } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                selector.onSearchChange('09f5c8af-4a7d-497b-a579-70d2f3794a2c');
+                Store.fragments.list.loading.set(false);
+
+                selector.onSearchChange('SMB');
+
+                expect(Store.fragments.list.loading.get()).to.be.true;
+            });
+
+            it('clears the repository UUID restriction when replacing it with text', async () => {
+                const { el } = await mountEditorWithRepo();
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                selector.onSearchChange('12345678-1234-1234-1234-123456789012');
+                Store.search.setMeta('uuid-query', '12345678-1234-1234-1234-123456789012');
+
+                selector.onSearchChange('SMB');
+
+                expect(Store.search.get().query).to.equal('');
+                expect(Store.search.getMeta('uuid-query')).to.be.null;
             });
 
             it('resetFilters delegates to the picker mas-items-selector', async () => {

@@ -94,6 +94,7 @@ jobs:
         # No concurrency group: a cancelled result would stick to a gate re-run.
         outputs:
             is-trivial: ${{ steps.filter.outputs.trivial }}
+            io-studio: ${{ steps.filter.outputs.io-studio }}
         steps:
             - uses: actions/checkout@v4
               with:
@@ -154,14 +155,72 @@ jobs:
                   superseded-runs: ${{ needs.cancel-superseded-runs.outputs.superseded-runs || '[]' }}
                   github-token: ${{ github.token }}
 
+    prepare-studio-runtime:
+        name: Prepare Studio Runtime
+        needs: [check-paths, check-approvals]
+        if: |
+            !cancelled() &&
+            needs.check-paths.result == 'success' &&
+            needs.check-approvals.result == 'success' &&
+            needs.check-paths.outputs.io-studio == 'true' &&
+            needs.check-approvals.outputs.can-run == 'true' &&
+            needs.check-approvals.outputs.already-handled != 'true'
+        runs-on: ubuntu-latest
+        timeout-minutes: 35
+        outputs:
+            environment: ${{ steps.namespace.outputs.environment }}
+        steps:
+            - name: Wait for the matching Studio deployment
+              id: deployment
+              uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+              env:
+                  HEAD_SHA: ${{ needs.check-approvals.outputs.head-sha }}
+              with:
+                  script: |
+                      const headSha = process.env.HEAD_SHA;
+                      for (let attempt = 0; attempt < 120; attempt++) {
+                          const { data } = await github.rest.actions.listWorkflowRuns({
+                              ...context.repo, workflow_id: 'io-studio-pr.yaml', head_sha: headSha,
+                              event: 'pull_request', branch: context.payload.pull_request.head.ref, per_page: 10,
+                          });
+                          const run = data.workflow_runs.find((candidate) => candidate.head_sha === headSha);
+                          if (run?.status === 'completed') {
+                              if (run.conclusion !== 'success') throw new Error(`Studio deployment failed: ${run.html_url}`);
+                              core.setOutput('run-id', run.id);
+                              return;
+                          }
+                          await new Promise((resolve) => setTimeout(resolve, 15000));
+                      }
+                      throw new Error('Timed out waiting for the matching Studio deployment');
+
+            - name: Download Studio namespace metadata
+              uses: actions/download-artifact@v4
+              with:
+                  name: studio-runtime
+                  path: ${{ runner.temp }}/studio-runtime
+                  github-token: ${{ github.token }}
+                  run-id: ${{ steps.deployment.outputs.run-id }}
+
+            - name: Read Studio namespace
+              id: namespace
+              run: |
+                  export STUDIO_NAMESPACE=$(cat "$RUNNER_TEMP/studio-runtime/studio-namespace.txt")
+                  node --input-type=module <<'NODE'
+                  import { appendFileSync } from 'node:fs';
+                  const match = process.env.STUDIO_NAMESPACE?.match(/^14257-masstudio-([a-z0-9-]{1,40})$/);
+                  if (!match) throw new Error('PR workspace has no valid Studio runtime namespace');
+                  appendFileSync(process.env.GITHUB_OUTPUT, `environment=${match[1]}\n`);
+                  NODE
+
     run-nala-studio-tests:
         name: Running Nala Studio [${{ matrix.shard }}] E2E UI Tests
-        needs: [check-paths, check-approvals]
+        needs: [check-paths, check-approvals, prepare-studio-runtime]
         # Label/review events skip the cancellation ancestor; do not inherit implicit success().
         if: |
             !cancelled() &&
             needs.check-paths.result == 'success' &&
             needs.check-approvals.result == 'success' &&
+            (needs.prepare-studio-runtime.result == 'success' || needs.prepare-studio-runtime.result == 'skipped') &&
             needs.check-paths.outputs.is-trivial != 'true' &&
             needs.check-approvals.outputs.can-run == 'true' &&
             needs.check-approvals.outputs.already-handled != 'true'
@@ -207,6 +266,19 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: 20.x
+
+            - name: Select the deployed Studio workspace
+              if: needs.check-paths.outputs.io-studio == 'true'
+              env:
+                  STUDIO_ENV: ${{ needs.prepare-studio-runtime.outputs.environment }}
+              run: |
+                  node --input-type=module <<'NODE'
+                  import { appendFileSync } from 'node:fs';
+                  if (!/^[a-z0-9-]{1,40}$/.test(process.env.STUDIO_ENV ?? '')) throw new Error('Missing Studio environment');
+                  const params = new URLSearchParams(process.env.MILO_LIBS);
+                  params.set('io.studio.env', process.env.STUDIO_ENV);
+                  appendFileSync(process.env.GITHUB_ENV, `MILO_LIBS=?${params}\n`);
+                  NODE
 
             - name: Prepare compatible Nala dependencies
               uses: ./.github/actions/setup-nala

@@ -149,10 +149,11 @@ auth_profiles:
     # produce a site token for this account: its consent page hands back the
     # admin API's auth token, and creating a real site token needs
     # POST admin.hlx.page/config/adobecom/sites/<site>/secrets.json, which
-    # cod23684+masautomation@adobetest.com is 403 on. Declaring a self-heal that
-    # cannot succeed turned an immediately actionable "AEM_SITE_TOKEN_DA_DC not
-    # set" into a 180 s dead wait (run 55d037d6). Provision the tokens once, by
-    # hand — README "Site tokens" has the recipe.
+    # the previous automation account (cod23684+masautomation) was 403 on.
+    # Declaring a self-heal that cannot succeed turned an immediately
+    # actionable "AEM_SITE_TOKEN_DA_DC not set" into a 180 s dead wait (run
+    # 55d037d6). Provision the tokens once, by hand — README "Site tokens" has
+    # the recipe.
     da-cc-token:
         token_env: AEM_SITE_TOKEN_DA_CC
         header: 'authorization: token {token}'
@@ -161,7 +162,7 @@ auth_profiles:
         header: 'authorization: token {token}'
     ims:
         account:
-            username: cod23684+masautomation@adobetest.com
+            username: pinata+masautomation@adobetest.com
             password_env: IMS_PASS
         idp_hosts: [auth.services.adobe.com, ims-na1.adobelogin.com]
         # studio.html loads imslib and calls adobeIMS.signIn() from its onReady,

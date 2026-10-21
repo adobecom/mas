@@ -61,6 +61,8 @@ export class MasCreateDialog extends LitElement {
         template: { state: true },
     };
 
+    #selectionId = 0;
+
     static styles = css`
         :host {
             position: fixed;
@@ -242,6 +244,7 @@ export class MasCreateDialog extends LitElement {
         this.errors = INITIAL_ERRORS;
         this.offerSelectorOpened = false;
         this.osi = '';
+        this.#selectionId++;
         this.productArrangementCode = '';
         this.surface = '';
         this.template = '';
@@ -265,11 +268,12 @@ export class MasCreateDialog extends LitElement {
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
+        const selectionId = ++this.#selectionId;
         if (this.type !== BASELINE_CREATE_TYPE) return;
         this.productArrangementCode = '';
         this.#setError('offer', '');
         const productArrangementCode = await resolveProductArrangementCode(offerSelectorId, offer);
-        if (this.osi !== offerSelectorId) return;
+        if (selectionId !== this.#selectionId) return;
         this.productArrangementCode = productArrangementCode ?? '';
         this.#setError('offer', productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
     };

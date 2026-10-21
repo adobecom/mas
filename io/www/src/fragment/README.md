@@ -18,9 +18,11 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 
 `transformers/render.js` is available for direct execution only. It is **not**
 registered in the pipeline, and does not change production responses or fetch
-offers. It consumes `@adobecom/mas-price` from the shared `price/` workspace.
-Run `npm ci` inside `io/www`; the committed `.npmrc` installs local dependencies
-as copies rather than external workspace symlinks.
+offers. It imports the shared framework-free implementation directly from
+`price/src/index.js` via a relative path, following the server's existing
+cross-directory import convention. No installed price package or workspace
+symlink is required; keep the repository's `price/src/` directory alongside
+`io/www` when running or bundling the server. `parse5` remains a runtime dependency.
 
 ```js
 import { transformer as render } from './transformers/render.js';
@@ -75,7 +77,7 @@ parameters. These are prerequisites for the separate activation ticket.
 The selected cache is `context.body.wcs[environment]`. Cache keys follow the WCS
 producer: final OSI, lowercased country, `mult` except for GB, then the lowercased
 effective promotion code if present. Raw cached offers are copied and normalized
-using `applyPlanType` from the dependency-free `mas-price` package before offer
+using `applyPlanType` imported from `price/src/index.js` before offer
 selection. Its mapping preserves the browser's existing tacocat behavior;
 web-components is unchanged and continues using its current helper.
 The server does not depend on Dexter or Pandora for normalization.
@@ -88,7 +90,7 @@ For a `discount` template with exactly two OSIs, the first selected offer suppli
 the discounted price and the second supplies the reference price, matching the
 browser. Stale `priceInfo` is discarded on the derived offer. Other multi-OSI
 prices retain shared soft-bundle summation; percentage calculation and markup
-remain in `mas-price`.
+remain in the shared `price/src` implementation.
 
 Root and flattened referenced fragments are processed once. String fields,
 wrapped rich-text `value` strings/arrays and string-array fields are supported.

@@ -5,7 +5,8 @@ Runs natively in Node 22+ and browsers, with **no runtime dependencies**, DOM,
 network calls, or import-time browser configuration.
 
 This private workspace is not published. The inactive io/www price transformer
-uses it through direct invocation; production pipeline rendering is not enabled.
+imports `price/src/index.js` directly via a relative path, without installing
+this workspace as a server dependency. Production pipeline rendering is not enabled.
 The existing web-components implementation is unchanged by this integration.
 
 ## API

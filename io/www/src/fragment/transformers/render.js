@@ -1,5 +1,5 @@
 import { parseFragment } from 'parse5';
-import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from '@adobecom/mas-price';
+import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from '../../../../../price/src/index.js';
 import { log, logError } from '../utils/log.js';
 
 const REQUIRED_OPTIONS = [

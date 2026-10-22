@@ -84,4 +84,12 @@ describe('ost-products-read', () => {
 
         expect(result.statusCode).to.equal(401);
     });
+
+    it('returns 401, not 500, when invoked with no headers (e.g. a non-web invoke)', async () => {
+        const mod = load({ store: { ostResult: Buffer.from('x') } });
+
+        const result = await mod.main({});
+
+        expect(result.statusCode).to.equal(401);
+    });
 });

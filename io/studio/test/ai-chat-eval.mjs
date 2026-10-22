@@ -4,9 +4,20 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { INTENTS, FLOWS, META_INTENTS } from '../src/ai-chat/intent-registry.js';
 import { validateEnvelope } from '../src/ai-chat/envelope-validator.js';
+import {
+    parseOperationRequest,
+    validateOperation,
+    extractOperationMessage,
+    resolveArrangementCodeFromHistory,
+    resolveArrangementCodeFromContext,
+} from '../src/ai-chat/operations-handler.js';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const CASES_PATH = join(currentDir, '../src/ai-chat/intent-registry.cases.json');
+// NPI "create cards with AI" guided-flow invariants. Mocked model/tool turns,
+// asserted against the real exported deterministic functions. See the file's
+// "about" note for the contract.
+const NPI_CASES_PATH = join(currentDir, '../src/ai-chat/npi-card-creation.cases.json');
 
 const mode = process.argv[2] || '--unit';
 
@@ -53,11 +64,16 @@ function runUnit() {
         }
     }
 
+    const npiCount = runNpiUnit(failures);
+
     if (failures.length) {
         exitWith(1, `--unit FAIL\n  ${failures.join('\n  ')}`);
         return;
     }
-    exitWith(0, `--unit PASS (${cases.length} cases, ${INTENTS.length} intents, ${FLOWS.length} flows)`);
+    exitWith(
+        0,
+        `--unit PASS (${cases.length} cases, ${INTENTS.length} intents, ${FLOWS.length} flows; NPI: ${npiCount} cases)`,
+    );
 }
 
 function acceptedIntents(c) {
@@ -79,6 +95,206 @@ function expectedEnvelopeFromCase(c) {
 
 function deepEqual(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// ---------------------------------------------------------------------------
+// NPI ("create cards with AI") guided-flow invariant harness.
+//
+// Each NPI case mocks one model turn (mockModelResponse) plus the tool results
+// it depends on (conversationHistory / context), and the detector below runs it
+// through the real exported deterministic functions (parseOperationRequest,
+// validateOperation, resolveArrangementCodeFromHistory/Context) plus one
+// per-invariant check. `expect.violates` says whether the mocked turn is clean
+// (false) or a freelancing turn the detector MUST flag (true) — so both
+// positive and negative examples lock the invariant.
+// ---------------------------------------------------------------------------
+
+const NPI_INVARIANTS = new Set([1, 2, 3, 4, 5]);
+const OFFER_ID_32HEX = /^[A-Fa-f0-9]{32}$/;
+const PA_CODE = /^PA-\d+$/i;
+const ARRANGEMENT_SLUG = /^[a-z0-9]+(?:_[a-z0-9]+)+$/;
+
+function loadNpiCases(mode) {
+    try {
+        const parsed = JSON.parse(readFileSync(NPI_CASES_PATH, 'utf8'));
+        if (!Array.isArray(parsed.cases)) {
+            exitWith(1, `${mode} FAIL: npi cases.json missing "cases" array`);
+            return null;
+        }
+        return parsed.cases;
+    } catch (err) {
+        exitWith(1, `${mode} FAIL: ${err.message}`);
+        return null;
+    }
+}
+
+// A money-touching product/arrangement identifier (not a free-text name, not an
+// OSI, not a 32-hex offer id — those are handled separately).
+function looksLikeArrangementCode(value) {
+    if (typeof value !== 'string') return false;
+    const trimmed = value.trim();
+    return PA_CODE.test(trimmed) || ARRANGEMENT_SLUG.test(trimmed);
+}
+
+// The first fenced ```json block, parsed. Mocked turns always fence their JSON;
+// a plain-text turn (e.g. product-not-found) returns null here.
+function firstJsonBlock(text) {
+    const match = (text ?? '').match(/```json\s*([\s\S]*?)\s*```/);
+    if (!match) return null;
+    try {
+        return JSON.parse(match[1]);
+    } catch (err) {
+        return null;
+    }
+}
+
+// Every arrangement/PA code the conversation has actually seen from a tool
+// result or context — unions the real resolve helpers with a scan of history.
+function groundedCodes(conversationHistory, context) {
+    const set = new Set();
+    const fromHistory = resolveArrangementCodeFromHistory(conversationHistory);
+    if (fromHistory) set.add(fromHistory);
+    const fromContext = resolveArrangementCodeFromContext(context);
+    if (fromContext) set.add(fromContext);
+    const joined = (conversationHistory ?? [])
+        .map((turn) => (typeof turn?.content === 'string' ? turn.content : ''))
+        .join('\n');
+    const scan = /arrangement_code["']?\s*[:=]\s*["']?([A-Za-z0-9_-]+)/gi;
+    let hit;
+    while ((hit = scan.exec(joined)) !== null) set.add(hit[1]);
+    return set;
+}
+
+// Returns a violation string when the mocked turn breaks its invariant, else null.
+function detectNpiViolation(c) {
+    const response = c.mockModelResponse ?? '';
+    const operation = parseOperationRequest(response);
+    const block = firstJsonBlock(response);
+    const type = block?.type ?? (operation ? 'studio_operation' : null);
+    const history = c.conversationHistory ?? [];
+    const context = c.context ?? {};
+    const params = operation?.operationParams ?? {};
+
+    switch (c.invariant) {
+        case 1: {
+            const code = params.searchText ?? params.arrangement_code ?? params.arrangementCode;
+            const codeBearing =
+                operation &&
+                ['list_products', 'create_release_cards', 'get_product_by_arrangement_code'].includes(operation.operationName);
+            if (codeBearing && looksLikeArrangementCode(code) && !groundedCodes(history, context).has(code)) {
+                return `fabricated arrangement/PA code "${code}" — not present in any tool result or context`;
+            }
+            return null;
+        }
+        case 2: {
+            if (operation?.operationName === 'list_products') {
+                const searchText = (params.searchText ?? '').trim();
+                if (OFFER_ID_32HEX.test(searchText)) {
+                    return `32-hex offer id "${searchText}" passed as list_products searchText`;
+                }
+            }
+            return null;
+        }
+        case 3: {
+            const resolvedPa = resolveArrangementCodeFromHistory(history);
+            if (!resolvedPa) return null;
+            if (operation?.operationName !== 'list_products') {
+                return `chaining broken: expected list_products after resolve, got ${
+                    operation?.operationName ?? type ?? 'no operation'
+                }`;
+            }
+            const searchText = (params.searchText ?? '').trim();
+            if (searchText !== resolvedPa) {
+                return `list_products searchText "${searchText}" is not the resolved PA code "${resolvedPa}"`;
+            }
+            return null;
+        }
+        case 4: {
+            if (operation?.operationName === 'list_products') {
+                return 're-ran list_products though a product was already selected';
+            }
+            if (Array.isArray(block?.productCards) && block.productCards.length > 0) {
+                return 're-rendered productCards though a product was already selected';
+            }
+            return null;
+        }
+        case 5: {
+            if (operation?.operationName === 'create_release_cards') {
+                return 'emitted create_release_cards on an empty product result';
+            }
+            if (type === 'release_cards') {
+                return 'emitted release_cards on an empty product result';
+            }
+            const code = params.arrangement_code ?? params.arrangementCode ?? params.searchText;
+            if (looksLikeArrangementCode(code) && !groundedCodes(history, context).has(code)) {
+                return `fabricated product "${code}" on an empty result`;
+            }
+            const message = (block?.message ?? extractOperationMessage(response) ?? '').toLowerCase();
+            const missing = (c.expect?.message_includes ?? []).filter(
+                (needle) => !message.includes(String(needle).toLowerCase()),
+            );
+            if (missing.length) return `not-found message missing ${JSON.stringify(missing)}`;
+            return null;
+        }
+        default:
+            return `unknown invariant ${c.invariant}`;
+    }
+}
+
+// A clean (violates:false) case must additionally be a VALID operation when it
+// emits one — a well-formed turn is part of the invariant.
+function npiShapeError(c) {
+    if (c.expect?.violates) return null;
+    const operation = parseOperationRequest(c.mockModelResponse ?? '');
+    if (!operation) return null;
+    const validation = validateOperation(operation);
+    return validation.valid ? null : `operation shape invalid: ${validation.error}`;
+}
+
+function runNpiUnit(failures) {
+    const cases = loadNpiCases('--unit');
+    if (!cases) return 0;
+    const ids = new Set();
+    for (const c of cases) {
+        if (!c.id) failures.push(`npi case: missing id`);
+        if (ids.has(c.id)) failures.push(`npi case ${c.id}: duplicate id`);
+        ids.add(c.id);
+        if (!NPI_INVARIANTS.has(c.invariant)) failures.push(`npi case ${c.id}: invariant must be 1-5`);
+        if (typeof c.mockModelResponse !== 'string' || !c.mockModelResponse)
+            failures.push(`npi case ${c.id}: missing mockModelResponse`);
+        if (typeof c.expect?.violates !== 'boolean') failures.push(`npi case ${c.id}: expect.violates must be boolean`);
+        if (c.expect?.violates && !c.expect.violation_includes)
+            failures.push(`npi case ${c.id}: a violating case needs expect.violation_includes`);
+    }
+    return cases.length;
+}
+
+function runNpiMockLlm(failures) {
+    const cases = loadNpiCases('--mock-llm');
+    if (!cases) return 0;
+    for (const c of cases) {
+        const shapeError = npiShapeError(c);
+        if (shapeError) {
+            failures.push(`npi ${c.id}: ${shapeError}`);
+            continue;
+        }
+        const violation = detectNpiViolation(c);
+        const want = Boolean(c.expect?.violates);
+        if (Boolean(violation) !== want) {
+            failures.push(
+                want
+                    ? `npi ${c.id}: expected a violation but none detected`
+                    : `npi ${c.id}: unexpected violation — ${violation}`,
+            );
+            continue;
+        }
+        if (want && c.expect.violation_includes && !violation.includes(c.expect.violation_includes)) {
+            failures.push(
+                `npi ${c.id}: wrong violation — expected to mention "${c.expect.violation_includes}", got "${violation}"`,
+            );
+        }
+    }
+    return cases.length;
 }
 
 function runMockLlm() {
@@ -138,11 +354,16 @@ function runMockLlm() {
         }
     }
 
+    const npiCount = runNpiMockLlm(failures);
+
     if (failures.length) {
-        exitWith(1, `--mock-llm FAIL (${failures.length} of ${cases.length} cases):\n  ${failures.join('\n  ')}`);
+        exitWith(1, `--mock-llm FAIL (${failures.length} findings):\n  ${failures.join('\n  ')}`);
         return;
     }
-    exitWith(0, `--mock-llm PASS (${cases.length - skipped} cases, ${skipped} guided skipped)`);
+    exitWith(
+        0,
+        `--mock-llm PASS (${cases.length - skipped} envelope cases, ${skipped} guided skipped; NPI: ${npiCount} invariant cases)`,
+    );
 }
 
 async function runLiveLlm() {

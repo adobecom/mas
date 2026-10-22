@@ -149,6 +149,34 @@ describe('ai-chat/operations-handler', () => {
             expect(result.error).to.include('Invalid operation');
         });
 
+        it('rejects a 32-hex Offer ID passed as list_products.searchText (money-touching: must resolve first)', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'list_products',
+                operationParams: { searchText: 'A1B2C3D4E5F60718293A4B5C6D7E8F90' },
+            });
+            expect(result.valid).to.equal(false);
+            expect(result.error).to.match(/offer id|resolve/i);
+        });
+
+        it('accepts a normal product-name searchText for list_products', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'list_products',
+                operationParams: { searchText: 'Photoshop' },
+            });
+            expect(result.valid).to.equal(true);
+        });
+
+        it('accepts list_products with no searchText (list-all)', () => {
+            const result = validateOperation({
+                type: 'studio_operation',
+                operationName: 'list_products',
+                operationParams: {},
+            });
+            expect(result.valid).to.equal(true);
+        });
+
         it('strips studio_ prefix from operation names', () => {
             const op = {
                 type: 'studio_operation',

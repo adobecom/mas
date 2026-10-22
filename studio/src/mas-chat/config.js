@@ -56,9 +56,14 @@ export function getIoMcpURL() {
     return siblingPackageURL('MerchAtScaleOperations');
 }
 
-/** The Studio package without the localhost override, for non-chat callers. */
-export function getIoStudioURL() {
-    return ioStudioBaseURL();
+/**
+ * The prod masStudio Studio package, fixed regardless of the page's
+ * io.studio.env. Shared read-only data (the OST product catalog) is seeded only
+ * in the prod workspace, so a personal/stage env that has no cache must not be
+ * read from — it 404s. Callers that need shared data read it here.
+ */
+export function getProdStudioURL() {
+    return `https://${IO_FALLBACK_NAMESPACE}.adobeioruntime.net${IO_API_PREFIX}/${STUDIO_PACKAGE}`;
 }
 
 export const AI_CHAT_BASE_URL = getAIChatBaseURL();

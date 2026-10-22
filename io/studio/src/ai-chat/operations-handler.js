@@ -276,8 +276,22 @@ function validateStudioOperation(operation) {
         case 'search_offers':
             break;
 
-        case 'list_products':
+        case 'list_products': {
+            // A 32-char hex string is an Offer ID, never a product name or PA code.
+            // As searchText it returns hundreds of unrelated fuzzy matches and can
+            // drive card creation off the wrong product, so it must be resolved via
+            // resolve_offer_selector / get_offer_by_id first. The prompt says so;
+            // this is the server-side backstop (defense-in-depth) for a money-
+            // touching path.
+            const { searchText } = operation.operationParams;
+            if (typeof searchText === 'string' && /^[a-fA-F0-9]{32}$/.test(searchText.trim())) {
+                return {
+                    valid: false,
+                    error: 'list_products.searchText looks like a 32-char Offer ID; resolve it with resolve_offer_selector or get_offer_by_id first, then search by the product arrangement code.',
+                };
+            }
             break;
+        }
 
         case 'get_product_by_arrangement_code':
             if (!operation.operationParams.arrangementCode) {

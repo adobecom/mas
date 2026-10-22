@@ -1,10 +1,12 @@
-import { getIoMcpURL, getIoStudioURL } from '../mas-chat/config.js';
+import { getIoMcpURL, getProdStudioURL } from '../mas-chat/config.js';
 
-// TODO(MWPW-183572 post-merge): revert to masstudio (prod) endpoint once the
-// masstudio OST cache has been rebuilt with DIRECT/RETAIL channel filtering.
-// Tracking: https://jira.corp.adobe.com/browse/MWPW-183572
-// Do NOT ship this dev namespace to production unchanged.
-const ostProductsURL = () => `${getIoStudioURL()}/ost-products-read`;
+// The catalog is shared, read-only data seeded only in the prod masStudio
+// workspace (the daily ost-products workflow writes one namespace). Reading it
+// from the page's io.studio.env would 404 in any personal/stage workspace that
+// has no cache, so this targets prod regardless of env — matching the operations
+// list_products action, which also defaults to prod masStudio.
+// https://jira.corp.adobe.com/browse/MWPW-183572
+const ostProductsURL = () => `${getProdStudioURL()}/ost-products-read`;
 
 // Defense-in-depth: client-side format check on arrangement codes before they
 // reach the backend. Real MCS arrangement codes are alphanumeric + underscore
@@ -40,7 +42,11 @@ async function loadCatalog() {
             const text = await response.text().catch(() => '');
             throw new Error(`Failed to fetch products: ${response.status} ${text.slice(0, 200)}`);
         }
-        const data = await response.json();
+        const data = await parseJsonBody(
+            response,
+            'the product catalog',
+            ' The OST product cache is not populated for this environment.',
+        );
         const productsObj = data.combinedProducts || data;
         return Array.isArray(productsObj) ? productsObj : Object.values(productsObj);
     })();
@@ -70,6 +76,23 @@ function getAuthHeaders() {
         'x-gw-ims-org-id': window.adobeIMS?.adobeIdData?.imsOrg || '',
         'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
     };
+}
+
+/**
+ * Parse a 2xx body as JSON.
+ *
+ * A 2xx does not guarantee a body. ost-products-read answers 200 with
+ * content-length 0 in any IO workspace whose product cache was never written,
+ * and response.json() then throws a DOMException ("Unexpected end of JSON
+ * input") that names neither the endpoint nor the cause. Translate it into
+ * something the caller can act on.
+ */
+async function parseJsonBody(response, what, hint = '') {
+    try {
+        return await response.json();
+    } catch {
+        throw new Error(`Empty response from ${what} (HTTP ${response.status}).${hint}`);
+    }
 }
 
 async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
@@ -124,5 +147,5 @@ export async function fetchProductDetail(arrangementCode, { landscape = 'DRAFT' 
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || `Failed to fetch product detail: ${response.status}`);
     }
-    return response.json();
+    return parseJsonBody(response, 'product detail');
 }

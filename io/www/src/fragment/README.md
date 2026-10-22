@@ -14,6 +14,110 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 
 `fetchFragment → defaultLanguage → offer → promotions → mask → customize → settings → replace → wcs → corrector`
 
+## Inactive price-render transformer
+
+`transformers/render.js` is available for direct execution only. It is **not**
+registered in the pipeline, and does not change production responses or fetch
+offers. It imports the shared framework-free implementation directly from
+`price/src/index.js` via a relative path, following the server's existing
+cross-directory import convention. No installed price package or workspace
+symlink is required; keep the repository's `price/src/` directory alongside
+`io/www` when running or bundling the server. `parse5` remains a runtime dependency.
+
+```js
+import { transformer as render } from './transformers/render.js';
+
+await render.process(context, {
+    environment: 'prod', // Required; no default or cross-environment fallback.
+    resolveOptions: ({ context, fragment, fieldName, valueIndex, attributes }) => {
+        // The caller supplies already-resolved options for this particular price.
+        return {
+            country: 'US',
+            language: 'en',
+            wcsOsi: ['resolved-osi'],
+            promotionCodes: [''],
+            promotionCode: '',
+            displayTax: false,
+            forceTaxExclusive: false,
+            quantity: [1],
+            template: 'price',
+            literals: {},
+        };
+    },
+});
+```
+
+`resolveOptions` may be asynchronous. It receives decoded HTML attributes and
+the owning fragment, field name, optional array index, and original context.
+It must not mutate those inputs. Return the country used for the WCS cache
+(including any commerce-country override), the display language, a non-empty
+array of final OSIs, and an equally sized array of effective promotion codes.
+Resolve substitutions, fragment/element promotion precedence, broadcast codes,
+and `cancel-context` upstream; cancelled/non-promoted OSIs use `''`. The stage
+does not reinterpret authored promo scope or fetch missing cache entries.
+
+`promotionCodes` selects the cached offers separately for each OSI.
+The singular `promotionCode` is the resolved per-placeholder selector passed to
+the shared formatter: supply the resolved code for promotional rendering, or
+explicitly supply `''` to disable it. Both inputs are required, including for
+non-promotional prices. The caller resolves the selector using the browser's
+precedence; the stage does not derive it from the first, joined, or non-empty
+bundle cache codes. Unresolved `cancel-context` is rejected in either input.
+
+`country`, `language`, `wcsOsi`, `promotionCodes`, `promotionCode`, `displayTax`, and
+`forceTaxExclusive` must be supplied. Inputs are normalized rendering options,
+not raw dataset strings: notably `forceTaxExclusive` must be a boolean.
+Supply applicable literals, per-unit/annual/old-price flags, quantity and time
+inputs, retaining the browser's override precedence. Optional formatting defaults
+remain those of the shared package. Literal dictionary tokens must be resolved
+or omitted; unresolved `price-literal-*` values are rejected. The stage does not
+derive geo/segment tax policy, browser feature flags, provider defaults, or query
+parameters. These are prerequisites for the separate activation ticket.
+
+The selected cache is `context.body.wcs[environment]`. Cache keys follow the WCS
+producer: final OSI, lowercased country, `mult` except for GB, then the lowercased
+effective promotion code if present. Raw cached offers are copied and normalized
+using `applyPlanType` imported from `price/src/index.js` before offer
+selection. Its mapping preserves the browser's existing tacocat behavior;
+web-components is unchanged and continues using its current helper.
+The server does not depend on Dexter or Pandora for normalization.
+Missing environments/offers, empty offer groups, unaligned promotions,
+and unresolved required options fail explicitly with request/field diagnostics.
+All field updates are committed only after the entire render succeeds; cached
+offers and unrelated context values are not modified.
+
+For a `discount` template with exactly two OSIs, the first selected offer supplies
+the discounted price and the second supplies the reference price, matching the
+browser. Stale `priceInfo` is discarded on the derived offer. Other multi-OSI
+prices retain shared soft-bundle summation; percentage calculation and markup
+remain in the shared `price/src` implementation.
+
+Root and flattened referenced fragments are processed once. String fields,
+wrapped rich-text `value` strings/arrays and string-array fields are supported.
+Only `<span is="inline-price">` contents are replaced. A source-offset HTML parser
+preserves the original outer wrapper, attributes, spelling, whitespace and
+surrounding markup; checkout links, badges and other content remain untouched.
+Nested inline-price placeholders, prices inside inert `<template>` elements,
+and wrappers without an explicit closing tag are rejected.
+
+The original `is="inline-price"` and other client hooks remain on the wrapper.
+The activation ticket must determine how to prevent unintended browser
+re-rendering/hydration, supply the explicit environment and resolved option
+provider, and then register the stage after `wcs` and before `corrector`.
+No hidden activation flag or shadow rendering exists in this change.
+
+Focused validation (Node 22+, from `io/www`):
+
+```sh
+npx mocha test/fragment/render.test.js
+npm test
+```
+
+The tests use the unchanged shared golden corpus with fixed UTC time. Valid
+fixtures assert exact price contents inside preserved wrappers. The shared
+package's empty-offer/missing-option fixtures intentionally produce errors at
+this transformer boundary, rather than blank prices.
+
 You can see the full flow on below diagram:
 ![flow](image.png)
 

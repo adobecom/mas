@@ -238,4 +238,4 @@ async function mainProcess(context) {
     return returnValue;
 }
 
-export { main, resetCache };
+export { main, resetCache, PIPELINE };

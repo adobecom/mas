@@ -18,6 +18,7 @@ import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
+import { Fragment } from './aem/fragment.js';
 import { stripRenditionParams } from '../../web-components/src/image-markup.js';
 
 /**
@@ -550,6 +551,19 @@ export async function resolveHydratedParentFragment(aem, fragmentPath) {
     }
 
     return null;
+}
+
+/**
+ * Resolves the fragment a promo variation inherits from. IO merges a promo variation onto the
+ * default card, also when it was forked from a grouped variation, so a grouped source resolves
+ * to its default card.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {Object|null} sourceFragment - the fragment the promo variation was created from
+ * @returns {Promise<Object|null>}
+ */
+export async function resolvePromoVariationDefaultCard(aem, sourceFragment) {
+    if (!Fragment.isGroupedVariationPath(sourceFragment?.path)) return sourceFragment;
+    return resolveHydratedParentFragment(aem, sourceFragment.path);
 }
 
 export function previewFragmentOnPage(fragment) {

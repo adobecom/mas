@@ -5,6 +5,25 @@ import { UserFriendlyError } from '../../src/utils.js';
 describe('aem.js', () => {
     const aem = new AEM('test');
 
+    describe('fragment path lookup cancellation', () => {
+        it('passes the optional AbortSignal to fetch', async () => {
+            const originalFetch = window.fetch;
+            const controller = new AbortController();
+            let capturedSignal;
+            window.fetch = async (url, options) => {
+                capturedSignal = options.signal;
+                return { ok: true, json: async () => ({ items: [{ id: 'fragment' }] }) };
+            };
+            try {
+                await aem.sites.cf.fragments.getByPath('/content/dam/mas/sample', { signal: controller.signal });
+
+                expect(capturedSignal).to.equal(controller.signal);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    });
+
     describe('filterByTags', () => {
         it('should filter tags with AND/OR logic', () => {
             const items = [

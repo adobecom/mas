@@ -12,12 +12,17 @@ on:
     workflow_dispatch:
         inputs:
             before_sha:
-                description: 'Purge the files changed on main since this commit'
-                required: true
+                description: 'Wait for aem.live to serve the files changed on main since this commit; leave empty to purge right away'
+                required: false
                 type: string
 
 permissions:
     contents: read
+
+# Every run invalidates the whole CP code, so a newer run covers any older one.
+concurrency:
+    group: akamai-purge
+    cancel-in-progress: true
 
 jobs:
     purge:
@@ -29,7 +34,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  # Full history, without old file contents, to tell older versions of a file from newer ones.
+                  # Full history, without file contents, to diff against the pushed-from commit.
                   fetch-depth: 0
                   filter: blob:none
 
@@ -38,7 +43,7 @@ jobs:
               with:
                   node-version: 22.x
 
-            - name: Invalidate changed files on mas.adobe.com
+            - name: Invalidate mas.adobe.com
               run: node .github/scripts/akamai-purge.mjs
               env:
                   BEFORE_SHA: ${{ inputs.before_sha || github.event.before }}

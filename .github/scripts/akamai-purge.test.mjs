@@ -5,16 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 
-import {
-    blobId,
-    chunkUrls,
-    formatTimestamp,
-    olderVersions,
-    previousCommit,
-    run,
-    selectPurgePaths,
-    signRequest,
-} from './akamai-purge.mjs';
+import { blobId, formatTimestamp, previousCommit, run, selectPurgePaths, signRequest } from './akamai-purge.mjs';
 
 // Expected signatures come from Akamai's edgegrid-python (EdgeGridAuthHeaders.make_auth_header) with these dummy values.
 const credentials = {
@@ -28,20 +19,18 @@ const nonce = 'nonce-xx-0000';
 const authPrefix =
     'EG1-HMAC-SHA256 client_token=akab-client-token-xxx;access_token=akab-access-token-xxx;timestamp=20261014T22:15:00+0000;nonce=nonce-xx-0000;';
 
-const timing = { pollIntervalMs: 1, originTimeoutMs: 60, edgeTimeoutMs: 60, requestTimeoutMs: 30 };
+const timing = { pollIntervalMs: 1, originTimeoutMs: 60, requestTimeoutMs: 30 };
 const ORIGIN = 'https://main--mas--adobecom.aem.live';
-const EDGE = 'https://mas.adobe.com';
-const PURGE = `https://${credentials.host}/ccu/v3/invalidate/url/production`;
-const original = Buffer.from('original content');
+const PURGE = `https://${credentials.host}/ccu/v3/invalidate/cpcode/production`;
+const pushed = Buffer.from('pushed content');
 const previous = Buffer.from('previous content');
-const studioJs = { path: 'studio/src/studio.js', older: new Set([blobId(original), blobId(previous)]) };
+const studioJs = { path: 'studio/src/studio.js', blob: blobId(pushed) };
 
-function stubFetch({ origin, edge = () => new Response('new content'), purge = purgeAccepted }) {
+function stubFetch({ origin = () => new Response(pushed), purge = purgeAccepted }) {
     const calls = [];
     mock.method(globalThis, 'fetch', async (url, init = {}) => {
         calls.push({ url, init });
         if (url.startsWith(ORIGIN)) return origin(url, init);
-        if (url.startsWith(EDGE)) return edge(url, init);
         if (url === PURGE) return purge(url, init);
         throw new Error(`unexpected fetch ${url}`);
     });
@@ -49,11 +38,11 @@ function stubFetch({ origin, edge = () => new Response('new content'), purge = p
 }
 
 function purgeAccepted() {
-    return Response.json({ httpStatus: 201, estimatedSeconds: 0, purgeId: 'purge-1' }, { status: 201 });
+    return Response.json({ httpStatus: 201, estimatedSeconds: 5, purgeId: 'purge-1' }, { status: 201 });
 }
 
-function purgedUrls(calls) {
-    return calls.filter(({ url }) => url === PURGE).flatMap(({ init }) => JSON.parse(init.body).objects);
+function purgeBodies(calls) {
+    return calls.filter(({ url }) => url === PURGE).map(({ init }) => JSON.parse(init.body));
 }
 
 // Keeps the developer's signing and hook settings out of fixture commits.
@@ -133,26 +122,8 @@ test('selectPurgePaths splits NUL-separated diff output and keeps only file type
     assert.deepEqual(paths, ['studio/src/studio.js', 'studio/style.css', 'studio/img/café.svg', 'web-components/dist/mas.js']);
 });
 
-test('chunkUrls keeps every purge body within the byte limit, in order', () => {
-    const urls = Array.from({ length: 7 }, (value, index) => `${EDGE}/studio/src/${'x'.repeat(index * 10)}.js`);
-    const chunks = chunkUrls(urls, 200);
-    assert.ok(chunks.length > 1);
-    assert.deepEqual(chunks.flat(), urls);
-    for (const chunk of chunks) assert.ok(Buffer.byteLength(JSON.stringify({ objects: chunk })) <= 200);
-});
-
 test('blobId matches git hash-object', () => {
     assert.equal(blobId(Buffer.from('hello\n')), 'ce013625030ba8dba906f756967f9e9ca394464a');
-});
-
-test('olderVersions lists every version main had up to the previous push', () => {
-    const versions = inRepoWithVersions(['a', 'b', 'c'], ([, before, after]) => olderVersions(before, after, 'f.js'));
-    assert.deepEqual(versions, new Set([blobId(Buffer.from('a')), blobId(Buffer.from('b'))]));
-});
-
-test('olderVersions leaves out the deployed version when a push reverts to it', () => {
-    const versions = inRepoWithVersions(['a', 'b', 'a'], ([, before, after]) => olderVersions(before, after, 'f.js'));
-    assert.deepEqual(versions, new Set([blobId(Buffer.from('b'))]));
 });
 
 test('previousCommit keeps the pushed-from commit when it exists', () => {
@@ -163,51 +134,43 @@ test("previousCommit falls back to the pushed commit's parent when the pushed-fr
     inRepoWithVersions(['a', 'b'], ([parent, after]) => assert.equal(previousCommit('0'.repeat(40), after), parent));
 });
 
-test('run waits until aem.live moves past the previous version, purges, then checks the edge', async () => {
+test('run waits until aem.live serves the pushed version, then invalidates the CP code', async () => {
     let originCalls = 0;
-    const calls = stubFetch({
-        origin: () => new Response(++originCalls < 3 ? previous : 'new content'),
-    });
+    const calls = stubFetch({ origin: () => new Response(++originCalls < 3 ? previous : pushed) });
     await run({ files: [studioJs], credentials, timing });
     assert.equal(originCalls, 3);
-    assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/studio.js`]);
-    assert.ok(calls.some(({ url }) => url === `${EDGE}/studio/src/studio.js`));
-});
-
-test('run accepts a newer version on aem.live, e.g. from a later merge', async () => {
-    const calls = stubFetch({ origin: () => new Response('content from a later merge') });
-    await run({ files: [studioJs], credentials, timing });
-    assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/studio.js`]);
+    assert.deepEqual(purgeBodies(calls), [{ objects: [1776643] }]);
 });
 
 test('run treats a new file as ready once aem.live serves it', async () => {
     let originCalls = 0;
     const calls = stubFetch({
-        origin: () => (++originCalls < 2 ? new Response('', { status: 404 }) : new Response('new content')),
+        origin: () => (++originCalls < 2 ? new Response('', { status: 404 }) : new Response(pushed)),
     });
-    await run({ files: [{ path: 'studio/src/new-view.js', older: new Set() }], credentials, timing });
-    assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/new-view.js`]);
+    await run({ files: [{ path: 'studio/src/new-view.js', blob: blobId(pushed) }], credentials, timing });
+    assert.deepEqual(purgeBodies(calls), [{ objects: [1776643] }]);
+});
+
+test('run purges right away when there are no files to wait for', async () => {
+    const calls = stubFetch({});
+    await run({ files: [], credentials, timing });
+    assert.deepEqual(
+        calls.map(({ url }) => url),
+        [PURGE],
+    );
 });
 
 test('run fails without purging when aem.live still serves the previous version', async () => {
     const calls = stubFetch({ origin: () => new Response(previous) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
-    assert.deepEqual(purgedUrls(calls), []);
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live does not serve the pushed/);
+    assert.deepEqual(purgeBodies(calls), []);
 });
 
-test('run fails without purging while aem.live serves a version older than the previous one', async () => {
-    const calls = stubFetch({ origin: () => new Response(original) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
-    assert.deepEqual(purgedUrls(calls), []);
-});
-
-test('run purges the ready files, then fails for the stale ones', async () => {
-    const calls = stubFetch({
-        origin: (url) => new Response(url.endsWith('studio.js') ? 'new content' : previous),
-    });
-    const styleCss = { path: 'studio/style.css', older: new Set([blobId(previous)]) };
-    await assert.rejects(run({ files: [studioJs, styleCss], credentials, timing }), /studio\/style\.css/);
-    assert.deepEqual(purgedUrls(calls), [`${EDGE}/studio/src/studio.js`]);
+test('run fails without purging and lists the files aem.live does not serve yet', async () => {
+    const calls = stubFetch({ origin: (url) => new Response(url.endsWith('studio.js') ? pushed : previous) });
+    const styleCss = { path: 'studio/style.css', blob: blobId(Buffer.from('pushed style')) };
+    await assert.rejects(run({ files: [studioJs, styleCss], credentials, timing }), /\(studio\/style\.css\)/);
+    assert.deepEqual(purgeBodies(calls), []);
 });
 
 test('a hung aem.live request cannot outlive the polling deadline', async () => {
@@ -223,32 +186,21 @@ test('a hung aem.live request cannot outlive the polling deadline', async () => 
             }),
     });
     const started = Date.now();
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live still serves an older version/);
+    await assert.rejects(run({ files: [studioJs], credentials, timing }), /aem\.live does not serve the pushed/);
     assert.ok(Date.now() - started < 1000);
     assert.ok(calls.every(({ init }) => init.signal instanceof AbortSignal));
 });
 
 test('run fails when Akamai rejects the purge', async () => {
     stubFetch({
-        origin: () => new Response('new content'),
         purge: () => Response.json({ title: 'Forbidden', detail: 'Invalid credentials' }, { status: 403 }),
     });
     await assert.rejects(run({ files: [studioJs], credentials, timing }), /Akamai purge failed with 403: Forbidden/);
 });
 
-test('run fails when mas.adobe.com still serves the previous version after the purge', async () => {
-    stubFetch({ origin: () => new Response('new content'), edge: () => new Response(previous) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves an older/);
-});
-
 test('purge requests carry a timeout signal', async () => {
-    const calls = stubFetch({ origin: () => new Response('new content') });
+    const calls = stubFetch({});
     await run({ files: [studioJs], credentials, timing });
     const purges = calls.filter(({ url }) => url === PURGE);
     assert.ok(purges.length && purges.every(({ init }) => init.signal instanceof AbortSignal));
-});
-
-test('run fails when mas.adobe.com serves a version older than the previous one after the purge', async () => {
-    stubFetch({ origin: () => new Response('new content'), edge: () => new Response(original) });
-    await assert.rejects(run({ files: [studioJs], credentials, timing }), /mas\.adobe\.com still serves an older/);
 });

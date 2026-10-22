@@ -11,9 +11,6 @@ inputs:
         required: true
 
 outputs:
-    io-studio:
-        description: "'true' if Studio actions changed"
-        value: ${{ steps.check.outputs.io-studio }}
     trivial:
         description: "'true' if the PR only touches trivial paths, else 'false'"
         value: ${{ steps.check.outputs.trivial }}
@@ -32,11 +29,6 @@ runs:
               GATE_PATTERN='^\.github/(workflows/run-nala\.yml$|actions/(detect-trivial|resolve-nala-status)/)'
               git fetch origin "${BASE_REF}"
               CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
-              if echo "$CHANGED" | grep -q '^io/studio/'; then
-                  echo "io-studio=true" >> "$GITHUB_OUTPUT"
-              else
-                  echo "io-studio=false" >> "$GITHUB_OUTPUT"
-              fi
               if [ -z "$CHANGED" ]; then
                   echo "trivial=false" >> "$GITHUB_OUTPUT"
               elif echo "$CHANGED" | grep -qE "$GATE_PATTERN"; then

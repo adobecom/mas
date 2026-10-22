@@ -144,18 +144,6 @@ jobs:
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
               run: node scripts/deploy-actions.mjs core
 
-            - name: Write Studio namespace metadata
-              env:
-                  STUDIO_NAMESPACE: ${{ steps.ns.outputs.namespace }}
-              run: printf '%s\n' "$STUDIO_NAMESPACE" > "$RUNNER_TEMP/studio-namespace.txt"
-
-            - name: Publish Studio namespace metadata
-              uses: actions/upload-artifact@v4
-              with:
-                  name: studio-runtime
-                  path: ${{ runner.temp }}/studio-namespace.txt
-                  retention-days: 7
-
             - name: Fetch optional AI secrets from Vault
               id: ai-secrets
               if: inputs.deploy_ai

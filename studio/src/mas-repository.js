@@ -41,6 +41,11 @@ import {
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
+
+async function confirmReferenceDiagnosis(aem, roots) {
+    const { MasReferenceDiagnosisDialog } = await import('./publish/mas-reference-diagnosis-dialog.js');
+    return MasReferenceDiagnosisDialog.confirmFor(aem, roots);
+}
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -50,7 +55,7 @@ import {
 } from './placeholders/mas-placeholders-repository.js';
 import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
-import { getFragmentName } from './translation/translation-utils.js';
+import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,
@@ -168,6 +173,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #publishAttemptInProgress = false;
     #searchCursor = null;
     #addonPlaceholdersRequest = null;
 
@@ -1269,7 +1275,7 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.translationProjects.list.data.set(translationProjects);
+            Store.translationProjects.list.data.set(mergeTranslationProjectList(translationProjects, translationsPath));
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');
         } finally {
@@ -1403,13 +1409,19 @@ export class MasRepository extends LitElement {
             if (fragmentCache.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
-        let fragment = fragmentCache.get(fragmentData.id);
-        if (!fragment) {
-            fragment = new Fragment(fragmentData);
-            fragmentCache.add(fragment);
-        } else {
-            fragment.refreshFrom(fragmentData);
+        // The aem-fragment cache is shared with anything that renders a card,
+        // and those writers store plain fragment data (map-shaped fields) that
+        // the web component hydrates from — no refreshFrom, and a shape this
+        // repository cannot use. Only refresh an entry we put there ourselves;
+        // otherwise build our own Fragment from the data we just fetched and
+        // leave theirs alone, since it is what their rendered cards read.
+        const cached = fragmentCache.get(fragmentData.id);
+        if (cached instanceof Fragment) {
+            cached.refreshFrom(fragmentData);
+            return cached;
         }
+        const fragment = new Fragment(fragmentData);
+        if (!cached) fragmentCache.add(fragment);
         return fragment;
     }
 
@@ -1575,8 +1587,15 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
-        const { selectedRefIds = null, allSelected = false } = options;
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
         try {
+            const roots = [
+                fragment,
+                ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
+            ];
+            if (!skipReferenceDiagnosis && !(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
@@ -1604,6 +1623,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 
@@ -1699,12 +1719,16 @@ export class MasRepository extends LitElement {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
             return false;
         }
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
 
         try {
+            const listStores = Store.fragments.list.data.get();
+            const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
+            if (!(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const listStores = Store.fragments.list.data.get();
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
@@ -1745,6 +1769,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 

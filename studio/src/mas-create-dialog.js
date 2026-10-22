@@ -8,7 +8,6 @@ import {
     EVENT_KEYDOWN,
     EVENT_OST_CLOSE,
     EVENT_OST_OFFER_SELECT,
-    SURFACES,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD,
     TAG_MERCH_CARD_COLLECTION,
@@ -16,20 +15,19 @@ import {
 } from './constants.js';
 import router from './router.js';
 import Store from './store.js';
+import StoreController from './reactivity/store-controller.js';
 import './rte/osi-field.js';
 import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
-import { getSurfacesVariantNames } from './editors/variant-picker.js';
 import { createBaseline, resolveProductArrangementCode } from './baselines/baseline-model.js';
-import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 
 const BASELINE_EXISTS_ERROR = 'A baseline with this title already exists';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
 const MISSING_PA_CODE_ERROR = 'No PA code found for this offer';
 
-const INITIAL_TOUCHED = { title: false, osi: false, surface: false, template: false };
+const INITIAL_TOUCHED = { title: false, osi: false, template: false };
 const INITIAL_ERRORS = { title: '', offer: '' };
 
 const fieldMessage = (id, message) =>
@@ -57,11 +55,12 @@ export class MasCreateDialog extends LitElement {
         errors: { state: true },
         loading: { state: true },
         productArrangementCode: { state: true },
-        surface: { state: true },
         template: { state: true },
     };
 
     #selectionId = 0;
+
+    search = new StoreController(this, Store.search);
 
     static styles = css`
         :host {
@@ -246,7 +245,6 @@ export class MasCreateDialog extends LitElement {
         this.osi = '';
         this.#selectionId++;
         this.productArrangementCode = '';
-        this.surface = '';
         this.template = '';
         this.loading = false;
     }
@@ -277,12 +275,6 @@ export class MasCreateDialog extends LitElement {
         this.productArrangementCode = productArrangementCode ?? '';
         this.#setError('offer', productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
     };
-
-    #handleSurfaceChange(event) {
-        this.#touch('surface');
-        this.surface = event.target.value;
-        if (!getSurfacesVariantNames([this.surface]).has(this.template)) this.template = '';
-    }
 
     #handleTemplateChange(event) {
         this.#touch('template');
@@ -349,7 +341,7 @@ export class MasCreateDialog extends LitElement {
             event.preventDefault();
         }
 
-        this.#touch('title', 'osi', 'surface', 'template');
+        this.#touch('title', 'osi', 'template');
 
         if (!this.title) {
             return;
@@ -440,7 +432,6 @@ export class MasCreateDialog extends LitElement {
             return;
         }
         if (!result?.fragment?.id) return;
-        applySearchSurfaceFromPath(result.folder);
         this.close();
         await this.#openFragmentEditor(result.fragment.id);
     }
@@ -460,6 +451,10 @@ export class MasCreateDialog extends LitElement {
 
     get titleErrorMessage() {
         return this.touched.title && !this.title ? 'Enter a title' : this.errors.title;
+    }
+
+    get surface() {
+        return this.search.value.path;
     }
 
     get repository() {
@@ -519,28 +514,6 @@ export class MasCreateDialog extends LitElement {
         `;
     }
 
-    get surfaceFieldTemplate() {
-        const errorMessage = this.touched.surface && !this.surface ? 'Select a surface' : '';
-        return html`
-            <div class="form-field with-message">
-                <sp-field-label id="surface-label" for="surface" required>Surface</sp-field-label>
-                <sp-picker
-                    id="surface"
-                    label="Select a surface"
-                    aria-describedby=${errorMessage ? 'surface-error' : nothing}
-                    .value=${this.surface}
-                    ?invalid=${Boolean(errorMessage)}
-                    @change=${this.#handleSurfaceChange}
-                >
-                    ${Object.values(SURFACES).map(
-                        ({ label, name }) => html`<sp-menu-item value=${name}>${label}</sp-menu-item>`,
-                    )}
-                </sp-picker>
-                ${fieldMessage('surface-error', errorMessage)}
-            </div>
-        `;
-    }
-
     get templateFieldTemplate() {
         const errorMessage = this.touched.template && !this.template ? 'Select a template' : '';
         return html`
@@ -565,7 +538,7 @@ export class MasCreateDialog extends LitElement {
     }
 
     get baselineFields() {
-        return html`${this.offerFieldTemplate} ${this.surfaceFieldTemplate} ${this.templateFieldTemplate}`;
+        return html`${this.offerFieldTemplate} ${this.templateFieldTemplate}`;
     }
 
     render() {

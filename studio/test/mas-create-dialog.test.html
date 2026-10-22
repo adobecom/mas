@@ -81,7 +81,7 @@
                             dialog.close();
                             dialog.type = 'baseline';
                             dialog.title = 'Test Baseline';
-                            dialog.surface = 'acom';
+                            Store.search.set((prev) => ({ ...prev, path: 'acom' }));
                             service = document.createElement('mas-commerce-service');
                             service.collectPriceOptions = sandbox.stub().returns({});
                             service.resolveOfferSelectors = sandbox.stub();
@@ -203,8 +203,7 @@
                             expect(dialog.offerSelectorOpened).to.be.false;
                         });
 
-                        it('exposes accessible labels and errors on empty offer and surface', async () => {
-                            dialog.surface = '';
+                        it('exposes accessible labels and errors on an empty offer', async () => {
                             sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
 
                             await dialog.handleSubmit();
@@ -212,16 +211,11 @@
 
                             const root = dialog.shadowRoot;
                             const offerButton = root.querySelector('[aria-labelledby="offer-label"] sp-action-button');
-                            const surface = root.querySelector('sp-picker#surface');
                             expect(root.querySelector('#offer-label').textContent.trim()).to.equal('Offer');
                             expect(offerButton.getAttribute('aria-invalid')).to.equal('true');
                             expect(offerButton.classList.contains('invalid')).to.be.true;
                             expect(offerButton.getAttribute('aria-describedby')).to.equal('offer-error');
                             expect(root.querySelector('#offer-error').textContent.trim()).to.equal('Select an offer');
-                            expect(root.querySelector('#surface-label').getAttribute('for')).to.equal('surface');
-                            expect(surface.invalid).to.be.true;
-                            expect(surface.getAttribute('aria-describedby')).to.equal('surface-error');
-                            expect(root.querySelector('#surface-error').textContent.trim()).to.equal('Select a surface');
                         });
 
                         it('labels the template picker and describes its error', async () => {
@@ -240,13 +234,12 @@
                         });
 
                         it('announces field errors through polite live regions', async () => {
-                            dialog.surface = '';
                             dialog.title = '';
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            for (const id of ['title-error', 'offer-error', 'surface-error']) {
+                            for (const id of ['title-error', 'offer-error']) {
                                 const region = dialog.shadowRoot.querySelector(`#${id}`).closest('.field-message');
                                 expect(region.getAttribute('aria-live')).to.equal('polite');
                             }
@@ -282,13 +275,8 @@
                             expect(changeButton.textContent.trim()).to.equal('Change offer');
                         });
 
-                        it('offers every surface as a single choice', async () => {
-                            await dialog.updateComplete;
-
-                            const items = dialog.shadowRoot.querySelectorAll('sp-picker#surface sp-menu-item');
-
-                            expect(dialog.shadowRoot.querySelector('sp-checkbox')).to.not.exist;
-                            expect([...items].map((item) => item.value)).to.include.members(['acom', 'ccd', 'sandbox']);
+                        it('does not render a surface picker', () => {
+                            expect(dialog.shadowRoot.querySelector('#surface')).to.not.exist;
                         });
 
                         describe('on create', () => {
@@ -302,7 +290,7 @@
                                 sandbox.stub(router, 'navigateToFragmentEditor').resolves();
                                 dialog.osi = 'ABC123';
                                 dialog.productArrangementCode = 'ccsn_direct_individual';
-                                dialog.surface = 'sandbox';
+                                Store.search.set((prev) => ({ ...prev, path: 'sandbox' }));
                                 dialog.template = 'catalog';
                             });
 
@@ -366,8 +354,7 @@
                                 });
                             });
 
-                            it('opens the created baseline in the fragment editor of its surface', async () => {
-                                Store.search.set((prev) => ({ ...prev, path: 'acom' }));
+                            it('opens the created baseline in the fragment editor of the current surface', async () => {
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox
                                     .stub(fragments, 'getByPath')
@@ -387,7 +374,6 @@
                             });
 
                             it('keeps the search surface when the baseline is not created', async () => {
-                                Store.search.set((prev) => ({ ...prev, path: 'acom' }));
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox
                                     .stub(fragments, 'getByPath')
@@ -396,7 +382,7 @@
 
                                 await dialog.handleSubmit();
 
-                                expect(Store.search.value.path).to.equal('acom');
+                                expect(Store.search.value.path).to.equal('sandbox');
                             });
 
                             it('reports that the baseline was created when navigation fails', async () => {
@@ -473,7 +459,7 @@
                         });
 
                         it('lists only templates available for the selected surface', async () => {
-                            dialog.surface = 'ccd';
+                            Store.search.set((prev) => ({ ...prev, path: 'ccd' }));
                             await dialog.updateComplete;
                             const picker = dialog.shadowRoot.querySelector('variant-picker');
                             await picker.updateComplete;
@@ -486,24 +472,11 @@
                             expect(values).to.not.include('simplified-pricing-express');
                         });
 
-                        it('disables the template picker until a surface is selected', async () => {
-                            dialog.surface = '';
+                        it('disables the template picker when no surface is selected in Studio', async () => {
+                            Store.search.set((prev) => ({ ...prev, path: '' }));
                             await dialog.updateComplete;
 
                             expect(dialog.shadowRoot.querySelector('variant-picker').disabled).to.be.true;
-                        });
-
-                        it('clears the template when the surface changes to one without it', async () => {
-                            dialog.template = 'catalog';
-                            await dialog.updateComplete;
-                            const surface = dialog.shadowRoot.querySelector('sp-picker#surface');
-
-                            surface.value = 'ccd';
-                            surface.dispatchEvent(new Event('change'));
-                            await dialog.updateComplete;
-
-                            expect(dialog.surface).to.equal('ccd');
-                            expect(dialog.template).to.equal('');
                         });
 
                         it('resets the template on close', () => {

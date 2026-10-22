@@ -8,6 +8,7 @@ import {
     canAccessOfferMapping,
     canAccessBulkPublish,
     canEditPromotions,
+    canManagePromotions,
     isMasAdmin,
 } from '../src/groups.js';
 import '../src/swc.js';
@@ -206,5 +207,32 @@ describe('groups', () => {
         Store.profile.set({ email: 'unknown@adobe.com' });
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
         expect(canEditPromotions()).to.be.false;
+    });
+
+    for (const { group, edit, manage } of [
+        { group: 'GRP-ODIN-MAS-ADMINS', edit: true, manage: true },
+        { group: 'GRP-ODIN-MAS-PROMO-EDITORS', edit: true, manage: false },
+        { group: 'GRP-ODIN-MAS-PROMO-POWERUSERS', edit: true, manage: true },
+        { group: 'grp-odin-mas-promo-powerusers', edit: true, manage: true },
+        { group: 'GRP-ODIN-MAS-ACOM-POWERUSERS', edit: false, manage: false },
+        { group: 'GRP-ODIN-MAS-EDITORS', edit: false, manage: false },
+    ]) {
+        it(`grants basic promotion authoring=${edit} for ${group}`, () => {
+            Store.profile.set({ email: 'Author@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+            expect(canEditPromotions()).to.equal(edit);
+        });
+
+        it(`grants advanced promotion authoring=${manage} for ${group}`, () => {
+            Store.profile.set({ email: 'Author@adobe.com' });
+            Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: [group] }]);
+            expect(canManagePromotions()).to.equal(manage);
+        });
+    }
+
+    it('denies advanced promotion authoring before membership is loaded', () => {
+        Store.profile.set({ email: 'author@adobe.com' });
+        Store.users.set([]);
+        expect(canManagePromotions()).to.be.false;
     });
 });

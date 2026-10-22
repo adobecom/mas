@@ -308,11 +308,6 @@ describe('mas-external-usage-dialog', () => {
         expect(element.shadowRoot.querySelector('.usage-summary')).to.equal(null);
     });
 
-    it('explains traffic that has no attributable page rather than looking broken', async () => {
-        const element = await openDialog({ ...usage, pages: [] });
-        expect(element.shadowRoot.querySelector('.usage-placeholder').textContent).to.contain('no referer');
-    });
-
     it('reports unavailable data instead of rendering an empty table', async () => {
         const element = await openDialog({ available: false });
         expect(element.shadowRoot.querySelector('.usage-placeholder').textContent).to.contain('unavailable');

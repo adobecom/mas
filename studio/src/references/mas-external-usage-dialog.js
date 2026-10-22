@@ -159,14 +159,6 @@ class MasExternalUsageDialog extends LitElement {
         }
 
         const pages = this.#sortedPages();
-        if (!pages.length) {
-            // Requests from apps that send no referer cannot be attributed to a page, so an empty
-            // list is a real state rather than an error.
-            return html`<div class="usage-placeholder">
-                No referring pages recorded. Traffic may come from apps that send no referer.
-            </div>`;
-        }
-
         const commonHost = this.#commonHost;
         return html`
             <sp-table emphasized class="pages-table dialog-table" @sorted=${this.#handleSorted}>

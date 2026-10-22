@@ -87,7 +87,14 @@ export default class MasRelatedPages extends LitElement {
             </div>`;
         }
         const regions = groupPagesByRegion(this.usage.pages);
-        if (!regions.length) return nothing;
+        // Usage is recorded per requested id. Pages mostly request a parent, and the server swaps in
+        // its translation or variation, so an empty list here does not mean the fragment goes unseen.
+        if (!regions.length) {
+            return html`<div class="references-container">
+                ${this.#title}
+                <div class="referencing-message">No pages request this fragment directly</div>
+            </div>`;
+        }
         return html`
             <div class="references-container">
                 <div class="artifacts-header">

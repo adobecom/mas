@@ -79,10 +79,16 @@ describe('mas-related-pages', () => {
             expect(text(el)).to.include('Usage data unavailable');
         });
 
-        it('renders nothing when no pages served the fragment', async () => {
+        it('says no pages request the fragment directly when none did', async () => {
             const el = await mount(fragment('card-a'));
             await settled(el);
-            expect(text(el).trim()).to.equal('');
+            expect(text(el)).to.include('Related pages:').and.include('No pages request this fragment directly');
+        });
+
+        it('offers no View pages button when no pages served the fragment', async () => {
+            const el = await mount(fragment('card-a'));
+            await settled(el);
+            expect(el.shadowRoot.querySelector('.artifacts-view-link')).to.equal(null);
         });
 
         it('shows one count line per region', async () => {

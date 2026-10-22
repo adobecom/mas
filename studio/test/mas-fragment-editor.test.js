@@ -1937,6 +1937,36 @@ describe('MasFragmentEditor', () => {
     });
 
     describe('previewColumn for collections', () => {
+        let ioMeta;
+
+        beforeEach(() => {
+            ioMeta = document.createElement('meta');
+            ioMeta.name = 'io-base-url';
+            ioMeta.content = 'https://io.example';
+            document.head.append(ioMeta);
+            sessionStorage.setItem('masAccessToken', 'ims-token');
+        });
+
+        afterEach(() => {
+            ioMeta.remove();
+            sessionStorage.removeItem('masAccessToken');
+        });
+
+        it('leaves a plain collection without a preview column when usage cannot be fetched', () => {
+            ioMeta.remove();
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'coll-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            expect(el.previewColumn).to.equal(nothing);
+        });
+
         it('mounts related pages and artifacts for a plain collection, without related variations', () => {
             const el = document.createElement('mas-fragment-editor');
             const fragment = new Fragment({
@@ -2022,14 +2052,14 @@ describe('MasFragmentEditor', () => {
             return container.querySelector('#editor-content').className;
         };
 
-        it('renders a plain collection in two columns, not full width', () => {
+        it('renders a collection without a preview column full width', () => {
             const className = renderEditorContentClass({
                 id: 'plain-coll',
                 path: '/content/dam/mas/sandbox/en_US/plain-coll',
                 model: { path: COLLECTION_MODEL_PATH },
                 fields: [{ name: 'label', values: ['L'] }],
             });
-            expect(className).to.equal('');
+            expect(className).to.equal('full-width-content');
         });
 
         it('does not render a compare chart full width', () => {

@@ -67,6 +67,13 @@ export const TRIAL_ANALYTICS_IDS = new Set([
     'thirty-day-trial',
 ]);
 
+/** Templates whose persisted CTA variants hydrate as headless Consonant links. */
+export const HEADLESS_STYLE_CTA_VARIANTS = [
+    'headless',
+    'marquee',
+    'banner-blade',
+];
+
 /** Event to dispatch when a merch-offer is ready */
 export const EVENT_MERCH_OFFER_READY = 'merch-offer:ready';
 

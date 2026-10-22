@@ -143,8 +143,7 @@ export const styles = [
             --actions-column-width: 6rem;
             --status-column-width: 7rem;
 
-            border-top: 1px solid var(--spectrum-gray-300);
-            border-bottom: 1px solid var(--spectrum-gray-300);
+            border: 1px solid var(--spectrum-gray-300);
             border-radius: 12px;
 
             .actions-head-cell,
@@ -178,7 +177,6 @@ export const styles = [
 
             sp-table-head {
                 width: max-content;
-                height: 44px;
                 min-width: 100%;
                 background: var(--spectrum-gray-75);
                 border-top-left-radius: 12px;
@@ -200,6 +198,15 @@ export const styles = [
             .select-all-row {
                 border-top-right-radius: 12px;
             }
+        }
+
+        .promo-variations-table.grouped-variations-table {
+            border-left: none;
+            border-right: none;
+
+            sp-table-head {
+                min-height: var(--spectrum-table-row-height-medium-regular);
+            }
 
             sp-table-head,
             sp-table-row:not(.grouped-promo-variation-row) {
@@ -217,11 +224,11 @@ export const styles = [
             }
 
             .table-icon-cell--chevron {
-                padding: 21px 35px;
+                padding: var(--spectrum-spacing-400) var(--spectrum-spacing-500);
             }
 
             .grouped-promo-variation-row .table-icon-cell--chevron {
-                padding: 0px 35px;
+                padding: 0 var(--spectrum-spacing-500);
             }
         }
 
@@ -241,7 +248,7 @@ export const styles = [
         }
 
         .grouped-promo-variation-row {
-            margin: 12px 0;
+            margin: var(--spectrum-spacing-200) 0;
         }
 
         .grouped-promo-variation-row sp-table-cell:not(.table-cell--invisible) {

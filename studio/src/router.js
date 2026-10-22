@@ -205,6 +205,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BULK_EDIT_EDITOR: {
+                const editor = document.querySelector('mas-bulk-edit-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -305,6 +314,9 @@ export class Router extends EventTarget {
                     }
                     if (targetPage === PAGE_NAMES.BULK_PUBLISH_EDITOR && options.bulkPublishProjectId !== undefined) {
                         Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.bulkEditProjectId !== undefined) {
+                        Store.bulkEditProjects.projectId.set(options.bulkEditProjectId);
                     }
                     if (options.translationProjectId !== undefined) {
                         Store.translationProjects.translationProjectId.set(options.translationProjectId);
@@ -536,6 +548,7 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
+        this.linkStoreToHash(Store.bulkEditProjects.projectId, 'bulkEditProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');

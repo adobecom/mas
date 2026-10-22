@@ -3,6 +3,7 @@ import { Fragment } from './aem/fragment.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
+import { canEditPromotions, canManagePromotions } from './groups.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import {
@@ -11,6 +12,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
+    PROMOTION_MODEL_ID,
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
@@ -636,6 +638,8 @@ export default class MasFragmentEditor extends LitElement {
         Store.promotions.inEdit,
         Store.search,
         Store.filters,
+        Store.profile,
+        Store.users,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
@@ -1059,6 +1063,8 @@ export default class MasFragmentEditor extends LitElement {
             this.operation,
             Store.search,
             Store.filters,
+            Store.profile,
+            Store.users,
         ]);
     }
 
@@ -1316,6 +1322,7 @@ export default class MasFragmentEditor extends LitElement {
     async initFragment() {
         const fragmentId = this.fragmentId;
         this.#pendingPromoRefresh = null;
+        this.variationsToDelete = [];
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1576,7 +1583,16 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canDeleteFragment() {
+        return canManagePromotions() || !this.isPromoVariationFragment();
+    }
+
     async deleteFragment() {
+        this.variationsToDelete = [];
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         const isVariation = this.editorContextStore.isVariation(this.fragment.id);
         if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
             if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
@@ -1594,10 +1610,18 @@ export default class MasFragmentEditor extends LitElement {
         } else {
             this.variationsToDelete = [];
         }
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.showDeleteDialog = true;
     }
 
     async confirmDelete() {
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.deleteInProgress = true;
         showToast('Deleting fragment...');
         const wasPromoVariation = this.isPromoVariationFragment();
@@ -1642,12 +1666,25 @@ export default class MasFragmentEditor extends LitElement {
     cancelDelete() {
         if (this.deleteInProgress) return;
         this.showDeleteDialog = false;
+        this.variationsToDelete = [];
+    }
+
+    get isPromotionProject() {
+        return this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID);
+    }
+
+    get canDuplicateFragment() {
+        return !this.isPromotionProject || canManagePromotions();
     }
 
     async showClone() {
-        if (Store.editor.hasChanges) {
+        if (this.canDuplicateFragment && Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
+        }
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
@@ -1662,6 +1699,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async confirmClone() {
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         const osi = this.fragment.getFieldValue('osi', 0);
         if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
             showToast('Please select an offer', 'negative');
@@ -1698,9 +1739,6 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
-                migrateLegacyVariant(this.fragmentStore);
-            }
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -1708,6 +1746,17 @@ export default class MasFragmentEditor extends LitElement {
                 dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
                     (store) => store.get?.().hasChanges,
                 );
+            }
+            if (
+                (this.isPromoVariationFragment() ||
+                    dirtyCardFragmentStores.some((store) => isPromoVariationPath(store.get().path))) &&
+                !canEditPromotions()
+            ) {
+                showToast('You do not have permission to update promo variations.', 'negative');
+                return;
+            }
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                migrateLegacyVariant(this.fragmentStore);
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
@@ -1732,9 +1781,21 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canPublishFragment() {
+        if (this.isPromotionProject) {
+            return canManagePromotions();
+        }
+        return canEditPromotions() || !this.isPromoVariationFragment();
+    }
+
     async publishFragment() {
+        if (!this.canPublishFragment) {
+            showToast('You do not have permission to publish this content.', 'negative');
+            return;
+        }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
+            let publishOptions;
             if (refs.variations.length || refs.cards.length) {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
@@ -1753,19 +1814,21 @@ export default class MasFragmentEditor extends LitElement {
                     if (!resultStaged.confirmed) return;
                 }
 
-                await this.repository.publishFragment(this.fragment, {
+                publishOptions = {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,
-                });
-            } else {
-                if (this.fragment.isStaged) {
-                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-                    const resultStaged = await MasPublishStagedDialog.show();
-                    if (!resultStaged.confirmed) return;
-                }
-
-                await this.repository.publishFragment(this.fragment);
+                };
+            } else if (this.fragment.isStaged) {
+                const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                const resultStaged = await MasPublishStagedDialog.show();
+                if (!resultStaged.confirmed) return;
             }
+
+            if (!this.canPublishFragment) {
+                showToast('You do not have permission to publish this content.', 'negative');
+                return;
+            }
+            await this.repository.publishFragment(this.fragment, publishOptions);
         } catch (error) {
             console.error('Failed to publish fragment:', error);
             showToast(`Failed to publish fragment: ${error.message}`, 'negative');
@@ -1887,7 +1950,12 @@ export default class MasFragmentEditor extends LitElement {
                       `
                     : nothing}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelClone}"> Cancel </sp-button>
-                <sp-button slot="button" variant="accent" ?disabled=${this.cloneInProgress} @click="${this.confirmClone}">
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.cloneInProgress || !this.canDuplicateFragment}
+                    @click="${this.confirmClone}"
+                >
                     ${this.cloneInProgress
                         ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                         : html`Clone`}
@@ -1947,6 +2015,10 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;
+    }
+
+    get isPromoReadOnly() {
+        return this.isPromoVariationFragment() && !canEditPromotions();
     }
 
     isPromoVariationFragment() {
@@ -2266,7 +2338,10 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
+            ${this.isPromoReadOnly
+                ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
+                : nothing}
+            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;

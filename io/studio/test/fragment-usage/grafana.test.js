@@ -98,9 +98,17 @@ describe('fragment-usage grafana', () => {
             // groupArray does not promise an order, so the arrays are sorted by request count. They
             // are no longer sliced here: the rollup folds the whole set into per-region totals and
             // caps the countries it keeps for display itself.
-            expect(sql).to.contain('arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)) AS countries');
+            expect(sql).to.contain(
+                'arraySort((country, hits) -> -hits, groupArray(countryCode), groupArray(hits)) AS countries',
+            );
             expect(sql).to.contain('arrayReverseSort(groupArray(hits)) AS counts');
             expect(sql).to.not.contain(`, 1, ${MAX_COUNTRIES_PER_PAGE})`);
+        });
+
+        it('reads the country through ifNull so a NULL cannot misalign the country and count arrays', () => {
+            // `country` is Nullable(String) and groupArray skips NULLs, so a bare column would
+            // leave the country array shorter than the counts and fail arraySort.
+            expect(sql).to.contain("ifNull(country, '') AS countryCode");
         });
 
         it('caps execution time so a slow scan cannot hang the action', () => {
@@ -206,6 +214,16 @@ describe('fragment-usage grafana', () => {
             const page = result[FRAGMENT][472222]['https://a.com'];
             expect(Object.keys(page.countries)).to.have.length(MAX_COUNTRIES_PER_PAGE);
             expect(page.regions).to.deep.equal({ JAPAC: 130 });
+        });
+
+        it('keeps every display slot for a real country when some requests had no country', async () => {
+            // A NULL country reaches the rollup as '' through the query's ifNull.
+            const japac = ['AU', 'NZ', 'JP', 'KR', 'CN', 'TW', 'HK', 'SG', 'IN', 'ID', 'MY', 'PH'];
+            stubFetch(frame([1700000000], [FRAGMENT], ['https://a.com'], [['', ...japac]], [[100, ...japac.map(() => 10)]]));
+
+            const result = await fetchHourlyPages(...oneHour, { token: 't' });
+
+            expect(Object.keys(result[FRAGMENT][472222]['https://a.com'].countries)).to.have.members(japac);
         });
 
         it('takes a page total from the query rather than from its kept countries', async () => {

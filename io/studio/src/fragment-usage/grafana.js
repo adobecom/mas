@@ -116,7 +116,7 @@ function buildPagesQuery(fromSec, toSec) {
     return (
         'SELECT bucket, fragmentId, page, locale, countries, counts, requests FROM (' +
         'SELECT bucket, fragmentId, page, locale, ' +
-        'arraySort((country, hits) -> -hits, groupArray(country), groupArray(hits)) AS countries, ' +
+        'arraySort((country, hits) -> -hits, groupArray(countryCode), groupArray(hits)) AS countries, ' +
         'arrayReverseSort(groupArray(hits)) AS counts, ' +
         'sum(hits) AS requests, ' +
         'row_number() OVER (PARTITION BY bucket, fragmentId ORDER BY sum(hits) DESC) AS rn FROM (' +
@@ -125,7 +125,7 @@ function buildPagesQuery(fromSec, toSec) {
         "extractURLParameter(concat('?', queryStr), 'locale') AS locale, " +
         `concat(cutQueryStringAndFragment(ifNull(referer, '')), ` +
         `if(${kept} != '', concat('?', substringUTF8(${kept}, 2)), '')) AS page, ` +
-        'country, ' +
+        "ifNull(country, '') AS countryCode, " +
         'count() AS hits ' +
         `FROM ${USAGE_TABLE} ` +
         `WHERE reqPath = '${MAS_FRAGMENT_ENDPOINT}' ` +
@@ -135,7 +135,7 @@ function buildPagesQuery(fromSec, toSec) {
         `AND reqTimeSec < toDateTime(${toSec}) ` +
         'AND fragmentId IS NOT NULL ' +
         "AND referer IS NOT NULL AND referer != '' " +
-        'GROUP BY bucket, fragmentId, page, locale, country' +
+        'GROUP BY bucket, fragmentId, page, locale, countryCode' +
         ') GROUP BY bucket, fragmentId, page, locale' +
         `) WHERE rn <= ${MAX_PAGES_PER_HOUR} ` +
         `SETTINGS hdx_query_max_execution_time=${MAX_EXECUTION_SECONDS}, ` +
@@ -218,7 +218,8 @@ function collectPages(values, byFragment) {
         const counts = countryCounts[index] ?? [];
         const countries = {};
         for (let position = 0; position < names.length; position += 1) {
-            countries[names[position]] = Number(counts[position]) || 0;
+            // A request the CDN could not place arrives as '' and must not take a display slot.
+            if (names[position]) countries[names[position]] = Number(counts[position]) || 0;
         }
         // Regions are summed over the full country set, before the display cap drops the tail.
         const regions = sumRegions(countries);

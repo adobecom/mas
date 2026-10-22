@@ -98,7 +98,7 @@ function readEntry(entry, key = '') {
         locale: entry?.locale ?? '',
         requests: Number(entry?.requests) || 0,
         countries: entry?.countries ?? {},
-        regions: entry?.regions ?? sumRegions(entry?.countries),
+        regions: Object.keys(entry?.regions ?? {}).length ? entry.regions : sumRegions(entry?.countries),
     };
 }
 

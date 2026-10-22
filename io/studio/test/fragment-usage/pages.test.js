@@ -53,6 +53,11 @@ describe('fragment-usage pages', () => {
             expect(readEntry(stored).regions).to.deep.equal({ EMEA: 100 });
         });
 
+        it('derives regions from the countries of a record stored with an empty regions map', () => {
+            const stored = { url: 'https://a.com', locale: 'en_GB', requests: 100, countries: { GB: 100 }, regions: {} };
+            expect(readEntry(stored).regions).to.deep.equal({ EMEA: 100 });
+        });
+
         it('recovers the url from the key when the record predates storing it', () => {
             expect(readEntry({ requests: 5 }, 'https://a.com').url).to.equal('https://a.com');
         });
@@ -145,7 +150,13 @@ describe('fragment-usage pages', () => {
                 11: { 'https://a.com': entry(4, { US: 1, CA: 3 }) },
             };
             expect(topPages(pages)).to.deep.equal([
-                { url: 'https://a.com', locale: '', requests: 7, countries: { US: 4, CA: 3 }, regions: {} },
+                {
+                    url: 'https://a.com',
+                    locale: '',
+                    requests: 7,
+                    countries: { US: 4, CA: 3 },
+                    regions: { 'LATAM/Americas': 7 },
+                },
             ]);
         });
 
@@ -164,6 +175,16 @@ describe('fragment-usage pages', () => {
                 10: { 'https://a.com#en_GB': { url: 'https://a.com', locale: 'en_GB', requests: 100, countries: { GB: 100 } } },
                 11: { 'https://a.com#en_GB': entry(10, { GB: 10 }, 'https://a.com', 'en_GB', { EMEA: 10 }) },
             };
+            expect(topPages(pages)[0].regions).to.deep.equal({ EMEA: 110 });
+        });
+
+        it('counts a stored hour with an empty regions map toward the region totals after a storage round trip', () => {
+            const pages = JSON.parse(
+                JSON.stringify({
+                    10: { 'https://a.com#en_GB': entry(100, { GB: 100 }, 'https://a.com', 'en_GB', {}) },
+                    11: { 'https://a.com#en_GB': entry(10, { GB: 10 }, 'https://a.com', 'en_GB', { EMEA: 10 }) },
+                }),
+            );
             expect(topPages(pages)[0].regions).to.deep.equal({ EMEA: 110 });
         });
 

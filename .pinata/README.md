@@ -80,7 +80,9 @@ a separate policy decision once its order-dependent failures are addressed.
 candidate io/www deploy, and a working UI preview does not verify changed
 pipeline code. A human approval to continue is an explicit exception.
 
-`io/studio` changes deploy through `io-studio-candidate`. The gate dispatches
+`io/studio` changes stop at `io-preview-support` for a human until self-hosted
+runner isolation/cleanup is verified; then the `io-studio-candidate` gate goes
+back in `gates.yaml`. That gate dispatches
 `.github/workflows/io-studio-candidate.yaml` on the pushed candidate branch: it
 refuses branches that touch `.github` or `.pinata`, runs the io/studio unit
 tests, and deploys to the `pinatacode[bot]` workspace resolved by

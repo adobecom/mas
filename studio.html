@@ -75,9 +75,19 @@
         <script type="module">
             import { resolveIoBaseUrl } from './studio/src/io-base-url.js';
 
-            document
-                .querySelector('meta[name="io-base-url"]')
-                ?.setAttribute('content', resolveIoBaseUrl(window.location.search));
+            try {
+                document
+                    .querySelector('meta[name="io-base-url"]')
+                    ?.setAttribute('content', resolveIoBaseUrl(window.location.search));
+            } catch (error) {
+                // Without an IO base, users, bulk publish and translation all fail; say why up front.
+                console.error(error);
+                const banner = document.createElement('p');
+                banner.className = 'io-config-error';
+                banner.role = 'alert';
+                banner.textContent = `${error.message} Fix io.studio.env in the URL and reload.`;
+                document.body.prepend(banner);
+            }
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>

@@ -56,9 +56,7 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
         let pulls = run.pull_requests ?? [];
         // GitHub can omit pull_requests on run records, particularly for fork PRs.
         if (!pulls.length) {
-            if (!run.head_sha || !run.head_branch || !run.head_repository?.full_name) {
-                throw new Error(`Unable to resolve PR identity for run ${run.id}.`);
-            }
+            if (!run.head_sha || !run.head_branch || !run.head_repository?.full_name) return null;
             const commitPulls = await Array.fromAsync(paginate(`/commits/${run.head_sha}/pulls`, {}, (batch) => batch));
             pulls = commitPulls.filter(
                 (pull) =>
@@ -67,9 +65,7 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
                     pull.base.repo.full_name === repository,
             );
         }
-        if (pulls.length !== 1 || !pulls[0].number) {
-            throw new Error(`Unable to resolve a unique PR identity for run ${run.id}.`);
-        }
+        if (pulls.length !== 1 || !pulls[0].number) return null;
         const prNumber = pulls[0].number;
         const pull = await get(`/pulls/${prNumber}`);
         if (!pull.user?.login) throw new Error(`Unable to resolve author identity for PR #${prNumber}, run ${run.id}.`);
@@ -89,12 +85,19 @@ export async function checkWorkspaceAvailability({ repository, runId, vaultLogin
             });
             for await (const run of runs) {
                 if (!isCompetingRun(run, runId)) continue;
-                const conflict = findWorkspaceConflict([{ ...run, ...(await resolveIdentity(run)) }], runId, key);
+                const identity = await resolveIdentity(run);
+                if (!identity) {
+                    // One odd fork run must not block every workspace; the deploy concurrency group still serializes.
+                    console.warn(`Skipping run ${run.id}: unable to resolve a unique PR identity.`);
+                    continue;
+                }
+                const conflict = findWorkspaceConflict([{ ...run, ...identity }], runId, key);
                 if (conflict) {
                     const pr = conflict.prNumber ? `PR #${conflict.prNumber}, ` : '';
                     throw new Error(
                         `Workspace '${key}' is busy: ${pr}run ${conflict.id} (${conflict.status}), ` +
-                            `${conflict.html_url}. Retry after that run finishes.`,
+                            `${conflict.html_url}. Any active run counts, including a superseded run of the same PR ` +
+                            `and runs still in tests. Cancel it or wait for it to finish, then retry this job.`,
                     );
                 }
             }

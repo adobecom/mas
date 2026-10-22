@@ -96,17 +96,11 @@ class PreviewPolicyTests(unittest.TestCase):
     def test_pipeline_config_gate_is_first(self):
         self.assert_human_review_gate("pipeline-config", 0, {".github", ".pinata"})
 
-    def test_io_www_still_requires_human_review(self):
-        self.assert_human_review_gate("io-preview-support", 1, {"io/www"})
+    def test_io_changes_require_human_review(self):
+        self.assert_human_review_gate("io-preview-support", 1, {"io/www", "io/studio"})
 
-    def test_io_studio_candidate_deploys_before_visual(self):
-        order = list(self.gates)
-        gate = self.gates["io-studio-candidate"]
-        self.assertEqual(gate["template"], "command")
-        self.assertEqual(gate["cmd"], "bash .pinata/scripts/deploy-candidate-io.sh {changed_files}")
-        self.assertIs(gate["blocking"], True)
-        self.assertEqual(gate["failure_route"], "escalate_to_human")
-        self.assertLess(order.index("io-studio-candidate"), order.index("visual"))
+    def test_io_studio_candidate_gate_stays_off_until_runner_isolation_is_verified(self):
+        self.assertNotIn("io-studio-candidate", self.gates)
 
     def test_io_www_files_select_no_surface(self):
         path = "io/www/src/fragment/index.js"

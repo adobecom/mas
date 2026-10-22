@@ -4,8 +4,14 @@ name: IO Studio Candidate Deploy
 # dispatcher's workspace, resolved like a PR author's (resolve-aio-identity.yaml:
 # pinatacode[bot] -> the shared bot workspace on the stage Odin bucket), then
 # health-checks it.
+run-name: IO Studio Candidate Deploy ${{ inputs.dispatch_id }}
 on:
     workflow_dispatch:
+        inputs:
+            dispatch_id:
+                description: 'Set by deploy-candidate-io.sh to find this run; ends the run name'
+                type: string
+                required: false
 
 permissions:
     contents: read

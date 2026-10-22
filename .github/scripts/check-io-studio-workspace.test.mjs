@@ -155,10 +155,17 @@ test('missing PR associations are resolved from the commit rather than the run a
     await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /PR #42.*retry/i);
 });
 
-test('unresolvable PR identity fails rather than using the synchronizing actor', async () => {
+test('an unresolvable PR run is skipped with a warning instead of blocking every workspace', async (t) => {
+    const warn = t.mock.method(console, 'warn', () => {});
     const fetchImpl = apiFixture((url) => {
         if (url.pathname.endsWith('/commits/abc/pulls')) return [];
         return runsOnly(url, 'io-studio-pr.yaml', 'queued', [orphanPrRun]);
     });
-    await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /identity/i);
+    assert.equal(await checkWorkspaceAvailability({ ...options, fetchImpl }), null);
+    assert.match(warn.mock.calls[0].arguments[0], /run 12.*identity/i);
+});
+
+test('the busy message says re-pushes and runs still in tests count as busy', async () => {
+    const fetchImpl = apiFixture((url) => runsOnly(url, 'io-studio-candidate.yaml', 'in_progress', [candidate]));
+    await assert.rejects(checkWorkspaceAvailability({ ...options, fetchImpl }), /superseded.*tests/i);
 });

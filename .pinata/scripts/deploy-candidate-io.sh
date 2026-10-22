@@ -35,26 +35,9 @@ if [ "$remote_sha" != "$sha" ]; then
     exit 1
 fi
 
-# workflow_dispatch returns no run id: remember the newest run before dispatching,
-# then wait for a newer one on this exact commit.
-last_id=$(gh run list --workflow "$WORKFLOW" --limit 1 --json databaseId --jq '.[0].databaseId // 0')
-gh workflow run "$WORKFLOW" --ref "$branch"
-
-run_id=""
-for attempt in $(seq "$RUN_LOOKUP_ATTEMPTS"); do
-    run_id=$(gh run list --workflow "$WORKFLOW" --branch "$branch" --event workflow_dispatch \
-        --json databaseId,headSha \
-        --jq "[.[] | select(.headSha == \"$sha\" and .databaseId > $last_id)][0].databaseId // empty")
-    [ -n "$run_id" ] && break
-    sleep 2
-done
-if [ -z "$run_id" ]; then
-    echo "FAIL: no $WORKFLOW run appeared for $sha after $attempt lookups." >&2
-    exit 1
-fi
-
 # If the engine stops this gate (timeout, abort), don't leave the run deploying
 # behind it: a retry would queue behind the orphan in the same concurrency group.
+# The trap goes in before dispatch, so a stop while looking up the run still cancels it.
 child_pid=""
 run_child() {
     "$@" &
@@ -65,6 +48,17 @@ run_child() {
     return "$child_status"
 }
 
+# workflow_dispatch returns no run id: tag the dispatch with a unique id that the
+# workflow puts in its run name, so concurrent dispatches on one commit stay apart.
+dispatch_id="$(date +%s)-$$-$RANDOM"
+dispatched=0
+run_id=""
+find_run() {
+    gh run list --workflow "$WORKFLOW" --branch "$branch" --event workflow_dispatch \
+        --json databaseId,headSha,displayTitle \
+        --jq "[.[] | select(.headSha == \"$sha\" and (.displayTitle | endswith(\" $dispatch_id\")))][0].databaseId // empty"
+}
+
 stop_gate() {
     local exit_code="$1"
     trap - TERM INT
@@ -73,13 +67,35 @@ stop_gate() {
             echo "WARN: could not stop gate child $child_pid." >&2
         fi
     fi
-    if ! gh run cancel "$run_id"; then
-        echo "FAIL: could not cancel $WORKFLOW run $run_id. Cancel it on GitHub." >&2
+    if [ -z "$run_id" ] && [ "$dispatched" -eq 1 ]; then
+        run_id=$(find_run || true)
+    fi
+    if [ -n "$run_id" ]; then
+        if ! gh run cancel "$run_id"; then
+            echo "FAIL: could not cancel $WORKFLOW run $run_id. Cancel it on GitHub." >&2
+        fi
+    elif [ "$dispatched" -eq 1 ]; then
+        echo "FAIL: stopped before run $dispatch_id appeared. Cancel it on GitHub if it starts." >&2
     fi
     exit "$exit_code"
 }
 trap 'stop_gate 143' TERM
 trap 'stop_gate 130' INT
+
+# Set first: bash runs a trap only after the foreground command returns.
+dispatched=1
+gh workflow run "$WORKFLOW" --ref "$branch" -f dispatch_id="$dispatch_id"
+
+for attempt in $(seq "$RUN_LOOKUP_ATTEMPTS"); do
+    run_id=$(find_run)
+    [ -n "$run_id" ] && break
+    run_child sleep 2
+done
+if [ -z "$run_id" ]; then
+    trap - TERM INT
+    echo "FAIL: no $WORKFLOW run appeared for $sha after $attempt lookups." >&2
+    exit 1
+fi
 
 echo "Waiting on $WORKFLOW run $run_id"
 # A watch can drop on a network error while the run keeps going, so the verdict

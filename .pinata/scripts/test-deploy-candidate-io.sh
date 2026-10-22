@@ -38,10 +38,16 @@ for i in "${!args[@]}"; do
     [ "${args[$i]}" = "--jq" ] && jq_expr="${args[$((i + 1))]}"
 done
 case "$1 $2" in
-    'workflow run') touch "$WORK/dispatched" ;;
+    'workflow run')
+        touch "$WORK/dispatched"
+        for arg in "$@"; do
+            case "$arg" in dispatch_id=*) echo "${arg#dispatch_id=}" >"$WORK/dispatch_id" ;; esac
+        done ;;
     'run list')
-        if [ -e "$WORK/dispatched" ]; then runs="$FAKE_RUNS_AFTER"; else runs="$FAKE_RUNS_BEFORE"; fi
-        echo "$runs" | jq -r "$jq_expr" ;;
+        # A lookup-phase stop sees the run only once the gate is blocked, as if it appeared late.
+        if [ "$FAKE_BLOCK_AT" = lookup ] && [ ! -e "$WORK/blocked_pid" ]; then runs='[]'
+        elif [ -e "$WORK/dispatched" ]; then runs="$FAKE_RUNS_AFTER"; else runs="$FAKE_RUNS_BEFORE"; fi
+        echo "${runs//__ID__/$(cat "$WORK/dispatch_id" 2>/dev/null)}" | jq -r "$jq_expr" ;;
     'run watch')
         # The first FAKE_WATCH_DROPS watches lose the connection before the run ends.
         count=$(( $(cat "$WORK/watch_count" 2>/dev/null || echo 0) + 1 ))
@@ -70,7 +76,7 @@ SH
 
 cat >"$BIN/sleep" <<'SH'
 #!/usr/bin/env bash
-if [ "$FAKE_BLOCK_AT" = poll ] && [ "$1" = 15 ]; then
+if { [ "$FAKE_BLOCK_AT" = poll ] && [ "$1" = 15 ]; } || { [ "$FAKE_BLOCK_AT" = lookup ] && [ "$1" = 2 ]; }; then
     echo "$$" >"$WORK/blocked_pid"
     printf 'ready\n' >"$WORK/ready"
     read -r release <"$WORK/release"
@@ -81,8 +87,8 @@ chmod +x "$BIN"/*
 defaults() {
     export FAKE_BRANCH=MWPW-123456 FAKE_SHA=abc123 FAKE_REMOTE_SHA=abc123
     export FAKE_WATCH_SIGNAL="" FAKE_WATCH_DROPS=0 FAKE_CONCLUSION=success FAKE_BLOCK_AT="" FAKE_CANCEL_EXIT=0
-    export FAKE_RUNS_BEFORE='[{"databaseId":100,"headSha":"abc123"}]'
-    export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"abc123"},{"databaseId":100,"headSha":"abc123"}]'
+    export FAKE_RUNS_BEFORE='[{"databaseId":100,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy old"}]'
+    export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy __ID__"},{"databaseId":100,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy old"}]'
 }
 
 # run_case <name> <expected exit> <expected output substring> <changed file>...
@@ -145,10 +151,17 @@ run_case "ignores an older run for the same commit" 1 "run appeared for abc123" 
 log_lacks "never watches the stale run" "run watch 100"
 
 defaults
-export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"fff999"},{"databaseId":100,"headSha":"abc123"}]'
+export FAKE_RUNS_AFTER='[{"databaseId":101,"headSha":"fff999","displayTitle":"IO Studio Candidate Deploy __ID__"},{"databaseId":100,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy old"}]'
 run_case "ignores a newer run for a different commit" 1 "run appeared for abc123" \
     "$IO_FILE"
 log_lacks "never watches the other commit's run" "run watch 101"
+
+defaults
+export FAKE_RUNS_AFTER='[{"databaseId":102,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy other"},{"databaseId":100,"headSha":"abc123","displayTitle":"IO Studio Candidate Deploy old"}]'
+run_case "ignores another dispatch's run on the same commit" 1 "run appeared for abc123" \
+    "$IO_FILE"
+log_lacks "never watches the other dispatch's run" "run watch 102"
+log_has "tags the dispatch so its run can be told apart" "-f dispatch_id="
 
 defaults
 export FAKE_CONCLUSION=failure
@@ -189,9 +202,9 @@ import sys
 
 work = Path(os.environ["WORK"])
 failures = 0
-for phase in ("watch", "poll"):
+for phase in ("lookup", "watch", "poll"):
     for received_signal, expected_exit in ((signal.SIGTERM, 143), (signal.SIGINT, 130)):
-        for name in ("gh.log", "dispatched", "watch_count", "blocked_pid"):
+        for name in ("gh.log", "dispatched", "dispatch_id", "watch_count", "blocked_pid"):
             (work / name).unlink(missing_ok=True)
         for fifo in ("ready", "release"):
             os.mkfifo(work / fifo)

@@ -180,6 +180,12 @@ https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<culprit-id>
 
 (`page=fragment-editor` and `fragmentId` are the router's hash keys — `studio/src/mas-fragment-editor.js` `getFragmentEditorUrl`, `studio/src/router.js`. Everything lives after the `#`.) One link per `culprit_fragment_ids` entry; label it so a non-engineer knows it opens the card. This link is the one piece of "technical" output that **is** allowed in an AUTHORING report — it's the author's fix entry point, not jargon.
 
+**Always use the full fragment UUID** (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), never a
+shortened id, in links and in text. A truncated id breaks the link and leaves work for the
+reader. Keep the full id in your notes; if you only have a prefix, get the full id again
+(export, the `id`/`fragment` attribute on the live page, or the fragment API) before
+writing the message.
+
 ## Variations must never be served directly
 
 **Core rule: a variation — promotion or grouped — must never be accessed directly.**
@@ -453,6 +459,7 @@ than one that sends people after a guess.
 
 ### Before you answer — self-check
 
+- Every fragment id and Studio link uses the **full UUID**, never a prefix.
 - Every action has an **owner**, imperative **steps**, a **Studio link** (if a card or
   promotion is involved) and a **reproduce URL you opened and saw fail**.
 - Every asserted cause was verified against live data (fragment, WCS, page attributes).

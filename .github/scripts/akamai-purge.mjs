@@ -38,7 +38,7 @@ export function signRequest({ method, path, body = '', credentials, timestamp, n
 }
 
 // Expects `git diff -z` output, which keeps non-ASCII paths unquoted.
-export function selectPurgePaths(diffOutput) {
+export function selectCachedPaths(diffOutput) {
     return diffOutput.split('\0').filter((path) => CACHED_EXTENSIONS.test(path));
 }
 
@@ -172,13 +172,9 @@ async function main() {
         'web-components/src',
         'io/www/src',
     );
-    const paths = selectPurgePaths(diff);
-    if (!paths.length) {
-        console.log('No cached Studio files changed.');
-        return;
-    }
-    console.log(`Waiting for aem.live to serve ${paths.length} changed files`);
-    const files = paths.map((path) => ({ path, blob: git('rev-parse', `${AFTER_SHA}:${path}`).trim() }));
+    // Purges even when no cached file changed: this run may have cancelled an older one that still had files to purge.
+    const files = selectCachedPaths(diff).map((path) => ({ path, blob: git('rev-parse', `${AFTER_SHA}:${path}`).trim() }));
+    console.log(`Waiting for aem.live to serve ${files.length} changed files`);
     await run({ files, credentials });
 }
 

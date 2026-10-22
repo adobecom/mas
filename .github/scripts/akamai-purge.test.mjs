@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { mock } from 'node:test';
 
-import { blobId, formatTimestamp, previousCommit, run, selectPurgePaths, signRequest } from './akamai-purge.mjs';
+import { blobId, formatTimestamp, previousCommit, run, selectCachedPaths, signRequest } from './akamai-purge.mjs';
 
 // Expected signatures come from Akamai's edgegrid-python (EdgeGridAuthHeaders.make_auth_header) with these dummy values.
 const credentials = {
@@ -106,8 +106,8 @@ test('signRequest matches edgegrid-python for a POST, hashing the body', () => {
     assert.equal(header, `${authPrefix}signature=oydch4/ZN0J5dkaMo1z9BCLvTH6hPrJS6kUnOL+jEJI=`);
 });
 
-test('selectPurgePaths splits NUL-separated diff output and keeps only file types the property caches', () => {
-    const paths = selectPurgePaths(
+test('selectCachedPaths splits NUL-separated diff output and keeps only file types the property caches', () => {
+    const paths = selectCachedPaths(
         [
             'studio/src/studio.js',
             'studio/style.css',

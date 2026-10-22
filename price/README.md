@@ -185,6 +185,11 @@ golden literal cases, including plural/select, number/date/time skeletons,
 escaping, links, invalid syntax, and missing arguments. Node and Chrome run
 the same corpus in UTC.
 
+The browser template suite also retains the inherited plural arguments and
+string/null/undefined input variants, de-duplicating identical inputs against
+that corpus. It uses the same canonical fixture under `test/fixtures/`, not a
+second snapshot copy.
+
 Selection/summation contracts additionally test mutation, identity, warnings,
 tax-exclusive/trial rewriting, soft bundles, annualized prices, and non-positive
 sums. `offers.expected.json` captures 21 selection/bundle cases from the same

@@ -2,7 +2,8 @@ import { expect } from '@esm-bundle/chai';
 import { expectHtml } from '../helpers.js';
 import * as snapshots from './__snapshots__/template.snapshots.js';
 import expectedLiterals from './__snapshots__/price-literals.expected.json' with { type: 'json' };
-import expectedMessages from './__snapshots__/message-format.expected.json' with { type: 'json' };
+import expectedMessages from '../../fixtures/message-format.expected.json' with { type: 'json' };
+import { messageCases } from '../../fixtures/message-cases.js';
 import priceLiteralsJson from '../../../../web-components/price-literals.json' with { type: 'json' };
 import {
     createPriceTemplate,
@@ -399,16 +400,29 @@ describe('ICU message parity', () => {
         date: [{ d: 1735732800000 }],
         time: [{ d: 1735732800000 }, { d: 1735690500000 }],
     };
-    Object.entries(expectedMessages).forEach(([group, messages]) => {
-        Object.entries(messages).forEach(([message, byLocale]) => {
-            Object.entries(byLocale).forEach(([locale, expected]) => {
-                it(`${locale} ${message}`, () => {
-                    const actual = valueSets[group].map((values) => formatLiteral({ message }, locale, 'message', values));
-                    expect(actual).to.deep.equal(expected);
-                });
+    const canonicalCases = messageCases(expectedMessages);
+    const canonicalParameters = new Map(canonicalCases.map(({ id, parameters }) => [id, parameters]));
+    const legacyCases = messageCases(expectedMessages, valueSets)
+        .filter(({ id, parameters }) => {
+            const canonical = canonicalParameters.get(id);
+            return (
+                Object.keys(parameters).length !== Object.keys(canonical).length ||
+                Object.entries(parameters).some(
+                    ([key, value]) => !Object.hasOwn(canonical, key) || !Object.is(canonical[key], value),
+                )
+            );
+        })
+        .map(({ id, ...testCase }) => ({ id: `${id}/legacy-inputs`, ...testCase }));
+
+    for (const { id, message, locale, parameters, expected } of [...canonicalCases, ...legacyCases]) {
+        it(`preserves ${id}`, () => {
+            const errors = [];
+            const actual = formatLiteral({ label: message }, locale, 'label', parameters, {
+                error: (...args) => errors.push(args),
             });
+            expect(actual, JSON.stringify(errors)).to.equal(expected);
         });
-    });
+    }
 
     // The library's fraction-stem regex keeps state (`g` flag), so it rejects
     // this message only on every other call. Recorded output would depend on

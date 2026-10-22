@@ -49,43 +49,13 @@ npm install
 
 ### Shared price rendering
 
-The shared source in `../price/src/` owns offer selection, soft-bundle summation, price/discount
-templates, number formatting, and localized price literals. Web-components keeps
-option collection, tax-default resolution, WCS fetching, DOM updates, and
-browser diagnostic adapters; there is no separate browser renderer.
-Consumers use relative `.js` imports, such as `../../price/src/index.js` from
-`src/price.js`, without an installed-package dependency.
+Web-components adapts the [shared price renderer](../price/README.md) through
+relative `.js` imports, retaining option collection, tax defaults, WCS fetching,
+DOM updates and browser diagnostics. `buildPriceHTML(offers, options)` remains
+unchanged, including the query-string fallback for missing/falsy `instant`.
 
-The commerce service's `buildPriceHTML(offers, options)` API is unchanged.
-Service settings provide formatting defaults, while template selection stays
-per-price. The adapter supplies `?instant=` when the effective instant is missing
-or falsy; valid explicit instants retain precedence. Only the shared renderer's
-promotional monthly-with-annual path consumes this fallback. Template selection
-stays in the shared renderer.
-
-Use Node 22 or newer for web-components testing and the build command (which
-runs tests). Browser parity computes native Node output using the shared source,
-whose supported runtime is Node 22+. The dedicated web-components build CI job
-in `web-components-pr.yaml` runs once for relevant PRs and main pushes, including
-shared `price/` changes. It uses Node 22; Studio's build job in `build.yaml` and
-the repository-wide `.nvmrc` stay at Node 20.
-This validation requirement does not change the browser bundle's target or
-upgrade unrelated workspaces.
-
-`test/price.test.js` compares all 854 original price HTML goldens against
-the browser service and freshly computed native Node results. Expected markup
-is reused unchanged from `price/test/fixtures/`; do not regenerate fixtures to
-hide integration drift. Browser adapter behavior and diagnostic forwarding are
-co-located in this file; renderer-only tests and their snapshots live in
-`price/test/browser/`. Selection and summation contracts live in `price/test/`,
-while browser utilities retain OSI/promotion alignment tests.
-
-Run service parity and adapter tests together:
-
-```sh
-cd web-components
-npx wtr --config web-test-runner.config.mjs --files test/price.test.js
-```
+Use Node 22+ for web-components tests and builds; Studio and the repository's
+`.nvmrc` remain on Node 20.
 
 ### Building
 

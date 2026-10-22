@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { discount } from '../../../price/src/discount/index.js';
+import { discount } from '../../../src/discount/index.js';
 
 describe('discount template', () => {
     [
@@ -13,23 +13,17 @@ describe('discount template', () => {
     ].forEach(([price, priceWithoutDiscount, expected]) =>
         it(`renders the discount for price=${price} and old price=${priceWithoutDiscount}`, () => {
             expect(discount({}, { price, priceWithoutDiscount })).to.equal(
-                expected === undefined
-                    ? '<span class="no-discount"></span>'
-                    : `<span class="discount">${expected}%</span>`,
+                expected === undefined ? '<span class="no-discount"></span>' : `<span class="discount">${expected}%</span>`,
             );
         }),
     );
 
     it('Generates discount markup', () => {
-        expect(discount({}, { price: 27, priceWithoutDiscount: 30 })).to.equal(
-            '<span class="discount">10%</span>',
-        );
+        expect(discount({}, { price: 27, priceWithoutDiscount: 30 })).to.equal('<span class="discount">10%</span>');
     });
 
     it('shows 0% when price is correct, and the discount is not defined', () => {
-        expect(discount({}, { price: 27 })).to.equal(
-            '<span class="discount">0%</span>',
-        );
+        expect(discount({}, { price: 27 })).to.equal('<span class="discount">0%</span>');
     });
 
     it('shows no discount when price and the discount are not defined', () => {
@@ -55,12 +49,9 @@ describe('discount template', () => {
     it('applies the same discountLabel literal across zh-Hant countries', () => {
         const literals = { discountLabel: zhHantDiscountLabel };
         ['TW', 'HK', 'MO'].forEach((country) => {
-            expect(
-                discount(
-                    { country, language: 'zh-hant', literals },
-                    { price: 35, priceWithoutDiscount: 100 },
-                ),
-            ).to.equal('<span class="discount">3.5折</span>');
+            expect(discount({ country, language: 'zh-hant', literals }, { price: 35, priceWithoutDiscount: 100 })).to.equal(
+                '<span class="discount">3.5折</span>',
+            );
         });
     });
 

@@ -5,7 +5,7 @@ on:
             - main
     pull_request:
         types: [opened, synchronize, reopened]
-# Workspace builds are explicit; add future workspaces with a build script below.
+# Web-components builds in web-components-pr.yaml; add future workspace builds explicitly.
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -28,22 +28,3 @@ jobs:
 
             - name: Build Studio
               run: npm run build --workspace=studio
-
-    web-components:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 2
-
-            - name: Set up Node.js 22
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 22.x
-
-            - name: run npm clean install
-              run: npm ci
-
-            - name: Build web-components
-              run: npm run build --workspace=web-components

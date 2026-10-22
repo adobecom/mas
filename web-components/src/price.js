@@ -84,28 +84,10 @@ export function Price({ literals, providers, settings }) {
             alternativePrice: options.alternativePrice,
             promotionCode: options.promotionCode,
         };
-        // Only the promo-with-annual template historically reads the query string.
-        if (
-            options.displayAnnual &&
-            offers[0].planType === 'ABM' &&
-            options.promotionCode &&
-            offers[0].promotion &&
-            ![
-                'discount',
-                'strikethrough',
-                'promo-strikethrough',
-                'annual',
-                'legal',
-                'optical',
-            ].includes(options.template) &&
-            !resolvedOptions.instant
-        ) {
+        if (typeof document !== 'undefined' && !resolvedOptions.instant) {
             resolvedOptions.instant =
-                typeof document === 'undefined'
-                    ? undefined
-                    : new URLSearchParams(document.location.search).get(
-                          'instant',
-                      );
+                new URLSearchParams(document.location.search).get('instant') ??
+                undefined;
         }
         return renderPrice(offers, resolvedOptions, { logger: log });
     }

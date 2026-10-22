@@ -144,6 +144,15 @@ Statements, branches, functions, and lines must each reach **100% in every sourc
 CI runs Node 22 and 24.
 Chrome must be installed, as for existing Web Test Runner workspaces.
 
+Renderer-owned price, legal, discount, formatting, and literal tests are
+co-located under `test/browser/price/` and `test/browser/discount/`, with their
+original snapshots and matrix data. Their HTML snapshot helper is test-only;
+production rendering does not depend on browser test utilities. Literal tests
+also validate the authored consumer data in `web-components/price-literals.json`;
+shared-price CI runs when that file changes. The browser service retains its
+own integration tests and all 854 service-level goldens in
+`web-components/test/price.test.js`.
+
 `test/fixtures/price-html.expected.json` contains **854 raw HTML golden strings**
 captured before extraction from `web-components/src/price.js` at
 `58b8724dfdfaea7bc1aa17422adb75991c058cfe`, in Chrome with UTC and a fixed

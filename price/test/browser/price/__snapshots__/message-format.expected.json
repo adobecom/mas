@@ -1,68 +1,14 @@
 {
     "plural": {
         "{n, plural, one {# item} other {# items}}": {
-            "en": [
-                "0 items",
-                "1 item",
-                "2 items",
-                "3 items",
-                "11 items",
-                "22 items",
-                "3.5 items",
-                ""
-            ],
-            "ar": [
-                "0 items",
-                "1 item",
-                "2 items",
-                "3 items",
-                "11 items",
-                "22 items",
-                "3.5 items",
-                ""
-            ],
-            "pl": [
-                "0 items",
-                "1 item",
-                "2 items",
-                "3 items",
-                "11 items",
-                "22 items",
-                "3,5 items",
-                ""
-            ]
+            "en": ["0 items", "1 item", "2 items", "3 items", "11 items", "22 items", "3.5 items", ""],
+            "ar": ["0 items", "1 item", "2 items", "3 items", "11 items", "22 items", "3.5 items", ""],
+            "pl": ["0 items", "1 item", "2 items", "3 items", "11 items", "22 items", "3,5 items", ""]
         },
         "{n, plural, =0 {none} one {one} other {# many}}": {
-            "en": [
-                "none",
-                "one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3.5 many",
-                ""
-            ],
-            "ar": [
-                "none",
-                "one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3.5 many",
-                ""
-            ],
-            "pl": [
-                "none",
-                "one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3,5 many",
-                ""
-            ]
+            "en": ["none", "one", "2 many", "3 many", "11 many", "22 many", "3.5 many", ""],
+            "ar": ["none", "one", "2 many", "3 many", "11 many", "22 many", "3.5 many", ""],
+            "pl": ["none", "one", "2 many", "3 many", "11 many", "22 many", "3,5 many", ""]
         },
         "{n, plural, =1 {exactly one} other {#}}": {
             "en": ["0", "exactly one", "2", "3", "11", "22", "3.5", ""],
@@ -132,68 +78,14 @@
             "pl": [" 0 ", " 1 ", " 2 ", " 3 ", " 11 ", " 22 ", " 3,5 ", ""]
         },
         "{n, plural, one {'#' is #} other {'#'s are #}}": {
-            "en": [
-                "#s are 0",
-                "# is 1",
-                "#s are 2",
-                "#s are 3",
-                "#s are 11",
-                "#s are 22",
-                "#s are 3.5",
-                ""
-            ],
-            "ar": [
-                "#s are 0",
-                "# is 1",
-                "#s are 2",
-                "#s are 3",
-                "#s are 11",
-                "#s are 22",
-                "#s are 3.5",
-                ""
-            ],
-            "pl": [
-                "#s are 0",
-                "# is 1",
-                "#s are 2",
-                "#s are 3",
-                "#s are 11",
-                "#s are 22",
-                "#s are 3,5",
-                ""
-            ]
+            "en": ["#s are 0", "# is 1", "#s are 2", "#s are 3", "#s are 11", "#s are 22", "#s are 3.5", ""],
+            "ar": ["#s are 0", "# is 1", "#s are 2", "#s are 3", "#s are 11", "#s are 22", "#s are 3.5", ""],
+            "pl": ["#s are 0", "# is 1", "#s are 2", "#s are 3", "#s are 11", "#s are 22", "#s are 3,5", ""]
         },
         "{n, plural, other {it''s #}}": {
-            "en": [
-                "it's 0",
-                "it's 1",
-                "it's 2",
-                "it's 3",
-                "it's 11",
-                "it's 22",
-                "it's 3.5",
-                ""
-            ],
-            "ar": [
-                "it's 0",
-                "it's 1",
-                "it's 2",
-                "it's 3",
-                "it's 11",
-                "it's 22",
-                "it's 3.5",
-                ""
-            ],
-            "pl": [
-                "it's 0",
-                "it's 1",
-                "it's 2",
-                "it's 3",
-                "it's 11",
-                "it's 22",
-                "it's 3,5",
-                ""
-            ]
+            "en": ["it's 0", "it's 1", "it's 2", "it's 3", "it's 11", "it's 22", "it's 3.5", ""],
+            "ar": ["it's 0", "it's 1", "it's 2", "it's 3", "it's 11", "it's 22", "it's 3.5", ""],
+            "pl": ["it's 0", "it's 1", "it's 2", "it's 3", "it's 11", "it's 22", "it's 3,5", ""]
         },
         "{n, plural, other {'{#}' and '}' and '#}}": {
             "en": ["", "", "", "", "", "", "", ""],
@@ -206,68 +98,14 @@
             "pl": ["# a", "# a", "# a", "# a", "# a", "# a", "# a", ""]
         },
         "{g, select, a {{n, plural, one {# one} other {# many}}} other {{n, number}}}": {
-            "en": [
-                "0 many",
-                "1 one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3.5 many",
-                ""
-            ],
-            "ar": [
-                "0 many",
-                "1 one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3.5 many",
-                ""
-            ],
-            "pl": [
-                "0 many",
-                "1 one",
-                "2 many",
-                "3 many",
-                "11 many",
-                "22 many",
-                "3,5 many",
-                ""
-            ]
+            "en": ["0 many", "1 one", "2 many", "3 many", "11 many", "22 many", "3.5 many", ""],
+            "ar": ["0 many", "1 one", "2 many", "3 many", "11 many", "22 many", "3.5 many", ""],
+            "pl": ["0 many", "1 one", "2 many", "3 many", "11 many", "22 many", "3,5 many", ""]
         },
         "{n, plural, one {{m, plural, one {# inner} other {# inners}} outer #} other {# outers}}": {
-            "en": [
-                "0 outers",
-                "1 inner outer 1",
-                "2 outers",
-                "3 outers",
-                "11 outers",
-                "22 outers",
-                "3.5 outers",
-                ""
-            ],
-            "ar": [
-                "0 outers",
-                "1 inner outer 1",
-                "2 outers",
-                "3 outers",
-                "11 outers",
-                "22 outers",
-                "3.5 outers",
-                ""
-            ],
-            "pl": [
-                "0 outers",
-                "1 inner outer 1",
-                "2 outers",
-                "3 outers",
-                "11 outers",
-                "22 outers",
-                "3,5 outers",
-                ""
-            ]
+            "en": ["0 outers", "1 inner outer 1", "2 outers", "3 outers", "11 outers", "22 outers", "3.5 outers", ""],
+            "ar": ["0 outers", "1 inner outer 1", "2 outers", "3 outers", "11 outers", "22 outers", "3.5 outers", ""],
+            "pl": ["0 outers", "1 inner outer 1", "2 outers", "3 outers", "11 outers", "22 outers", "3,5 outers", ""]
         },
         "# outside {n, plural, other {#}}": {
             "en": [
@@ -453,20 +291,10 @@
             "en": ["{x} {y} X", "{x} {y} 0", "{x} {y} ", ""]
         },
         "'{unclosed {x}": {
-            "en": [
-                "{unclosed {x}",
-                "{unclosed {x}",
-                "{unclosed {x}",
-                "{unclosed {x}"
-            ]
+            "en": ["{unclosed {x}", "{unclosed {x}", "{unclosed {x}", "{unclosed {x}"]
         },
         "O''Reilly {x} '{literal}' ''{x}''": {
-            "en": [
-                "O'Reilly X {literal} 'X'",
-                "O'Reilly 0 {literal} '0'",
-                "O'Reilly  {literal} ''",
-                ""
-            ]
+            "en": ["O'Reilly X {literal} 'X'", "O'Reilly 0 {literal} '0'", "O'Reilly  {literal} ''", ""]
         },
         "{x}": {
             "en": ["X", "0", "", ""],
@@ -543,12 +371,7 @@
             "en": ["bold X", "bold 0", "bold ", ""]
         },
         "<a href=\"https://a.com\">{x}</a>": {
-            "en": [
-                "<a href=\"https://a.com\">X</a>",
-                "<a href=\"https://a.com\">0</a>",
-                "<a href=\"https://a.com\"></a>",
-                ""
-            ]
+            "en": ["<a href=\"https://a.com\">X</a>", "<a href=\"https://a.com\">0</a>", "<a href=\"https://a.com\"></a>", ""]
         },
         "<a href='https://a.com'>{x}</a> it''s": {
             "en": [
@@ -567,12 +390,7 @@
             ]
         },
         "'<a href=\"x\">' {x}": {
-            "en": [
-                "'<a href=\"x\">' X",
-                "'<a href=\"x\">' 0",
-                "'<a href=\"x\">' ",
-                ""
-            ]
+            "en": ["'<a href=\"x\">' X", "'<a href=\"x\">' 0", "'<a href=\"x\">' ", ""]
         },
         "<a href=\"https://a.com\">one</a> and <a href=\"https://b.com\">two</a>": {
             "en": [
@@ -592,12 +410,7 @@
             "en": ["X", "0", "", ""]
         },
         "&lt;a href=\"u\"&gt;{x}&lt;/a&gt;": {
-            "en": [
-                "&lt;a href=\"u\"&gt;X&lt;/a&gt;",
-                "&lt;a href=\"u\"&gt;0&lt;/a&gt;",
-                "&lt;a href=\"u\"&gt;&lt;/a&gt;",
-                ""
-            ]
+            "en": ["&lt;a href=\"u\"&gt;X&lt;/a&gt;", "&lt;a href=\"u\"&gt;0&lt;/a&gt;", "&lt;a href=\"u\"&gt;&lt;/a&gt;", ""]
         },
         "{x}\n{y}": {
             "en": ["X\nY", "0\n", "\n", ""]
@@ -644,18 +457,8 @@
             "de": ["1.234.568 ¥", "1 ¥", "-1 ¥", ""]
         },
         "{n, number, ::currency/USD unit-width-full-name}": {
-            "en": [
-                "1,234,567.89 US dollars",
-                "0.50 US dollars",
-                "-1.00 US dollars",
-                ""
-            ],
-            "de": [
-                "1.234.567,89 US-Dollar",
-                "0,50 US-Dollar",
-                "-1,00 US-Dollar",
-                ""
-            ]
+            "en": ["1,234,567.89 US dollars", "0.50 US dollars", "-1.00 US dollars", ""],
+            "de": ["1.234.567,89 US-Dollar", "0,50 US-Dollar", "-1,00 US-Dollar", ""]
         },
         "{n, number, ::currency/USD unit-width-short}": {
             "en": ["USD 1,234,567.89", "USD 0.50", "-USD 1.00", ""],
@@ -830,18 +633,8 @@
             "de": ["1.234.567,891 m", "0,5 m", "-1 m", ""]
         },
         "{n, number, ::measure-unit/length-kilometer unit-width-full-name}": {
-            "en": [
-                "1,234,567.891 kilometers",
-                "0.5 kilometers",
-                "-1 kilometer",
-                ""
-            ],
-            "de": [
-                "1.234.567,891 Kilometer",
-                "0,5 Kilometer",
-                "-1 Kilometer",
-                ""
-            ]
+            "en": ["1,234,567.891 kilometers", "0.5 kilometers", "-1 kilometer", ""],
+            "de": ["1.234.567,891 Kilometer", "0,5 Kilometer", "-1 Kilometer", ""]
         },
         "{n, number, ::unit}": {
             "en": ["", "", "", ""],
@@ -1093,14 +886,8 @@
             "de": ["12 Uhr UTC", "00 Uhr UTC"]
         },
         "{d, time, ::zzzz}": {
-            "en": [
-                "1/1/2025, Coordinated Universal Time",
-                "1/1/2025, Coordinated Universal Time"
-            ],
-            "de": [
-                "1.1.2025, Koordinierte Weltzeit",
-                "1.1.2025, Koordinierte Weltzeit"
-            ]
+            "en": ["1/1/2025, Coordinated Universal Time", "1/1/2025, Coordinated Universal Time"],
+            "de": ["1.1.2025, Koordinierte Weltzeit", "1.1.2025, Koordinierte Weltzeit"]
         },
         "{d, time, ::Z}": {
             "en": ["", ""],

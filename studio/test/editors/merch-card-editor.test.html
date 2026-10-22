@@ -374,9 +374,52 @@
                         const ctas = editor.querySelector('rte-field#ctas');
                         expect(ctas).to.exist;
                         expect(ctas.hasAttribute('is-headless-cta')).to.be.true;
-                        expect(ctas.getAttribute('default-link-style')).to.equal('primary');
+                        expect(ctas.getAttribute('default-link-style')).to.equal('secondary-link');
+                        await ctas.updateComplete;
+                        expect(ctas.shadowRoot.querySelectorAll('sp-action-button')).to.have.length(2);
+                        expect(ctas.shadowRoot.querySelector('#linkEditorButton')).to.exist;
+                        expect(ctas.shadowRoot.querySelector('#offerSelectorToolButton')).to.exist;
                     });
 
+                    for (const variant of ['headless', 'marquee', 'banner-blade']) {
+                        it(`shows only Link and OST in the ${variant} footer toolbar`, async () => {
+                            await setupTestEnvironment({ isVariation: false, variant: [variant] }, `${variant}-footer`);
+
+                            const ctas = editor.querySelector('rte-field#ctas');
+                            await ctas.updateComplete;
+                            expect(ctas.defaultLinkStyle).to.equal('secondary-link');
+                            const toolbar = ctas.shadowRoot.querySelector('sp-action-group');
+                            expect([...toolbar.querySelectorAll('sp-action-button')].map((button) => button.id)).to.deep.equal([
+                                'linkEditorButton',
+                                'offerSelectorToolButton',
+                            ]);
+
+                            const description = editor.querySelector('rte-field#description');
+                            await description.updateComplete;
+                            expect(description.shadowRoot.querySelector('sp-action-button[title="Bold (Command+B)"]')).to.exist;
+                        });
+                    }
+
+                    for (const variant of ['plans', 'product']) {
+                        it(`keeps formatting options in the ${variant} footer toolbar`, async () => {
+                            await setupTestEnvironment({ isVariation: false, variant: [variant] }, `${variant}-footer`);
+
+                            const ctas = editor.querySelector('rte-field#ctas');
+                            await ctas.updateComplete;
+                            for (const title of [
+                                'Bold (Command+B)',
+                                'Italic (Command+I)',
+                                'Strikethrough (Command+S)',
+                                'Underline (Command+U)',
+                                'Superscript (Command+Shift+.)',
+                            ]) {
+                                expect(ctas.shadowRoot.querySelector(`sp-action-button[title="${title}"]`)).to.exist;
+                            }
+                            expect(ctas.shadowRoot.querySelector('#linkEditorButton')).to.exist;
+                            expect(ctas.shadowRoot.querySelector('#offerSelectorToolButton')).to.exist;
+                            expect(ctas.shadowRoot.querySelector('#addDividerButton') !== null).to.equal(variant === 'product');
+                        });
+                    }
                     it('keeps the editor usable when the card has no variant', async () => {
                         await setupTestEnvironment({ variant: [], isVariation: false }, 'missing-variant');
                         const description = editor.querySelector('rte-field#description');
@@ -1028,6 +1071,27 @@
                             expectSettingOverrideIndicators(['showPlanType']);
                             expectSettingOverrideFieldState('overridden', ['showPlanType']);
                         });
+                    });
+
+                    it('asks for singular and plural labels on Pro cards only', async () => {
+                        for (const [variant, expected] of [
+                            ['pro', 'quantity-selector-singular'],
+                            ['bizpro', 'quantity-selector-singular'],
+                            ['plans', 'quantity-selector-title'],
+                        ]) {
+                            await setupTestEnvironment(
+                                {
+                                    isVariation: false,
+                                    variant: [variant],
+                                    quantitySelect: [
+                                        '<merch-quantity-select title="" min="1" max="10" step="1"></merch-quantity-select>',
+                                    ],
+                                },
+                                `quantity-labels-${variant}`,
+                            );
+                            const root = editor.querySelector('quantity-select-field').shadowRoot;
+                            expect(root.querySelector(`#${expected}`), variant).to.exist;
+                        }
                     });
 
                     it('update quantity selection value and then rollback to the settings value', async () => {

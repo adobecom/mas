@@ -143,6 +143,11 @@ async function fetchAttempt(path, context, timeout, marker) {
     }
 }
 
+const networkPolicy = ({ networkConfig }) => {
+    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = networkConfig || {};
+    return { retries, fetchTimeout, retryDelay };
+};
+
 /**
  * fetches a path with retries and timeout
  * @param {*} path
@@ -150,9 +155,9 @@ async function fetchAttempt(path, context, timeout, marker) {
  * @param {*} timeout
  * @param {*} retries
  */
-async function internalFetch(path, context, marker) {
+async function fetchWithRetries(path, context, marker) {
     mark(context, `${marker}`);
-    const { retries = 3, fetchTimeout = 2000, retryDelay = 100 } = context.networkConfig || {};
+    const { retries, fetchTimeout, retryDelay } = networkPolicy(context);
     let delay = retryDelay;
     let response;
     for (let attempt = 0; attempt < retries; attempt++) {
@@ -171,6 +176,41 @@ async function internalFetch(path, context, marker) {
     }
     measureTiming(context, `main-fetch-${marker}`, marker);
     return response;
+}
+
+// Preview pipelines run in the browser, one per aem-fragment, so identical Odin GETs overlap.
+// Concurrent reads share a single request (retries included) only when URL, request headers and
+// network policy (retries, timeout, delay) all match. An entry lives only while its request is
+// pending: any later read goes to Odin, so author edits are never served stale.
+// Published (server) reads are not shared.
+let pendingFetches = new Map();
+
+function clearPendingFetches() {
+    pendingFetches = new Map();
+}
+
+// Every reader gets its own copy: transformers mutate `body`, and failures drop the first caller's context.
+const ownResponse = (response) =>
+    response.status === 200
+        ? { ...response, body: structuredClone(response.body) }
+        : { status: response.status, message: response.message };
+
+/**
+ * fetches a path with retries and timeout; in preview, concurrent calls with the same path, headers and network policy share one request
+ * @param {*} path
+ * @param {*} context
+ * @param {*} marker
+ */
+async function internalFetch(path, context, marker) {
+    if (!context.preview) return fetchWithRetries(path, context, marker);
+    const key = JSON.stringify([path, context.DEFAULT_HEADERS ?? {}, networkPolicy(context)]);
+    let pending = pendingFetches.get(key);
+    if (!pending) {
+        const requests = pendingFetches;
+        pending = fetchWithRetries(path, context, marker).finally(() => requests.delete(key));
+        requests.set(key, pending);
+    }
+    return ownResponse(await pending);
 }
 
 async function getFromState(key, context) {
@@ -328,6 +368,7 @@ export {
     isGroupedVariationFragmentPath,
     createTimeoutPromise,
     internalFetch as fetch,
+    clearPendingFetches,
     getCountry,
     getRegionalLocale,
     getRequestInfos,

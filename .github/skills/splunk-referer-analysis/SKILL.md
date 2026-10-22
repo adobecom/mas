@@ -16,6 +16,10 @@ Input: `$ARGUMENTS` — one or more paths to CSV exports (or attached to the mes
 With several exports, run the whole workflow per export (each is usually one referer),
 then merge the findings into a single report (see "Several exports").
 If no export is given, pull them yourself (see "Getting the exports from Splunk").
+When the request mentions **#mas-alert** (or "the alert"), do **not** open Slack or read
+the channel or the alert's saved search: go straight to the Splunk dashboard and pull
+the exports. The dashboard is the source of truth; the alert only says that something
+spiked.
 
 ## Getting the exports from Splunk
 

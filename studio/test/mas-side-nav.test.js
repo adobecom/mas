@@ -1677,4 +1677,36 @@ describe('MasSideNav – editNavigation', () => {
         editorStub.withArgs('mas-fragment-editor').returns({ ...mockEditor(collection()), isCompareChart: true });
         expect(el.editNavigation.strings).to.not.equal(el.defaultNavigation.strings);
     });
+
+    it('disables deletion when the fragment editor denies promo variation deletion', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canDeleteFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Delete"]').hasAttribute('disabled')).to.be.true;
+    });
+
+    it('disables publishing when the fragment editor denies promo variation publishing', () => {
+        editorStub.withArgs('mas-fragment-editor').returns({
+            ...mockEditor(mockFragment()),
+            canPublishFragment: false,
+        });
+        const container = document.createElement('div');
+        render(el.editNavigation, container);
+        expect(container.querySelector('mas-side-nav-item[label="Publish"]').hasAttribute('disabled')).to.be.true;
+    });
+
+    for (const allowed of [true, false]) {
+        it(`allows duplication according to the fragment editor permission: ${allowed}`, () => {
+            editorStub.withArgs('mas-fragment-editor').returns({
+                ...mockEditor(mockFragment()),
+                canDuplicateFragment: allowed,
+            });
+            const container = document.createElement('div');
+            render(el.editNavigation, container);
+            expect(container.querySelector('mas-side-nav-item[label="Duplicate"]').hasAttribute('disabled')).to.equal(!allowed);
+        });
+    }
 });

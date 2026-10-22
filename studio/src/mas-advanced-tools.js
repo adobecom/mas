@@ -3,7 +3,7 @@ import router from './router.js';
 import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { PAGE_NAMES } from './constants.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 
 class MasAdvancedTools extends LitElement {
     static styles = css`
@@ -201,6 +201,7 @@ class MasAdvancedTools extends LitElement {
     }
 
     get bulkPublishCard() {
+        if (!canAccessBulkPublish()) return nothing;
         return html`
             <a
                 class="tool-card"

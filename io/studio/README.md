@@ -59,6 +59,14 @@ Ask a colleague for secret values and add them to your `.env` file:
 
 With these steps, your local `.aio` and `.env` are ready for local dev. To make them available to CI/CD, store them in Vault — see **Seed your Vault secrets** below.
 
+## Bulk Publish access for test identities
+
+Studio resolves Bulk Publish access for `@adobetest.com` identities through `GET /bulk-publish-access` instead of LDAP membership. Other identities and all other tools retain their existing LDAP authorization.
+
+The action validates the caller's `mas-studio` token and queries the fixed IMS organizations v5 endpoint. The token needs `read_organizations`. Only Curator (`GRP-ODIN-MAS-ACOM-CURATORS`) or Admin (`GRP-ODIN-MAS-ADMINS`) membership in Studio organization `3B962FB55F5F922E0A495C88` grants access. The action returns only `{ allowed }`, disables response caching, and fails closed on errors.
+
+Deploy this action to the workspace configured by Studio's `io-base-url` before testing the frontend. A missing endpoint or unavailable IMS membership denies access; it does not fall back to LDAP for test identities. Verify the automation identity's organization and group in the live IMS response before E2E validation.
+
 ## CI/CD for I/O studio
 
 Using Github workflows, the CI/CD of I/O studio is automated. Deployment secrets are fetched from the corporate **Vault** (HashiCorp, KV v2, mount `cloudtech_wcms`) at runtime via AppRole auth — they are **no longer stored as GitHub Action secrets**. The workflows do the following:

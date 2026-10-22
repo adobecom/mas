@@ -32,6 +32,8 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
+export const CHECKOUT_STYLE_PATTERN =
+    /(accent|primary|secondary)(-(outline|link))?/gm;
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -124,7 +126,13 @@ export async function stripTrialCtas(template, indexed, self) {
         template.content.querySelector('a[data-analytics-id="buy-now"]') ||
         buyNowCta;
     if (buyNowCtaNew) {
-        buyNowCtaNew.className = '';
+        if (buyNowCtaNew.className.trim()) {
+            buyNowCtaNew.className
+                .match(CHECKOUT_STYLE_PATTERN)
+                ?.forEach((styleClass) => {
+                    buyNowCtaNew.classList.remove(styleClass);
+                });
+        }
         buyNowCtaNew.classList.add('button', 'con-button', 'blue');
     }
 

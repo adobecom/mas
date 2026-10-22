@@ -467,6 +467,30 @@ describe('processCTAs', async () => {
         expect([...button2.classList].includes('blue')).to.be.false;
     });
 
+    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour plain link exists', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="https://www.adobe.com" class="accent">Click me</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const buttons = footer.querySelectorAll('button, a');
+        const button1 = buttons[0];
+        expect(button1.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button1.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
+        expect(button1.getAttribute('data-modal')).to.equal('crm');
+        expect(button1.getAttribute('aria-label')).to.equal(null);
+        expect([...button1.classList].includes('blue')).to.be.true;
+        expect(button1.textContent).to.equal('Buy now');
+        const button2 = buttons[1];
+        expect(button2.className.includes('accent')).to.be.true;
+        expect(button2.textContent).to.equal('Click me');
+        expect([...button2.classList].includes('blue')).to.be.false;
+    });
+
     it('should just remove free-trial CTA if buy-now PH is not resolved when hideTrialCTAs is true', async () => {
         const fields = {
             ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,

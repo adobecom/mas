@@ -42,7 +42,7 @@ const PROBES = [
     ['what is a bulk publish project?', 'Bulk Publish'],
     ['how do I create a translation project?', 'translation project'],
     ['how do I send cards for localization?', 'localization'],
-    ['what is the MCS product catalog?', 'product catalog'],
+    ['what is the MCS product catalog?', 'MCS'],
     ['how do I edit a card that is already published?', 'publish'],
     // Written 2026-09-02, after this suite measured them as broken.
     ['what is mas-field?', 'mas-field'],
@@ -132,7 +132,18 @@ describe('ai-chat/knowledge coverage', () => {
 
         // Snake_case tokens long enough to be an identifier rather than prose.
         // Domain terms that are not tools live here with a reason.
-        const NOT_A_TOOL = new Set(['web_commerce_artifact']);
+        const NOT_A_TOOL = new Set([
+            'web_commerce_artifact',
+            // Configuration values and field names the MASA-ported pages quote, not tools.
+            'mini_plans', // card collection placement value
+            'doc_cloud', // product-family value
+            'single_app', // plan-type value
+            'adobe_com', // surface/host spelling in a Milo URL parameter
+            'country_language', // Milo locale-to-country mapping key
+            'ims_country_code', // IMS profile attribute that drives country
+            'offer_selectors', // the offer_selectors settings entry
+            'promotion_code', // the See Terms link's country-source field name
+        ]);
 
         const dir = path.join(__dirname, '../../src/ai-chat/knowledge');
         const unknown = [];

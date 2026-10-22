@@ -24,7 +24,6 @@ export default class MerchBadge extends LitElement {
         this.variant = '';
         this.backgroundColor = '';
         this.borderColor = '';
-        this.text = this.textContent;
         this.icon = '';
     }
 
@@ -66,10 +65,6 @@ export default class MerchBadge extends LitElement {
             '--merch-badge-font-size',
             'var(--consonant-merch-card-body-xs-font-size)',
         );
-        if (!this.querySelector('span[is="inline-price"]')) {
-            this.textContent = '';
-        }
-
         const card = this.closest('merch-card');
         const size = card?.getAttribute('size');
         const offset =
@@ -83,7 +78,7 @@ export default class MerchBadge extends LitElement {
 
     render() {
         return html`<div class="badge">
-            ${renderIcon(this.icon)}<slot>${this.text}</slot>
+            ${renderIcon(this.icon)}<slot></slot>
         </div>`;
     }
 

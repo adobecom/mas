@@ -29,6 +29,7 @@ const EMPTY_TAGS_BY_TYPE = {
     variant: [],
     'studio/content-type': [],
     custom: [],
+    'workflow-step': [],
 };
 const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
@@ -61,6 +62,7 @@ class MasSearchAndFilters extends LitElement {
         productFilter: { type: Array, state: true },
         offerTypeFilter: { type: Array, state: true },
         planTypeFilter: { type: Array, state: true },
+        workflowStepFilter: { type: Array, state: true },
         pznFilter: { type: Array, state: true },
         tagFilter: { type: Array, state: true },
         statusFilter: { type: Array, state: true },
@@ -70,6 +72,7 @@ class MasSearchAndFilters extends LitElement {
         productOptions: { type: Array },
         offerTypeOptions: { type: Array },
         planTypeOptions: { type: Array },
+        workflowStepOptions: { type: Array },
         pznOptions: { type: Array },
         tagOptions: { type: Array },
         statusOptions: { type: Array },
@@ -95,6 +98,7 @@ class MasSearchAndFilters extends LitElement {
         this.productFilter = [];
         this.offerTypeFilter = [];
         this.planTypeFilter = [];
+        this.workflowStepFilter = [];
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
@@ -104,6 +108,7 @@ class MasSearchAndFilters extends LitElement {
         this.productOptions = [];
         this.offerTypeOptions = [];
         this.planTypeOptions = [];
+        this.workflowStepOptions = [];
         this.pznOptions = [];
         this.tagOptions = [];
         this.statusOptions = [];
@@ -342,6 +347,7 @@ class MasSearchAndFilters extends LitElement {
         const productMap = new Map(this.productOptions.map((opt) => [opt.id || opt.value, opt]));
         const offerTypeMap = new Map(this.offerTypeOptions.map((opt) => [opt.id || opt.value, opt]));
         const planTypeMap = new Map(this.planTypeOptions.map((opt) => [opt.id || opt.value, opt]));
+        const workflowStepMap = new Map(this.workflowStepOptions.map((opt) => [opt.id || opt.value, opt]));
         const pznMap = new Map(this.pznOptions.map((opt) => [opt.id || opt.value, opt]));
         const tagMap = new Map(this.tagOptions.map((opt) => [opt.id || opt.value, opt]));
         const statusMap = new Map(this.statusOptions.map((opt) => [opt.id || opt.value, opt]));
@@ -369,6 +375,10 @@ class MasSearchAndFilters extends LitElement {
         for (const id of this.planTypeFilter) {
             const option = planTypeMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.PLAN_TYPE, id, label: option.title || option.label });
+        }
+        for (const id of this.workflowStepFilter) {
+            const option = workflowStepMap.get(id);
+            if (option) filters.push({ type: FILTER_TYPE.WORKFLOW_STEP, id, label: option.title || option.label });
         }
         for (const id of this.pznFilter) {
             const option = pznMap.get(id);
@@ -423,6 +433,8 @@ class MasSearchAndFilters extends LitElement {
             this.#setOption(maps.offerTypes, tagId, title);
         } else if (tagId.startsWith('mas:plan_type/')) {
             this.#setOption(maps.planTypes, tagId, title);
+        } else if (tagId.startsWith('mas:workflow-step/')) {
+            this.#setOption(maps.workflowSteps, tagId, title);
         } else if (tagId.startsWith('mas:pzn/')) {
             this.#setOption(maps.pzns, tagId, title);
         } else if (tagId.startsWith('mas:custom/')) {
@@ -437,6 +449,7 @@ class MasSearchAndFilters extends LitElement {
             ...(this.productFilter || []),
             ...(this.offerTypeFilter || []),
             ...(this.planTypeFilter || []),
+            ...(this.workflowStepFilter || []),
             ...(this.pznFilter || []),
             ...(this.tagFilter || []),
         ].forEach((tagId) => {
@@ -476,6 +489,7 @@ class MasSearchAndFilters extends LitElement {
             products: new Map(),
             offerTypes: new Map(),
             planTypes: new Map(),
+            workflowSteps: new Map(),
             pzns: new Map(),
             customs: new Map(),
         };
@@ -505,6 +519,7 @@ class MasSearchAndFilters extends LitElement {
         this.productOptions = toSortedOptions(optionMaps.products);
         this.offerTypeOptions = toSortedOptions(optionMaps.offerTypes);
         this.planTypeOptions = toSortedOptions(optionMaps.planTypes);
+        this.workflowStepOptions = toSortedOptions(optionMaps.workflowSteps);
         this.pznOptions = toSortedOptions(optionMaps.pzns);
         this.tagOptions = toSortedOptions(optionMaps.customs);
     }
@@ -521,6 +536,7 @@ class MasSearchAndFilters extends LitElement {
             changed.has('productFilter') ||
             changed.has('offerTypeFilter') ||
             changed.has('planTypeFilter') ||
+            changed.has('workflowStepFilter') ||
             changed.has('pznFilter') ||
             changed.has('tagFilter') ||
             changed.has('statusFilter')
@@ -637,6 +653,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PLAN_TYPE:
                 this.planTypeFilter = selectedTagIds;
                 break;
+            case FILTER_TYPE.WORKFLOW_STEP:
+                this.workflowStepFilter = selectedTagIds;
+                break;
             case FILTER_TYPE.PZN:
                 this.pznFilter = selectedTagIds;
                 break;
@@ -671,6 +690,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.PLAN_TYPE:
                 this.planTypeFilter = this.planTypeFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.WORKFLOW_STEP:
+                this.workflowStepFilter = this.workflowStepFilter.filter((filterId) => filterId !== id);
+                break;
             case FILTER_TYPE.PZN:
                 this.pznFilter = this.pznFilter.filter((filterId) => filterId !== id);
                 break;
@@ -694,6 +716,7 @@ class MasSearchAndFilters extends LitElement {
         this.productFilter = [];
         this.offerTypeFilter = [];
         this.planTypeFilter = [];
+        this.workflowStepFilter = [];
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
@@ -855,6 +878,7 @@ class MasSearchAndFilters extends LitElement {
         const hasProduct = this.productFilter?.length > 0;
         const hasOfferType = this.offerTypeFilter?.length > 0;
         const hasPlanType = this.planTypeFilter?.length > 0;
+        const hasWorkflowStep = this.workflowStepFilter?.length > 0;
         const hasPzn = this.pznFilter?.length > 0;
         const hasTag = this.tagFilter?.length > 0;
         const hasStatus = this.statusFilter?.length > 0;
@@ -907,6 +931,9 @@ class MasSearchAndFilters extends LitElement {
             if (hasPlanType) {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.planTypeFilter)) return false;
             }
+            if (hasWorkflowStep) {
+                if (!this.#fragmentMatchesAnyTag(fragment, this.workflowStepFilter)) return false;
+            }
             if (hasPzn) {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.pznFilter)) return false;
             }
@@ -944,6 +971,7 @@ class MasSearchAndFilters extends LitElement {
                 })}
                 ${this.#renderTagPicker('Offer Type', 'offer_type', this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
                 ${this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
+                ${this.#renderTagPicker('Workflow Step', 'workflow-step', this.workflowStepFilter, FILTER_TYPE.WORKFLOW_STEP)}
                 ${this.#renderTagPicker(
                     'Market Segment',
                     'market_segments',

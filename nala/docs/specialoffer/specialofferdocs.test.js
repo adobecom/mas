@@ -38,7 +38,7 @@ test.describe('Special Offer gallery feature test suite', () => {
             await expect(card).toBeVisible();
             await expect(card).toHaveAttribute('variant', data.variant);
             await expect(card.locator('[slot="heading-xs"]').first()).toContainText(data.title);
-            await expect(card.locator('div.badge')).toContainText(data.badge);
+            await expect(card.locator('merch-badge')).toContainText(data.badge);
             await expect(card.locator('[slot="detail-m"]')).toContainText(data.detailM);
             await expect(card.locator('div[slot="body-xs"]')).toContainText(data.description);
             const footerCtas = card.locator('div[slot="footer"] :is(a, button)');

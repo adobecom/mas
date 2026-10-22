@@ -343,7 +343,8 @@ function createKnowledgeClient(params) {
     if (params.RAG_ENABLED === 'false') {
         return null;
     }
-    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
+    // RETRIEVER_V2=true turns on complementary-chunk selection; unset keeps the v1 gate.
+    return new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS, { complementary: params.RETRIEVER_V2 === 'true' });
 }
 
 /**
@@ -408,6 +409,13 @@ export function isRetrievableQuery(message) {
     return !ACKNOWLEDGEMENTS.has(trimmed.toLowerCase().replace(/[.!,]+$/, ''));
 }
 
+/**
+ * Prepended to the documentation context when the retriever flags its best match
+ * as weak (RETRIEVER_V2), so the model hedges instead of asserting from it.
+ */
+export const LOW_CONFIDENCE_NOTE =
+    'NOTE: only weak, uncertain documentation matches were found for this question. If they do not clearly and specifically answer it, tell the user you are not sure and ask them to clarify — do NOT guess from general knowledge.';
+
 export async function retrieveRAGContext(message, knowledgeClient, options = {}) {
     const { isDocumentation = false } = options;
 
@@ -420,13 +428,14 @@ export async function retrieveRAGContext(message, knowledgeClient, options = {})
 
     if (isDocumentation) {
         try {
-            const { context, sources } = await knowledgeClient.queryWithSources(message, {
+            const { context, sources, lowConfidence } = await knowledgeClient.queryWithSources(message, {
                 topK: 3,
                 minScore: 0.7,
             });
 
             if (context) {
                 console.log('[RAG] Retrieved documentation knowledge, sources:', sources.length);
+                if (lowConfidence) ragContext += `${LOW_CONFIDENCE_NOTE}\n`;
                 ragContext += `${context}\n`;
                 allSources.push(...sources);
             }

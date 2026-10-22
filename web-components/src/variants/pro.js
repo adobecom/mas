@@ -205,6 +205,19 @@ export class Pro extends VariantLayout {
         return !!this.card.querySelector('[slot="addon"]');
     }
 
+    // The Grey add-on style rides the same authored `background` attribute
+    // the "Addon Background" editor control already persists on the slotted
+    // <merch-addon> (see merch-card-editor.js #renderAddonStylePicker) — the
+    // frame lives in this shadow root, so it can't be reached by the
+    // light-DOM attribute selector pro.css.js uses for the checkbox alone.
+    get addonBackground() {
+        return (
+            this.card
+                .querySelector('[slot="addon"]')
+                ?.getAttribute('background') ?? null
+        );
+    }
+
     get mainPrice() {
         return this.card.querySelector(
             `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
@@ -784,7 +797,10 @@ export class Pro extends VariantLayout {
                       </div>`
                     : nothing}
                 ${this.hasAddOn
-                    ? html`<div class="add-on">
+                    ? html`<div
+                          class="add-on"
+                          ?data-addon-grey=${this.addonBackground === 'grey'}
+                      >
                           <slot name="addon"></slot>
                       </div>`
                     : nothing}
@@ -1304,6 +1320,17 @@ export class Pro extends VariantLayout {
             border: 1px solid transparent;
             border-radius: 8px;
             box-sizing: border-box;
+        }
+
+        /* Grey add-on style (MWPW-208925): flat light-grey frame, no AI
+           gradient — the sparkle goes with it since it is a gradient asset. */
+        :host([variant='pro']) .add-on[data-addon-grey] {
+            background: var(--consonant-merch-card-pro-bg-default, #fff);
+            border: 1px solid #e4e4e4;
+        }
+
+        :host([variant='pro']) .add-on[data-addon-grey]::after {
+            display: none;
         }
 
         :host([variant='pro']) .add-on::after {

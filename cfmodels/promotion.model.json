@@ -8,8 +8,16 @@
         "fieldLabel": "Start date",
         "type": "datetime"
     },
+    "cdtStart": {
+        "fieldLabel": "Count Down Timer Start",
+        "type": "datetime"
+    },
     "endDate": {
         "fieldLabel": "End date",
+        "type": "datetime"
+    },
+    "cdtEnd": {
+        "fieldLabel": "Count Down Timer End date",
         "type": "datetime"
     },
     "surfaces": {

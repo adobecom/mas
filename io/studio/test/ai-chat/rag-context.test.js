@@ -130,4 +130,21 @@ describe('ai-chat/retrieveRAGContext', () => {
             expect(isQuestionShaped('')).to.equal(false);
         });
     });
+
+    describe('low-confidence marker', () => {
+        it('prepends the note ahead of the context when the retriever flags a weak match', async () => {
+            const { LOW_CONFIDENCE_NOTE } = await import('../../src/ai-chat/index.js');
+            const client = fakeClient({ context: 'weak chunk', sources: [{ title: 'x' }], lowConfidence: true });
+            const result = await retrieveRAGContext('what is odin?', client, { isDocumentation: true });
+            expect(result.ragContext.startsWith(LOW_CONFIDENCE_NOTE)).to.equal(true);
+            expect(result.ragContext).to.include('weak chunk');
+        });
+
+        it('adds nothing when the match is not flagged', async () => {
+            const { LOW_CONFIDENCE_NOTE } = await import('../../src/ai-chat/index.js');
+            const client = fakeClient({ context: 'strong chunk', sources: [{ title: 'x' }] });
+            const result = await retrieveRAGContext('what is odin?', client, { isDocumentation: true });
+            expect(result.ragContext).to.not.include(LOW_CONFIDENCE_NOTE);
+        });
+    });
 });

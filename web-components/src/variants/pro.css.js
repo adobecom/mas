@@ -120,6 +120,22 @@ merch-card[variant="pro"] merch-addon[slot="addon"] {
     --merch-addon-label-color: var(--consonant-merch-card-pro-text-color);
 }
 
+/* Grey add-on style (MWPW-208925) — the frame drops to a flat #e4e4e4 border
+   in the shadow variantStyle; here the checkbox itself swaps the AI-gradient
+   icon (which bakes its own border into the SVG, hence border:none above)
+   for the flat black-bordered checkbox used elsewhere in the card set (see
+   plans.css.js), sized down to 16px per spec since it no longer needs the
+   larger AI-gradient ring. */
+merch-card[variant="pro"] merch-addon[slot="addon"][background="grey"] {
+    --merch-addon-checkbox-size: 16px;
+    --merch-addon-checkbox-border: 2px solid #000;
+    --merch-addon-checkbox-radius: 4px;
+    --merch-addon-checkbox-bg: transparent;
+    --merch-addon-checkbox-checked-bg: var(--checkmark-icon);
+    --merch-addon-checkbox-checked-bg-color: #000;
+    --merch-addon-checkbox-checked-color: #000;
+}
+
 /* merch-addon stops styling its label once the paragraph picks up a
    data-plan-type, so do it here. No display — that is what switches plan types. */
 merch-card[variant="pro"] merch-addon[slot="addon"] p {

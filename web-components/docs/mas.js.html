@@ -144,7 +144,7 @@ It will also fallback to last successfully loaded offers for the same OSI if ava
 <tbody>
 <tr>
 <td><code>registerCheckoutAction (action)</code></td>
-<td>registers an action, that must have signature (offers, options, imsSignedInPromise)</td>
+<td>registers an action with signature <code>(offers, options, imsSignedInPromise, element)</code></td>
 </tr>
 <tr>
 <td><code>flushWcsCache()</code></td>
@@ -160,6 +160,14 @@ It will also fallback to last successfully loaded offers for the same OSI if ava
 </tr>
 </tbody>
 </table>
+<p>Checkout actions remain compatible with the existing <code>{ url, handler }</code> shape.
+Hosts can optionally provide <code>aupHandler({ type, element })</code> to track the host
+modal lifecycle while M@S owns checkout routing. M@S calls it with
+<code>type: 'open'</code> when it routes an eligible owned click to AUP. Every open is
+balanced by one <code>type: 'close'</code>: after a handled AUP workflow ends, or before
+M@S invokes the existing <code>handler(event)</code> fallback when AUP fails or does not
+handle the workflow. Pre-AUP bypasses emit neither phase. <code>element</code> is the
+originating checkout link or button and carries the configured <code>data-modal-id</code>.</p>
 <h3 id="feature-flags" tabindex="-1">Feature flags <a class="header-anchor" href="#feature-flags" href="#feature-flags" title="Permalink to this heading">#</a></h3>
 <p>For detailed documentation on all available feature flags, see <a href="feature-flags.html">Feature Flags</a>.</p>
 <h3 id="examples" tabindex="-1">Examples <a class="header-anchor" href="#examples" href="#examples" title="Permalink to this heading">#</a></h3>

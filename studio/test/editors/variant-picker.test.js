@@ -193,11 +193,20 @@ describe('VariantPicker', () => {
             expect(names).to.include('faq');
             expect(names).to.include('banner-blade');
             expect(names).to.include('headless');
+            expect(names).to.include('product-pricing');
             expect(names).to.not.include('product');
             expect(names).to.not.include('segment');
             expect(names).to.not.include('image');
             expect(names).to.not.include('special-offers');
-            expect(names.length).to.equal(13);
+            expect(names.length).to.equal(14);
+        });
+
+        it('should return the Mini template for adobe-home surface', () => {
+            const result = getVariantTreeData('adobe-home');
+            const names = result.map((v) => v.name);
+            expect(names).to.include('mini');
+            const mini = result.find((v) => v.name === 'mini');
+            expect(mini.label).to.equal('Mini');
         });
 
         it('should return all variants for sandbox surface', () => {

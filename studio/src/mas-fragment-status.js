@@ -13,9 +13,12 @@ class MasFragmentStatus extends LitElement {
             padding-block: 3px;
             padding-inline: 6px;
             gap: 6px;
-            font-size: 12px;
             user-select: none;
             cursor: pointer;
+        }
+
+        :host(:not([quiet])) {
+            font-size: 12px;
         }
 
         :host(:hover) {
@@ -41,6 +44,13 @@ class MasFragmentStatus extends LitElement {
             --mas-status-accent-color: var(--spectrum-green-700);
         }
 
+        :host([variant][quiet]) {
+            cursor: default;
+            border: 1px solid transparent;
+            background-color: var(--spectrum-white, #ffffff);
+            --mas-status-accent-color: var(--spectrum-gray-700);
+        }
+
         sp-status-light {
             min-block-size: initial;
             padding: 0;
@@ -52,6 +62,7 @@ class MasFragmentStatus extends LitElement {
 
     static properties = {
         variant: { type: String, attribute: true, reflect: true },
+        quiet: { type: Boolean, attribute: true },
     };
 
     get label() {
@@ -59,6 +70,7 @@ class MasFragmentStatus extends LitElement {
     }
 
     get lightVariant() {
+        if (this.quiet) return 'neutral';
         switch (this.variant) {
             case 'new':
             case 'draft':

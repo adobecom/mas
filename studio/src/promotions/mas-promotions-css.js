@@ -1,8 +1,9 @@
 import { css } from 'lit';
-import { tableCellBaseStyles } from '../common/styles/table-styles.css.js';
+import { tableCellBaseStyles, loadingContainerFlexStyles } from '../common/styles/table-styles.css.js';
 
 export const styles = css`
     ${tableCellBaseStyles}
+    ${loadingContainerFlexStyles}
 
     .status-cell .status-dot.yellow {
         background-color: var(--spectrum-yellow-600);

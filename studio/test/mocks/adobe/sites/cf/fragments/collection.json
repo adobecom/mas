@@ -6,6 +6,7 @@
     },
     "path": "/content/mas/collections/all",
     "id": "collection.json",
+    "status": "DRAFT",
     "title": "All",
     "fields": [
         {

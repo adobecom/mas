@@ -38,7 +38,7 @@ test.describe('Segment gallery feature test suite', () => {
             await expect(galleryPage.getCard(data.id)).toBeVisible();
             await expect(galleryPage.getCard(data.id)).toHaveAttribute('variant', data.variant);
             await expect(galleryPage.getCard(data.id).locator('h3')).toContainText(data.title);
-            await expect(galleryPage.getCard(data.id).locator('div.badge')).toContainText(data.badge);
+            await expect(galleryPage.getCard(data.id).locator('merch-badge')).toContainText(data.badge);
             await expect(galleryPage.getCard(data.id).locator('div[slot="body-xs"]')).toContainText(data.description);
             const footerCtas = galleryPage.getCard(data.id).locator('div[slot="footer"] :is(a, button)');
             await expect(footerCtas.first()).toHaveText(data.cta1);

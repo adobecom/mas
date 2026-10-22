@@ -175,6 +175,13 @@ export const MODAL_TYPE_3_IN_1 = {
     CRM: 'crm',
 };
 
+export const AUP_CHECKOUT_CLIENT_IDS = new Set([
+    'creative',
+    'mini_plans',
+    'doc_cloud',
+    'acom_bc',
+]);
+
 export const MARK_START_SUFFIX = ':start';
 export const MARK_DURATION_SUFFIX = ':duration';
 

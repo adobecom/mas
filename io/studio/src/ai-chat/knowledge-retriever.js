@@ -96,6 +96,7 @@ const RAW_STOPWORDS = [
     'together',
     'without',
     'again',
+    'available',
 ];
 
 /**
@@ -116,6 +117,10 @@ const RAW_STOPWORDS = [
  * test, and promoting it to a content word breaks queries that worked. Closed
  * class function words are filler however they score, so the list stays hand
  * written and entries come off it one at a time, with evidence.
+ *
+ * "available" went on it: it frames a question ("what variants are available?")
+ * and rarely names what is being asked about. Left in, it only matches chunks
+ * that happen to say "available", which sank the section actually about the topic.
  */
 const STOPWORDS = new Set(RAW_STOPWORDS.map((word) => normalize(word)));
 
@@ -143,8 +148,40 @@ export function tokenize(text) {
 
 const HEADLINE_TERM_WEIGHT = 3;
 
+/**
+ * Complementary-chunk selection (RETRIEVER_V2). The v1 gate asks every chunk to
+ * cover minScore of the query alone, so a compound question whose answer spans
+ * two sections (each covering about 60% of the terms) retrieves neither. v2
+ * keeps v1's result whenever v1 finds anything, so nothing that worked changes,
+ * and only when v1 finds nothing builds a set greedily: each pick must cover
+ * at least COMPLEMENT_FLOOR of the query by itself, and the set counts once the
+ * terms it covers together reach the gate. When v1 does find something, the
+ * remaining slots go to chunks that cover query terms the v1 hits leave
+ * uncovered (a spurious hit that matches only the rare words of a question
+ * would otherwise crowd out the chunk about its actual topic).
+ */
+export const COMPLEMENT_FLOOR = 0.4;
+export const COMPLEMENT_MIN_GAIN = 0.15;
+
+/**
+ * Trust bar (RETRIEVER_V2). Retrieval can clear the gate with a plausible but
+ * marginal chunk, and the model then asserts from it. When the best chunk
+ * returned covers less than this share of the query, the result is flagged
+ * `lowConfidence` (the chunks are still returned) and the action prepends a note
+ * telling the model the matches are weak and to say so instead of guessing.
+ * Emptying the context instead backfires: with no context the model answers
+ * from general knowledge, confidently. Over-marking is the safe direction, so the
+ * bar sits just under the weakest retrieval that answers well (placeholders on a
+ * non-English page, 0.62) and above the marginal-wrong promo-price one (0.50).
+ */
+export const TRUST_BAR = 0.6;
+
 export class LocalKnowledgeRetriever {
-    constructor(chunks = []) {
+    constructor(chunks = [], { complementary = false, trust = complementary ? TRUST_BAR : 0, floor = COMPLEMENT_FLOOR, minGain = COMPLEMENT_MIN_GAIN } = {}) {
+        this.complementary = complementary;
+        this.trust = trust;
+        this.floor = floor;
+        this.minGain = minGain;
         this.chunks = chunks.map((chunk) => {
             const termFrequency = new Map();
             const count = (text, weight) => {
@@ -195,6 +232,37 @@ export class LocalKnowledgeRetriever {
         return { coverage, rank: coverage + tfWeight };
     }
 
+    /**
+     * Greedy cover: repeatedly take the chunk that adds the most not-yet-covered
+     * query weight (rank breaks ties), until the union reaches minScore or no
+     * candidate adds minGain. With no v1 hits the union must reach minScore or
+     * nothing is returned, so off-corpus queries still inject nothing. With v1
+     * hits as the seed they are kept as they are and only extended.
+     */
+    #complementarySet(queryTerms, scored, topK, minScore, seed) {
+        const weights = new Map(queryTerms.map((term) => [term, this.#idf(term)]));
+        const total = [...weights.values()].reduce((sum, weight) => sum + weight, 0);
+        const covered = new Set();
+        const cover = (hit) => queryTerms.filter((term) => hit.chunk.termFrequency.has(term)).forEach((term) => covered.add(term));
+        const picked = [...seed];
+        picked.forEach(cover);
+        const candidates = seed.length ? scored : scored.filter((hit) => hit.coverage >= this.floor);
+        while (picked.length < topK) {
+            let best = null;
+            for (const hit of candidates) {
+                if (picked.includes(hit)) continue;
+                const gain = queryTerms.filter((term) => !covered.has(term) && hit.chunk.termFrequency.has(term)).reduce((sum, term) => sum + weights.get(term), 0) / total;
+                if (gain >= this.minGain && (!best || gain > best.gain || (gain === best.gain && hit.rank > best.hit.rank))) best = { hit, gain };
+            }
+            if (!best) break;
+            picked.push(best.hit);
+            cover(best.hit);
+        }
+        if (seed.length) return picked;
+        const unionCoverage = queryTerms.filter((term) => covered.has(term)).reduce((sum, term) => sum + weights.get(term), 0) / total;
+        return unionCoverage >= minScore ? picked : [];
+    }
+
     async queryWithSources(query, options = {}) {
         const { topK = 3, minScore = 0.6 } = options;
         // Terms the corpus has never seen carry no discriminative signal for
@@ -209,15 +277,17 @@ export class LocalKnowledgeRetriever {
             return { context: '', sources: [] };
         }
 
-        const hits = this.chunks
-            .map((chunk) => ({ chunk, ...this.#score(queryTerms, chunk) }))
+        const scored = this.chunks.map((chunk) => ({ chunk, ...this.#score(queryTerms, chunk) }));
+        let hits = scored
             .filter((hit) => hit.coverage >= minScore)
             .sort((first, second) => second.rank - first.rank)
             .slice(0, topK);
+        if (this.complementary) hits = this.#complementarySet(queryTerms, scored, topK, minScore, hits);
 
         if (hits.length === 0) {
             return { context: '', sources: [] };
         }
+        const lowConfidence = Math.max(...hits.map((hit) => hit.coverage)) < this.trust;
 
         const context = `=== RELEVANT KNOWLEDGE ===\n${hits
             .map(({ chunk }) => `### ${chunk.title} > ${chunk.section}\n${chunk.text}`)
@@ -229,6 +299,6 @@ export class LocalKnowledgeRetriever {
             section: chunk.section,
             score: Number(coverage.toFixed(3)),
         }));
-        return { context, sources };
+        return { context, sources, lowConfidence };
     }
 }

@@ -1,6 +1,7 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
 import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
+import { resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../locales.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -8,9 +9,15 @@ const TRANSFORMER_NAME = 'fetchFragment';
  * First fragment fetch + path parse only. Resolves as soon as surface / parsedLocale / fragmentPath / body are known,
  * without waiting on default-locale variation fetch. Shared via `promises.requestInfos` so dictionary/settings inits
  * can proceed in parallel with that work.
+ *
+ * Also resolves `country` (restricted to the locale's market family) and `wcsCountry` here: this
+ * is the earliest point in the pipeline where `surface` is known, which
+ * `restrictCountryToLocaleMarket` needs to scope its market lookup (MWPW-207865).
+ * @example
+ * // locale es_PR, country: PR -> country: PR, wcsCountry: US
  */
 async function resolveRequestInfos(initContext) {
-    const { id, locale, fragmentsIds, preview } = initContext;
+    const { id, locale, country, fragmentsIds, preview } = initContext;
     const toFetchId = fragmentsIds?.['default-locale-id'] || id;
     const path = odinReferences(toFetchId, preview, REFERENCES.ALL);
     const response = await fetch(path, initContext, 'fragment');
@@ -25,12 +32,16 @@ async function resolveRequestInfos(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
+    const fixedCountry = restrictCountryToLocaleMarket(surface, locale, country);
+    const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
     return {
         status: 200,
         body: response.body,
         parsedLocale,
         surface,
         fragmentPath,
+        country: fixedCountry,
+        wcsCountry,
     };
 }
 
@@ -58,6 +69,8 @@ async function fetchFragment(context) {
         parsedLocale: response.parsedLocale,
         surface: response.surface,
         fragmentPath: response.fragmentPath,
+        country: response.country,
+        wcsCountry: response.wcsCountry,
     };
 }
 

@@ -418,9 +418,18 @@ describe('MasSelectionPanel', () => {
     });
 
     describe('render', () => {
-        it('shows Copy URLs button when items are selected', async () => {
+        it('does not show Copy URLs button without a repository', async () => {
             const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
             const el = await createPanel([makeFragmentStore(fragment)]);
+            await el.updateComplete;
+
+            const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
+            expect(buttons.some((b) => b.getAttribute('label') === 'Copy Content Link(s)')).to.be.false;
+        });
+
+        it('shows Copy URLs button when items and a repository are present', async () => {
+            const fragment = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
+            const el = await createPanel([makeFragmentStore(fragment)], {});
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];
@@ -438,7 +447,7 @@ describe('MasSelectionPanel', () => {
         it('shows Copy URLs button for multi-selection', async () => {
             const f1 = { id: 'uuid-1', model: { path: CARD_MODEL_PATH } };
             const f2 = { id: 'uuid-2', model: { path: CARD_MODEL_PATH } };
-            const el = await createPanel([makeFragmentStore(f1), makeFragmentStore(f2)]);
+            const el = await createPanel([makeFragmentStore(f1), makeFragmentStore(f2)], {});
             await el.updateComplete;
 
             const buttons = [...el.shadowRoot.querySelectorAll('sp-action-button')];

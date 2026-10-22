@@ -1,5 +1,9 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { MODAL_TYPE_3_IN_1 } from './constants.js';
+import {
+    AUP_CHECKOUT_CLIENT_IDS,
+    CheckoutWorkflowStep,
+    MODAL_TYPE_3_IN_1,
+} from './constants.js';
 import { Log } from './log.js';
 
 // A hung context lookup would otherwise leave aupCheckoutPending stuck true and
@@ -17,33 +21,61 @@ function withTimeout(promise, stage, ms) {
     return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export function isAupCheckoutSupported(offers, options) {
+function getCheckoutClientId({ checkoutClientId, modal }) {
+    if (
+        checkoutClientId !== 'doc_cloud' &&
+        Object.values(MODAL_TYPE_3_IN_1).includes(modal)
+    ) {
+        return modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
+    }
+    return checkoutClientId;
+}
+
+export function isAupCheckoutSupported(
+    offers,
+    options,
+    hasUpgradeAction,
+    clientId = getCheckoutClientId(options),
+) {
     return (
+        AUP_CHECKOUT_CLIENT_IDS.has(clientId) &&
         offers.length > 0 &&
-        !options.upgrade &&
+        !hasUpgradeAction &&
         !options.perpetual &&
         !offers.some((offer) => offer.commitment === 'PERPETUAL')
     );
 }
 
-function getRequest(offers, options) {
-    if (!isAupCheckoutSupported(offers, options)) return;
+// Same rule as the segmentation checkout URL: the first offer is the primary
+// one, any offer with a different product arrangement is the addon (Stock).
+function getAddonProductArrangementCode(offers, options) {
+    if (options.addonProductArrangementCode != null) {
+        return options.addonProductArrangementCode;
+    }
+    if (options.checkoutWorkflowStep !== CheckoutWorkflowStep.SEGMENTATION) {
+        return undefined;
+    }
+    const primary = offers[0]?.productArrangementCode;
+    return (
+        primary
+            ? offers.find((offer) => offer.productArrangementCode !== primary)
+            : offers[1]
+    )?.productArrangementCode;
+}
+
+function getRequest(offers, options, hasUpgradeAction) {
+    const clientId = getCheckoutClientId(options);
+    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction, clientId))
+        return;
     const [offer] = offers;
     const context = {
-        clientId: options.checkoutClientId,
+        clientId,
         clientType: 'web',
         co: options.country,
         pa: offer.productArrangementCode,
         cs: options.cs,
         ms: options.ms,
     };
-    if (
-        context.clientId !== 'doc_cloud' &&
-        Object.values(MODAL_TYPE_3_IN_1).includes(options.modal)
-    ) {
-        context.clientId =
-            options.modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
-    }
     const preselectPlan = options.preselectPlan?.toLowerCase();
     if (preselectPlan === 'edu') context.ms = 'EDU';
     if (preselectPlan === 'team') context.cs = 'TEAM';
@@ -74,7 +106,7 @@ function getRequest(offers, options) {
     for (const [key, value] of Object.entries({
         step: options.checkoutWorkflowStep,
         apc: options.promotionCode,
-        ao: options.addonProductArrangementCode,
+        ao: getAddonProductArrangementCode(offers, options),
         code: options.authCode,
         soSu: options['so.su'],
         soCa: options['so.ca'],
@@ -144,8 +176,9 @@ export async function launchAupCheckout(
     options,
     onClose,
     timeout = HOST_TIMEOUT_MS,
+    hasUpgradeAction = false,
 ) {
-    const request = getRequest(offers, options);
+    const request = getRequest(offers, options, hasUpgradeAction);
     if (!request) return false;
     const orchestrator = await withTimeout(
         sdk.getOrchestratorContext(),

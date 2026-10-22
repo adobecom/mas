@@ -44,6 +44,11 @@
  *     project wins (startDate/seasonal order breaks ties), else a project-level wildcard
  *     promoCode applies. Projects with disjoint per-country entries therefore coexist on the
  *     same fragment.
+ *   - `corrector` surfaces `cdtStart` / `cdtEnd` (countdown timer dates) on the main payload:
+ *     once the final payload is built (mask applied, placeholders expanded), the first fragment
+ *     rendering a link whose text is `countdown-timer` is looked up (main body first, then
+ *     references in document order), and the dates of its promo project, if any, are exposed.
+ *     Both dates are required: a project defining only a start or only an end exposes nothing.
  */
 import { FRAGMENT_URL_PREFIX, MAS_ROOT, PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
 import { fetch, getRequestInfos, matchesGeo, isGroupedVariationFragmentPath } from '../utils/common.js';
@@ -99,6 +104,8 @@ async function fetchFolderProjects(context, surface) {
             geos: fields?.geos ?? [],
             startDate: fields?.startDate ?? null,
             endDate: fields?.endDate ?? null,
+            cdtStart: fields?.cdtStart ?? null,
+            cdtEnd: fields?.cdtEnd ?? null,
             tags: fields?.tags ?? [],
         }))
         .filter((project) => project.surfaces.includes(surface));
@@ -407,6 +414,8 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
         title,
         startDate: project.startDate,
         endDate: project.endDate,
+        cdtStart: project.cdtStart,
+        cdtEnd: project.cdtEnd,
         seasonal,
         promoCode,
         fragmentPaths,
@@ -527,6 +536,12 @@ async function promotions(context) {
         const promoMap = buildPromoMap(project.offerOverrides, { regionLocale, country }, project.promoCode, context);
         return {
             project,
+            // Human-readable provenance for a project that touched a fragment: campaign title when
+            // available, otherwise the project id. Variation-merge and promoCode-application
+            // provenance are tracked separately (a fragment may be touched by two different
+            // projects), and exposed downstream as data-promotion-variation-project and
+            // data-promotion-project respectively.
+            label: project.title ?? project.id,
             promoMap,
             substituteMap: buildSubstituteMap(project.offerSubstitutions ?? [], { regionLocale, country }),
             ignoreVariationOsis: buildIgnoreVariationOsis(project.ignoreVariations ?? [], { regionLocale, country }),

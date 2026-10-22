@@ -12,6 +12,7 @@ import {
     mergeRows,
     parseConsolidatedRows,
     parseDependabotTitle,
+    rebuildWebComponents,
 } from './consolidate-dependabot-prs.mjs';
 
 test('createBranchName uses the MWPW ticket as the consolidation branch', () => {
@@ -380,4 +381,49 @@ test('mergePrHead reports the PR when even the retried merge fails', () => {
     assert.throws(() => mergePrHead({ number: 7, remote: 'upstream', run, log: () => {} }), {
         message: /Merge conflict bringing in PR #7/,
     });
+});
+
+test('rebuildWebComponents builds and commits web-components output before push when it changed', () => {
+    const run = makeRecorder((cmd, args) => (cmd === 'git' && args[0] === 'status' ? ' M web-components/dist/mas.js\n' : ''));
+
+    const rebuilt = rebuildWebComponents({
+        branch: 'MWPW-123456',
+        changedPaths: ['web-components/package.json', 'package-lock.json'],
+        run,
+        log: () => {},
+    });
+
+    assert.equal(rebuilt, true);
+    assert.deepEqual(
+        run.calls.map((call) => call.join(' ')),
+        [
+            'npm ci',
+            'npm run build:bundle',
+            'npm run build:docs',
+            'git status --porcelain -- web-components/dist web-components/docs',
+            'git add -- web-components/dist web-components/docs',
+            'git commit -m MWPW-123456 rebuild web-components',
+        ],
+    );
+});
+
+test('rebuildWebComponents skips the build when only io lockfiles changed and commits nothing when output is unchanged', () => {
+    const skipped = makeRecorder(() => '');
+    assert.equal(
+        rebuildWebComponents({
+            branch: 'MWPW-123456',
+            changedPaths: ['io/www/package-lock.json'],
+            run: skipped,
+            log: () => {},
+        }),
+        false,
+    );
+    assert.equal(skipped.calls.length, 0);
+
+    const unchanged = makeRecorder(() => '');
+    assert.equal(
+        rebuildWebComponents({ branch: 'MWPW-123456', changedPaths: ['package-lock.json'], run: unchanged, log: () => {} }),
+        false,
+    );
+    assert.ok(!unchanged.calls.some((call) => call[1] === 'commit'));
 });

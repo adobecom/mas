@@ -29,6 +29,6 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
             - run: npm ci
-            - run: npm run test:ci --workspace=@adobecom/mas-price
+            - run: npm --prefix price run test:ci
             - run: npx eslint price eslint.config.mjs
             - run: npx prettier --check price package.json .github/workflows/price-tests.yaml

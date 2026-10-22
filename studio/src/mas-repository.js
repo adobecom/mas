@@ -41,6 +41,11 @@ import {
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
+
+async function confirmReferenceDiagnosis(aem, roots) {
+    const { MasReferenceDiagnosisDialog } = await import('./publish/mas-reference-diagnosis-dialog.js');
+    return MasReferenceDiagnosisDialog.confirmFor(aem, roots);
+}
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -168,6 +173,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #publishAttemptInProgress = false;
     #searchCursor = null;
     #addonPlaceholdersRequest = null;
 
@@ -1583,8 +1589,15 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
-        const { selectedRefIds = null, allSelected = false } = options;
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
         try {
+            const roots = [
+                fragment,
+                ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
+            ];
+            if (!skipReferenceDiagnosis && !(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
@@ -1612,6 +1625,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 
@@ -1707,12 +1721,16 @@ export class MasRepository extends LitElement {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
             return false;
         }
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
 
         try {
+            const listStores = Store.fragments.list.data.get();
+            const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
+            if (!(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const listStores = Store.fragments.list.data.get();
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
@@ -1753,6 +1771,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 

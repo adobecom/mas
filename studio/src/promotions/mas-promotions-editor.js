@@ -1943,7 +1943,6 @@ class MasPromotionsEditor extends LitElement {
                     </div>
                 </div>
                 ${this.countriesSelector}
-                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState
                         ? this.#renderPromotionItemsEmptyState()
@@ -2031,6 +2030,7 @@ class MasPromotionsEditor extends LitElement {
                         }}
                     ></mas-promo-codes-manager>
                 </div>
+                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
             </div>
             ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions

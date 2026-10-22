@@ -29,23 +29,6 @@ export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 
-/**
- * Normalizes variant names for consistency.
- * Converts any variant starting with 'plans' to just 'plans'.
- * The 'pro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it does not carry the
- * 'plans' prefix, so it needs an explicit mapping).
- * @param {string} variant - The variant name to normalize
- * @returns {string} The normalized variant name
- */
-export function normalizeVariant(variant) {
-    if (!variant) return variant;
-    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
-    if (variant === 'pro') return 'plans';
-    if (variant.startsWith('plans')) return 'plans';
-    return variant;
-}
-
 export function appendSlot(fieldName, fields, el, mapping) {
     const config = mapping[fieldName];
     if (fields[fieldName] && config) {

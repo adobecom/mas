@@ -14,13 +14,15 @@ const RECORD = {
     pages: { 493512: { 'https://www.adobe.com/express/#en_US': { requests: 42, countries: { US: 42 } } } },
 };
 
-/** Loads the real State module over an in-memory State client that records every put. */
+/** Loads the real State module over an in-memory State client that records every put and honours its TTL. */
 function loadState(entries = {}) {
     const puts = [];
+    const expiries = {};
     const client = {
-        get: async (key) => (key in entries ? { value: entries[key] } : undefined),
+        get: async (key) => (key in entries && !(expiries[key] <= Date.now()) ? { value: entries[key] } : undefined),
         put: async (key, value, options) => {
             entries[key] = value;
+            if (options?.ttl) expiries[key] = Date.now() + options.ttl * 1000;
             puts.push({ key, value, options });
             return key;
         },
@@ -143,15 +145,30 @@ describe('fragment-usage rollup lease', () => {
         expect(puts).to.have.length(0);
     });
 
-    it('releases a lease it holds', async () => {
-        const { state, client, entries } = loadState({ [LEASE_KEY]: 'run-a' });
-        await state.releaseRollupLease('run-a', client);
-        expect(entries).to.not.have.property(LEASE_KEY);
-    });
+    describe('after a claim is abandoned', () => {
+        let clock;
+        let state;
+        let client;
 
-    it("leaves another rollup's lease in place", async () => {
-        const { state, client, entries } = loadState({ [LEASE_KEY]: 'run-b' });
-        await state.releaseRollupLease('run-a', client);
-        expect(entries[LEASE_KEY]).to.equal('run-b');
+        beforeEach(async () => {
+            clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            ({ state, client } = loadState());
+            const put = client.put;
+            client.put = async (...args) => {
+                clock.tick(5000);
+                return put(...args);
+            };
+            await state.acquireRollupLease('run-a', client, noWait);
+            client.put = put;
+        });
+
+        it('refuses a retry while the abandoned claim is still live', async () => {
+            expect(await state.acquireRollupLease('run-b', client, noWait)).to.equal(false);
+        });
+
+        it('grants a retry once the abandoned claim lapses', async () => {
+            clock.tick(300 * 1000);
+            expect(await state.acquireRollupLease('run-b', client, noWait)).to.equal(true);
+        });
     });
 });

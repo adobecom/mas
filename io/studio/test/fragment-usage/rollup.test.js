@@ -28,7 +28,6 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null, lease
         return record;
     });
     const acquireRollupLease = sinon.stub().resolves(!leaseHeld);
-    const releaseRollupLease = sinon.stub().resolves();
 
     const rollup = proxyquire('../../src/fragment-usage/rollup', {
         '@adobe/aio-sdk': { Core: { Logger: () => logger } },
@@ -39,7 +38,6 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null, lease
             writeUsage,
             emptyRecord: () => ({ version: 1, updatedAt: null, pages: {} }),
             acquireRollupLease,
-            releaseRollupLease,
         },
     });
 
@@ -50,7 +48,6 @@ function loadRollup({ pagesByFragment = {}, store = {}, pagesError = null, lease
         readUsage,
         writeUsage,
         acquireRollupLease,
-        releaseRollupLease,
         logger,
     };
 }
@@ -235,8 +232,8 @@ describe('fragment-usage rollup', () => {
         expect(response.body.failures).to.equal(1);
     });
 
-    it('re-reads more than one hour so a missed run repairs itself', async () => {
-        expect(rollupLookback()).to.be.at.least(2);
+    it('re-reads enough hours that two missed runs in a row still repair themselves', async () => {
+        expect(rollupLookback()).to.be.at.least(3);
     });
 
     it('returns only a summary, never the per-fragment grid', async () => {
@@ -373,29 +370,18 @@ describe('fragment-usage rollup', () => {
         expect(acquireRollupLease).to.have.been.calledBefore(fetchHourlyPages);
     });
 
-    it('releases the lease it took once the run completes', async () => {
-        const { rollup, acquireRollupLease, releaseRollupLease } = loadRollup();
+    it("never deletes its lease, so a retried delete cannot remove a successor's lease", async () => {
+        // State has no delete-if-still-mine and its SDK retries deletes, so the lease lapses with its
+        // TTL instead. The TTL matches the action timeout, so the lease always outlives the run.
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date', 'setTimeout'] });
+        const { runs, client } = loadRollupsOverSharedState([{}]);
+        const remove = sinon.spy(client, 'delete');
 
-        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+        const pending = runs[0].rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
+        await clock.tickAsync(5000);
+        await pending;
 
-        expect(releaseRollupLease).to.have.been.calledOnce;
-        expect(releaseRollupLease.firstCall.args[0]).to.equal(acquireRollupLease.firstCall.args[0]);
-    });
-
-    it('releases the lease when the run fails', async () => {
-        const { rollup, releaseRollupLease } = loadRollup({ pagesError: new Error('grafana down') });
-
-        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
-
-        expect(releaseRollupLease).to.have.been.calledOnce;
-    });
-
-    it('does not release a lease it did not take', async () => {
-        const { rollup, releaseRollupLease } = loadRollup({ leaseHeld: true });
-
-        await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
-
-        expect(releaseRollupLease).to.not.have.been.called;
+        expect(remove).to.not.have.been.called;
     });
 
     it('lets only one of two overlapping runs store its window', async () => {
@@ -417,16 +403,6 @@ describe('fragment-usage rollup', () => {
         expect(runs[loser].fetchHourlyPages).to.not.have.been.called;
         const stored = await state.readUsage(FRAGMENT, client);
         expect(stored.pages[hour][PAGE]).to.deep.equal(entry(winner === 0 ? 10 : 90));
-    });
-
-    it('still reports the run when the lease cannot be released', async () => {
-        // The lease lapses with the action timeout, so a failed release only delays the next manual run.
-        const { rollup, releaseRollupLease } = loadRollup();
-        releaseRollupLease.rejects(new Error('state delete failed'));
-
-        const response = await rollup.main({ GRAFANA_SERVICE_TOKEN: 'glsa_test' });
-
-        expect(response.statusCode).to.equal(200);
     });
 });
 

@@ -240,9 +240,9 @@ application:
                             final: true
                 triggers:
                     fragment-usage-hourly:
-                        feed: /whisk.system/alarms/interval
+                        feed: /whisk.system/alarms/alarm
                         inputs:
-                            minutes: 60
+                            cron: '5 * * * *' # on the clock: every deploy recreates the feed, which restarts an interval alarm
                 rules:
                     fragment-usage-rollup-rule:
                         trigger: fragment-usage-hourly

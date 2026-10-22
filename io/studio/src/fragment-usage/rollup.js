@@ -18,13 +18,14 @@ const stateLib = require('@adobe/aio-lib-state');
 
 const { fetchHourlyPages } = require('./grafana');
 const { mergePages, prunePages, toEpochHour, HOUR_MS } = require('./pages');
-const { readUsage, writeUsage, emptyRecord, acquireRollupLease, releaseRollupLease } = require('./state');
+const { readUsage, writeUsage, emptyRecord, acquireRollupLease } = require('./state');
 
 /**
- * How far back each run re-reads. Two hours rather than one so a late or skipped run still repairs
- * the previous hour, and so the hour that was still in progress last time gets its final count.
+ * How far back each run re-reads. Every hour is rewritten whole by the three runs after it ends, so
+ * the hour still in progress last time gets its final count and two missed runs in a row still
+ * repair themselves.
  */
-const LOOKBACK_HOURS = 2;
+const LOOKBACK_HOURS = 3;
 
 /** Headroom above the ~1,600 active fragments without unbounded State work. */
 const MAX_FRAGMENTS_PER_RUN = 2000;
@@ -40,9 +41,6 @@ const MAX_RUN_MS = 240000;
 async function main(params) {
     const logger = Core.Logger('fragment-usage-rollup', { level: params.LOG_LEVEL || 'info' });
     const startedAt = Date.now();
-    const leaseOwner = randomUUID();
-    let state;
-    let leased = false;
 
     try {
         const token = params.GRAFANA_SERVICE_TOKEN;
@@ -53,9 +51,8 @@ async function main(params) {
         // Runs straddling an hour boundary fetch different windows, so an overlapping run could
         // write its older window over a newer one. The lease is taken before the Grafana query so
         // this run's window is never older than one already stored.
-        state = await stateLib.init();
-        leased = await acquireRollupLease(leaseOwner, state);
-        if (!leased) {
+        const state = await stateLib.init();
+        if (!(await acquireRollupLease(randomUUID(), state))) {
             logger.info('fragment usage rollup skipped: another run holds the lease');
             return { statusCode: 409, body: 'Another fragment usage rollup is already running' };
         }
@@ -113,13 +110,6 @@ async function main(params) {
     } catch (error) {
         logger.error('fragment usage rollup failed', error);
         return { statusCode: 500, body: `ERROR in fragment usage rollup: ${error.message}` };
-    } finally {
-        // An unreleased lease lapses with the action timeout, so a failed release must not fail the run.
-        if (leased) {
-            await releaseRollupLease(leaseOwner, state).catch((error) =>
-                logger.warn(`fragment usage rollup lease not released: ${error.message}`),
-            );
-        }
     }
 }
 

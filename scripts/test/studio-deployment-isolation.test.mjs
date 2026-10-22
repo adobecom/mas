@@ -39,6 +39,14 @@ test('core deployment schedules the hourly usage rollup', () => {
     });
 });
 
+test('the usage rollup fires on the clock, so a redeploy cannot restart its schedule', () => {
+    // Every deploy recreates the trigger's feed. An interval alarm counts from that moment; a cron
+    // alarm does not.
+    const trigger = manifest.config.application.runtimeManifest.packages.MerchAtScaleStudio.triggers['fragment-usage-hourly'];
+    assert.equal(trigger.feed, '/whisk.system/alarms/alarm');
+    assert.match(trigger.inputs.cron, /^\d{1,2} \* \* \* \*$/);
+});
+
 test('assistant deployment schedules nothing', () => {
     assert.deepEqual(getDeploymentRules(manifest.config, 'assistant'), { actions: [], triggers: [], rules: [] });
 });

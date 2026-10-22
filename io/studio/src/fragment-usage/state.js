@@ -22,7 +22,10 @@ const RECORD_VERSION = 1;
 
 const ROLLUP_LEASE_KEY = 'fragment-usage-rollup.lease';
 
-/** The rollup action's timeout, so a run killed mid-way frees the lease when it would have ended anyway. */
+/**
+ * The rollup action's timeout. The lease is never released, only left to lapse, and since it is
+ * claimed after the run starts it always outlives the run.
+ */
 const ROLLUP_LEASE_TTL = 300;
 
 /** Longest a claim may take to land after the lease was read as free; a slower claim is abandoned. */
@@ -86,6 +89,10 @@ function emptyRecord() {
  * waits until every such claim has landed, and proceeds only if the lease still names it: the last
  * claim wins and every other run backs off. That holds while claims land within
  * ROLLUP_LEASE_CLAIM_MS, so a slower claim is abandoned rather than trusted.
+ *
+ * There is no release. State has no delete-if-still-mine and its SDK retries deletes, so a release
+ * could remove a successor's lease and let a third run overlap it. Every lease, an abandoned claim
+ * included, lapses with ROLLUP_LEASE_TTL instead, which an hourly schedule never waits on.
  * @param {string} owner id unique to this run
  * @param {object} state pre-initialised State client
  * @param {Function} sleep resolves after the given milliseconds; injectable for tests
@@ -102,20 +109,9 @@ async function acquireRollupLease(owner, state, sleep = wait) {
     return confirmed?.value === owner;
 }
 
-/**
- * Frees the rollup slot, unless it has already lapsed and been claimed by another run.
- * @param {string} owner id the lease was acquired with
- * @param {object} state pre-initialised State client
- */
-async function releaseRollupLease(owner, state) {
-    const entry = await state.get(ROLLUP_LEASE_KEY);
-    if (entry?.value === owner) await state.delete(ROLLUP_LEASE_KEY);
-}
-
 module.exports = {
     readUsage,
     writeUsage,
     emptyRecord,
     acquireRollupLease,
-    releaseRollupLease,
 };

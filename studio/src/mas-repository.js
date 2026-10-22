@@ -34,12 +34,15 @@ import {
     SURFACES,
     STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
+    BULK_EDIT_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
+import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
 
 async function confirmReferenceDiagnosis(aem, roots) {
@@ -55,7 +58,7 @@ import {
 } from './placeholders/mas-placeholders-repository.js';
 import { isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
-import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
+import { getFragmentName } from './translation/translation-utils.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,
@@ -83,7 +86,7 @@ export function getDamPath(path) {
 }
 
 export async function initFragmentCache() {
-    if (fragmentCache) return;
+    if (fragmentCache || !customElements.get('aem-fragment')) return;
     await customElements.whenDefined('aem-fragment').then(() => {
         fragmentCache = document.createElement('aem-fragment').cache;
     });
@@ -91,17 +94,18 @@ export async function initFragmentCache() {
 
 export async function getFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.get(fragmentId);
+    return fragmentCache?.get(fragmentId);
 }
 
 export async function removeFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.remove(fragmentId);
+    return fragmentCache?.remove(fragmentId);
 }
 
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     if (!previewFragment) return;
     await initFragmentCache();
+    if (!fragmentCache) return;
 
     fragmentCache.remove(fragmentId);
 
@@ -156,6 +160,7 @@ export class MasRepository extends LitElement {
             translations: null,
             collections: null,
             bulkPublish: null,
+            bulkEdit: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -281,6 +286,12 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.BULK_PUBLISH:
                 this.loadBulkPublishProjects();
                 break;
+            case PAGE_NAMES.BULK_EDIT:
+            case PAGE_NAMES.BULK_EDIT_EDITOR:
+                this.#abortControllers.bulkEdit?.abort();
+                this.#abortControllers.bulkEdit = new AbortController();
+                loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
+                break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
             case PAGE_NAMES.PROMOTIONS_EDITOR:
@@ -292,7 +303,12 @@ export class MasRepository extends LitElement {
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
+            const ignore = window.localStorage.getItem('ignore_folders') || [
+                'images',
+                'promotions',
+                BULK_PUBLISH_PROJECTS_FOLDER,
+                BULK_EDIT_PROJECTS_FOLDER,
+            ];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -1267,7 +1283,9 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.translationProjects.list.data.set(mergeTranslationProjectList(translationProjects, translationsPath));
+            Store.translationProjects.list.data.set(
+                mergePendingProjects(Store.translationProjects.list.data, translationProjects, translationsPath),
+            );
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');
         } finally {
@@ -1280,29 +1298,18 @@ export class MasRepository extends LitElement {
     }
 
     getBulkPublishProjectsPath() {
-        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return this.getBulkPublishParentPath(surface);
+        return this.getBulkPublishParentPath(getSearchSurface(this.search.value.path));
     }
 
     async loadBulkPublishProjects() {
-        const path = this.getBulkPublishProjectsPath();
-        if (!path) return;
-        try {
-            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
-            this.#abortControllers.bulkPublish = new AbortController();
-            Store.bulkPublishProjects.list.loading.set(true);
-            const fragments = await this.searchFragmentList(
-                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
-                50,
-                this.#abortControllers.bulkPublish,
-            );
-            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.bulkPublishProjects.list.data.set(projects);
-        } catch (error) {
-            this.processError(error, 'Could not load bulk publish projects.');
-        } finally {
-            Store.bulkPublishProjects.list.loading.set(false);
-        }
+        this.#abortControllers.bulkPublish?.abort();
+        this.#abortControllers.bulkPublish = new AbortController();
+        await loadProjectList(this, {
+            path: this.getBulkPublishProjectsPath(),
+            list: Store.bulkPublishProjects.list,
+            abortController: this.#abortControllers.bulkPublish,
+            errorMessage: 'Could not load bulk publish projects.',
+        });
     }
 
     getFragmentById(id) {
@@ -1398,7 +1405,7 @@ export class MasRepository extends LitElement {
     async #addToCache(fragmentData) {
         await initFragmentCache();
         for (const reference of fragmentData.references || []) {
-            if (fragmentCache.has(reference.id)) continue;
+            if (fragmentCache?.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
         // The aem-fragment cache is shared with anything that renders a card,
@@ -1407,13 +1414,13 @@ export class MasRepository extends LitElement {
         // repository cannot use. Only refresh an entry we put there ourselves;
         // otherwise build our own Fragment from the data we just fetched and
         // leave theirs alone, since it is what their rendered cards read.
-        const cached = fragmentCache.get(fragmentData.id);
+        const cached = fragmentCache?.get(fragmentData.id);
         if (cached instanceof Fragment) {
             cached.refreshFrom(fragmentData);
             return cached;
         }
         const fragment = new Fragment(fragmentData);
-        if (!cached) fragmentCache.add(fragment);
+        if (!cached) fragmentCache?.add(fragment);
         return fragment;
     }
 
@@ -1464,8 +1471,8 @@ export class MasRepository extends LitElement {
 
             fragmentStore.refreshFrom(savedFragment);
             await initFragmentCache();
-            fragmentCache.remove(savedFragment.id);
-            fragmentCache.add(new Fragment(savedFragment));
+            fragmentCache?.remove(savedFragment.id);
+            fragmentCache?.add(new Fragment(savedFragment));
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
             }
@@ -1786,7 +1793,7 @@ export class MasRepository extends LitElement {
 
             if (fragment?.id) {
                 await initFragmentCache();
-                fragmentCache.remove(fragment.id);
+                fragmentCache?.remove(fragment.id);
             }
 
             // Keep expanded variation rows in sync when a variation is deleted from editor.

@@ -39,6 +39,8 @@ const PAGE_GETTERS = [
     { getter: 'translationEditor', matchingPages: [PAGE_NAMES.TRANSLATION_EDITOR], tag: 'mas-translation-editor' },
     { getter: 'bulkPublish', matchingPages: [PAGE_NAMES.BULK_PUBLISH], tag: 'mas-bulk-publish' },
     { getter: 'bulkPublishEditor', matchingPages: [PAGE_NAMES.BULK_PUBLISH_EDITOR], tag: 'mas-bulk-publish-editor' },
+    { getter: 'bulkEdit', matchingPages: [PAGE_NAMES.BULK_EDIT], tag: 'mas-bulk-edit' },
+    { getter: 'bulkEditEditor', matchingPages: [PAGE_NAMES.BULK_EDIT_EDITOR], tag: 'mas-bulk-edit-editor' },
     { getter: 'advancedTools', matchingPages: [PAGE_NAMES.ADVANCED_TOOLS], tag: 'mas-advanced-tools' },
 ];
 
@@ -264,6 +266,21 @@ describe('MasStudio – lazy-load behavior', () => {
 
         expect(whenDefinedStub.callCount).to.equal(1);
     });
+
+    for (const [getter, page, path] of [
+        ['bulkEdit', PAGE_NAMES.BULK_EDIT, './bulk-edit/mas-bulk-edit.js'],
+        ['bulkEditEditor', PAGE_NAMES.BULK_EDIT_EDITOR, './bulk-edit/mas-bulk-edit-editor.js'],
+    ]) {
+        it(`${getter} returns nothing and imports its module until the element is defined`, () => {
+            sandbox.stub(customElements, 'get').returns(undefined);
+            sandbox.stub(customElements, 'whenDefined').returns(new Promise(() => {}));
+            const importStub = sandbox.stub(el, 'importModule').resolves({});
+
+            el.page.value = page;
+            expect(el[getter]).to.equal(nothing);
+            expect(importStub.calledOnceWith(path)).to.be.true;
+        });
+    }
 });
 
 describe('MasStudio – #lazyLoad failure path', () => {
@@ -357,6 +374,8 @@ describe('MasStudio – page transition ordering', () => {
         [PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.FRAGMENT_EDITOR],
         [PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.FRAGMENT_EDITOR],
         [PAGE_NAMES.BULK_PUBLISH_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR],
+        [PAGE_NAMES.BULK_EDIT, PAGE_NAMES.BULK_EDIT_EDITOR],
+        [PAGE_NAMES.BULK_EDIT_EDITOR, PAGE_NAMES.BULK_EDIT],
     ];
 
     for (const [from, to] of TRANSITIONS) {

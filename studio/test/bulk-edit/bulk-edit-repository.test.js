@@ -1,10 +1,44 @@
 import { expect } from '@open-wc/testing';
+import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { trackPendingProject } from '../../src/common/utils/project-list-utils.js';
 import {
     getBulkEditProjectsPath,
     isBulkEditProjectTitleTaken,
     isValidBulkEditProjectTitle,
+    loadBulkEditProjects,
 } from '../../src/bulk-edit/bulk-edit-repository.js';
+
+describe('loadBulkEditProjects', () => {
+    let initialSearch;
+
+    beforeEach(() => {
+        initialSearch = Store.search.get();
+        Store.search.set({ ...initialSearch, path: 'sandbox' });
+    });
+
+    afterEach(() => {
+        Store.search.set(initialSearch);
+        Store.bulkEditProjects.list.data.set([]);
+        Store.bulkEditProjects.list.data.removeMeta('pendingProjects');
+    });
+
+    it('keeps a pending project of the active surface first until search returns it', async () => {
+        const path = getBulkEditProjectsPath();
+        const pending = new FragmentStore(new Fragment({ id: 'new', path: `${path}/new`, fields: [] }));
+        trackPendingProject(Store.bulkEditProjects.list.data, pending);
+        const repository = {
+            searchFragmentList: sinon.stub().resolves([{ id: 'a', path: `${path}/a`, fields: [] }]),
+            processError: sinon.stub(),
+        };
+        await loadBulkEditProjects(repository);
+        expect(repository.searchFragmentList.firstCall.args[0].path).to.equal(path);
+        expect(Store.bulkEditProjects.list.data.get().map((store) => store.id)).to.deep.equal(['new', 'a']);
+        expect(Store.bulkEditProjects.list.data.get()[0]).to.equal(pending);
+    });
+});
 
 describe('getBulkEditProjectsPath', () => {
     let initialSearch;

@@ -1,7 +1,7 @@
 import Store from '../store.js';
 import { BULK_EDIT_PROJECTS_FOLDER, BULK_EDIT_PROJECT_MODEL_ID, ROOT_PATH } from '../constants.js';
 import { normalizeKey } from '../utils.js';
-import { getSearchSurface, loadProjectList } from '../common/utils/project-list-utils.js';
+import { getSearchSurface, loadProjectList, mergePendingProjects } from '../common/utils/project-list-utils.js';
 
 const PROJECT_TITLE_PATTERN = /^\S.*-MWPW-\d+$/;
 
@@ -35,10 +35,12 @@ export function buildBulkEditProjectPayload({ title, status }) {
 }
 
 export function loadBulkEditProjects(repository, abortController) {
+    const path = getBulkEditProjectsPath();
     return loadProjectList(repository, {
-        path: getBulkEditProjectsPath(),
+        path,
         list: Store.bulkEditProjects.list,
         abortController,
         errorMessage: 'Could not load bulk edit projects.',
+        transform: (projects) => mergePendingProjects(Store.bulkEditProjects.list.data, projects, path),
     });
 }

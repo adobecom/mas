@@ -9,6 +9,7 @@ import { BULK_EDIT_PROJECT_MODEL_ID, BULK_EDIT_STATUS, PAGE_NAMES, QUICK_ACTION 
 import { showToast } from '../utils.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { getFromFragmentCache } from '../mas-repository.js';
+import { trackPendingProject, untrackPendingProject } from '../common/utils/project-list-utils.js';
 import {
     buildBulkEditProjectPayload,
     isBulkEditProjectTitleTaken,
@@ -124,11 +125,13 @@ class MasBulkEditEditor extends LitElement {
                     false,
                 );
                 if (!raw) return;
+                const store = new FragmentStore(new Fragment(raw));
+                trackPendingProject(Store.bulkEditProjects.list.data, store);
                 if (signal.aborted) {
                     showToast(`Project "${title}" was created.`, 'positive');
                     return;
                 }
-                Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(raw)));
+                Store.bulkEditProjects.inEdit.set(store);
                 Store.bulkEditProjects.projectId.set(raw.id);
             } else {
                 this.project.updateField('title', [title]);
@@ -156,6 +159,7 @@ class MasBulkEditEditor extends LitElement {
         if (!this.isNewProject) {
             const ok = await this.repository.deleteFragment(this.project.get());
             if (!ok) return;
+            untrackPendingProject(Store.bulkEditProjects.list.data, this.project.id);
         }
         this.hasChanges = false;
         Store.bulkEditProjects.projectId.set(null);

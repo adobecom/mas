@@ -226,7 +226,7 @@ const Store = {
     bulkEditProjects: {
         list: {
             data: new ReactiveStore([]),
-            loading: new ReactiveStore(false),
+            loading: new ReactiveStore(true),
         },
         inEdit: new ReactiveStore(null),
         projectId: new ReactiveStore(null),

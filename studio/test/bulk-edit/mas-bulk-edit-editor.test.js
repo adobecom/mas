@@ -7,6 +7,11 @@ import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import { prepopulateFragmentCache, removeFromFragmentCache } from '../../src/mas-repository.js';
+import {
+    getBulkEditProjectsPath,
+    isBulkEditProjectTitleTaken,
+    loadBulkEditProjects,
+} from '../../src/bulk-edit/bulk-edit-repository.js';
 import '@adobecom/mas';
 import '../../src/bulk-edit/mas-bulk-edit-editor.js';
 
@@ -44,6 +49,7 @@ describe('mas-bulk-edit-editor', () => {
         Store.bulkEditProjects.projectId.set(null);
         Store.bulkEditProjects.inEdit.set(null);
         Store.bulkEditProjects.list.data.set([]);
+        Store.bulkEditProjects.list.data.removeMeta('pendingProjects');
         sinon.restore();
     });
 
@@ -158,6 +164,22 @@ describe('mas-bulk-edit-editor', () => {
         Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject())));
         await el.handleDeleteConfirmed();
         expect(navigate.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
+    });
+
+    it('shares one store between the editor and the list for a created project', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const created = { ...rawProject('New one-MWPW-123456'), path: `${getBulkEditProjectsPath()}/new-one-mwpw-123456` };
+        stubRepository(el, { createFragment: sinon.stub().resolves(created), saveFragment: sinon.stub().resolves(true) });
+        el.handleTitleInput({ target: { value: 'New one-MWPW-123456' } });
+        await el.save();
+        await loadBulkEditProjects(el.repository);
+        const [listed] = Store.bulkEditProjects.list.data.get();
+        expect(listed).to.equal(el.project);
+
+        el.handleTitleInput({ target: { value: 'Renamed-MWPW-123456' } });
+        await el.save();
+        expect(listed.get().getFieldValue('title')).to.equal('Renamed-MWPW-123456');
+        expect(isBulkEditProjectTitleTaken('New one-MWPW-123456')).to.be.false;
     });
 
     it('loads a fragment with the bulk edit project model', async () => {

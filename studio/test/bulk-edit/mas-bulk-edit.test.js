@@ -11,6 +11,10 @@ const makeProjectStore = (overrides = {}) => {
 };
 
 describe('mas-bulk-edit (overview)', () => {
+    beforeEach(() => {
+        Store.bulkEditProjects.list.loading.set(false);
+    });
+
     afterEach(() => {
         Store.bulkEditProjects.list.data.set([]);
         Store.bulkEditProjects.list.loading.set(false);
@@ -35,6 +39,14 @@ describe('mas-bulk-edit (overview)', () => {
         const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
         expect(el.shadowRoot.querySelector('[data-testid="empty"]')).to.not.exist;
         expect(el.shadowRoot.querySelectorAll('.skeleton-table-cell').length).to.be.greaterThan(0);
+    });
+
+    it('keeps the loaded rows visible while the list refreshes', async () => {
+        Store.bulkEditProjects.list.data.set([makeProjectStore({ id: 'a' })]);
+        Store.bulkEditProjects.list.loading.set(true);
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        expect(el.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(1);
+        expect(el.shadowRoot.querySelector('.skeleton-table-cell')).to.not.exist;
     });
 
     it('defaults status to Draft when missing', async () => {

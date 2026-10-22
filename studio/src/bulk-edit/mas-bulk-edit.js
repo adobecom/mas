@@ -4,7 +4,12 @@ import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
 import { BULK_EDIT_STATUS, PAGE_NAMES } from '../constants.js';
 import { styles } from '../bulk-publish/mas-bulk-publish.css.js';
-import { formatProjectDate, getProjectField, renderSkeletonRows } from '../common/utils/project-list-utils.js';
+import {
+    formatProjectDate,
+    getProjectField,
+    renderSkeletonRows,
+    untrackPendingProject,
+} from '../common/utils/project-list-utils.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import '../bulk-publish/mas-bulk-publish-delete-dialog.js';
 
@@ -67,6 +72,7 @@ class MasBulkEdit extends LitElement {
         this.deletePending = null;
         const ok = await this.repository.deleteFragment(projectStore.get());
         if (!ok) return;
+        untrackPendingProject(Store.bulkEditProjects.list.data, projectStore.id);
         const current = Store.bulkEditProjects.list.data.get() ?? [];
         Store.bulkEditProjects.list.data.set(current.filter((s) => s !== projectStore));
     }
@@ -126,7 +132,7 @@ class MasBulkEdit extends LitElement {
 
     render() {
         const projects = this.list.value || [];
-        const isLoading = this.loading.value;
+        const isLoading = this.loading.value && projects.length === 0;
         const showEmpty = !isLoading && projects.length === 0;
         return html`
             <header>

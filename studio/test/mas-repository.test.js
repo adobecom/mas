@@ -564,12 +564,12 @@ describe('MasRepository dictionary helpers', () => {
     describe('loadTranslationProjects', () => {
         beforeEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         afterEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         it('keeps a newly duplicated project first when search has not indexed it yet', async () => {
@@ -579,7 +579,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([original]);
 
             await repository.loadTranslationProjects();
@@ -595,7 +595,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.search = { value: { path: 'acom' } };
             const duplicate = createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` });
             Store.translationProjects.list.data.setMeta(
-                'pendingDuplicates',
+                'pendingProjects',
                 new Map([['duplicate', new FragmentStore(new Fragment(duplicate))]]),
             );
             const searchStub = sandbox.stub();
@@ -608,7 +608,7 @@ describe('MasRepository dictionary helpers', () => {
             await repository.loadTranslationProjects();
 
             expect(Store.translationProjects.list.data.get()).to.deep.equal([]);
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').size).to.equal(0);
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').size).to.equal(0);
         });
 
         it('does not mix pending duplicates from different surfaces', async () => {
@@ -617,7 +617,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/sandbox/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([]);
 
             await repository.loadTranslationProjects();

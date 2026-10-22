@@ -8,8 +8,14 @@ import {
     formatProjectDate,
     renderSkeletonRows,
     loadProjectList,
+    mergePendingProjects,
+    PENDING_PROJECTS_META,
+    trackPendingProject,
+    untrackPendingProject,
 } from '../../../src/common/utils/project-list-utils.js';
 import { ReactiveStore } from '../../../src/reactivity/reactive-store.js';
+import { FragmentStore } from '../../../src/reactivity/fragment-store.js';
+import { Fragment } from '../../../src/aem/fragment.js';
 
 describe('getProjectField()', () => {
     it('reads value via getFieldValue() when available', () => {
@@ -103,6 +109,18 @@ describe('loadProjectList()', () => {
         expect(list.data.get()[0].get().id).to.equal('f1');
     });
 
+    it('publishes the transformed fragment stores', async () => {
+        const list = createList();
+        const repository = createRepository(
+            sinon.stub().resolves([
+                { id: 'f1', fields: [] },
+                { id: 'f2', fields: [] },
+            ]),
+        );
+        await loadProjectList(repository, { path: '/p', list, errorMessage: 'err', transform: (stores) => stores.slice(1) });
+        expect(list.data.get().map((store) => store.get().id)).to.deep.equal(['f2']);
+    });
+
     it('searches the given path, newest first', async () => {
         const repository = createRepository(sinon.stub().resolves([]));
         const abortController = new AbortController();
@@ -182,5 +200,44 @@ describe('getSearchSurface()', () => {
 
     it('falls back to sandbox when the surface is unknown', () => {
         expect(getSearchSurface('../../etc')).to.equal('sandbox');
+    });
+});
+
+describe('pending projects', () => {
+    const path = '/content/dam/mas/projects/acom';
+    const store = (id, folder = path) => new FragmentStore(new Fragment({ id, path: `${folder}/${id}`, fields: [] }));
+    const ids = (stores) => stores.map((project) => project.id);
+    let list;
+
+    beforeEach(() => {
+        list = new ReactiveStore([]);
+    });
+
+    it('returns the indexed projects when nothing is pending', () => {
+        expect(ids(mergePendingProjects(list, [store('a'), store('b')], path))).to.deep.equal(['a', 'b']);
+    });
+
+    it('prepends pending projects newest first until search returns them', () => {
+        trackPendingProject(list, store('new1'));
+        trackPendingProject(list, store('new2'));
+        expect(ids(mergePendingProjects(list, [store('a')], path))).to.deep.equal(['new2', 'new1', 'a']);
+        expect(ids(mergePendingProjects(list, [store('new1'), store('a')], path))).to.deep.equal(['new2', 'new1', 'a']);
+        expect(ids(mergePendingProjects(list, [store('a')], path))).to.deep.equal(['new2', 'a']);
+    });
+
+    it('omits pending projects of another folder', () => {
+        trackPendingProject(list, store('other', '/content/dam/mas/projects/sandbox'));
+        expect(ids(mergePendingProjects(list, [store('a')], path))).to.deep.equal(['a']);
+    });
+
+    it('forgets an untracked project', () => {
+        trackPendingProject(list, store('new1'));
+        untrackPendingProject(list, 'new1');
+        expect(ids(mergePendingProjects(list, [store('a')], path))).to.deep.equal(['a']);
+    });
+
+    it('ignores untracking when nothing is pending', () => {
+        untrackPendingProject(list, 'missing');
+        expect(list.getMeta(PENDING_PROJECTS_META)).to.be.null;
     });
 });

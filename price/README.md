@@ -61,8 +61,10 @@ Consumers must supply WCS offer objects; legacy invalid-input sentinels and
 non-object compatibility are not part of this API.
 Nested properties retain identity because the returned offer is a shallow copy.
 
-The current browser helper remains unchanged. Direct Node unit tests cover
-the supported mappings and mutation contract. Node/Chrome parity remains focused
+Web-components and the inactive IO transformer both normalize WCS offers with
+this helper. Missing or unsupported commitments produce an empty plan type.
+Direct Node unit tests cover the supported mappings and mutation contract.
+Node/Chrome parity remains focused
 on price rendering and offer selection/summation, not the pure plan-type mapping.
 
 Templates: default, optical, strikethrough, promo-strikethrough, annual, legal,

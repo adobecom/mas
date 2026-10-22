@@ -1211,6 +1211,63 @@ describe('customize collections', function () {
     });
 });
 
+describe('customize baselines', function () {
+    const baseline = (id, fields) => ({ id, path: `/content/dam/mas/sandbox/en_US/baselines/${id}`, fields });
+
+    it('lets an explicit empty of a higher baseline clear a lower baseline value', async function () {
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: {},
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'card',
+            locale: 'en_US',
+            body,
+            baselines: {
+                card: {
+                    fragmentBaseline: baseline('template', { backgrounds: ['base.png'], badge: 'Template badge' }),
+                    fragmentSegmentBaseline: baseline('segment', {
+                        backgrounds: [EXPLICIT_EMPTY_SENTINEL],
+                        badge: EXPLICIT_EMPTY_SENTINEL,
+                    }),
+                },
+            },
+        });
+        expect(result.body.fields.backgrounds).to.deep.equal([]);
+        expect(result.body.fields.badge).to.equal('');
+    });
+
+    it('concatenates compare-chart-column features of every baseline layer, then the fragment', async function () {
+        const features = (...values) => ({ value: values });
+        const body = {
+            id: 'column',
+            path: '/content/dam/mas/sandbox/en_US/column',
+            fields: { variant: 'compare-chart-column', features: features('own') },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'column',
+            locale: 'en_US',
+            body,
+            baselines: {
+                column: {
+                    offerBaseline: baseline('offer', { features: features('offer') }),
+                    fragmentBaseline: baseline('template', { features: features('template') }),
+                    fragmentSegmentBaseline: baseline('segment', { features: features('segment') }),
+                },
+            },
+        });
+        expect(result.body.id).to.equal('column');
+        expect(result.body.fields.features.value).to.deep.equal(['offer', 'template', 'segment', 'own']);
+    });
+});
+
 async function process(context) {
     const phase1 = {
         status: 200,

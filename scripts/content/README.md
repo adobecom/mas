@@ -151,7 +151,7 @@ node fix-extra-options-quotes.mjs --author-host <aem-author-host> \
 
 # create-offer-baseline.mjs
 
-Creates the offer baseline fragment (offer model) of a product arrangement at `/content/dam/mas/offers/<locale>/<productArrangementCode>/baseline`, filled with its MCS merchandising data (name, descriptions, icons, background images, links, included apps) fetched from AOS. Skips creation when the fragment already exists. Used by the io/www `offer` transformer (ADR [CONT-0005](../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md)).
+Creates the offer baseline fragment (offer model) of a product arrangement at `/content/dam/mas/offers/<locale>/baselines/<productArrangementCode>/baseline`, filled with its MCS merchandising data (name, descriptions, icons, background images, links, included apps) fetched from AOS. Skips creation when the fragment already exists. Used by the io/www `offer` transformer (ADR [CONT-0005](../../docs/decisions/content/CONT-0005-layer-merch-content-through-baselines.md)).
 
 ```sh
 node create-offer-baseline.mjs author-p22655-e59433 phsp_direct_individual --locale=en_US --dry-run

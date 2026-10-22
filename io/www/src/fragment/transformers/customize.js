@@ -68,12 +68,14 @@ function _deepMerge(topLevel, ...objects) {
     // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
     // concatenate parent + child into the freshly-built result instead of mutating `child`
     // (a shared reference reused by sibling merges).
+    // Every layer counts, in order (e.g. baselines then the fragment); a layer repeated to keep its id & path first only
+    // counts at its last position.
     const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    const layers = objects.filter((obj, index) => objects.lastIndexOf(obj) === index);
     arraysToMerge?.forEach((field) => {
-        const parentValues = objects[0]?.fields?.[field]?.value || [];
-        const childValues = objects[1]?.fields?.[field]?.value || [];
-        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
-            result.fields[field].value = [...parentValues, ...childValues];
+        const values = layers.flatMap((obj) => obj?.fields?.[field]?.value || []);
+        if (result.fields?.[field] && values.length) {
+            result.fields[field].value = values;
         }
     });
     return result;
@@ -477,7 +479,8 @@ function adaptReferencesTree(referencesTree, customizedRoot, variationReferences
  */
 function prepareBaseline(baseline) {
     const { variations, ...fields } = baseline.fields;
-    return { ...skimFragmentFromReferences(baseline), fields: normalizeExplicitEmptyInFields(fields) };
+    // explicit empty sentinels must survive layering to override lower layers, they are normalized once merged
+    return { ...skimFragmentFromReferences(baseline), fields };
 }
 
 /**

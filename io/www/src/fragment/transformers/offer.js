@@ -4,7 +4,8 @@ import { MAS_ROOT, odinFolder, PATH_TOKENS } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { getDefaultLocaleCode, resolveCommerceCountries } from '../locales.js';
 import { computeRegionLocale } from './defaultLanguage.js';
-import { computeWcsCaches, createWcsContext, wcsCacheKey } from './wcs.js';
+import { computeWcsCaches, createWcsContext, tokenKey, wcsCacheKey } from './wcs.js';
+import { transformBody } from '../utils/odinSchemaTransform.js';
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
 const REFERENCE_FIELDS = ['cards', 'collections'];
@@ -18,7 +19,7 @@ const OFFERS_FETCH_TIMEOUT = 10000;
 // Fragment baselines folders (listed in bulk) and offer baselines of a locale are shared by every fragment & request on
 // the same locale / template: single-flight + TTL, absence included, so each is requested once whatever the size of a
 // collection.
-const baselineCache = createSwrCache({ name: 'baselines' });
+const baselineCache = createSwrCache({ name: 'baselines', previewMemory: true });
 const offersCache = createSwrCache({ name: 'offers', maxEntries: 50 });
 
 export const clearBaselineCache = (preview = false) => {
@@ -64,7 +65,9 @@ async function listFolder(context, folder) {
             logError(`failed to list baselines of ${folder}: ${response.status} ${response.message}`, context);
             return null;
         }
-        items.push(...response.body.items);
+        // preview lists author-format items (fields as arrays), which the common fetch only converts for a single fragment
+        const pageItems = response.body.items.map((item) => (Array.isArray(item.fields) ? transformBody(item) : item));
+        items.push(...pageItems);
         cursor = response.body.cursor;
     } while (cursor);
     return items;
@@ -222,7 +225,7 @@ async function init(initContext) {
         return null;
     }
     const context = { ...initContext, wcsCountry, regionLocale, defaultLocale };
-    const tokens = [...new Map(targets.map(({ token }) => [`${token.osi}-${token.promotionCode}`, token])).values()];
+    const tokens = [...new Map(targets.map(({ token }) => [tokenKey(token), token])).values()];
     // one listing per template, while offers are resolved
     const fragmentBaselines = Object.fromEntries(
         [...new Set(targets.map(({ template }) => template))].map((template) => [

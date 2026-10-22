@@ -118,6 +118,9 @@ const PROMOCODE_REGEXP = /data-promotion-code="(?<promotionCode>[^"]+)"/;
 // promo.
 const PROMO_CONTEXT_CANCEL_VALUE = 'cancel-context';
 
+// identifies an offer token (osi & optional promotion code) whatever the WCS environment
+const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
+
 /**
  * Substitutes each comma-separated part of an OSI string independently, then rejoins.
  * Discount badges author a comma-joined OSI pair in a single data-wcs-osi attribute;
@@ -464,7 +467,6 @@ async function wcs(context) {
         const tokenMap = new Map();
         // A token is optional only when every element that needs it is optional.
         const requiredKeys = new Set();
-        const tokenKey = ({ osi, promotionCode }) => `${osi}-${promotionCode || ''}`;
         const addToken = (token, optional) => {
             const key = tokenKey(token);
             if (!tokenMap.has(key)) tokenMap.set(key, token);
@@ -530,4 +532,5 @@ export {
     computeWcsCaches,
     createWcsContext,
     wcsCacheKey,
+    tokenKey,
 };

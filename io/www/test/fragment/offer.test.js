@@ -264,6 +264,29 @@ describe('offer transformer', () => {
             expect(body.id).to.equal('fragment-baseline-id');
         });
 
+        it('converts author-format (preview) listed baselines to card fields', async () => {
+            mockOdin({ fragmentBaseline: null });
+            const authorBaseline = {
+                ...FRAGMENT_BASELINE,
+                fields: [
+                    { name: 'variant', values: ['plans'] },
+                    { name: 'cardTitle', values: ['Preview title'] },
+                    { name: 'mnemonicIcon', multiple: true, values: ['preview.svg'] },
+                ],
+            };
+            fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(200, { items: [authorBaseline] }));
+            const { statusCode, body } = await getFragment({
+                offer: OSI,
+                template: 'plans',
+                surface: 'sandbox',
+                locale: 'en_US',
+            });
+            expect(statusCode).to.equal(200);
+            expect(body.fields.cardTitle).to.equal('Preview title');
+            expect(body.fields.mnemonicIcon).to.deep.equal(['preview.svg']);
+            expect(body.fields).to.not.have.property('0');
+        });
+
         it('falls back to the offer baseline when the fragment baseline fails to load', async () => {
             mockOdin();
             fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(500, { detail: 'boom' }, 'Internal Server Error'));

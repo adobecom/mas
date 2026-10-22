@@ -1,26 +1,36 @@
 import { expect } from '@esm-bundle/chai';
+import { html } from 'lit';
+import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
 import Store from '../src/store.js';
 import {
     canAccessSettings,
     canAccessMasks,
     canAccessOfferMapping,
+    canAccessBulkPublish,
     canEditPromotions,
     canManagePromotions,
     isMasAdmin,
 } from '../src/groups.js';
+import '../src/swc.js';
+import '../src/mas-advanced-tools.js';
 
 describe('groups', () => {
     let originalProfile;
     let originalUsers;
+    let originalImsAccess;
 
     beforeEach(() => {
         originalProfile = structuredClone(Store.profile.get());
         originalUsers = structuredClone(Store.users.get());
+        originalImsAccess = Store.users.getMeta('imsBulkPublishAccess');
+        Store.users.setMeta('imsBulkPublishAccess', null);
     });
 
     afterEach(() => {
+        fixtureCleanup();
         Store.profile.set(originalProfile);
         Store.users.set(originalUsers);
+        Store.users.setMeta('imsBulkPublishAccess', originalImsAccess);
     });
 
     it('isMasAdmin is true only for GRP-ODIN-MAS-ADMINS', () => {
@@ -44,6 +54,86 @@ describe('groups', () => {
         Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
         expect(canAccessSettings('acom')).to.be.true;
         expect(canAccessSettings('ccd')).to.be.false;
+    });
+
+    it('canAccessBulkPublish allows ACOM curators', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('canAccessBulkPublish allows an IMS-approved test identity missing from LDAP', () => {
+        Store.profile.set({ email: 'Automation@AdobeTest.com' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('rejects IMS approval belonging to a different test identity', () => {
+        Store.profile.set({ email: 'other@adobetest.com' });
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('keeps test identities denied until IMS approves access even with LDAP admin membership', () => {
+        Store.profile.set({ email: 'automation@adobetest.com' });
+        Store.users.set([{ userPrincipalName: 'automation@adobetest.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('does not grant Settings access through IMS Bulk Publish approval', () => {
+        Store.profile.set({ email: 'automation@adobetest.com' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com', allowed: true });
+        expect(canAccessSettings('acom')).to.be.false;
+    });
+
+    it('does not use IMS approval for a lookalike test domain', () => {
+        Store.profile.set({ email: 'automation@adobetest.com.example.org' });
+        Store.users.set([]);
+        Store.users.setMeta('imsBulkPublishAccess', { email: 'automation@adobetest.com.example.org', allowed: true });
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('canAccessBulkPublish denies non-members', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('canAccessBulkPublish allows MAS admins', () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+        expect(canAccessBulkPublish()).to.be.true;
+    });
+
+    it('canAccessBulkPublish denies users missing from the membership list', () => {
+        Store.profile.set({ email: 'unknown@adobe.com' });
+        Store.users.set([]);
+        expect(canAccessBulkPublish()).to.be.false;
+    });
+
+    it('shows the bulk publish card for a curator', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
+    });
+
+    it('hides the bulk publish card for a non-member', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).to.be.null;
+    });
+
+    it('updates the bulk publish card when membership changes', async () => {
+        Store.profile.set({ email: 'a@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+        const element = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
+        Store.users.set([{ userPrincipalName: 'a@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] }]);
+        await element.updateComplete;
+        expect(element.shadowRoot.querySelector('sp-icon-publish')).not.to.be.null;
     });
 
     it('canAccessSettings denies sandbox for non-admin', () => {

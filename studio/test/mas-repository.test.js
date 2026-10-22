@@ -1467,8 +1467,13 @@ describe('MasRepository dictionary helpers', () => {
                 };
             };
 
-            for (const stage of ['UUID lookup', 'variation parent resolution', 'promo reference merge', 'regular search']) {
-                it(`keeps a newer UUID search loading when an older ${stage} completes`, async () => {
+            for (const { stage, errorName } of [
+                'UUID lookup',
+                'variation parent resolution',
+                'promo reference merge',
+                'regular search',
+            ].flatMap((stage) => [null, 'AbortError', 'Error'].map((errorName) => ({ stage, errorName })))) {
+                it(`keeps a newer UUID search loading when an older ${stage} ${errorName ? `rejects with ${errorName}` : 'completes'}`, async () => {
                     const repository = createFullRepository();
                     repository.page = { value: PAGE_NAMES.CONTENT };
                     repository.search = { value: { path: 'acom', query: stage === 'regular search' ? 'old' : variationUuid } };
@@ -1478,9 +1483,11 @@ describe('MasRepository dictionary helpers', () => {
                         path: `${ROOT_PATH}/acom/en_US/old${stage === 'variation parent resolution' ? '/pzn/smb' : ''}`,
                     });
                     let resolveOld;
+                    let rejectOld;
                     let resolveNew;
-                    const oldPending = new Promise((resolve) => {
+                    const oldPending = new Promise((resolve, reject) => {
                         resolveOld = resolve;
+                        rejectOld = reject;
                     });
                     const newPending = new Promise((resolve) => {
                         resolveNew = resolve;
@@ -1490,9 +1497,11 @@ describe('MasRepository dictionary helpers', () => {
                     oldLookup.returns(stage === 'UUID lookup' ? oldPending : Promise.resolve(oldFragment));
                     getById.withArgs(parentUuid).returns(newPending);
                     const resolveParent = sandbox.stub(repository, 'resolveHydratedParentFragment').returns(oldPending);
-                    repository.loadPromotions = sandbox.stub().returns(oldPending);
+                    repository.loadPromotions = sandbox.stub().resolves();
+                    repository.loadPromotions.onFirstCall().returns(oldPending);
                     const search = sandbox.stub().returns(oldPending);
                     repository.aem = createAemMock({ fragments: { getById, search } });
+                    sandbox.stub(repository, 'processError');
                     const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
                     const previousPromotions = Store.promotions.list.data.get();
                     const previousFetched = Store.promotions.list.data.getMeta('listFetched');
@@ -1516,11 +1525,18 @@ describe('MasRepository dictionary helpers', () => {
                         newSearch = repository.searchFragments();
                         expect(getById.calledWith(parentUuid)).to.be.true;
 
-                        resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        if (errorName) {
+                            const error = new Error('Superseded search failed');
+                            error.name = errorName;
+                            rejectOld(error);
+                        } else {
+                            resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        }
                         await oldSearch;
 
                         expect(Store.fragments.list.loading.get(), 'new UUID request is still pending').to.be.true;
                         expect(mockDataStore.get()).to.deep.equal([]);
+                        expect(repository.processError.called).to.be.false;
                         resolveNew(createFragment({ id: parentUuid, path: `${ROOT_PATH}/acom/en_US/new` }));
                         await newSearch;
                         expect(Store.fragments.list.loading.get()).to.be.false;
@@ -2847,12 +2863,16 @@ describe('MasRepository dictionary helpers', () => {
             };
         };
 
-        for (const phase of ['background refill', 'next page']) {
-            it(`does not stop a newer UUID search when an older ${phase} finishes`, async () => {
+        for (const { phase, errorName } of ['background refill', 'next page'].flatMap((phase) =>
+            [null, 'AbortError', 'Error'].map((errorName) => ({ phase, errorName })),
+        )) {
+            it(`does not stop a newer UUID search when an older ${phase} ${errorName ? `rejects with ${errorName}` : 'finishes'}`, async () => {
                 let resolveOldPage;
+                let rejectOldPage;
                 let resolveUuid;
-                const pendingPage = new Promise((resolve) => {
+                const pendingPage = new Promise((resolve, reject) => {
                     resolveOldPage = resolve;
+                    rejectOldPage = reject;
                 });
                 const pendingUuid = new Promise((resolve) => {
                     resolveUuid = resolve;
@@ -2872,6 +2892,7 @@ describe('MasRepository dictionary helpers', () => {
                 });
                 next.onSecondCall().returns(pendingPage);
                 const { repository, cleanup } = await setupSearchTest({ next });
+                sandbox.stub(repository, 'processError');
                 let oldPage;
                 let uuidSearch;
                 try {
@@ -2882,11 +2903,18 @@ describe('MasRepository dictionary helpers', () => {
                     repository.search = { value: { path: 'acom', query: '09f5c8af-4a7d-497b-a579-70d2f3794a2c' } };
                     uuidSearch = repository.searchFragments();
 
-                    resolveOldPage({ done: true });
+                    if (errorName) {
+                        const error = new Error('Superseded page failed');
+                        error.name = errorName;
+                        rejectOldPage(error);
+                    } else {
+                        resolveOldPage({ done: true });
+                    }
                     if (oldPage) await oldPage;
                     else await new Promise((resolve) => setTimeout(resolve, 0));
 
                     expect(Store.fragments.list.loading.get()).to.be.true;
+                    expect(repository.processError.called).to.be.false;
                     resolveUuid(null);
                     await uuidSearch;
                     expect(Store.fragments.list.loading.get()).to.be.false;

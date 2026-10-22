@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
@@ -3382,6 +3383,74 @@ describe('MasPromotionsEditor', () => {
                     (f) => f.type === TABLE_TYPE.CARDS,
                 );
                 expect(cardsFilter.promotionSurfaceOptions.map((o) => o.id)).to.deep.equal(['sandbox', 'acom']);
+            });
+
+            it('keeps selected grouped variations visible in the sidebar after switching surfaces', async () => {
+                const { Fragment } = await import('../../src/aem/fragment.js');
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                const { el, repo } = await mountEditorWithRepo();
+                repo.aem.getFragmentByPath = sandbox.stub().resolves(null);
+                el.fragmentStore.updateField('surfaces', ['sandbox,acom']);
+                await el.updateComplete;
+                const selector = pickerSelector(el);
+                await selector.updateComplete;
+                const card = {
+                    id: 'selected-parent',
+                    path: '/content/dam/mas/sandbox/en_US/card',
+                    title: 'Selected parent',
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                };
+                const variation = {
+                    ...card,
+                    id: 'selected-edu',
+                    path: `${card.path}/pzn/edu`,
+                    title: 'Selected EDU variation',
+                };
+                const unselected = { ...variation, path: `${card.path}/pzn/smb` };
+                repo.aem.getFragmentByPath.withArgs(card.path).resolves(card);
+                Store.promotions.cardsByPaths.set(new Map([[card.path, card]]));
+                Store.promotions.groupedVariationsByParent.set(
+                    new Map([[card.path, new Map([variation, unselected].map((item) => [item.path, item]))]]),
+                );
+                Store.promotions.groupedVariationsData.set(new Map([variation, unselected].map((item) => [item.path, item])));
+                Store.promotions.selectedCards.set([card.path, variation.path]);
+                Store.promotions.showSelected.set(true);
+                const sidebar = selector.shadowRoot.querySelector('mas-selected-items');
+                await sidebar.updateComplete;
+                expect([...sidebar.shadowRoot.querySelectorAll('.title')].map((item) => item.textContent)).to.deep.equal([
+                    card.title,
+                    variation.title,
+                ]);
+                const cardsFilter = [...selector.renderRoot.querySelectorAll('mas-search-and-filters')].find(
+                    (filter) => filter.type === TABLE_TYPE.CARDS,
+                );
+
+                cardsFilter.dispatchEvent(
+                    new CustomEvent('promotion-surface-change', {
+                        bubbles: true,
+                        composed: true,
+                        detail: { value: 'acom' },
+                    }),
+                );
+                await flushPromises();
+                const previousResults = Store.fragments.list.data.get();
+                const nextCard = { ...card, path: '/content/dam/mas/acom/en_US/other-card', title: 'Other surface card' };
+                try {
+                    Store.fragments.list.data.set([new FragmentStore(new Fragment(nextCard))]);
+                    await waitUntil(() => Store.promotions.cardsByPaths.get().has(nextCard.path));
+                    await sidebar.updateComplete;
+
+                    expect([...sidebar.shadowRoot.querySelectorAll('.title')].map((item) => item.textContent)).to.deep.equal([
+                        card.title,
+                        variation.title,
+                    ]);
+                    expect(Store.promotions.selectedCards.get()).to.deep.equal([card.path, variation.path]);
+                    expect(Store.promotions.cardsByPaths.get().has(unselected.path)).to.be.false;
+                } finally {
+                    Store.fragments.list.data.set(previousResults);
+                }
             });
 
             it('sets Store.search.query directly when the search input is a UUID', async () => {

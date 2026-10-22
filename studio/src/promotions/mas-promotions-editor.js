@@ -1329,6 +1329,10 @@ class MasPromotionsEditor extends LitElement {
         Store.fragments.list.data.set([]);
         Store.fragments.list.hasMore.set(false);
         const s = Store.promotions;
+        const selectedVariations = s.selectedCards.value.map((path) => s.groupedVariationsData.value.get(path)).filter(Boolean);
+        s.cardsByPaths.set(
+            (cards) => new Map([...selectedVariations.map((variation) => [variation.path, variation]), ...cards]),
+        );
         s.allCards.set([]);
         s.displayCards.set([]);
         s.groupedVariationsByParent.set(new Map());

@@ -1146,6 +1146,7 @@ class MasPromotionsItemsTable extends LitElement {
             .variationColumns=${promoVariationColumns}
             .variationCells=${promoVariationCells}
             .hideVariationExpand=${true}
+            .openVariationOnActivate=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
             .viewOnlyHasMore=${hasMore}

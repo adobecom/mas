@@ -93,6 +93,14 @@ jobs:
             - name: Run tests
               run: npm test
 
+            # Offline AI-chat eval: golden-dataset structure check (--unit) and
+            # envelope-validator regression against expected envelopes (--mock-llm).
+            # Neither mode calls Bedrock; the live-LLM eval stays manual.
+            - name: Run AI chat eval (offline modes)
+              run: |
+                  node test/ai-chat-eval.mjs --unit
+                  node test/ai-chat-eval.mjs --mock-llm
+
     deploy:
         needs: [preflight, tests, identity, workspace-preflight]
         # Same group as io-studio-candidate.yaml, so a bot PR deploy and a Piñata

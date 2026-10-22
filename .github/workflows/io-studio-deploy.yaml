@@ -6,6 +6,11 @@ on:
                 type: boolean
                 required: false
                 default: false
+            deploy_ai:
+                description: 'Deploy optional AI actions after the core Studio actions'
+                type: boolean
+                required: false
+                default: true
             run_tests:
                 type: boolean
                 required: false
@@ -126,8 +131,9 @@ jobs:
                   path: ${{ inputs.odin-bucket-path || inputs.vault-path }}
                   env-fields: odin_bucket
 
-            # AOS / OST credentials are identical across environments — stored once in a
-            # shared path so they don't need to live in every workspace's .env blob.
+            # AOS / OST credentials are identical across environments —
+            # stored once in a shared path so they don't need to live in every
+            # workspace's .env blob.
             - name: Fetch shared service secrets from Vault
               if: inputs.shared-secrets
               uses: ./.github/actions/vault-secrets
@@ -147,13 +153,46 @@ jobs:
                   if [ -z "$ns" ]; then echo "::error::AIO_runtime_namespace not found in .env"; exit 1; fi
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
-            - name: Deploy
+            - name: Deploy core Studio actions
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
                   BATCH_SIZE: ${{ inputs.batch_size }}
                   RPS_LIMIT: ${{ inputs.rps_limit }}
                   WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
-              run: npx aio app deploy -v
+              run: node scripts/deploy-actions.mjs core
+
+            - name: Fetch optional AI secrets from Vault
+              id: ai-secrets
+              if: inputs.deploy_ai
+              continue-on-error: true
+              uses: ./.github/actions/vault-secrets
+              with:
+                  role-id: ${{ secrets.VAULT_ROLE_ID }}
+                  secret-id: ${{ secrets.VAULT_SECRET_ID }}
+                  path: merch-at-scale/aio-studio/common
+                  env-fields: ai_foundry_api_key
+
+            - name: Deploy optional AI actions
+              id: ai-deploy
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success'
+              continue-on-error: true
+              env:
+                  ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
+                  BATCH_SIZE: ${{ inputs.batch_size }}
+                  RPS_LIMIT: ${{ inputs.rps_limit }}
+                  WORKER_CONCURRENCY: ${{ inputs.worker_concurrency }}
+                  # Endpoint and model ids are not secrets; only the key comes from
+                  # Vault, as $AI_FOUNDRY_API_KEY. Thinking stays off: on Qwen-latest
+                  # it costs ~25s a turn and corrupts forced tool calls.
+                  AI_FOUNDRY_BASE_URL: https://ehl.infra.adobe.net/v1
+                  AI_FOUNDRY_MODEL_ID: aifoundry/Qwen/Qwen-latest
+                  AI_FOUNDRY_FAST_MODEL_ID: aifoundry/Qwen/Qwen-latest
+                  AI_FOUNDRY_THINKING: 'off'
+              run: node scripts/deploy-actions.mjs assistant
+
+            - name: Report optional AI deployment failure
+              if: inputs.deploy_ai && (steps.ai-secrets.outcome == 'failure' || steps.ai-deploy.outcome == 'failure')
+              run: echo '::warning::AI actions were not updated. Core Studio actions were deployed successfully.'
 
     # Runs inside the caller's concurrency-bearing reusable job, so its lock
     # covers both deployment and availability verification. Do not nest that lock.

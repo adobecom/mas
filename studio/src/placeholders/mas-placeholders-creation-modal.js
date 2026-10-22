@@ -64,11 +64,16 @@ class MasPlaceholdersCreationModal extends LitElement {
         }
         showToast('Creating placeholder...');
         this.saving = true;
-        const success = await createPlaceholder(this.placeholder);
+        const result = await createPlaceholder(this.placeholder);
         this.saving = false;
-        if (!success) return;
+        if (!result) return;
         this.dispatchEvent(new CustomEvent('save'));
-        showToast('Placeholder successfully created.', 'positive');
+        showToast(
+            result.indexed
+                ? 'Placeholder successfully created.'
+                : 'Placeholder created, but its dictionary index could not be published.',
+            result.indexed ? 'positive' : 'warning',
+        );
         this.onClose();
     }
 

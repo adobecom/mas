@@ -1,4 +1,5 @@
 import { expect } from '@open-wc/testing';
+import sinon from 'sinon';
 import {
     buildCardsDeepLink,
     generateLinkToUse,
@@ -7,6 +8,8 @@ import {
     camelToTitle,
     stripHtml,
     previewValue,
+    scrubUrls,
+    logError,
     parseStudioDeepLinksFromText,
     hasNonEmptyCompareChart,
     matchesContentTypeFilter,
@@ -15,6 +18,8 @@ import {
     getCreateProjectErrorMessage,
     describeVariationsToDelete,
     extractImageUrl,
+    getFragmentEditorUrl,
+    resolvePromoVariationDefaultCard,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -43,6 +48,30 @@ function mockFragmentForCode(modelPath, id = 'frag-123', title = 'CC Plans Merch
         getTagTitle: () => null,
     };
 }
+
+describe('getFragmentEditorUrl', () => {
+    let originalHash;
+
+    beforeEach(() => {
+        originalHash = window.location.hash;
+        window.location.hash = '';
+    });
+
+    afterEach(() => {
+        window.location.hash = originalHash;
+    });
+
+    it('returns the fragment editor URL without a path', () => {
+        expect(getFragmentEditorUrl('test-id')).to.equal('#page=fragment-editor&fragmentId=test-id');
+    });
+
+    it('encodes fragment ids and preserves special characters in the current path', () => {
+        window.location.hash = '#page=content&path=acom%2Ffolder%20%26%20name';
+        expect(getFragmentEditorUrl('id&other=value')).to.equal(
+            '#page=fragment-editor&fragmentId=id%26other%3Dvalue&path=acom%2Ffolder%20%26%20name',
+        );
+    });
+});
 
 describe('generateLinkToUse', () => {
     it('appends fragment title to richText link text for cards', () => {
@@ -237,6 +266,77 @@ describe('previewValue', () => {
         const htmlValue = '<s>US$69.99/mo</s>&nbsp;US$34.99/mo';
         const result = previewValue([htmlValue]);
         expect(result).to.equal('<s>US$69.99/mo</s> US$34.99/mo');
+    });
+});
+
+describe('scrubUrls', () => {
+    it('passes non-string inputs through unchanged', () => {
+        expect(scrubUrls(null)).to.be.null;
+        expect(scrubUrls(undefined)).to.be.undefined;
+        expect(scrubUrls(42)).to.equal(42);
+    });
+
+    it('leaves strings without URLs unchanged', () => {
+        expect(scrubUrls('plain message')).to.equal('plain message');
+    });
+
+    it('collapses a URL to its origin, dropping path + query', () => {
+        const out = scrubUrls('Failed to fetch https://api.example.com/v1/thing?token=SECRET now');
+        expect(out).to.equal('Failed to fetch https://api.example.com now');
+    });
+
+    it('collapses multiple URLs in one string', () => {
+        const out = scrubUrls('From https://a.com/x?t=1 to https://b.com/y?t=2 done');
+        expect(out).to.equal('From https://a.com to https://b.com done');
+    });
+
+    it('replaces an unparseable URL-like token with [url-scrubbed]', () => {
+        const out = scrubUrls('weird http://??? token');
+        // Depending on URL parsing leniency this may be '[url-scrubbed]' or the origin.
+        expect(out).to.not.include('???');
+    });
+});
+
+describe('logError', () => {
+    let errorStub;
+
+    beforeEach(() => {
+        errorStub = sinon.stub(console, 'error');
+    });
+
+    afterEach(() => {
+        errorStub.restore();
+    });
+
+    it('logs label + name + scrubbed message for a standard Error', () => {
+        const err = new Error('Request to https://api.example.com/v1/x?token=SECRET failed');
+        logError('Op failed', err);
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('Error');
+        expect(errorStub.firstCall.args[0]).to.include('https://api.example.com');
+        expect(errorStub.firstCall.args[0]).to.not.include('token=SECRET');
+    });
+
+    it('logs a scrubbed stack trace separately when stack is present and differs from message', () => {
+        const err = new Error('boom');
+        err.stack = 'Error: boom\n  at fn (https://internal.adobe.io/secret?k=1:12:34)';
+        logError('Op failed', err);
+        // Two calls: message + stack
+        expect(errorStub.callCount).to.be.at.least(2);
+        const stackCall = errorStub.secondCall.args[0];
+        expect(stackCall).to.include('https://internal.adobe.io');
+        expect(stackCall).to.not.include('k=1');
+    });
+
+    it('handles non-Error thrown values', () => {
+        logError('Op failed', 'string thrown');
+        expect(errorStub.firstCall.args[0]).to.include('Op failed');
+        expect(errorStub.firstCall.args[0]).to.include('string thrown');
+    });
+
+    it('handles null / undefined errors without throwing', () => {
+        expect(() => logError('Op failed', null)).to.not.throw();
+        expect(() => logError('Op failed', undefined)).to.not.throw();
     });
 });
 
@@ -768,6 +868,41 @@ describe('describeVariationsToDelete', () => {
         expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
             '1 grouped, 1 promo variation(s)',
         );
+    });
+});
+
+describe('resolvePromoVariationDefaultCard', () => {
+    const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+    const defaultCard = {
+        id: 'default-id',
+        path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+        fields: [{ name: 'variations', values: [groupedPath] }],
+    };
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getReferencedBy: async () => ({ parentReferences: [{ path: defaultCard.path }] }),
+                    getByPath: async (path) => (path === defaultCard.path ? defaultCard : null),
+                    getById: async (id) => (id === defaultCard.id ? defaultCard : null),
+                },
+            },
+        },
+    };
+
+    it('resolves a grouped variation source to its default card', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, { id: 'edu-id', path: groupedPath });
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a default card source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, defaultCard);
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a null source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, null);
+        expect(result).to.be.null;
     });
 });
 

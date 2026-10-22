@@ -43,8 +43,16 @@ function buildUsageKey(fragmentId) {
     return `fragment-usage.${fragmentId}`;
 }
 
+/**
+ * Brotli's default quality (11) takes about 3 seconds on a full week's record, and the rollup has
+ * about 120ms per fragment. Quality 5 takes a few milliseconds for about 10% more bytes.
+ */
+const BROTLI_QUALITY = 5;
+
 function encodeStateValue(value) {
-    return zlib.brotliCompressSync(JSON.stringify(value)).toString('base64');
+    return zlib
+        .brotliCompressSync(JSON.stringify(value), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: BROTLI_QUALITY } })
+        .toString('base64');
 }
 
 function decodeStateValue(raw) {

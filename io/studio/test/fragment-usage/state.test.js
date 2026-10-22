@@ -3,7 +3,7 @@ const proxyquire = require('proxyquire');
 const sinon = require('sinon');
 const zlib = require('zlib');
 
-const { PAGE_RETENTION_HOURS } = require('../../src/fragment-usage/pages');
+const { MAX_COUNTRIES_PER_PAGE, MAX_PAGES_PER_HOUR, PAGE_RETENTION_HOURS } = require('../../src/fragment-usage/pages');
 
 const FRAGMENT = '5c6e5bdb-161b-4d8d-a3c7-3ea3f843cfb4';
 const USAGE_KEY = `fragment-usage.${FRAGMENT}`;
@@ -36,6 +36,23 @@ function loadState(entries = {}) {
         '@adobe/aio-lib-state': { init, '@noCallThru': true },
     });
     return { state, client, entries, puts, init };
+}
+
+/** Every retained hour holding a full page list, each page with a full country map. */
+function fullRecord() {
+    const countries = Object.fromEntries(
+        Array.from({ length: MAX_COUNTRIES_PER_PAGE }, (unused, index) => [`C${index}`, 1000 - index]),
+    );
+    const pages = {};
+    for (let hour = 0; hour < PAGE_RETENTION_HOURS; hour += 1) {
+        const byPage = {};
+        for (let page = 0; page < MAX_PAGES_PER_HOUR; page += 1) {
+            const url = `https://www.adobe.com/creativecloud/plans/${page}.html`;
+            byPage[`${url}#en_US`] = { url, locale: 'en_US', requests: 12000 + hour, countries, regions: { EMEA: 3000 } };
+        }
+        pages[493512 - hour] = byPage;
+    }
+    return { ...RECORD, pages };
 }
 
 const noWait = async () => {};
@@ -71,6 +88,14 @@ describe('fragment-usage state', () => {
         await state.writeUsage(FRAGMENT, RECORD, client);
         const decoded = JSON.parse(zlib.brotliDecompressSync(Buffer.from(entries[USAGE_KEY], 'base64')).toString());
         expect(decoded).to.deep.equal(RECORD);
+    });
+
+    it('writes the largest record it can hold well inside the rollup time budget for one fragment', async () => {
+        const { state, client } = loadState();
+        const record = fullRecord();
+        const startedAt = Date.now();
+        await state.writeUsage(FRAGMENT, record, client);
+        expect(Date.now() - startedAt).to.be.below(50);
     });
 
     it('expires a record a day after the oldest data it can hold ages out', async () => {

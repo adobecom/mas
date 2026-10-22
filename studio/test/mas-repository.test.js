@@ -412,53 +412,72 @@ describe('MasRepository dictionary helpers', () => {
             expect([...(await repository.getCollectionPathsForSurfaces(['acom']))]).to.deep.equal([]);
         });
 
-        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
-            const repository = createFullRepository();
-            const { default: Store } = await import('../src/store.js');
-            const expiredPublished = {
-                id: 'promo-exp',
-                etag: 'e',
-                model: { id: 'promotion-model' },
-                path: '/content/dam/mas/promotions/promo-exp',
-                title: 'Expired Pub',
-                description: '',
-                status: 'PUBLISHED',
-                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
-                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
-                fields: [
-                    { name: 'title', type: 'text', values: ['Expired Pub'] },
-                    { name: 'promoCode', type: 'text', values: ['X'] },
-                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
-                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
-                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
-                    { name: 'surfaces', type: 'text', values: [] },
-                ],
-                tags: [],
-            };
-            const refreshed = {
-                ...expiredPublished,
-                status: 'DRAFT',
-                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
-            };
-            let refreshComplete;
-            const refreshCompletePromise = new Promise((resolve) => {
-                refreshComplete = resolve;
+        for (const { role, groups, canUnpublish } of [
+            { role: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], canUnpublish: true },
+            { role: 'promo poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], canUnpublish: true },
+            { role: 'promo editor', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'], canUnpublish: false },
+            { role: 'viewer', groups: [], canUnpublish: false },
+            { role: 'user with membership not yet loaded', groups: null, canUnpublish: false },
+        ]) {
+            it(`loadPromotions ${canUnpublish ? 'auto-unpublishes' : 'does not auto-unpublish'} expired published promotions for a ${role}`, async () => {
+                sandbox.stub(Store.profile, 'get').returns({ email: 'author@adobe.com' });
+                sandbox
+                    .stub(Store.users, 'get')
+                    .returns(groups === null ? [] : [{ userPrincipalName: 'author@adobe.com', groups }]);
+                const repository = createFullRepository();
+                const expiredPublished = {
+                    id: 'promo-exp',
+                    etag: 'e',
+                    model: { id: 'promotion-model' },
+                    path: '/content/dam/mas/promotions/promo-exp',
+                    title: 'Expired Pub',
+                    description: '',
+                    status: 'PUBLISHED',
+                    created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                    modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                    fields: [
+                        { name: 'title', type: 'text', values: ['Expired Pub'] },
+                        { name: 'promoCode', type: 'text', values: ['X'] },
+                        { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                        { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                        { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                        { name: 'surfaces', type: 'text', values: [] },
+                    ],
+                    tags: [],
+                };
+                const refreshed = {
+                    ...expiredPublished,
+                    status: 'DRAFT',
+                    fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+                };
+                let refreshComplete;
+                const refreshCompletePromise = new Promise((resolve) => {
+                    refreshComplete = resolve;
+                });
+                repository.aem = createAemMock();
+                repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+                const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+                repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                    refreshComplete();
+                    return refreshed;
+                });
+                Store.promotions.list.data.set([]);
+                await repository.loadPromotions();
+                if (!canUnpublish) {
+                    expect(unpublishStub.called).to.be.false;
+                    expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
+                    expect(Store.promotions.list.data.get()[0].get().isPromotionPublished).to.be.true;
+                    expect(Store.promotions.list.loading.get()).to.be.false;
+                    expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+                    return;
+                }
+                await refreshCompletePromise;
+                expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+                expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+                const row = Store.promotions.list.data.get()[0].get();
+                expect(row.isPromotionPublished).to.be.false;
             });
-            repository.aem = createAemMock();
-            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
-            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
-            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
-                refreshComplete();
-                return refreshed;
-            });
-            Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            await refreshCompletePromise;
-            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
-            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
-            const row = Store.promotions.list.data.get()[0].get();
-            expect(row.isPromotionPublished).to.be.false;
-        });
+        }
 
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();

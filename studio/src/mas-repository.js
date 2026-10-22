@@ -72,6 +72,7 @@ import {
 } from './utils/variation-search.js';
 import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
+import { canManagePromotions } from './groups.js';
 
 let fragmentCache;
 
@@ -1195,7 +1196,7 @@ export class MasRepository extends LitElement {
             Store.promotions.list.data.set(promotions);
             Store.promotions.list.data.setMeta('listFetched', true);
 
-            if (expiredPublished.length) {
+            if (expiredPublished.length && canManagePromotions()) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
             }
         } catch (error) {

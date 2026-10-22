@@ -119,10 +119,6 @@ export const styles = [
             font-weight: 600;
         }
 
-        .form-field {
-            margin-top: 20px;
-        }
-
         .promotion-summary {
             display: block;
             width: 100%;

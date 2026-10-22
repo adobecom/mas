@@ -1,9 +1,29 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { nothing } from 'lit';
+import { LitElement, nothing } from 'lit';
 import { PAGE_NAMES } from '../src/constants.js';
 import Store from '../src/store.js';
 import '../src/studio.js';
+
+const curator = { userPrincipalName: 'curator@example.com', groups: ['GRP-ODIN-MAS-ACOM-CURATORS'] };
+let originalAccessState;
+
+beforeEach(() => {
+    originalAccessState = {
+        profile: Store.profile.get(),
+        users: Store.users.get(),
+        loaded: Store.users.getMeta('loaded'),
+    };
+    Store.profile.set({ email: 'curator@example.com' });
+    Store.users.setMeta('loaded', true);
+    Store.users.set([curator]);
+});
+
+afterEach(() => {
+    Store.users.setMeta('loaded', originalAccessState.loaded);
+    Store.users.set(originalAccessState.users);
+    Store.profile.set(originalAccessState.profile);
+});
 
 const PAGE_GETTERS = [
     { getter: 'placeholders', matchingPages: [PAGE_NAMES.PLACEHOLDERS], tag: 'mas-placeholders' },
@@ -70,6 +90,107 @@ describe('MasStudio – page getters', () => {
             }
         });
     }
+});
+
+describe('MasStudio – Bulk Publish authorization', () => {
+    let el;
+    let sandbox;
+    let originalPage;
+
+    beforeEach(() => {
+        originalPage = Store.page.get();
+        sandbox = sinon.createSandbox();
+        el = document.createElement('mas-studio');
+        sandbox.stub(el, 'render').callsFake(() => el.currentPage);
+        LitElement.prototype.connectedCallback.call(el);
+    });
+
+    afterEach(() => {
+        LitElement.prototype.disconnectedCallback.call(el);
+        sandbox.restore();
+        Store.page.set(originalPage);
+    });
+
+    for (const { matchingPages, tag } of PAGE_GETTERS.filter(({ getter }) => getter.startsWith('bulkPublish'))) {
+        const [page] = matchingPages;
+
+        it(`does not mount ${tag} while membership is loading`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+
+            expect(el.querySelector(tag)).to.equal(null);
+            expect(Store.page.get()).to.equal(page);
+        });
+
+        it(`shows a loading indicator before mounting ${tag}`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+
+            const indicator = el.querySelector('sp-progress-circle');
+            expect(indicator).to.not.equal(null);
+            expect(indicator.hasAttribute('indeterminate')).to.equal(true);
+            expect(indicator.getAttribute('label')).to.equal('Loading users');
+        });
+
+        it(`mounts ${tag} when membership confirms access`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+            expect(el.querySelector(tag)).to.equal(null);
+
+            Store.users.setMeta('loaded', true);
+            Store.users.notify();
+            await el.updateComplete;
+
+            expect(el.querySelector(tag)).to.not.equal(null);
+            expect(el.querySelector('sp-progress-circle')).to.equal(null);
+        });
+
+        it(`removes the loading indicator when access to ${tag} is denied`, async () => {
+            Store.users.setMeta('loaded', false);
+            Store.page.set(page);
+            await el.updateComplete;
+            expect(el.querySelector('sp-progress-circle')).to.not.equal(null);
+
+            Store.users.setMeta('loaded', true);
+            Store.users.set([]);
+            await el.updateComplete;
+
+            expect(el.querySelector('sp-progress-circle')).to.equal(null);
+            expect(el.querySelector(tag)).to.equal(null);
+        });
+
+        it(`does not mount ${tag} when membership denies access`, async () => {
+            Store.users.set([]);
+            Store.page.set(page);
+            await el.updateComplete;
+
+            expect(el.querySelector(tag)).to.equal(null);
+        });
+
+        it(`mounts ${tag} when the profile becomes authorized`, async () => {
+            Store.profile.set({ email: 'other@example.com' });
+            Store.page.set(page);
+            await el.updateComplete;
+            expect(el.querySelector(tag)).to.equal(null);
+
+            Store.profile.set({ email: 'curator@example.com' });
+            await el.updateComplete;
+
+            expect(el.querySelector(tag)).to.not.equal(null);
+        });
+    }
+
+    it('does not show membership loading on unrelated routes', async () => {
+        Store.users.setMeta('loaded', false);
+        Store.page.set(PAGE_NAMES.WELCOME);
+        await el.updateComplete;
+
+        expect(el.querySelector('sp-progress-circle')).to.equal(null);
+        expect(el.querySelector('mas-splash-screen')).to.not.equal(null);
+    });
 });
 
 describe('MasStudio – disconnectedCallback', () => {
@@ -238,6 +359,7 @@ describe('MasStudio – page transition ordering', () => {
         sandbox.stub(el, 'renderCommerceService');
         el.masJsReady = true;
         document.body.append(el);
+        Store.users.set([curator]);
     });
 
     afterEach(() => {

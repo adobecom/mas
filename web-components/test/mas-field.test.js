@@ -2438,9 +2438,12 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         document.body.append(div);
 
         let settled = false;
-        const hookPromise = stripTrialCtas(template, true, el2).then(() => {
-            settled = true;
-        });
+        const hookPromise = stripTrialCtas(template, true, el2).then(
+            (resultHtml) => {
+                settled = true;
+                return resultHtml;
+            },
+        );
 
         expect(settled).to.be.false;
         await clock.tickAsync(MERCH_CARD_LOAD_TIMEOUT);
@@ -2448,6 +2451,8 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(settled).to.be.true;
 
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const masFields = doc.querySelectorAll('mas-field[field="ctas[77]"]');
+        expect(masFields.length).to.equal(1);
         const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
         expect(ctas.length).to.equal(0);
     });

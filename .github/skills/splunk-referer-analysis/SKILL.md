@@ -1,12 +1,16 @@
 ---
 name: splunk-referer-analysis
-description: Analyze one or more Splunk LANA CSV exports (one per referer URL, given or pulled from Splunk via the browser) and decide whether the errors are an authoring issue or a code issue, with reproducible, owner-assigned calls to action.
+description: Analyze one or more Splunk LANA CSV exports (one per referer URL, given or pulled from Splunk via the browser) and decide whether the errors are an authoring issue or a code issue. Always produces a Slack triage message for #mas-alert, plus an optional business message with reproducible, owner-assigned calls to action.
 ---
 
 Analyze the Splunk LANA export attached / referenced in the request and classify the
 errors on that referer page as an **authoring** issue (content fragment misconfigured)
 or a **code** issue (io pipeline / merch-card / mas.js bug), then give direct,
 actionable calls to action.
+
+Output: **always** a Slack-ready triage message for **#mas-alert** (the whole picture,
+reproduced or not), and **optionally** a Slack-ready **business message** for authors /
+promotion owners, only when a reproduced issue needs a human fix (see "Output format").
 
 Input: `$ARGUMENTS` — one or more paths to CSV exports (or attached to the message).
 With several exports, run the whole workflow per export (each is usually one referer),
@@ -70,10 +74,10 @@ only a reproduction tells you _what_ to fix and lets the owner confirm the fix.
   failing element (`.placeholder-failed`, empty price, missing label, broken card) or the
   same console/LANA message.
 - If you **cannot** reproduce it after honest attempts (vary geo, cookies such as
-  `ims_country_code`, device/user agent), **leave it out of the Slack message**. Say so
-  explicitly in the engineering report under "Not reproduced": what the logs show, what
-  you tried, and what is still needed to reproduce it (e.g. a HAR from an affected
-  session). Never fill the gap with a guessed cause or an untested "How to check" URL.
+  `ims_country_code`, device/user agent), **leave it out of the business message**. Report
+  it in the #mas-alert message under "Not reproduced": what the logs show, what you
+  tried, and what is still needed to reproduce it (e.g. a HAR from an affected session).
+  Never fill the gap with a guessed cause or an untested "How to check" URL.
 - A wrong guess is worse than no call to action: it sends someone to fix the wrong thing.
   Only assert a cause (MEP, Target, promotion, author) after you've checked it against
   live data.
@@ -162,8 +166,8 @@ literal`): the id is not in the message. Read the OSI / promo code / country fro
 
 10. **Report** in the output format below. Lead with the verdict. Present all volumes
     as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
-    Whenever a human must fix content, the call to action is a Slack-ready message
-    with human actions, cards to fix and sample pages (see "Whenever a human must act").
+    Always write the #mas-alert triage message; add the business message only when a
+    reproduced issue needs a human fix (see "Output format").
 
 ## Studio deep link
 
@@ -318,28 +322,63 @@ Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
 
 ## Output format
 
-**Do the classification and verification with the full technical picture, but tailor
-the report to the audience of the verdict.**
+Do the classification and verification with the full technical picture, then write
+**two Slack-ready messages**, each in its own fenced code block the user can paste as-is:
 
-### Whenever a human must act (AUTHORING verdict, or the content part of a MIXED one)
+1. **#mas-alert triage message — always.** For the M@S engineering team. Covers every
+   analysed referer, reproduced or not, so the alert is acknowledged with the facts.
+2. **Business message — optional.** For authors / promotion / MEP owners. Only
+   reproduced issues that need a human fix. No jargon.
 
-**Always** deliver the human call to action as a **Slack-ready message** in one fenced
-code block the user can paste as-is. It has three parts: what a person must do, the
+**Slack formatting rules** (both messages are pasted into the Slack composer, which does
+not parse link markup):
+
+- `*bold*` (single asterisks), `•` bullets, `:emoji:` codes, `` `code` `` for messages.
+- **Plain, full URLs only** — Slack auto-links them. Never `<url|label>` (it pastes
+  literally, leaving a stray `|label>` suffix) and never `[label](url)`.
+- **One URL per line.** Never chain URLs on one line with `·` or commas; put each on its
+  own indented line under its item.
+- No `##` headings, no tables, no `**double**` bold.
+
+### 1. #mas-alert triage message (always)
+
+The reader is an engineer. Technical detail is welcome (messages, fragment ids, Studio
+links, suspect code area, browser/UA clusters), but keep one block per referer, most
+impactful first. Every volume is a sampling-scaled estimate. Every issue ends in exactly
+one status: **reproduced** (with the URL you saw fail), **not reproduced** (what you tried
+and what is needed), or **no action** (noise: bots, unsold markets, secondary timeouts).
+Link any ticket you created or propose one (offer the `mwpw-ticket` skill).
+
+```
+:mag: *M@S LANA triage — <window, e.g. last 12h to Oct 22 07:45 CEST>*
+<1 line: alert(s) covered, total estimated volume, overall verdict, e.g. "No content fix needed; 1 code ticket opened.">
+
+*1. <referer path> — <CODE | AUTHORING | MIXED | NO ACTION>* (~<est.> events)
+• Error: `<dominant message>` (<share>%)<, secondary: `<msg>` (<share>%)>
+• Who/where: <locale/country, browser/OS/UA cluster, campaign keys if relevant>
+• Cause: <verified cause, or "unknown" + what is known>
+• Status: :white_check_mark: reproduced
+   https://www.adobe.com/<path>?akamaiLocale=<geo>&country=<CC>
+  | :x: not reproduced — tried <what>; needs <HAR / UA / market>
+  | :zzz: no action — <why>
+• Next: <owner> — <step> <ticket URL or "ticket proposed">
+   Studio: https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
+
+*2. …*
+
+*Business message:* <"sent below" | "none — nothing reproduced needs a content fix">
+```
+
+### 2. Business message (optional)
+
+Only when at least one **reproduced** issue needs a human fix (AUTHORING verdict, the
+content part of a MIXED one, or a promotion/MEP owner action). Deliver it as a second
+Slack-ready fenced code block. It has three parts: what a person must do, the
 cards to fix, and sample pages where the breakage shows.
 
 The reader is a content author, not an engineer. Strip all technical detail — no code
 paths, field names, etags, cache/status codes, fragment ids in prose, or internal file
 names. Name cards by their Studio **title** (fetch it from the live payload, step 3).
-
-**Slack formatting rules** (the message is pasted into the Slack composer, which does not
-parse link markup):
-
-- `*bold*` (single asterisks), `•` bullets, `:emoji:` codes.
-- **Plain, full URLs only** — Slack auto-links them. Never `<url|label>` (it pastes
-  literally, leaving a stray `|label>` suffix) and never `[label](url)`.
-- **One URL per line.** Never chain URLs on one line with `·` or commas; put each on its
-  own indented line under its card.
-- No `##` headings, no tables, no `**double**` bold.
 
 **Sample pages:** for every card, list the referer pages where its failure was seen,
 taken from the export (not guessed). Cross-tab culprit id × referer (strip query
@@ -388,38 +427,8 @@ Thanks! :pray:
 Always include the Studio link for each card: it takes the author straight to the card
 that needs fixing. No MWPW code ticket for a pure authoring verdict.
 
-### When the verdict is CODE or MIXED
-
-The reader is an engineer. Include the evidence:
-
-```
-## Splunk referer analysis — <referer base URL>
-**Window:** <start> → <end> · **Events:** ~<100·N estimated> (raw sample <N>, ~1% sampling ⇒ ±~<1/√N>) · **Severity:** <...> · **Locale(s):** <...>
-**Verdict:** CODE | MIXED — <one-line root cause>
-
-### Evidence
-- Dominant message: "<msg>" — raw <count>/<N>, est. ~<100·count> occurrences
-- Culprit fragment: <id> → https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
-- Fetch health: <status / cdn / stale / retryCount / etag>
-- Suspect area: <io/www, hydrate.js, mas-commerce-service, …>
-- Note magnitude is a 1% sampling estimate; low-count secondary messages (raw <~10) are directional only.
-
-### Calls to action
-1. <owner> — <concrete engineering step>
-2. Propose a MWPW ticket (offer to run the `mwpw-ticket` skill).
-
-### Not reproduced
-- <issue> — what the logs show · what you tried (URLs, geo, cookies, UA) · what is
-  needed to reproduce. Not included in any Slack message.
-```
-
-For a **MIXED** verdict, follow the engineering report with the Slack-ready author
-message above, covering only the content part of the fix.
-
-### Several exports
-
-Produce **one** engineering report with a section per referer, and **one** Slack message
-that only contains reproduced issues, grouped by owner:
+With several exports, write **one** business message that only contains reproduced
+issues, grouped by owner:
 
 ```
 :rotating_light: *<N> merch issues on adobe.com — <window>*
@@ -438,7 +447,8 @@ that only contains reproduced issues, grouped by owner:
 Thanks! :pray:
 ```
 
-If nothing reproduces, say so instead of sending a message: no Slack message is better
+If nothing reproduces, there is **no business message**: say so in the #mas-alert
+message ("No business action: nothing reproduced"). No message to the business is better
 than one that sends people after a guess.
 
 ### Before you answer — self-check
@@ -446,5 +456,7 @@ than one that sends people after a guess.
 - Every action has an **owner**, imperative **steps**, a **Studio link** (if a card or
   promotion is involved) and a **reproduce URL you opened and saw fail**.
 - Every asserted cause was verified against live data (fragment, WCS, page attributes).
-- Unreproduced issues are listed under "Not reproduced", not in Slack.
-- Author-facing text has no jargon (MEP, Target, OSI, locale, geo-IP, file names).
+- The #mas-alert message is always there and gives every referer a status:
+  reproduced, not reproduced, or no action.
+- Unreproduced issues appear only in the #mas-alert message, never in the business one.
+- Business text has no jargon (MEP, Target, OSI, locale, geo-IP, file names).

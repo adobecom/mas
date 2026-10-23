@@ -6,7 +6,6 @@ import {
 import { forceTaxExclusivePrice } from '@dexter/tacocat-core/src/wcsUtils.js';
 import { HEADER_X_REQUEST_ID } from './constants.js';
 import { Log } from './log.js';
-import { toPromotionCodes } from './utils.js';
 
 const MAS_COMMERCE_SERVICE = 'mas-commerce-service';
 const log = Log.module('utilities');
@@ -176,7 +175,20 @@ export function toQuantity(value, defaultValue = 1) {
     return quantity;
 }
 
-export { toPromotionCodes };
+/**
+ * Splits comma-separated promo codes into an array,
+ * keeping empty entries for OSI positions without a promo.
+ * @param {any} value
+ * @returns {string[]}
+ */
+export function toPromotionCodes(value) {
+    if (value == null) return [];
+    return Array.isArray(value)
+        ? value
+        : String(value)
+              .split(',')
+              .map((code) => code.trim());
+}
 
 /**
  * Zips OSI and promo-code lists by position for a soft bundle:

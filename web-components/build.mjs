@@ -1,4 +1,5 @@
 import { writeFileSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { build } from 'esbuild';
 
 const outfolder = './dist';
@@ -32,6 +33,13 @@ const { metafile } = await build({
     },
 });
 writeFileSync(`commerce.json`, JSON.stringify(metafile));
+
+// merch-card.js imports these modules from ./commerce.js instead of bundling
+// its own copies, so the page loads and runs one instance of each.
+const commerceModules = new Set(
+    Object.keys(metafile.inputs).map((file) => resolve(file)),
+);
+const commerceExports = metafile.outputs['dist/commerce.js'].exports;
 
 // mas.js
 await build({
@@ -70,7 +78,7 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildLitComponent('merch-card'),
+    buildMerchCard(),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -85,35 +93,64 @@ Promise.all([
     process.exit(1);
 });
 
-// Page-wide state owned by commerce.js. Components reach it at runtime
-// (customElements registry, mas-commerce-service) instead of bundling a copy.
-const COMMERCE_SINGLETONS = [
-    'src/log.js',
-    'src/lana.js',
-    'src/mas-element.js',
-    'src/upt-link.js',
-    'src/mas-commerce-service.js',
-];
-
 async function buildLitComponent(name) {
-    const outfile = `${outfolder}/${name}.js`;
     const { metafile } = await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
-        metafile: true,
-        outfile,
+        metafile: false,
+        outfile: `${outfolder}/${name}.js`,
         plugins: [rewriteImportsToLibsFolder()],
     });
-    const { inputs } = metafile.outputs[outfile.replace('./', '')];
-    const bundled = COMMERCE_SINGLETONS.filter(
-        (path) => inputs[path]?.bytesInOutput > 0,
+    if (metafile) {
+        writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    }
+}
+
+async function buildMerchCard() {
+    const outfile = `${outfolder}/merch-card.js`;
+    await build({
+        ...defaults,
+        entryPoints: ['./src/merch-card.js'],
+        external: ['lit'],
+        outfile,
+        plugins: [rewriteImportsToLibsFolder(), importFromCommerce()],
+    });
+    const imported = [
+        ...readFileSync(outfile, 'utf-8').matchAll(
+            /import\s*\{([^}]*)\}\s*from\s*"\.\/commerce\.js"/g,
+        ),
+    ].flatMap(([, names]) =>
+        names.split(',').map((name) => name.trim().split(/\s+as\s+/)[0]),
     );
-    if (bundled.length) {
+    const missing = [...new Set(imported)].filter(
+        (name) => !commerceExports.includes(name),
+    );
+    if (missing.length) {
         throw new Error(
-            `${name}.js must not bundle commerce.js singletons: ${bundled.join(', ')}`,
+            `merch-card.js imports ${missing.join(', ')} from ./commerce.js: export them from src/commerce.js`,
         );
     }
+}
+
+function importFromCommerce() {
+    return {
+        name: 'import-from-commerce',
+        setup(build) {
+            build.onResolve({ filter: /.*/ }, async (args) => {
+                if (args.kind === 'entry-point' || args.pluginData?.resolved)
+                    return;
+                const { path } = await build.resolve(args.path, {
+                    kind: args.kind,
+                    importer: args.importer,
+                    resolveDir: args.resolveDir,
+                    pluginData: { resolved: true },
+                });
+                if (!commerceModules.has(path)) return;
+                return { path: './commerce.js', external: true };
+            });
+        },
+    };
 }
 
 function rewriteImportsToLibsFolder() {

@@ -266,21 +266,6 @@ export function getOuterHeight(element) {
     );
 }
 
-/**
- * Splits comma-separated promo codes into an array,
- * keeping empty entries for OSI positions without a promo.
- * @param {any} value
- * @returns {string[]}
- */
-export function toPromotionCodes(value) {
-    if (value == null) return [];
-    return Array.isArray(value)
-        ? value
-        : String(value)
-              .split(',')
-              .map((code) => code.trim());
-}
-
 /** strikethrough price followed with promo price, or with some short text (0 or 1 character) in between, needs to have labels hidden */
 export function shouldHideStPriceLabels(element) {
     const nextElSibling =

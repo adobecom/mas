@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html } from 'lit';
+import { html } from '../lite.js';
 import {
     TEMPLATE_PRICE_LEGAL,
     SELECTOR_MAS_INLINE_PRICE,

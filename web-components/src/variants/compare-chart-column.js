@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './compare-chart-column.css.js';
 import { css } from '../css.js';

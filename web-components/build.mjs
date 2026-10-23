@@ -113,13 +113,8 @@ async function buildMerchCard() {
     await build({
         ...defaults,
         entryPoints: ['./src/merch-card.js'],
-        external: ['lit'],
         outfile,
-        plugins: [
-            cssLoader(),
-            rewriteImportsToLibsFolder(),
-            importFromCommerce(),
-        ],
+        plugins: [cssLoader(), forbidLit(), importFromCommerce()],
     });
     const imported = [
         ...readFileSync(outfile, 'utf-8').matchAll(
@@ -154,6 +149,21 @@ function importFromCommerce() {
                 if (!commerceModules.has(path)) return;
                 return { path: './commerce.js', external: true };
             });
+        },
+    };
+}
+
+function forbidLit() {
+    return {
+        name: 'forbid-lit',
+        setup(build) {
+            build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
+                errors: [
+                    {
+                        text: `${importer} imports lit: merch-card.js must stay Lit-free, use src/lite.js`,
+                    },
+                ],
+            }));
         },
     };
 }

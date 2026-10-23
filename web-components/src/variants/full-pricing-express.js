@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './full-pricing-express.css.js';
 import { css } from '../css.js';

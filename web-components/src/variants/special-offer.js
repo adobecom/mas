@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html } from '../lite.js';
 import { VariantLayout } from './variant-layout';
 import { CSS } from './special-offer.css.js';
 import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';

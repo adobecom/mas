@@ -1,8 +1,8 @@
-import { LitElement, html, unsafeCSS } from 'lit';
+import { LiteElement, html } from './lite.js';
 import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 import { css } from './css.js';
 
-export default class MerchAddon extends LitElement {
+export default class MerchAddon extends LiteElement {
     static properties = {
         planType: { type: String, attribute: 'plan-type', reflect: true },
         checked: { type: Boolean, reflect: true },
@@ -119,7 +119,7 @@ export default class MerchAddon extends LitElement {
             </label>`;
     }
 
-    static styles = unsafeCSS(css`
+    static styles = css`
         :host {
             --merch-addon-gap: 9px;
             --merch-addon-align: start;
@@ -188,7 +188,7 @@ export default class MerchAddon extends LitElement {
         :host([plan-type='M2M']) ::slotted(p[data-plan-type='M2M']) {
             display: block;
         }
-    `);
+    `;
 }
 
 customElements.define('merch-addon', MerchAddon);

@@ -1,4 +1,4 @@
-import { LitElement, unsafeCSS } from 'lit';
+import { LiteElement } from './lite.js';
 import { styles } from './merch-card.css.js';
 import './merch-icon.js';
 import './merch-gradient.js';
@@ -135,7 +135,7 @@ const intersectionObserver = new IntersectionObserver((entries) => {
 
 let idCounter = 0;
 
-export class MerchCard extends LitElement {
+export class MerchCard extends LiteElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         name: { type: String, attribute: 'name', reflect: true },
@@ -234,7 +234,7 @@ export class MerchCard extends LitElement {
         priceLiterals: { type: Object },
     };
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     static registerVariant = registerVariant;
 

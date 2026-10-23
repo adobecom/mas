@@ -1,4 +1,4 @@
-import { html, LitElement, unsafeCSS, nothing } from 'lit';
+import { html, LiteElement, nothing } from './lite.js';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
@@ -119,7 +119,7 @@ const searcher = (elements, { search }) => {
     return elements;
 };
 
-export class MerchCardCollection extends LitElement {
+export class MerchCardCollection extends LiteElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
@@ -752,7 +752,7 @@ export class MerchCardCollection extends LitElement {
         this.sidenav?.showModal(e);
     }
 
-    static styles = unsafeCSS(css`
+    static styles = css`
         #footer {
             grid-column: 1 / -1;
             justify-self: stretch;
@@ -793,7 +793,7 @@ export class MerchCardCollection extends LitElement {
         sp-theme {
             display: contents;
         }
-    `);
+    `;
 }
 
 MerchCardCollection.SortOrder = SORT_ORDER;
@@ -835,7 +835,7 @@ const SEARCH_SIZE = {
     catalog: 'l',
 };
 
-export default class MerchCardCollectionHeader extends LitElement {
+export default class MerchCardCollectionHeader extends LiteElement {
     constructor() {
         super();
         this.collection = null;
@@ -1071,7 +1071,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         `;
     }
 
-    static styles = unsafeCSS(css`
+    static styles = css`
         :host {
             --merch-card-collection-header-max-width: var(
                 --merch-card-collection-card-width
@@ -1188,7 +1188,7 @@ export default class MerchCardCollectionHeader extends LitElement {
                 --merch-card-collection-header-result-font-size: inherit;
             }
         }
-    `);
+    `;
 
     get placeholderKeys() {
         return [

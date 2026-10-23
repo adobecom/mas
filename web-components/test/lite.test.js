@@ -247,6 +247,55 @@ describe('lite', () => {
             expect(await el.updateComplete).to.be.true;
             expect(calls.length).to.equal(5);
         });
+
+        it('drives reactive controllers through the host lifecycle', async () => {
+            const calls = [];
+            const key = Symbol('controller');
+            class Controller {
+                constructor(host) {
+                    this.host = host;
+                    host.addController(this);
+                    host.addController(this);
+                }
+                hostConnected() {
+                    calls.push('connected');
+                }
+                hostDisconnected() {
+                    calls.push('disconnected');
+                }
+                hostUpdate() {
+                    calls.push('update');
+                }
+                hostUpdated() {
+                    calls.push('updated');
+                }
+            }
+            class LiteControlled extends LiteElement {
+                controller = new Controller(this);
+                render() {
+                    return html`${calls.length}`;
+                }
+            }
+            customElements.define('lite-controlled', LiteControlled);
+            const el = document.createElement('lite-controlled');
+            container.append(el);
+            await el.updateComplete;
+            expect(calls).to.deep.equal(['connected', 'update', 'updated']);
+            el.requestUpdate(key, true);
+            await el.updateComplete;
+            expect(calls.slice(3)).to.deep.equal(['update', 'updated']);
+            el.remove();
+            expect(calls.at(-1)).to.equal('disconnected');
+            const late = new Controller(el);
+            container.append(el);
+            expect(calls.slice(-2)).to.deep.equal(['connected', 'connected']);
+            el.removeController(late);
+            el.remove();
+            expect(calls.slice(-1)).to.deep.equal(['disconnected']);
+            expect(calls.filter((c) => c === 'disconnected').length).to.equal(
+                2,
+            );
+        });
     });
     for (const [name, Base, tag] of [
         ['LitElement', LitElement, litHtml],

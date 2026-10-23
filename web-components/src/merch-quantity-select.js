@@ -1,4 +1,4 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { html, LiteElement, nothing } from './lite.js';
 import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 
@@ -8,7 +8,7 @@ import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
 } from './constants.js';
 
-export class MerchQuantitySelect extends LitElement {
+export class MerchQuantitySelect extends LiteElement {
     static get properties() {
         return {
             closed: { type: Boolean, reflect: true },
@@ -29,7 +29,7 @@ export class MerchQuantitySelect extends LitElement {
     }
 
     static get styles() {
-        return unsafeCSS(styles);
+        return styles;
     }
 
     constructor() {

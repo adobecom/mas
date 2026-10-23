@@ -3,7 +3,9 @@
  * components it bundles. Supports the subset of Lit those components use:
  * html, nothing, unsafeHTML, ifDefined, child/attribute/boolean/property/event
  * bindings and the ReactiveElement lifecycle (static properties and styles,
- * requestUpdate, updateComplete, willUpdate, firstUpdated, updated).
+ * requestUpdate, updateComplete, willUpdate, firstUpdated, updated) plus
+ * reactive controllers (addController, hostConnected, hostDisconnected,
+ * hostUpdate, hostUpdated).
  * Template results keep Lit's shape ({ _$litType$, strings, values }).
  */
 
@@ -474,12 +476,26 @@ export class LiteElement extends HTMLElement {
         return root;
     }
 
+    addController(controller) {
+        (this.controllers ??= new Set()).add(controller);
+        if (this.renderRoot && this.isConnected) controller.hostConnected?.();
+    }
+
+    removeController(controller) {
+        this.controllers?.delete(controller);
+    }
+
     connectedCallback() {
         this.renderRoot ??= this.createRenderRoot();
         this.enableUpdating(true);
+        this.controllers?.forEach((controller) => controller.hostConnected?.());
     }
 
-    disconnectedCallback() {}
+    disconnectedCallback() {
+        this.controllers?.forEach((controller) =>
+            controller.hostDisconnected?.(),
+        );
+    }
 
     attributeChangedCallback(name, old, value) {
         const property = this.constructor.attributeToPropertyMap.get(name);
@@ -534,6 +550,9 @@ export class LiteElement extends HTMLElement {
             shouldUpdate = this.shouldUpdate(changed);
             if (shouldUpdate) {
                 this.willUpdate(changed);
+                this.controllers?.forEach((controller) =>
+                    controller.hostUpdate?.(),
+                );
                 this.update(changed);
             } else this.markUpdated();
         } catch (error) {
@@ -542,6 +561,7 @@ export class LiteElement extends HTMLElement {
             throw error;
         }
         if (!shouldUpdate) return;
+        this.controllers?.forEach((controller) => controller.hostUpdated?.());
         if (!this.hasUpdated) {
             this.hasUpdated = true;
             this.firstUpdated(changed);

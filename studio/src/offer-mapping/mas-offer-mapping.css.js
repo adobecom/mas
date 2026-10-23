@@ -1,10 +1,12 @@
 import { css } from 'lit';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 
 export const styles = css`
+    ${pageContainerStyles}
+
     :host {
         display: block;
         box-sizing: border-box;
-        padding: 32px;
         min-width: 900px;
     }
 

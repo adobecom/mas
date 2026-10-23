@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-product-catalog.js';
@@ -19,6 +20,12 @@ describe('MasProductCatalog create flow', () => {
         globalThis.fetch = originalFetch;
         sessionStorage.removeItem('masAccessToken');
         sinon.restore();
+    });
+
+    it('renders the product catalog', async () => {
+        sinon.stub(customElements.get('mas-product-catalog').prototype, 'loadProducts');
+        const mounted = await fixture(html`<mas-product-catalog></mas-product-catalog>`);
+        expect(mounted.querySelector('.product-catalog')).to.exist;
     });
 
     describe('handleMultiOfferSelect', () => {

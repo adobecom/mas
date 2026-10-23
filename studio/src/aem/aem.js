@@ -6,6 +6,7 @@ const MAX_POLL_ATTEMPTS = 10;
 const POLL_TIMEOUT = 250;
 const MAX_NAME_ATTEMPTS = 10;
 const COPY_WAIT_TIME = 1000;
+const PUBLISH_BATCH_SIZE = 50;
 
 const defaultSearchOptions = {
     sort: [{ on: 'created', order: 'ASC' }],
@@ -528,16 +529,26 @@ class AEM {
     }
 
     /**
-     * Publish multiple fragments in a single request
+     * Publish multiple fragments, split into requests of at most PUBLISH_BATCH_SIZE paths
+     * because the AEM publish API rejects larger payloads with a 400.
      * @param {Array<Object>} fragments - Array of fragment objects
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
-     * @returns {Promise<void>}
+     * @returns {Promise<Array<Object>>} One publish response per batch
      */
     async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
             throw new Error('No fragments provided to publish');
         }
+        const results = [];
+        for (let i = 0; i < fragments.length; i += PUBLISH_BATCH_SIZE) {
+            results.push(
+                await this.#publishFragmentsBatch(fragments.slice(i, i + PUBLISH_BATCH_SIZE), publishReferencesWithStatus),
+            );
+        }
+        return results;
+    }
 
+    async #publishFragmentsBatch(fragments, publishReferencesWithStatus) {
         // Use the first fragment's etag for the If-Match header
         const etag = fragments[0].etag;
         const paths = fragments.map((fragment) => fragment.path);

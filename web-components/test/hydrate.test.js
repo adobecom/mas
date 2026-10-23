@@ -1041,6 +1041,30 @@ describe('hydrate', () => {
         litCard.remove();
     });
 
+    it('names the pro add-on after the hydrated card title', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = (cardTitle) => ({
+            id: 'pro-addon-name',
+            fields: {
+                variant: 'pro',
+                cardTitle,
+                addon: '<p><strong>Acrobat AI Assistant</strong></p>',
+            },
+        });
+        const product = async () => {
+            await litCard.addon.updateComplete;
+            return litCard.addon.shadowRoot.getElementById('addon-product')
+                ?.textContent;
+        };
+        await hydrate(fragment('Acrobat Pro'), litCard);
+        expect(await product()).to.equal('Acrobat Pro');
+        await hydrate(fragment('Creative Cloud Pro'), litCard);
+        expect(await product()).to.equal('Creative Cloud Pro');
+        litCard.remove();
+    });
+
     it('hydrates a legacy bizpro fragment as pro', async () => {
         const litCard = document.createElement('merch-card');
         document.body.appendChild(litCard);

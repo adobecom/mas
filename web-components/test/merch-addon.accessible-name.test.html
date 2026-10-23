@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Merch addon accessible name test page</title>
+    </head>
+
+    <body>
+        <mas-commerce-service env="stage"></mas-commerce-service>
+        <!-- Markup already in the page when the components get defined. -->
+        <merch-card variant="product" id="static-product">
+            <h3 slot="heading-xs">Acrobat Standard</h3>
+            <merch-addon slot="addon">
+                <p><strong>Acrobat AI Assistant</strong></p>
+            </merch-addon>
+        </merch-card>
+        <merch-card variant="pro" id="static-card">
+            <h3 slot="heading-xs">Acrobat Pro</h3>
+            <merch-addon slot="addon">
+                <p><strong>Acrobat AI Assistant</strong></p>
+                <p data-plan-type="ABM">
+                    Add AI Assistant to your Acrobat plan for US$1.99/mo.
+                </p>
+            </merch-addon>
+        </merch-card>
+        <main></main>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { mockFetch } from './mocks/fetch.js';
+            import { mockIms } from './mocks/ims.js';
+            import { withWcs } from './mocks/wcs.js';
+            import { withAem } from './mocks/aem.js';
+            import '../src/mas.js';
+
+            const COPY =
+                'Acrobat AI Assistant Add AI Assistant to your Acrobat plan for US$1.99/mo.';
+            const addonHTML = (attrs = '') => `
+                <merch-addon slot="addon" ${attrs}>
+                    <p><strong>Acrobat AI Assistant</strong></p>
+                    <p data-plan-type="ABM">Add AI Assistant to your Acrobat plan for US$1.99/mo.</p>
+                    <p data-plan-type="PUF">Add AI Assistant to your Acrobat plan for US$17.99/mo.</p>
+                </merch-addon>`;
+
+            runTests(async () => {
+                mockIms();
+                await mockFetch(withWcs, withAem);
+                const container = document.querySelector('main');
+
+                async function renderCard(variant, heading, attrs) {
+                    const card = document.createElement('merch-card');
+                    card.setAttribute('variant', variant);
+                    card.innerHTML = `${heading}${addonHTML(attrs)}`;
+                    container.append(card);
+                    await card.updateComplete;
+                    const addon = card.querySelector('merch-addon');
+                    addon.planType = 'ABM';
+                    await addon.updateComplete;
+                    return addon;
+                }
+
+                // Unit tests can't compute accname, so a "name" here is built
+                // like aria-labelledby builds it: each referenced element's
+                // rendered text, following slots and skipping hidden parts.
+                // A referenced element is read even when it is hidden itself.
+                function textOf(node, referenced = false) {
+                    if (node.nodeType === Node.TEXT_NODE)
+                        return node.textContent;
+                    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+                    if (
+                        !referenced &&
+                        getComputedStyle(node).display === 'none'
+                    )
+                        return '';
+                    const children =
+                        node.localName === 'slot'
+                            ? node.assignedNodes({ flatten: true })
+                            : [...node.childNodes];
+                    return children
+                        .map((child) => ` ${textOf(child)} `)
+                        .join('');
+                }
+                function nameOf(addon, el) {
+                    const ids = el.getAttribute('aria-labelledby');
+                    if (!ids) return null;
+                    return ids
+                        .split(' ')
+                        .map((id) =>
+                            textOf(addon.shadowRoot.getElementById(id), true),
+                        )
+                        .join(' ')
+                        .replace(/\s+/g, ' ')
+                        .trim();
+                }
+                // The checkboxes a screen reader reaches: the custom one when
+                // shown, otherwise the native one (named by its label).
+                async function checkboxNames() {
+                    return [...container.querySelectorAll('merch-addon')].map(
+                        (addon) => {
+                            const root = addon.shadowRoot;
+                            const input = root.getElementById('addon-checkbox');
+                            return addon.hasAttribute('custom-checkbox')
+                                ? nameOf(
+                                      addon,
+                                      root.getElementById('custom-checkbox'),
+                                  )
+                                : (nameOf(addon, input) ??
+                                      nameOf(addon, {
+                                          getAttribute: () =>
+                                              'custom-checkbox-label',
+                                      }));
+                        },
+                    );
+                }
+
+                describe('merch-addon accessible name in page markup', () => {
+                    it('names add-ons that upgrade before their cards', async () => {
+                        for (const [id, title] of [
+                            ['static-card', 'Acrobat Pro'],
+                            ['static-product', 'Acrobat Standard'],
+                        ]) {
+                            const card = document.getElementById(id);
+                            await card.updateComplete;
+                            const addon = card.querySelector('merch-addon');
+                            await addon.updateComplete;
+                            expect(
+                                addon.shadowRoot.getElementById('addon-product')
+                                    ?.textContent,
+                            ).to.equal(title);
+                            card.remove();
+                        }
+                    });
+                });
+
+                describe('merch-addon accessible name', () => {
+                    afterEach(() => {
+                        container.innerHTML = '';
+                    });
+
+                    it('names identical add-ons after their cards', async () => {
+                        await renderCard(
+                            'pro',
+                            '<h3 slot="heading-xs">Acrobat Pro</h3>',
+                            'custom-checkbox',
+                        );
+                        await renderCard(
+                            'pro',
+                            '<h3 slot="heading-xs">Creative Cloud Pro for students and teachers</h3>',
+                            'custom-checkbox',
+                        );
+                        for (const addon of container.querySelectorAll(
+                            'merch-addon',
+                        )) {
+                            expect(addon.hasAttribute('custom-checkbox')).to.be
+                                .true;
+                        }
+                        expect(await checkboxNames()).to.deep.equal([
+                            `${COPY} Acrobat Pro`,
+                            `${COPY} Creative Cloud Pro for students and teachers`,
+                        ]);
+                    });
+
+                    it('names the native checkbox after its card too', async () => {
+                        const addon = await renderCard(
+                            'product',
+                            '<h3 slot="heading-xs">Acrobat Pro</h3>',
+                        );
+                        expect(addon.hasAttribute('custom-checkbox')).to.be
+                            .false;
+                        const root = addon.shadowRoot;
+                        expect(
+                            root
+                                .getElementById('addon-checkbox')
+                                .getAttribute('aria-labelledby'),
+                        ).to.equal('custom-checkbox-label addon-product');
+                        expect(
+                            root
+                                .getElementById('custom-checkbox-label')
+                                .getAttribute('for'),
+                        ).to.equal('addon-checkbox');
+                        expect(await checkboxNames()).to.deep.equal([
+                            `${COPY} Acrobat Pro`,
+                        ]);
+                    });
+
+                    it('keeps the product copy hidden and leaves the label alone', async () => {
+                        const addon = await renderCard(
+                            'pro',
+                            '<h3 slot="heading-xs">Acrobat Pro</h3>',
+                        );
+                        const product =
+                            addon.shadowRoot.getElementById('addon-product');
+                        expect(getComputedStyle(product).display).to.equal(
+                            'none',
+                        );
+                        expect(product.closest('label')).to.be.null;
+                        expect(
+                            addon.shadowRoot.getElementById('addon-checkbox')
+                                .nextElementSibling.id,
+                        ).to.equal('custom-checkbox');
+                    });
+
+                    for (const [what, heading] of [
+                        ['missing', ''],
+                        ['empty', '<h3 slot="heading-xs"></h3>'],
+                        ['blank', '<h3 slot="heading-xs">   </h3>'],
+                    ]) {
+                        it(`keeps the add-on copy alone when the title is ${what}`, async () => {
+                            const addon = await renderCard('pro', heading);
+                            const root = addon.shadowRoot;
+                            expect(root.getElementById('addon-product')).to.be
+                                .null;
+                            expect(
+                                root
+                                    .getElementById('custom-checkbox')
+                                    .getAttribute('aria-labelledby'),
+                            ).to.equal('custom-checkbox-label');
+                            expect(
+                                root
+                                    .getElementById('addon-checkbox')
+                                    .hasAttribute('aria-labelledby'),
+                            ).to.be.false;
+                            expect(await checkboxNames()).to.deep.equal([COPY]);
+                        });
+                    }
+
+                    it('keeps the add-on copy alone outside a card', async () => {
+                        container.innerHTML = addonHTML('custom-checkbox');
+                        const addon = container.querySelector('merch-addon');
+                        addon.planType = 'ABM';
+                        await addon.updateComplete;
+                        expect(addon.shadowRoot.getElementById('addon-product'))
+                            .to.be.null;
+                        expect(await checkboxNames()).to.deep.equal([COPY]);
+                    });
+
+                    it('still toggles once with Space and label clicks', async () => {
+                        const addon = await renderCard(
+                            'pro',
+                            '<h3 slot="heading-xs">Acrobat Pro</h3>',
+                        );
+                        let changes = 0;
+                        addon.addEventListener('change', () => changes++);
+                        const custom =
+                            addon.shadowRoot.getElementById('custom-checkbox');
+                        custom.dispatchEvent(
+                            new KeyboardEvent('keydown', {
+                                key: ' ',
+                                bubbles: true,
+                            }),
+                        );
+                        await addon.updateComplete;
+                        expect(addon.checked).to.be.true;
+                        expect(custom.getAttribute('aria-checked')).to.equal(
+                            'true',
+                        );
+                        addon.shadowRoot
+                            .getElementById('custom-checkbox-label')
+                            .click();
+                        await addon.updateComplete;
+                        expect(addon.checked).to.be.false;
+                        expect(changes).to.equal(2);
+                    });
+                });
+            });
+        </script>
+    </body>
+</html>

@@ -18,7 +18,6 @@ const baseline = {
     template: 'catalog',
     productArrangementCode: 'ccsn_direct_individual',
     productCode: 'CCSN',
-    name: 'my-baseline',
 };
 
 const TAGS = [
@@ -61,12 +60,12 @@ describe('baseline-model', () => {
         expect(await prepareBaselineFolder(fragmentsApi, baseline)).to.deep.equal({ folder: FOLDER, exists: false });
     });
 
-    it('reports an existing baseline with the same name', async () => {
-        const getByPath = sinon.stub().resolves({ path: `${FOLDER}/my-baseline` });
+    it('reports an existing baseline in the PA code and segment folder', async () => {
+        const getByPath = sinon.stub().resolves({ path: `${FOLDER}/baseline` });
         const fragmentsApi = createFragmentsApi(getByPath);
 
         expect(await prepareBaselineFolder(fragmentsApi, baseline)).to.deep.equal({ folder: FOLDER, exists: true });
-        expect(getByPath.firstCall.args[0]).to.equal(`${FOLDER}/my-baseline`);
+        expect(getByPath.firstCall.args[0]).to.equal(`${FOLDER}/baseline`);
     });
 
     it('propagates folder creation failures without checking the baseline', async () => {
@@ -179,7 +178,7 @@ describe('baseline-model', () => {
         });
 
         it('does not create a baseline that already exists', async () => {
-            const repository = createRepository(sinon.stub().resolves({ path: `${FOLDER}/my-baseline` }));
+            const repository = createRepository(sinon.stub().resolves({ path: `${FOLDER}/baseline` }));
 
             expect(await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' })).to.deep.equal({
                 exists: true,

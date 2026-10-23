@@ -23,8 +23,7 @@ import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
 import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
 
-const BASELINE_EXISTS_ERROR = 'A baseline with this title already exists';
-const BASELINE_CONFLICT_ERROR = 'The baseline for this product code and market segment already exists.';
+const BASELINE_EXISTS_ERROR = 'The baseline for this product code and market segment already exists.';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
 const MISSING_PA_CODE_ERROR = 'No PA code found for this offer';
 
@@ -289,6 +288,7 @@ export class MasCreateDialog extends LitElement {
     #handleTemplateChange(event) {
         this.#touch('template');
         this.template = event.target.value;
+        if (this.errors.offer === BASELINE_EXISTS_ERROR) this.#setError('offer', '');
     }
 
     _onTagSelect = ({ detail: { tags } }) => {
@@ -425,7 +425,6 @@ export class MasCreateDialog extends LitElement {
         try {
             result = await createBaseline(this.repository, {
                 title: this.title,
-                name: this.normalizeFragmentName(this.title),
                 osi: this.osi,
                 surface: this.surface,
                 locale: this.filters.value.locale,
@@ -437,14 +436,14 @@ export class MasCreateDialog extends LitElement {
         } catch (error) {
             console.error(error.message, error.stack);
             const message = error.message?.includes(': 409')
-                ? BASELINE_CONFLICT_ERROR
+                ? BASELINE_EXISTS_ERROR
                 : `Failed to create baseline: ${error.message}`;
             showToast(message, 'negative');
         } finally {
             this.loading = false;
         }
         if (result?.exists) {
-            this.#setError('title', BASELINE_EXISTS_ERROR);
+            this.#setError('offer', BASELINE_EXISTS_ERROR);
             return;
         }
         if (!result?.fragment?.id) return;

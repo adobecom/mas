@@ -327,29 +327,29 @@
                                 ).to.be.true;
                                 expect(getByPath.calledOnce).to.be.true;
                                 expect(getByPath.firstCall.args[0]).to.equal(
-                                    '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual/test-baseline',
+                                    '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual/baseline',
                                 );
                             });
 
-                            it('shows a validation error and does not create when the baseline already exists', async () => {
+                            it('shows the existing baseline error on the offer field and does not create', async () => {
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox.stub(fragments, 'getByPath').resolves({ path: 'existing' });
                                 const create = sandbox.stub(repository, 'createFragment');
-                                dialog.touched = { ...dialog.touched, title: true };
+                                dialog.title = 'Test Baseline';
 
                                 await dialog.handleSubmit();
                                 await dialog.updateComplete;
-                                const titleField = dialog.shadowRoot.querySelector('#fragment-title');
-                                await titleField.updateComplete;
-                                await titleField.updateComplete;
+                                const root = dialog.shadowRoot;
+                                const offerButton = root.querySelector('[aria-labelledby="offer-label"] sp-action-button');
 
                                 expect(create.called).to.be.false;
                                 expect(dialog.loading).to.be.false;
-                                expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
-                                    'A baseline with this title already exists',
+                                expect(root.querySelector('#offer-error').textContent.trim()).to.equal(
+                                    'The baseline for this product code and market segment already exists.',
                                 );
-                                expect(titleField.invalid).to.be.true;
-                                expect(titleField.valid).to.be.false;
+                                expect(offerButton.getAttribute('aria-invalid')).to.equal('true');
+                                expect(root.querySelector('#title-error')).to.not.exist;
+                                expect(root.querySelector('#fragment-title').invalid).to.be.false;
                             });
 
                             it('creates the baseline without tags that do not exist and shows no error', async () => {
@@ -500,13 +500,30 @@
                             });
                         });
 
-                        it('clears the existing baseline error when the title changes', async () => {
-                            dialog.errors = { ...dialog.errors, title: 'A baseline with this title already exists' };
-
-                            dialog.handleTitleChange('Another Baseline');
+                        const changeTemplate = async (value) => {
+                            const picker = dialog.shadowRoot.querySelector('variant-picker#template');
+                            picker.value = value;
+                            picker.dispatchEvent(new Event('change'));
                             await dialog.updateComplete;
+                        };
 
-                            expect(dialog.shadowRoot.querySelector('#title-error')).to.not.exist;
+                        it('clears the existing baseline error when the template changes', async () => {
+                            dialog.errors = {
+                                ...dialog.errors,
+                                offer: 'The baseline for this product code and market segment already exists.',
+                            };
+
+                            await changeTemplate('plans');
+
+                            expect(dialog.errors.offer).to.equal('');
+                        });
+
+                        it('keeps the missing PA code error when the template changes', async () => {
+                            dialog.errors = { ...dialog.errors, offer: 'No PA code found for this offer' };
+
+                            await changeTemplate('plans');
+
+                            expect(dialog.errors.offer).to.equal('No PA code found for this offer');
                         });
 
                         it('blocks baseline creation without a template', async () => {

@@ -9,6 +9,7 @@ import {
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
 
+const BASELINE_FRAGMENT_NAME = 'baseline';
 const DEFAULT_MARKET_SEGMENT = 'com';
 const MARKET_SEGMENTS_TAG_ROOT = '/content/cq:tags/mas/market_segments';
 const PRODUCT_ARRANGEMENT_CODE_TAG_ROOT = '/content/cq:tags/mas/product_arrangement_code';
@@ -36,7 +37,7 @@ export async function filterExistingTags(tagsApi, tags) {
 export async function prepareBaselineFolder(fragmentsApi, baseline) {
     const folder = buildBaselineFolderPath(baseline);
     await fragmentsApi.ensureFolderExists(folder);
-    const existing = await getFragmentByPathOrNull(fragmentsApi, `${folder}/${baseline.name}`);
+    const existing = await getFragmentByPathOrNull(fragmentsApi, `${folder}/${BASELINE_FRAGMENT_NAME}`);
     return { folder, exists: Boolean(existing) };
 }
 
@@ -63,7 +64,7 @@ export async function createBaseline(repository, { title, osi, ...baseline }) {
     const fragment = await repository.createFragment({
         modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
         title,
-        name: 'baseline',
+        name: BASELINE_FRAGMENT_NAME,
         parentPath: folder,
         tags,
         data: { osi, cardTitle: title, variant: baseline.template, compatVersion: COMPAT_VERSION },

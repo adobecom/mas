@@ -330,6 +330,7 @@ function applyCollectionSettings(context, locale, settings, country) {
         filtersApplied: '{{coll-filters-applied-text}}',
         filtersResults: '{{coll-filters-results-text}}',
         filtersReset: '{{coll-filters-reset-text}}',
+        filterPillLabel: '{{coll-filter-pill-label}}',
     };
 
     context.dictionary = {

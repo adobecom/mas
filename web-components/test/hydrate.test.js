@@ -29,9 +29,9 @@ import {
     processTrialBadge,
     processBadge,
     processFeatures,
-    normalizeVariant,
     splitParagraphListItems,
 } from '../src/hydrate.js';
+import { normalizeVariant } from '../src/utils.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
 import { mockFetch } from './mocks/fetch.js';

@@ -472,6 +472,21 @@ runTests(async () => {
             ).to.not.exist;
             aemFragment.cache.clear();
         });
+
+        it('marks the default child card for variants that support it', async () => {
+            [collectionElement, render] = prepareTemplate(
+                'collection-default-child',
+                false,
+            );
+            render();
+            await collectionElement.checkReady();
+            const card = (id) =>
+                collectionElement.querySelector(`merch-card[id="${id}"]`);
+            expect(card('express-card-b').dataset.defaultCard).to.equal('true');
+            expect(card('express-card-a').hasAttribute('data-default-card')).to
+                .be.false;
+            customElements.get('aem-fragment').cache.clear();
+        });
     });
 
     describe('merch-card checkReady with failing aem-fragment', () => {

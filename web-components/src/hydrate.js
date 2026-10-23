@@ -3,7 +3,6 @@ import {
     TRIAL_ANALYTICS_IDS,
     HEADLESS_STYLE_CTA_VARIANTS,
 } from './constants.js';
-import { UptLink } from './upt-link.js';
 import {
     createTag,
     getService,
@@ -833,6 +832,10 @@ function clearTags(text) {
 }
 
 export function processUptLinks(fields, merchCard) {
+    // upt-link is defined by commerce.js; use the registered class so a second
+    // (unregistered) copy is not bundled here and `new UptLink()` cannot throw.
+    const UptLink = customElements.get('upt-link');
+    if (!UptLink) return;
     const placeholders = merchCard.querySelectorAll('a.upt-link');
     placeholders.forEach((placeholder) => {
         const uptLink = UptLink.createFrom(placeholder);

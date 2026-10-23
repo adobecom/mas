@@ -30,6 +30,7 @@ import {
     processBadge,
     processFeatures,
     splitParagraphListItems,
+    processUptLinks,
 } from '../src/hydrate.js';
 import { normalizeVariant } from '../src/utils.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
@@ -895,6 +896,38 @@ describe('processFeatures', () => {
         expect(button).to.exist;
         expect(button.classList.contains('spectrum-Button--accent')).to.be.true;
         merchCard.remove();
+    });
+});
+
+describe('processUptLinks', () => {
+    const createCard = () => {
+        const merchCard = document.createElement('div');
+        merchCard.innerHTML =
+            '<p><a class="upt-link spectrum-Link" href="#">See terms</a></p>';
+        return merchCard;
+    };
+
+    afterEach(() => sinon.restore());
+
+    it('replaces placeholders with the registered upt-link element', () => {
+        const merchCard = createCard();
+        processUptLinks({ osi: 'osi-1', promoCode: 'PROMO1' }, merchCard);
+        const link = merchCard.querySelector('a');
+        expect(link).to.be.instanceOf(customElements.get('upt-link'));
+        expect(link.getAttribute('class')).to.equal('spectrum-Link');
+        expect(link.dataset.wcsOsi).to.equal('osi-1');
+        expect(link.dataset.promotionCode).to.equal('PROMO1');
+    });
+
+    it('keeps placeholders when upt-link is not defined', () => {
+        sinon
+            .stub(customElements, 'get')
+            .callThrough()
+            .withArgs('upt-link')
+            .returns(undefined);
+        const merchCard = createCard();
+        processUptLinks({ osi: 'osi-1' }, merchCard);
+        expect(merchCard.querySelector('a.upt-link')).to.exist;
     });
 });
 

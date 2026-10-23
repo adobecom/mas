@@ -1,0 +1,54 @@
+name: Studio Akamai Purge
+
+on:
+    push:
+        branches:
+            - main
+        paths:
+            - 'studio/**'
+            - 'web-components/dist/**'
+            - 'web-components/src/**'
+            - 'io/www/src/**'
+    workflow_dispatch:
+        inputs:
+            before_sha:
+                description: 'Wait for aem.live to serve the files changed on main since this commit; leave empty to purge right away'
+                required: false
+                type: string
+
+permissions:
+    contents: read
+
+# Every run invalidates the whole CP code, so a newer run covers any older one.
+concurrency:
+    group: akamai-purge
+    cancel-in-progress: true
+
+jobs:
+    purge:
+        if: github.repository_owner == 'adobecom'
+        runs-on: ubuntu-latest
+        environment: akamai
+        timeout-minutes: 15
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  # Full history, without file contents, to diff against the pushed-from commit.
+                  fetch-depth: 0
+                  filter: blob:none
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+
+            - name: Invalidate mas.adobe.com
+              run: node .github/scripts/akamai-purge.mjs
+              env:
+                  BEFORE_SHA: ${{ inputs.before_sha || github.event.before }}
+                  AFTER_SHA: ${{ github.sha }}
+                  AKAMAI_HOST: ${{ secrets.AKAMAI_HOST }}
+                  AKAMAI_CLIENT_TOKEN: ${{ secrets.AKAMAI_CLIENT_TOKEN }}
+                  AKAMAI_CLIENT_SECRET: ${{ secrets.AKAMAI_CLIENT_SECRET }}
+                  AKAMAI_ACCESS_TOKEN: ${{ secrets.AKAMAI_ACCESS_TOKEN }}

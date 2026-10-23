@@ -3795,6 +3795,33 @@ describe('MasPromotionsEditor', () => {
                 expect(collectionsFilter.matchVariationsAndTags).to.be.false;
             });
 
+            it('refreshes automatic product filters after delayed offer hydration', async () => {
+                const { el, repo } = await mountEditorWithRepo();
+                Store.promotions.offerRecordsCache.delete('delayed-offer');
+                Store.promotions.selectedOffers.set(['delayed-offer']);
+                el.fragmentStore.updateField('surfaces', ['sandbox']);
+                const selector = await openPicker(el);
+                const cardsFilter = [...selector.searchFilterElements].find((filter) => filter.type === TABLE_TYPE.CARDS);
+                await cardsFilter.updateComplete;
+                expect(cardsFilter.productFilter).to.deep.equal([]);
+                Store.promotions.allCards.set([
+                    { id: 'photoshop', path: '/phsp', fields: [], tags: [{ id: 'mas:product_code/phsp' }] },
+                    { id: 'other', path: '/other', fields: [], tags: [{ id: 'mas:product_code/other' }] },
+                ]);
+                repo.searchFragments.resetHistory();
+
+                Store.promotions.offerRecordsCache.set('delayed-offer', { tags: [{ id: 'mas:product_code/phsp' }] });
+                Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                await el.updateComplete;
+                await selector.updateComplete;
+                await cardsFilter.updateComplete;
+
+                expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/phsp']);
+                expect(Store.filters.get().tags).to.equal('mas:product_code/phsp');
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['photoshop']);
+                expect(repo.searchFragments.called).to.be.true;
+            });
+
             it('does not reapply a deleted product chip while searching or clearing the query', async () => {
                 const { el } = await mountEditorWithRepo();
                 Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
@@ -3939,6 +3966,58 @@ describe('MasPromotionsEditor', () => {
                     expect(Store.filters.get().tags).to.be.undefined;
                     expect(cardsFilter.offerFilterValue).to.equal('');
                     expect(Store.promotions.selectedOffers.get()).to.deep.equal(['offer-1', 'offer-2']);
+                });
+
+                it('preserves Clear all after offer hydration', async () => {
+                    cardsFilter.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal([]);
+                    expect(Store.filters.get().tags).to.be.undefined;
+                    expect(cardsFilter.offerFilterValue).to.equal('');
+                });
+
+                it('preserves a manually removed product filter after offer hydration', async () => {
+                    cardsFilter.productOptions = [
+                        { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                        { id: 'mas:product_code/ilst', title: 'Illustrator' },
+                    ];
+                    await cardsFilter.updateComplete;
+                    cardsFilter.shadowRoot.querySelector('sp-tag').dispatchEvent(new Event('delete'));
+                    await cardsFilter.updateComplete;
+                    const remainingProducts = [...cardsFilter.productFilter];
+                    expect(remainingProducts).to.have.length(1);
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(remainingProducts);
+                    expect(Store.filters.get().tags).to.equal(remainingProducts.join(','));
+                });
+
+                it('refreshes only the chosen offer after delayed hydration', async () => {
+                    Store.promotions.offerRecordsCache.delete('offer-2');
+                    await selectOffer('offer-2');
+                    expect(cardsFilter.productFilter).to.deep.equal([]);
+
+                    Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
                 });
 
                 it('applies only the chosen offer after Clear all', async () => {

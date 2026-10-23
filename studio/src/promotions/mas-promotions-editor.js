@@ -186,6 +186,7 @@ class MasPromotionsEditor extends LitElement {
 
     #promotionItemsReactive;
     #promotionOfferFilterReactive;
+    #promotionOfferHydrationReactive;
 
     inEdit = Store.promotions.inEdit;
     promotionId = Store.promotions.promotionId;
@@ -269,7 +270,6 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
-            Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
         this.#promotionOfferFilterReactive = new ReactiveController(
@@ -277,6 +277,11 @@ class MasPromotionsEditor extends LitElement {
             [Store.promotions.selectedOffers],
             this.#onPromotionOffersFilterChange,
         );
+        this.#promotionOfferHydrationReactive = new ReactiveController(this, [Store.promotions.offerRecordsHydrated], () => {
+            if (this.activeFilterOfferId && !this.#pickerProductFilterOverridden) {
+                this.#syncOfferProductTagsToFragmentSearch();
+            }
+        });
         this.#syncOfferProductTagsToFragmentSearch();
     }
 
@@ -1372,6 +1377,7 @@ class MasPromotionsEditor extends LitElement {
 
     /** Stable reference across renders so a chip the user deleted is not re-applied on every keystroke. */
     #pickerProductFilter = [];
+    #pickerProductFilterOverridden = false;
 
     #onPromotionOffersFilterChange = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
@@ -1393,6 +1399,7 @@ class MasPromotionsEditor extends LitElement {
 
     #handleProductFilterChange = (event) => {
         event.stopPropagation();
+        this.#pickerProductFilterOverridden ||= event.detail.value !== this.#pickerProductFilter;
         this.#pickerProductFilter = event.detail.value;
         const tags = this.#pickerProductFilter.join(',') || undefined;
         if (Store.filters.get().tags !== tags) {
@@ -1404,6 +1411,7 @@ class MasPromotionsEditor extends LitElement {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
         const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
+        this.#pickerProductFilterOverridden = false;
         this.#pickerProductFilter = tags;
         const picker = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         picker?.searchFilterElements.forEach((el) => {

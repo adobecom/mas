@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
+import { escapeHTML } from '../utils.js';
 import { CSS } from './image.css.js';
 import { css } from '../css.js';
 
@@ -48,7 +48,7 @@ export class Image extends VariantLayout {
     }
 
     renderLayout() {
-        return html`<div class="image">
+        return `<div class="image">
                 <slot name="bg-image"></slot>
                 <slot name="badge"></slot>
             </div>
@@ -56,25 +56,29 @@ export class Image extends VariantLayout {
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${this.promoBottom
-                    ? html`<slot name="body-xs"></slot
+                ${
+                    this.promoBottom
+                        ? `<slot name="body-xs"></slot
                           ><slot name="promo-text"></slot>`
-                    : html`<slot name="promo-text"></slot
-                          ><slot name="body-xs"></slot>`}
+                        : `<slot name="promo-text"></slot
+                          ><slot name="body-xs"></slot>`
+                }
             </div>
-            ${this.evergreen
-                ? html`
+            ${
+                this.evergreen
+                    ? `
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card['detailBg']}"
+                          style="background: ${escapeHTML(this.card['detailBg'])}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
                   `
-                : html`
+                    : `
                       <hr />
                       ${this.secureLabelFooter}
-                  `}`;
+                  `
+            }`;
     }
 
     static variantStyle = css`

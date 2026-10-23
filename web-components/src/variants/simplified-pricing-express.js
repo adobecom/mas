@@ -1,4 +1,3 @@
-import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './simplified-pricing-express.css.js';
 import Media, { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
@@ -77,7 +76,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
     get badge() {
         const badgeElement = this.card.querySelector('[slot="badge"]');
-        return html`<div
+        return `<div
             class="badge-wrapper"
             style="${badgeElement ? '' : 'visibility: hidden'}"
         >
@@ -243,17 +242,23 @@ export class SimplifiedPricingExpress extends VariantLayout {
         merchCard.setAttribute('data-expanded', newExpanded);
     }
 
+    bindEvents(root) {
+        root.querySelector('.card-content')?.addEventListener('click', (e) =>
+            this.handleCardClick(e),
+        );
+        root.querySelector('.chevron-button')?.addEventListener('click', (e) =>
+            this.handleChevronClick(e),
+        );
+    }
+
     renderLayout() {
-        return html`
+        return `
             ${this.badge}
-            <div class="card-content" @click=${(e) => this.handleCardClick(e)}>
+            <div class="card-content">
                 <div class="header">
                     <slot name="heading-xs"></slot>
                     <slot name="trial-badge"></slot>
-                    <button
-                        class="chevron-button"
-                        @click=${(e) => this.handleChevronClick(e)}
-                    >
+                    <button class="chevron-button">
                         <svg
                             class="chevron-icon"
                             width="24"

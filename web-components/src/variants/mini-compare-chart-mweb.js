@@ -1,4 +1,3 @@
-import { html, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
@@ -188,7 +187,7 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     getMiniCompareFooter = () => {
-        return html` <footer>
+        return ` <footer>
             <slot name="secure-transaction-label">
                 <span class="secure-transaction-label-text"
                     >${this.secureLabel}</span
@@ -201,7 +200,7 @@ export class MiniCompareChartMweb extends VariantLayout {
     };
 
     getMiniCompareFooterRows = () => {
-        return html` <div class="footer-rows-container">
+        return ` <div class="footer-rows-container">
             <slot name="body-xs"></slot>
             <slot name="footer-rows"></slot>
         </div>`;
@@ -354,12 +353,12 @@ export class MiniCompareChartMweb extends VariantLayout {
             !this.card.querySelector('[slot="icons"]') &&
             !this.card.getAttribute('id')
         )
-            return nothing;
-        return html`<slot name="icons"></slot>`;
+            return '';
+        return `<slot name="icons"></slot>`;
     }
 
     renderLayout() {
-        return html`
+        return `
             ${this.badge}
             <div class="body">
                 <div class="body-main">

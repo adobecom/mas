@@ -1,9 +1,9 @@
-import { LitElement, html, unsafeCSS } from 'lit';
 import {
     COUNTDOWN_UNIT_PAIR,
     isUnresolvedCountdownToken,
 } from './countdown.js';
 import { css } from './css.js';
+import { escapeHTML } from './utils.js';
 
 const MINUTE = 60000;
 /** Classes an author can put on the sentinel link; each has a color rule in the styles below. */
@@ -76,17 +76,12 @@ export function countdownText(start, end, now, locale = 'en_US', template) {
 }
 
 /** Inline promotion countdown with a clock owned by its connected element. */
-export class MerchCountdown extends LitElement {
-    static properties = {
-        start: { type: String },
-        end: { type: String },
-        locale: { type: String },
-        template: { type: String },
-        instant: { type: String },
-        text: { state: true },
-    };
+const CLOCK_ATTRIBUTES = ['start', 'end', 'locale', 'template', 'instant'];
 
-    static styles = unsafeCSS(css`
+export class MerchCountdown extends HTMLElement {
+    static observedAttributes = CLOCK_ATTRIBUTES;
+
+    static styles = css`
         /* Default inherits the description color; authors pick one of these in the RTE. */
         :host(.spectrum-green-900) {
             color: var(--spectrum-green-900, #05834e);
@@ -97,37 +92,127 @@ export class MerchCountdown extends LitElement {
         :host([hidden]) {
             display: none;
         }
-    `);
+    `;
 
     #timer;
+    #text = '';
+    #markup;
+    #changed = new Set();
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
 
     constructor() {
         super();
-        this.locale = 'en_US';
-        this.text = '';
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
+        this.requestUpdate();
+    }
+
+    get start() {
+        return this.getAttribute('start') ?? undefined;
+    }
+
+    set start(value) {
+        setAttribute(this, 'start', value);
+    }
+
+    get end() {
+        return this.getAttribute('end') ?? undefined;
+    }
+
+    set end(value) {
+        setAttribute(this, 'end', value);
+    }
+
+    get locale() {
+        return this.getAttribute('locale') ?? 'en_US';
+    }
+
+    set locale(value) {
+        setAttribute(this, 'locale', value);
+    }
+
+    get template() {
+        return this.getAttribute('template') ?? undefined;
+    }
+
+    set template(value) {
+        setAttribute(this, 'template', value);
+    }
+
+    get instant() {
+        return this.getAttribute('instant') ?? undefined;
+    }
+
+    set instant(value) {
+        setAttribute(this, 'instant', value);
+    }
+
+    get text() {
+        return this.#text;
+    }
+
+    set text(value) {
+        if (Object.is(value, this.#text)) return;
+        this.#text = value;
+        this.requestUpdate('text');
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        for (const property of CLOCK_ATTRIBUTES) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
         this.hidden = true;
         this.setAttribute('role', 'timer');
         this.setAttribute('aria-live', 'off');
         this.#startClock();
+        this.#resolveConnected();
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         clearTimeout(this.#timer);
     }
 
-    willUpdate(changed) {
-        if (
-            ['start', 'end', 'locale', 'template', 'instant'].some((key) =>
-                changed.has(key),
-            )
-        ) {
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue !== value) this.requestUpdate(name);
+    }
+
+    requestUpdate(property) {
+        if (property) this.#changed.add(property);
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        if (CLOCK_ATTRIBUTES.some((key) => this.#changed.has(key))) {
             this.#startClock();
         }
+        this.#changed = new Set();
+        this.#updatePending = false;
+        this.#render();
+        return true;
+    }
+
+    #render() {
+        const markup = escapeHTML(this.#text);
+        if (markup === this.#markup) return;
+        this.#markup = markup;
+        this.shadowRoot.innerHTML = markup;
     }
 
     #startClock() {
@@ -158,11 +243,15 @@ export class MerchCountdown extends LitElement {
             now < start ? Math.min(untilChange, start - now) : untilChange,
         );
     }
-
-    render() {
-        return html`${this.text}`;
-    }
 }
+
+function setAttribute(element, name, value) {
+    if (value == null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MerchCountdown.styles);
 
 // hydrate.js imports this module, so the card and collection bundles both include it.
 if (!customElements.get('merch-countdown')) {

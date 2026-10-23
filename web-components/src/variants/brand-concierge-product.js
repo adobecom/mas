@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html } from 'lit';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
@@ -70,7 +69,7 @@ export class BrandConciergeProduct extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
+        return ` ${this.badge}
             <div class="body">
                 <slot name="icons"></slot>
                 <slot name="badge"></slot>

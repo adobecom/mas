@@ -1,6 +1,6 @@
-import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './ccd-suggested.css.js';
+import { escapeHTML } from '../utils.js';
 import { css } from '../css.js';
 
 export const CCD_SUGGESTED_AEM_FRAGMENT_MAPPING = {
@@ -27,7 +27,7 @@ export class CCDSuggested extends VariantLayout {
     }
 
     renderLayout() {
-        return html` <div style="${this.stripStyle}" class="body">
+        return ` <div style="${escapeHTML(this.stripStyle)}" class="body">
                 <div class="header">
                     <div class="top-section">
                         <slot name="icons"></slot>

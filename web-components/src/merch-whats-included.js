@@ -1,8 +1,7 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { css } from './css.js';
 
-export class MerchWhatsIncluded extends LitElement {
-    static styles = unsafeCSS(css`
+export class MerchWhatsIncluded extends HTMLElement {
+    static styles = css`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -47,15 +46,78 @@ export class MerchWhatsIncluded extends LitElement {
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `);
+    `;
 
-    static properties = {
-        heading: { type: String, attribute: true },
-        mobileRows: { type: Number, attribute: true },
-    };
+    static observedAttributes = ['heading', 'mobilerows'];
 
-    updated() {
+    #markup;
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
+
+    constructor() {
+        super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
+        this.showAll = false;
+        this.toggle = this.toggle.bind(this);
+        this.requestUpdate();
+    }
+
+    get heading() {
+        return this.getAttribute('heading') ?? undefined;
+    }
+
+    set heading(value) {
+        if (value == null) this.removeAttribute('heading');
+        else this.setAttribute('heading', value);
+    }
+
+    get mobileRows() {
+        const value = this.getAttribute('mobilerows');
+        return value === null ? 5 : Number(value);
+    }
+
+    set mobileRows(value) {
+        if (value == null) this.removeAttribute('mobilerows');
+        else this.setAttribute('mobilerows', value);
+    }
+
+    connectedCallback() {
+        for (const property of ['heading', 'mobileRows']) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
+        this.#resolveConnected();
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue !== value) this.requestUpdate();
+    }
+
+    requestUpdate() {
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        this.#updatePending = false;
+        this.#render();
         this.hideSeeMoreEls();
+        return true;
     }
 
     hideSeeMoreEls() {
@@ -66,12 +128,6 @@ export class MerchWhatsIncluded extends LitElement {
                 }
             });
         }
-    }
-
-    constructor() {
-        super();
-        this.showAll = false;
-        this.mobileRows = this.mobileRows === undefined ? 5 : this.mobileRows;
     }
 
     toggle() {
@@ -86,19 +142,26 @@ export class MerchWhatsIncluded extends LitElement {
         this.requestUpdate();
     }
 
-    render() {
-        return html`<slot name="heading"></slot>
-            <slot name="contentBullets"></slot>
-            ${!this.isMobile || !this.bulletsAdded
-                ? html`<slot name="content"></slot>`
-                : nothing}
-            ${this.isMobile &&
-            this.rows.length > this.mobileRows &&
-            !this.bulletsAdded
-                ? html`<div @click=${this.toggle} class="see-more">
+    #render() {
+        const { isMobile, bulletsAdded } = this;
+        const content =
+            !isMobile || !bulletsAdded ? '<slot name="content"></slot>' : '';
+        const seeMore =
+            isMobile && this.rows.length > this.mobileRows && !bulletsAdded
+                ? `<div class="see-more">
                       ${this.showAll ? '- See less' : '+ See more'}
                   </div>`
-                : nothing}`;
+                : '';
+        const markup = `<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
+            ${content}
+            ${seeMore}`;
+        if (markup === this.#markup) return;
+        this.#markup = markup;
+        this.shadowRoot.innerHTML = markup;
+        this.shadowRoot
+            .querySelector('.see-more')
+            ?.addEventListener('click', this.toggle);
     }
 
     get isMobile() {
@@ -115,5 +178,8 @@ export class MerchWhatsIncluded extends LitElement {
         );
     }
 }
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MerchWhatsIncluded.styles);
 
 customElements.define('merch-whats-included', MerchWhatsIncluded);

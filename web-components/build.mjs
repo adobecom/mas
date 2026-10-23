@@ -62,12 +62,8 @@ Promise.all([
         plugins: [cssLoader(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
     }),
-    build({
-        ...defaults,
-        entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [cssLoader(), rewriteImportsToLibsFolder()],
-        outfile: `${outfolder}/merch-card-collection.js`,
-    }),
+    buildVanillaComponent('merch-card-collection'),
+    buildVanillaComponent('merch-quantity-select'),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
@@ -80,9 +76,7 @@ Promise.all([
         outfile: `${outfolder}/mas-field.js`,
     }),
     buildMerchCard(),
-    buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
-    buildLitComponent('merch-quantity-select'),
     buildLitComponent('merch-secure-transaction'),
     buildLitComponent('merch-stock'),
     buildLitComponent('merch-whats-included'),
@@ -108,18 +102,22 @@ async function buildLitComponent(name) {
     }
 }
 
+async function buildVanillaComponent(name) {
+    await build({
+        ...defaults,
+        entryPoints: [`./src/${name}.js`],
+        outfile: `${outfolder}/${name}.js`,
+        plugins: [cssLoader(), forbidLit(name)],
+    });
+}
+
 async function buildMerchCard() {
     const outfile = `${outfolder}/merch-card.js`;
     await build({
         ...defaults,
         entryPoints: ['./src/merch-card.js'],
-        external: ['lit'],
         outfile,
-        plugins: [
-            cssLoader(),
-            rewriteImportsToLibsFolder(),
-            importFromCommerce(),
-        ],
+        plugins: [cssLoader(), forbidLit('merch-card'), importFromCommerce()],
     });
     const imported = [
         ...readFileSync(outfile, 'utf-8').matchAll(
@@ -154,6 +152,21 @@ function importFromCommerce() {
                 if (!commerceModules.has(path)) return;
                 return { path: './commerce.js', external: true };
             });
+        },
+    };
+}
+
+function forbidLit(name) {
+    return {
+        name: 'forbid-lit',
+        setup(build) {
+            build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
+                errors: [
+                    {
+                        text: `${importer} imports lit: ${name}.js must stay Lit-free`,
+                    },
+                ],
+            }));
         },
     };
 }

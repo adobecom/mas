@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
 import { CSS } from './plans-v2.css.js';
 import Media from '../media.js';
 import {
@@ -8,6 +7,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { css } from '../css.js';
+import { escapeHTML } from '../utils.js';
 
 export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -297,12 +297,23 @@ export class PlansV2 extends VariantLayout {
 
     get stockCheckbox() {
         return this.card.checkboxLabel
-            ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+            ? `<label id="stock-checkbox">
+                <input type="checkbox">
                 <span></span>
-                ${this.card.checkboxLabel}
+                ${escapeHTML(this.card.checkboxLabel)}
             </label>`
-            : nothing;
+            : '';
+    }
+
+    bindEvents(root) {
+        root.querySelector('#stock-checkbox > input')?.addEventListener(
+            'change',
+            (event) => this.card.toggleStockOffer(event),
+        );
+        root.querySelector('.short-description-toggle')?.addEventListener(
+            'click',
+            this.toggleShortDescription,
+        );
     }
 
     get hasShortDescription() {
@@ -354,15 +365,20 @@ export class PlansV2 extends VariantLayout {
 
     toggleShortDescription() {
         this.shortDescriptionExpanded = !this.shortDescriptionExpanded;
-        this.card.requestUpdate();
+        const expanded = this.shortDescriptionExpanded;
+        this.card.shadowRoot
+            ?.querySelectorAll(
+                '.short-description-toggle, .short-description-toggle .toggle-icon, .short-description-content',
+            )
+            .forEach((el) => el.classList.toggle('expanded', expanded));
     }
 
     get shortDescriptionToggle() {
-        if (!this.hasShortDescription) return nothing;
+        if (!this.hasShortDescription) return '';
 
         // Show desktop version (no toggle) for tablet and up
         if (!Media.isMobile) {
-            return html`
+            return `
                 <div class="short-description-content desktop">
                     <slot name="short-description"></slot>
                 </div>
@@ -370,25 +386,24 @@ export class PlansV2 extends VariantLayout {
         }
 
         // Show toggle version only on mobile
-        return html`
+        return `
             <div class="short-description-divider"></div>
             <div
-                class="short-description-toggle ${this.shortDescriptionExpanded
-                    ? 'expanded'
-                    : ''}"
-                @click=${this.toggleShortDescription}
+                class="short-description-toggle ${
+                    this.shortDescriptionExpanded ? 'expanded' : ''
+                }"
             >
-                <span class="toggle-label">${this.shortDescriptionLabel}</span>
+                <span class="toggle-label">${escapeHTML(this.shortDescriptionLabel)}</span>
                 <span
-                    class="toggle-icon ${this.shortDescriptionExpanded
-                        ? 'expanded'
-                        : ''}"
+                    class="toggle-icon ${
+                        this.shortDescriptionExpanded ? 'expanded' : ''
+                    }"
                 ></span>
             </div>
             <div
-                class="short-description-content ${this.shortDescriptionExpanded
-                    ? 'expanded'
-                    : ''}"
+                class="short-description-content ${
+                    this.shortDescriptionExpanded ? 'expanded' : ''
+                }"
             >
                 <slot name="short-description"></slot>
             </div>
@@ -398,12 +413,12 @@ export class PlansV2 extends VariantLayout {
     get icons() {
         return this.card.querySelector('[slot="icons"]') ||
             this.card.getAttribute('id')
-            ? html`<slot name="icons"></slot>`
-            : nothing;
+            ? '<slot name="icons"></slot>'
+            : '';
     }
 
     get secureLabelFooter() {
-        return html`<footer>
+        return `<footer>
             ${this.secureLabel}<slot name="quantity-select"></slot
             ><slot name="footer"></slot>
         </footer>`;
@@ -476,10 +491,11 @@ export class PlansV2 extends VariantLayout {
         const size = this.card.getAttribute('size');
         const isWide = size === 'wide';
 
-        return html` ${this.badge}
+        return ` ${this.badge}
             <div class="body">
-                ${isWide
-                    ? html`
+                ${
+                    isWide
+                        ? `
                           <div class="heading-wrapper wide">
                               ${this.icons}
                               <slot name="heading-xs"></slot>
@@ -492,7 +508,7 @@ export class PlansV2 extends VariantLayout {
                           <div class="price-divider"></div>
                           <slot name="heading-m"></slot>
                       `
-                    : html`
+                        : `
                           <div class="heading-wrapper">
                               ${this.icons}
                               <div class="heading-xs-wrapper">
@@ -505,7 +521,8 @@ export class PlansV2 extends VariantLayout {
                           ${this.stockCheckbox}
                           <slot name="addon"></slot>
                           <slot name="badge"></slot>
-                      `}
+                      `
+                }
             </div>
             ${this.secureLabelFooter} ${this.shortDescriptionToggle}
             <slot></slot>`;
@@ -1031,8 +1048,8 @@ export class PlansV2 extends VariantLayout {
 
     static collectionOptions = {
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return nothing;
-            return html`<slot name="resultsText"></slot>`;
+            if (!collection.sidenav) return '';
+            return '<slot name="resultsText"></slot>';
         },
         headerVisibility: {
             search: false,

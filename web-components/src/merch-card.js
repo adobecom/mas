@@ -1,4 +1,3 @@
-import { LitElement, unsafeCSS } from 'lit';
 import { styles } from './merch-card.css.js';
 import './merch-icon.js';
 import './merch-gradient.js';
@@ -133,112 +132,105 @@ const intersectionObserver = new IntersectionObserver((entries) => {
     });
 });
 
+const ATTRIBUTES = {
+    id: 'id',
+    name: 'name',
+    variant: 'variant',
+    size: 'size',
+    badgeColor: 'badge-color',
+    borderColor: 'border-color',
+    backgroundColor: 'background-color',
+    badgeBackgroundColor: 'badge-background-color',
+    backgroundImage: 'background-image',
+    badgeText: 'badge-text',
+    actionMenu: 'action-menu',
+    actionMenuLabel: 'action-menu-label',
+    customHr: 'custom-hr',
+    consonant: 'consonant',
+    failed: 'failed',
+    spectrum: 'spectrum',
+    detailBg: 'detail-bg',
+    secureLabel: 'secure-label',
+    checkboxLabel: 'checkbox-label',
+    addonTitle: 'addon-title',
+    selected: 'aria-selected',
+    storageOption: 'storage',
+    planType: 'plan-type',
+    heightSync: 'height-sync',
+    stockOfferOsis: 'stock-offer-osis',
+    filters: 'filters',
+    types: 'types',
+    analyticsId: ANALYTICS_SECTION_ATTR,
+    loading: 'loading',
+};
+
+const PROPERTY_BY_ATTRIBUTE = Object.fromEntries(
+    Object.entries(ATTRIBUTES).map(([property, attribute]) => [
+        attribute,
+        property,
+    ]),
+);
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(styles);
+
+function setStringAttribute(element, name, value) {
+    if (value == null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+function setBooleanAttribute(element, name, value) {
+    element.toggleAttribute(name, Boolean(value));
+}
+
+function parseFilters(value) {
+    if (!value) return {};
+    return Object.fromEntries(
+        value.split(',').map((filter) => {
+            const [key, order, size] = filter.split(':');
+            const number = Number(order);
+            return [key, { order: isNaN(number) ? undefined : number, size }];
+        }),
+    );
+}
+
+function serializeFilters(filters) {
+    return Object.entries(filters ?? {})
+        .map(([key, { order, size }]) =>
+            [key, order, size].filter((v) => v != undefined).join(':'),
+        )
+        .join(',');
+}
+
+function parseStockOfferOsis(value) {
+    if (!value) return undefined;
+    const [PUF, ABM, M2M] = value.split(',');
+    return { PUF, ABM, M2M };
+}
+
 let idCounter = 0;
 
-export class MerchCard extends LitElement {
-    static properties = {
-        id: { type: String, attribute: 'id', reflect: true },
-        name: { type: String, attribute: 'name', reflect: true },
-        variant: { type: String, reflect: true },
-        size: { type: String, attribute: 'size', reflect: true },
-        badgeColor: { type: String, attribute: 'badge-color', reflect: true },
-        borderColor: { type: String, attribute: 'border-color', reflect: true },
-        backgroundColor: {
-            type: String,
-            attribute: 'background-color',
-            reflect: true,
-        },
-        badgeBackgroundColor: {
-            type: String,
-            attribute: 'badge-background-color',
-            reflect: true,
-        },
-        backgroundImage: {
-            type: String,
-            attribute: 'background-image',
-            reflect: true,
-        },
-        badgeText: { type: String, attribute: 'badge-text' },
-        actionMenu: { type: Boolean, attribute: 'action-menu' },
-        actionMenuLabel: { type: String, attribute: 'action-menu-label' },
-        customHr: { type: Boolean, attribute: 'custom-hr' },
-        consonant: { type: Boolean, attribute: 'consonant' },
-        failed: { type: Boolean, attribute: 'failed', reflect: true },
-        spectrum: { type: String, attribute: 'spectrum' } /* css|swc */,
-        detailBg: { type: String, attribute: 'detail-bg' },
-        secureLabel: { type: String, attribute: 'secure-label' },
-        checkboxLabel: { type: String, attribute: 'checkbox-label' },
-        addonTitle: { type: String, attribute: 'addon-title' },
-        addonOffers: { type: Object, attribute: 'addon-offers' },
-        selected: { type: Boolean, attribute: 'aria-selected', reflect: true },
-        storageOption: { type: String, attribute: 'storage', reflect: true },
-        planType: { type: String, attribute: 'plan-type', reflect: true },
-        heightSync: { type: Boolean, attribute: 'height-sync' },
-        settings: {
-            type: Object,
-            attribute: false,
-        },
-        stockOfferOsis: {
-            type: Object,
-            attribute: 'stock-offer-osis',
-            converter: {
-                fromAttribute: (value) => {
-                    if (!value) return;
-                    const [PUF, ABM, M2M] = value.split(',');
-                    return { PUF, ABM, M2M };
-                },
-            },
-        },
-        filters: {
-            type: String,
-            reflect: true,
-            converter: {
-                fromAttribute: (value) => {
-                    return Object.fromEntries(
-                        value.split(',').map((filter) => {
-                            const [key, order, size] = filter.split(':');
-                            const value = Number(order);
-                            return [
-                                key,
-                                {
-                                    order: isNaN(value) ? undefined : value,
-                                    size,
-                                },
-                            ];
-                        }),
-                    );
-                },
-                toAttribute: (value) => {
-                    return Object.entries(value)
-                        .map(([key, { order, size }]) =>
-                            [key, order, size]
-                                .filter((v) => v != undefined)
-                                .join(':'),
-                        )
-                        .join(',');
-                },
-            },
-        },
-        types: {
-            type: String,
-            attribute: 'types',
-            reflect: true,
-        },
-        merchOffer: { type: Object },
-        analyticsId: {
-            type: String,
-            attribute: ANALYTICS_SECTION_ATTR,
-            reflect: true,
-        },
-        loading: { type: String },
-        priceLiterals: { type: Object },
-    };
+/**
+ * Merch card custom element, written as a plain HTMLElement.
+ *
+ * Attributes are the source of truth for string and boolean properties, so
+ * setting a property reflects to its attribute and vice versa. Any change
+ * schedules one batched update in a microtask (requestUpdate), which renders
+ * the variant layout markup into the shadow root. updateComplete resolves
+ * when the scheduled update has run.
+ */
+export class MerchCard extends HTMLElement {
+    static get observedAttributes() {
+        return Object.values(ATTRIBUTES);
+    }
 
-    static styles = unsafeCSS(styles);
+    static styles = styles;
 
     static registerVariant = registerVariant;
 
     static getCollectionOptions = getCollectionOptions;
+
+    static getFragmentMapping = getFragmentMapping;
 
     #contextPromotionCode;
 
@@ -281,6 +273,20 @@ export class MerchCard extends LitElement {
         this.#resolveHydration = resolve;
     });
 
+    #filters = {};
+    #stockOfferOsis;
+    #settings;
+    #priceLiterals;
+    #markup;
+    #changed = new Set();
+    #heightSync;
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
+
     /**
      * Compat version of the card.
      * @type {number}
@@ -289,6 +295,8 @@ export class MerchCard extends LitElement {
 
     customerSegment;
     marketSegment;
+    merchOffer;
+    addonOffers;
     /**
      * @type {VariantLayout}
      */
@@ -296,49 +304,365 @@ export class MerchCard extends LitElement {
 
     constructor() {
         super();
-        this.id = null;
-        this.failed = false;
-        this.filters = {};
-        this.types = '';
-        this.selected = false;
-        this.spectrum = 'css';
-        this.loading = 'lazy';
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
         this.handleAemFragmentEvents = this.handleAemFragmentEvents.bind(this);
         this.handleMasReady = this.handleMasReady.bind(this);
         this.handleMerchOfferSelectReady =
             this.handleMerchOfferSelectReady.bind(this);
+        // Lit reflected the filters and types defaults on first render.
+        this.#changed.add('types');
+        this.requestUpdate('filters');
     }
 
-    static getFragmentMapping = getFragmentMapping;
-
-    firstUpdated() {
-        this.variantLayout = getVariantLayout(this);
-        this.variantLayout?.connectedCallbackHook();
+    get id() {
+        return this.getAttribute('id');
     }
 
-    willUpdate(changedProperties) {
-        if (changedProperties.has('variant') || !this.variantLayout) {
+    set id(value) {
+        setStringAttribute(this, 'id', value);
+    }
+
+    get name() {
+        return this.getAttribute('name');
+    }
+
+    set name(value) {
+        setStringAttribute(this, 'name', value);
+    }
+
+    get variant() {
+        return this.getAttribute('variant');
+    }
+
+    set variant(value) {
+        setStringAttribute(this, 'variant', value);
+    }
+
+    get size() {
+        return this.getAttribute('size');
+    }
+
+    set size(value) {
+        setStringAttribute(this, 'size', value);
+    }
+
+    get badgeColor() {
+        return this.getAttribute('badge-color');
+    }
+
+    set badgeColor(value) {
+        setStringAttribute(this, 'badge-color', value);
+    }
+
+    get borderColor() {
+        return this.getAttribute('border-color');
+    }
+
+    set borderColor(value) {
+        setStringAttribute(this, 'border-color', value);
+    }
+
+    get backgroundColor() {
+        return this.getAttribute('background-color');
+    }
+
+    set backgroundColor(value) {
+        setStringAttribute(this, 'background-color', value);
+    }
+
+    get badgeBackgroundColor() {
+        return this.getAttribute('badge-background-color');
+    }
+
+    set badgeBackgroundColor(value) {
+        setStringAttribute(this, 'badge-background-color', value);
+    }
+
+    get backgroundImage() {
+        return this.getAttribute('background-image');
+    }
+
+    set backgroundImage(value) {
+        setStringAttribute(this, 'background-image', value);
+    }
+
+    get badgeText() {
+        return this.getAttribute('badge-text');
+    }
+
+    set badgeText(value) {
+        setStringAttribute(this, 'badge-text', value);
+    }
+
+    get actionMenu() {
+        return this.hasAttribute('action-menu');
+    }
+
+    set actionMenu(value) {
+        setBooleanAttribute(this, 'action-menu', value);
+    }
+
+    get actionMenuLabel() {
+        return this.getAttribute('action-menu-label');
+    }
+
+    set actionMenuLabel(value) {
+        setStringAttribute(this, 'action-menu-label', value);
+    }
+
+    get customHr() {
+        return this.hasAttribute('custom-hr');
+    }
+
+    set customHr(value) {
+        setBooleanAttribute(this, 'custom-hr', value);
+    }
+
+    get consonant() {
+        return this.hasAttribute('consonant');
+    }
+
+    set consonant(value) {
+        setBooleanAttribute(this, 'consonant', value);
+    }
+
+    get failed() {
+        return this.hasAttribute('failed');
+    }
+
+    set failed(value) {
+        setBooleanAttribute(this, 'failed', value);
+    }
+
+    /** css|swc */
+    get spectrum() {
+        return this.getAttribute('spectrum') ?? 'css';
+    }
+
+    set spectrum(value) {
+        setStringAttribute(this, 'spectrum', value);
+    }
+
+    get detailBg() {
+        return this.getAttribute('detail-bg');
+    }
+
+    set detailBg(value) {
+        setStringAttribute(this, 'detail-bg', value);
+    }
+
+    get secureLabel() {
+        return this.getAttribute('secure-label');
+    }
+
+    set secureLabel(value) {
+        setStringAttribute(this, 'secure-label', value);
+    }
+
+    get checkboxLabel() {
+        return this.getAttribute('checkbox-label');
+    }
+
+    set checkboxLabel(value) {
+        setStringAttribute(this, 'checkbox-label', value);
+    }
+
+    get addonTitle() {
+        return this.getAttribute('addon-title');
+    }
+
+    set addonTitle(value) {
+        setStringAttribute(this, 'addon-title', value);
+    }
+
+    get selected() {
+        return this.hasAttribute('aria-selected');
+    }
+
+    set selected(value) {
+        setBooleanAttribute(this, 'aria-selected', value);
+    }
+
+    get storageOption() {
+        return this.getAttribute('storage');
+    }
+
+    set storageOption(value) {
+        setStringAttribute(this, 'storage', value);
+    }
+
+    get planType() {
+        return this.getAttribute('plan-type');
+    }
+
+    set planType(value) {
+        setStringAttribute(this, 'plan-type', value);
+    }
+
+    /** Undefined unless set; only an explicit `false` opts out of height sync. */
+    get heightSync() {
+        return this.#heightSync;
+    }
+
+    set heightSync(value) {
+        if (value === this.#heightSync) return;
+        this.#heightSync = value;
+        this.requestUpdate('heightSync');
+    }
+
+    get types() {
+        return this.getAttribute('types') ?? '';
+    }
+
+    set types(value) {
+        setStringAttribute(this, 'types', value);
+    }
+
+    get analyticsId() {
+        return this.getAttribute(ANALYTICS_SECTION_ATTR);
+    }
+
+    set analyticsId(value) {
+        setStringAttribute(this, ANALYTICS_SECTION_ATTR, value);
+    }
+
+    get loading() {
+        return this.getAttribute('loading') ?? 'lazy';
+    }
+
+    set loading(value) {
+        setStringAttribute(this, 'loading', value);
+    }
+
+    get filters() {
+        return this.#filters;
+    }
+
+    set filters(value) {
+        this.#filters = value ?? {};
+        const serialized = serializeFilters(this.#filters);
+        if (this.getAttribute('filters') !== serialized) {
+            this.setAttribute('filters', serialized);
+        }
+        this.requestUpdate('filters');
+    }
+
+    get stockOfferOsis() {
+        return this.#stockOfferOsis;
+    }
+
+    set stockOfferOsis(value) {
+        this.#stockOfferOsis = value;
+        this.requestUpdate('stockOfferOsis');
+    }
+
+    get settings() {
+        return this.#settings;
+    }
+
+    set settings(value) {
+        this.#settings = value;
+        this.requestUpdate('settings');
+    }
+
+    get priceLiterals() {
+        return this.#priceLiterals;
+    }
+
+    set priceLiterals(value) {
+        this.#priceLiterals = value;
+        this.requestUpdate('priceLiterals');
+    }
+
+    /** Re-applies properties set on the element before it was upgraded. */
+    #upgradeProperties() {
+        for (const property of [
+            ...Object.keys(ATTRIBUTES),
+            'settings',
+            'priceLiterals',
+        ]) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue === value) return;
+        const property = PROPERTY_BY_ATTRIBUTE[name];
+        if (property === 'filters') {
+            if (value !== serializeFilters(this.#filters)) {
+                this.#filters = parseFilters(value);
+            }
+        } else if (property === 'stockOfferOsis') {
+            this.#stockOfferOsis = parseStockOfferOsis(value);
+        } else if (property === 'heightSync') {
+            this.#heightSync = value !== null;
+        }
+        this.requestUpdate(property);
+    }
+
+    /**
+     * Schedules a render in a microtask; repeated calls are batched.
+     * @param {string} [property] name of the changed property
+     */
+    requestUpdate(property) {
+        if (property) this.#changed.add(property);
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    /**
+     * Resolves once the pending update has rendered.
+     * @returns {Promise<boolean>}
+     */
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        this.#update();
+        return true;
+    }
+
+    #update() {
+        const changed = this.#changed;
+        this.#changed = new Set();
+        this.#updatePending = false;
+        if (changed.has('filters')) {
+            const serialized = serializeFilters(this.#filters);
+            if (this.getAttribute('filters') !== serialized) {
+                this.setAttribute('filters', serialized);
+            }
+        }
+        if (changed.has('types') && !this.hasAttribute('types')) {
+            this.setAttribute('types', '');
+        }
+        if (changed.has('variant') || !this.variantLayout) {
             this.variantLayout?.disconnectedCallbackHook();
             this.variantLayout = getVariantLayout(this);
             this.variantLayout?.connectedCallbackHook();
         }
-    }
-
-    updated(changedProperties) {
+        this.#render();
         if (
             !this.style.getPropertyValue(
                 '--consonant-merch-card-border-color',
             ) &&
             this.computedBorderColor &&
-            (changedProperties.has('badgeBackgroundColor') ||
-                changedProperties.has('borderColor'))
+            (changed.has('badgeBackgroundColor') || changed.has('borderColor'))
         ) {
             this.style.setProperty(
                 '--consonant-merch-card-border-color',
                 this.computedBorderColor,
             );
         }
-        if (changedProperties.has('backgroundColor')) {
+        if (changed.has('backgroundColor')) {
             this.style.setProperty(
                 '--merch-card-custom-background-color',
                 this.backgroundColor ? `var(--${this.backgroundColor})` : '',
@@ -346,10 +670,22 @@ export class MerchCard extends LitElement {
         }
         try {
             this.variantLayoutPromise =
-                this.variantLayout?.postCardUpdateHook(changedProperties);
+                this.variantLayout?.postCardUpdateHook(changed);
         } catch (e) {
             this.#fail(`Error in postCardUpdateHook: ${e.message}`, {}, false);
         }
+    }
+
+    #render() {
+        const visible =
+            this.isConnected &&
+            this.variantLayout &&
+            this.style.display !== 'none';
+        const markup = visible ? (this.variantLayout.renderLayout() ?? '') : '';
+        if (markup === this.#markup) return;
+        this.#markup = markup;
+        this.shadowRoot.innerHTML = markup;
+        if (visible) this.variantLayout.bindEvents?.(this.shadowRoot);
     }
 
     get theme() {
@@ -358,16 +694,6 @@ export class MerchCard extends LitElement {
 
     get dir() {
         return this.closest('[dir]')?.getAttribute('dir') ?? 'ltr';
-    }
-
-    render() {
-        if (
-            !this.isConnected ||
-            !this.variantLayout ||
-            this.style.display === 'none'
-        )
-            return;
-        return this.variantLayout.renderLayout();
     }
 
     get computedBorderColor() {
@@ -620,7 +946,8 @@ export class MerchCard extends LitElement {
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        this.#upgradeProperties();
+        this.#resolveConnected();
         if (!this.#internalId) {
             this.#internalId = idCounter++;
         }
@@ -695,7 +1022,6 @@ export class MerchCard extends LitElement {
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         this.variantLayout?.disconnectedCallbackHook();
 
         this.removeEventListener(

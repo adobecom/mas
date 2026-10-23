@@ -1,6 +1,5 @@
-import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { styles } from './merch-quantity-select.css.js';
-import { debounce } from './utils.js';
+import { debounce, escapeHTML } from './utils.js';
 
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from './focus.js';
 import {
@@ -8,42 +7,43 @@ import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
 } from './constants.js';
 
-export class MerchQuantitySelect extends LitElement {
-    static get properties() {
-        return {
-            closed: { type: Boolean, reflect: true },
-            selected: { type: Number },
-            min: { type: Number },
-            max: { type: Number },
-            step: { type: Number },
-            maxInput: { type: Number, attribute: 'max-input' },
-            options: { type: Array },
-            highlightedIndex: { type: Number },
-            defaultValue: {
-                type: Number,
-                attribute: 'default-value',
-                reflect: true,
-            },
-            title: { type: String },
-        };
-    }
+const OPTION_ATTRIBUTES = ['min', 'max', 'step', 'default-value'];
+
+export class MerchQuantitySelect extends HTMLElement {
+    static observedAttributes = [
+        'closed',
+        'selected',
+        'max-input',
+        'options',
+        'highlightedindex',
+        'title',
+        ...OPTION_ATTRIBUTES,
+    ];
 
     static get styles() {
-        return unsafeCSS(styles);
+        return styles;
     }
+
+    #closed = true;
+    #options = [];
+    #highlightedIndex = 0;
+    #selectedValue = 0;
+    #built = false;
+    #itemsMarkup;
+    #renderedValue;
+    #firstUpdate = true;
+    #changed = new Set();
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
 
     constructor() {
         super();
-        this.options = [];
-        this.title = '';
-        this.closed = true;
-        this.min = 0;
-        this.max = 0;
-        this.step = 0;
-        this.maxInput = undefined;
-        this.defaultValue = undefined;
-        this.selectedValue = 0;
-        this.highlightedIndex = 0;
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
         this.toggleMenu = this.toggleMenu.bind(this);
         this.closeMenu = this.closeMenu.bind(this);
         this.openMenu = this.openMenu.bind(this);
@@ -54,10 +54,172 @@ export class MerchQuantitySelect extends LitElement {
             this.handleQuantityUpdate.bind(this),
             500,
         );
+        this.requestUpdate();
+    }
+
+    get closed() {
+        return this.#closed;
+    }
+
+    set closed(value) {
+        const closed = Boolean(value);
+        if (closed === this.#closed) return;
+        this.#closed = closed;
+        this.toggleAttribute('closed', closed);
+        this.requestUpdate();
+    }
+
+    get selected() {
+        return numberAttribute(this, 'selected', undefined);
+    }
+
+    set selected(value) {
+        setAttribute(this, 'selected', value);
+    }
+
+    get min() {
+        return numberAttribute(this, 'min', 0);
+    }
+
+    set min(value) {
+        setAttribute(this, 'min', value);
+    }
+
+    get max() {
+        return numberAttribute(this, 'max', 0);
+    }
+
+    set max(value) {
+        setAttribute(this, 'max', value);
+    }
+
+    get step() {
+        return numberAttribute(this, 'step', 0);
+    }
+
+    set step(value) {
+        setAttribute(this, 'step', value);
+    }
+
+    get maxInput() {
+        return numberAttribute(this, 'max-input', undefined);
+    }
+
+    set maxInput(value) {
+        setAttribute(this, 'max-input', value);
+    }
+
+    get defaultValue() {
+        return numberAttribute(this, 'default-value', undefined);
+    }
+
+    set defaultValue(value) {
+        setAttribute(this, 'default-value', value);
+    }
+
+    get options() {
+        return this.#options;
+    }
+
+    set options(value) {
+        if (Object.is(value, this.#options)) return;
+        this.#options = value;
+        this.requestUpdate();
+    }
+
+    get highlightedIndex() {
+        return this.#highlightedIndex;
+    }
+
+    set highlightedIndex(value) {
+        if (Object.is(value, this.#highlightedIndex)) return;
+        this.#highlightedIndex = value;
+        this.requestUpdate();
+    }
+
+    get selectedValue() {
+        return this.#selectedValue;
+    }
+
+    set selectedValue(value) {
+        if (Object.is(value, this.#selectedValue)) return;
+        this.#selectedValue = value;
+        this.requestUpdate();
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue === value) return;
+        if (name === 'closed') this.#closed = value !== null;
+        if (name === 'options') {
+            try {
+                this.#options = JSON.parse(value);
+            } catch {
+                this.#options = null;
+            }
+        }
+        if (name === 'highlightedindex') {
+            this.#highlightedIndex = value === null ? null : Number(value);
+        }
+        this.requestUpdate(name);
+    }
+
+    requestUpdate(name) {
+        if (name) this.#changed.add(name);
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        if (
+            this.#firstUpdate ||
+            OPTION_ATTRIBUTES.some((name) => this.#changed.has(name))
+        ) {
+            this.options = this.generateOptionsArray();
+            const fallback = this.options[0];
+            const resolved =
+                this.defaultValue != null &&
+                this.options.includes(this.defaultValue)
+                    ? this.defaultValue
+                    : fallback;
+            this.highlightedIndex = this.options.indexOf(resolved);
+            this.handleMenuOption(resolved);
+        }
+        if (this.#firstUpdate) this.toggleAttribute('closed', this.#closed);
+        this.#firstUpdate = false;
+        this.#changed = new Set();
+        this.#updatePending = false;
+        this.#render();
+        return true;
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        for (const property of [
+            'closed',
+            'selected',
+            'min',
+            'max',
+            'step',
+            'maxInput',
+            'options',
+            'highlightedIndex',
+            'defaultValue',
+            'title',
+            'selectedValue',
+        ]) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
+        this.#resolveConnected();
         this.addEventListener('keydown', this.boundKeydownListener);
         window.addEventListener('mousedown', this.handleClickOutside);
         this.addEventListener(
@@ -152,7 +314,6 @@ export class MerchQuantitySelect extends LitElement {
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         window.removeEventListener('mousedown', this.handleClickOutside);
         this.removeEventListener('keydown', this.boundKeydownListener);
         this.removeEventListener(
@@ -169,26 +330,6 @@ export class MerchQuantitySelect extends LitElement {
             }
         }
         return options;
-    }
-
-    update(changedProperties) {
-        if (
-            changedProperties.has('min') ||
-            changedProperties.has('max') ||
-            changedProperties.has('step') ||
-            changedProperties.has('defaultValue')
-        ) {
-            this.options = this.generateOptionsArray();
-            const fallback = this.options[0];
-            const resolved =
-                this.defaultValue != null &&
-                this.options.includes(this.defaultValue)
-                    ? this.defaultValue
-                    : fallback;
-            this.highlightedIndex = this.options.indexOf(resolved);
-            this.handleMenuOption(resolved);
-        }
-        super.update(changedProperties);
     }
 
     handleClickOutside(event) {
@@ -256,35 +397,17 @@ export class MerchQuantitySelect extends LitElement {
         return this.querySelector('merch-offer-select');
     }
 
-    get popover() {
-        return html` <div
-            id="qsPopover"
-            class="popover ${this.closed ? 'closed' : 'open'}"
-            placement="bottom"
-            role="listbox"
-            aria-multiselectable="false"
-            aria-labelledby="qsLabel"
-            tabindex="-1"
-        >
-            ${this.options.map(
-                (option, index) => html`
-                    <div
-                        class="item ${index === this.highlightedIndex
-                            ? 'highlighted'
-                            : ''}${this.selectedValue === option
-                            ? ' selected'
-                            : ''}"
-                        role="option"
-                        id="${`qs-item-${index}`}"
-                        aria-selected=${this.selectedValue === option}
-                        @click="${() => this.handleMenuOption(option, true)}"
-                        @mouseenter="${() => this.handleMouseEnter(index)}"
-                    >
-                        ${option === this.max ? `${option}+` : option}
+    get itemsMarkup() {
+        return this.options
+            .map(
+                (option, index) =>
+                    `
+                    <div class="item" role="option" id="qs-item-${index}">
+                        ${escapeHTML(option === this.max ? `${option}+` : String(option))}
                     </div>
                 `,
-            )}
-        </div>`;
+            )
+            .join('');
     }
 
     handleQuantityUpdate({ detail: { quantity } }) {
@@ -307,50 +430,121 @@ export class MerchQuantitySelect extends LitElement {
         e.target.classList.remove('focused');
     }
 
-    render() {
-        if (!this.configured) return nothing;
-
-        return html`
-            <div class="label" id="qsLabel">${this.title}</div>
+    #build() {
+        this.shadowRoot.innerHTML = `
+            <div class="label" id="qsLabel"></div>
             <div class="text-field">
                 <input
                     class="text-field-input"
                     aria-labelledby="qsLabel"
                     name="quantity"
                     role="combobox"
-                    aria-expanded=${!this.closed}
                     aria-controls="qsPopover"
-                    aria-activedescendant="${!this.closed
-                        ? `qs-item-${this.highlightedIndex}`
-                        : nothing}"
-                    .value="${this.selectedValue}"
                     type="text"
                     autocomplete="on"
-                    @keydown="${this.handleKeydown}"
-                    @keyup="${this.handleKeyupDebounced}"
                 />
-                <button
-                    class="picker-button"
-                    aria-activedescendant="${!this.closed
-                        ? `qs-item-${this.highlightedIndex}`
-                        : nothing}"
-                    @focus="${this.onButtonFocus}"
-                    @blur="${this.onButtonBlur}"
-                    aria-controls="qsPopover"
-                    aria-expanded=${!this.closed}
-                    aria-labelledby="qsLabel"
-                    @click="${this.toggleMenu}"
-                >
-                    <div
-                        class="picker-button-fill ${this.closed
-                            ? 'open'
-                            : 'closed'}"
-                    ></div>
+                <button class="picker-button" aria-controls="qsPopover" aria-labelledby="qsLabel">
+                    <div class="picker-button-fill"></div>
                 </button>
-                ${this.popover}
+                <div
+                    id="qsPopover"
+                    class="popover"
+                    placement="bottom"
+                    role="listbox"
+                    aria-multiselectable="false"
+                    aria-labelledby="qsLabel"
+                    tabindex="-1"
+                ></div>
             </div>
         `;
+        const input = this.shadowRoot.querySelector('input');
+        input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        input.addEventListener('keyup', (e) => this.handleKeyupDebounced(e));
+        const button = this.button;
+        button.addEventListener('focus', (e) => this.onButtonFocus(e));
+        button.addEventListener('blur', (e) => this.onButtonBlur(e));
+        button.addEventListener('click', () => this.toggleMenu());
+        const popover = this.shadowRoot.querySelector('.popover');
+        popover.addEventListener('click', (e) => {
+            const index = this.#itemIndex(e);
+            if (index >= 0) this.handleMenuOption(this.options[index], true);
+        });
+        popover.addEventListener(
+            'mouseenter',
+            (e) => {
+                if (!e.target.classList?.contains('item')) return;
+                this.handleMouseEnter(this.#itemIndex(e));
+            },
+            true,
+        );
+    }
+
+    #itemIndex(e) {
+        const item = e.target.closest?.('.item');
+        if (!item) return -1;
+        return [...item.parentElement.children].indexOf(item);
+    }
+
+    #render() {
+        if (!this.configured) {
+            this.#built = false;
+            this.#itemsMarkup = undefined;
+            this.#renderedValue = undefined;
+            this.shadowRoot.innerHTML = '';
+            return;
+        }
+        if (!this.#built) {
+            this.#built = true;
+            this.#build();
+        }
+        const { closed, highlightedIndex, selectedValue } = this;
+        const root = this.shadowRoot;
+        root.querySelector('.label').textContent = this.title;
+        const input = root.querySelector('input');
+        const button = this.button;
+        for (const element of [input, button]) {
+            element.setAttribute('aria-expanded', String(!closed));
+            if (closed) element.removeAttribute('aria-activedescendant');
+            else
+                element.setAttribute(
+                    'aria-activedescendant',
+                    `qs-item-${highlightedIndex}`,
+                );
+        }
+        if (selectedValue !== this.#renderedValue) {
+            this.#renderedValue = selectedValue;
+            input.value = selectedValue;
+        }
+        root.querySelector('.picker-button-fill').className =
+            `picker-button-fill ${closed ? 'open' : 'closed'}`;
+        const popover = root.querySelector('.popover');
+        popover.classList.toggle('closed', closed);
+        popover.classList.toggle('open', !closed);
+        const itemsMarkup = this.itemsMarkup;
+        if (itemsMarkup !== this.#itemsMarkup) {
+            this.#itemsMarkup = itemsMarkup;
+            popover.innerHTML = itemsMarkup;
+        }
+        for (const [index, item] of [...popover.children].entries()) {
+            const selected = selectedValue === this.options[index];
+            item.classList.toggle('highlighted', index === highlightedIndex);
+            item.classList.toggle('selected', selected);
+            item.setAttribute('aria-selected', String(selected));
+        }
     }
 }
+
+function numberAttribute(element, name, fallback) {
+    const value = element.getAttribute(name);
+    return value === null ? fallback : Number(value);
+}
+
+function setAttribute(element, name, value) {
+    if (value == null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MerchQuantitySelect.styles);
 
 customElements.define('merch-quantity-select', MerchQuantitySelect);

@@ -1,6 +1,6 @@
-import { html } from 'lit';
 import { VariantLayout } from './variant-layout';
 import { CSS } from './special-offer.css.js';
+import { escapeHTML } from '../utils.js';
 import { SELECTOR_MAS_INLINE_PRICE } from '../constants.js';
 import { css } from '../css.js';
 
@@ -72,7 +72,7 @@ export class SpecialOffer extends VariantLayout {
     }
 
     renderLayout() {
-        return html`${this.cardImage}
+        return `${this.cardImage}
             <div class="body">
                 <slot name="detail-m"></slot>
                 <slot name="heading-xs"></slot>
@@ -81,19 +81,21 @@ export class SpecialOffer extends VariantLayout {
                 <slot name="body-xs"></slot>
                 <slot name="badge"></slot>
             </div>
-            ${this.evergreen
-                ? html`
+            ${
+                this.evergreen
+                    ? `
                       <div
                           class="detail-bg-container"
-                          style="background: ${this.card['detailBg']}"
+                          style="background: ${escapeHTML(this.card['detailBg'])}"
                       >
                           <slot name="detail-bg"></slot>
                       </div>
                   `
-                : html`
+                    : `
                       <hr />
                       ${this.secureLabelFooter}
-                  `}
+                  `
+            }
             <slot></slot>`;
     }
 

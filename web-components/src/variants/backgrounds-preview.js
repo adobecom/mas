@@ -1,4 +1,3 @@
-import { html } from 'lit';
 import { extractBackgroundUrl } from '../image-markup.js';
 
 // The default is desktop background.
@@ -60,13 +59,9 @@ export function makeRefreshBackgroundsDetail(getCard) {
     };
 }
 
-export function renderBackgroundsToggleButton(onClick) {
-    return html`
-        <button
-            type="button"
-            class="headless-backgrounds-toggle"
-            @click="${onClick}"
-        >
+export function renderBackgroundsToggleButton() {
+    return `
+        <button type="button" class="headless-backgrounds-toggle">
             See all backgrounds
         </button>
     `;
@@ -77,21 +72,35 @@ function breakpointLabel(breakpoint) {
 }
 
 export function renderBackgroundsDetailRow() {
-    return html`
+    const rows = BACKGROUNDS_DETAIL_BREAKPOINTS.map(
+        (breakpoint) =>
+            `
+                <div class="headless-backgrounds-detail-row">
+                    <span class="headless-label"
+                        >${breakpointLabel(breakpoint)}</span
+                    >
+                    <span
+                        class="headless-value"
+                        data-backgrounds-breakpoint="${breakpoint}"
+                    ></span>
+                </div>
+            `,
+    ).join('');
+    return `
         <div class="headless-row headless-backgrounds-detail hidden">
-            ${BACKGROUNDS_DETAIL_BREAKPOINTS.map(
-                (breakpoint) => html`
-                    <div class="headless-backgrounds-detail-row">
-                        <span class="headless-label"
-                            >${breakpointLabel(breakpoint)}</span
-                        >
-                        <span
-                            class="headless-value"
-                            data-backgrounds-breakpoint="${breakpoint}"
-                        ></span>
-                    </div>
-                `,
-            )}
+            ${rows}
         </div>
     `;
+}
+
+/** Wires the toggle button and backgrounds slot rendered by the helpers above. */
+export function bindBackgroundsPreview(root, { toggle, refresh }) {
+    root.querySelector('.headless-backgrounds-toggle')?.addEventListener(
+        'click',
+        toggle,
+    );
+    root.querySelector('slot[name="backgrounds"]')?.addEventListener(
+        'slotchange',
+        refresh,
+    );
 }

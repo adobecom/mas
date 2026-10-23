@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
 import { CSS } from './pro.css.js';
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
@@ -10,6 +9,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { css } from '../css.js';
+import { escapeHTML } from '../utils.js';
 
 const VARIANT = 'pro';
 // syncHeights publishes these properties; variantStyle below and
@@ -558,7 +558,7 @@ export class Pro extends VariantLayout {
             if (!(layout instanceof Pro)) continue;
             layout.expanded = expanded;
             card._proExpanded = expanded;
-            card.requestUpdate();
+            layout.#syncExpandedDom();
         }
     };
 
@@ -584,7 +584,7 @@ export class Pro extends VariantLayout {
             this.#licenseDocListenerBound = (evt) => {
                 if (!evt.composedPath().includes(this.card)) {
                     this.licenseOpen = false;
-                    this.card.requestUpdate();
+                    this.#syncLicenseDom();
                     this.#removeLicenseDocListener();
                 }
             };
@@ -608,7 +608,7 @@ export class Pro extends VariantLayout {
         } else {
             this.#openLicensePopover();
         }
-        this.card.requestUpdate();
+        this.#syncLicenseDom();
     };
 
     // Select-only combobox keys (ARIA APG): arrows/Home/End move the
@@ -653,7 +653,7 @@ export class Pro extends VariantLayout {
                 e.preventDefault();
                 if (this.licenseOpen) {
                     this.selectLicenseQty(opts[this.licenseHighlightedIndex]);
-                    return; // selectLicenseQty already requests an update
+                    return; // selectLicenseQty already syncs the DOM
                 }
                 this.#openLicensePopover();
                 break;
@@ -671,7 +671,7 @@ export class Pro extends VariantLayout {
             default:
                 return;
         }
-        this.card.requestUpdate();
+        this.#syncLicenseDom();
     };
 
     selectLicenseQty = (value) => {
@@ -690,34 +690,109 @@ export class Pro extends VariantLayout {
                 }),
             );
         }
-        this.card.requestUpdate();
+        this.#syncLicenseDom();
     };
+
+    #licenseOptionClass(index, opt, current) {
+        return `license-select-option ${index === this.licenseHighlightedIndex ? 'highlighted' : ''}${opt === current ? ' selected' : ''}`;
+    }
+
+    // Reflect license popover state onto the existing nodes so the trigger keeps
+    // focus; a full re-render would replace them.
+    #syncLicenseDom() {
+        const root = this.card.shadowRoot;
+        const select = root?.querySelector('.license-select');
+        if (!select) return;
+        const open = !!this.licenseOpen;
+        const current = this.currentLicenseValue;
+        const label = this.licenseLabel(Number(current));
+        select.toggleAttribute('data-open', open);
+        const trigger = select.querySelector('.license-select-trigger');
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+            trigger.setAttribute(
+                'aria-activedescendant',
+                `license-option-${this.licenseHighlightedIndex}`,
+            );
+        } else {
+            trigger.removeAttribute('aria-activedescendant');
+        }
+        select.querySelector('.license-select-popover').hidden = !open;
+        for (const el of select.querySelectorAll('.license-select-value')) {
+            el.textContent = current;
+        }
+        for (const el of select.querySelectorAll('.license-select-label')) {
+            el.textContent = label;
+        }
+        const opts = this.licenseOptions ?? [];
+        select
+            .querySelectorAll('.license-select-option')
+            .forEach((li, index) => {
+                const opt = opts[index];
+                li.className = this.#licenseOptionClass(index, opt, current);
+                li.setAttribute(
+                    'aria-selected',
+                    opt === current ? 'true' : 'false',
+                );
+            });
+    }
+
+    #syncExpandedDom() {
+        const root = this.card.shadowRoot;
+        const expanded = !!this.expanded;
+        root?.querySelector('.whats-included-toggle')?.setAttribute(
+            'aria-expanded',
+            expanded ? 'true' : 'false',
+        );
+        const zone = root?.querySelector('.features-zone');
+        if (zone) zone.hidden = !expanded;
+    }
+
+    bindEvents(root) {
+        const trigger = root.querySelector('.license-select-trigger');
+        trigger?.addEventListener('click', this.toggleLicensePopover);
+        trigger?.addEventListener('keydown', this.#handleLicenseKeydown);
+        root.querySelector('.license-select-popover-header')?.addEventListener(
+            'click',
+            this.toggleLicensePopover,
+        );
+        const opts = this.licenseOptions ?? [];
+        root.querySelectorAll('.license-select-option').forEach((li, index) => {
+            li.addEventListener('click', () =>
+                this.selectLicenseQty(opts[index]),
+            );
+            li.addEventListener('mouseenter', () => {
+                this.licenseHighlightedIndex = index;
+                this.#syncLicenseDom();
+            });
+        });
+        root.querySelector('.whats-included-toggle')?.addEventListener(
+            'click',
+            this.toggleExpanded,
+        );
+    }
 
     renderLicenseSelector() {
         if (!this.hasLicenseSelector) {
-            return html`<slot name="quantity-select"></slot>`;
+            return '<slot name="quantity-select"></slot>';
         }
         const opts = this.licenseOptions;
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
-        const label = this.licenseLabel(Number(current));
-        return html`
-            <div class="license-select" ?data-open=${open}>
+        const label = escapeHTML(this.licenseLabel(Number(current)));
+        const value = escapeHTML(current);
+        return `
+            <div class="license-select"${open ? ' data-open' : ''}>
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
-                    aria-expanded=${open ? 'true' : 'false'}
+                    aria-expanded="${open ? 'true' : 'false'}"
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
-                    aria-activedescendant=${open
-                        ? `license-option-${this.licenseHighlightedIndex}`
-                        : nothing}
-                    @click=${this.toggleLicensePopover}
-                    @keydown=${this.#handleLicenseKeydown}
+                    aria-labelledby="license-select-label"${open ? ` aria-activedescendant="license-option-${this.licenseHighlightedIndex}"` : ''}
                 >
                     <span class="license-select-trigger-text">
-                        <span class="license-select-value">${current}</span>
+                        <span class="license-select-value">${value}</span>
                         <span
                             class="license-select-label"
                             id="license-select-label"
@@ -735,16 +810,14 @@ export class Pro extends VariantLayout {
                     role="listbox"
                     aria-labelledby="license-select-label"
                     aria-multiselectable="false"
-                    tabindex="-1"
-                    ?hidden=${!open}
+                    tabindex="-1"${open ? '' : ' hidden'}
                 >
                     <li
                         class="license-select-popover-header"
                         aria-hidden="true"
-                        @click=${this.toggleLicensePopover}
                     >
                         <span class="license-select-trigger-text">
-                            <span class="license-select-value">${current}</span>
+                            <span class="license-select-value">${value}</span>
                             <span class="license-select-label">${label}</span>
                         </span>
                         <span
@@ -753,28 +826,20 @@ export class Pro extends VariantLayout {
                             style="transform: rotate(180deg);"
                         ></span>
                     </li>
-                    ${opts.map(
-                        (opt, index) => html`
+                    ${opts
+                        .map(
+                            (opt, index) => `
                             <li
-                                class="license-select-option ${index ===
-                                this.licenseHighlightedIndex
-                                    ? 'highlighted'
-                                    : ''}${opt === current ? ' selected' : ''}"
+                                class="${escapeHTML(this.#licenseOptionClass(index, opt, current))}"
                                 id="license-option-${index}"
                                 role="option"
-                                aria-selected=${opt === current
-                                    ? 'true'
-                                    : 'false'}
-                                @click=${() => this.selectLicenseQty(opt)}
-                                @mouseenter=${() => {
-                                    this.licenseHighlightedIndex = index;
-                                    this.card.requestUpdate();
-                                }}
+                                aria-selected="${opt === current ? 'true' : 'false'}"
                             >
-                                ${opt}
+                                ${escapeHTML(opt)}
                             </li>
                         `,
-                    )}
+                        )
+                        .join('')}
                 </ul>
             </div>
         `;
@@ -782,7 +847,7 @@ export class Pro extends VariantLayout {
 
     renderLayout() {
         const expanded = !!this.expanded;
-        return html`
+        return `
             <div class="top-card">
                 <div class="mnemonic">
                     <slot name="icons"></slot>
@@ -799,42 +864,47 @@ export class Pro extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                 </div>
-                ${this.hasLicenseSelector ||
-                this.hasCallout ||
-                this.hasQuantitySelect
-                    ? html`<div class="license-zone">
+                ${
+                    this.hasLicenseSelector ||
+                    this.hasCallout ||
+                    this.hasQuantitySelect
+                        ? `<div class="license-zone">
                           ${this.renderLicenseSelector()}
-                          ${this.hasCallout
-                              ? html`<div class="callout">
+                          ${
+                              this.hasCallout
+                                  ? `<div class="callout">
                                     <slot name="callout-content"></slot>
                                 </div>`
-                              : nothing}
+                                  : ''
+                          }
                       </div>`
-                    : nothing}
-                ${this.hasAddOn
-                    ? html`<div
-                          class="add-on"
-                          ?data-addon-grey=${this.addonBackground === 'grey'}
+                        : ''
+                }
+                ${
+                    this.hasAddOn
+                        ? `<div
+                          class="add-on"${this.addonBackground === 'grey' ? ' data-addon-grey' : ''}
                       >
                           <slot name="addon"></slot>
                       </div>`
-                    : nothing}
+                        : ''
+                }
                 <footer>
                     <slot name="footer"></slot>
                 </footer>
                 ${this.secureLabel}
             </div>
-            ${this.hasWhatsIncluded
-                ? html`
+            ${
+                this.hasWhatsIncluded
+                    ? `
                       <button
                           class="whats-included-toggle"
                           type="button"
-                          aria-expanded=${expanded ? 'true' : 'false'}
+                          aria-expanded="${expanded ? 'true' : 'false'}"
                           aria-controls="features-zone"
-                          @click=${this.toggleExpanded}
                       >
                           <span class="whats-included-toggle-label">
-                              ${this.whatsIncludedToggleLabel}
+                              ${escapeHTML(this.whatsIncludedToggleLabel)}
                           </span>
                           <span
                               class="whats-included-toggle-chevron"
@@ -843,18 +913,20 @@ export class Pro extends VariantLayout {
                       </button>
                       <div
                           id="features-zone"
-                          class="features-zone"
-                          ?hidden=${!expanded}
+                          class="features-zone"${expanded ? '' : ' hidden'}
                       >
                           <slot name="whats-included"></slot>
                       </div>
                   `
-                : nothing}
-            ${this.hasEduDisclaimer
-                ? html`<div class="edu-disclaimer">
+                    : ''
+            }
+            ${
+                this.hasEduDisclaimer
+                    ? `<div class="edu-disclaimer">
                       <slot name="edu-disclaimer"></slot>
                   </div>`
-                : nothing}
+                    : ''
+            }
             <slot></slot>
         `;
     }

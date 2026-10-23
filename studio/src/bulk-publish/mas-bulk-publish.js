@@ -7,7 +7,13 @@ import { BULK_PUBLISH_STATUS, BULK_PUBLISH_PROJECT_MODEL_ID, PAGE_NAMES } from '
 import { normalizeKey, showToast } from '../utils.js';
 import { startReverting, resetToDraft } from './bulk-publish-store.js';
 import { PUBLISH_SVG } from './bulk-publish-icons.js';
-import { getProjectField, getProjectFieldList, itemTypeFromPath } from './bulk-publish-utils.js';
+import { itemTypeFromPath } from './bulk-publish-utils.js';
+import {
+    formatProjectDate,
+    getProjectField,
+    getProjectFieldList,
+    renderSkeletonRows,
+} from '../common/utils/project-list-utils.js';
 import { removeFromFragmentCache } from '../mas-repository.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-bulk-publish-duplicate-dialog.js';
@@ -25,15 +31,6 @@ const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.REVERTING]: { label: 'Reverting', className: 'reverting' },
     [BULK_PUBLISH_STATUS.REVERTED]: { label: 'Reverted', className: 'reverted' },
 };
-
-const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-});
 
 class MasBulkPublish extends LitElement {
     static styles = styles;
@@ -214,13 +211,6 @@ class MasBulkPublish extends LitElement {
         return counts;
     }
 
-    formatDate(value) {
-        if (!value) return '—';
-        const date = new Date(value);
-        if (isNaN(date.getTime())) return '—';
-        return DATE_FORMATTER.format(date);
-    }
-
     statusVariant(status) {
         return STATUS_VARIANT[status] ?? STATUS_VARIANT[BULK_PUBLISH_STATUS.DRAFT];
     }
@@ -283,20 +273,6 @@ class MasBulkPublish extends LitElement {
         `;
     }
 
-    renderSkeletonRows() {
-        return Array.from(
-            { length: 5 },
-            (_, i) => html`
-                <sp-table-row key=${i}>
-                    ${Array.from(
-                        { length: 8 },
-                        () => html`<sp-table-cell><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>`,
-                    )}
-                </sp-table-row>
-            `,
-        );
-    }
-
     projectItems(data) {
         const items = this.parseItems(getProjectField(data, 'items'));
         if (items.length) return items;
@@ -331,7 +307,7 @@ class MasBulkPublish extends LitElement {
                 <sp-table-cell class="center">${counts.collection}</sp-table-cell>
                 <sp-table-cell class="center">${counts.placeholder}</sp-table-cell>
                 <sp-table-cell>${createdBy}</sp-table-cell>
-                <sp-table-cell>${this.formatDate(scheduledAt)}</sp-table-cell>
+                <sp-table-cell>${formatProjectDate(scheduledAt)}</sp-table-cell>
                 <sp-table-cell>${this.renderStatus(status)}</sp-table-cell>
                 <sp-table-cell class="actions-cell" @click=${(e) => e.stopPropagation()}
                     >${this.renderActions(projectStore)}</sp-table-cell
@@ -408,7 +384,7 @@ class MasBulkPublish extends LitElement {
                                   <sp-table-head-cell class="center">Actions</sp-table-head-cell>
                               </sp-table-head>
                               <sp-table-body>
-                                  ${isLoading ? this.renderSkeletonRows() : projects.map((p) => this.renderRow(p))}
+                                  ${isLoading ? renderSkeletonRows(8) : projects.map((p) => this.renderRow(p))}
                               </sp-table-body>
                           </sp-table>
                       `}

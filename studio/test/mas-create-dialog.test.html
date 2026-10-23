@@ -95,6 +95,21 @@
                             dialog.close();
                         });
 
+                        const stubBaselineCreation = () => {
+                            const repository = document.querySelector('mas-repository');
+                            return {
+                                ensureFolderExists: sandbox
+                                    .stub(repository.aem.sites.cf.fragments, 'ensureFolderExists')
+                                    .resolves(),
+                                createFragment: sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' }),
+                            };
+                        };
+
+                        const expectNoBaselineCreated = ({ ensureFolderExists, createFragment }) => {
+                            expect(ensureFolderExists.called).to.be.false;
+                            expect(createFragment.called).to.be.false;
+                        };
+
                         it('reports a failed PA code lookup inline only and clears the PA code', async () => {
                             const toast = sandbox.stub(Events.toast, 'emit');
                             service.resolveOfferSelectors.returns([Promise.reject(new Error('Lookup failed'))]);
@@ -120,12 +135,12 @@
                                     detail: { offerSelectorId: 'ABC123', offer: {} },
                                 }),
                             );
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                             expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
                                 'No PA code found for this offer',
@@ -154,7 +169,6 @@
                                 }),
                             );
                             await delay();
-                            await dialog.updateComplete;
 
                             expect(dialog.productArrangementCode).to.equal('');
                             expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
@@ -164,13 +178,13 @@
 
                         it('rejects a title without letters or digits', async () => {
                             dialog.title = '!!!';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
                             const titleField = dialog.shadowRoot.querySelector('#fragment-title');
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                             expect(titleField.getAttribute('aria-describedby')).to.equal('title-error');
                             expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
@@ -187,11 +201,12 @@
 
                         it('blocks baseline creation without a PA code', async () => {
                             dialog.osi = 'ABC123';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            dialog.template = 'catalog';
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                         });
 
@@ -203,9 +218,56 @@
                             expect(dialog.offerSelectorOpened).to.be.false;
                         });
 
-                        it('exposes accessible labels and errors on an empty offer', async () => {
-                            sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                        it('resets the product code on close', () => {
+                            dialog.productCode = 'CCSN';
 
+                            dialog.close();
+
+                            expect(dialog.productCode).to.equal('');
+                        });
+
+                        it('stores the product code carried by the selected offer', async () => {
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', {
+                                    detail: {
+                                        offerSelectorId: 'ABC123',
+                                        offer: { productArrangementCode: 'PA-1', product_code: 'CCSN' },
+                                    },
+                                }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('CCSN');
+                        });
+
+                        it('takes the product code from the WCS lookup', async () => {
+                            service.resolveOfferSelectors.returns([
+                                Promise.resolve([
+                                    { productArrangementCode: 'PA-1', productArrangement: { productCode: 'PHSP' } },
+                                ]),
+                            ]);
+
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('PHSP');
+                        });
+
+                        it('clears the previous product code while the new offer lookup is pending', async () => {
+                            service.resolveOfferSelectors.returns([new Promise(() => {})]);
+                            dialog.productCode = 'OLD';
+
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('');
+                        });
+
+                        it('exposes accessible labels and errors on an empty offer', async () => {
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
@@ -266,7 +328,6 @@
                                 }),
                             );
                             await delay();
-                            await dialog.updateComplete;
 
                             const changeButton = dialog.shadowRoot.querySelector(
                                 '[aria-labelledby="offer-label"] sp-action-button',
@@ -529,12 +590,12 @@
                         it('blocks baseline creation without a template', async () => {
                             dialog.osi = 'ABC123';
                             dialog.productArrangementCode = 'PA-123';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.shadowRoot.querySelector('#template-error').textContent.trim()).to.equal(
                                 'Select a template',
                             );

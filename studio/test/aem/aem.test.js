@@ -324,6 +324,29 @@ describe('aem.js', () => {
             expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.true;
         });
 
+        it('requests the tag JSON with GET', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn');
+
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/product_code/ccsn.json`);
+            expect(calls[0].options.method).to.equal('GET');
+        });
+
+        it('throws a network error when the request fails', async () => {
+            window.fetch = async () => {
+                throw new Error('offline');
+            };
+
+            const error = await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Network error: offline');
+        });
+
         it('returns false when the tag is not found', async () => {
             window.fetch = async () => ({ ok: false, status: 404 });
 

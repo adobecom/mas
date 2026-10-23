@@ -39,8 +39,8 @@ import {
     printMeasure,
     setForegroundTimeout,
     clearForegroundTimeout,
+    toPromotionCodes,
 } from './utils.js';
-import { toPromotionCodes } from './utilities.js';
 import { hostOsi } from './plan-type-text.js';
 import {
     applyContextPromotionCode,

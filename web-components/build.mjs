@@ -80,19 +80,39 @@ Promise.all([
     buildLitComponent('merch-mnemonic-list'),
     buildLitComponent('mas-mnemonic'),
     buildLitComponent('mas-compare-chart'),
-]).catch(() => process.exit(1));
+]).catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+});
+
+// Page-wide state owned by commerce.js. Components reach it at runtime
+// (customElements registry, mas-commerce-service) instead of bundling a copy.
+const COMMERCE_SINGLETONS = [
+    'src/log.js',
+    'src/lana.js',
+    'src/mas-element.js',
+    'src/upt-link.js',
+    'src/mas-commerce-service.js',
+];
 
 async function buildLitComponent(name) {
+    const outfile = `${outfolder}/${name}.js`;
     const { metafile } = await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
         external: ['lit'],
-        metafile: false,
-        outfile: `${outfolder}/${name}.js`,
+        metafile: true,
+        outfile,
         plugins: [rewriteImportsToLibsFolder()],
     });
-    if (metafile) {
-        writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
+    const { inputs } = metafile.outputs[outfile.replace('./', '')];
+    const bundled = COMMERCE_SINGLETONS.filter(
+        (path) => inputs[path]?.bytesInOutput > 0,
+    );
+    if (bundled.length) {
+        throw new Error(
+            `${name}.js must not bundle commerce.js singletons: ${bundled.join(', ')}`,
+        );
     }
 }
 

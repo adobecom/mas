@@ -5,6 +5,7 @@ import {
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
+    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
 import { getService, hydrateHeadlessCta } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
@@ -31,6 +32,8 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
+export const CHECKOUT_STYLE_PATTERN =
+    /(accent|primary|secondary)(-(outline|link))?/gm;
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -58,20 +61,81 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
-function stripTrialCtas(html, indexed) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
+export async function stripTrialCtas(template, indexed, self) {
+    let buyNowCta = template.content.querySelector(
+        'a[data-analytics-id="buy-now"]',
+    );
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
     );
-    // Hand back the original string so non-trial markup never round-trips
-    // through serialization, which could renormalize attribute quoting.
-    if (trials.length === 0) return html;
-    // All CTAs are trials: an indexed ref renders nothing, while the plain
-    // field keeps them all so a card is never left with no CTA.
-    if (trials.length === anchors.length) return indexed ? null : html;
-    trials.forEach((anchor) => anchor.remove());
+    if (trials.length === 0) return template.innerHTML;
+
+    if (indexed && !buyNowCta) {
+        // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
+        const thisField = self.getAttribute('field');
+
+        const masFieldsReadyPromises = [];
+        const masFields =
+            self.parentElement.querySelectorAll('mas-field').length > 1
+                ? self.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  )
+                : self.parentElement.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  );
+        masFields.forEach(async (c) => {
+            if (c.getAttribute('field') !== thisField) {
+                masFieldsReadyPromises.push(c.checkReady());
+            }
+        });
+        const settleAll = Promise.all(masFieldsReadyPromises);
+        let timeoutId;
+        const timeout = new Promise((resolve) => {
+            timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+        });
+        await Promise.race([settleAll, timeout]);
+        clearTimeout(timeoutId);
+
+        masFields.forEach((c) => {
+            if (c.getAttribute('field') !== thisField) {
+                buyNowCta ??= c.querySelector('a[data-analytics-id="buy-now"]');
+            }
+        });
+    }
+
+    trials.forEach((anchor) => {
+        if (anchor.hasAttribute('data-replaced-osi')) {
+            const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
+            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
+                anchor.remove();
+            } else {
+                if (anchor.hasAttribute('aria-label'))
+                    anchor.removeAttribute('aria-label');
+                anchor.setAttribute('data-analytics-id', 'buy-now');
+                if (anchor.hasAttribute('data-modal'))
+                    anchor.setAttribute('data-modal', 'crm');
+                anchor.textContent = buyNowText;
+            }
+        } else {
+            anchor.remove();
+        }
+    });
+
+    const buyNowCtaNew =
+        template.content.querySelector('a[data-analytics-id="buy-now"]') ||
+        buyNowCta;
+    if (buyNowCtaNew) {
+        if (buyNowCtaNew.className.trim()) {
+            buyNowCtaNew.className
+                .match(CHECKOUT_STYLE_PATTERN)
+                ?.forEach((styleClass) => {
+                    buyNowCtaNew.classList.remove(styleClass);
+                });
+        }
+        buyNowCtaNew.classList.add('button', 'con-button', 'blue');
+    }
+
     return template.innerHTML;
 }
 
@@ -432,12 +496,12 @@ class MasField extends HTMLElement {
     };
 
     /** Extracts the target field from the fragment data and renders it as innerHTML. */
-    #onFragmentLoad = (event) => {
+    #onFragmentLoad = async (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
         this.settings = event.detail?.settings ?? null;
         this.#loaded = true;
-        this.#renderField();
+        await this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
         // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(
@@ -591,7 +655,7 @@ class MasField extends HTMLElement {
             this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 
-    #renderField() {
+    async #renderField() {
         if (!this.#fields || !this.#field) return;
         this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
@@ -628,8 +692,10 @@ class MasField extends HTMLElement {
                     return;
                 }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                    html = stripTrialCtas(html, true);
-                    if (html === null) {
+                    const template = document.createElement('template');
+                    template.innerHTML = html;
+                    html = await stripTrialCtas(template, true, this);
+                    if (!html.trim()) {
                         this.hidden = true;
                         return;
                     }
@@ -701,8 +767,10 @@ class MasField extends HTMLElement {
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                html = stripTrialCtas(html, index !== null);
-                if (html === null) {
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                html = await stripTrialCtas(template, index !== null, this);
+                if (!html.trim()) {
                     this.hidden = true;
                     return;
                 }

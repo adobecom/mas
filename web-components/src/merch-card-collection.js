@@ -936,6 +936,11 @@ export class MerchCardCollection extends HTMLElement {
             this.displayResult = true;
             this.hydrating = false;
             aemFragment.remove();
+            await Promise.all(
+                [...this.querySelectorAll('merch-card')].map((card) =>
+                    card.aemFragment?.updateComplete.catch(() => false),
+                ),
+            );
             resolveHydration(true);
         });
         await this.hydrationReady;
@@ -943,16 +948,28 @@ export class MerchCardCollection extends HTMLElement {
 
     get footer() {
         if (this.filtered) return '';
-        return `<div id="footer"><sp-theme color="light" scale="medium">${this.showMoreButton}</sp-theme></div>`;
+        return `<div id="footer">
+            <sp-theme color="light" scale="medium">
+                ${this.showMoreButton}
+            </sp-theme>
+        </div>`;
     }
 
     get showMoreButton() {
         if (!this.hasMore) return '';
         // product-pricing loads no Spectrum, so it gets a native button.
         if (this.classList.contains('product-pricing')) {
-            return '<button type="button" class="show-more"><slot name="showMoreText"></slot></button>';
+            return `<button type="button" class="show-more">
+                <slot name="showMoreText"></slot>
+            </button>`;
         }
-        return '<sp-button variant="secondary" treatment="outline" style="order: 1000;"><slot name="showMoreText"></slot></sp-button>';
+        return `<sp-button
+            variant="secondary"
+            treatment="outline"
+            style="order: 1000;"
+        >
+            <slot name="showMoreText"></slot>
+        </sp-button>`;
     }
 
     sortChanged(event) {
@@ -1111,8 +1128,11 @@ export default class MerchCardCollectionHeader extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.adoptedStyleSheets = [headerSheet];
         // The whitespace keeps #header from matching :empty, as before.
-        this.shadowRoot.innerHTML =
-            '<sp-theme color="light" scale="medium"><div id="header"> </div></sp-theme>';
+        this.shadowRoot.innerHTML = `
+            <sp-theme color="light" scale="medium">
+                <div id="header"> </div>
+            </sp-theme>
+        `;
         this.collection = null;
         this.#visibility = {
             search: false,
@@ -1288,13 +1308,28 @@ export default class MerchCardCollectionHeader extends HTMLElement {
         if (!this.#visibility.search) return '';
         const searchPlaceholder = escapeHTML(getSlotText(this, 'searchText'));
         if (!searchPlaceholder) return '';
-        return `<merch-search deeplink="search" id="search"><sp-search id="search-bar" placeholder="${searchPlaceholder}" aria-label="${searchPlaceholder}"></sp-search></merch-search>`;
+        return `
+            <merch-search deeplink="search" id="search">
+                <sp-search
+                    id="search-bar"
+                    placeholder="${searchPlaceholder}"
+                    aria-label="${searchPlaceholder}"
+                ></sp-search>
+            </merch-search>
+        `;
     }
 
     get filterAction() {
         if (!this.#visibility.filter) return '';
         if (!this.sidenav) return '';
-        return '<sp-action-button id="filter" variant="secondary" treatment="outline"><slot name="filtersText"></slot></sp-action-button>';
+        return `
+            <sp-action-button
+                id="filter"
+                variant="secondary"
+                treatment="outline"
+                ><slot name="filtersText"></slot
+            ></sp-action-button>
+        `;
     }
 
     get sortAction() {
@@ -1311,7 +1346,25 @@ export default class MerchCardCollectionHeader extends HTMLElement {
             : SORT_ORDER.authored;
         const label = alphabetical ? alphabeticallyText : popularityText;
 
-        return `<sp-action-menu id="sort" size="m" selects="single" value="${value}"><span slot="label-only">${escapeHTML(sortText)}: ${escapeHTML(label)}</span><sp-menu-item value="${SORT_ORDER.authored}">${escapeHTML(popularityText)}</sp-menu-item><sp-menu-item value="${SORT_ORDER.alphabetical}">${escapeHTML(alphabeticallyText)}</sp-menu-item></sp-action-menu>`;
+        return `
+            <sp-action-menu
+                id="sort"
+                size="m"
+                selects="single"
+                value="${value}"
+            >
+                <span slot="label-only"
+                    >${escapeHTML(sortText)}:
+                    ${escapeHTML(label)}</span
+                >
+                <sp-menu-item value="${SORT_ORDER.authored}"
+                    >${escapeHTML(popularityText)}</sp-menu-item
+                >
+                <sp-menu-item value="${SORT_ORDER.alphabetical}"
+                    >${escapeHTML(alphabeticallyText)}</sp-menu-item
+                >
+            </sp-action-menu>
+        `;
     }
 
     get resultSlotName() {
@@ -1328,7 +1381,14 @@ export default class MerchCardCollectionHeader extends HTMLElement {
             : this.resultCount === 1
               ? 'single'
               : 'multiple';
-        return `<div id="result" aria-live="polite" type="${type}" quantity="${quantity}"><slot name="${this.resultSlotName ?? ''}"></slot></div>`;
+        return ` <div
+            id="result"
+            aria-live="polite"
+            type="${type}"
+            quantity="${quantity}"
+        >
+            <slot name="${this.resultSlotName ?? ''}"></slot>
+        </div>`;
     }
 
     get customArea() {
@@ -1340,7 +1400,9 @@ export default class MerchCardCollectionHeader extends HTMLElement {
         if (!customHeaderAreaGetter) return '';
         const customHeaderArea = customHeaderAreaGetter(this.collection);
         if (!customHeaderArea) return '';
-        return `<div id="custom" role="heading" aria-level="2">${customHeaderArea}</div>`;
+        return `<div id="custom" role="heading" aria-level="2">
+            ${customHeaderArea}
+        </div>`;
     }
 
     // #region Handlers

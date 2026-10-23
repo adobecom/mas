@@ -1504,11 +1504,15 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
         expect(legal.textContent).to.not.include('Fee applies');
     });
 
-    it('disconnects the layout merch-card replaces after the first render', async () => {
+    it('disconnects the layout merch-card replaces when the variant changes', async () => {
         const connect = sinon.spy(Pro.prototype, 'connectedCallbackHook');
         const disconnect = sinon.spy(Pro.prototype, 'disconnectedCallbackHook');
         try {
             await renderPricedCard(SHORT_DESCRIPTION);
+            card.variant = 'plans';
+            await card.updateComplete;
+            card.variant = 'pro';
+            await card.updateComplete;
             const replaced = connect.thisValues.filter(
                 (layout) => layout !== card.variantLayout,
             );

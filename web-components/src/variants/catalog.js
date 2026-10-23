@@ -71,7 +71,33 @@ export class Catalog extends VariantLayout {
             : 'hidden';
         const promo =
             '<slot name="promo-text"></slot><slot name="callout-content"></slot>';
-        return `<div class="body"><div class="top-section"><slot name="icons"></slot> ${this.badge}<div class="action-menu ${actionMenuClass}" tabindex="0" aria-expanded="false" aria-hidden="false" role="button">${escapeHTML(this.card.actionMenuLabel)} - ${escapeHTML(this.card.title)}</div></div><slot name="action-menu-content" class="action-menu-content ${!this.card.actionMenuContent ? 'hidden' : ''}">${escapeHTML(this.card.actionMenuContent)}</slot><slot name="heading-xs"></slot><slot name="heading-m"></slot><slot name="body-xxs"></slot>${!this.promoBottom ? promo : ''}<slot name="body-xs"></slot>${this.promoBottom ? promo : ''}</div>${this.secureLabelFooter}<slot></slot>`;
+        return ` <div class="body">
+                <div class="top-section">
+                    <slot name="icons"></slot> ${this.badge}
+                    <div
+                        class="action-menu ${actionMenuClass}"
+                        tabindex="0"
+                        aria-expanded="false"
+                        aria-hidden="false"
+                        role="button"
+                    >
+                        ${escapeHTML(this.card.actionMenuLabel)} - ${escapeHTML(this.card.title)}
+                    </div>
+                </div>
+                <slot
+                    name="action-menu-content"
+                    class="action-menu-content ${!this.card.actionMenuContent ? 'hidden' : ''}"
+                    >${escapeHTML(this.card.actionMenuContent)}
+                </slot>
+                <slot name="heading-xs"></slot>
+                <slot name="heading-m"></slot>
+                <slot name="body-xxs"></slot>
+                ${!this.promoBottom ? promo : ''}
+                <slot name="body-xs"></slot>
+                ${this.promoBottom ? promo : ''}
+            </div>
+            ${this.secureLabelFooter}
+            <slot></slot>`;
     }
 
     bindEvents(root) {

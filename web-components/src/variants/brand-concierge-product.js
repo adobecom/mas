@@ -69,7 +69,17 @@ export class BrandConciergeProduct extends VariantLayout {
     }
 
     renderLayout() {
-        return `${this.badge}<div class="body"><slot name="icons"></slot><slot name="badge"></slot><slot name="heading-s"></slot><slot name="heading-xs"></slot><slot name="promo-text"></slot><slot name="body-xs"></slot></div><footer><slot name="footer"></slot></footer><slot></slot>`;
+        return ` ${this.badge}
+            <div class="body">
+                <slot name="icons"></slot>
+                <slot name="badge"></slot>
+                <slot name="heading-s"></slot>
+                <slot name="heading-xs"></slot>
+                <slot name="promo-text"></slot>
+                <slot name="body-xs"></slot>
+            </div>
+            <footer><slot name="footer"></slot></footer>
+            <slot></slot>`;
     }
 
     static variantStyle = css`

@@ -829,7 +829,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby=${labelledBy}
+                    aria-labelledby="${labelledBy}"
                     aria-multiselectable="false"
                     tabindex="-1"${open ? '' : ' hidden'}
                 >

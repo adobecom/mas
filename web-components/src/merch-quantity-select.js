@@ -401,7 +401,11 @@ export class MerchQuantitySelect extends HTMLElement {
         return this.options
             .map(
                 (option, index) =>
-                    `<div class="item" role="option" id="qs-item-${index}">${escapeHTML(option === this.max ? `${option}+` : String(option))}</div>`,
+                    `
+                    <div class="item" role="option" id="qs-item-${index}">
+                        ${escapeHTML(option === this.max ? `${option}+` : String(option))}
+                    </div>
+                `,
             )
             .join('');
     }
@@ -427,7 +431,8 @@ export class MerchQuantitySelect extends HTMLElement {
     }
 
     #build() {
-        this.shadowRoot.innerHTML = `<div class="label" id="qsLabel"></div>
+        this.shadowRoot.innerHTML = `
+            <div class="label" id="qsLabel"></div>
             <div class="text-field">
                 <input
                     class="text-field-input"
@@ -450,7 +455,8 @@ export class MerchQuantitySelect extends HTMLElement {
                     aria-labelledby="qsLabel"
                     tabindex="-1"
                 ></div>
-            </div>`;
+            </div>
+        `;
         const input = this.shadowRoot.querySelector('input');
         input.addEventListener('keydown', (e) => this.handleKeydown(e));
         input.addEventListener('keyup', (e) => this.handleKeyupDebounced(e));

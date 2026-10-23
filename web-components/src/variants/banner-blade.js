@@ -52,9 +52,22 @@ export class BannerBlade extends VariantLayout {
     renderLayout() {
         const rows = BANNER_BLADE_FIELDS.map(({ slot, label }) => {
             const isBackgrounds = slot === 'backgrounds';
-            return `<div class="headless-row"><span class="headless-label">${escapeHTML(label)}</span><span class="headless-value" data-slot="${escapeHTML(slot)}"><slot name="${escapeHTML(slot)}"></slot>${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}</span></div>${isBackgrounds ? renderBackgroundsDetailRow() : ''}`;
+            return `
+                <div class="headless-row">
+                    <span class="headless-label">${escapeHTML(label)}</span>
+                    <span class="headless-value" data-slot="${escapeHTML(slot)}">
+                        <slot name="${escapeHTML(slot)}"></slot>
+                        ${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}
+                    </span>
+                </div>
+                ${isBackgrounds ? renderBackgroundsDetailRow() : ''}
+            `;
         }).join('');
-        return `<div class="headless">${rows}</div>`;
+        return `
+            <div class="headless">
+                ${rows}
+            </div>
+        `;
     }
 
     bindEvents(root) {

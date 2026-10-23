@@ -1,8 +1,10 @@
-import { test, expect, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import MerchCardEditorSpec from '../specs/merch-card-editor.spec.js';
 import MerchCardEditorPage from '../merch-card-editor.page.js';
 
 const { features } = MerchCardEditorSpec;
+
+test.use({ reuseEditor: true });
 
 test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', () => {
     let merchCardEditor;
@@ -18,7 +20,7 @@ test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', ()
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -45,7 +47,7 @@ test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', ()
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 

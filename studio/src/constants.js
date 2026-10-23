@@ -72,6 +72,7 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
     CREATE: 'create',
@@ -133,14 +134,34 @@ export const PAGE_NAMES = {
     PROMOTIONS_EDITOR: 'promotions-editor',
     TRANSLATIONS: 'translations',
     TRANSLATION_EDITOR: 'translation-editor',
+    AI_ASSISTANT: 'ai-assistant',
+    PRODUCT_CATALOG: 'product-catalog',
+    PRODUCT_DETAIL: 'product-detail',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    BULK_EDIT: 'bulkEdit',
+    BULK_EDIT_EDITOR: 'bulkEditEditor',
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
     OFFER_MAPPING: 'offer-mapping',
 };
 
+/**
+ * Used only when the io-base-url meta tag is absent (tests, or a page that did
+ * not run studio.html's bootstrap). studio.html is the real source of the
+ * namespace, so point a developer workspace at it with ?io.studio.env=
+ * rather than editing this.
+ *
+ * One namespace serves the assistant: MerchAtScaleStudio (ai-chat,
+ * ost-products-read) and MerchAtScaleOperations must both be deployed to it, and both
+ * URLs are derived from this one base. MerchAtScaleKnowledge is not fetched
+ * over HTTP at all — the corpus ships inside the ai-chat action.
+ */
+export const IO_FALLBACK_NAMESPACE = '14257-masstudio';
+
+export const TAG_STATUS_PUBLISHED = 'mas:status/published';
+export const TAG_STATUS_PUBLISHED_PATH = '/content/cq:tags/mas/status/published';
 export const TAG_STATUS_DRAFT = 'mas:status/draft';
 
 export const ROOT_PATH = '/content/dam/mas';
@@ -300,6 +321,9 @@ export const QUICK_ACTION = {
     LINK: 'link',
     REVERT: 'revert',
     CHECK_MODIFICATIONS: 'check-modifications',
+    CREATE_VARIATION: 'create-variation',
+    PREVIEW: 'preview',
+    HISTORY: 'history',
 };
 
 export const FILTER_TYPE = {
@@ -359,6 +383,21 @@ export const BULK_PUBLISH_STATUS = {
 };
 
 export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
+
+export const BULK_EDIT_PROJECTS_FOLDER = 'bulk-edit-projects';
+
+export const BULK_EDIT_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstZWRpdC1wcm9qZWN0';
+
+export const BULK_EDIT_STATUS = {
+    DRAFT: 'Draft',
+    APPLYING: 'Applying',
+    APPLIED: 'Applied',
+    PARTIALLY_APPLIED: 'Partially applied',
+    FAILED: 'Failed',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+    LOCKED: 'Locked',
+};
 
 /**
  * Compat version of the card.

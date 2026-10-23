@@ -13,6 +13,7 @@ import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import ItemsSelectionController from '../reactivity/items-selection-controller.js';
 import Store from '../store.js';
+import { canEditPromotions, canManagePromotions } from '../groups.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { Fragment } from '../aem/fragment.js';
 import {
@@ -187,7 +188,7 @@ class MasPromotionsItemsTable extends LitElement {
                 : this.type === TABLE_TYPE.CARDS
                   ? store.selectedCards
                   : store.selectedCollections;
-        const controllerStores = [selectionStore, Store.promotions.inEdit];
+        const controllerStores = [selectionStore, Store.promotions.inEdit, Store.profile, Store.users];
         // Offers render from offerRecordsCache, which is hydrated after first paint; refresh
         // when it lands.
         if (this.type === TABLE_TYPE.OFFERS) controllerStores.push(Store.promotions.offerRecordsHydrated);
@@ -334,11 +335,10 @@ class MasPromotionsItemsTable extends LitElement {
         this.#prefetchedByPath = new Map();
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
-        // Probe every selected card's promo variations in a single recursive folder search
-        // (one request per surface root) rather than once per windowed item; windows then read
-        // from this shared result.
-        this.#promoVariationProbe =
-            this.type === TABLE_TYPE.CARDS && paths.length ? this.#probeAllPromoVariations(paths) : null;
+        // Probe every selected card's/collection's promo variations in a single recursive folder
+        // search (one request per surface root) rather than once per windowed item; windows then
+        // read from this shared result.
+        this.#promoVariationProbe = this.#supportsPromoVariations && paths.length ? this.#probeAllPromoVariations(paths) : null;
         if (!paths.length) {
             this.viewOnlyLoading = false;
             return;
@@ -419,7 +419,7 @@ class MasPromotionsItemsTable extends LitElement {
                 const windowItems = slice.map((path) => this.#loadedByPath.get(path)).filter(Boolean);
                 this.viewOnlyFragments = start === 0 ? windowItems : [...this.viewOnlyFragments, ...windowItems];
                 this.#visibleCount = end;
-                if (this.type === TABLE_TYPE.CARDS) {
+                if (this.#supportsPromoVariations) {
                     this.#syncExistingPromoVariations(items, signal);
                 }
             },
@@ -550,6 +550,7 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     #canCreatePromoVariation(item) {
+        if (!canEditPromotions()) return false;
         if (!item?.id || !item?.path || !this.#promotionTagId) return false;
         if (isPromoVariationPath(item.path)) return false;
         if (!this.existingPromoVariationGeosByPath.has(item.path)) return true;
@@ -590,6 +591,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #createPromoVariation(e, item) {
         e.stopPropagation();
+        if (!canEditPromotions()) {
+            this.#showToast('You do not have permission to create promo variations.', 'negative');
+            return;
+        }
         const promoTag = this.#promotionTagId;
         if (!promoTag || !item?.id || !this.repository) return;
 
@@ -644,6 +649,10 @@ class MasPromotionsItemsTable extends LitElement {
 
         const confirmed = await this.#confirmCreatePromoVariation();
         if (!confirmed) return;
+        if (!canEditPromotions()) {
+            this.#showToast('You do not have permission to create promo variations.', 'negative');
+            return;
+        }
 
         try {
             this.createPromoVariationLoading = true;
@@ -726,6 +735,10 @@ class MasPromotionsItemsTable extends LitElement {
     }
 
     async #applyOfferRemoval(selectorId) {
+        if (!canManagePromotions()) {
+            this.#showToast('You do not have permission to remove items from a promotion project.', 'negative');
+            return;
+        }
         const store = this.itemsSelection.value;
         const remainingOffers = store.selectedOffers.value.filter((id) => id !== selectorId);
         store.selectedOffers.set(remainingOffers);
@@ -759,6 +772,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #removeFromList(e, item) {
         e.stopPropagation();
+        if (!canManagePromotions()) {
+            this.#showToast('You do not have permission to remove items from a promotion project.', 'negative');
+            return;
+        }
         const path = item?.path;
         if (!path) return;
         const store = this.itemsSelection.value;
@@ -868,6 +885,10 @@ class MasPromotionsItemsTable extends LitElement {
         `;
     }
 
+    get #supportsPromoVariations() {
+        return this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.COLLECTIONS;
+    }
+
     #renderActionsCell(item) {
         if (this.type === TABLE_TYPE.CARDS && isPromoVariationPath(item?.path)) {
             return html`<sp-table-cell class="actions-cell">
@@ -882,7 +903,7 @@ class MasPromotionsItemsTable extends LitElement {
                 </sp-action-menu>
             </sp-table-cell>`;
         }
-        const showCreatePromo = this.type === TABLE_TYPE.CARDS && this.#canCreatePromoVariation(item);
+        const showCreatePromo = this.#supportsPromoVariations && this.#canCreatePromoVariation(item);
         return html`<sp-table-cell class="actions-cell">
             <sp-action-menu placement="bottom-end" quiet @click=${(e) => e.stopPropagation()}>
                 <sp-icon-more slot="icon"></sp-icon-more>
@@ -896,7 +917,7 @@ class MasPromotionsItemsTable extends LitElement {
                       </sp-menu-item>`
                     : nothing}
                 ${this.type === TABLE_TYPE.OFFERS
-                    ? html`<sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                    ? html`<sp-menu-item ?disabled=${!canManagePromotions()} @click=${(e) => this.#removeFromList(e, item)}>
                           <sp-icon-delete slot="icon"></sp-icon-delete>
                           Remove from list
                       </sp-menu-item>`
@@ -912,7 +933,7 @@ class MasPromotionsItemsTable extends LitElement {
                                   ${this.type === TABLE_TYPE.COLLECTIONS ? 'View default collection' : 'View default fragment'}
                               </sp-link>
                           </sp-menu-item>
-                          <sp-menu-item @click=${(e) => this.#removeFromList(e, item)}>
+                          <sp-menu-item ?disabled=${!canManagePromotions()} @click=${(e) => this.#removeFromList(e, item)}>
                               <sp-icon-delete slot="icon"></sp-icon-delete>
                               Remove from list
                           </sp-menu-item>`}
@@ -1143,6 +1164,7 @@ class MasPromotionsItemsTable extends LitElement {
             .variationColumns=${promoVariationColumns}
             .variationCells=${promoVariationCells}
             .hideVariationExpand=${true}
+            .openVariationOnActivate=${true}
             .renderActionsCell=${(item) => this.#renderActionsCell(item)}
             .promoVariationsFetchedByParent=${this.existingPromoVariationsByPath}
             .viewOnlyHasMore=${hasMore}

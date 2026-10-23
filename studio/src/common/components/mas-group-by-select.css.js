@@ -28,7 +28,6 @@ export const groupBySelectStyles = css`
     .group-by-track {
         background: var(--spectrum-gray-100);
         border-radius: 10px;
-        padding: 4px;
         --mod-actiongroup-horizontal-spacing-regular: 4px;
     }
 

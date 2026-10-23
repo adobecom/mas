@@ -1471,6 +1471,119 @@ describe('pro license dropdown keyboard navigation', () => {
     });
 });
 
+describe('pro license selected option contrast', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
+
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const option = (value) =>
+        [...card.shadowRoot.querySelectorAll('.license-select-option')].find(
+            (o) => o.textContent.trim() === value,
+        );
+    const styles = (value) => getComputedStyle(option(value));
+    const popoverBg = () =>
+        getComputedStyle(card.shadowRoot.querySelector('#license-popover'))
+            .backgroundColor;
+
+    function luminance(color) {
+        const [r, g, b] = color
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map((c) => {
+                const v = Number(c) / 255;
+                return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+            });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+    function contrast(a, b) {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    async function open(theme) {
+        card = await renderCard(QS);
+        if (theme) {
+            card.setAttribute('background-color', theme);
+            await card.updateComplete;
+        }
+        trigger().click();
+        await card.updateComplete;
+    }
+
+    async function arrowDown() {
+        trigger().dispatchEvent(
+            new KeyboardEvent('keydown', {
+                key: 'ArrowDown',
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        await card.updateComplete;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`sets the selected option apart at 3:1 (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            const selected = styles('3');
+            expect(option('3').getAttribute('aria-selected')).to.equal('true');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.color).to.equal('rgb(255, 255, 255)');
+            // unselected rows show the popover surface
+            expect(styles('1').backgroundColor).to.equal('rgba(0, 0, 0, 0)');
+            expect(
+                contrast(selected.backgroundColor, popoverBg()),
+            ).to.be.at.least(3);
+            expect(
+                contrast(selected.color, selected.backgroundColor),
+            ).to.be.at.least(4.5);
+        });
+    }
+
+    it('draws a white ring inside the selected row when it is highlighted', async () => {
+        await open();
+        const selected = styles('3');
+        expect(option('3').classList.contains('highlighted')).to.be.true;
+        expect(selected.outlineStyle).to.equal('solid');
+        expect(selected.outlineColor).to.equal('rgb(255, 255, 255)');
+        expect(selected.outlineOffset).to.equal('-4px');
+        expect(
+            contrast(selected.outlineColor, selected.backgroundColor),
+        ).to.be.at.least(3);
+    });
+
+    // Flatten a translucent background onto the popover it sits on.
+    function flatten(color) {
+        const [r, g, b, a = 1] = color.match(/[\d.]+/g).map(Number);
+        if (a === 1) return color;
+        const [br, bg, bb] = popoverBg()
+            .match(/[\d.]+/g)
+            .map(Number);
+        const mix = (c, base) => Math.round(c * a + base * (1 - a));
+        return `rgb(${mix(r, br)}, ${mix(g, bg)}, ${mix(b, bb)})`;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`keeps the selection blue while the highlight moves on (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            await arrowDown();
+            const next = styles('4');
+            expect(option('4').classList.contains('selected')).to.be.false;
+            expect(next.outlineColor).to.equal('rgb(20, 115, 230)');
+            expect(next.outlineOffset).to.equal('-2px');
+            expect(
+                contrast(next.outlineColor, flatten(next.backgroundColor)),
+            ).to.be.at.least(3);
+            const selected = styles('3');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.outlineStyle).to.equal('none');
+        });
+    }
+});
+
 describe('pro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());

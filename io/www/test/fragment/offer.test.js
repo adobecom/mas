@@ -562,6 +562,35 @@ describe('offer transformer', () => {
             expect(callsTo(offersUrl('en_US'))).to.have.length(1);
         });
 
+        it('looks up baselines of cards a variation brings, even without references tree entry', async () => {
+            const collection = {
+                ...COLLECTION,
+                fields: { enableBaselines: true, cards: ['card-1'], variations: ['collection-be'] },
+                references: {
+                    'card-1': COLLECTION.references['card-1'],
+                    'card-5': card('card-5', { variant: 'mini', osi: OSI }),
+                    'collection-be': {
+                        type: 'content-fragment',
+                        value: {
+                            id: 'collection-be',
+                            path: '/content/dam/mas/sandbox/en_BE/my-collection',
+                            model: { id: COLLECTION_MODEL_ID },
+                            fields: { cards: ['card-1', 'card-5'] },
+                        },
+                    },
+                },
+                referencesTree: [
+                    { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                    { fieldName: 'variations', identifier: 'collection-be', referencesTree: [] },
+                ],
+            };
+            fetchStub.withArgs(`${ODIN}/collection-id?references=all-hydrated`).returns(createResponse(200, collection));
+            const { statusCode } = await getFragment({ id: 'collection-id', locale: 'en_US' });
+            expect(statusCode).to.equal(200);
+            expect(callsTo(MINI_LISTING)).to.have.length(1);
+            expect(callsTo(listing(PLANS_FOLDER))).to.have.length(1);
+        });
+
         it('retries offer baselines that failed to load on the next request', async () => {
             fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(500, { detail: 'boom' }, 'Internal Server Error'));
             const failed = await getFragment({ id: 'collection-id', locale: 'en_US' });

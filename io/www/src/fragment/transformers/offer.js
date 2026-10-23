@@ -8,7 +8,7 @@ import { computeWcsCaches, createWcsContext, tokenKey, wcsCacheKey } from './wcs
 import { transformBody } from '../utils/odinSchemaTransform.js';
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
-const REFERENCE_FIELDS = ['cards', 'collections'];
+const TRAVERSED_FIELDS = ['cards', 'collections', 'variations'];
 // every offer baseline of a locale (en_US fallback included), as served by the `offers` action behind the CDN. The bare
 // `id` parameter is only there for www.adobe.com/mas/io to accept the request, to be removed with WPS-36294
 const OFFERS_URL = 'https://www.adobe.com/mas/io/offers';
@@ -186,22 +186,32 @@ export async function resolveOfferInfos(initContext) {
 
 /**
  * Root fragment (whose osi & template can be overridden by the `offer` & `template` parameters) and every card /
- * collection of its references tree, with the offer token & template their baselines are looked up with.
+ * collection of its references tree, including those a (e.g. regional) variation brings, with the offer token & template
+ * their baselines are looked up with. Each fragment is collected once.
  */
 function collectTargets({ body, offer, template }) {
     const targets = [{ fragment: body, osi: offer ?? body.fields?.osi, template: template ?? body.fields?.variant }];
-    const visit = (tree = []) => {
-        for (const { fieldName, identifier, referencesTree } of tree) {
-            if (!REFERENCE_FIELDS.includes(fieldName)) continue;
+    const visited = new Set([body.id]);
+    // a (e.g. regional) variation may list cards & collections that have no entry in the references tree
+    const entriesOf = (fragment, tree = []) => [
+        ...tree,
+        ...TRAVERSED_FIELDS.flatMap((fieldName) =>
+            (fragment?.fields?.[fieldName] ?? []).map((identifier) => ({ fieldName, identifier })),
+        ),
+    ];
+    const visit = (entries) => {
+        for (const { fieldName, identifier, referencesTree } of entries) {
+            if (!TRAVERSED_FIELDS.includes(fieldName) || visited.has(identifier)) continue;
+            visited.add(identifier);
             const fragment = body.references?.[identifier]?.value;
             if (!fragment) continue;
-            if (fragment.model?.id === CARD_MODEL_ID) {
+            if (fieldName !== 'variations' && fragment.model?.id === CARD_MODEL_ID) {
                 targets.push({ fragment, osi: fragment.fields?.osi, template: fragment.fields?.variant });
             }
-            visit(referencesTree);
+            visit(entriesOf(fragment, referencesTree));
         }
     };
-    visit(body.referencesTree);
+    visit(entriesOf(body, body.referencesTree));
     return targets
         .filter(({ osi, template }) => osi && template)
         .map((target) => ({ ...target, token: offerToken(target.fragment, target.osi) }));

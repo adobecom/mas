@@ -70,7 +70,8 @@ function _deepMerge(topLevel, ...objects) {
     // (a shared reference reused by sibling merges).
     // Every layer counts, in order (e.g. baselines then the fragment); a layer repeated to keep its id & path first only
     // counts at its last position.
-    const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    // effective variant: a partial layer (e.g. a segment baseline) inherits it from another one
+    const arraysToMerge = MERGE_CONFIG[result.fields?.variant]?.arraysToMerge;
     const layers = objects.filter((obj, index) => objects.lastIndexOf(obj) === index);
     arraysToMerge?.forEach((field) => {
         const values = layers.flatMap((obj) => obj?.fields?.[field]?.value || []);
@@ -557,6 +558,15 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
         const reference = adaptedTree[i];
         //customize each card/collection
         if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
+            // a fragment referenced several times (e.g. by 2 nested collections) is customized once: customizing its
+            // customized value again would layer baselines & variations twice
+            const customizedTree = customizeContext.customizedTrees.get(reference.identifier);
+            if (customizedTree) {
+                if (customizedTree !== reference.referencesTree) {
+                    adaptedTree[i] = { ...reference, referencesTree: customizedTree };
+                }
+                continue;
+            }
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
@@ -567,6 +577,7 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
                 );
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
+                customizeContext.customizedTrees.set(reference.identifier, childAdaptedTree);
                 //propagate adapted child tree up so the parent's tree stays in sync with the customized child fields
                 if (childAdaptedTree !== reference.referencesTree) {
                     adaptedTree[i] = { ...reference, referencesTree: childAdaptedTree };
@@ -617,6 +628,8 @@ async function customize(context) {
         surface,
         // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
         promoScopeById: {},
+        // adapted references tree of each customized card / collection, by id
+        customizedTrees: new Map(),
     };
     if (
         pzn &&

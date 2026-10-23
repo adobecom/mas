@@ -71,13 +71,23 @@
             document
                 .querySelector('meta[name="aem-author-url"]')
                 ?.setAttribute('content', `https://author-p22655-${authorBucket}.adobeaemcloud.com`);
-            // The env is interpolated into a URL, so keep it to a bare label: a value
-            // carrying '/' or '.' would move the host off adobeioruntime.
-            const ioLabel = (value) => (/^[a-z0-9-]{1,40}$/.test(value ?? '') ? value : '');
-            const ioStudioEnvParam = ioLabel(params.get('io.studio.env') || envOverride);
-            const ioStudioEnv = ioStudioEnvParam ? `-${ioStudioEnvParam}` : '';
-            const ioBaseUrl = `https://14257-masstudio${ioStudioEnv}.adobeioruntime.net/api/v1/web/MerchAtScaleStudio`;
-            document.querySelector('meta[name="io-base-url"]')?.setAttribute('content', ioBaseUrl);
+        </script>
+        <script type="module">
+            import { resolveIoBaseUrl } from './studio/src/io-base-url.js';
+
+            try {
+                document
+                    .querySelector('meta[name="io-base-url"]')
+                    ?.setAttribute('content', resolveIoBaseUrl(window.location.search));
+            } catch (error) {
+                // Without an IO base, users, bulk publish and translation all fail; say why up front.
+                console.error(error);
+                const banner = document.createElement('p');
+                banner.className = 'io-config-error';
+                banner.role = 'alert';
+                banner.textContent = `${error.message} Fix io.studio.env in the URL and reload.`;
+                document.body.prepend(banner);
+            }
         </script>
         <script src="../web-components/dist/mas.js" type="module"></script>
         <script src="studio/libs/swc.js" type="module"></script>

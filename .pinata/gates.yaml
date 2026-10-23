@@ -17,13 +17,27 @@ generated:
 provision: npm ci
 
 gates:
+    # Piñata dispatches a credentialed CI deploy for io/studio candidates, so it
+    # must never edit CI or its own contract. Defense in depth: the App also has
+    # no Workflows permission, and io-studio-candidate.yaml refuses such branches.
+    pipeline-config:
+        template: protected_paths
+        name: CI and Piñata configuration
+        paths:
+            - '.github'
+            - '.pinata'
+        blocking: true
+        failure_route: escalate_to_human
+
     io-preview-support:
         template: protected_paths
-        name: IO changes need manual verification (no candidate IO preview)
+        name: io changes need manual verification (no candidate io preview)
         description: >-
-            IO changes need a separately deployed candidate service before
-            screenshots can verify them. Stop for manual review, even when
-            the same change also touches Studio or web components.
+            io/www is the fragment pipeline and has no candidate deploy. io/studio
+            candidates deploy through io-studio-candidate.yaml, which stays off for
+            Piñata until self-hosted runner isolation/cleanup is verified. Stop for
+            manual review, even when the same change also touches Studio or web
+            components.
         paths:
             - 'io/www'
             - 'io/studio'

@@ -1,4 +1,4 @@
-import { html as litHtml } from 'lit';
+import { html as litHtml, LitElement } from 'lit';
 import {
     html,
     ifDefined,
@@ -248,4 +248,98 @@ describe('lite', () => {
             expect(calls.length).to.equal(5);
         });
     });
+    for (const [name, Base, tag] of [
+        ['LitElement', LitElement, litHtml],
+        ['LiteElement', LiteElement, html],
+    ]) {
+        describe(`internal state reactivity (${name})`, () => {
+            const define = (suffix) => {
+                const log = [];
+                class StateHost extends Base {
+                    static properties = {
+                        open: { type: Boolean, state: true },
+                        count: { type: Number, state: true },
+                        derived: { state: true },
+                    };
+
+                    constructor() {
+                        super();
+                        this.open = false;
+                        this.count = 0;
+                    }
+
+                    willUpdate(changed) {
+                        if (changed.has('count')) this.derived = this.count * 2;
+                    }
+
+                    updated(changed) {
+                        log.push(Object.fromEntries(changed));
+                        if (this.count === 1) this.count = 2;
+                    }
+
+                    render() {
+                        return tag`<p class=${this.open ? 'open' : ''}>${this.count}:${this.derived}</p>`;
+                    }
+                }
+                customElements.define(
+                    `state-${name.toLowerCase()}-${suffix}`,
+                    StateHost,
+                );
+                return { el: new StateHost(), log };
+            };
+
+            it('re-renders on state change, batches, and has no attribute', async () => {
+                const { el, log } = define('a');
+                container.append(el);
+                await el.updateComplete;
+                expect(log.length).to.equal(1);
+                el.open = true;
+                el.count = 5;
+                el.count = 6;
+                await el.updateComplete;
+                expect(log.length).to.equal(2);
+                expect(log[1]).to.deep.equal({
+                    open: false,
+                    count: 0,
+                    derived: 0,
+                });
+                expect(el.shadowRoot.querySelector('p').className).to.equal(
+                    'open',
+                );
+                expect(el.shadowRoot.textContent).to.equal('6:12');
+                expect(el.hasAttribute('open')).to.be.false;
+                el.setAttribute('open', '');
+                await el.updateComplete;
+                expect(el.open).to.be.true;
+                expect(log.length).to.equal(2);
+            });
+
+            it('skips unchanged values and handles requestUpdate()', async () => {
+                const { el, log } = define('b');
+                container.append(el);
+                await el.updateComplete;
+                el.open = false;
+                await el.updateComplete;
+                expect(log.length).to.equal(1);
+                el.requestUpdate();
+                await el.updateComplete;
+                expect(log[1]).to.deep.equal({});
+                el.requestUpdate('count', 9);
+                await el.updateComplete;
+                expect(log[2]).to.deep.equal({ count: 9 });
+            });
+
+            it('runs a follow-up update for state set in updated()', async () => {
+                const { el, log } = define('c');
+                container.append(el);
+                await el.updateComplete;
+                el.count = 1;
+                expect(await el.updateComplete).to.be.false;
+                expect(await el.updateComplete).to.be.true;
+                expect(log.length).to.equal(3);
+                expect(log[2]).to.deep.equal({ count: 1, derived: 2 });
+                expect(el.shadowRoot.textContent).to.equal('2:4');
+            });
+        });
+    }
 });

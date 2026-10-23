@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './headless.css.js';
 import { HEADLESS_FAMILY_STYLE } from './headless.js';

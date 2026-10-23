@@ -1,6 +1,4 @@
-import { LitElement, html, nothing, unsafeCSS } from 'lit';
-import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { ifDefined } from 'lit/directives/if-defined.js';
+import { LiteElement, html, nothing, unsafeHTML, ifDefined } from './lite.js';
 import { css } from './css.js';
 
 function hasSpectrumTooltip() {
@@ -12,7 +10,7 @@ function hasSpectrumTooltip() {
     );
 }
 
-export default class MasMnemonic extends LitElement {
+export default class MasMnemonic extends LiteElement {
     static activeTooltip = null;
 
     static properties = {
@@ -39,7 +37,7 @@ export default class MasMnemonic extends LitElement {
         _computedPlacement: { type: String, state: true },
     };
 
-    static styles = unsafeCSS(css`
+    static styles = css`
         :host {
             display: contents;
             overflow: visible;
@@ -213,7 +211,7 @@ export default class MasMnemonic extends LitElement {
         .icon-only {
             display: inline-block;
         }
-    `);
+    `;
 
     constructor() {
         super();

@@ -1,4 +1,4 @@
-import { LitElement, html, unsafeCSS } from 'lit';
+import { LiteElement, html } from './lite.js';
 import {
     COUNTDOWN_UNIT_PAIR,
     isUnresolvedCountdownToken,
@@ -76,7 +76,7 @@ export function countdownText(start, end, now, locale = 'en_US', template) {
 }
 
 /** Inline promotion countdown with a clock owned by its connected element. */
-export class MerchCountdown extends LitElement {
+export class MerchCountdown extends LiteElement {
     static properties = {
         start: { type: String },
         end: { type: String },
@@ -86,7 +86,7 @@ export class MerchCountdown extends LitElement {
         text: { state: true },
     };
 
-    static styles = unsafeCSS(css`
+    static styles = css`
         /* Default inherits the description color; authors pick one of these in the RTE. */
         :host(.spectrum-green-900) {
             color: var(--spectrum-green-900, #05834e);
@@ -97,7 +97,7 @@ export class MerchCountdown extends LitElement {
         :host([hidden]) {
             display: none;
         }
-    `);
+    `;
 
     #timer;
 

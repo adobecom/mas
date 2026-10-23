@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
+import { html, nothing } from '../lite.js';
 import { CSS } from './plans-v2.css.js';
 import Media from '../media.js';
 import {

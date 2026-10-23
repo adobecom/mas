@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html } from 'lit';
+import { html } from '../lite.js';
 import { CSS } from './inline-heading.css.js';
 export class InlineHeading extends VariantLayout {
     constructor(card) {

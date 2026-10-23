@@ -1,4 +1,4 @@
-import { html, nothing } from 'lit';
+import { html, nothing } from '../lite.js';
 import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 

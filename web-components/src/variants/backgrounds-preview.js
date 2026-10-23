@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html } from '../lite.js';
 import { extractBackgroundUrl } from '../image-markup.js';
 
 // The default is desktop background.

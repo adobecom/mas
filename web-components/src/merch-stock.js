@@ -1,11 +1,12 @@
-import { LitElement, css, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import { EVENT_MERCH_STOCK_CHANGE } from './constants.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { MOBILE_LANDSCAPE } from './media.js';
+import { css } from './css.js';
 
 export class MerchStock extends LitElement {
     static styles = [
-        css`
+        unsafeCSS(css`
             ::slotted(div) {
                 display: none;
             }
@@ -25,7 +26,7 @@ export class MerchStock extends LitElement {
                 font-size: 12px;
                 line-height: 15px;
             }
-        `,
+        `),
     ];
 
     static properties = {

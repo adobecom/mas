@@ -1,5 +1,7 @@
-export const CSS = `
-    merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] {
+import { css } from '../css.js';
+
+export const CSS = css`
+    merch-card[variant='ah-try-buy-widget'] [slot='body-xxs'] {
         letter-spacing: normal;
         margin-bottom: 16px;
         box-sizing: border-box;
@@ -9,13 +11,13 @@ export const CSS = `
         word-break: break-word;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="badge"] {
+    merch-card[variant='ah-try-buy-widget'] [slot='badge'] {
         position: absolute;
         top: 18px;
         right: 12px;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="badge"] merch-badge {
+    merch-card[variant='ah-try-buy-widget'] [slot='badge'] merch-badge {
         border-radius: 7px;
         font-size: 12px;
         font-weight: normal;
@@ -23,15 +25,15 @@ export const CSS = `
         padding: 4px 9px 5px 9px;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] a {
+    merch-card[variant='ah-try-buy-widget'] [slot='body-xxs'] a {
         color: var(--consonant-merch-card-body-xxs-color);
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="body-xxs"] a:hover {
+    merch-card[variant='ah-try-buy-widget'] [slot='body-xxs'] a:hover {
         color: var(--consonant-merch-card-body-xxs-color);
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="heading-xxxs"] {
+    merch-card[variant='ah-try-buy-widget'] [slot='heading-xxxs'] {
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
@@ -42,7 +44,7 @@ export const CSS = `
         -webkit-line-clamp: 3;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price {
+    merch-card[variant='ah-try-buy-widget'] [slot='price'] .price {
         display: inline-block;
         height: var(--consonant-merch-card-detail-xl-line-height);
         line-height: var(--consonant-merch-card-detail-xl-line-height);
@@ -50,24 +52,41 @@ export const CSS = `
         margin-top: 4px;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price.price-strikethrough {
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price.price-strikethrough {
         height: var(--consonant-merch-card-detail-l-line-height);
         line-height: var(--consonant-merch-card-detail-l-line-height);
         font-size: var(--consonant-merch-card-body-xxs-font-size);
-        text-decoration-thickness: .5px;
+        text-decoration-thickness: 0.5px;
         color: var(--ah-gray-500);
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-currency-symbol,
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-integer,
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-decimals-delimiter,
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-decimals {
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-currency-symbol,
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-integer,
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-decimals-delimiter,
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-decimals {
         color: var(--consonant-merch-card-heading-xxxs-color);
         font-size: var(--consonant-merch-card-heading-xs-font-size);
         font-weight: 700;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-recurrence {
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-recurrence {
         width: 21px;
         text-align: end;
         font-size: var(--consonant-merch-card-body-xxs-font-size);
@@ -75,28 +94,31 @@ export const CSS = `
         font-weight: 400;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] .price:not(.price-strikethrough) .price-tax-inclusivity {
+    merch-card[variant='ah-try-buy-widget']
+        [slot='price']
+        .price:not(.price-strikethrough)
+        .price-tax-inclusivity {
         font-weight: 400;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] a {
+    merch-card[variant='ah-try-buy-widget'] [slot='price'] a {
         color: var(--consonant-merch-card-body-xxs-color);
         font-size: var(--consonant-merch-card-body-xxs-font-size);
         font-style: normal;
         line-height: var(--consonant-merch-card-body-xxs-line-height);
         text-decoration: underline;
-        text-decoration-thickness: .75px;
+        text-decoration-thickness: 0.75px;
         text-underline-offset: 1px;
         width: fit-content;
         margin-top: 4px;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="price"] a:hover {
+    merch-card[variant='ah-try-buy-widget'] [slot='price'] a:hover {
         color: var(--consonant-merch-card-body-xxs-color);
         font-weight: 700;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="cta"] {
+    merch-card[variant='ah-try-buy-widget'] [slot='cta'] {
         align-self: end;
         gap: 8px;
         display: flex;
@@ -105,40 +127,42 @@ export const CSS = `
         justify-content: flex-end;
     }
 
-    merch-card[variant="ah-try-buy-widget"] [slot="image"] {
-      display: none;
+    merch-card[variant='ah-try-buy-widget'] [slot='image'] {
+        display: none;
     }
 
-    merch-card[variant="ah-try-buy-widget"][size='single'] [slot="image"] {
-      display: flex;
-      width: 199px;
-      overflow: hidden;
-      height: 100%;
-      border-radius: 16px;
-      order: 1;
+    merch-card[variant='ah-try-buy-widget'][size='single'] [slot='image'] {
+        display: flex;
+        width: 199px;
+        overflow: hidden;
+        height: 100%;
+        border-radius: 16px;
+        order: 1;
     }
 
-    merch-card[variant="ah-try-buy-widget"][size='single'] [slot="image"] img {
-      width: 100%;
-      object-fit: cover;
-      border-radius: 16px;
-      overflow: hidden;
+    merch-card[variant='ah-try-buy-widget'][size='single'] [slot='image'] img {
+        width: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+        overflow: hidden;
     }
 
-    .spectrum--dark merch-card[variant="ah-try-buy-widget"][background-color='gray'],
-    .spectrum--darkest merch-card[variant="ah-try-buy-widget"][background-color='gray'] {
-      --merch-card-ah-try-buy-widget-gray-background: rgb(34, 34, 34);
+    .spectrum--dark
+        merch-card[variant='ah-try-buy-widget'][background-color='gray'],
+    .spectrum--darkest
+        merch-card[variant='ah-try-buy-widget'][background-color='gray'] {
+        --merch-card-ah-try-buy-widget-gray-background: rgb(34, 34, 34);
     }
 
-    .spectrum--dark merch-card[variant="ah-try-buy-widget"],
-    .spectrum--darkest merch-card[variant="ah-try-buy-widget"] {
-      --consonant-merch-card-background-color:rgb(34, 34, 34);
-      --consonant-merch-card-heading-xxxs-color:rgb(242, 242, 242);
-      --consonant-merch-card-body-xxs-color:rgb(219, 219, 219);
+    .spectrum--dark merch-card[variant='ah-try-buy-widget'],
+    .spectrum--darkest merch-card[variant='ah-try-buy-widget'] {
+        --consonant-merch-card-background-color: rgb(34, 34, 34);
+        --consonant-merch-card-heading-xxxs-color: rgb(242, 242, 242);
+        --consonant-merch-card-body-xxs-color: rgb(219, 219, 219);
     }
 
-    .spectrum--dark merch-card[variant="ah-try-buy-widget"]:hover,
-    .spectrum--darkest merch-card[variant="ah-try-buy-widget"]:hover {
-      --consonant-merch-card-border-color:rgb(73, 73, 73);
+    .spectrum--dark merch-card[variant='ah-try-buy-widget']:hover,
+    .spectrum--darkest merch-card[variant='ah-try-buy-widget']:hover {
+        --consonant-merch-card-border-color: rgb(73, 73, 73);
     }
 `;

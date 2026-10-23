@@ -1,7 +1,8 @@
-import { html, LitElement, css, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { debounce, updateHash, paramsToHash } from '../utils.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
+import { css } from '../css.js';
 
 export class MerchSidenavList extends LitElement {
     static properties = {
@@ -24,7 +25,7 @@ export class MerchSidenavList extends LitElement {
         },
     };
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             display: block;
             contain: content;
@@ -54,7 +55,7 @@ export class MerchSidenavList extends LitElement {
             right: initial;
             left: 0;
         }
-    `;
+    `);
 
     constructor() {
         super();

@@ -1,4 +1,4 @@
-import { html, LitElement, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { styles } from './merch-quantity-select.css.js';
 import { debounce } from './utils.js';
 
@@ -29,7 +29,7 @@ export class MerchQuantitySelect extends LitElement {
     }
 
     static get styles() {
-        return styles;
+        return unsafeCSS(styles);
     }
 
     constructor() {

@@ -1,7 +1,8 @@
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './simplified-pricing-express.css.js';
 import Media, { isDesktop, MOBILE_LANDSCAPE } from '../media.js';
+import { css } from '../css.js';
 
 export const SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
     title: {

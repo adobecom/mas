@@ -1,6 +1,7 @@
 import { importMapsPlugin } from '@web/dev-server-import-maps';
 import { defaultReporter } from '@web/test-runner';
 import { chromeLauncher } from '@web/test-runner-chrome';
+import { cssLoaderDevServer } from './css-loader.mjs';
 
 // Pin the browser time zone to CI's (UTC), so time-of-day expectations, e.g.
 // test/price/__snapshots__/message-format.expected.json, match on any machine.
@@ -42,6 +43,7 @@ export default {
         },
     },
     plugins: [
+        cssLoaderDevServer(),
         importMapsPlugin({
             inject: {
                 importMap: {

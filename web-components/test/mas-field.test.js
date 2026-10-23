@@ -2013,11 +2013,15 @@ describe('mas-field – tooltip icon-button rendering', () => {
             'glyph occupies space',
         ).to.be.greaterThan(0);
         // Tooltip popover text is driven from data-tooltip and shown on hover/focus.
-        const styles = document.querySelector(
-            'style[data-mas-field]',
-        ).textContent;
-        expect(styles).to.contain('content: attr(data-tooltip)');
-        expect(styles).to.contain(':hover::before');
+        const rules = [
+            ...document.querySelector('style[data-mas-field]').sheet.cssRules,
+        ];
+        expect(
+            rules.some((rule) => rule.style?.content === 'attr(data-tooltip)'),
+        ).to.be.true;
+        expect(
+            rules.some((rule) => rule.selectorText?.includes(':hover::before')),
+        ).to.be.true;
     });
 
     it('decorates the tooltip with a11y attributes and an initial placement class', () => {

@@ -1,6 +1,7 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './compare-chart-column.css.js';
+import { css } from '../css.js';
 
 export const COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 'l' },
@@ -146,30 +147,10 @@ export class CompareChartColumn extends VariantLayout {
             --compare-chart-cell-bg: var(--color-gray-100, #f8f8f8);
         }
 
-        /* Header CTA cell (Figma: M button, up to 2 actions) — apply
-           medium-button defaults so plain anchors look right by default. */
-        :host([variant='compare-chart-column']) ::slotted([slot='cta']) a,
-        :host([variant='compare-chart-column']) ::slotted([slot='cta']) button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 32px;
-            padding: 6px 14px;
-            border-radius: 16px;
-            font:
-                700 14px/20px 'Adobe Clean',
-                sans-serif;
-            text-decoration: none;
-        }
-
         :host([variant='compare-chart-column']) .seg-detail {
             text-align: center;
             font: var(--type-body-xs, 14px/20px 'Adobe Clean', sans-serif);
             padding: 0 var(--compare-chart-card-padding);
-        }
-        :host([variant='compare-chart-column']) ::slotted([slot='detail']) a {
-            color: var(--hover-border-color, #357beb);
-            text-decoration: underline;
         }
         :host([variant='compare-chart-column']) ::slotted(p),
         :host([variant='compare-chart-column']) ::slotted(a) {

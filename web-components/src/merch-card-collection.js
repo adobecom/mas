@@ -1,4 +1,4 @@
-import { html, LitElement, css, unsafeCSS, nothing } from 'lit';
+import { html, LitElement, unsafeCSS, nothing } from 'lit';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
@@ -27,6 +27,7 @@ import {
     cardFilterTags,
     isExcluded,
 } from './tag-groups.js';
+import { css } from './css.js';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
@@ -751,7 +752,7 @@ export class MerchCardCollection extends LitElement {
         this.sidenav?.showModal(e);
     }
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         #footer {
             grid-column: 1 / -1;
             justify-self: stretch;
@@ -792,7 +793,7 @@ export class MerchCardCollection extends LitElement {
         sp-theme {
             display: contents;
         }
-    `;
+    `);
 }
 
 MerchCardCollection.SortOrder = SORT_ORDER;
@@ -1070,7 +1071,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         `;
     }
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             --merch-card-collection-header-max-width: var(
                 --merch-card-collection-card-width
@@ -1169,7 +1170,7 @@ export default class MerchCardCollectionHeader extends LitElement {
         }
 
         /* tablets */
-        @media screen and ${unsafeCSS(TABLET_UP)} {
+        @media screen and (--tablet-up) {
             :host {
                 --merch-card-collection-header-max-width: auto;
                 --merch-card-collection-header-columns: 1fr fit-content(100%)
@@ -1180,14 +1181,14 @@ export default class MerchCardCollectionHeader extends LitElement {
         }
 
         /* Laptop */
-        @media screen and ${unsafeCSS(DESKTOP_UP)} {
+        @media screen and (--desktop-up) {
             :host {
                 --merch-card-collection-header-columns: 1fr fit-content(100%);
                 --merch-card-collection-header-areas: 'result sort';
                 --merch-card-collection-header-result-font-size: inherit;
             }
         }
-    `;
+    `);
 
     get placeholderKeys() {
         return [

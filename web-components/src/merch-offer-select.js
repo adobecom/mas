@@ -1,13 +1,14 @@
-import { css, html, LitElement } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
 import {
     EVENT_MERCH_OFFER_READY,
     EVENT_MERCH_OFFER_SELECT_READY,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_OFFER_SELECTED,
 } from './constants.js';
+import { css } from './css.js';
 
 class MerchOfferSelect extends LitElement {
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             display: inline-block;
         }
@@ -26,7 +27,7 @@ class MerchOfferSelect extends LitElement {
             flex-direction: column;
             gap: var(--consonant-merch-spacing-xs);
         }
-    `;
+    `);
 
     static properties = {
         offers: { type: Array },

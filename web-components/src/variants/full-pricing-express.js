@@ -1,6 +1,7 @@
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './full-pricing-express.css.js';
+import { css } from '../css.js';
 
 export const FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING = {
     title: {

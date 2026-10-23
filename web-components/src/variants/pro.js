@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, css, nothing, unsafeCSS } from 'lit';
+import { html, nothing } from 'lit';
 import { CSS } from './pro.css.js';
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from '../focus.js';
 import {
@@ -9,15 +9,15 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
-import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import { css } from '../css.js';
 
 const VARIANT = 'pro';
-// syncHeights publishes these properties and the shadow styles consume them; the
-// single definition keeps producer and consumer from diverging.
-const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
+// syncHeights publishes these properties; variantStyle below and
+// pro.css.js read them by name (covered by a unit test).
+export const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
 // Match these blocks across a row so the price lands at the same height on
 // every card, the way Figma lays it out.
-const SYNCED_BANDS = [
+export const SYNCED_BANDS = [
     {
         prop: `--consonant-merch-card-${VARIANT}-mnemonic-height`,
         selector: '.mnemonic',
@@ -29,7 +29,7 @@ const SYNCED_BANDS = [
 ];
 // Reserve the struck price's row so cards without one keep the same price
 // offset. Published per row, so a wrapped second row doesn't inherit it.
-const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
+export const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
@@ -928,14 +928,14 @@ export class Pro extends VariantLayout {
                publishes the row's max .top-card height here as min-height so
                shorter cards match; content-box, so the height maps straight. */
             flex: 0 0 auto;
-            min-height: var(${unsafeCSS(TOP_CARD_HEIGHT_PROP)}, auto);
+            min-height: var(--consonant-merch-card-pro-top-card-height, auto);
         }
 
         :host([variant='pro']) .mnemonic {
             display: flex;
             align-items: center;
             gap: 12px;
-            min-height: var(${unsafeCSS(SYNCED_BANDS[0].prop)}, auto);
+            min-height: var(--consonant-merch-card-pro-mnemonic-height, auto);
         }
 
         :host([variant='pro']) ::slotted([slot='icons']) {
@@ -961,7 +961,10 @@ export class Pro extends VariantLayout {
             /* Hold the row's tallest description so the price starts at the same
                height everywhere. The slack goes to the footer margin, not here. */
             flex: 0 0 auto;
-            min-height: var(${unsafeCSS(SYNCED_BANDS[1].prop)}, auto);
+            min-height: var(
+                --consonant-merch-card-pro-name-description-height,
+                auto
+            );
         }
 
         :host([variant='pro']) ::slotted([slot='heading-xs']) {
@@ -1364,7 +1367,7 @@ export class Pro extends VariantLayout {
         }
 
         /* C2 desktop breakpoint: toggle disappears, features-zone is always visible inline */
-        @media screen and ${unsafeCSS(C2_DESKTOP_UP)} {
+        @media screen and (--c2-desktop-up) {
             :host([variant='pro']) .whats-included-toggle {
                 display: none;
             }
@@ -1387,7 +1390,7 @@ export class Pro extends VariantLayout {
             margin: unset;
         }
 
-        @media screen and ${unsafeCSS(TABLET_UP)} {
+        @media screen and (--tablet-up) {
             :host([variant='pro'][size='edu']) {
                 flex-direction: row;
                 gap: 8px;

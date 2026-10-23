@@ -1,5 +1,6 @@
 import { chromeLauncher } from '@web/test-runner-chrome';
 import { importMapsPlugin } from '@web/dev-server-import-maps';
+import { cssLoaderDevServer } from '../web-components/css-loader.mjs';
 
 /** Set HEADED=1 so Chrome opens on-screen (for visual HTML tests, e.g. with it.only). */
 const headed = process.env.HEADED === '1';
@@ -46,6 +47,8 @@ export default {
         },
     ],
     plugins: [
+        // Tests import web-components/src modules, whose css`` styles use @custom-media.
+        cssLoaderDevServer(),
         importMapsPlugin({
             inject: {
                 importMap: {

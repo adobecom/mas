@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import {
     EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
@@ -7,6 +7,7 @@ import {
 } from '../constants.js';
 import { CSS } from './product-pricing.css.js';
 import { TABLET_UP } from '../media.js';
+import { css } from '../css.js';
 
 const SYNC_MIN_WIDTH = TABLET_UP;
 // Synced per collection row so siblings share baselines.

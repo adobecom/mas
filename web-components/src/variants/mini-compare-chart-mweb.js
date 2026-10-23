@@ -1,14 +1,15 @@
-import { html, css, unsafeCSS, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
 import { keepInHeadingPriceForAnnual } from './mini-compare-chart.js';
-import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
+import Media from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { css } from '../css.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32;
 // Fallback list id for cards without a heading id; the counter keeps siblings
@@ -514,23 +515,13 @@ export class MiniCompareChartMweb extends VariantLayout {
             padding-inline-start: var(--consonant-merch-spacing-xs);
         }
 
-        @media screen and ${unsafeCSS(TABLET_DOWN)} {
-            [class*'-merch-cards']
-                :host([variant='mini-compare-chart-mweb'])
-                footer {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-        }
-
-        @media screen and ${unsafeCSS(DESKTOP_UP)} {
+        @media screen and (--desktop-up) {
             :host([variant='mini-compare-chart-mweb']) footer {
                 padding: 0;
             }
         }
 
-        @media screen and ${unsafeCSS(TABLET_UP)} {
+        @media screen and (--tablet-up) {
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {

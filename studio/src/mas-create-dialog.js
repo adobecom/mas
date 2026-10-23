@@ -21,7 +21,7 @@ import './aem/aem-tag-picker-field.js';
 import generateFragmentStore from './reactivity/source-fragment-store.js';
 import { showToast } from './utils.js';
 import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.js';
-import { createBaseline, resolveProductArrangementCode } from './baselines/baseline-model.js';
+import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
 
 const BASELINE_EXISTS_ERROR = 'A baseline with this title already exists';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
@@ -55,12 +55,14 @@ export class MasCreateDialog extends LitElement {
         errors: { state: true },
         loading: { state: true },
         productArrangementCode: { state: true },
+        marketSegment: { state: true },
         template: { state: true },
     };
 
     #selectionId = 0;
 
     search = new StoreController(this, Store.search);
+    filters = new StoreController(this, Store.filters);
 
     static styles = css`
         :host {
@@ -245,6 +247,7 @@ export class MasCreateDialog extends LitElement {
         this.osi = '';
         this.#selectionId++;
         this.productArrangementCode = '';
+        this.marketSegment = '';
         this.template = '';
         this.loading = false;
     }
@@ -266,13 +269,15 @@ export class MasCreateDialog extends LitElement {
     #onOstSelect = async ({ detail: { offerSelectorId, offer } }) => {
         if (!offer) return;
         this.osi = offerSelectorId;
+        this.marketSegment = offer.market_segments?.[0] ?? '';
         const selectionId = ++this.#selectionId;
         if (this.type !== BASELINE_CREATE_TYPE) return;
         this.productArrangementCode = '';
         this.#setError('offer', '');
-        const productArrangementCode = await resolveProductArrangementCode(offerSelectorId, offer);
+        const { productArrangementCode, marketSegment } = await resolveBaselineOffer(offerSelectorId, offer);
         if (selectionId !== this.#selectionId) return;
         this.productArrangementCode = productArrangementCode ?? '';
+        this.marketSegment = marketSegment ?? this.marketSegment;
         this.#setError('offer', productArrangementCode ? '' : MISSING_PA_CODE_ERROR);
     };
 
@@ -418,8 +423,10 @@ export class MasCreateDialog extends LitElement {
                 name: this.normalizeFragmentName(this.title),
                 osi: this.osi,
                 surface: this.surface,
+                locale: this.filters.value.locale,
                 template: this.template,
                 productArrangementCode: this.productArrangementCode,
+                marketSegment: this.marketSegment,
             });
         } catch (error) {
             console.error(error.message, error.stack);
@@ -494,6 +501,9 @@ export class MasCreateDialog extends LitElement {
                                       PA code:
                                       <strong>${this.productArrangementCode || pendingProductArrangementCode}</strong>
                                   </p>
+                                  ${this.marketSegment
+                                      ? html`<p>Market segment: <strong>${this.marketSegment}</strong></p>`
+                                      : nothing}
                               </div>`
                         : nothing}
                     <sp-action-button

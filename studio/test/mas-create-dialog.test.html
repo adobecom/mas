@@ -294,6 +294,23 @@
                                 dialog.template = 'catalog';
                             });
 
+                            it('creates the baseline in the selected locale and market segment folder', async () => {
+                                const ensureFolderExists = sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
+                                sandbox
+                                    .stub(fragments, 'getByPath')
+                                    .rejects(Object.assign(new Error('Fragment not found'), { status: 404 }));
+                                const create = sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' });
+                                Store.filters.set((prev) => ({ ...prev, locale: 'fr_FR' }));
+                                dialog.marketSegment = 'EDU';
+
+                                await dialog.handleSubmit();
+                                Store.filters.set((prev) => ({ ...prev, locale: 'en_US' }));
+
+                                const folder = '/content/dam/mas/sandbox/fr_FR/baselines/catalog/ccsn_direct_individual/edu';
+                                expect(ensureFolderExists.calledOnceWithExactly(folder)).to.be.true;
+                                expect(create.firstCall.args[0].parentPath).to.equal(folder);
+                            });
+
                             it('ensures the baseline folder and checks for the baseline in the selected surface', async () => {
                                 const ensureFolderExists = sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 const getByPath = sandbox.stub(fragments, 'getByPath').resolves({ path: 'existing' });
@@ -348,9 +365,14 @@
                                 expect(create.firstCall.args[0]).to.deep.equal({
                                     modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
                                     title: 'Test Baseline',
-                                    name: 'test-baseline',
+                                    name: 'baseline',
                                     parentPath: '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual',
-                                    data: { osi: 'ABC123', variant: 'catalog', compatVersion: COMPAT_VERSION },
+                                    data: {
+                                        osi: 'ABC123',
+                                        cardTitle: 'Test Baseline',
+                                        variant: 'catalog',
+                                        compatVersion: COMPAT_VERSION,
+                                    },
                                 });
                             });
 
@@ -530,6 +552,22 @@
 
                             expect(dialog.productArrangementCode).to.equal('PA-OFFER');
                             expect(service.resolveOfferSelectors.called).to.be.false;
+                        });
+
+                        it('takes the market segment from the WCS lookup that resolves the PA code', async () => {
+                            service.resolveOfferSelectors.returns([
+                                Promise.resolve([{ productArrangementCode: 'PA-EDU', marketSegments: ['EDU'] }]),
+                            ]);
+
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', {
+                                    detail: { offerSelectorId: 'ABC123', offer: { market_segments: ['COM'] } },
+                                }),
+                            );
+                            await delay();
+
+                            expect(dialog.productArrangementCode).to.equal('PA-EDU');
+                            expect(dialog.marketSegment).to.equal('EDU');
                         });
 
                         it('shows a missing PA code error when the lookup returns no offers', async () => {

@@ -4,14 +4,15 @@ import {
     buildBaselineFolderPath,
     createBaseline,
     prepareBaselineFolder,
-    resolveProductArrangementCode,
+    resolveBaselineOffer,
 } from '../../src/baselines/baseline-model.js';
 import { COMPAT_VERSION, TAG_MERCH_CARD, TAG_MODEL_ID_MAPPING } from '../../src/constants.js';
 
-const FOLDER = '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual';
+const FOLDER = '/content/dam/mas/sandbox/fr_FR/baselines/catalog/ccsn_direct_individual';
 
 const baseline = {
     surface: 'sandbox',
+    locale: 'fr_FR',
     template: 'catalog',
     productArrangementCode: 'ccsn_direct_individual',
     name: 'my-baseline',
@@ -25,8 +26,16 @@ const createFragmentsApi = (getByPath) => ({
 });
 
 describe('baseline-model', () => {
-    it('builds the baseline folder path under en_US/baselines/<template>/<PA code>', () => {
+    it('builds the baseline folder path under <locale>/baselines/<template>/<PA code>', () => {
         expect(buildBaselineFolderPath(baseline)).to.equal(FOLDER);
+    });
+
+    it('keeps COM baselines in the PA code folder', () => {
+        expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'COM' })).to.equal(FOLDER);
+    });
+
+    it('puts segment overrides in a lower-cased segment folder under the PA code', () => {
+        expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'EDU' })).to.equal(`${FOLDER}/edu`);
     });
 
     it('ensures the baseline folder exists', async () => {
@@ -63,7 +72,7 @@ describe('baseline-model', () => {
         expect(fragmentsApi.getByPath.called).to.be.false;
     });
 
-    describe('resolveProductArrangementCode', () => {
+    describe('resolveBaselineOffer', () => {
         let service;
 
         beforeEach(() => {
@@ -75,22 +84,32 @@ describe('baseline-model', () => {
 
         afterEach(() => service.remove());
 
-        it('uses the PA code carried by the offer without a lookup', async () => {
-            expect(await resolveProductArrangementCode('OSI', { productArrangementCode: 'PA-1' })).to.equal('PA-1');
+        it('uses the PA code and segment carried by the offer without a lookup', async () => {
+            expect(
+                await resolveBaselineOffer('OSI', { productArrangementCode: 'PA-1', market_segments: ['EDU'] }),
+            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU' });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
-        it('resolves the PA code from the offer selector', async () => {
-            service.resolveOfferSelectors.returns([Promise.resolve([{ productArrangementCode: 'PA-2' }])]);
+        it('resolves the PA code and segment from the offer selector', async () => {
+            service.resolveOfferSelectors.returns([
+                Promise.resolve([{ productArrangementCode: 'PA-2', marketSegments: ['GOV'] }]),
+            ]);
 
-            expect(await resolveProductArrangementCode('OSI', {})).to.equal('PA-2');
+            expect(await resolveBaselineOffer('OSI', {})).to.deep.equal({
+                productArrangementCode: 'PA-2',
+                marketSegment: 'GOV',
+            });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
 
         it('gives up when the lookup does not settle in time', async () => {
             service.resolveOfferSelectors.returns([new Promise(() => {})]);
 
-            expect(await resolveProductArrangementCode('OSI', {}, 10)).to.be.undefined;
+            expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
+                productArrangementCode: undefined,
+                marketSegment: undefined,
+            });
         });
     });
 
@@ -119,9 +138,9 @@ describe('baseline-model', () => {
                 repository.createFragment.calledOnceWithExactly({
                     modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
                     title: 'My baseline',
-                    name: 'my-baseline',
+                    name: 'baseline',
                     parentPath: FOLDER,
-                    data: { osi: 'OSI', variant: 'catalog', compatVersion: COMPAT_VERSION },
+                    data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;
         });

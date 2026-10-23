@@ -1,6 +1,6 @@
 ---
 name: splunk-referer-analysis
-description: Analyze a Splunk LANA CSV export for one referer URL and decide whether the errors are an authoring issue or a code issue, with direct calls to action.
+description: Analyze one or more Splunk LANA CSV exports (one per referer URL, given or pulled from Splunk via the browser) and decide whether the errors are an authoring issue or a code issue. Always produces a Slack triage message for #mas-alert, plus an optional business message with reproducible, owner-assigned calls to action.
 ---
 
 Analyze the Splunk LANA export attached / referenced in the request and classify the
@@ -8,7 +8,83 @@ errors on that referer page as an **authoring** issue (content fragment misconfi
 or a **code** issue (io pipeline / merch-card / mas.js bug), then give direct,
 actionable calls to action.
 
-Input: `$ARGUMENTS` — a path to the CSV export (or it is attached to the message).
+Output: **always** a Slack-ready triage message for **#mas-alert** (the whole picture,
+reproduced or not), and **optionally** a Slack-ready **business message** for authors /
+promotion owners, only when a reproduced issue needs a human fix (see "Output format").
+
+Input: `$ARGUMENTS` — one or more paths to CSV exports (or attached to the message).
+With several exports, run the whole workflow per export (each is usually one referer),
+then merge the findings into a single report (see "Several exports").
+If no export is given, pull them yourself (see "Getting the exports from Splunk").
+When the request mentions **#mas-alert** (or "the alert"), do **not** open Slack or read
+the channel or the alert's saved search: go straight to the Splunk dashboard and pull
+the exports. The dashboard is the source of truth; the alert only says that something
+spiked.
+
+## Getting the exports from Splunk
+
+Use the chrome-devtools MCP browser. **Never type, ask for or store credentials**: open
+the dashboard, and if it lands on the Okta sign-in page, ask the user to sign in (SSO +
+MFA) in that browser window, then continue.
+
+1. Open the M@S LANA dashboard (default window: last 12 hours):
+   `https://splunk-us.corp.adobe.com/en-US/app/app_log_always_never_assume/ms_lana_logs?form.global_time.earliest=-12h%40h&form.global_time.latest=now&form.txt_filter=*`
+2. **List top sources** by running the dashboard's search through Splunk's REST API from
+   the page (`evaluate_script`), reusing the session: POST to
+   `/en-US/splunkd/__raw/servicesNS/<user>/app_log_always_never_assume/search/jobs`
+   with header `X-Splunk-Form-Key: <value of the splunkweb_csrf_token_* cookie>`, and
+   form fields `exec_mode=oneshot`, `output_mode=json`, `count=0`, `earliest_time`,
+   `latest_time` and:
+    ```
+    search index=lana_prod l_client=merch-at-scale
+    | rex field=_raw "referer=(?<referer>[^¦^?]+)"
+    | rex field=_raw "user-agent=(?<user_agent>[^¦]+)"
+    | eval source=if(referer="none", mvindex(split(user_agent, " "), -1), referer)
+    | stats count by source | sort - count
+    ```
+3. **Pick the referers**: the top N (ask the user, default 4) from `https://www.adobe.com/`
+   or Creative Cloud Desktop (a `referer=none` event, whose source is the last token of
+   its user agent). Skip Studio (`mas.adobe.com`), stage, `*.aem.page` and other hosts.
+4. **Create one job per referer** (same endpoint, without `exec_mode=oneshot`; keep the
+   returned `sid`):
+    ```
+    search index=lana_prod l_client=merch-at-scale
+    | rex field=_raw "referer=(?<referer>[^¦^?]+)"
+    | rex field=_raw "user-agent=(?<user_agent>[^¦]+)"
+    | where referer="<referer>" | table _time _raw referer user_agent
+    ```
+    Poll `/en-US/splunkd/__raw/services/search/jobs/<sid>?output_mode=json` until
+    `isDone`.
+5. **Download** each job by opening a new page on
+   `https://splunk-us.corp.adobe.com/en-US/api/search/jobs/<sid>/results?isDownload=true&maxLines=0&count=0&outputMode=csv&filename=lana-<slug>`.
+   `net::ERR_ABORTED` is expected (Chrome hands the response to the downloader); the
+   file lands in `~/Downloads/lana-<slug>.csv`. Check it's there, then parse it as usual.
+
+Pitfalls: Chrome blocks repeated blob (`a.download`) downloads from one page, the
+Splunk CSP blocks posting to a localhost receiver, and `oneshot` CSV starts with a blank
+line that breaks `csv.DictReader`. The job-results URL above avoids all three.
+
+## No reproduction, no call to action
+
+**Every issue you put in a call to action must come with a URL that reproduces it, and
+you must have opened that URL yourself and seen the failure** (headless Chrome via the
+repo's Playwright, or the chrome-devtools MCP). Splunk tells you _that_ something broke;
+only a reproduction tells you _what_ to fix and lets the owner confirm the fix.
+
+- Reproduce with the top sample referer from the export, plus the market parameters
+  `akamaiLocale=<geo>&country=<CC>` taken from the events' `facts` (country, locale).
+  Keep the campaign query keys (`sdid`, `mv`, `mv2`, …) if the failures cluster on them.
+- Count it as reproduced only when you observe the logged symptom on the page: the
+  failing element (`.placeholder-failed`, empty price, missing label, broken card) or the
+  same console/LANA message.
+- If you **cannot** reproduce it after honest attempts (vary geo, cookies such as
+  `ims_country_code`, device/user agent), **leave it out of the business message**. Report
+  it in the #mas-alert message under "Not reproduced": what the logs show, what you
+  tried, and what is still needed to reproduce it (e.g. a HAR from an affected session).
+  Never fill the gap with a guessed cause or an untested "How to check" URL.
+- A wrong guess is worse than no call to action: it sends someone to fix the wrong thing.
+  Only assert a cause (MEP, Target, promotion, author) after you've checked it against
+  live data.
 
 ## What the data is
 
@@ -75,13 +151,27 @@ Consequences for every number you report:
    fragment rendered as a card" below). This is what separates an authoring fault from a
    Milo autoblock/rollout fault — do it before you blame the author.
 
-6. **Build a Studio link** for each culprit fragment so the author/engineer can open it
+6. **Find the culprit card even when the parser finds none.** `culprit_fragment_ids` is
+   empty for price/checkout errors (`Commerce offer not found`, `Failed to format
+literal`): the id is not in the message. Read the OSI / promo code / country from the
+   events' `facts`, open the referer, and find the `merch-card` / `mas-field` whose
+   `data-wcs-osi` matches. Its fragment id (and `data-promotion-project` if any) is the
+   culprit (see "Offer not found: trace the OSI back to a card or promotion").
+
+7. **Reproduce** each issue you intend to report (see "No reproduction, no call to
+   action"). Record the exact URL that shows the failure.
+
+8. **Build a Studio link** for each culprit fragment so the author/engineer can open it
    in one click (see "Studio deep link" below).
 
-7. **Report** in the output format below. Lead with the verdict. Present all volumes
-   as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
-   Whenever a human must fix content, the call to action is a Slack-ready message
-   with human actions, cards to fix and sample pages (see "Whenever a human must act").
+9. **Name an owner for every action**: the author of the card, the owner of the
+   promotion project, the MEP manifest owner, or the M@S engineering team. "Someone
+   should…" is not a call to action.
+
+10. **Report** in the output format below. Lead with the verdict. Present all volumes
+    as sampling-scaled estimates per the "Sampling" section — never bare 1% counts.
+    Always write the #mas-alert triage message; add the business message only when a
+    reproduced issue needs a human fix (see "Output format").
 
 ## Studio deep link
 
@@ -93,6 +183,12 @@ https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<culprit-id>
 ```
 
 (`page=fragment-editor` and `fragmentId` are the router's hash keys — `studio/src/mas-fragment-editor.js` `getFragmentEditorUrl`, `studio/src/router.js`. Everything lives after the `#`.) One link per `culprit_fragment_ids` entry; label it so a non-engineer knows it opens the card. This link is the one piece of "technical" output that **is** allowed in an AUTHORING report — it's the author's fix entry point, not jargon.
+
+**Always use the full fragment UUID** (`xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), never a
+shortened id, in links and in text. A truncated id breaks the link and leaves work for the
+reader. Keep the full id in your notes; if you only have a prefix, get the full id again
+(export, the `id`/`fragment` attribute on the live page, or the fragment API) before
+writing the message.
 
 ## Variations must never be served directly
 
@@ -172,6 +268,46 @@ owner concrete links, not just prose:
 - If the swap targets the wrong fragment or a variation id, the fix is in the **manifest
   row** (change `all`/`selector`), not the card — say which row.
 
+## Offer not found: trace the OSI back to a card or promotion
+
+`inline-price` / `checkout-link: Failed to render: Commerce offer not found` means WCS
+returned no offer for the OSI in the pricing country. The event `facts` carry
+`offerSelectorIds`, `promotionCode`, `country`, `locale`, `language`.
+
+1. **Check the OSI per country** against WCS (same api key as the page):
+
+    ```sh
+    curl -s "https://www.adobe.com/web_commerce_artifact?offer_selector_ids=<osi>&country=<CC>&locale=en_<CC>&language=MULT&landscape=PUBLISHED&api_key=<wcs-api-key>[&promotion_code=<code>]"
+    ```
+
+    `resolvedOffers: []` in the logged country but offers elsewhere = the OSI is
+    market-restricted and is being priced in the wrong market.
+
+2. **Find who put the OSI on the page.** It is often **not** in the authored page
+   (`<referer>.plain.html`) nor in MEP manifests. io/www promotions substitute OSIs per
+   geo (`io/www/src/fragment/transformers/promotions.js`, `wcs.js`): the rendered element
+   carries `data-replaced-osi="<base osi>"` and its host carries
+   `data-promotion-project="<project>"` / `data-promotion-code`. Open the page in the
+   affected market and read those attributes; the fragment id on the host `mas-field` /
+   `merch-card` is the card, the project is the promotion.
+
+3. **Confirm delivery per country** — fetch the fragment with each relevant `country=`
+   and grep for the OSI. If io/www only substitutes for the right markets, delivery is
+   correct and the fault is a fragment-country vs pricing-country mismatch on the client
+   (the fragment request may use the `ims_country_code` cookie — `aem-fragment.js` —
+   while prices use the page country). That is a CODE finding, and it needs a
+   reproduction before it reaches anyone's backlog.
+
+## Literal formatting errors
+
+`Failed to format literal:` (`web-components/src/price/template.js` `formatLiteral`)
+logs only the literal text (in `facts[1]`); the label is replaced by `''`, so prices lose
+"/mo", tax labels, strikethrough/discount labels. If **every** literal of a locale fails
+(even `{discount}%`), the literals are fine and the problem is the locale passed to the
+formatter (e.g. an invalid BCP-47 tag) — CODE. If only one literal fails, its ICU syntax
+is broken — authoring of the price literals. Check the literal with
+`formatMessage(literal, '<lang>-<CC>', params)` in Node before deciding.
+
 ## Decision table
 
 Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
@@ -190,31 +326,69 @@ Ground truth for the merch-card messages is `web-components/src/hydrate.js`.
 | fetch `status` 5xx / 504 / timeout                                                                                                         | io pipeline failure                                                                                              | **CODE / pipeline** — investigate the fragment delivery pipeline                                                                                                                          |
 | high `retryCount` / `stale=true` / many `REVALIDATE`                                                                                       | cache thrash / origin unhealthy                                                                                  | **CODE / pipeline**                                                                                                                                                                       |
 | `status` 200 + cdn HIT + a client error message                                                                                            | delivery healthy                                                                                                 | **AUTHORING or client CODE** per the message                                                                                                                                              |
+| `Commerce offer not found` (`inline-price` / `checkout-link`)                                                                              | WCS has no offer for the OSI in the pricing country                                                              | OSI authored for wrong market = **AUTHORING**; promotion targets wrong geos = **promotion owner**; fragment/pricing country mismatch = **CODE** — see "Offer not found"                   |
+| `Failed to format literal:`                                                                                                                | ICU formatting of a price label threw; label rendered empty                                                      | all literals of a locale fail = **CODE** (locale); one literal fails = **AUTHORING** (literal syntax) — see "Literal formatting errors"                                                   |
+| mostly bot user agents (`bot`, `spider`, `crawl`)                                                                                          | crawler environment, not shoppers                                                                                | **No action** — mention as noise only                                                                                                                                                     |
 
 ## Output format
 
-**Do the classification and verification with the full technical picture, but tailor
-the report to the audience of the verdict.**
+Do the classification and verification with the full technical picture, then write
+**two Slack-ready messages**, each in its own fenced code block the user can paste as-is:
 
-### Whenever a human must act (AUTHORING verdict, or the content part of a MIXED one)
+1. **#mas-alert triage message — always.** For the M@S engineering team. Covers every
+   analysed referer, reproduced or not, so the alert is acknowledged with the facts.
+2. **Business message — optional.** For authors / promotion / MEP owners. Only
+   reproduced issues that need a human fix. No jargon.
 
-**Always** deliver the human call to action as a **Slack-ready message** in one fenced
-code block the user can paste as-is. It has three parts: what a person must do, the
+**Slack formatting rules** (both messages are pasted into the Slack composer, which does
+not parse link markup):
+
+- `*bold*` (single asterisks), `•` bullets, `:emoji:` codes, `` `code` `` for messages.
+- **Plain, full URLs only** — Slack auto-links them. Never `<url|label>` (it pastes
+  literally, leaving a stray `|label>` suffix) and never `[label](url)`.
+- **One URL per line.** Never chain URLs on one line with `·` or commas; put each on its
+  own indented line under its item.
+- No `##` headings, no tables, no `**double**` bold.
+
+### 1. #mas-alert triage message (always)
+
+The reader is an engineer. Technical detail is welcome (messages, fragment ids, Studio
+links, suspect code area, browser/UA clusters), but keep one block per referer, most
+impactful first. Every volume is a sampling-scaled estimate. Every issue ends in exactly
+one status: **reproduced** (with the URL you saw fail), **not reproduced** (what you tried
+and what is needed), or **no action** (noise: bots, unsold markets, secondary timeouts).
+Link any ticket you created or propose one (offer the `mwpw-ticket` skill).
+
+```
+:mag: *M@S LANA triage — <window, e.g. last 12h to Oct 22 07:45 CEST>*
+<1 line: alert(s) covered, total estimated volume, overall verdict, e.g. "No content fix needed; 1 code ticket opened.">
+
+*1. <referer path> — <CODE | AUTHORING | MIXED | NO ACTION>* (~<est.> events)
+• Error: `<dominant message>` (<share>%)<, secondary: `<msg>` (<share>%)>
+• Who/where: <locale/country, browser/OS/UA cluster, campaign keys if relevant>
+• Cause: <verified cause, or "unknown" + what is known>
+• Status: :white_check_mark: reproduced
+   https://www.adobe.com/<path>?akamaiLocale=<geo>&country=<CC>
+  | :x: not reproduced — tried <what>; needs <HAR / UA / market>
+  | :zzz: no action — <why>
+• Next: <owner> — <step> <ticket URL or "ticket proposed">
+   Studio: https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
+
+*2. …*
+
+*Business message:* <"sent below" | "none — nothing reproduced needs a content fix">
+```
+
+### 2. Business message (optional)
+
+Only when at least one **reproduced** issue needs a human fix (AUTHORING verdict, the
+content part of a MIXED one, or a promotion/MEP owner action). Deliver it as a second
+Slack-ready fenced code block. It has three parts: what a person must do, the
 cards to fix, and sample pages where the breakage shows.
 
 The reader is a content author, not an engineer. Strip all technical detail — no code
 paths, field names, etags, cache/status codes, fragment ids in prose, or internal file
 names. Name cards by their Studio **title** (fetch it from the live payload, step 3).
-
-**Slack formatting rules** (the message is pasted into the Slack composer, which does not
-parse link markup):
-
-- `*bold*` (single asterisks), `•` bullets, `:emoji:` codes.
-- **Plain, full URLs only** — Slack auto-links them. Never `<url|label>` (it pastes
-  literally, leaving a stray `|label>` suffix) and never `[label](url)`.
-- **One URL per line.** Never chain URLs on one line with `·` or commas; put each on its
-  own indented line under its card.
-- No `##` headings, no tables, no `**double**` bold.
 
 **Sample pages:** for every card, list the referer pages where its failure was seen,
 taken from the export (not guessed). Cross-tab culprit id × referer (strip query
@@ -226,7 +400,9 @@ instead of repeating them.
 URLs that simulate the affected market with the `akamaiLocale` (geo, lowercase) and
 `country` (uppercase) query parameters, one per affected market seen in the export
 (e.g. `country=IN` → `?akamaiLocale=in&country=IN`, `country=AU` →
-`?akamaiLocale=au&country=AU`). Use the top sample page.
+`?akamaiLocale=au&country=AU`). Use the top sample page. **Every one of these URLs must
+be one you opened and saw fail** (see "No reproduction, no call to action"); drop any you
+could not reproduce.
 
 ```
 :rotating_light: *<Short plain headline — what's broken, for whom>*
@@ -261,26 +437,37 @@ Thanks! :pray:
 Always include the Studio link for each card: it takes the author straight to the card
 that needs fixing. No MWPW code ticket for a pure authoring verdict.
 
-### When the verdict is CODE or MIXED
-
-The reader is an engineer. Include the evidence:
+With several exports, write **one** business message that only contains reproduced
+issues, grouped by owner:
 
 ```
-## Splunk referer analysis — <referer base URL>
-**Window:** <start> → <end> · **Events:** ~<100·N estimated> (raw sample <N>, ~1% sampling ⇒ ±~<1/√N>) · **Severity:** <...> · **Locale(s):** <...>
-**Verdict:** CODE | MIXED — <one-line root cause>
+:rotating_light: *<N> merch issues on adobe.com — <window>*
 
-### Evidence
-- Dominant message: "<msg>" — raw <count>/<N>, est. ~<100·count> occurrences
-- Culprit fragment: <id> → https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
-- Fetch health: <status / cdn / stale / retryCount / etag>
-- Suspect area: <io/www, hydrate.js, mas-commerce-service, …>
-- Note magnitude is a 1% sampling estimate; low-count secondary messages (raw <~10) are directional only.
+*1. <Owner> — <plain headline>* (~<est.> <unit>)
+<1 plain sentence: what shoppers see.>
+*What to do:* <imperative steps joined with →>
+   Studio: https://mas.adobe.com/studio.html#page=fragment-editor&fragmentId=<id>
+   Reproduce:
+   https://www.adobe.com/<path>?akamaiLocale=<geo>&country=<CC>
 
-### Calls to action
-1. <concrete engineering step>
-2. Propose a MWPW ticket (offer to run the `mwpw-ticket` skill).
+*2. …*
+
+*Not included (could not reproduce yet):* <page> — <one plain line>, being investigated.
+
+Thanks! :pray:
 ```
 
-For a **MIXED** verdict, follow the engineering report with the Slack-ready author
-message above, covering only the content part of the fix.
+If nothing reproduces, there is **no business message**: say so in the #mas-alert
+message ("No business action: nothing reproduced"). No message to the business is better
+than one that sends people after a guess.
+
+### Before you answer — self-check
+
+- Every fragment id and Studio link uses the **full UUID**, never a prefix.
+- Every action has an **owner**, imperative **steps**, a **Studio link** (if a card or
+  promotion is involved) and a **reproduce URL you opened and saw fail**.
+- Every asserted cause was verified against live data (fragment, WCS, page attributes).
+- The #mas-alert message is always there and gives every referer a status:
+  reproduced, not reproduced, or no action.
+- Unreproduced issues appear only in the #mas-alert message, never in the business one.
+- Business text has no jargon (MEP, Target, OSI, locale, geo-IP, file names).

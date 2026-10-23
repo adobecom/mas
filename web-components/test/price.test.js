@@ -94,26 +94,34 @@ describe('class "InlinePrice"', () => {
         expect(targetIsInlinePrice).to.be.true;
     });
 
-    it('re-dispatches click event', async () => {
+    it('does not register a click listener on the price element', async () => {
         await initMasCommerceService();
-        const inlinePrice = mockInlinePrice('puf3', 'puf');
-        let targetIsInlinePrice = false;
-        inlinePrice.addEventListener(
-            'click',
-            (event) => {
-                targetIsInlinePrice = event.target === inlinePrice;
-            },
-            { once: true },
-        );
+        const clickTargets = [];
+        const original = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function (type, ...args) {
+            if (type === 'click') clickTargets.push(this);
+            return original.call(this, type, ...args);
+        };
+        let inlinePrice;
+        try {
+            inlinePrice = mockInlinePrice('puf3', 'puf');
+            await inlinePrice.onceSettled();
+        } finally {
+            EventTarget.prototype.addEventListener = original;
+        }
+        expect(clickTargets).to.not.include(inlinePrice);
+    });
+
+    it('delivers a direct click on the price once', async () => {
+        await initMasCommerceService();
+        const inlinePrice = mockInlinePrice('puf4', 'puf');
         await inlinePrice.onceSettled();
-        inlinePrice.firstElementChild.dispatchEvent(
-            new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-            }),
+        let count = 0;
+        inlinePrice.addEventListener('click', () => count++);
+        inlinePrice.dispatchEvent(
+            new MouseEvent('click', { bubbles: true, cancelable: true }),
         );
-        expect(targetIsInlinePrice).to.be.true;
+        expect(count).to.equal(1);
     });
 
     it('renders strikethrough price', async () => {

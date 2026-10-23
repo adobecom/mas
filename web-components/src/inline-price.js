@@ -414,11 +414,6 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
         return element;
     }
 
-    constructor() {
-        super();
-        this.handleClick = this.handleClick.bind(this);
-    }
-
     get isInlinePrice() {
         return true;
     }
@@ -431,26 +426,10 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
 
     connectedCallback() {
         this.masElement.connectedCallback();
-        this.addEventListener('click', this.handleClick);
     }
 
     disconnectedCallback() {
         this.masElement.disconnectedCallback();
-        this.removeEventListener('click', this.handleClick);
-    }
-
-    handleClick(event) {
-        /* c8 ignore next 4 */
-        if (event.target === this) return;
-        // re-dispatch click event from the price element
-        event.stopImmediatePropagation();
-        this.dispatchEvent(
-            new MouseEvent('click', {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-            }),
-        );
     }
 
     onceSettled() {
@@ -584,6 +563,26 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
         /* c8 ignore next 1 */
         return false;
     }
+}
+
+// Element-level click listeners make screen readers announce price text as
+// "clickable" (MWPW-204497), so the re-dispatch lives on the document instead.
+function retargetPriceClick(event) {
+    const price = event.target?.closest?.('span[is="inline-price"]');
+    if (!price || event.target === price) return;
+    event.stopImmediatePropagation();
+    price.dispatchEvent(
+        new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+        }),
+    );
+}
+
+if (globalThis.document && !globalThis.__masInlinePriceClickRetarget) {
+    globalThis.__masInlinePriceClickRetarget = true;
+    globalThis.document.addEventListener('click', retargetPriceClick, true);
 }
 
 // Define custom DOM element

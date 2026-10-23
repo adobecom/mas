@@ -1,4 +1,3 @@
-import { html } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './headless.css.js';
 import { HEADLESS_FAMILY_STYLE } from './headless.js';
@@ -53,10 +52,10 @@ export class Faq extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             <div class="headless">
                 ${FAQ_FIELDS.map(
-                    ({ slot, label }) => html`
+                    ({ slot, label }) => `
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
                             <span class="headless-value">
@@ -64,7 +63,7 @@ export class Faq extends VariantLayout {
                             </span>
                         </div>
                     `,
-                )}
+                ).join('')}
             </div>
         `;
     }

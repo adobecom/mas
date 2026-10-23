@@ -50,6 +50,7 @@ export {
 } from './constants.js';
 export {
     clearForegroundTimeout,
+    escapeHTML,
     createTag,
     debounce,
     getHeadlessCtaVariant,

@@ -1,5 +1,4 @@
-import { html } from '../lite.js';
-import { createTag } from '../utils.js';
+import { createTag, escapeHTML } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart.css.js';
 import Media from '../media.js';
@@ -202,19 +201,19 @@ export class MiniCompareChart extends VariantLayout {
 
     getMiniCompareFooter = () => {
         const secureLabel = this.card.secureLabel
-            ? html`<slot name="secure-transaction-label">
+            ? `<slot name="secure-transaction-label">
                   <span class="secure-transaction-label"
-                      >${this.card.secureLabel}</span
+                      >${escapeHTML(this.card.secureLabel)}</span
                   ></slot
               >`
-            : html`<slot name="secure-transaction-label"></slot>`;
+            : `<slot name="secure-transaction-label"></slot>`;
         if (this.isNewVariant) {
-            return html`<footer>
+            return `<footer>
                 ${secureLabel}
                 <p class="action-area"><slot name="footer"></slot></p>
             </footer>`;
         }
-        return html`<footer>${secureLabel}<slot name="footer"></slot></footer>`;
+        return `<footer>${secureLabel}<slot name="footer"></slot></footer>`;
     };
 
     adjustMiniCompareBodySlots() {
@@ -742,29 +741,31 @@ export class MiniCompareChart extends VariantLayout {
 
     renderLayout() {
         if (!this.isNewVariant) {
-            return html` <div class="top-section${this.badge ? ' badge' : ''}">
+            return ` <div class="top-section${this.badge ? ' badge' : ''}">
                     <slot name="icons"></slot> ${this.badge}
                 </div>
                 <slot name="heading-m"></slot>
-                ${this.card.classList.contains('bullet-list')
-                    ? html`<slot name="heading-m-price"></slot>
+                ${
+                    this.card.classList.contains('bullet-list')
+                        ? `<slot name="heading-m-price"></slot>
                           <slot name="price-commitment"></slot>
                           <slot name="body-xxs"></slot>
                           <slot name="promo-text"></slot>
                           <slot name="body-m"></slot>
                           <slot name="offers"></slot>`
-                    : html`<slot name="body-m"></slot>
+                        : `<slot name="body-m"></slot>
                           <slot name="heading-m-price"></slot>
                           <slot name="body-xxs"></slot>
                           <slot name="price-commitment"></slot>
                           <slot name="offers"></slot>
-                          <slot name="promo-text"></slot> `}
+                          <slot name="promo-text"></slot> `
+                }
                 <slot name="callout-content"></slot>
                 <slot name="addon"></slot>
                 ${this.getMiniCompareFooter()}
                 <slot name="footer-rows"><slot name="body-s"></slot></slot>`;
         }
-        return html` <div class="top-section${this.badge ? ' badge' : ''}">
+        return ` <div class="top-section${this.badge ? ' badge' : ''}">
                 <slot name="icons"></slot> ${this.badge}
                 <slot name="badge"></slot>
             </div>

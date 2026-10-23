@@ -380,3 +380,23 @@ export function resolveMasIOUrl(value) {
         return runtimeUrl(`14257-merchatscale-${value}`);
     return resolveMasIOHost(value);
 }
+
+const HTML_ESCAPES = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+};
+
+/**
+ * Escapes a value for use in HTML text or a quoted attribute.
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function escapeHTML(value) {
+    return String(value ?? '').replace(
+        /[&<>"']/g,
+        (char) => HTML_ESCAPES[char],
+    );
+}

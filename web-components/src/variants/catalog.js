@@ -1,6 +1,5 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from '../lite.js';
-import { isMobileOrTablet } from '../utils.js';
+import { escapeHTML, isMobileOrTablet } from '../utils.js';
 import { EVENT_MERCH_CARD_ACTION_MENU_TOGGLE } from '../constants.js';
 import { CSS } from './catalog.css.js';
 import { css } from '../css.js';
@@ -65,49 +64,22 @@ export class Catalog extends VariantLayout {
     }
 
     renderLayout() {
-        return html` <div class="body">
-                <div class="top-section">
-                    <slot name="icons"></slot> ${this.badge}
-                    <div
-                        class="action-menu
-                ${this.slottedContent
-                            ? isMobileOrTablet() && this.card.actionMenu
-                                ? 'always-visible'
-                                : 'invisible'
-                            : 'hidden'}"
-                        @click="${this.toggleActionMenu}"
-                        @keypress="${this.toggleActionMenu}"
-                        @focus="${this.showActionMenuOnHover}"
-                        @blur="${this.hideActionMenuOnBlur}"
-                        tabindex="0"
-                        aria-expanded="false"
-                        aria-hidden="false"
-                        role="button"
-                    >
-                        ${this.card.actionMenuLabel} - ${this.card.title}
-                    </div>
-                </div>
-                <slot
-                    name="action-menu-content"
-                    class="action-menu-content
-            ${!this.card.actionMenuContent ? 'hidden' : ''}"
-                    >${this.card.actionMenuContent}
-                </slot>
-                <slot name="heading-xs"></slot>
-                <slot name="heading-m"></slot>
-                <slot name="body-xxs"></slot>
-                ${!this.promoBottom
-                    ? html`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                    : ''}
-                <slot name="body-xs"></slot>
-                ${this.promoBottom
-                    ? html`<slot name="promo-text"></slot
-                          ><slot name="callout-content"></slot>`
-                    : ''}
-            </div>
-            ${this.secureLabelFooter}
-            <slot></slot>`;
+        const actionMenuClass = this.slottedContent
+            ? isMobileOrTablet() && this.card.actionMenu
+                ? 'always-visible'
+                : 'invisible'
+            : 'hidden';
+        const promo =
+            '<slot name="promo-text"></slot><slot name="callout-content"></slot>';
+        return `<div class="body"><div class="top-section"><slot name="icons"></slot> ${this.badge}<div class="action-menu ${actionMenuClass}" tabindex="0" aria-expanded="false" aria-hidden="false" role="button">${escapeHTML(this.card.actionMenuLabel)} - ${escapeHTML(this.card.title)}</div></div><slot name="action-menu-content" class="action-menu-content ${!this.card.actionMenuContent ? 'hidden' : ''}">${escapeHTML(this.card.actionMenuContent)}</slot><slot name="heading-xs"></slot><slot name="heading-m"></slot><slot name="body-xxs"></slot>${!this.promoBottom ? promo : ''}<slot name="body-xs"></slot>${this.promoBottom ? promo : ''}</div>${this.secureLabelFooter}<slot></slot>`;
+    }
+
+    bindEvents(root) {
+        const actionMenu = root.querySelector('.action-menu');
+        actionMenu.addEventListener('click', this.toggleActionMenu);
+        actionMenu.addEventListener('keypress', this.toggleActionMenu);
+        actionMenu.addEventListener('focus', this.showActionMenuOnHover);
+        actionMenu.addEventListener('blur', this.hideActionMenuOnBlur);
     }
 
     getGlobalCSS() {

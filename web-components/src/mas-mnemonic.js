@@ -1,5 +1,5 @@
-import { LiteElement, html, nothing, unsafeHTML, ifDefined } from './lite.js';
 import { css } from './css.js';
+import { escapeHTML } from './utils.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -10,32 +10,22 @@ function hasSpectrumTooltip() {
     );
 }
 
-export default class MasMnemonic extends LiteElement {
+export default class MasMnemonic extends HTMLElement {
     static activeTooltip = null;
 
-    static properties = {
-        content: { type: String },
-        placement: { type: String },
-        variant: { type: String },
-        // Icon-based tooltip properties
-        src: { type: String },
-        size: { type: String },
-        tooltipText: { type: String, attribute: 'tooltip-text' },
-        tooltipPlacement: { type: String, attribute: 'tooltip-placement' },
-        // Support studio's mnemonic attribute names
-        mnemonicText: { type: String, attribute: 'mnemonic-text' },
-        mnemonicPlacement: { type: String, attribute: 'mnemonic-placement' },
-        alt: { type: String },
-        // Opt-in viewport-aware JS positioning (used by fries cards)
-        smartPlacement: { type: Boolean, attribute: 'smart-placement' },
-        // Tooltip visibility state
-        tooltipVisible: { type: Boolean, state: true },
-        // Computed positioning state for CSS fallback tooltip
-        _tooltipTop: { type: Number, state: true },
-        _tooltipLeft: { type: Number, state: true },
-        _arrowOffset: { type: Number, state: true },
-        _computedPlacement: { type: String, state: true },
-    };
+    static observedAttributes = [
+        'content',
+        'placement',
+        'variant',
+        'src',
+        'size',
+        'tooltip-text',
+        'tooltip-placement',
+        'mnemonic-text',
+        'mnemonic-placement',
+        'alt',
+        'smart-placement',
+    ];
 
     static styles = css`
         :host {
@@ -213,24 +203,174 @@ export default class MasMnemonic extends LiteElement {
         }
     `;
 
+    #markup;
+    #tooltipVisible = false;
+    #tooltipTop = 0;
+    #tooltipLeft = 0;
+    #arrowOffset = 0;
+    #computedPlacement = 'top';
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
+
     constructor() {
         super();
-        this.content = '';
-        this.placement = 'top';
-        this.variant = '';
-        this.size = 'xs';
-        this.smartPlacement = false;
-        this.tooltipVisible = false;
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
         this.lastPointerType = null;
         this.handleClickOutside = this.handleClickOutside.bind(this);
-        this._tooltipTop = 0;
-        this._tooltipLeft = 0;
-        this._arrowOffset = 0;
-        this._computedPlacement = 'top';
+        this.requestUpdate();
+    }
+
+    get content() {
+        return this.getAttribute('content') ?? '';
+    }
+
+    set content(value) {
+        setAttribute(this, 'content', value);
+    }
+
+    get placement() {
+        return this.getAttribute('placement') ?? 'top';
+    }
+
+    set placement(value) {
+        setAttribute(this, 'placement', value);
+    }
+
+    get variant() {
+        return this.getAttribute('variant') ?? '';
+    }
+
+    set variant(value) {
+        setAttribute(this, 'variant', value);
+    }
+
+    get src() {
+        return this.getAttribute('src') ?? undefined;
+    }
+
+    set src(value) {
+        setAttribute(this, 'src', value);
+    }
+
+    get size() {
+        return this.getAttribute('size') ?? 'xs';
+    }
+
+    set size(value) {
+        setAttribute(this, 'size', value);
+    }
+
+    get tooltipText() {
+        return this.getAttribute('tooltip-text') ?? undefined;
+    }
+
+    set tooltipText(value) {
+        setAttribute(this, 'tooltip-text', value);
+    }
+
+    get tooltipPlacement() {
+        return this.getAttribute('tooltip-placement') ?? undefined;
+    }
+
+    set tooltipPlacement(value) {
+        setAttribute(this, 'tooltip-placement', value);
+    }
+
+    get mnemonicText() {
+        return this.getAttribute('mnemonic-text') ?? undefined;
+    }
+
+    set mnemonicText(value) {
+        setAttribute(this, 'mnemonic-text', value);
+    }
+
+    get mnemonicPlacement() {
+        return this.getAttribute('mnemonic-placement') ?? undefined;
+    }
+
+    set mnemonicPlacement(value) {
+        setAttribute(this, 'mnemonic-placement', value);
+    }
+
+    get alt() {
+        return this.getAttribute('alt') ?? undefined;
+    }
+
+    set alt(value) {
+        setAttribute(this, 'alt', value);
+    }
+
+    get smartPlacement() {
+        return this.hasAttribute('smart-placement');
+    }
+
+    set smartPlacement(value) {
+        this.toggleAttribute('smart-placement', Boolean(value));
+    }
+
+    get tooltipVisible() {
+        return this.#tooltipVisible;
+    }
+
+    set tooltipVisible(value) {
+        if (Object.is(value, this.#tooltipVisible)) return;
+        this.#tooltipVisible = value;
+        this.requestUpdate();
+    }
+
+    get _tooltipTop() {
+        return this.#tooltipTop;
+    }
+
+    set _tooltipTop(value) {
+        if (Object.is(value, this.#tooltipTop)) return;
+        this.#tooltipTop = value;
+        this.requestUpdate();
+    }
+
+    get _tooltipLeft() {
+        return this.#tooltipLeft;
+    }
+
+    set _tooltipLeft(value) {
+        if (Object.is(value, this.#tooltipLeft)) return;
+        this.#tooltipLeft = value;
+        this.requestUpdate();
+    }
+
+    get _arrowOffset() {
+        return this.#arrowOffset;
+    }
+
+    set _arrowOffset(value) {
+        if (Object.is(value, this.#arrowOffset)) return;
+        this.#arrowOffset = value;
+        this.requestUpdate();
+    }
+
+    get _computedPlacement() {
+        return this.#computedPlacement;
+    }
+
+    set _computedPlacement(value) {
+        if (Object.is(value, this.#computedPlacement)) return;
+        this.#computedPlacement = value;
+        this.requestUpdate();
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        for (const property of PROPERTIES) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
+        this.#resolveConnected();
         window.addEventListener('mousedown', this.handleClickOutside);
         // Auto-enable viewport-aware positioning inside fries cards.
         if (
@@ -242,8 +382,30 @@ export default class MasMnemonic extends LiteElement {
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         window.removeEventListener('mousedown', this.handleClickOutside);
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue !== value) this.requestUpdate();
+    }
+
+    requestUpdate() {
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        this.#updatePending = false;
+        this.#render();
+        return true;
     }
 
     handleClickOutside(event) {
@@ -376,95 +538,99 @@ export default class MasMnemonic extends LiteElement {
         );
     }
 
-    renderIcon() {
-        if (!this.src) return html`<slot></slot>`;
-        return html`<merch-icon
-            src="${this.src}"
-            size="${this.size}"
-        ></merch-icon>`;
+    get iconMarkup() {
+        if (!this.src) return '<slot></slot>';
+        return `<merch-icon src="${escapeHTML(this.src)}" size="${escapeHTML(this.size)}"></merch-icon>`;
     }
 
-    render() {
+    get contentMarkup() {
         const content = this.effectiveContent;
-        const placement = this.effectivePlacement;
-
-        if (!content) {
-            return html`<span class="icon-only">${this.renderIcon()}</span>`;
-        }
-
+        const placement = escapeHTML(this.effectivePlacement);
+        const icon = this.iconMarkup;
+        if (!content) return `<span class="icon-only">${icon}</span>`;
         // Check for Spectrum components at render time for better timing
-        const useSpectrum = hasSpectrumTooltip();
-
-        if (useSpectrum) {
-            return html`
-                <overlay-trigger
-                    placement="${placement}"
-                    @sp-opened=${() => this.showTooltip()}
-                >
-                    <span slot="trigger">${this.renderIcon()}</span>
-                    <sp-tooltip
-                        slot="hover-content"
-                        placement="${placement}"
-                        variant="${this.variant}"
-                    >
-                        ${unsafeHTML(content)}
-                    </sp-tooltip>
-                </overlay-trigger>
-            `;
+        if (hasSpectrumTooltip()) {
+            return `<overlay-trigger placement="${placement}">
+                <span slot="trigger">${icon}</span>
+                <sp-tooltip slot="hover-content" placement="${placement}" variant="${escapeHTML(this.variant)}">${content}</sp-tooltip>
+            </overlay-trigger>`;
         }
+        const plainContent = escapeHTML(content.replace(/<[^>]*>/g, ''));
+        const tip = this.smartPlacement
+            ? '<span aria-hidden="true" role="presentation" class="css-tooltip-tip"></span>'
+            : '';
+        return `<span class="css-tooltip ${this.smartPlacement ? 'smart' : placement}" tabindex="0" role="img" aria-label="${plainContent}">
+            ${icon}
+            <span class="css-tooltip-body">${content}${tip}</span>
+        </span>`;
+    }
 
-        const plainContent = content.replace(/<[^>]*>/g, '');
-        const visibleClass = this.tooltipVisible ? 'tooltip-visible' : '';
-        const pointerHandlers = {
-            pointerdown: (e) => {
-                this.lastPointerType = e.pointerType;
-            },
-            pointerenter: (e) =>
-                e.pointerType !== 'touch' && this.showTooltip(),
-            pointerleave: (e) =>
-                e.pointerType !== 'touch' && this.hideTooltip(),
-            click: (e) => {
-                if (this.lastPointerType === 'touch') this.handleTap(e);
-                this.lastPointerType = null;
-            },
-        };
+    #bindListeners() {
+        this.shadowRoot
+            .querySelector('overlay-trigger')
+            ?.addEventListener('sp-opened', () => this.showTooltip());
+        const wrapper = this.shadowRoot.querySelector('.css-tooltip');
+        if (!wrapper) return;
+        wrapper.addEventListener('pointerdown', (e) => {
+            this.lastPointerType = e.pointerType;
+        });
+        wrapper.addEventListener(
+            'pointerenter',
+            (e) => e.pointerType !== 'touch' && this.showTooltip(),
+        );
+        wrapper.addEventListener(
+            'pointerleave',
+            (e) => e.pointerType !== 'touch' && this.hideTooltip(),
+        );
+        wrapper.addEventListener('click', (e) => {
+            if (this.lastPointerType === 'touch') this.handleTap(e);
+            this.lastPointerType = null;
+        });
+    }
+
+    #render() {
+        const markup = this.contentMarkup;
+        if (markup !== this.#markup) {
+            this.#markup = markup;
+            this.shadowRoot.innerHTML = markup;
+            this.#bindListeners();
+        }
+        const wrapper = this.shadowRoot.querySelector('.css-tooltip');
+        if (!wrapper) return;
+        wrapper.classList.toggle('tooltip-visible', this.tooltipVisible);
+        if (!this.smartPlacement) return;
         const cp = this._computedPlacement;
         const isHorizontal = cp === 'top' || cp === 'bottom';
-        const bodyStyle = this.smartPlacement
-            ? `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`
-            : undefined;
-        const tipOffset = isHorizontal
+        wrapper.querySelector('.css-tooltip-body').style.cssText =
+            `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`;
+        const tip = wrapper.querySelector('.css-tooltip-tip');
+        tip.className = `css-tooltip-tip ${cp}`;
+        tip.style.cssText = isHorizontal
             ? `left:${this._arrowOffset}px`
             : `top:${this._arrowOffset}px`;
-
-        return html`
-            <span
-                class="css-tooltip ${this.smartPlacement
-                    ? 'smart'
-                    : placement} ${visibleClass}"
-                tabindex="0"
-                role="img"
-                aria-label="${plainContent}"
-                @pointerdown=${pointerHandlers.pointerdown}
-                @pointerenter=${pointerHandlers.pointerenter}
-                @pointerleave=${pointerHandlers.pointerleave}
-                @click=${pointerHandlers.click}
-            >
-                ${this.renderIcon()}
-                <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
-                    ${unsafeHTML(content)}
-                    ${this.smartPlacement
-                        ? html`<span
-                              aria-hidden="true"
-                              role="presentation"
-                              class="css-tooltip-tip ${cp}"
-                              style="${tipOffset}"
-                          ></span>`
-                        : nothing}
-                </span>
-            </span>
-        `;
     }
 }
+
+const PROPERTIES = [
+    'content',
+    'placement',
+    'variant',
+    'src',
+    'size',
+    'tooltipText',
+    'tooltipPlacement',
+    'mnemonicText',
+    'mnemonicPlacement',
+    'alt',
+    'smartPlacement',
+];
+
+function setAttribute(element, name, value) {
+    if (value == null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MasMnemonic.styles);
 
 customElements.define('mas-mnemonic', MasMnemonic);

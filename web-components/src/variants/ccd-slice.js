@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout.js';
-import { html } from 'lit';
 import { CSS } from './ccd-slice.css.js';
 import { css } from '../css.js';
 
@@ -18,7 +17,7 @@ export class CCDSlice extends VariantLayout {
     }
 
     renderLayout() {
-        return html` <div class="content">
+        return ` <div class="content">
                 <div class="top-section">
                     <slot name="icons"></slot>
                     ${this.badge}

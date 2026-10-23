@@ -313,6 +313,55 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: tagExists', () => {
+        afterEach(() => {
+            delete window.fetch;
+        });
+
+        it('returns true when the tag exists', async () => {
+            window.fetch = async () => ({ ok: true, status: 200 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.true;
+        });
+
+        it('requests the tag JSON with GET', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn');
+
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/product_code/ccsn.json`);
+            expect(calls[0].options.method).to.equal('GET');
+        });
+
+        it('throws a network error when the request fails', async () => {
+            window.fetch = async () => {
+                throw new Error('offline');
+            };
+
+            const error = await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Network error: offline');
+        });
+
+        it('returns false when the tag is not found', async () => {
+            window.fetch = async () => ({ ok: false, status: 404 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.false;
+        });
+
+        it('throws on an unexpected status', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+
+            const error = await aem.tagExists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Failed to check tag: 500 Server Error');
+        });
+    });
+
     describe('method: createTag', () => {
         let originalGetCsrfToken;
 

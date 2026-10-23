@@ -95,6 +95,21 @@
                             dialog.close();
                         });
 
+                        const stubBaselineCreation = () => {
+                            const repository = document.querySelector('mas-repository');
+                            return {
+                                ensureFolderExists: sandbox
+                                    .stub(repository.aem.sites.cf.fragments, 'ensureFolderExists')
+                                    .resolves(),
+                                createFragment: sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' }),
+                            };
+                        };
+
+                        const expectNoBaselineCreated = ({ ensureFolderExists, createFragment }) => {
+                            expect(ensureFolderExists.called).to.be.false;
+                            expect(createFragment.called).to.be.false;
+                        };
+
                         it('reports a failed PA code lookup inline only and clears the PA code', async () => {
                             const toast = sandbox.stub(Events.toast, 'emit');
                             service.resolveOfferSelectors.returns([Promise.reject(new Error('Lookup failed'))]);
@@ -120,12 +135,12 @@
                                     detail: { offerSelectorId: 'ABC123', offer: {} },
                                 }),
                             );
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                             expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
                                 'No PA code found for this offer',
@@ -154,7 +169,6 @@
                                 }),
                             );
                             await delay();
-                            await dialog.updateComplete;
 
                             expect(dialog.productArrangementCode).to.equal('');
                             expect(dialog.shadowRoot.querySelector('#offer-error').textContent.trim()).to.equal(
@@ -164,13 +178,13 @@
 
                         it('rejects a title without letters or digits', async () => {
                             dialog.title = '!!!';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
                             const titleField = dialog.shadowRoot.querySelector('#fragment-title');
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                             expect(titleField.getAttribute('aria-describedby')).to.equal('title-error');
                             expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
@@ -187,11 +201,12 @@
 
                         it('blocks baseline creation without a PA code', async () => {
                             dialog.osi = 'ABC123';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            dialog.template = 'catalog';
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.loading).to.be.false;
                         });
 
@@ -203,9 +218,56 @@
                             expect(dialog.offerSelectorOpened).to.be.false;
                         });
 
-                        it('exposes accessible labels and errors on an empty offer', async () => {
-                            sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                        it('resets the product code on close', () => {
+                            dialog.productCode = 'CCSN';
 
+                            dialog.close();
+
+                            expect(dialog.productCode).to.equal('');
+                        });
+
+                        it('stores the product code carried by the selected offer', async () => {
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', {
+                                    detail: {
+                                        offerSelectorId: 'ABC123',
+                                        offer: { productArrangementCode: 'PA-1', product_code: 'CCSN' },
+                                    },
+                                }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('CCSN');
+                        });
+
+                        it('takes the product code from the WCS lookup', async () => {
+                            service.resolveOfferSelectors.returns([
+                                Promise.resolve([
+                                    { productArrangementCode: 'PA-1', productArrangement: { productCode: 'PHSP' } },
+                                ]),
+                            ]);
+
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('PHSP');
+                        });
+
+                        it('clears the previous product code while the new offer lookup is pending', async () => {
+                            service.resolveOfferSelectors.returns([new Promise(() => {})]);
+                            dialog.productCode = 'OLD';
+
+                            document.dispatchEvent(
+                                new CustomEvent('ost-offer-select', { detail: { offerSelectorId: 'ABC123', offer: {} } }),
+                            );
+                            await delay();
+
+                            expect(dialog.productCode).to.equal('');
+                        });
+
+                        it('exposes accessible labels and errors on an empty offer', async () => {
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
@@ -266,7 +328,6 @@
                                 }),
                             );
                             await delay();
-                            await dialog.updateComplete;
 
                             const changeButton = dialog.shadowRoot.querySelector(
                                 '[aria-labelledby="offer-label"] sp-action-button',
@@ -282,14 +343,17 @@
                         describe('on create', () => {
                             let fragments;
                             let repository;
+                            let tagExists;
 
                             beforeEach(() => {
                                 repository = document.querySelector('mas-repository');
                                 fragments = repository.aem.sites.cf.fragments;
+                                tagExists = sandbox.stub(repository.aem.tags, 'exists').resolves(true);
                                 sandbox.stub(console, 'error');
                                 sandbox.stub(router, 'navigateToFragmentEditor').resolves();
                                 dialog.osi = 'ABC123';
                                 dialog.productArrangementCode = 'ccsn_direct_individual';
+                                dialog.productCode = 'CCSN';
                                 Store.search.set((prev) => ({ ...prev, path: 'sandbox' }));
                                 dialog.template = 'catalog';
                             });
@@ -324,29 +388,43 @@
                                 ).to.be.true;
                                 expect(getByPath.calledOnce).to.be.true;
                                 expect(getByPath.firstCall.args[0]).to.equal(
-                                    '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual/test-baseline',
+                                    '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual/baseline',
                                 );
                             });
 
-                            it('shows a validation error and does not create when the baseline already exists', async () => {
+                            it('shows the existing baseline error on the offer field and does not create', async () => {
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox.stub(fragments, 'getByPath').resolves({ path: 'existing' });
                                 const create = sandbox.stub(repository, 'createFragment');
-                                dialog.touched = { ...dialog.touched, title: true };
+                                dialog.title = 'Test Baseline';
 
                                 await dialog.handleSubmit();
                                 await dialog.updateComplete;
-                                const titleField = dialog.shadowRoot.querySelector('#fragment-title');
-                                await titleField.updateComplete;
-                                await titleField.updateComplete;
+                                const root = dialog.shadowRoot;
+                                const offerButton = root.querySelector('[aria-labelledby="offer-label"] sp-action-button');
 
                                 expect(create.called).to.be.false;
                                 expect(dialog.loading).to.be.false;
-                                expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
-                                    'A baseline with this title already exists',
+                                expect(root.querySelector('#offer-error').textContent.trim()).to.equal(
+                                    'The baseline for this product code and market segment already exists.',
                                 );
-                                expect(titleField.invalid).to.be.true;
-                                expect(titleField.valid).to.be.false;
+                                expect(offerButton.getAttribute('aria-invalid')).to.equal('true');
+                                expect(root.querySelector('#title-error')).to.not.exist;
+                                expect(root.querySelector('#fragment-title').invalid).to.be.false;
+                            });
+
+                            it('creates the baseline without tags that do not exist and shows no error', async () => {
+                                tagExists.resolves(false);
+                                sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
+                                sandbox
+                                    .stub(fragments, 'getByPath')
+                                    .rejects(Object.assign(new Error('Fragment not found'), { status: 404 }));
+                                const create = sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' });
+
+                                await dialog.handleSubmit();
+
+                                expect(create.firstCall.args[0].tags).to.deep.equal([]);
+                                expect(dialog.errors.offer).to.equal('');
                             });
 
                             it('creates a Card fragment in the baseline folder', async () => {
@@ -367,6 +445,11 @@
                                     title: 'Test Baseline',
                                     name: 'baseline',
                                     parentPath: '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual',
+                                    tags: [
+                                        '/content/cq:tags/mas/product_code/ccsn',
+                                        '/content/cq:tags/mas/market_segments/com',
+                                        '/content/cq:tags/mas/product_arrangement_code/ccsn_direct_individual',
+                                    ],
                                     data: {
                                         osi: 'ABC123',
                                         cardTitle: 'Test Baseline',
@@ -478,24 +561,41 @@
                             });
                         });
 
-                        it('clears the existing baseline error when the title changes', async () => {
-                            dialog.errors = { ...dialog.errors, title: 'A baseline with this title already exists' };
-
-                            dialog.handleTitleChange('Another Baseline');
+                        const changeTemplate = async (value) => {
+                            const picker = dialog.shadowRoot.querySelector('variant-picker#template');
+                            picker.value = value;
+                            picker.dispatchEvent(new Event('change'));
                             await dialog.updateComplete;
+                        };
 
-                            expect(dialog.shadowRoot.querySelector('#title-error')).to.not.exist;
+                        it('clears the existing baseline error when the template changes', async () => {
+                            dialog.errors = {
+                                ...dialog.errors,
+                                offer: 'The baseline for this product code and market segment already exists.',
+                            };
+
+                            await changeTemplate('plans');
+
+                            expect(dialog.errors.offer).to.equal('');
+                        });
+
+                        it('keeps the missing PA code error when the template changes', async () => {
+                            dialog.errors = { ...dialog.errors, offer: 'No PA code found for this offer' };
+
+                            await changeTemplate('plans');
+
+                            expect(dialog.errors.offer).to.equal('No PA code found for this offer');
                         });
 
                         it('blocks baseline creation without a template', async () => {
                             dialog.osi = 'ABC123';
                             dialog.productArrangementCode = 'PA-123';
-                            const create = sandbox.stub(dialog, 'tryToCreateFragment').resolves(true);
+                            const creation = stubBaselineCreation();
 
                             await dialog.handleSubmit();
                             await dialog.updateComplete;
 
-                            expect(create.called).to.be.false;
+                            expectNoBaselineCreated(creation);
                             expect(dialog.shadowRoot.querySelector('#template-error').textContent.trim()).to.equal(
                                 'Select a template',
                             );

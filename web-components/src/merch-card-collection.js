@@ -1,6 +1,4 @@
-import { html, LiteElement, nothing } from './lite.js';
 import { DESKTOP_UP, TABLET_UP } from './media.js';
-import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import { deeplink, pushState, parseState } from './deeplink.js';
 import {
     EVENT_MAS_ERROR,
@@ -20,6 +18,7 @@ import {
     normalizeVariant,
     setForegroundTimeout,
     clearForegroundTimeout,
+    escapeHTML,
 } from './utils.js';
 import {
     matchesTagGroups,
@@ -119,33 +118,53 @@ const searcher = (elements, { search }) => {
     return elements;
 };
 
-export class MerchCardCollection extends LiteElement {
-    static properties = {
-        id: { type: String, attribute: 'id', reflect: true },
-        displayResult: { type: Boolean, attribute: 'display-result' },
-        // { <category>: ['group:tag', ...] } cards never shown under a category.
-        excludeTags: { type: Object, attribute: false },
-        filter: { type: String, attribute: 'filter', reflect: true },
-        filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
-        hasMore: { type: Boolean },
-        limit: { type: Number, attribute: 'limit' },
-        overrides: { type: String },
-        page: { type: Number, attribute: 'page', reflect: true },
-        resultCount: {
-            type: Number,
-        },
-        search: { type: String, attribute: 'search', reflect: true },
-        sidenav: { type: Object },
-        singleApp: { type: String, attribute: 'single-app', reflect: true },
-        sort: {
-            type: String,
-            attribute: 'sort',
-            default: SORT_ORDER.authored,
-            reflect: true,
-        },
-        types: { type: String, attribute: 'types', reflect: true },
-    };
+const collectionSheet = new CSSStyleSheet();
+const headerSheet = new CSSStyleSheet();
 
+const COLLECTION_ATTRIBUTES = {
+    id: 'id',
+    'display-result': 'displayResult',
+    filter: 'filter',
+    filtered: 'filtered',
+    limit: 'limit',
+    overrides: 'overrides',
+    page: 'page',
+    search: 'search',
+    'single-app': 'singleApp',
+    sort: 'sort',
+    types: 'types',
+};
+
+const REFLECTED = new Set([
+    'id',
+    'filter',
+    'filtered',
+    'page',
+    'search',
+    'singleApp',
+    'sort',
+    'types',
+]);
+
+const toNumber = (value) => (value == null ? undefined : Number(value));
+
+export class MerchCardCollection extends HTMLElement {
+    static get observedAttributes() {
+        return Object.keys(COLLECTION_ATTRIBUTES);
+    }
+
+    #displayResult = false;
+    // { <category>: ['group:tag', ...] } cards never shown under a category.
+    #excludeTags;
+    #hasMore = false;
+    #limit;
+    #overrides;
+    #resultCount;
+    #sidenav;
+    #changed = new Set();
+    #updatePending = false;
+    #updatePromise = Promise.resolve(true);
+    #footer;
     #overrideMap = {};
     #logger;
 
@@ -162,12 +181,9 @@ export class MerchCardCollection extends LiteElement {
 
     constructor() {
         super();
-        // set defaults
-        this.id = null;
-        this.filter = 'all';
-        this.hasMore = false;
-        this.resultCount = undefined;
-        this.displayResult = false;
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [collectionSheet];
+        this.shadowRoot.innerHTML = '<slot></slot>';
         this.data = null;
         this.variant = null;
         this.hydrating = false;
@@ -178,15 +194,203 @@ export class MerchCardCollection extends LiteElement {
             this.resizeHandler.bind(this),
             300,
         );
+        this.showMore = this.showMore.bind(this);
+    }
+
+    get id() {
+        return this.getAttribute('id');
+    }
+
+    set id(value) {
+        this.#reflect('id', 'id', value);
+    }
+
+    get filter() {
+        return this.getAttribute('filter') ?? 'all';
+    }
+
+    set filter(value) {
+        this.#reflect('filter', 'filter', value);
+    }
+
+    get filtered() {
+        return this.getAttribute('filtered') ?? undefined;
+    }
+
+    // freeze filter
+    set filtered(value) {
+        this.#reflect('filtered', 'filtered', value);
+    }
+
+    get page() {
+        return toNumber(this.getAttribute('page'));
+    }
+
+    set page(value) {
+        this.#reflect('page', 'page', value);
+    }
+
+    get search() {
+        return this.getAttribute('search') ?? undefined;
+    }
+
+    set search(value) {
+        this.#reflect('search', 'search', value);
+    }
+
+    get singleApp() {
+        return this.getAttribute('single-app') ?? undefined;
+    }
+
+    set singleApp(value) {
+        this.#reflect('singleApp', 'single-app', value);
+    }
+
+    get sort() {
+        return this.getAttribute('sort') ?? undefined;
+    }
+
+    set sort(value) {
+        this.#reflect('sort', 'sort', value);
+    }
+
+    get types() {
+        return this.getAttribute('types') ?? undefined;
+    }
+
+    set types(value) {
+        this.#reflect('types', 'types', value);
+    }
+
+    get displayResult() {
+        return this.#displayResult;
+    }
+
+    set displayResult(value) {
+        this.#set('displayResult', this.#displayResult, value);
+        this.#displayResult = value;
+    }
+
+    get excludeTags() {
+        return this.#excludeTags;
+    }
+
+    set excludeTags(value) {
+        this.#set('excludeTags', this.#excludeTags, value);
+        this.#excludeTags = value;
+    }
+
+    get hasMore() {
+        return this.#hasMore;
+    }
+
+    set hasMore(value) {
+        this.#set('hasMore', this.#hasMore, value);
+        this.#hasMore = value;
+    }
+
+    get limit() {
+        return this.#limit;
+    }
+
+    set limit(value) {
+        this.#set('limit', this.#limit, value);
+        this.#limit = value;
+    }
+
+    get overrides() {
+        return this.#overrides;
+    }
+
+    set overrides(value) {
+        this.#set('overrides', this.#overrides, value);
+        this.#overrides = value;
+    }
+
+    get resultCount() {
+        return this.#resultCount;
+    }
+
+    set resultCount(value) {
+        this.#set('resultCount', this.#resultCount, value);
+        this.#resultCount = value;
+    }
+
+    get sidenav() {
+        return this.#sidenav;
+    }
+
+    set sidenav(value) {
+        this.#set('sidenav', this.#sidenav, value);
+        this.#sidenav = value;
+    }
+
+    #reflect(property, attribute, value) {
+        if (value == null) this.removeAttribute(attribute);
+        else this.setAttribute(attribute, value);
+    }
+
+    #set(property, oldValue, value) {
+        if (oldValue === value) return;
+        if (Number.isNaN(oldValue) && Number.isNaN(value)) return;
+        this.requestUpdate(property);
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue === value) return;
+        const property = COLLECTION_ATTRIBUTES[name];
+        if (REFLECTED.has(property)) {
+            this.requestUpdate(property);
+        } else if (property === 'displayResult') {
+            this.displayResult = value !== null;
+        } else if (property === 'limit') {
+            this.limit = toNumber(value);
+        } else {
+            this.overrides = value ?? undefined;
+        }
+    }
+
+    /**
+     * Schedules an update in a microtask; repeated calls are batched.
+     * @param {string} [property] name of the changed property
+     */
+    requestUpdate(property) {
+        if (property) this.#changed.add(property);
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = Promise.resolve().then(() => {
+            this.#updatePending = false;
+            const changed = this.#changed;
+            this.#changed = new Set();
+            if (!this.isConnected) return true;
+            this.#renderFooter();
+            this.updated(changed);
+            return true;
+        });
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
     }
 
     resizeHandler() {
         this.firstChild?.variantLayout?.resizeHandler?.();
     }
 
-    render() {
-        return html` <slot></slot>
-            ${this.footer}`;
+    #renderFooter() {
+        const markup = this.footer ?? '';
+        if (markup === this.#footer) return;
+        this.#footer = markup;
+        this.shadowRoot.querySelector('#footer')?.remove();
+        if (!markup) return;
+        const template = document.createElement('template');
+        template.innerHTML = markup;
+        this.shadowRoot.append(template.content);
+        this.shadowRoot
+            .querySelector('.show-more, sp-button')
+            ?.addEventListener('click', this.showMore);
     }
 
     checkReady() {
@@ -301,7 +505,8 @@ export class MerchCardCollection extends LiteElement {
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        if (!this.hasAttribute('filter')) this.filter = 'all';
+        this.requestUpdate();
         this.buildOverrideMap();
         this.init();
         window.addEventListener('resize', this.resizeHandlerDebounced);
@@ -324,7 +529,6 @@ export class MerchCardCollection extends LiteElement {
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         this.stopDeeplink?.();
         this.stopFilterDeeplink?.();
         for (const callback of this.onUnmount) callback();
@@ -664,34 +868,17 @@ export class MerchCardCollection extends LiteElement {
     }
 
     get footer() {
-        if (this.filtered) return;
-        return html`<div id="footer">
-            <sp-theme color="light" scale="medium">
-                ${this.showMoreButton}
-            </sp-theme>
-        </div>`;
+        if (this.filtered) return '';
+        return `<div id="footer"><sp-theme color="light" scale="medium">${this.showMoreButton}</sp-theme></div>`;
     }
 
     get showMoreButton() {
-        if (!this.hasMore) return;
+        if (!this.hasMore) return '';
         // product-pricing loads no Spectrum, so it gets a native button.
         if (this.classList.contains('product-pricing')) {
-            return html`<button
-                type="button"
-                class="show-more"
-                @click="${this.showMore}"
-            >
-                <slot name="showMoreText"></slot>
-            </button>`;
+            return '<button type="button" class="show-more"><slot name="showMoreText"></slot></button>';
         }
-        return html`<sp-button
-            variant="secondary"
-            treatment="outline"
-            style="order: 1000;"
-            @click="${this.showMore}"
-        >
-            <slot name="showMoreText"></slot>
-        </sp-button>`;
+        return '<sp-button variant="secondary" treatment="outline" style="order: 1000;"><slot name="showMoreText"></slot></sp-button>';
     }
 
     sortChanged(event) {
@@ -798,6 +985,7 @@ export class MerchCardCollection extends LiteElement {
 
 MerchCardCollection.SortOrder = SORT_ORDER;
 
+collectionSheet.replaceSync(MerchCardCollection.styles);
 customElements.define(MERCH_CARD_COLLECTION, MerchCardCollection);
 
 // #region Header
@@ -835,9 +1023,22 @@ const SEARCH_SIZE = {
     catalog: 'l',
 };
 
-export default class MerchCardCollectionHeader extends LiteElement {
+const HEADER_SECTIONS = [
+    'searchAction',
+    'filterAction',
+    'sortAction',
+    'resultLabel',
+    'customArea',
+];
+
+export default class MerchCardCollectionHeader extends HTMLElement {
     constructor() {
         super();
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [headerSheet];
+        // The whitespace keeps #header from matching :empty, as before.
+        this.shadowRoot.innerHTML =
+            '<sp-theme color="light" scale="medium"><div id="header"> </div></sp-theme>';
         this.collection = null;
         this.#visibility = {
             search: false,
@@ -848,13 +1049,16 @@ export default class MerchCardCollectionHeader extends LiteElement {
         };
         this.updateLiterals = this.updateLiterals.bind(this);
         this.handleSidenavAttached = this.handleSidenavAttached.bind(this);
+        this.requestUpdate = this.requestUpdate.bind(this);
     }
 
     #visibility;
     #merchCardElement;
+    #sections = new Map();
+    #updatePending = false;
+    #updatePromise = Promise.resolve(true);
 
     connectedCallback() {
-        super.connectedCallback();
         this.collection?.addEventListener(
             EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
             this.updateLiterals,
@@ -864,10 +1068,14 @@ export default class MerchCardCollectionHeader extends LiteElement {
             this.handleSidenavAttached,
         );
         this.#merchCardElement = customElements.get('merch-card');
+        this.tablet = window.matchMedia(TABLET_UP);
+        this.desktop = window.matchMedia(DESKTOP_UP);
+        this.tablet.addEventListener('change', this.requestUpdate);
+        this.desktop.addEventListener('change', this.requestUpdate);
+        this.requestUpdate();
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         this.collection?.removeEventListener(
             EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
             this.updateLiterals,
@@ -876,6 +1084,70 @@ export default class MerchCardCollectionHeader extends LiteElement {
             EVENT_MERCH_CARD_COLLECTION_SIDENAV_ATTACHED,
             this.handleSidenavAttached,
         );
+        this.tablet?.removeEventListener('change', this.requestUpdate);
+        this.desktop?.removeEventListener('change', this.requestUpdate);
+    }
+
+    /** Schedules a render in a microtask; repeated calls are batched. */
+    requestUpdate() {
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = Promise.resolve().then(() => {
+            this.#updatePending = false;
+            if (this.isConnected) this.#render();
+            return true;
+        });
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    #render() {
+        this.willUpdate();
+        const header = this.shadowRoot.getElementById('header');
+        let anchor = null;
+        // Only sections whose markup changed are replaced, so the search
+        // field keeps its value and focus while results update.
+        for (const name of HEADER_SECTIONS) {
+            const markup = this[name] || '';
+            const section = this.#sections.get(name);
+            if (section?.markup === markup) {
+                anchor = section.nodes.at(-1) ?? anchor;
+                continue;
+            }
+            for (const node of section?.nodes ?? []) node.remove();
+            const template = document.createElement('template');
+            template.innerHTML = markup;
+            const nodes = [...template.content.childNodes];
+            const reference = anchor ? anchor.nextSibling : header.firstChild;
+            header.insertBefore(template.content, reference);
+            this.#sections.set(name, { markup, nodes });
+            this.#bindSection(name, nodes);
+            anchor = nodes.at(-1) ?? anchor;
+        }
+    }
+
+    #bindSection(name, nodes) {
+        const [element] = nodes.filter((node) => node.nodeType === 1);
+        if (!element) return;
+        if (name === 'searchAction') {
+            element.querySelector('sp-search').size = SEARCH_SIZE[this.variant];
+        } else if (name === 'filterAction') {
+            element.addEventListener('click', (event) =>
+                this.openFilters(event),
+            );
+        } else if (name === 'sortAction') {
+            element.addEventListener('change', (event) =>
+                this.collection?.sortChanged.call(this, event),
+            );
+        } else if (name === 'customArea') {
+            this.#merchCardElement
+                ?.getCollectionOptions(this.collection?.variant)
+                ?.bindCustomHeaderArea?.(element, this.collection);
+        }
     }
 
     willUpdate() {
@@ -920,19 +1192,16 @@ export default class MerchCardCollectionHeader extends LiteElement {
         return this.collection?.variant;
     }
 
-    tablet = new MatchMediaController(this, TABLET_UP);
-    desktop = new MatchMediaController(this, DESKTOP_UP);
-
     get isMobile() {
         return !this.isTablet && !this.isDesktop;
     }
 
     get isTablet() {
-        return this.tablet.matches && !this.desktop.matches;
+        return Boolean(this.tablet?.matches && !this.desktop?.matches);
     }
 
     get isDesktop() {
-        return this.desktop.matches;
+        return Boolean(this.desktop?.matches);
     }
 
     get currentMedia() {
@@ -942,67 +1211,33 @@ export default class MerchCardCollectionHeader extends LiteElement {
     }
 
     get searchAction() {
-        if (!this.#visibility.search) return nothing;
-        const searchPlaceholder = getSlotText(this, 'searchText');
-        if (!searchPlaceholder) return nothing;
-        return html`
-            <merch-search deeplink="search" id="search">
-                <sp-search
-                    id="search-bar"
-                    placeholder="${searchPlaceholder}"
-                    .size=${SEARCH_SIZE[this.variant]}
-                    aria-label="${searchPlaceholder}"
-                ></sp-search>
-            </merch-search>
-        `;
+        if (!this.#visibility.search) return '';
+        const searchPlaceholder = escapeHTML(getSlotText(this, 'searchText'));
+        if (!searchPlaceholder) return '';
+        return `<merch-search deeplink="search" id="search"><sp-search id="search-bar" placeholder="${searchPlaceholder}" aria-label="${searchPlaceholder}"></sp-search></merch-search>`;
     }
 
     get filterAction() {
-        if (!this.#visibility.filter) return nothing;
-        if (!this.sidenav) return nothing;
-        return html`
-            <sp-action-button
-                id="filter"
-                variant="secondary"
-                treatment="outline"
-                @click="${this.openFilters}"
-                ><slot name="filtersText"></slot
-            ></sp-action-button>
-        `;
+        if (!this.#visibility.filter) return '';
+        if (!this.sidenav) return '';
+        return '<sp-action-button id="filter" variant="secondary" treatment="outline"><slot name="filtersText"></slot></sp-action-button>';
     }
 
     get sortAction() {
-        if (!this.#visibility.sort) return nothing;
+        if (!this.#visibility.sort) return '';
         const sortText = getSlotText(this, 'sortText');
-        if (!sortText) return;
+        if (!sortText) return '';
         const popularityText = getSlotText(this, 'popularityText');
         const alphabeticallyText = getSlotText(this, 'alphabeticallyText');
 
-        if (!(popularityText && alphabeticallyText)) return;
+        if (!(popularityText && alphabeticallyText)) return '';
         const alphabetical = this.collection?.sort === SORT_ORDER.alphabetical;
+        const value = alphabetical
+            ? SORT_ORDER.alphabetical
+            : SORT_ORDER.authored;
+        const label = alphabetical ? alphabeticallyText : popularityText;
 
-        return html`
-            <sp-action-menu
-                id="sort"
-                size="m"
-                @change="${this.collection?.sortChanged}"
-                selects="single"
-                value="${alphabetical
-                    ? SORT_ORDER.alphabetical
-                    : SORT_ORDER.authored}"
-            >
-                <span slot="label-only"
-                    >${sortText}:
-                    ${alphabetical ? alphabeticallyText : popularityText}</span
-                >
-                <sp-menu-item value="${SORT_ORDER.authored}"
-                    >${popularityText}</sp-menu-item
-                >
-                <sp-menu-item value="${SORT_ORDER.alphabetical}"
-                    >${alphabeticallyText}</sp-menu-item
-                >
-            </sp-action-menu>
-        `;
+        return `<sp-action-menu id="sort" size="m" selects="single" value="${value}"><span slot="label-only">${escapeHTML(sortText)}: ${escapeHTML(label)}</span><sp-menu-item value="${SORT_ORDER.authored}">${escapeHTML(popularityText)}</sp-menu-item><sp-menu-item value="${SORT_ORDER.alphabetical}">${escapeHTML(alphabeticallyText)}</sp-menu-item></sp-action-menu>`;
     }
 
     get resultSlotName() {
@@ -1011,36 +1246,27 @@ export default class MerchCardCollectionHeader extends LiteElement {
     }
 
     get resultLabel() {
-        if (!this.#visibility.result) return nothing;
-        if (!this.sidenav) return nothing;
+        if (!this.#visibility.result) return '';
+        if (!this.sidenav) return '';
         const type = this.search ? 'search' : 'filter';
         const quantity = !this.resultCount
             ? 'none'
             : this.resultCount === 1
               ? 'single'
               : 'multiple';
-        return html` <div
-            id="result"
-            aria-live="polite"
-            type=${type}
-            quantity=${quantity}
-        >
-            <slot name="${this.resultSlotName}"></slot>
-        </div>`;
+        return `<div id="result" aria-live="polite" type="${type}" quantity="${quantity}"><slot name="${this.resultSlotName ?? ''}"></slot></div>`;
     }
 
     get customArea() {
-        if (!this.#visibility.custom) return nothing;
+        if (!this.#visibility.custom) return '';
         const customHeaderAreaGetter =
             this.#merchCardElement?.getCollectionOptions(
                 this.collection?.variant,
             )?.customHeaderArea;
-        if (!customHeaderAreaGetter) return nothing;
+        if (!customHeaderAreaGetter) return '';
         const customHeaderArea = customHeaderAreaGetter(this.collection);
-        if (!customHeaderArea || customHeaderArea === nothing) return nothing;
-        return html`<div id="custom" role="heading" aria-level="2">
-            ${customHeaderArea}
-        </div>`;
+        if (!customHeaderArea) return '';
+        return `<div id="custom" role="heading" aria-level="2">${customHeaderArea}</div>`;
     }
 
     // #region Handlers
@@ -1058,17 +1284,6 @@ export default class MerchCardCollectionHeader extends LiteElement {
 
     handleSidenavAttached() {
         this.requestUpdate();
-    }
-
-    render() {
-        return html`
-            <sp-theme color="light" scale="medium">
-                <div id="header">
-                    ${this.searchAction}${this.filterAction}${this
-                        .sortAction}${this.resultLabel}${this.customArea}
-                </div>
-            </sp-theme>
-        `;
     }
 
     static styles = css`
@@ -1212,6 +1427,7 @@ export default class MerchCardCollectionHeader extends LiteElement {
     }
 }
 
+headerSheet.replaceSync(MerchCardCollectionHeader.styles);
 customElements.define(
     'merch-card-collection-header',
     MerchCardCollectionHeader,

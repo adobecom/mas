@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html } from '../lite.js';
 import {
     EVENT_TYPE_RESOLVED,
     SELECTOR_MAS_INLINE_PRICE,
@@ -206,7 +205,7 @@ export class ProductPricing extends VariantLayout {
     }
 
     renderLayout() {
-        return html` <div class="header">
+        return ` <div class="header">
                 <slot name="icons"></slot>
                 <slot name="badge"></slot>
             </div>

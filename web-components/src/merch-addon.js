@@ -1,26 +1,111 @@
-import { LiteElement, html } from './lite.js';
 import { EVENT_TYPE_RESOLVED, SELECTOR_MAS_INLINE_PRICE } from './constants.js';
 import { css } from './css.js';
 
-export default class MerchAddon extends LiteElement {
-    static properties = {
-        planType: { type: String, attribute: 'plan-type', reflect: true },
-        checked: { type: Boolean, reflect: true },
-        customCheckbox: {
-            type: Boolean,
-            attribute: 'custom-checkbox',
-            reflect: true,
-        },
-        background: { type: String, attribute: 'background' },
-    };
+const MARKUP = `<input type="checkbox" id="addon-checkbox" />
+    <span
+        role="checkbox"
+        tabindex="0"
+        aria-labelledby="custom-checkbox-label"
+        id="custom-checkbox"
+    ></span>
+    <label id="custom-checkbox-label" for="addon-checkbox"><slot></slot></label>`;
+
+export default class MerchAddon extends HTMLElement {
+    static observedAttributes = [
+        'plan-type',
+        'checked',
+        'custom-checkbox',
+        'background',
+    ];
+
+    #rendered = false;
+    #updatePending = false;
+    #updatePromise;
+    #resolveConnected;
+    #connected = new Promise((resolve) => {
+        this.#resolveConnected = resolve;
+    });
 
     constructor() {
         super();
-        this.planType = undefined;
-        this.checked = false;
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
         this.updatePlanType = this.updatePlanType.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.handleCustomClick = this.handleCustomClick.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.requestUpdate();
+    }
+
+    get planType() {
+        return this.getAttribute('plan-type') ?? undefined;
+    }
+
+    set planType(value) {
+        if (value == null) this.removeAttribute('plan-type');
+        else this.setAttribute('plan-type', value);
+    }
+
+    get checked() {
+        return this.hasAttribute('checked');
+    }
+
+    set checked(value) {
+        this.toggleAttribute('checked', Boolean(value));
+    }
+
+    get customCheckbox() {
+        return this.hasAttribute('custom-checkbox');
+    }
+
+    set customCheckbox(value) {
+        this.toggleAttribute('custom-checkbox', Boolean(value));
+    }
+
+    get background() {
+        return this.getAttribute('background') ?? undefined;
+    }
+
+    set background(value) {
+        if (value == null) this.removeAttribute('background');
+        else this.setAttribute('background', value);
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue !== value) this.requestUpdate();
+    }
+
+    #upgradeProperties() {
+        for (const property of [
+            'planType',
+            'checked',
+            'customCheckbox',
+            'background',
+        ]) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
+    }
+
+    requestUpdate() {
+        if (this.#updatePending) return;
+        this.#updatePending = true;
+        this.#updatePromise = this.#enqueueUpdate();
+    }
+
+    get updateComplete() {
+        return this.#updatePromise.then(() =>
+            this.#updatePending ? this.updateComplete : true,
+        );
+    }
+
+    async #enqueueUpdate() {
+        await this.#connected;
+        this.#updatePending = false;
+        this.#render();
+        return true;
     }
 
     getOsi(planType, offerType) {
@@ -44,7 +129,8 @@ export default class MerchAddon extends LiteElement {
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        this.#upgradeProperties();
+        this.#resolveConnected();
         this.addEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
         if (this.background) {
             this.style.setProperty('--merch-addon-background', this.background);
@@ -52,7 +138,6 @@ export default class MerchAddon extends LiteElement {
     }
 
     disconnectedCallback() {
-        super.disconnectedCallback();
         this.removeEventListener(EVENT_TYPE_RESOLVED, this.updatePlanType);
     }
 
@@ -97,26 +182,22 @@ export default class MerchAddon extends LiteElement {
         }
     }
 
-    render() {
-        return html` <input
-                type="checkbox"
-                id="addon-checkbox"
-                .checked=${this.checked}
-                @change=${this.handleChange}
-            />
-            <span
-                role="checkbox"
-                aria-checked=${this.checked}
-                tabindex="0"
-                aria-labelledby="custom-checkbox-label"
-                id="custom-checkbox"
-                @click=${this.handleCustomClick}
-                @keydown=${this.handleKeyDown}
-            >
-            </span>
-            <label id="custom-checkbox-label" for="addon-checkbox">
-                <slot></slot>
-            </label>`;
+    #render() {
+        if (!this.#rendered) {
+            this.#rendered = true;
+            this.shadowRoot.innerHTML = MARKUP;
+            this.shadowRoot
+                .querySelector('input')
+                .addEventListener('change', this.handleChange);
+            const custom = this.shadowRoot.querySelector('#custom-checkbox');
+            custom.addEventListener('click', this.handleCustomClick);
+            custom.addEventListener('keydown', this.handleKeyDown);
+        }
+        const { checked } = this;
+        this.shadowRoot.querySelector('input').checked = checked;
+        this.shadowRoot
+            .querySelector('#custom-checkbox')
+            .setAttribute('aria-checked', String(checked));
     }
 
     static styles = css`
@@ -190,5 +271,8 @@ export default class MerchAddon extends LiteElement {
         }
     `;
 }
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MerchAddon.styles);
 
 customElements.define('merch-addon', MerchAddon);

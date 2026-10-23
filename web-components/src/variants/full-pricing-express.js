@@ -1,4 +1,3 @@
-import { html, nothing } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './full-pricing-express.css.js';
 import { css } from '../css.js';
@@ -92,7 +91,7 @@ export class FullPricingExpress extends VariantLayout {
 
     get badge() {
         const badgeElement = this.card.querySelector('[slot="badge"]');
-        return html`<div
+        return `<div
             class="badge-wrapper"
             style="${badgeElement ? '' : 'visibility: hidden'}"
         >
@@ -206,7 +205,7 @@ export class FullPricingExpress extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             ${this.badge}
             <div class="card-content">
                 <div class="header">

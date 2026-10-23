@@ -1,4 +1,3 @@
-import { html } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './segment.css.js';
 import {
@@ -110,20 +109,24 @@ export class Segment extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             ${this.badge}
             <div class="body">
                 <slot name="heading-xs"></slot>
                 <slot name="body-xxs"></slot>
-                ${!this.promoBottom
-                    ? html`<slot name="promo-text"></slot
+                ${
+                    !this.promoBottom
+                        ? `<slot name="promo-text"></slot
                           ><slot name="callout-content"></slot>`
-                    : ''}
+                        : ''
+                }
                 <slot name="body-xs"></slot>
-                ${this.promoBottom
-                    ? html`<slot name="promo-text"></slot
+                ${
+                    this.promoBottom
+                        ? `<slot name="promo-text"></slot
                           ><slot name="callout-content"></slot>`
-                    : ''}
+                        : ''
+                }
                 <slot name="badge"></slot>
             </div>
             <hr />

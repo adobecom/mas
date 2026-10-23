@@ -1,4 +1,3 @@
-import { html } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './fries.css.js';
 import { css } from '../css.js';
@@ -42,7 +41,7 @@ export class FriesCard extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             <div class="content">
                 <div class="header">
                     <slot name="icons"></slot>

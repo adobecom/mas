@@ -1,5 +1,5 @@
-import { html, nothing } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
+import { escapeHTML } from '../utils.js';
 import { CSS } from './headless.css.js';
 import { css } from '../css.js';
 
@@ -190,10 +190,10 @@ export class Headless extends VariantLayout {
         const customFieldEls = [
             ...this.card.querySelectorAll('[slot^="custom-field-"]'),
         ];
-        return html`
+        return `
             <div class="headless">
                 ${HEADLESS_FIELDS.map(
-                    ({ slot, label }) => html`
+                    ({ slot, label }) => `
                         <div class="headless-row">
                             <span class="headless-label">${label}</span>
                             <span class="headless-value" data-slot="${slot}">
@@ -201,33 +201,40 @@ export class Headless extends VariantLayout {
                             </span>
                         </div>
                     `,
-                )}
-                ${customFieldEls.length
-                    ? html`
+                ).join('')}
+                ${
+                    customFieldEls.length
+                        ? `
                           <div class="headless-row">
                               <span class="headless-label headless-section">
                                   Custom fields
                               </span>
                           </div>
-                          ${customFieldEls.map(
-                              (el, i) => html`
+                          ${customFieldEls
+                              .map(
+                                  (el, i) => `
                                   <div class="headless-row">
                                       <span class="headless-label">
-                                          ${el.dataset.label ||
-                                          `Custom field ${i + 1}`}
+                                          ${escapeHTML(
+                                              el.dataset.label ||
+                                                  `Custom field ${i + 1}`,
+                                          )}
                                       </span>
                                       <span class="headless-value">
                                           <slot
-                                              name="${el.getAttribute('slot')}"
+                                              name="${escapeHTML(el.getAttribute('slot'))}"
                                           ></slot>
                                       </span>
                                   </div>
                               `,
-                          )}
+                              )
+                              .join('')}
                       `
-                    : nothing}
-                ${this.card.secureLabel
-                    ? html`
+                        : ''
+                }
+                ${
+                    this.card.secureLabel
+                        ? `
                           <div class="headless-row">
                               <span class="headless-label">Secure label</span>
                               <span class="headless-value">
@@ -235,7 +242,8 @@ export class Headless extends VariantLayout {
                               </span>
                           </div>
                       `
-                    : nothing}
+                        : ''
+                }
             </div>
         `;
     }

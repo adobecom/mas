@@ -62,8 +62,8 @@ Promise.all([
         plugins: [cssLoader(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
     }),
-    buildLiteComponent('merch-card-collection'),
-    buildLiteComponent('merch-quantity-select'),
+    buildVanillaComponent('merch-card-collection'),
+    buildVanillaComponent('merch-quantity-select'),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
@@ -102,7 +102,7 @@ async function buildLitComponent(name) {
     }
 }
 
-async function buildLiteComponent(name) {
+async function buildVanillaComponent(name) {
     await build({
         ...defaults,
         entryPoints: [`./src/${name}.js`],
@@ -163,7 +163,7 @@ function forbidLit(name) {
             build.onResolve({ filter: /^lit(\/.*)?$/ }, ({ importer }) => ({
                 errors: [
                     {
-                        text: `${importer} imports lit: ${name}.js must stay Lit-free, use src/lite.js`,
+                        text: `${importer} imports lit: ${name}.js must stay Lit-free`,
                     },
                 ],
             }));

@@ -1,5 +1,4 @@
-import { LiteElement, html } from './lite.js';
-import { toRelativeAssetUrl } from './utils.js';
+import { escapeHTML, toRelativeAssetUrl } from './utils.js';
 import { css } from './css.js';
 
 // Self-contained tooltip detection for MAS
@@ -10,25 +9,77 @@ function hasSpectrumTooltip() {
     );
 }
 
-export default class MerchIcon extends LiteElement {
-    static properties = {
-        size: { type: String, attribute: true },
-        src: { type: String, attribute: true },
-        alt: { type: String, attribute: true },
-        href: { type: String, attribute: true },
-        loading: { type: String, attribute: true },
-    };
+const DEFAULTS = { size: 'm', alt: '', loading: 'lazy' };
+
+export default class MerchIcon extends HTMLElement {
+    static observedAttributes = ['size', 'src', 'alt', 'href', 'loading'];
+
+    #markup;
 
     constructor() {
         super();
-        this.size = 'm';
-        this.alt = '';
-        this.loading = 'lazy';
+        this.attachShadow({ mode: 'open' });
+        this.shadowRoot.adoptedStyleSheets = [sheet];
+    }
+
+    get size() {
+        return this.getAttribute('size') ?? DEFAULTS.size;
+    }
+
+    set size(value) {
+        setAttribute(this, 'size', value);
+    }
+
+    get src() {
+        return this.getAttribute('src') ?? undefined;
+    }
+
+    set src(value) {
+        setAttribute(this, 'src', value);
+    }
+
+    get alt() {
+        return this.getAttribute('alt') ?? DEFAULTS.alt;
+    }
+
+    set alt(value) {
+        setAttribute(this, 'alt', value);
+    }
+
+    get href() {
+        return this.getAttribute('href') ?? undefined;
+    }
+
+    set href(value) {
+        setAttribute(this, 'href', value);
+    }
+
+    get loading() {
+        return this.getAttribute('loading') ?? DEFAULTS.loading;
+    }
+
+    set loading(value) {
+        setAttribute(this, 'loading', value);
     }
 
     connectedCallback() {
-        super.connectedCallback();
+        this.#upgradeProperties();
+        this.#render();
         setTimeout(() => this.handleTooltips(), 0);
+    }
+
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue === value || !this.isConnected) return;
+        this.#render();
+    }
+
+    #upgradeProperties() {
+        for (const property of MerchIcon.observedAttributes) {
+            if (!Object.hasOwn(this, property)) continue;
+            const value = this[property];
+            delete this[property];
+            this[property] = value;
+        }
     }
 
     handleTooltips() {
@@ -80,22 +131,14 @@ export default class MerchIcon extends LiteElement {
         });
     }
 
-    render() {
-        const { href } = this;
-        const src = toRelativeAssetUrl(this.src);
-        return href
-            ? html`<a href="${href}">
-                  <img
-                      src="${src}"
-                      alt="${this.alt}"
-                      loading="${this.loading}"
-                  />
-              </a>`
-            : html` <img
-                  src="${src}"
-                  alt="${this.alt}"
-                  loading="${this.loading}"
-              />`;
+    #render() {
+        const img = `<img src="${escapeHTML(toRelativeAssetUrl(this.src))}" alt="${escapeHTML(this.alt)}" loading="${escapeHTML(this.loading)}" />`;
+        const markup = this.href
+            ? `<a href="${escapeHTML(this.href)}">${img}</a>`
+            : img;
+        if (markup === this.#markup) return;
+        this.#markup = markup;
+        this.shadowRoot.innerHTML = markup;
     }
 
     static styles = css`
@@ -138,5 +181,13 @@ export default class MerchIcon extends LiteElement {
         }
     `;
 }
+
+function setAttribute(element, name, value) {
+    if (value == null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+const sheet = new CSSStyleSheet();
+sheet.replaceSync(MerchIcon.styles);
 
 customElements.define('merch-icon', MerchIcon);

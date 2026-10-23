@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html } from '../lite.js';
 import {
     TEMPLATE_PRICE_LEGAL,
     SELECTOR_MAS_INLINE_PRICE,
@@ -84,7 +83,7 @@ export class ProductC2 extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             ${this.badge}
             <div class="body">
                 <div class="heading">

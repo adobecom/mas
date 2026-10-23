@@ -1,12 +1,13 @@
-import { html, nothing } from '../lite.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './headless.css.js';
 import { HEADLESS_FAMILY_STYLE } from './headless.js';
+import { escapeHTML } from '../utils.js';
 import {
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
     renderBackgroundsDetailRow,
     renderBackgroundsToggleButton,
+    bindBackgroundsPreview,
 } from './backgrounds-preview.js';
 
 /** AEM fragment field → slot mapping so hydrate() can populate all Marquee slots. */
@@ -49,43 +50,21 @@ export class Marquee extends VariantLayout {
     refreshBackgroundsDetail = makeRefreshBackgroundsDetail(() => this.card);
 
     renderLayout() {
-        return html`
-            <div class="headless">
-                ${MARQUEE_FIELDS.map(
-                    ({ slot, label }) => html`
-                        <div class="headless-row">
-                            <span class="headless-label">${label}</span>
-                            <span class="headless-value" data-slot="${slot}">
-                                <slot
-                                    name="${slot}"
-                                    @slotchange=${slot === 'backgrounds'
-                                        ? this.refreshBackgroundsDetail
-                                        : nothing}
-                                ></slot>
-                                ${slot === 'backgrounds'
-                                    ? renderBackgroundsToggleButton(
-                                          this.toggleBackgroundsDetail,
-                                      )
-                                    : nothing}
-                            </span>
-                        </div>
-                        ${slot === 'backgrounds'
-                            ? renderBackgroundsDetailRow()
-                            : nothing}
-                    `,
-                )}
-                ${this.card.secureLabel
-                    ? html`
-                          <div class="headless-row">
-                              <span class="headless-label">Secure label</span>
-                              <span class="headless-value">
-                                  ${this.secureLabel}
-                              </span>
-                          </div>
-                      `
-                    : nothing}
-            </div>
-        `;
+        const rows = MARQUEE_FIELDS.map(({ slot, label }) => {
+            const isBackgrounds = slot === 'backgrounds';
+            return `<div class="headless-row"><span class="headless-label">${escapeHTML(label)}</span><span class="headless-value" data-slot="${escapeHTML(slot)}"><slot name="${escapeHTML(slot)}"></slot>${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}</span></div>${isBackgrounds ? renderBackgroundsDetailRow() : ''}`;
+        }).join('');
+        const secureLabel = this.card.secureLabel
+            ? `<div class="headless-row"><span class="headless-label">Secure label</span><span class="headless-value">${this.secureLabel}</span></div>`
+            : '';
+        return `<div class="headless">${rows}${secureLabel}</div>`;
+    }
+
+    bindEvents(root) {
+        bindBackgroundsPreview(root, {
+            toggle: this.toggleBackgroundsDetail,
+            refresh: this.refreshBackgroundsDetail,
+        });
     }
 
     static variantStyle = HEADLESS_FAMILY_STYLE;

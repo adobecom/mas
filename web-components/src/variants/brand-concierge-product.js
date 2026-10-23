@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html } from '../lite.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
@@ -70,17 +69,7 @@ export class BrandConciergeProduct extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
-            <div class="body">
-                <slot name="icons"></slot>
-                <slot name="badge"></slot>
-                <slot name="heading-s"></slot>
-                <slot name="heading-xs"></slot>
-                <slot name="promo-text"></slot>
-                <slot name="body-xs"></slot>
-            </div>
-            <footer><slot name="footer"></slot></footer>
-            <slot></slot>`;
+        return `${this.badge}<div class="body"><slot name="icons"></slot><slot name="badge"></slot><slot name="heading-s"></slot><slot name="heading-xs"></slot><slot name="promo-text"></slot><slot name="body-xs"></slot></div><footer><slot name="footer"></slot></footer><slot></slot>`;
     }
 
     static variantStyle = css`

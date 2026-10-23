@@ -1,6 +1,6 @@
-import { html, nothing } from '../lite.js';
 import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
+import { escapeHTML } from '../utils.js';
 
 export class VariantLayout {
     static styleMap = {};
@@ -116,35 +116,18 @@ export class VariantLayout {
     }
 
     get badge() {
-        let additionalStyles;
-        if (
-            !this.card.badgeBackgroundColor ||
-            !this.card.badgeColor ||
-            !this.card.badgeText
-        ) {
-            return;
-        }
-        if (this.evergreen) {
-            additionalStyles = `border: 1px solid ${this.card.badgeBackgroundColor}; border-right: none;`;
-        }
-        return html`
-            <div
-                id="badge"
-                class="${this.card.variant}-badge"
-                style="background-color: ${this.card.badgeBackgroundColor};
-                color: ${this.card.badgeColor};
-                ${additionalStyles}"
-            >
-                ${this.card.badgeText}
-            </div>
-        `;
+        const { badgeBackgroundColor, badgeColor, badgeText, variant } =
+            this.card;
+        if (!badgeBackgroundColor || !badgeColor || !badgeText) return '';
+        const border = this.evergreen
+            ? ` border: 1px solid ${badgeBackgroundColor}; border-right: none;`
+            : '';
+        const style = `background-color: ${badgeBackgroundColor}; color: ${badgeColor};${border}`;
+        return `<div id="badge" class="${escapeHTML(variant)}-badge" style="${escapeHTML(style)}">${escapeHTML(badgeText)}</div>`;
     }
 
     get cardImage() {
-        return html` <div class="image">
-            <slot name="bg-image"></slot>
-            ${this.badge}
-        </div>`;
+        return `<div class="image"><slot name="bg-image"></slot>${this.badge}</div>`;
     }
 
     /* c8 ignore next 3 */
@@ -170,17 +153,14 @@ export class VariantLayout {
     }
 
     get secureLabel() {
-        return this.card.secureLabel
-            ? html`<span class="secure-transaction-label"
-                  >${this.card.secureLabel}</span
-              >`
-            : nothing;
+        const { secureLabel } = this.card;
+        return secureLabel
+            ? `<span class="secure-transaction-label">${escapeHTML(secureLabel)}</span>`
+            : '';
     }
 
     get secureLabelFooter() {
-        return html`<footer>
-            ${this.secureLabel}<slot name="footer"></slot>
-        </footer>`;
+        return `<footer>${this.secureLabel}<slot name="footer"></slot></footer>`;
     }
 
     async postCardUpdateHook() {
@@ -215,10 +195,23 @@ export class VariantLayout {
         // Variants that need height synchronization should override this method
     }
 
+    /**
+     * Returns the shadow DOM markup of the card as an HTML string.
+     * Author values must be escaped with escapeHTML.
+     * @returns {string}
+     */
     /* c8 ignore next 3 */
     renderLayout() {
-        //nothing to do by default
+        return '';
     }
+
+    /**
+     * Called after renderLayout() markup has been written to the shadow root,
+     * to attach listeners and set element properties.
+     * @param {ShadowRoot} root
+     */
+    /* c8 ignore next 1 */
+    bindEvents(root) {}
 
     get aemFragmentMapping() {
         return getFragmentMapping(this.card.variant);

@@ -404,6 +404,7 @@ describe('FragmentClient', () => {
             fields: [
                 { name: 'variant', type: 'text', multiple: false, values: ['plans'] },
                 { name: 'osi', type: 'text', multiple: false, values: ['some-osi'] },
+                { name: 'enableBaselines', type: 'boolean', multiple: false, values: [true] },
             ],
         };
         fetchStub.withArgs(`${baseUrl}/${id}?references=all-hydrated`).returns(createResponse(200, card));

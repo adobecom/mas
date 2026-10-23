@@ -211,14 +211,20 @@ function collectTargets({ body, offer, template }) {
  * Looks up offer & fragment baselines of the requested fragment and of each card it references (ADR CONT-0005), so a
  * single baseline can hold the content common to all fragments of a product arrangement & template.
  * Each distinct offer, offer baseline & fragment baseline is requested once. Failures are not fatal.
+ * Opt-in with a fragment `id`: only when the requested (card or collection) fragment has `enableBaselines` on, which
+ * then applies to every card it references. Without `id`, the main body is a baseline, always layered.
  * @returns {{ status: 200, baselines: { [fragmentId]: { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } }, wcsPrefetch }}
  */
 async function init(initContext) {
     const { promises } = initContext;
     const fragmentInfos = await promises.defaultLanguage;
     if (fragmentInfos?.status != 200) return null;
-    const { wcsCountry, wcsPrefetch: prefetched } = await promises.requestInfos;
     const { body, defaultLocale, regionLocale, surface } = fragmentInfos;
+    if (initContext.id && body.fields?.enableBaselines !== true) {
+        logDebug(() => 'baselines are not enabled on the requested fragment', initContext);
+        return null;
+    }
+    const { wcsCountry, wcsPrefetch: prefetched } = await promises.requestInfos;
     const targets = collectTargets({ ...initContext, body });
     if (!targets.length) {
         logDebug(() => 'no offer & template to look baselines up with', initContext);

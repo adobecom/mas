@@ -82,6 +82,7 @@ function mockOdin({
     fragmentBaseline = FRAGMENT_BASELINE,
     offerLocale = 'en_US',
     resolvedOffers = RESOLVED_OFFERS,
+    enableBaselines = true,
 } = {}) {
     mockDictionary(false, fetchStub);
     fetchStub
@@ -98,7 +99,7 @@ function mockOdin({
     fetchStub.withArgs(listing(PLANS_FOLDER)).returns(createResponse(200, { items: plansItems }));
     fetchStub
         .withArgs(`${ODIN}/some-en-us-fragment?references=all-hydrated`)
-        .returns(createResponse(200, FRAGMENT_RESPONSE_EN));
+        .returns(createResponse(200, { ...FRAGMENT_RESPONSE_EN, fields: { ...FRAGMENT_RESPONSE_EN.fields, enableBaselines } }));
 }
 
 async function getFragment(params) {
@@ -424,7 +425,19 @@ describe('offer transformer', () => {
                 requestInfos: Promise.resolve({ status: 200 }),
                 defaultLanguage: Promise.resolve({ status: 200, body: { fields: {} } }),
             };
-            expect(await offerTransformer.init({ id: 'some', promises })).to.be.null;
+            expect(await offerTransformer.init({ promises })).to.be.null;
+        });
+
+        it('skips baselines, without any baseline request, when the fragment does not enable them', async () => {
+            mockOdin({ enableBaselines: false });
+            const { statusCode, body } = await getFragment({ id: 'some-en-us-fragment', offer: OSI, locale: 'en_US' });
+            expect(statusCode).to.equal(200);
+            expect(body.offerBaselineId).to.be.undefined;
+            expect(body.fragmentBaselineId).to.be.undefined;
+            expect(body.fields.cardTitle).to.equal(FRAGMENT_RESPONSE_EN.fields.cardTitle);
+            const urls = fetchStub.getCalls().map(({ args: [url] }) => url);
+            expect(urls).to.not.include(listing(PLANS_FOLDER));
+            expect(urls).to.not.include(offersUrl('en_US'));
         });
 
         it('skips baselines when the fragment fails to load', async () => {
@@ -495,7 +508,7 @@ describe('offer transformer', () => {
             id: 'collection-id',
             path: '/content/dam/mas/sandbox/en_US/my-collection',
             model: { id: COLLECTION_MODEL_ID },
-            fields: { cards: ['card-1', 'card-2', 'card-3', 'card-4'] },
+            fields: { enableBaselines: true, cards: ['card-1', 'card-2', 'card-3', 'card-4'] },
             references: {
                 'card-1': card('card-1', { variant: 'plans', osi: OSI, cardTitle: 'own title' }),
                 'card-2': card('card-2', { variant: 'plans', osi: OSI }),

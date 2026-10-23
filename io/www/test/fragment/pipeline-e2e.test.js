@@ -965,7 +965,7 @@ describe('pipeline end to end', () => {
             id: 'photoshop-plans-collection',
             path: '/content/dam/mas/sandbox/en_US/photoshop/plans-collection',
             model: { id: COLLECTION_MODEL_ID },
-            fields: { cards: CARDS.map(({ id }) => id) },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
             references: Object.fromEntries(
                 CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
             ),
@@ -1145,7 +1145,7 @@ describe('pipeline end to end', () => {
             id: 'cc-single-apps-plans-collection',
             path: '/content/dam/mas/sandbox/en_US/plans/single-apps-collection',
             model: { id: COLLECTION_MODEL_ID },
-            fields: { cards: CARDS.map(({ id }) => id) },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
             references: Object.fromEntries(
                 CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
             ),

@@ -1,6 +1,7 @@
 import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS, headlessRowStyle } from './headless.css.js';
+import { CSS } from './headless.css.js';
+import { HEADLESS_FAMILY_STYLE } from './headless.js';
 
 /**
  * AEM fragment field → slot mapping so hydrate() can populate all FAQ slots.
@@ -68,5 +69,5 @@ export class Faq extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('faq');
+    static variantStyle = HEADLESS_FAMILY_STYLE;
 }

@@ -24,6 +24,23 @@ before(async () => {
     ({ Pro } = await import('../src/variants/pro.js'));
 });
 
+describe('pro styles', () => {
+    it('reads the height properties syncHeights publishes', async () => {
+        const { TOP_CARD_HEIGHT_PROP, SYNCED_BANDS, STRIKE_RESERVE_PROP } =
+            await import('../src/variants/pro.js');
+        expect(Pro.variantStyle).to.be.a('string');
+        for (const prop of [
+            TOP_CARD_HEIGHT_PROP,
+            ...SYNCED_BANDS.map(({ prop }) => prop),
+        ]) {
+            expect(Pro.variantStyle).to.include(`var(${prop}`);
+        }
+        expect(Pro.prototype.getGlobalCSS()).to.include(
+            `var(${STRIKE_RESERVE_PROP}`,
+        );
+    });
+});
+
 async function renderCard(innerHTML, props) {
     const card = document.createElement('merch-card');
     Object.assign(card, props);

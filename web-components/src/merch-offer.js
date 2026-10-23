@@ -1,4 +1,4 @@
-import { html, LitElement } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
 import { styles } from './merch-offer.css.js';
 import {
     EVENT_MERCH_OFFER_READY,
@@ -15,7 +15,7 @@ class MerchOffer extends LitElement {
         planType: { type: String, attribute: 'plan-type', reflect: true },
     };
 
-    static styles = [styles];
+    static styles = [unsafeCSS(styles)];
 
     constructor() {
         super();

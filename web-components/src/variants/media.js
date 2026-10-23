@@ -1,6 +1,7 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './media.css.js';
+import { css } from '../css.js';
 
 export const MEDIA_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

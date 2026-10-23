@@ -1,5 +1,6 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 import { toRelativeAssetUrl } from './utils.js';
+import { css } from './css.js';
 
 // Self-contained tooltip detection for MAS
 function hasSpectrumTooltip() {
@@ -97,7 +98,7 @@ export default class MerchIcon extends LitElement {
               />`;
     }
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             --img-width: 32px;
             --img-height: 32px;
@@ -135,7 +136,7 @@ export default class MerchIcon extends LitElement {
             width: var(--mod-img-width, var(--img-width));
             height: var(--mod-img-height, var(--img-height));
         }
-    `;
+    `);
 }
 
 customElements.define('merch-icon', MerchIcon);

@@ -1,10 +1,11 @@
 import { VariantLayout } from './variant-layout';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { CSS } from './brand-concierge-product.css.js';
+import { css } from '../css.js';
 
 export const BRAND_CONCIERGE_PRODUCT_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

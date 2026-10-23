@@ -5,15 +5,11 @@ const SENTENCE_TERMINATORS = ['.', '!', '?'];
 // Injected in both hosts (merch-card and mas-field import this module): keep the
 // marker inline within its copy, and keep it visible over the consumer's
 // `span[is='inline-price'] { visibility: hidden }` guard. Higher specificity
-// wins regardless of stylesheet order.
-const PLAN_TYPE_TEXT_STYLES = `
-merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text'] {
-    display: inline;
-}
-span[is='inline-price'][data-placeholder='plan-type-text'] {
-    visibility: visible;
-}
-`;
+// wins regardless of stylesheet order. Kept inline and minified rather than in a
+// .css file: io/www imports this module in Node, which can't import CSS.
+const PLAN_TYPE_TEXT_STYLES =
+    "merch-card span[is='inline-price'][data-template='legal'][data-placeholder='plan-type-text']{display:inline}" +
+    "span[is='inline-price'][data-placeholder='plan-type-text']{visibility:visible}";
 
 if (
     typeof document !== 'undefined' &&

@@ -1,10 +1,11 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './segment.css.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { css } from '../css.js';
 
 export const SEGMENT_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

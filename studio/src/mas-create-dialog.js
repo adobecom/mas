@@ -24,6 +24,7 @@ import { DEFAULT_COMPARE_CHART_HTML } from './editors/mas-compare-chart-editor.j
 import { createBaseline, resolveBaselineOffer } from './baselines/baseline-model.js';
 
 const BASELINE_EXISTS_ERROR = 'A baseline with this title already exists';
+const BASELINE_CONFLICT_ERROR = 'The baseline for this product code and market segment already exists.';
 const INVALID_TITLE_ERROR = 'Title must contain letters or digits';
 const MISSING_PA_CODE_ERROR = 'No PA code found for this offer';
 
@@ -430,7 +431,10 @@ export class MasCreateDialog extends LitElement {
             });
         } catch (error) {
             console.error(error.message, error.stack);
-            showToast(`Failed to create baseline: ${error.message}`, 'negative');
+            const message = error.message?.includes(': 409')
+                ? BASELINE_CONFLICT_ERROR
+                : `Failed to create baseline: ${error.message}`;
+            showToast(message, 'negative');
         } finally {
             this.loading = false;
         }

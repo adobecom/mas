@@ -407,6 +407,27 @@
                                 expect(Store.search.value.path).to.equal('sandbox');
                             });
 
+                            it('reports a 409 conflict as an existing baseline for the PA code and segment', async () => {
+                                sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
+                                sandbox
+                                    .stub(fragments, 'getByPath')
+                                    .rejects(Object.assign(new Error('Fragment not found'), { status: 404 }));
+                                sandbox
+                                    .stub(repository, 'createFragment')
+                                    .rejects(new Error('Failed to create fragment: 409 Conflict'));
+                                const toast = sandbox.stub(Events.toast, 'emit');
+
+                                await dialog.handleSubmit();
+
+                                expect(
+                                    toast.calledOnceWithExactly({
+                                        variant: 'negative',
+                                        content: 'The baseline for this product code and market segment already exists.',
+                                    }),
+                                ).to.be.true;
+                                expect(dialog.loading).to.be.false;
+                            });
+
                             it('reports that the baseline was created when navigation fails', async () => {
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox

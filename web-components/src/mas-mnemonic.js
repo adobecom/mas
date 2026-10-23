@@ -550,19 +550,28 @@ export default class MasMnemonic extends HTMLElement {
         if (!content) return `<span class="icon-only">${icon}</span>`;
         // Check for Spectrum components at render time for better timing
         if (hasSpectrumTooltip()) {
-            return `<overlay-trigger placement="${placement}">
-                <span slot="trigger">${icon}</span>
-                <sp-tooltip slot="hover-content" placement="${placement}" variant="${escapeHTML(this.variant)}">${content}</sp-tooltip>
-            </overlay-trigger>`;
+            return `
+                <overlay-trigger placement="${placement}">
+                    <span slot="trigger">${icon}</span>
+                    <sp-tooltip slot="hover-content" placement="${placement}" variant="${escapeHTML(this.variant)}">
+                        ${content}
+                    </sp-tooltip>
+                </overlay-trigger>
+            `;
         }
         const plainContent = escapeHTML(content.replace(/<[^>]*>/g, ''));
         const tip = this.smartPlacement
             ? '<span aria-hidden="true" role="presentation" class="css-tooltip-tip"></span>'
             : '';
-        return `<span class="css-tooltip ${this.smartPlacement ? 'smart' : placement}" tabindex="0" role="img" aria-label="${plainContent}">
-            ${icon}
-            <span class="css-tooltip-body">${content}${tip}</span>
-        </span>`;
+        return `
+            <span class="css-tooltip ${this.smartPlacement ? 'smart' : placement}" tabindex="0" role="img" aria-label="${plainContent}">
+                ${icon}
+                <span class="css-tooltip-body">
+                    ${content}
+                    ${tip}
+                </span>
+            </span>
+        `;
     }
 
     #bindListeners() {

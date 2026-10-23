@@ -148,9 +148,14 @@ export class MerchWhatsIncluded extends HTMLElement {
             !isMobile || !bulletsAdded ? '<slot name="content"></slot>' : '';
         const seeMore =
             isMobile && this.rows.length > this.mobileRows && !bulletsAdded
-                ? `<div class="see-more">${this.showAll ? '- See less' : '+ See more'}</div>`
+                ? `<div class="see-more">
+                      ${this.showAll ? '- See less' : '+ See more'}
+                  </div>`
                 : '';
-        const markup = `<slot name="heading"></slot><slot name="contentBullets"></slot>${content}${seeMore}`;
+        const markup = `<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
+            ${content}
+            ${seeMore}`;
         if (markup === this.#markup) return;
         this.#markup = markup;
         this.shadowRoot.innerHTML = markup;

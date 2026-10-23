@@ -677,17 +677,15 @@ export class MerchCard extends HTMLElement {
     }
 
     #render() {
-        if (
-            !this.isConnected ||
-            !this.variantLayout ||
-            this.style.display === 'none'
-        )
-            return;
-        const markup = this.variantLayout.renderLayout() ?? '';
+        const visible =
+            this.isConnected &&
+            this.variantLayout &&
+            this.style.display !== 'none';
+        const markup = visible ? (this.variantLayout.renderLayout() ?? '') : '';
         if (markup === this.#markup) return;
         this.#markup = markup;
         this.shadowRoot.innerHTML = markup;
-        this.variantLayout.bindEvents?.(this.shadowRoot);
+        if (visible) this.variantLayout.bindEvents?.(this.shadowRoot);
     }
 
     get theme() {

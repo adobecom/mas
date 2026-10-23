@@ -157,7 +157,9 @@ export default class MerchBadge extends HTMLElement {
     }
 
     #render() {
-        const markup = `<div class="badge">${iconMarkup(this.icon)}<slot></slot></div>`;
+        const markup = `<div class="badge">
+            ${iconMarkup(this.icon)}<slot></slot>
+        </div>`;
         if (markup === this.#markup) return;
         this.#markup = markup;
         this.shadowRoot.innerHTML = markup;

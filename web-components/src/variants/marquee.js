@@ -52,12 +52,33 @@ export class Marquee extends VariantLayout {
     renderLayout() {
         const rows = MARQUEE_FIELDS.map(({ slot, label }) => {
             const isBackgrounds = slot === 'backgrounds';
-            return `<div class="headless-row"><span class="headless-label">${escapeHTML(label)}</span><span class="headless-value" data-slot="${escapeHTML(slot)}"><slot name="${escapeHTML(slot)}"></slot>${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}</span></div>${isBackgrounds ? renderBackgroundsDetailRow() : ''}`;
+            return `
+                <div class="headless-row">
+                    <span class="headless-label">${escapeHTML(label)}</span>
+                    <span class="headless-value" data-slot="${escapeHTML(slot)}">
+                        <slot name="${escapeHTML(slot)}"></slot>
+                        ${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}
+                    </span>
+                </div>
+                ${isBackgrounds ? renderBackgroundsDetailRow() : ''}
+            `;
         }).join('');
         const secureLabel = this.card.secureLabel
-            ? `<div class="headless-row"><span class="headless-label">Secure label</span><span class="headless-value">${this.secureLabel}</span></div>`
+            ? `
+                  <div class="headless-row">
+                      <span class="headless-label">Secure label</span>
+                      <span class="headless-value">
+                          ${this.secureLabel}
+                      </span>
+                  </div>
+              `
             : '';
-        return `<div class="headless">${rows}${secureLabel}</div>`;
+        return `
+            <div class="headless">
+                ${rows}
+                ${secureLabel}
+            </div>
+        `;
     }
 
     bindEvents(root) {

@@ -60,7 +60,11 @@ export function makeRefreshBackgroundsDetail(getCard) {
 }
 
 export function renderBackgroundsToggleButton() {
-    return '<button type="button" class="headless-backgrounds-toggle">See all backgrounds</button>';
+    return `
+        <button type="button" class="headless-backgrounds-toggle">
+            See all backgrounds
+        </button>
+    `;
 }
 
 function breakpointLabel(breakpoint) {
@@ -70,9 +74,23 @@ function breakpointLabel(breakpoint) {
 export function renderBackgroundsDetailRow() {
     const rows = BACKGROUNDS_DETAIL_BREAKPOINTS.map(
         (breakpoint) =>
-            `<div class="headless-backgrounds-detail-row"><span class="headless-label">${breakpointLabel(breakpoint)}</span><span class="headless-value" data-backgrounds-breakpoint="${breakpoint}"></span></div>`,
+            `
+                <div class="headless-backgrounds-detail-row">
+                    <span class="headless-label"
+                        >${breakpointLabel(breakpoint)}</span
+                    >
+                    <span
+                        class="headless-value"
+                        data-backgrounds-breakpoint="${breakpoint}"
+                    ></span>
+                </div>
+            `,
     ).join('');
-    return `<div class="headless-row headless-backgrounds-detail hidden">${rows}</div>`;
+    return `
+        <div class="headless-row headless-backgrounds-detail hidden">
+            ${rows}
+        </div>
+    `;
 }
 
 /** Wires the toggle button and backgrounds slot rendered by the helpers above. */

@@ -63,7 +63,10 @@ export class MerchMnemonicList extends HTMLElement {
     }
 
     #render() {
-        const markup = `<slot name="icon"></slot><slot name="description">${escapeHTML(this.description)}</slot>`;
+        const markup = `
+            <slot name="icon"></slot>
+            <slot name="description">${escapeHTML(this.description)}</slot>
+        `;
         if (markup === this.#markup) return;
         this.#markup = markup;
         this.shadowRoot.innerHTML = markup;

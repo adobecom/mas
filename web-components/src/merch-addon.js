@@ -7,8 +7,11 @@ const MARKUP = `<input type="checkbox" id="addon-checkbox" />
         tabindex="0"
         aria-labelledby="custom-checkbox-label"
         id="custom-checkbox"
-    ></span>
-    <label id="custom-checkbox-label" for="addon-checkbox"><slot></slot></label>`;
+    >
+    </span>
+    <label id="custom-checkbox-label" for="addon-checkbox">
+        <slot></slot>
+    </label>`;
 
 export default class MerchAddon extends HTMLElement {
     static observedAttributes = [

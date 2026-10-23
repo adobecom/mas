@@ -123,11 +123,22 @@ export class VariantLayout {
             ? ` border: 1px solid ${badgeBackgroundColor}; border-right: none;`
             : '';
         const style = `background-color: ${badgeBackgroundColor}; color: ${badgeColor};${border}`;
-        return `<div id="badge" class="${escapeHTML(variant)}-badge" style="${escapeHTML(style)}">${escapeHTML(badgeText)}</div>`;
+        return `
+            <div
+                id="badge"
+                class="${escapeHTML(variant)}-badge"
+                style="${escapeHTML(style)}"
+            >
+                ${escapeHTML(badgeText)}
+            </div>
+        `;
     }
 
     get cardImage() {
-        return `<div class="image"><slot name="bg-image"></slot>${this.badge}</div>`;
+        return ` <div class="image">
+            <slot name="bg-image"></slot>
+            ${this.badge}
+        </div>`;
     }
 
     /* c8 ignore next 3 */
@@ -155,12 +166,16 @@ export class VariantLayout {
     get secureLabel() {
         const { secureLabel } = this.card;
         return secureLabel
-            ? `<span class="secure-transaction-label">${escapeHTML(secureLabel)}</span>`
+            ? `<span class="secure-transaction-label"
+                  >${escapeHTML(secureLabel)}</span
+              >`
             : '';
     }
 
     get secureLabelFooter() {
-        return `<footer>${this.secureLabel}<slot name="footer"></slot></footer>`;
+        return `<footer>
+            ${this.secureLabel}<slot name="footer"></slot>
+        </footer>`;
     }
 
     async postCardUpdateHook() {

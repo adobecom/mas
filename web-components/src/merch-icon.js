@@ -132,9 +132,15 @@ export default class MerchIcon extends HTMLElement {
     }
 
     #render() {
-        const img = `<img src="${escapeHTML(toRelativeAssetUrl(this.src))}" alt="${escapeHTML(this.alt)}" loading="${escapeHTML(this.loading)}" />`;
+        const img = `<img
+            src="${escapeHTML(toRelativeAssetUrl(this.src))}"
+            alt="${escapeHTML(this.alt)}"
+            loading="${escapeHTML(this.loading)}"
+        />`;
         const markup = this.href
-            ? `<a href="${escapeHTML(this.href)}">${img}</a>`
+            ? `<a href="${escapeHTML(this.href)}">
+                  ${img}
+              </a>`
             : img;
         if (markup === this.#markup) return;
         this.#markup = markup;

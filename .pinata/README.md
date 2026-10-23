@@ -10,14 +10,15 @@ ecosystem package.
 | File                                 | Purpose                                                                                                |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | `manifest.yaml`                      | MAS identity and shared planning models.                                                               |
-| `gates.yaml`                         | Lint, formatting, generated-file checks, visual evidence, independent review, and lockfile protection. |
+| `gates.yaml`                         | Lint, formatting, generated files, farm accessibility targets, visual evidence, review, and lockfiles. |
 | `floor/gates.yaml`                   | Organization minimums checked alongside the repository gates.                                          |
 | `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                       |
 | `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                    |
 | `scripts/check-contract.py`          | Configuration and model-reference checks.                                                              |
 | `scripts/check-dist-sync.sh`         | Rebuild and detect stale web-component bundles/docs.                                                   |
+| `scripts/a11y-target.mjs`            | Check a farm ticket's accessibility target on the page this checkout serves.                           |
 | `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                         |
-| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                       |
+| `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, preview mappings, and the target check.     |
 
 The migration uses the tested configuration from mas-pinata commit
 `4da6ea3f141e174aead3f158ec9bf3365d53b088`, retargeted to `adobecom/mas`.
@@ -88,6 +89,77 @@ candidate's IO code. Before removing this gate, provide a separate `io/www`
 dependency install and tests, deploy candidate IO to an isolated workspace,
 and route previews to it using `mas-io-url` or `io.studio.env` as appropriate.
 No IO deployment or additional dependency installation is added by this PR.
+
+### Accessibility targets (farm tickets)
+
+The Piñata farm admits accessibility tickets that name a target: a page, an
+element on it, an axe rule, and the state the page is in (`none`, `focus`,
+`hover`, `menu-open`, `expanded`, `dialog-open`). Such a run is verified only
+when a blocking command gate reads its work item, and `a11y-target` is that
+gate. On every other run the work item says `{"required": false}` and the gate
+passes at once.
+
+`scripts/a11y-target.mjs` loads the ticket's page as this checkout serves it,
+puts it in the ticket's state, runs the ticket's rule with axe, and reads the
+result for the element and everything inside it, across shadow roots:
+
+| Exit   | Meaning                                                                 |
+| ------ | ----------------------------------------------------------------------- |
+| `0`    | The rule passes on the element (or the run has no required work item).  |
+| `3`    | The rule still reports a violation there (`violation_exit_code`).       |
+| others | The target could not be checked. This is never a verdict on the change. |
+
+The engine gives command gates no preview URL; it runs them in a checkout. So
+the script serves the page the way `aem up` serves a local checkout. The page
+must be on a MAS preview host (`https://<branch>--mas--adobecom.aem.page`, never
+the `.aem.live` production CDN) and still be there after any redirect. Requests
+to that host for a file the checkout has are answered from the checkout, while
+content, fragments, services, and CDNs come from the network. The engine runs
+the check on the candidate, and on a passing candidate also on the base
+commit's own checkout; publishing without a person's approval needs, among
+other things, the base to exit `3` and the candidate to exit `0`. The engine
+runs a pinned copy of the script from outside the checkout, so the script
+resolves everything from its working directory.
+
+It uses `@playwright/test` and the axe-core that `@axe-core/playwright` ships,
+both already in `package.json`; no dependency is added. When the browser build
+of that Playwright version is missing, it drives the `chromium` on `PATH`,
+which the Piñata runtime provides.
+
+States: `focus` and `hover` act on the element. For `expanded`, `menu-open`,
+and `dialog-open`, a state that already holds is left as it is (the element's
+control is expanded, the element is in an open menu, or a dialog is open);
+otherwise the element is clicked, and the click counts only if it changed the
+page into that state.
+
+These targets cannot be checked (exit `1`):
+
+- Studio pages: they need an IMS sign-in, which a command gate does not have.
+  This gate cannot check Studio targets.
+- Pages on any other host, including `.aem.live`, and URLs with a user name or
+  password.
+- Published content pages whose `head.html` differs from the checkout's.
+- An element that is missing, a rule that does not apply to it or needs
+  review, or a state that is not reached.
+
+**Every non-zero exit fails the gate the same way.** The gate's
+`failure_route: regenerate` cannot tell exit `1` from exit `3`. A target the
+check cannot reach (a Studio page, an outage) therefore also spends producer
+candidates, up to `regeneration.max_candidates`, before a person sees it.
+`regenerate` is the default because a fix that still fails should be retried
+without waiting for a person. Choosing `escalate_to_human` instead, which
+stops at the first failure, is the MAS owners' decision.
+
+To try a target locally, after `npm ci`:
+
+```sh
+cat > /tmp/work-item.json <<'EOF'
+{"required": true, "ticket": "MWPW-000000", "target": {
+  "page": "https://main--mas--adobecom.aem.page/web-components/docs/ccd.html",
+  "element": "merch-icon a", "rule": "link-name", "state": "none"}}
+EOF
+node .pinata/scripts/a11y-target.mjs /tmp/work-item.json; echo "exit $?"
+```
 
 ### Ownership and configuration protection
 

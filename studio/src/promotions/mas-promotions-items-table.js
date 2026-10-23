@@ -362,9 +362,17 @@ class MasPromotionsItemsTable extends LitElement {
             const sortedPaths = await this.#sortPathsByOfferName(this.#allSelectedPaths);
             if (signal.aborted) return;
             this.#allSelectedPaths = sortedPaths;
+            this.#cacheSelectedFragments([...this.#prefetchedByPath.values()]);
         }
         this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
+    }
+
+    #cacheSelectedFragments(items) {
+        const store = this.itemsSelection.value[`${this.type}ByPaths`];
+        store.set(
+            (previous) => new Map([...previous, ...items.map((item) => [item.path, { ...previous.get(item.path), ...item }])]),
+        );
     }
 
     async #sortPathsByOfferName(paths) {
@@ -412,6 +420,7 @@ class MasPromotionsItemsTable extends LitElement {
             prefetched: this.#prefetchedByPath,
             onItems: (items) => {
                 if (signal.aborted) return;
+                this.#cacheSelectedFragments(items);
                 for (const item of items) {
                     this.#loadedByPath.set(item.path, item);
                     this.#offerNameByPath.set(item.path, getOfferName(item));

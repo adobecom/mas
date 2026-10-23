@@ -570,7 +570,6 @@ class MasItemsSelector extends LitElement {
                                         ? nothing
                                         : html`<mas-selected-items
                                               .getDisplayName=${this.getDisplayName}
-                                              .hideGroupedVariations=${this.hideGroupedVariations}
                                           ></mas-selected-items>`}
                                 </div>
                                 <sp-toast timeout="6000" @close=${(event) => event.stopPropagation()}></sp-toast>

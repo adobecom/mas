@@ -14,6 +14,7 @@ import {
 import ReactiveController from '../../reactivity/reactive-controller.js';
 import { AEM } from '../../aem/aem.js';
 import { ensureNamespaceTags, getNamespaceCache, getNamespaceInflight } from '../../aem/tag-cache.js';
+import { PZN_TAG_ID_PREFIX, tagRefToTagId } from '../utils/personalization-utils.js';
 import '../../aem/aem-tag-picker-field.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
@@ -42,6 +43,7 @@ class MasSearchAndFilters extends LitElement {
     #lastForcedSearchSignature = null;
     #defaultTemplateFilterApplied = false;
     #tagCachePromise = null;
+    #tagPathsBySelection = new WeakMap();
     // Search/filters come from the active items-selection store when it provides them
     // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
     #searchStore = Store.search;
@@ -87,6 +89,8 @@ class MasSearchAndFilters extends LitElement {
         offerFilterValue: { type: String },
         /** If true, don't overwrite productFilter — the consumer controls it (offers for promotions). */
         externalProductFilter: { type: Boolean },
+        /** When set, card search also matches grouped variation ids and personalization tags (promotions picker). */
+        matchVariationsAndTags: { type: Boolean, attribute: false },
     };
 
     constructor() {
@@ -120,6 +124,7 @@ class MasSearchAndFilters extends LitElement {
         this.offerFilterOptions = [];
         this.offerFilterValue = '';
         this.externalProductFilter = false;
+        this.matchVariationsAndTags = false;
     }
 
     get #isTemplateFilterLocked() {
@@ -246,6 +251,7 @@ class MasSearchAndFilters extends LitElement {
             if (!this.isConnected) return;
             this.#tagCachePromise = null;
             if (!this.searchOnly) this.#extractFilterOptions();
+            if (this.matchVariationsAndTags) this.#applyFilters();
             this.requestUpdate();
         });
     }
@@ -495,12 +501,17 @@ class MasSearchAndFilters extends LitElement {
         };
         this.#addSelectedFilterOptions(optionMaps);
         for (const fragment of this.itemsSelection.value[`all${this.typeUppercased}`].value) {
-            if (!fragment.tags) continue;
-
-            for (const tag of fragment.tags) {
+            for (const tag of fragment.tags ?? []) {
                 const tagId = tag.id || '';
                 const tagTitle = tag.title || tagId.split('/').pop() || '';
                 this.#setOptionFromTagId(optionMaps, tagId, tagTitle);
+            }
+            if (this.matchVariationsAndTags) {
+                for (const item of [fragment, ...(fragment.groupedVariations ?? [])]) {
+                    for (const tag of this.#personalizationTags(item)) {
+                        this.#setOptionFromTagId(optionMaps, tagRefToTagId(tag), tag.title);
+                    }
+                }
             }
         }
         this.#addCachedFilterOptions(optionMaps);
@@ -525,8 +536,33 @@ class MasSearchAndFilters extends LitElement {
     }
 
     willUpdate(changed) {
+        if (this.type === TABLE_TYPE.CARDS && this.externalProductFilter && changed.has('productFilter')) {
+            this.dispatchEvent(
+                new CustomEvent('product-filter-change', {
+                    detail: { value: this.productFilter },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+        }
         if (changed.has('lockedTemplateFilter') || (changed.has('templateFilter') && this.#isTemplateFilterLocked)) {
             this.#syncLockedTemplateFilter();
+        }
+        if (this.matchVariationsAndTags) {
+            for (const selectedValues of [
+                this.offerTypeFilter,
+                this.planTypeFilter,
+                this.workflowStepFilter,
+                this.marketSegmentFilter,
+                this.customerSegmentFilter,
+                this.productFilter,
+                this.tagFilter,
+                this.pznFilter,
+            ]) {
+                if (!this.#tagPathsBySelection.has(selectedValues)) {
+                    this.#tagPathsBySelection.set(selectedValues, this.#selectedTagPaths(selectedValues));
+                }
+            }
         }
         if (
             changed.has('searchQuery') ||
@@ -539,7 +575,8 @@ class MasSearchAndFilters extends LitElement {
             changed.has('workflowStepFilter') ||
             changed.has('pznFilter') ||
             changed.has('tagFilter') ||
-            changed.has('statusFilter')
+            changed.has('statusFilter') ||
+            changed.has('matchVariationsAndTags')
         ) {
             if (
                 changed.has('searchQuery') ||
@@ -720,6 +757,16 @@ class MasSearchAndFilters extends LitElement {
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
+        if (this.offerFilterValue) {
+            this.offerFilterValue = '';
+            this.dispatchEvent(
+                new CustomEvent('offer-filter-change', {
+                    detail: { value: this.offerFilterValue },
+                    bubbles: true,
+                    composed: true,
+                }),
+            );
+        }
     }
 
     resetFilters() {
@@ -794,7 +841,9 @@ class MasSearchAndFilters extends LitElement {
                 multiple
                 selection="checkbox"
                 .quiet=${false}
-                .value=${this.#selectedTagPaths(selectedValues)}
+                .value=${this.matchVariationsAndTags
+                    ? this.#tagPathsBySelection.get(selectedValues)
+                    : this.#selectedTagPaths(selectedValues)}
                 ?disabled=${this.isLoading}
                 @change=${(e) => this.#handleTagPickerChange(filterType, e)}
             ></aem-tag-picker-field>
@@ -869,6 +918,39 @@ class MasSearchAndFilters extends LitElement {
         return fragment.tags?.some((tag) => selectedIds.some((sel) => tag.id === sel || tag.id?.startsWith(`${sel}/`)));
     }
 
+    #personalizationTags(fragment) {
+        return [
+            ...(fragment.tags ?? []),
+            ...(fragment.fieldTags ?? []),
+            ...(fragment.fields?.filter(({ name }) => name === 'pznTags' || name === 'tags').flatMap(({ values }) => values) ??
+                []),
+        ].filter((tag) => tagRefToTagId(tag)?.startsWith(PZN_TAG_ID_PREFIX));
+    }
+
+    #personalizationTagMatchesQuery(tag, query) {
+        const id = tagRefToTagId(tag);
+        const title = tag.title || getNamespaceCache(MAS_TAG_NAMESPACE)?.get(this.#tagIdToPath(id))?.title || '';
+        return id.split('/').pop().toLowerCase() === query || title.toLowerCase().includes(query);
+    }
+
+    #fragmentMatchesVariationOrTag(fragment, query) {
+        return [fragment, ...(fragment.groupedVariations ?? [])].some(
+            (item) =>
+                item.id?.toLowerCase() === query ||
+                this.#personalizationTags(item).some((tag) => this.#personalizationTagMatchesQuery(tag, query)),
+        );
+    }
+
+    #fragmentMatchesPersonalization(fragment) {
+        if (!this.matchVariationsAndTags) return this.#fragmentMatchesAnyTag(fragment, this.pznFilter);
+        return [fragment, ...(fragment.groupedVariations ?? [])].some((item) =>
+            this.#personalizationTags(item).some((tag) => {
+                const id = tagRefToTagId(tag);
+                return this.pznFilter.some((selected) => id === selected || id.startsWith(`${selected}/`));
+            }),
+        );
+    }
+
     #applyFilters() {
         const source = this.itemsSelection.value[`all${this.typeUppercased}`].value || [];
         const query = this.searchQuery?.toLowerCase();
@@ -902,7 +984,8 @@ class MasSearchAndFilters extends LitElement {
                         !path.includes(query) &&
                         !(fragmentId && fragmentId === query) &&
                         !productTag.toLowerCase().includes(query) &&
-                        !offerId.toLowerCase().includes(query)
+                        !offerId.toLowerCase().includes(query) &&
+                        !(this.matchVariationsAndTags && this.#fragmentMatchesVariationOrTag(fragment, query))
                     ) {
                         return false;
                     }
@@ -935,7 +1018,7 @@ class MasSearchAndFilters extends LitElement {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.workflowStepFilter)) return false;
             }
             if (hasPzn) {
-                if (!this.#fragmentMatchesAnyTag(fragment, this.pznFilter)) return false;
+                if (!this.#fragmentMatchesPersonalization(fragment)) return false;
             }
             if (hasTag) {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.tagFilter)) return false;

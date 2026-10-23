@@ -8,6 +8,7 @@ import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTIO
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 
 const mockFragmentCache = {
     get: () => null,
@@ -1500,6 +1501,122 @@ describe('MasRepository dictionary helpers', () => {
                 };
             };
 
+            for (const { stage, errorName } of [
+                'UUID lookup',
+                'variation parent resolution',
+                'promo reference merge',
+                'regular search',
+            ].flatMap((stage) => [null, 'AbortError', 'Error'].map((errorName) => ({ stage, errorName })))) {
+                it(`keeps a newer UUID search loading when an older ${stage} ${errorName ? `rejects with ${errorName}` : 'completes'}`, async () => {
+                    const repository = createFullRepository();
+                    repository.page = { value: PAGE_NAMES.CONTENT };
+                    repository.search = { value: { path: 'acom', query: stage === 'regular search' ? 'old' : variationUuid } };
+                    repository.filters = { value: { locale: 'en_US', tags: '' } };
+                    const oldFragment = createFragment({
+                        id: variationUuid,
+                        path: `${ROOT_PATH}/acom/en_US/old${stage === 'variation parent resolution' ? '/pzn/smb' : ''}`,
+                    });
+                    let resolveOld;
+                    let rejectOld;
+                    let resolveNew;
+                    const oldPending = new Promise((resolve, reject) => {
+                        resolveOld = resolve;
+                        rejectOld = reject;
+                    });
+                    const newPending = new Promise((resolve) => {
+                        resolveNew = resolve;
+                    });
+                    const getById = sandbox.stub();
+                    const oldLookup = getById.withArgs(variationUuid);
+                    oldLookup.returns(stage === 'UUID lookup' ? oldPending : Promise.resolve(oldFragment));
+                    getById.withArgs(parentUuid).returns(newPending);
+                    const resolveParent = sandbox.stub(repository, 'resolveHydratedParentFragment').returns(oldPending);
+                    repository.loadPromotions = sandbox.stub().resolves();
+                    repository.loadPromotions.onFirstCall().returns(oldPending);
+                    const search = sandbox.stub().returns(oldPending);
+                    repository.aem = createAemMock({ fragments: { getById, search } });
+                    sandbox.stub(repository, 'processError');
+                    const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                    const previousPromotions = Store.promotions.list.data.get();
+                    const previousFetched = Store.promotions.list.data.getMeta('listFetched');
+                    Store.promotions.list.data.set([]);
+                    if (stage === 'promo reference merge') Store.promotions.list.data.removeMeta('listFetched');
+                    else Store.promotions.list.data.setMeta('listFetched', true);
+                    let oldSearch;
+                    let newSearch;
+                    try {
+                        oldSearch = repository.searchFragments();
+                        const stageStarted =
+                            stage === 'UUID lookup'
+                                ? oldLookup
+                                : stage === 'variation parent resolution'
+                                  ? resolveParent
+                                  : stage === 'promo reference merge'
+                                    ? repository.loadPromotions
+                                    : search;
+                        await waitUntil(() => stageStarted.called);
+                        repository.search = { value: { path: 'acom', query: parentUuid } };
+                        newSearch = repository.searchFragments();
+                        expect(getById.calledWith(parentUuid)).to.be.true;
+
+                        if (errorName) {
+                            const error = new Error('Superseded search failed');
+                            error.name = errorName;
+                            rejectOld(error);
+                        } else {
+                            resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        }
+                        await oldSearch;
+
+                        expect(Store.fragments.list.loading.get(), 'new UUID request is still pending').to.be.true;
+                        expect(mockDataStore.get()).to.deep.equal([]);
+                        expect(repository.processError.called).to.be.false;
+                        resolveNew(createFragment({ id: parentUuid, path: `${ROOT_PATH}/acom/en_US/new` }));
+                        await newSearch;
+                        expect(Store.fragments.list.loading.get()).to.be.false;
+                        expect(mockDataStore.get()[0].get().id).to.equal(parentUuid);
+                    } finally {
+                        resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        resolveNew(createFragment({ id: parentUuid, path: `${ROOT_PATH}/acom/en_US/new` }));
+                        await Promise.allSettled([oldSearch, newSearch]);
+                        Store.promotions.list.data.set(previousPromotions);
+                        if (previousFetched === null) Store.promotions.list.data.removeMeta('listFetched');
+                        else Store.promotions.list.data.setMeta('listFetched', previousFetched);
+                        restore();
+                    }
+                });
+            }
+
+            it('invalidates an old UUID request as soon as the next query is queued', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                sandbox.stub(repository, 'loadFolders').resolves();
+                sandbox.stub(repository, 'handleSearch');
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                let resolveOld;
+                const pending = new Promise((resolve) => {
+                    resolveOld = resolve;
+                });
+                repository.connectedCallback();
+                repository.aem = createAemMock({ fragments: { getById: sandbox.stub().returns(pending) } });
+                let oldSearch;
+                try {
+                    oldSearch = repository.searchFragments();
+                    Store.search.set((previous) => ({ ...previous, query: parentUuid }));
+                    resolveOld(createFragment({ id: variationUuid, path: `${ROOT_PATH}/acom/en_US/old` }));
+                    await oldSearch;
+                    expect(mockDataStore.get()).to.deep.equal([]);
+                    expect(Store.fragments.list.loading.get()).to.be.true;
+                } finally {
+                    resolveOld(null);
+                    await oldSearch;
+                    repository.disconnectedCallback();
+                    restore();
+                }
+            });
+
             it('resolves parent and sets expand/highlight stores for grouped variation UUID', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1527,6 +1644,38 @@ describe('MasRepository dictionary helpers', () => {
                     expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
                     expect(Store.fragments.variationSearchTab.get()).to.equal('grouped');
                 } finally {
+                    restore();
+                }
+            });
+
+            it('finishes loading a grouped variation UUID in the promotions picker', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: `${ROOT_PATH}/acom/en_US/my-card`,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                repository.aem = createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().resolves(createFragment({ id: variationUuid, path: variationPath })),
+                        search: makeSearchStub(sandbox),
+                    },
+                });
+                sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                const originalSurface = Store.promotions.itemPickerSurface.get();
+                try {
+                    Store.promotions.itemPickerSurface.set('acom');
+                    await repository.searchFragments();
+                    expect(mockDataStore.get().map((store) => store.get().id)).to.deep.equal([parentUuid]);
+                    expect(Store.fragments.list.firstPageLoaded.get()).to.be.true;
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                } finally {
+                    Store.promotions.itemPickerSurface.set(originalSurface);
                     restore();
                 }
             });
@@ -1767,6 +1916,7 @@ describe('MasRepository dictionary helpers', () => {
 
                     try {
                         const staleSearch = repository.searchFragments();
+                        await waitUntil(() => repository.loadPromotions.called);
 
                         repository.search = { value: { path: 'acom', query: 'photoshop' } };
                         const freshSearch = repository.searchFragments();
@@ -2077,6 +2227,44 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('keeps personalization-tagged candidates in the Promotions picker when the Content toggle is off', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const pznFragment = createFragment({
+                id: 'edu-parent',
+                path: `${ROOT_PATH}/acom/en_US/cards/edu`,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+            });
+            const search = sandbox.stub().resolves(createMockCursor([[pznFragment]]));
+            repository.aem = createAemMock({ fragments: { search } });
+            const originalProfile = Store.profile.get();
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            const originalData = Store.fragments.list.data;
+            const originalCreatedBy = Store.createdByUsers.get();
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            Store.promotions.itemPickerSurface.set('acom');
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                await waitUntil(() => !Store.fragments.list.loading.get());
+                expect(mockDataStore.set.lastCall.args[0].map((store) => store.get().id)).to.deep.equal(['edu-parent']);
+            } finally {
+                Store.fragments.list.data = originalData;
+                Store.profile.set(originalProfile);
+                Store.createdByUsers.set(originalCreatedBy);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+            }
+        });
+
         it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -2255,6 +2443,27 @@ describe('MasRepository dictionary helpers', () => {
             };
             return { get: () => item, value: item };
         };
+
+        for (const page of [PAGE_NAMES.CONTENT, PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR]) {
+            it(`uses the correct personalization visibility for cached candidates on ${page}`, () => {
+                const repository = createFullRepository();
+                repository.page = { value: page };
+                repository.filters = { value: { personalizationFilterEnabled: false } };
+                const stores = [
+                    makeFragmentStore({ id: 'edu-parent', tags: [{ id: 'mas:pzn/edu' }] }),
+                    makeFragmentStore({ id: 'plain' }),
+                ];
+                const result = repository.testOnlyApplyInMemoryFilter(stores, {
+                    tags: [],
+                    variants: [],
+                    contentTypes: [],
+                    createdBy: [],
+                });
+                expect(result.map((store) => store.get().id)).to.deep.equal(
+                    page === PAGE_NAMES.PROMOTIONS_EDITOR ? ['edu-parent', 'plain'] : ['plain'],
+                );
+            });
+        }
 
         const setupNarrowingFixture = ({
             stores,
@@ -2687,6 +2896,70 @@ describe('MasRepository dictionary helpers', () => {
                 },
             };
         };
+
+        for (const { phase, errorName } of ['background refill', 'next page'].flatMap((phase) =>
+            [null, 'AbortError', 'Error'].map((errorName) => ({ phase, errorName })),
+        )) {
+            it(`does not stop a newer UUID search when an older ${phase} ${errorName ? `rejects with ${errorName}` : 'finishes'}`, async () => {
+                let resolveOldPage;
+                let rejectOldPage;
+                let resolveUuid;
+                const pendingPage = new Promise((resolve, reject) => {
+                    resolveOldPage = resolve;
+                    rejectOldPage = reject;
+                });
+                const pendingUuid = new Promise((resolve) => {
+                    resolveUuid = resolve;
+                });
+                const count = phase === 'background refill' ? 1 : MasRepository.MIN_FILTERED_PAGE_RESULTS;
+                const fragments = Array.from({ length: count }, (_, i) =>
+                    createFragment({ id: `old-${i}`, path: `${ROOT_PATH}/acom/en_US/old-${i}` }),
+                );
+                const next = sandbox.stub();
+                next.onFirstCall().resolves({
+                    done: false,
+                    value: {
+                        [Symbol.asyncIterator]: async function* () {
+                            yield* fragments;
+                        },
+                    },
+                });
+                next.onSecondCall().returns(pendingPage);
+                const { repository, cleanup } = await setupSearchTest({ next });
+                sandbox.stub(repository, 'processError');
+                let oldPage;
+                let uuidSearch;
+                try {
+                    await repository.searchFragments();
+                    if (phase === 'next page') oldPage = repository.loadNextPage();
+                    await waitUntil(() => next.calledTwice);
+                    repository.aem.sites.cf.fragments.getById.returns(pendingUuid);
+                    repository.search = { value: { path: 'acom', query: '09f5c8af-4a7d-497b-a579-70d2f3794a2c' } };
+                    uuidSearch = repository.searchFragments();
+
+                    if (errorName) {
+                        const error = new Error('Superseded page failed');
+                        error.name = errorName;
+                        rejectOldPage(error);
+                    } else {
+                        resolveOldPage({ done: true });
+                    }
+                    if (oldPage) await oldPage;
+                    else await new Promise((resolve) => setTimeout(resolve, 0));
+
+                    expect(Store.fragments.list.loading.get()).to.be.true;
+                    expect(repository.processError.called).to.be.false;
+                    resolveUuid(null);
+                    await uuidSearch;
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                } finally {
+                    resolveOldPage({ done: true });
+                    resolveUuid(null);
+                    await Promise.allSettled([oldPage, uuidSearch]);
+                    cleanup();
+                }
+            });
+        }
 
         it('fetches multiple pages to fill minimum results when variant filtering reduces items', async () => {
             const makeFragment = (id, variant) =>

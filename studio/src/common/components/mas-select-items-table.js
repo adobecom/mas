@@ -61,7 +61,14 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, pendingCards: null, abortController: null };
+        this.dataState = {
+            isProcessingCards: false,
+            pendingCards: null,
+            abortController: null,
+            onProcessingChange: () => {
+                if (this.itemsSelection.value === Store.promotions) this.requestUpdate();
+            },
+        };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -253,7 +260,12 @@ class MasSelectItemsTable extends LitElement {
     get isLoading() {
         if (this.effectiveType === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return !this.dataReady;
+            return (
+                !this.dataReady ||
+                (this.itemsSelection.value === Store.promotions &&
+                    this.itemsToDisplay.length === 0 &&
+                    (this.loading.value || this.hasMore.value || this.dataState.isProcessingCards))
+            );
         }
         if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
             if (this.viewOnly) return this.viewOnlyLoading;

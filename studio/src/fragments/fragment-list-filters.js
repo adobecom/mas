@@ -18,13 +18,16 @@ export function filterStoresByPersonalizationEnabled(fragmentStores, personaliza
 }
 
 /**
- * Applies content-list filters (personalization + hide promo variations on CONTENT page).
+ * Applies content-list filters; the Promotions picker owns its own personalization filtering.
  * @param {import('../reactivity/fragment-store.js').FragmentStore[]} fragmentStores
  * @param {{ page: string, personalizationFilterEnabled: boolean }} options
  * @returns {import('../reactivity/fragment-store.js').FragmentStore[]}
  */
 export function applyFragmentListFilters(fragmentStores, { page, personalizationFilterEnabled }) {
-    const filteredByPersonalization = filterStoresByPersonalizationEnabled(fragmentStores, personalizationFilterEnabled);
+    const filteredByPersonalization =
+        page === PAGE_NAMES.PROMOTIONS_EDITOR
+            ? fragmentStores
+            : filterStoresByPersonalizationEnabled(fragmentStores, personalizationFilterEnabled);
     if (page !== PAGE_NAMES.CONTENT) return filteredByPersonalization;
     return filteredByPersonalization.filter((fs) => {
         const fragment = fs.get?.() ?? fs.value;

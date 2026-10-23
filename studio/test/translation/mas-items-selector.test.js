@@ -21,9 +21,13 @@ const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 
 describe('MasItemsSelector', () => {
     let sandbox;
+    let originalCardsByPaths;
+    let originalGroupedVariationsData;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        originalCardsByPaths = Store.translationProjects.cardsByPaths.value;
+        originalGroupedVariationsData = Store.translationProjects.groupedVariationsData.value;
         stubAemTagQueryFetch(sandbox);
         setItemsSelectionStore(Store.translationProjects);
         resetTagCache(MAS_TAG_NAMESPACE);
@@ -40,6 +44,8 @@ describe('MasItemsSelector', () => {
     afterEach(() => {
         fixtureCleanup();
         sandbox.restore();
+        Store.translationProjects.cardsByPaths.set(originalCardsByPaths);
+        Store.translationProjects.groupedVariationsData.set(originalGroupedVariationsData);
         Store.translationProjects.inEdit.set(null);
         Store.translationProjects.showSelected.set(false);
         Store.translationProjects.selectedCards.set([]);
@@ -347,6 +353,41 @@ describe('MasItemsSelector', () => {
     });
 
     describe('mas-selected-items integration', () => {
+        for (const tab of [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS]) {
+            it(`shows default cards and grouped variations in the ${tab} selection panel`, async () => {
+                const store = Store.translationProjects;
+                const cards = [1, 2].map((index) => ({
+                    path: `/content/dam/mas/sandbox/en_US/test-card-${index}`,
+                    title: `Test Card ${index}`,
+                    model: { path: CARD_MODEL_PATH },
+                }));
+                const variations = cards.map((card) => ({ ...card, path: `${card.path}/pzn/edu` }));
+                store.cardsByPaths.set(new Map([...cards, ...variations].map((card) => [card.path, card])));
+                store.groupedVariationsData.set(new Map(variations.map((card) => [card.path, card])));
+                store.selectedCards.set([...cards, ...variations].map((card) => card.path));
+                store.showSelected.set(true);
+                const el = await fixture(html`
+                    <mas-items-selector
+                        variant="promotions"
+                        .allowedTypes=${[TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS]}
+                        .selectedTab=${tab}
+                        .hideGroupedVariations=${true}
+                    ></mas-items-selector>
+                `);
+                const panel = el.shadowRoot.querySelector(`sp-tab-panel[value="${tab}"]`);
+                const selectedItems = panel.querySelector('mas-selected-items');
+                await selectedItems.updateComplete;
+
+                expect([...selectedItems.shadowRoot.querySelectorAll('.type')].map((item) => item.textContent)).to.deep.equal([
+                    'Default',
+                    'Default',
+                    'Grouped variation',
+                    'Grouped variation',
+                ]);
+                expect(panel.querySelector('mas-select-items-table').hideGroupedVariations).to.be.true;
+            });
+        }
+
         it('should render mas-selected-items when not viewOnly', async () => {
             const el = await fixture(html`<mas-items-selector></mas-items-selector>`);
             const selectedItems = el.shadowRoot.querySelector('mas-selected-items');

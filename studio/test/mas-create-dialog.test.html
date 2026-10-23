@@ -282,14 +282,17 @@
                         describe('on create', () => {
                             let fragments;
                             let repository;
+                            let tagExists;
 
                             beforeEach(() => {
                                 repository = document.querySelector('mas-repository');
                                 fragments = repository.aem.sites.cf.fragments;
+                                tagExists = sandbox.stub(repository.aem.tags, 'exists').resolves(true);
                                 sandbox.stub(console, 'error');
                                 sandbox.stub(router, 'navigateToFragmentEditor').resolves();
                                 dialog.osi = 'ABC123';
                                 dialog.productArrangementCode = 'ccsn_direct_individual';
+                                dialog.productCode = 'CCSN';
                                 Store.search.set((prev) => ({ ...prev, path: 'sandbox' }));
                                 dialog.template = 'catalog';
                             });
@@ -349,6 +352,20 @@
                                 expect(titleField.valid).to.be.false;
                             });
 
+                            it('creates the baseline without tags that do not exist and shows no error', async () => {
+                                tagExists.resolves(false);
+                                sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
+                                sandbox
+                                    .stub(fragments, 'getByPath')
+                                    .rejects(Object.assign(new Error('Fragment not found'), { status: 404 }));
+                                const create = sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' });
+
+                                await dialog.handleSubmit();
+
+                                expect(create.firstCall.args[0].tags).to.deep.equal([]);
+                                expect(dialog.errors.offer).to.equal('');
+                            });
+
                             it('creates a Card fragment in the baseline folder', async () => {
                                 sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
                                 sandbox
@@ -367,6 +384,11 @@
                                     title: 'Test Baseline',
                                     name: 'baseline',
                                     parentPath: '/content/dam/mas/sandbox/en_US/baselines/catalog/ccsn_direct_individual',
+                                    tags: [
+                                        '/content/cq:tags/mas/product_code/ccsn',
+                                        '/content/cq:tags/mas/market_segments/com',
+                                        '/content/cq:tags/mas/product_arrangement_code/ccsn_direct_individual',
+                                    ],
                                     data: {
                                         osi: 'ABC123',
                                         cardTitle: 'Test Baseline',

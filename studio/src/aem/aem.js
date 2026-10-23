@@ -1114,6 +1114,24 @@ class AEM {
     }
 
     /**
+     * Check whether an AEM tag exists
+     * @param {string} tagPath - Path of the tag, e.g. /content/cq:tags/mas/product_code/ccsn
+     * @returns {Promise<boolean>}
+     */
+    async tagExists(tagPath) {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
+            method: 'GET',
+            headers: this.headers,
+        }).catch((err) => {
+            throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
+        });
+
+        if (response.ok) return true;
+        if (response.status === 404) return false;
+        throw new Error(`Failed to check tag: ${response.status} ${response.statusText}`);
+    }
+
+    /**
      * Create a new AEM tag, failing if one already exists at the given path
      * @param {string} tagPath - Path of the tag to create
      * @param {string} title - Title of the tag
@@ -1507,6 +1525,10 @@ class AEM {
          * @see AEM#listTags
          */
         list: this.listTags.bind(this),
+        /**
+         * @see AEM#tagExists
+         */
+        exists: this.tagExists.bind(this),
         /**
          * @see AEM#createTag
          */

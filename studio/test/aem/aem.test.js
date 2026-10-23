@@ -313,6 +313,32 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: tagExists', () => {
+        afterEach(() => {
+            delete window.fetch;
+        });
+
+        it('returns true when the tag exists', async () => {
+            window.fetch = async () => ({ ok: true, status: 200 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.true;
+        });
+
+        it('returns false when the tag is not found', async () => {
+            window.fetch = async () => ({ ok: false, status: 404 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.false;
+        });
+
+        it('throws on an unexpected status', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+
+            const error = await aem.tagExists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Failed to check tag: 500 Server Error');
+        });
+    });
+
     describe('method: createTag', () => {
         let originalGetCsrfToken;
 

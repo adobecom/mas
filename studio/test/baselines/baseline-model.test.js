@@ -2,7 +2,9 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
     buildBaselineFolderPath,
+    buildBaselineTags,
     createBaseline,
+    filterExistingTags,
     prepareBaselineFolder,
     resolveBaselineOffer,
 } from '../../src/baselines/baseline-model.js';
@@ -15,8 +17,15 @@ const baseline = {
     locale: 'fr_FR',
     template: 'catalog',
     productArrangementCode: 'ccsn_direct_individual',
+    productCode: 'CCSN',
     name: 'my-baseline',
 };
+
+const TAGS = [
+    '/content/cq:tags/mas/product_code/ccsn',
+    '/content/cq:tags/mas/market_segments/com',
+    '/content/cq:tags/mas/product_arrangement_code/ccsn_direct_individual',
+];
 
 const notFoundError = () => Object.assign(new Error('Fragment not found'), { status: 404 });
 
@@ -72,6 +81,38 @@ describe('baseline-model', () => {
         expect(fragmentsApi.getByPath.called).to.be.false;
     });
 
+    describe('buildBaselineTags', () => {
+        it('builds lower-cased product code, market segment and PA code tags', () => {
+            expect(
+                buildBaselineTags({ productCode: 'CCSN', marketSegment: 'EDU', productArrangementCode: 'PA-793' }),
+            ).to.deep.equal([
+                '/content/cq:tags/mas/product_code/ccsn',
+                '/content/cq:tags/mas/market_segments/edu',
+                '/content/cq:tags/mas/product_arrangement_code/pa-793',
+            ]);
+        });
+
+        it('defaults the market segment to com', () => {
+            expect(buildBaselineTags(baseline)).to.deep.equal(TAGS);
+        });
+
+        it('omits tags without a value', () => {
+            expect(buildBaselineTags({ productArrangementCode: 'PA-793' })).to.deep.equal([
+                '/content/cq:tags/mas/market_segments/com',
+                '/content/cq:tags/mas/product_arrangement_code/pa-793',
+            ]);
+        });
+    });
+
+    describe('filterExistingTags', () => {
+        it('keeps only the tags that exist in AEM', async () => {
+            const exists = sinon.stub().resolves(true);
+            exists.withArgs(TAGS[2]).resolves(false);
+
+            expect(await filterExistingTags({ exists }, TAGS)).to.deep.equal([TAGS[0], TAGS[1]]);
+        });
+    });
+
     describe('resolveBaselineOffer', () => {
         let service;
 
@@ -86,19 +127,26 @@ describe('baseline-model', () => {
 
         it('uses the PA code and segment carried by the offer without a lookup', async () => {
             expect(
-                await resolveBaselineOffer('OSI', { productArrangementCode: 'PA-1', market_segments: ['EDU'] }),
-            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU' });
+                await resolveBaselineOffer('OSI', {
+                    productArrangementCode: 'PA-1',
+                    market_segments: ['EDU'],
+                    product_code: 'CCSN',
+                }),
+            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
             expect(service.resolveOfferSelectors.called).to.be.false;
         });
 
         it('resolves the PA code and segment from the offer selector', async () => {
             service.resolveOfferSelectors.returns([
-                Promise.resolve([{ productArrangementCode: 'PA-2', marketSegments: ['GOV'] }]),
+                Promise.resolve([
+                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                ]),
             ]);
 
             expect(await resolveBaselineOffer('OSI', {})).to.deep.equal({
                 productArrangementCode: 'PA-2',
                 marketSegment: 'GOV',
+                productCode: 'PHSP',
             });
             expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
         });
@@ -109,14 +157,25 @@ describe('baseline-model', () => {
             expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
                 productArrangementCode: undefined,
                 marketSegment: undefined,
+                productCode: undefined,
             });
         });
     });
 
     describe('createBaseline', () => {
-        const createRepository = (getByPath) => ({
-            aem: { sites: { cf: { fragments: createFragmentsApi(getByPath) } } },
+        const createRepository = (getByPath, exists = sinon.stub().resolves(true)) => ({
+            aem: { tags: { exists }, sites: { cf: { fragments: createFragmentsApi(getByPath) } } },
             createFragment: sinon.stub().resolves({ id: 'baseline-id' }),
+        });
+
+        it('creates the baseline without the tags that do not exist', async () => {
+            const exists = sinon.stub().resolves(true);
+            exists.withArgs(TAGS[0]).resolves(false);
+            const repository = createRepository(sinon.stub().rejects(notFoundError()), exists);
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
+
+            expect(repository.createFragment.firstCall.args[0].tags).to.deep.equal([TAGS[1], TAGS[2]]);
         });
 
         it('does not create a baseline that already exists', async () => {
@@ -128,7 +187,7 @@ describe('baseline-model', () => {
             expect(repository.createFragment.called).to.be.false;
         });
 
-        it('creates a card in the baseline folder', async () => {
+        it('creates a tagged card in the baseline folder', async () => {
             const repository = createRepository(sinon.stub().rejects(notFoundError()));
 
             const result = await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
@@ -140,6 +199,7 @@ describe('baseline-model', () => {
                     title: 'My baseline',
                     name: 'baseline',
                     parentPath: FOLDER,
+                    tags: TAGS,
                     data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;

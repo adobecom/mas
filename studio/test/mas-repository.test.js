@@ -4,7 +4,14 @@ import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
 import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import {
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
@@ -911,6 +918,46 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('drops baseline fragments from cached data when search params are unchanged', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const toStore = (id, path) => ({ value: { id, path }, get: () => ({ id, path }) });
+            const mockDataStore = {
+                get: sandbox
+                    .stub()
+                    .returns([
+                        toStore('card', `${ROOT_PATH}/acom/en_US/card`),
+                        toStore('baseline', `${ROOT_PATH}/acom/en_US/baselines/plans/PA-1/baseline`),
+                    ]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'locale') return 'en_US';
+                    if (key === 'personalizationFilterEnabled') return false;
+                    return '';
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.firstCall.args[0].map((store) => store.value.id)).to.deep.equal(['card']);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('invalidates cache and re-searches when only the variant tag changes', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1183,6 +1230,45 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
                 Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('does not display a baseline fragment found by UUID', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const uuid = '12345678-1234-1234-1234-123456789012';
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const mockFragment = createFragment({
+                id: uuid,
+                path: `${ROOT_PATH}/acom/en_US/baselines/plans/PA-1/baseline`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((v) => {
+                    dataValue = v;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(mockDataStore.set.getCalls().every((call) => call.args[0].length === 0)).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
+                Store.fragments.list.data = originalData;
             }
         });
 
@@ -2705,6 +2791,26 @@ describe('MasRepository dictionary helpers', () => {
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = setCalls[setCalls.length - 1];
                 expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('excludes baseline fragments from search results', async () => {
+            const fragments = [
+                createFragment({ id: 'card', path: `${ROOT_PATH}/acom/en_US/card`, fields: [] }),
+                createFragment({
+                    id: 'baseline',
+                    path: `${ROOT_PATH}/acom/en_US/baselines/plans/PA-123/baseline`,
+                    fields: [],
+                }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const populatedCalls = mockDataStore.set.getCalls().filter((call) => call.args[0]?.length);
+                expect(populatedCalls.at(-1).args[0].map((store) => store.value.id)).to.deep.equal(['card']);
             } finally {
                 cleanup();
             }
@@ -5170,6 +5276,22 @@ describe('status filter narrowing', () => {
         expect(narrowed).to.equal(true);
     });
 
+    it('excludes baseline fragments when filtering in memory', () => {
+        const repository = createRepository();
+        const stores = [
+            { value: { id: 'a', path: '/content/dam/mas/acom/en_US/a', tags: [], fields: [] } },
+            { value: { id: 'b', path: '/content/dam/mas/acom/en_US/baselines/plans/PA-1/b', tags: [], fields: [] } },
+        ];
+        const result = repository.testOnlyApplyInMemoryFilter(stores, {
+            query: '',
+            tags: [],
+            variants: [],
+            contentTypes: [],
+            createdBy: [],
+        });
+        expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
+    });
+
     it('filters in memory on item.status, not tags', () => {
         const repository = createRepository();
         const stores = [
@@ -5185,5 +5307,66 @@ describe('status filter narrowing', () => {
             status: ['DRAFT'],
         });
         expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
+    });
+});
+
+describe('MasRepository createFragment', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        sandbox.stub(Events.toast, 'emit');
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const ctasWithExtraOptions = '<a data-extra-options="{\\"a\\":1}">Buy</a>';
+    const correctedCtas = '<a data-extra-options="{&quot;a&quot;:1}">Buy</a>';
+
+    const createWithPaths = async ({ searchPath, createdPath }) => {
+        const repository = new MasRepository();
+        repository.search = { value: { path: searchPath } };
+        repository.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        create: sandbox.stub().resolves({ id: 'created-id' }),
+                        getById: sandbox.stub().resolves({
+                            id: 'created-id',
+                            path: createdPath,
+                            model: { path: CARD_MODEL_PATH },
+                            fields: [{ name: 'ctas', values: [ctasWithExtraOptions] }],
+                        }),
+                    },
+                },
+            },
+        };
+        const fragment = await repository.createFragment({
+            modelId: 'card-model',
+            title: 'Card',
+            name: 'card',
+            parentPath: `${ROOT_PATH}/${searchPath}/en_US`,
+        });
+        return fragment.fields.find(({ name }) => name === 'ctas').values[0];
+    };
+
+    it('applies the corrector for the surface the fragment is created in', async () => {
+        const ctas = await createWithPaths({
+            searchPath: 'acom',
+            createdPath: `${ROOT_PATH}/sandbox/en_US/baselines/catalog/pa/baseline`,
+        });
+        expect(ctas).to.equal(correctedCtas);
+    });
+
+    it('falls back to the search surface when the created path has no surface', async () => {
+        const ctas = await createWithPaths({ searchPath: 'sandbox', createdPath: '/var/tmp/card' });
+        expect(ctas).to.equal(correctedCtas);
+    });
+
+    it('skips the corrector when neither the created path nor the search path is a corrected surface', async () => {
+        const ctas = await createWithPaths({ searchPath: 'acom', createdPath: '/var/tmp/card' });
+        expect(ctas).to.equal(ctasWithExtraOptions);
     });
 });

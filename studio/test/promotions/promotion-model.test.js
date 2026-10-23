@@ -1,5 +1,4 @@
 import { expect } from '@esm-bundle/chai';
-import sinon from 'sinon';
 import {
     appendSuffixToLeaf,
     buildCandidateCollisionPath,
@@ -10,12 +9,10 @@ import {
     findPromotionProjectIdByTag,
     fragmentIsPromoVariation,
     getCandidateDefaultLeaves,
-    getFragmentByPathOrNull,
     getPromoNameFromPromoVariationPath,
     getPromoNameFromTag,
     getPromotionInfo,
     getPromotionTagFromFragment,
-    isFragmentNotFoundError,
     isPromoVariationPath,
     isSafePromoFolderName,
     resolveDefaultPathFromPromoVariation,
@@ -311,19 +308,6 @@ describe('promotion-model', () => {
         });
     });
 
-    describe('isFragmentNotFoundError', () => {
-        it('returns true for 404 status or not-found messages', () => {
-            expect(isFragmentNotFoundError({ status: 404 })).to.be.true;
-            expect(isFragmentNotFoundError(new Error('Fragment not found'))).to.be.true;
-            expect(isFragmentNotFoundError(new Error('Request failed with 404'))).to.be.true;
-        });
-
-        it('returns false for other errors', () => {
-            expect(isFragmentNotFoundError(new Error('network timeout'))).to.be.false;
-            expect(isFragmentNotFoundError({ status: 500 })).to.be.false;
-        });
-    });
-
     describe('getPromotionInfo', () => {
         it('returns promotionName from tag title and promoProject from the tag id', () => {
             const fragment = {
@@ -356,28 +340,6 @@ describe('promotion-model', () => {
             const { promotionName, promoProject } = getPromotionInfo(fragment);
             expect(promoProject).to.equal('cyber-monday');
             expect(promotionName).to.equal('Cyber Monday');
-        });
-    });
-
-    describe('getFragmentByPathOrNull', () => {
-        it('returns null for not-found errors', async () => {
-            const fragmentsApi = {
-                getByPath: sinon.stub().rejects(new Error('Fragment not found')),
-            };
-            const result = await getFragmentByPathOrNull(fragmentsApi, promoVariationPath);
-            expect(result).to.be.null;
-        });
-
-        it('rethrows non-not-found errors', async () => {
-            const fragmentsApi = {
-                getByPath: sinon.stub().rejects(new Error('Server error')),
-            };
-            try {
-                await getFragmentByPathOrNull(fragmentsApi, promoVariationPath);
-                expect.fail('Should have thrown');
-            } catch (err) {
-                expect(err.message).to.equal('Server error');
-            }
         });
     });
 });

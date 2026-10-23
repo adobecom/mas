@@ -181,6 +181,16 @@ describe('merch-card-editor pro appearance mapping', () => {
         expect(themePicker.value).to.equal('gray');
     });
 
+    it('labels the cardName field as Deep linking name without changing its data-field', async () => {
+        const { editor } = makeAppearanceEditor();
+        await finishRendering(editor);
+        const fieldGroup = editor.querySelector('sp-field-group#cardName');
+        const textfield = fieldGroup.querySelector('sp-textfield');
+
+        expect(fieldGroup.querySelector('sp-field-label').textContent.trim()).to.equal('Deep linking name');
+        expect(textfield.dataset.field).to.equal('cardName');
+    });
+
     it('keeps the existing Background Color options for a non-pro variant', async () => {
         const { editor } = makeAppearanceEditor(VARIANT_NAMES.HEADLESS);
         await finishRendering(editor);

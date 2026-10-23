@@ -13,8 +13,6 @@ const TRAVERSED_FIELDS = ['cards', 'collections', 'variations'];
 // `id` parameter is only there for www.adobe.com/mas/io to accept the request, to be removed with WPS-36294
 const OFFERS_URL = 'https://www.adobe.com/mas/io/offers';
 const OFFERS_API_KEY = 'wcms-commerce-ims-ro-user-milo';
-// a locale weighs megabytes (~600 product arrangements for en_US today, ~1800 eventually)
-const OFFERS_FETCH_TIMEOUT = 10000;
 
 // Fragment baselines folders (listed in bulk) and offer baselines of a locale are shared by every fragment & request on
 // the same locale / template: single-flight + TTL, absence included, so each is requested once whatever the size of a
@@ -117,8 +115,7 @@ const toCardFields = ({ name, icons }) => ({
 function fetchOfferBaselines(context, locale) {
     // offers have no preview: `preview` would move offersCache to localStorage
     return offersCache.get({ ...context, preview: false }, locale, async () => {
-        const networkConfig = { ...context.networkConfig, fetchTimeout: OFFERS_FETCH_TIMEOUT };
-        const response = await fetch(offersUrl(locale), { ...context, networkConfig }, `offers-${locale}`);
+        const response = await fetch(offersUrl(locale), context, `offers-${locale}`);
         if (response.status == 200) return response.body;
         if (response.status == 404) return {};
         logError(`failed to fetch offer baselines of ${locale}: ${response.status} ${response.message}`, context);

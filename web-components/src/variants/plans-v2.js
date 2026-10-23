@@ -1,12 +1,13 @@
 import { VariantLayout } from './variant-layout';
-import { html, css, unsafeCSS, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { CSS } from './plans-v2.css.js';
-import Media, { MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
+import Media from '../media.js';
 import {
     EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { css } from '../css.js';
 
 export const PLANS_V2_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -640,13 +641,6 @@ export class PlansV2 extends VariantLayout {
             color: var(--spectrum-gray-800, #2c2c2c);
         }
 
-        :host([variant='plans-v2'])
-            ::slotted([slot='heading-m'])
-            span[data-template='legal'] {
-            font-size: 20px;
-            color: var(--spectrum-gray-700, #6b6b6b);
-        }
-
         :host([variant='plans-v2']) ::slotted([slot='promo-text']) {
             font-size: 16px;
             font-weight: 700;
@@ -999,7 +993,7 @@ export class PlansV2 extends VariantLayout {
             margin-right: 0;
         }
 
-        @media ${unsafeCSS(MOBILE_LANDSCAPE)}, ${unsafeCSS(TABLET_DOWN)} {
+        @media (--mobile-landscape), (--tablet-down) {
             :host([variant='plans-v2']) {
                 --merch-card-plans-v2-padding: 26px 16px;
             }
@@ -1032,39 +1026,6 @@ export class PlansV2 extends VariantLayout {
             :host([variant='plans-v2']) .body {
                 width: auto;
             }
-        }
-
-        /* Keep short-description section white in dark mode */
-        :host-context(.dark)
-            :host([variant='plans-v2'])
-            .short-description-content {
-            background-color: #ffffff;
-            border-bottom-left-radius: var(
-                --consonant-merch-card-plans-v2-border-radius
-            );
-            border-bottom-right-radius: var(
-                --consonant-merch-card-plans-v2-border-radius
-            );
-        }
-
-        :host-context(.dark)
-            :host([variant='plans-v2'])
-            .short-description-content
-            ::slotted([slot='short-description']) {
-            color: #292929;
-        }
-
-        :host-context(.dark)
-            :host([variant='plans-v2'])
-            .short-description-toggle {
-            background-color: #ffffff;
-        }
-
-        :host-context(.dark)
-            :host([variant='plans-v2'])
-            .short-description-toggle
-            .toggle-label {
-            color: #292929;
         }
     `;
 

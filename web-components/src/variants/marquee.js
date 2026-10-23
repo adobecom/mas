@@ -1,6 +1,7 @@
 import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
-import { CSS, headlessRowStyle } from './headless.css.js';
+import { CSS } from './headless.css.js';
+import { HEADLESS_FAMILY_STYLE } from './headless.js';
 import {
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
@@ -87,5 +88,5 @@ export class Marquee extends VariantLayout {
         `;
     }
 
-    static variantStyle = headlessRowStyle('marquee');
+    static variantStyle = HEADLESS_FAMILY_STYLE;
 }

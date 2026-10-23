@@ -1,5 +1,6 @@
-import { LitElement, html, css, nothing } from 'lit';
+import { LitElement, html, nothing, unsafeCSS } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
+import { css } from './css.js';
 
 const renderIcon = (iconName) => {
     if (!iconName) return nothing;
@@ -60,7 +61,7 @@ export default class MerchBadge extends LitElement {
         }
 
         this.style.setProperty('--merch-badge-color', this.color);
-        // Border-radius is handled in global.css.js with RTL support
+        // Border-radius is handled in global.css with RTL support
         this.style.setProperty(
             '--merch-badge-font-size',
             'var(--consonant-merch-card-body-xs-font-size)',
@@ -82,7 +83,7 @@ export default class MerchBadge extends LitElement {
         </div>`;
     }
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             display: block;
             background: var(--merch-badge-background-color);
@@ -103,7 +104,7 @@ export default class MerchBadge extends LitElement {
             height: 18px;
             width: 18px;
         }
-    `;
+    `);
 }
 
 customElements.define('merch-badge', MerchBadge);

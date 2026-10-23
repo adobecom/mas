@@ -1,5 +1,6 @@
-export const CSS = `
+import { css } from '../css.js';
 
+export const CSS = css`
     merch-card[variant='media'] {
         border: 0;
         padding: 24px 0;
@@ -46,7 +47,7 @@ export const CSS = `
             display: flex;
             align-items: center;
             height: 100%;
-        }        
+        }
     }
 
     @media screen and (max-width: 430px) {
@@ -110,5 +111,4 @@ export const CSS = `
         margin: 0 50px;
         width: 700px;
     }
-
 `;

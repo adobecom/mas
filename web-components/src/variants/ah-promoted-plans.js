@@ -1,6 +1,7 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './ah-promoted-plans.css.js';
+import { css } from '../css.js';
 
 export const AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 's' },

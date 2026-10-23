@@ -1,4 +1,4 @@
-import { html, LitElement, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import {
@@ -68,7 +68,7 @@ export class MasCompareChart extends LitElement {
         nonSticky: { type: Boolean, attribute: 'non-sticky' },
     };
 
-    static styles = styles;
+    static styles = unsafeCSS(styles);
 
     #internals;
     #cards = []; // canonical column-major order (hydrated merch-card sources)

@@ -1,7 +1,8 @@
-import { html, css, LitElement, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
+import { css } from './css.js';
 
 export class MerchWhatsIncluded extends LitElement {
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             display: flex;
             flex-wrap: wrap;
@@ -46,7 +47,7 @@ export class MerchWhatsIncluded extends LitElement {
             text-decoration: underline;
             color: var(--link-color-dark);
         }
-    `;
+    `);
 
     static properties = {
         heading: { type: String, attribute: true },

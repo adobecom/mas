@@ -1,4 +1,4 @@
-import { css } from 'lit';
+import { css } from './css.js';
 
 export const styles = css`
     :host {
@@ -882,7 +882,7 @@ export const styles = css`
             text-align: center;
         }
         /* Tablet shows 2 selected cards from 3+ — auto-place rather than
-           honor the source --col, which can exceed the grid. */
+       honor the source --col, which can exceed the grid. */
         .table-row p[role='cell'] {
             grid-column: auto;
         }
@@ -952,7 +952,7 @@ export const styles = css`
     }
 
     /* Dark mode override for the sticky band background (host-level dark
-       block above handles all other tokens via custom properties). */
+   block above handles all other tokens via custom properties). */
     :host-context(.dark) .header-content.is-stuck,
     :host([data-dark]) .header-content.is-stuck {
         background: #2c2c2c;

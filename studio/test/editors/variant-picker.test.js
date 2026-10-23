@@ -174,9 +174,9 @@ describe('VariantPicker', () => {
             expect(names).to.include('banner-blade');
             expect(names).to.not.include('special-offers');
             expect(names).to.not.include('plans');
-            expect(names).to.not.include('mini-compare-chart-mweb');
+            expect(names).to.include('mini-compare-chart-mweb');
             expect(names).to.include('product-c2');
-            expect(names.length).to.equal(11);
+            expect(names.length).to.equal(12);
         });
 
         it('should return only plans/catalog templates for acom surface', () => {

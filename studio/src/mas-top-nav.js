@@ -5,7 +5,8 @@ import { until } from 'lit/directives/until.js';
 import Store from './store.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import router from './router.js';
-import { extractLocaleFromPath, debounce } from './utils.js';
+import { extractLocaleFromPath, debounce, showToast } from './utils.js';
+import { isMasaInvestigationEnabled } from './mas-chat/features.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import './mas-nav-folder-picker.js';
 import './mas-locale-picker.js';
@@ -50,6 +51,24 @@ class MasTopNav extends LitElement {
     createRenderRoot() {
         return this;
     }
+    async signOut() {
+        if (isMasaInvestigationEnabled()) {
+            const { endAllInvestigations } = await import('./mas-chat/investigation-session.js');
+            const { MasaClientError } = await import('./mas-chat/masa-client.js');
+            try {
+                await endAllInvestigations();
+            } catch (error) {
+                if (!(error instanceof MasaClientError)) throw error;
+                showToast(
+                    'Could not end the investigation session. Retry sign out when the connection is restored.',
+                    'negative',
+                );
+                return;
+            }
+        }
+        window.adobeIMS.signOut();
+    }
+
     async profileBuilder() {
         try {
             const accessToken = window.adobeIMS.getAccessToken();
@@ -97,7 +116,7 @@ class MasTopNav extends LitElement {
             });
             signOutLink.addEventListener('click', (e) => {
                 e.preventDefault();
-                window.adobeIMS.signOut();
+                void this.signOut();
             });
             studioContentEl?.addEventListener('click', () => {
                 profileBody.classList.remove('show');

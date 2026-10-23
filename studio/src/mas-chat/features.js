@@ -1,5 +1,10 @@
 import { PAGE_NAMES } from '../constants.js';
 
+/** Independently gate live investigations while the existing assistant and authoring flows remain available. */
+export function isMasaInvestigationEnabled(documentRoot = document) {
+    return documentRoot.querySelector('meta[name="mas-investigations-enabled"]')?.content === 'true';
+}
+
 /** Reads the independently configured Studio feature rollout flags. */
 export function getStudioFeatures(documentRoot = document) {
     return {

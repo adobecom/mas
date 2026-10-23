@@ -83,6 +83,84 @@ describe('mas-mnemonic – smart-placement', () => {
         });
     });
 
+    describe('pro card mobile placement', () => {
+        const realMatchMedia = window.matchMedia;
+        let mql;
+
+        function stubMatchMedia(matches) {
+            const listeners = new Set();
+            mql = {
+                matches,
+                addEventListener: (_, fn) => listeners.add(fn),
+                removeEventListener: (_, fn) => listeners.delete(fn),
+                fire(next) {
+                    this.matches = next;
+                    listeners.forEach((fn) => fn({ matches: next }));
+                },
+            };
+            window.matchMedia = () => mql;
+        }
+
+        afterEach(() => {
+            window.matchMedia = realMatchMedia;
+        });
+
+        it('enables smart placement on mobile', async () => {
+            stubMatchMedia(true);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'pro');
+            await el.updateComplete;
+            expect(el.smartPlacement).to.be.true;
+            expect(el.shadowRoot.querySelector('.css-tooltip.smart')).to.exist;
+        });
+
+        it('keeps desktop and tablet placement unchanged', async () => {
+            stubMatchMedia(false);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'pro');
+            await el.updateComplete;
+            const wrapper = el.shadowRoot.querySelector('.css-tooltip');
+            expect(el.smartPlacement).to.be.false;
+            expect(wrapper.classList.contains('top')).to.be.true;
+            expect(wrapper.classList.contains('smart')).to.be.false;
+        });
+
+        it('does not enable inside plans cards on mobile', () => {
+            stubMatchMedia(true);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'plans');
+            expect(el.smartPlacement).to.be.false;
+        });
+
+        it('toggles when the media query changes', () => {
+            stubMatchMedia(false);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'pro');
+            mql.fire(true);
+            expect(el.smartPlacement).to.be.true;
+            mql.fire(false);
+            expect(el.smartPlacement).to.be.false;
+        });
+
+        it('keeps the tooltip inside the viewport', async () => {
+            stubMatchMedia(true);
+            const el = makeMnemonic({
+                'tooltip-text': 'A fairly long tooltip text '.repeat(6),
+            });
+            el.style.cssText = 'position:fixed;top:200px;right:0';
+            inCard(el, 'pro');
+            await el.updateComplete;
+            el.showTooltip();
+            await el.updateComplete;
+            const body = el.shadowRoot.querySelector('.css-tooltip-body');
+            expect(el._computedPlacement).to.equal('top');
+            expect(el._tooltipLeft).to.be.at.least(0);
+            expect(el._tooltipLeft + body.offsetWidth).to.be.at.most(
+                window.innerWidth,
+            );
+        });
+    });
+
     describe('render – wrapper class', () => {
         it('renders .css-tooltip.smart when smartPlacement is true', async () => {
             const el = await connected({

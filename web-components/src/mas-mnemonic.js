@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { MOBILE_LANDSCAPE } from './media.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -224,6 +225,7 @@ export default class MasMnemonic extends LitElement {
         this.tooltipVisible = false;
         this.lastPointerType = null;
         this.handleClickOutside = this.handleClickOutside.bind(this);
+        this.handleMobileChange = this.handleMobileChange.bind(this);
         this._tooltipTop = 0;
         this._tooltipLeft = 0;
         this._arrowOffset = 0;
@@ -240,11 +242,33 @@ export default class MasMnemonic extends LitElement {
         ) {
             this.smartPlacement = true;
         }
+        // Pro cards clip overflow, so use viewport-aware positioning on mobile.
+        if (
+            !this.smartPlacement &&
+            this.closest('merch-card[variant="pro"]')
+        ) {
+            this._mobileQuery = window.matchMedia(MOBILE_LANDSCAPE);
+            this.smartPlacement = this._mobileQuery.matches;
+            this._mobileQuery.addEventListener(
+                'change',
+                this.handleMobileChange,
+            );
+        }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         window.removeEventListener('mousedown', this.handleClickOutside);
+        this._mobileQuery?.removeEventListener(
+            'change',
+            this.handleMobileChange,
+        );
+        this._mobileQuery = null;
+    }
+
+    handleMobileChange(event) {
+        this.smartPlacement = event.matches;
+        this.hideTooltip();
     }
 
     handleClickOutside(event) {

@@ -7,6 +7,7 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
+import { CSS } from '../src/variants/pro.css.js';
 
 let Pro;
 
@@ -1947,5 +1948,103 @@ describe('pro quantity selector repricing', () => {
         layout.updatePriceQuantity({});
         layout.updatePriceQuantity({ detail: {} });
         expect(price.dataset.quantity).to.be.undefined;
+    });
+});
+
+describe('pro wide collection (3+ cards)', () => {
+    const cards = (count, attrs = {}) =>
+        Array.from({ length: count }, (_, i) => {
+            const extra = attrs[i] || '';
+            return `<merch-card variant="pro" ${extra}></merch-card>`;
+        }).join('');
+
+    const buildFixture = (columnClass, markup) => {
+        const template = document.createElement('template');
+        template.innerHTML = `<merch-card-collection class="plans ${columnClass}">${markup}</merch-card-collection>`;
+        const collection = template.content.firstElementChild;
+        return { collection, cards: [...collection.children] };
+    };
+
+    const findRules = (sheet, mediaMatch) => {
+        const media = [...sheet.cssRules].filter(
+            (rule) =>
+                rule instanceof CSSMediaRule && mediaMatch(rule.conditionText),
+        );
+        return media.flatMap((m) => [...m.cssRules]);
+    };
+
+    it('collection with 3+ cards gets the wide layout, fewer than 3 keeps the current one', () => {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(CSS);
+
+        const three = buildFixture('three-merch-cards', cards(3));
+        const four = buildFixture('four-merch-cards', cards(4));
+        const two = buildFixture('two-merch-cards', cards(2));
+        const filtered = buildFixture(
+            'four-merch-cards',
+            cards(4, {
+                2: 'style="display: none;"',
+                3: 'style="display: none;"',
+            }),
+        );
+        const edu = buildFixture(
+            'three-merch-cards',
+            cards(3, { 1: 'size="edu"' }),
+        );
+
+        const ranges = [
+            {
+                rules: findRules(sheet, (c) => c.includes('1441px')),
+                collectionMaxWidth: '1920px',
+            },
+            {
+                rules: findRules(
+                    sheet,
+                    (c) =>
+                        c.includes('768px') && c.includes('max-width: 1280px'),
+                ),
+                collectionMaxWidth: 'none',
+            },
+        ];
+
+        ranges.forEach(({ rules, collectionMaxWidth }) => {
+            const collectionRule = rules.find(
+                (r) =>
+                    r.selectorText?.startsWith('merch-card-collection') &&
+                    !r.selectorText.includes('>'),
+            );
+            const cardRule = rules.find((r) => r.selectorText?.includes('>'));
+            expect(collectionRule, 'collection rule').to.exist;
+            expect(cardRule, 'card rule').to.exist;
+            expect(collectionRule.style.maxWidth).to.equal(collectionMaxWidth);
+            expect(cardRule.style.maxWidth).to.equal('none');
+
+            const matchesCollection = (f) =>
+                f.collection.matches(collectionRule.selectorText);
+            expect(matchesCollection(three)).to.be.true;
+            expect(matchesCollection(four)).to.be.true;
+            expect(matchesCollection(two)).to.be.false;
+            expect(matchesCollection(filtered)).to.be.false;
+
+            const matchesCard = (card) => card.matches(cardRule.selectorText);
+            three.cards.forEach((c) => expect(matchesCard(c)).to.be.true);
+            four.cards.forEach((c) => expect(matchesCard(c)).to.be.true);
+            two.cards.forEach((c) => expect(matchesCard(c)).to.be.false);
+            filtered.cards.forEach((c) => expect(matchesCard(c)).to.be.false);
+            expect(matchesCard(edu.cards[1])).to.be.false;
+            expect(matchesCard(edu.cards[0])).to.be.true;
+        });
+
+        const twoUpCardRule = [...sheet.cssRules]
+            .filter((r) => r instanceof CSSMediaRule)
+            .flatMap((m) => [...m.cssRules])
+            .find((r) =>
+                r.selectorText?.endsWith(
+                    ':last-of-type) merch-card[variant="pro"]',
+                ),
+        );
+        expect(twoUpCardRule.style.maxWidth).to.equal(
+            'var(--consonant-merch-card-pro-2up-max-width)',
+        );
     });
 });

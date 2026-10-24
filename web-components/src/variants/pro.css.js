@@ -1,5 +1,8 @@
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
 
+const PRO_WIDE_COLLECTION = 'merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(3):not([style*="display: none"]))';
+const PRO_WIDE_COLLECTION_CARD = `${PRO_WIDE_COLLECTION} > merch-card[variant="pro"]:not([size='edu'])`;
+
 export const CSS = `
 :root {
     --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
@@ -702,6 +705,29 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
     merch-card-collection.plans:has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(2):last-of-type) merch-card[variant="pro"] {
         max-width: var(--consonant-merch-card-pro-2up-max-width);
+    }
+}
+
+/* Collections with 3+ visible pro cards line up with neighbouring Milo blocks
+   at MD (768-1280px) and XL (>=1441px). MWPW-206491.
+   filtered-out cards are sorted last and hidden inline, so the third card is
+   visible only when 3+ cards are visible. Edu cards keep their own cap; the
+   desktop band (1281-1440px) and mobile are left alone. */
+@media screen and (min-width: 768px) and (max-width: 1280px) {
+    ${PRO_WIDE_COLLECTION} {
+        max-width: none;
+    }
+    ${PRO_WIDE_COLLECTION_CARD} {
+        max-width: none;
+    }
+}
+
+@media screen and (min-width: 1441px) {
+    ${PRO_WIDE_COLLECTION} {
+        max-width: 1920px;
+    }
+    ${PRO_WIDE_COLLECTION_CARD} {
+        max-width: none;
     }
 }
 

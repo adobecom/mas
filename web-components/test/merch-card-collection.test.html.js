@@ -548,6 +548,134 @@ runTests(async () => {
             collection.remove();
         });
     });
+
+    describe('merch-card-collection plans filtering and search', () => {
+        let collection;
+
+        // 15 featured, 20 other "all" cards, 3 business, 2 students-and-teachers
+        const buildPlans = async () => {
+            document.location.hash = '';
+            collection = document.createElement('merch-card-collection');
+            collection.variant = 'plans';
+            collection.limit = 27;
+            let order = 0;
+            const makeCard = (title, filters, tags) => {
+                const card = document.createElement('merch-card');
+                card.title = title;
+                card.filters = filters;
+                if (tags) card.setAttribute('filter-tags', tags);
+                return card;
+            };
+            for (let i = 0; i < 15; i++) {
+                collection.append(
+                    makeCard(`Featured ${i}`, {
+                        featured: { order: i },
+                        all: { order: order++ },
+                    }),
+                );
+            }
+            for (let i = 0; i < 20; i++) {
+                collection.append(
+                    makeCard(`Legacy ${i}`, { all: { order: order++ } }),
+                );
+            }
+            for (let i = 0; i < 3; i++) {
+                collection.append(
+                    makeCard(`Biz ${i}`, {
+                        business: { order: i },
+                        all: { order: order++ },
+                    }),
+                );
+            }
+            for (let i = 0; i < 2; i++) {
+                collection.append(
+                    makeCard(`Edu ${i}`, {
+                        'students-and-teachers': { order: i },
+                        all: { order: order++ },
+                    }),
+                );
+            }
+            document.getElementById('content').appendChild(collection);
+            await collection.updateComplete;
+            await delay(50);
+        };
+
+        const visible = () =>
+            [...collection.querySelectorAll('merch-card')].filter(
+                (card) => card.style.display !== 'none',
+            );
+
+        afterEach(() => {
+            collection?.remove();
+            document.location.hash = '';
+        });
+
+        it('opens on Featured with 12 cards and no show more', async () => {
+            await buildPlans();
+            expect(collection.filter).to.equal('featured');
+            expect(visible().length).to.equal(12);
+            expect(collection.shadowRoot.querySelector('#footer sp-button')).to
+                .be.null;
+        });
+
+        it('All excludes Business/Students and teachers, Featured first, with load more', async () => {
+            await buildPlans();
+            pushState({ filter: 'all' });
+            await delay(50);
+            expect(collection.resultCount).to.equal(35);
+            expect(visible().length).to.equal(27);
+            expect(visible()[0].title).to.equal('Featured 0');
+            expect(visible().some((card) => /^(Biz|Edu)/.test(card.title))).to
+                .be.false;
+            expect(collection.hasMore).to.be.true;
+        });
+
+        it('search spans All regardless of filter and never returns Business/Students', async () => {
+            await buildPlans();
+            pushState({ search: 'legacy 1' });
+            await delay(50);
+            expect(collection.resultCount).to.equal(11);
+            pushState({ search: 'biz' });
+            await delay(50);
+            expect(collection.resultCount).to.equal(0);
+        });
+
+        it('clearing search returns to the pre-search filter', async () => {
+            await buildPlans();
+            pushState({ filter: 'all' });
+            await delay(50);
+            pushState({ search: 'legacy' });
+            await delay(50);
+            pushState({ search: undefined });
+            await delay(100);
+            expect(collection.filter).to.equal('all');
+            expect(collection.search).to.equal('');
+        });
+
+        it('Reset restores default filters, empty search, no results', async () => {
+            await buildPlans();
+            pushState({ filter: 'all' });
+            await delay(50);
+            pushState({ search: 'legacy' });
+            await delay(50);
+            collection.resetFilters({ to: 'default' });
+            await delay(100);
+            expect(collection.filter).to.equal('featured');
+            expect(collection.search).to.equal('');
+            expect(visible().length).to.equal(12);
+        });
+
+        it('exposes filterAvailability with zero for empty pills', async () => {
+            await buildPlans();
+            pushState({ search: 'biz' });
+            await delay(50);
+            expect(collection.filterAvailability.featured).to.equal(0);
+            expect(collection.filterAvailability.all).to.equal(0);
+            expect(collection.filterAvailability).to.not.have.property(
+                'business',
+            );
+        });
+    });
 });
 
 document.getElementById('showMore').addEventListener('click', () => {

@@ -3,6 +3,7 @@ import { MatchMediaController } from '@spectrum-web-components/reactive-controll
 import '../merch-search.js';
 import './merch-sidenav-list.js';
 import './merch-sidenav-checkbox-group.js';
+import { EVENT_MERCH_PILL_ROW_OVERFLOW } from './merch-pill-row.js';
 import { SPECTRUM_MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
 
@@ -22,6 +23,7 @@ export class MerchSideNav extends LitElement {
         open: { type: Boolean, state: true, reflect: true },
         autoclose: { type: Boolean, attribute: 'autoclose', reflect: true },
         dir: { type: String, state: true },
+        resetText: { type: String, attribute: 'reset-text' },
     };
 
     constructor() {
@@ -32,11 +34,16 @@ export class MerchSideNav extends LitElement {
         this.dir = document.documentElement.dir || 'ltr';
         this.closeModal = this.closeModal.bind(this);
         this.handleSelection = this.handleSelection.bind(this);
+        this.handlePillOverflow = this.handlePillOverflow.bind(this);
     }
 
     connectedCallback() {
         super.connectedCallback();
         this.addEventListener(EVENT_MERCH_SIDENAV_SELECT, this.handleSelection);
+        this.addEventListener(
+            EVENT_MERCH_PILL_ROW_OVERFLOW,
+            this.handlePillOverflow,
+        );
         // Observe document direction changes
         this.dirObserver = new MutationObserver(() => {
             const newDir = document.documentElement.dir || 'ltr';
@@ -57,6 +64,10 @@ export class MerchSideNav extends LitElement {
         this.removeEventListener(
             EVENT_MERCH_SIDENAV_SELECT,
             this.handleSelection,
+        );
+        this.removeEventListener(
+            EVENT_MERCH_PILL_ROW_OVERFLOW,
+            this.handlePillOverflow,
         );
     }
 
@@ -131,6 +142,7 @@ export class MerchSideNav extends LitElement {
                                 <div>
                                     <h2>${this.sidenavTitle}</h2>
                                     <slot></slot>
+                                    ${this.resetButton}
                                 </div>
                                 ${closeButton}
                             </div>
@@ -144,8 +156,18 @@ export class MerchSideNav extends LitElement {
     get asAside() {
         return html`<sp-theme color="light" scale="medium" dir="${this.dir}"
             ><h2>${this.sidenavTitle}</h2>
-            <slot></slot
-        ></sp-theme>`;
+            <slot></slot>${this.resetButton}</sp-theme
+        >`;
+    }
+
+    get resetButton() {
+        if (!this.resetText) return nothing;
+        return html`<sp-button
+            variant="secondary"
+            treatment="outline"
+            @click="${this.handleReset}"
+            >${this.resetText}</sp-button
+        >`;
     }
 
     get dialog() {
@@ -154,6 +176,37 @@ export class MerchSideNav extends LitElement {
 
     handleSelection() {
         if (this.autoclose) this.closeModal();
+    }
+
+    /** Overflowing pills (e.g. long German labels) stack the search above them. */
+    handlePillOverflow(event) {
+        this.toggleAttribute('stacked', event.detail.overflowing);
+    }
+
+    /**
+     * Grays out filters and tag-group checkboxes that have no matching products.
+     * @param {Object<string, number>} availability match counts by filter key
+     */
+    applyAvailability(availability) {
+        if (!availability) return;
+        this.querySelectorAll('sp-sidenav-item[value]').forEach((item) => {
+            item.disabled = availability[item.value] === 0;
+        });
+        this.querySelectorAll('merch-sidenav-checkbox-group').forEach(
+            (group) => {
+                group.querySelectorAll('sp-checkbox[name]').forEach((box) => {
+                    const key = `${group.deeplink}:${box.getAttribute('name')}`;
+                    box.disabled = availability[key] === 0;
+                });
+            },
+        );
+    }
+
+    /** Reset button handler: back to the opening state, search included. */
+    handleReset() {
+        this.parentElement
+            ?.querySelector('merch-card-collection')
+            ?.resetFilters({ to: 'default' });
     }
 
     closeModal() {
@@ -314,6 +367,10 @@ export class MerchSideNav extends LitElement {
         ::slotted(merch-search) {
             display: block;
             margin-bottom: var(--merch-sidenav-search-gap);
+        }
+
+        :host([stacked]) ::slotted(merch-search) {
+            width: 100%;
         }
 
         :host([modal]) ::slotted(merch-search) {

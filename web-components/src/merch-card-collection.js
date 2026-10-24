@@ -55,11 +55,57 @@ const SIDENAV_AUTOCLOSE = {
     plans: true,
 };
 
+const PLANS_FEATURED_FILTER = 'featured';
+const PLANS_EXCLUDED_FILTERS = ['business', 'students-and-teachers'];
+const PLANS_FEATURED_LIMIT = 12;
+
+const isPlansCollection = (collection) => collection.variant === 'plans';
+
+// Featured is capped and not expandable, except while searching.
+const isPlansFeaturedView = (collection) =>
+    isPlansCollection(collection) &&
+    collection.filter === PLANS_FEATURED_FILTER &&
+    !collection.search?.length;
+
 const categoryFilter = (elements, { filter }) =>
     elements.filter(
         (element) =>
             element?.filters && element?.filters.hasOwnProperty(filter),
     );
+
+const plansBaseSet = (elements) =>
+    elements.filter(
+        (element) =>
+            element?.filters?.all &&
+            !PLANS_EXCLUDED_FILTERS.some((key) =>
+                element.filters.hasOwnProperty(key),
+            ),
+    );
+
+// Plans: Business / Students and teachers never show. A search spans the
+// whole "All" set whatever pill is active.
+const plansScopeFilter = (elements, collection) => {
+    const { filter, search } = collection;
+    const base = plansBaseSet(elements);
+    if (search?.length) return base;
+    if (filter === PLANS_FEATURED_FILTER || filter === 'all') {
+        return base.filter((element) => element.filters.hasOwnProperty(filter));
+    }
+    return categoryFilter(elements, collection);
+};
+
+const plansAllSorter = (elements) =>
+    elements.sort((a, b) => {
+        const featuredA = a.filters[PLANS_FEATURED_FILTER]?.order;
+        const featuredB = b.filters[PLANS_FEATURED_FILTER]?.order;
+        const aIsFeatured = a.filters.hasOwnProperty(PLANS_FEATURED_FILTER);
+        const bIsFeatured = b.filters.hasOwnProperty(PLANS_FEATURED_FILTER);
+        if (aIsFeatured !== bIsFeatured) return aIsFeatured ? -1 : 1;
+        const [orderA, orderB] = aIsFeatured
+            ? [featuredA, featuredB]
+            : [a.filters.all?.order, b.filters.all?.order];
+        return (Number(orderA) || 0) - (Number(orderB) || 0);
+    });
 
 const typeFilter = (elements, { types }) => {
     if (!types) return elements;
@@ -149,6 +195,8 @@ export class MerchCardCollection extends LitElement {
     #log;
 
     #merchCardElement;
+    #preSearchState = null;
+    #resettingToDefault = false;
 
     constructor() {
         super();
@@ -215,12 +263,17 @@ export class MerchCardCollection extends LitElement {
             });
         }
 
+        const plans = isPlansCollection(this);
+        const plansAll =
+            plans && (this.filter === 'all' || this.search?.length > 0);
         const sorter =
             this.sort === SORT_ORDER.alphabetical
                 ? alphabeticalSorter
-                : authoredSorter;
+                : plansAll
+                  ? plansAllSorter
+                  : authoredSorter;
         const reducers = [
-            categoryFilter,
+            plans ? plansScopeFilter : categoryFilter,
             typeFilter,
             tagGroupFilter,
             searcher,
@@ -232,7 +285,11 @@ export class MerchCardCollection extends LitElement {
             .map((element, index) => [element, index]);
 
         this.resultCount = result.length;
-        if (this.page && this.limit) {
+        if (plans) this.filterAvailability = this.computeAvailability(children);
+        if (isPlansFeaturedView(this)) {
+            result = result.slice(0, PLANS_FEATURED_LIMIT);
+            this.hasMore = false;
+        } else if (this.page && this.limit) {
             const pageSize = this.page * this.limit;
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
@@ -268,10 +325,54 @@ export class MerchCardCollection extends LitElement {
         });
     }
 
+    // Number of cards matching each hierarchy filter and tag-group value in the
+    // current context (All set, search, types, other tag groups).
+    computeAvailability(children) {
+        const availability = {};
+        const state = parseState();
+        const groups = this.tagGroups ?? [];
+        const tagsOf = (element) =>
+            (element.getAttribute('filter-tags') || '')
+                .split(',')
+                .filter(Boolean);
+        const context = searcher(
+            typeFilter(plansBaseSet(children), this),
+            this,
+        );
+        const keys = new Set();
+        for (const element of children) {
+            for (const key of Object.keys(element.filters ?? {})) {
+                if (!PLANS_EXCLUDED_FILTERS.includes(key)) keys.add(key);
+            }
+        }
+        const inGroups = context.filter((element) =>
+            matchesTagGroups(tagsOf(element), groups, state),
+        );
+        for (const key of keys) {
+            availability[key] = inGroups.filter((element) =>
+                element.filters.hasOwnProperty(key),
+            ).length;
+        }
+        for (const group of groups) {
+            for (const { name } of group.checkboxes ?? []) {
+                const scoped = { ...state, [group.deeplink]: name };
+                availability[`${group.deeplink}:${name}`] = context.filter(
+                    (element) =>
+                        matchesTagGroups(tagsOf(element), groups, scoped) &&
+                        (this.search?.length ||
+                            element.filters.hasOwnProperty(this.filter)),
+                ).length;
+            }
+        }
+        return availability;
+    }
+
     dispatchLiteralsChanged() {
+        this.sidenav?.applyAvailability?.(this.filterAvailability);
         this.dispatchEvent(
             new CustomEvent(EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED, {
                 detail: {
+                    filterAvailability: this.filterAvailability,
                     resultCount: this.resultCount,
                     searchTerm: this.search,
                     filter: this.sidenav?.filters?.selectedText,
@@ -658,7 +759,7 @@ export class MerchCardCollection extends LitElement {
     }
 
     get footer() {
-        if (this.filtered) return;
+        if (this.filtered || isPlansFeaturedView(this)) return;
         return html`<div id="footer">
             <sp-theme color="light" scale="medium">
                 ${this.showMoreButton}
@@ -713,6 +814,22 @@ export class MerchCardCollection extends LitElement {
         this.stopDeeplink = deeplink(
             ({ category, filter, types, sort, search, single_app, page }) => {
                 filter = filter || category;
+                const plans = isPlansCollection(this);
+                if (plans && !filter && this.#hasFeatured()) {
+                    filter = PLANS_FEATURED_FILTER;
+                }
+                const nextSearch = search ?? '';
+                if (plans) {
+                    if (this.#resettingToDefault) {
+                        this.#resettingToDefault = false;
+                    } else if (!this.search && nextSearch) {
+                        this.#preSearchState = this.#captureState();
+                    } else if (this.search && !nextSearch) {
+                        const saved = this.#preSearchState;
+                        this.#preSearchState = null;
+                        if (saved) setTimeout(() => this.#restore(saved), 1);
+                    }
+                }
                 if (!this.filtered && filter && filter !== this.filter) {
                     // a filter has changed, reset page to 1.
                     setTimeout(() => {
@@ -730,6 +847,63 @@ export class MerchCardCollection extends LitElement {
                 this.page = Number(page) || 1;
             },
         );
+    }
+
+    #hasFeatured() {
+        return [...this.children].some(
+            (child) =>
+                child.tagName === 'MERCH-CARD' &&
+                child.filters?.hasOwnProperty(PLANS_FEATURED_FILTER),
+        );
+    }
+
+    #tagGroupParams() {
+        return Object.fromEntries(
+            (this.tagGroups ?? []).map(({ deeplink }) => [deeplink]),
+        );
+    }
+
+    #captureState() {
+        const state = parseState();
+        const tagGroups = Object.fromEntries(
+            Object.keys(this.#tagGroupParams()).map((key) => [key, state[key]]),
+        );
+        return {
+            filter: this.filter,
+            types: this.types || undefined,
+            page: this.page > 1 ? this.page : undefined,
+            ...tagGroups,
+        };
+    }
+
+    #restore(saved) {
+        pushState(saved);
+    }
+
+    /**
+     * Single reset path. 'pre-search' restores the state saved when the search
+     * started; 'default' returns to the opening state (Featured, no search).
+     * @param {{ to?: 'pre-search' | 'default' }} options
+     */
+    resetFilters({ to = 'default' } = {}) {
+        if (to === 'pre-search') {
+            const saved = this.#preSearchState;
+            this.#preSearchState = null;
+            if (saved) this.#restore(saved);
+            return;
+        }
+        this.#preSearchState = null;
+        this.#resettingToDefault = true;
+        pushState({
+            filter: this.#hasFeatured() ? PLANS_FEATURED_FILTER : undefined,
+            search: undefined,
+            types: undefined,
+            page: undefined,
+            ...this.#tagGroupParams(),
+        });
+        setTimeout(() => {
+            this.#resettingToDefault = false;
+        }, 50);
     }
 
     openFilters(e) {

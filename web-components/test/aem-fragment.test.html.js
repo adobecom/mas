@@ -191,6 +191,84 @@ runTests(async () => {
             });
         });
 
+        describe('fragment cache regression (MWPW-210970)', () => {
+            it('adds missing requested ID with same content when returned ID is already cached', () => {
+                cache.add({ id: 'kr-id', fields: {} });
+                const added = {
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id', title: 'KR' },
+                };
+                cache.add(added);
+                expect(cache.has('default-id')).to.true;
+                expect(cache.get('default-id')).to.equal(added);
+                expect(cache.get('default-id').fields.title).to.equal('KR');
+            });
+
+            it('does not overwrite an already-cached ID', async () => {
+                const krOriginal = { id: 'kr-id', fields: {} };
+                const defaultOriginal = { id: 'default-id', fields: {} };
+                cache.add(krOriginal);
+                cache.add(defaultOriginal);
+                const waiter = cache.getAsPromise('default-id');
+                cache.add({
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id', title: 'new' },
+                });
+                expect(cache.get('kr-id')).to.equal(krOriginal);
+                expect(cache.get('default-id')).to.equal(defaultOriginal);
+                await waiter;
+            });
+
+            it('component waiting on missing default ID resumes without the 5 s fallback', async () => {
+                cache.add({ id: 'kr-id', fields: {} });
+                const count = aemMock.count;
+                const fragment = addFragment('default-id', 'cache');
+                const loaded = oneEvent(fragment, 'aem:load');
+                cache.add({
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id', title: 'KR' },
+                });
+                const result = await Promise.race([
+                    loaded,
+                    delay(1000).then(() => 'timeout'),
+                ]);
+                expect(result).to.not.equal('timeout');
+                expect(fragment.data.fields.title).to.equal('KR');
+                expect(aemMock.count).to.equal(count);
+            });
+
+            it('referenced fragments still load and are cached correctly', () => {
+                const preCached = { id: 'ref-2', fields: {} };
+                cache.add({ id: 'parent-kr', fields: {} });
+                cache.add(preCached);
+                cache.add({
+                    id: 'parent-kr',
+                    fields: { originalId: 'parent-default' },
+                    settings: { displayPlanType: true },
+                    references: {
+                        r1: {
+                            type: 'content-fragment',
+                            value: { id: 'ref-1', fields: {} },
+                        },
+                        r2: {
+                            type: 'content-fragment',
+                            value: { id: 'ref-2', fields: {} },
+                        },
+                    },
+                });
+                expect(cache.has('parent-default')).to.true;
+                expect(cache.has('ref-1')).to.true;
+                expect(cache.get('ref-1').settings.displayPlanType).to.true;
+                expect(cache.get('ref-2')).to.equal(preCached);
+            });
+
+            it('adds no cache entries when the fragment request fails', async () => {
+                const fragment = addFragment('notfound');
+                await oneEvent(fragment, 'aem:error');
+                expect(cache.has('notfound')).to.false;
+            });
+        });
+
         describe('aem-fragment with merch-card', () => {
             it('renders a merch card from cache', async () => {
                 cache.add(cc);

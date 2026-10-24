@@ -41,21 +41,22 @@ class FragmentCache {
      * @param {Object} fragment fragment object.
      */
     add(fragment, references = true) {
-        if (this.has(fragment.id)) return;
-        if (this.has(fragment.fields?.originalId)) return;
-
-        this.#fragmentCache.set(fragment.id, fragment);
-        if (fragment.fields?.originalId) {
-            this.#fragmentCache.set(fragment.fields.originalId, fragment);
+        const ids = [
+            ...new Set(
+                [fragment.id, fragment.fields?.originalId].filter(Boolean),
+            ),
+        ];
+        const written = ids.filter((id) => !this.has(id));
+        for (const id of written) {
+            this.#fragmentCache.set(id, fragment);
         }
-        if (this.#promises.has(fragment.id)) {
-            const [, resolve] = this.#promises.get(fragment.id);
-            resolve();
+        for (const id of ids) {
+            if (this.#promises.has(id)) {
+                const [, resolve] = this.#promises.get(id);
+                resolve();
+            }
         }
-        if (this.#promises.has(fragment.fields?.originalId)) {
-            const [, resolve] = this.#promises.get(fragment.fields?.originalId);
-            resolve();
-        }
+        if (written.length === 0) return;
 
         if (
             !references ||

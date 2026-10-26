@@ -426,7 +426,7 @@ surfaces:
           full-width punctuation across every plans card. Pick for price
           template or tax-label rendering changes that need a whole page of
           localized cards, not one isolated card.
-      match: 'web-components/src/price/template.js'
+      match: 'price/src/**'
 
     - id: cc-plans-ar
       url: https://main--cc--adobecom.aem.live/ar/creativecloud/plans?martech=off
@@ -447,7 +447,7 @@ surfaces:
       description: >-
           Single segment card fragment page with a real AU offer, exercises
           price templates, per unit and tax labels on one isolated card.
-      match: 'web-components/src/price/*'
+      match: 'price/src/**'
 
     - id: dc-bizpro-plans
       url: https://main--da-dc--adobecom.aem.live/dc-shared/fragments/tests/2026/q2/ace1205/fragments/ace1205-plans?martech=off

@@ -129,6 +129,20 @@ class PreviewPolicyTests(unittest.TestCase):
         for filename in ("product.js", "product.css.js", "bizpro.js"):
             self.assertFalse(fnmatch.fnmatchcase(f"web-components/src/variants/{filename}", surface["match"]))
 
+    def test_shared_price_changes_select_localized_price_surfaces(self):
+        paths = (
+            "price/src/price.js",
+            "price/src/offers.js",
+            "price/src/price/template.js",
+            "price/src/discount/index.js",
+        )
+        for surface_id in ("cc-plans-kr", "cc-segment-blade"):
+            surface = next(s for s in self.preview["surfaces"] if s["id"] == surface_id)
+            for path in paths:
+                with self.subTest(surface=surface_id, path=path):
+                    self.assertTrue((CONTRACT.parent / path).is_file())
+                    self.assertTrue(fnmatch.fnmatchcase(path, surface["match"]))
+
     def test_public_catalog_hosts_also_accept_pasted_links(self):
         public_ids = ("cc-plans", "express-pricing", "milo-merch-kitchen-sink")
         public_hosts = [h for h in self.preview["capture_hosts"] if isinstance(h, str)]

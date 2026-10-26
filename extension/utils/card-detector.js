@@ -45,6 +45,8 @@ class CardDetector {
         this.idleHandle = null;
         this.elementIds = new WeakMap();
         this.elementCounter = 0;
+        this.resizeObserver = null;
+        this.hiddenElements = new Map();
     }
 
     onCardDetected(callback) {
@@ -240,6 +242,39 @@ class CardDetector {
         });
     }
 
+    // An element checked while hidden (an inactive slide, another breakpoint's twin) is shown later by a
+    // class or media-query change, which no childList mutation reports; its layout box resizing does.
+    retryWhenShown(element, anchor = element) {
+        const box = this.layoutBox(anchor);
+        // A laid-out box means the element is only empty so far; its content mutation retries it.
+        if (this.hasBox(box)) return;
+        this.resizeObserver ??= new ResizeObserver((entries) => this.requeueShown(entries));
+        if (!this.hiddenElements.has(box)) {
+            this.hiddenElements.set(box, new Set());
+            this.resizeObserver.observe(box);
+        }
+        this.hiddenElements.get(box).add(element);
+    }
+
+    requeueShown(entries) {
+        for (const { target } of entries) {
+            if (!this.hasBox(target)) continue;
+            this.resizeObserver.unobserve(target);
+            this.pendingCards.push(...this.hiddenElements.get(target));
+            this.hiddenElements.delete(target);
+        }
+        if (this.pendingCards.length) this.scheduleProcessing();
+    }
+
+    // ResizeObserver reports nothing for inline or display:contents elements, so watch the nearest box.
+    layoutBox(element) {
+        let box = element;
+        while (box.parentElement && ['inline', 'contents'].includes(getComputedStyle(box).display)) {
+            box = box.parentElement;
+        }
+        return box;
+    }
+
     async processCard(cardElement) {
         const aemFragment = cardElement.querySelector('aem-fragment');
         const fragmentId = aemFragment?.getAttribute('fragment');
@@ -259,7 +294,10 @@ class CardDetector {
 
         // A hidden responsive twin shares this fragment id; skip it so the visible copy is the one
         // stored for this fragment rather than losing the dedupe race to an invisible element.
-        if (!this.hasBox(cardElement)) return;
+        if (!this.hasBox(cardElement)) {
+            this.retryWhenShown(cardElement);
+            return;
+        }
 
         const localeInfo = this.currentLocale();
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
@@ -354,7 +392,10 @@ class CardDetector {
         const osi = element.getAttribute('data-wcs-osi');
         if (!osi) return;
 
-        if (!this.hasBox(element)) return;
+        if (!this.hasBox(element)) {
+            this.retryWhenShown(element);
+            return;
+        }
 
         if (this.detectedCards.size >= this.maxCards) return;
 
@@ -411,9 +452,12 @@ class CardDetector {
 
         const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
         // A field in a hidden responsive variant renders a zero-size content span, so skip it until it
-        // has a box -- a later mutation re-queues the field -- rather than badging an invisible duplicate.
+        // has a box rather than badging an invisible duplicate.
         const anchorElement = this.fieldAnchor(element);
-        if (!this.hasBox(anchorElement)) return;
+        if (!this.hasBox(anchorElement)) {
+            this.retryWhenShown(element, anchorElement);
+            return;
+        }
 
         const id = `field-${++this.elementCounter}`;
         this.elementIds.set(element, id);

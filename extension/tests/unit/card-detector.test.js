@@ -3,6 +3,34 @@ const assert = require('node:assert/strict');
 
 global.window = { MASLocales: require('../../utils/locales.js'), MASPromo: require('../../utils/promo.js') };
 global.document = { documentElement: { clientHeight: 800, clientWidth: 800 } };
+// ResizeObserver stand-in: notifyResize(target) plays the callback for every observer watching target.
+const resizeObservers = [];
+global.ResizeObserver = class {
+    constructor(callback) {
+        this.callback = callback;
+        this.targets = new Set();
+        resizeObservers.push(this);
+    }
+    observe(target) {
+        this.targets.add(target);
+    }
+    unobserve(target) {
+        this.targets.delete(target);
+    }
+};
+global.getComputedStyle = (element) => ({ display: element.display ?? 'block' });
+const watched = () => resizeObservers.reduce((count, observer) => count + observer.targets.size, 0);
+// Processing runs in an idle callback; the stand-in runs it at once.
+function notifyResize(target) {
+    global.requestIdleCallback = (callback) => callback({ timeRemaining: () => 50 });
+    try {
+        resizeObservers
+            .filter((observer) => observer.targets.has(target))
+            .forEach((observer) => observer.callback([{ target }]));
+    } finally {
+        delete global.requestIdleCallback;
+    }
+}
 const { CardDetector, DETECTABLE_TAGS, waitForDetectableElement } = require('../../utils/card-detector.js');
 
 const detector = new CardDetector();
@@ -584,4 +612,66 @@ test('without mas-commerce-service the locale falls back to en_US', () => {
     } finally {
         restore();
     }
+});
+
+function toggledBox() {
+    const state = { shown: false };
+    state.getBoundingClientRect = () => (state.shown ? VISIBLE_BOX : HIDDEN_BOX);
+    return state;
+}
+
+test('a field checked while hidden is detected once it gets a box', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const span = toggledBox();
+    d.processMasField(fakeMasField({ fragmentId: 'frag-shown', contentSpan: span }));
+    span.shown = true;
+    notifyResize(span);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('a price checked while hidden is detected once it gets a box', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const price = fakeBareElement({ is: 'inline-price', osi: 'osi-shown', visible: false });
+    const box = toggledBox();
+    price.getBoundingClientRect = box.getBoundingClientRect;
+    d.processBareElement(price);
+    box.shown = true;
+    notifyResize(price);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('a card checked while hidden is detected once it gets a box', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const card = fakeCard({ fragmentId: 'frag-card-shown', visible: false });
+    const box = toggledBox();
+    card.getBoundingClientRect = box.getBoundingClientRect;
+    await d.processCard(card);
+    box.shown = true;
+    notifyResize(card);
+    await new Promise(setImmediate);
+    assert.equal(d.detectedCards.size, 1);
+});
+
+test('an empty element inside a laid-out box is left to its next content mutation', () => {
+    const d = new CardDetector();
+    const block = { getBoundingClientRect: () => VISIBLE_BOX, parentElement: null };
+    const span = { display: 'inline', getBoundingClientRect: () => HIDDEN_BOX, parentElement: block };
+    const before = watched();
+    d.processMasField(fakeMasField({ fragmentId: 'frag-empty', contentSpan: span }));
+    assert.equal(watched(), before);
+});
+
+test('a hidden inline element is watched through its nearest laid-out ancestor', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const slide = toggledBox();
+    const span = { display: 'inline', getBoundingClientRect: () => slide.getBoundingClientRect(), parentElement: slide };
+    slide.parentElement = null;
+    d.processMasField(fakeMasField({ fragmentId: 'frag-slide', contentSpan: span }));
+    slide.shown = true;
+    notifyResize(slide);
+    assert.equal(d.detectedCards.size, 1);
 });

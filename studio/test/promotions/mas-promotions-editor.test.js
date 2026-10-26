@@ -199,6 +199,58 @@ describe('MasPromotionsEditor', () => {
         await el.updateComplete;
     }
 
+    describe('countdown date feedback', () => {
+        const start = '2026-11-02T04:00:00Z';
+        const end = '2026-11-13T14:00:00Z';
+
+        for (const [name, cdtStart, cdtEnd, message] of [
+            ['missing start', '', end, 'Set both countdown timer start and end dates'],
+            ['missing end', start, '', 'Set both countdown timer start and end dates'],
+            ['invalid date', 'bad', end, 'Set valid UTC dates'],
+            ['equal dates', start, start, 'Countdown end must be later than countdown start.'],
+            ['reversed dates', end, start, 'Countdown end must be later than countdown start.'],
+        ]) {
+            it(`shows accessible inline feedback for ${name} without saving`, async () => {
+                const repo = makeRepo();
+                const el = await mountEditor(repo);
+                el.fragmentStore.updateField('cdtStart', [cdtStart]);
+                el.fragmentStore.updateField('cdtEnd', [cdtEnd]);
+                await el.updateComplete;
+
+                const notice = el.renderRoot.querySelector('#countdown-date-error');
+                expect(notice.textContent).to.include(message);
+                expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
+                expect(notice.getAttribute('role')).to.equal('status');
+                for (const id of ['cdtStart', 'cdtEnd']) {
+                    const input = el.renderRoot.querySelector(`#${id}`);
+                    expect(input.getAttribute('aria-invalid')).to.equal('true');
+                    expect(input.getAttribute('aria-describedby')).to.equal('countdown-date-error');
+                }
+                expect(repo.saveFragment.called).to.be.false;
+                expect(repo.publishFragment.called).to.be.false;
+            });
+        }
+
+        it('clears date feedback when corrected or both optional dates are removed', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('cdtStart', [end]);
+            el.fragmentStore.updateField('cdtEnd', [start]);
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#countdown-date-error')).to.exist;
+
+            for (const [cdtStart, cdtEnd] of [
+                [start, end],
+                ['', ''],
+            ]) {
+                el.fragmentStore.updateField('cdtStart', [cdtStart]);
+                el.fragmentStore.updateField('cdtEnd', [cdtEnd]);
+                await el.updateComplete;
+                expect(el.renderRoot.querySelector('#countdown-date-error')).to.not.exist;
+                expect(el.renderRoot.querySelector('#cdtEnd').hasAttribute('aria-invalid')).to.be.false;
+            }
+        });
+    });
+
     describe('tiered permissions', () => {
         function setGroups(groups) {
             Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups }]);

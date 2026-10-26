@@ -24,6 +24,7 @@ import {
     generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
+    getService,
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
@@ -43,6 +44,7 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
+import { countdownDateError, countdownPreviewState, hasCountdownSentinel } from './promotions/countdown-preview.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
 import './mas-related-variations.js';
@@ -50,6 +52,12 @@ import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/
 import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
+
+const COUNTDOWN_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+});
 
 const LOCALE_VARIATION_DEPRECATION_MESSAGE =
     'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation';
@@ -662,6 +670,7 @@ export default class MasFragmentEditor extends LitElement {
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
     #pendingPromoRefresh = null;
+    #countdownNoticeTimer;
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
     #itemsSelectionStoreToken = null;
@@ -715,6 +724,7 @@ export default class MasFragmentEditor extends LitElement {
         super.disconnectedCallback();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
+        clearTimeout(this.#countdownNoticeTimer);
     }
 
     willUpdate(changedProperties) {
@@ -787,6 +797,19 @@ export default class MasFragmentEditor extends LitElement {
     updated(changedProperties) {
         super.updated?.(changedProperties);
         this.#preloadEditorModule();
+        this.#scheduleCountdownNotice();
+    }
+
+    #scheduleCountdownNotice() {
+        clearTimeout(this.#countdownNoticeTimer);
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.isConnected || getService()?.settings?.instant || !hasCountdownSentinel(preview?.fields)) return;
+        if (countdownDateError(preview.cdtStart, preview.cdtEnd)) return;
+        const now = Date.now();
+        const next = [Date.parse(preview.cdtStart), Date.parse(preview.cdtEnd)].find((time) => time > now);
+        if (next) {
+            this.#countdownNoticeTimer = setTimeout(() => this.requestUpdate(), Math.min(next - now + 1, 2147483647));
+        }
     }
 
     #preloadEditorModule() {
@@ -2367,6 +2390,42 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    get countdownPreviewNotice() {
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.previewResolved || !hasCountdownSentinel(preview?.fields)) return nothing;
+        const instant = getService()?.settings?.instant;
+        const now = instant ? Date.parse(instant) : Date.now();
+        const state = countdownPreviewState(preview, now);
+        if (!state) return nothing;
+        const boundary = state === 'scheduled' ? preview.cdtStart : state === 'expired' ? preview.cdtEnd : null;
+        const date = boundary ? `${COUNTDOWN_DATE_FORMAT.format(Date.parse(boundary))} UTC` : '';
+        const previewTime = Number.isFinite(now) ? `${COUNTDOWN_DATE_FORMAT.format(now)} UTC` : 'the current preview time';
+        const messages = {
+            'no-project':
+                'No promotion project is linked to this card. Add it to a promotion project. For cloned cards, copying an offer or promo code does not copy the promotion association.',
+            'no-match': `No matching promotion applies to this card for ${preview.previewLocale || Store.localeOrRegion()} at ${previewTime}. Check the project's targeting, campaign dates, and offer mappings.`,
+            'missing-dates':
+                'The selected promotion is missing one or both countdown dates. Set Countdown Timer Start (UTC) and Countdown Timer End (UTC). Campaign dates and promo codes do not configure the timer.',
+            'lookup-failed': "Couldn't load countdown settings. Retry the preview.",
+            'invalid-dates': 'Set valid UTC dates for Countdown Timer Start and Countdown Timer End.',
+            'invalid-range': 'Countdown end must be later than countdown start.',
+            'invalid-preview-time': 'Set a valid preview date and time to view the countdown.',
+            scheduled: `Countdown starts on ${date}. It is hidden at the current preview time.`,
+            expired: `Countdown ended on ${date}.`,
+        };
+        return html`<sp-help-text id="countdown-preview-notice" role="status" icon
+                >Countdown timer: ${messages[state]}</sp-help-text
+            >
+            ${state === 'lookup-failed'
+                ? html`<sp-button
+                      size="s"
+                      variant="secondary"
+                      @click=${() => this.fragmentStore.previewStore.resolveFragment(true)}
+                      >Retry countdown preview</sp-button
+                  >`
+                : nothing}`;
+    }
+
     get previewColumn() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
@@ -2415,7 +2474,7 @@ export default class MasFragmentEditor extends LitElement {
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>
                         </sp-theme>
-                        ${this.previewErrorMessages}
+                        ${this.countdownPreviewNotice} ${this.previewErrorMessages}
                     </div>
                 </div>
                 ${this.relatedVariationsSection}

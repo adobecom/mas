@@ -79,6 +79,7 @@ import {
     GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
+import { countdownDateError } from './countdown-preview.js';
 import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
@@ -1840,7 +1841,17 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
+    get countdownDateValidationMessage() {
+        const error = countdownDateError(this.fragment?.getFieldValue('cdtStart'), this.fragment?.getFieldValue('cdtEnd'));
+        return {
+            'missing-dates': 'Set both countdown timer start and end dates, or leave both empty.',
+            'invalid-dates': 'Set valid UTC dates for countdown timer start and end.',
+            'invalid-range': 'Countdown end must be later than countdown start.',
+        }[error];
+    }
+
     render() {
+        const countdownError = this.countdownDateValidationMessage;
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
@@ -1944,6 +1955,8 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtStart"
                                 value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtStart"
+                                aria-invalid=${countdownError ? 'true' : nothing}
+                                aria-describedby=${countdownError ? 'countdown-date-error' : nothing}
                                 ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
@@ -1953,9 +1966,16 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtEnd"
                                 value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtEnd"
+                                aria-invalid=${countdownError ? 'true' : nothing}
+                                aria-describedby=${countdownError ? 'countdown-date-error' : nothing}
                                 ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
+                            ${countdownError
+                                ? html`<sp-help-text id="countdown-date-error" variant="negative" role="status" icon
+                                      >Countdown timer: ${countdownError}</sp-help-text
+                                  >`
+                                : nothing}
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"

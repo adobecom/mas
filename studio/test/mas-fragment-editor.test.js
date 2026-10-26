@@ -2044,6 +2044,154 @@ describe('MasFragmentEditor', () => {
             const preview = el.previewColumn;
             expect(preview).to.not.equal(nothing);
         });
+
+        describe('countdown preview notice', () => {
+            const start = '2026-11-02T04:00:00Z';
+            const end = '2026-11-13T14:00:00Z';
+            let preview;
+            let service;
+
+            beforeEach(() => {
+                preview = new Fragment({
+                    ...el.fragment,
+                    previewLocale: 'en_IN',
+                    fields: [
+                        ...el.fragment.fields,
+                        { name: 'description', values: ['<p><a href="#">countdown-timer</a></p>'] },
+                    ],
+                });
+                el.inEdit.value.previewStore = { value: preview, resolved: true, resolveFragment: sandbox.stub() };
+                el.previewResolved = true;
+                service = { settings: { instant: '2026-11-05T12:00:00Z' } };
+                sandbox.stub(document, 'querySelector').callThrough().withArgs('mas-commerce-service').returns(service);
+            });
+
+            const renderNotice = () => {
+                const container = document.createElement('div');
+                render(el.countdownPreviewNotice, container);
+                return container;
+            };
+
+            for (const dates of [{}, { cdtStart: start }, { cdtEnd: end }]) {
+                it(`explains missing countdown dates with ${Object.keys(dates).join(', ') || 'neither date'} resolved`, () => {
+                    Object.assign(preview, dates, { countdownStatus: 'missing-dates' });
+                    const container = document.createElement('div');
+                    render(el.previewColumn, container);
+
+                    const notice = container.querySelector('#countdown-preview-notice');
+                    expect(notice).to.exist;
+                    expect(notice.getAttribute('role')).to.equal('status');
+                    expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
+                    expect(notice.textContent).to.include('selected promotion is missing');
+                    expect(notice.textContent).to.include('Countdown Timer Start (UTC)');
+                    expect(notice.textContent).to.include('Countdown Timer End (UTC)');
+                });
+            }
+
+            for (const [state, text] of [
+                ['no-project', 'No promotion project is linked'],
+                ['no-match', 'No matching promotion applies'],
+                ['lookup-failed', "Couldn't load countdown settings"],
+            ]) {
+                it(`explains ${state} without claiming countdown dates are missing`, () => {
+                    preview.countdownStatus = state;
+                    const textContent = renderNotice().textContent;
+                    expect(textContent.trim()).to.match(/^Countdown timer:/);
+                    expect(textContent).to.include(text);
+                    expect(textContent).to.not.include('selected promotion is missing');
+                });
+            }
+
+            it('explains clone membership without assuming every unlinked card is a clone', () => {
+                preview.countdownStatus = 'no-project';
+                expect(renderNotice().textContent).to.include('For cloned cards, copying an offer or promo code does not copy');
+            });
+
+            it('shows the effective preview locale and UTC time for an unmatched promotion', () => {
+                preview.countdownStatus = 'no-match';
+                const text = renderNotice().textContent;
+                expect(text).to.include('en_IN');
+                expect(text).to.include('5 Nov 2026, 12:00 UTC');
+            });
+
+            for (const [instant, expected] of [
+                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 UTC'],
+                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 UTC'],
+            ]) {
+                it(`uses the preview's effective time ${instant}`, () => {
+                    Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });
+                    service.settings.instant = instant;
+                    expect(renderNotice().textContent).to.include(expected);
+                });
+            }
+
+            it('clears the notice when both dates resolve and the countdown is active', () => {
+                expect(el.countdownPreviewNotice).to.not.equal(nothing);
+                Object.assign(preview, { cdtStart: start, cdtEnd: end });
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('explains an invalid countdown range', () => {
+                Object.assign(preview, { cdtStart: end, cdtEnd: start });
+                expect(renderNotice().textContent).to.include('Countdown end must be later than countdown start.');
+            });
+
+            it('refreshes live notices at start and expiry and clears its timer on disconnect', () => {
+                const now = Date.parse('2026-11-05T12:00:00Z');
+                const clock = sandbox.useFakeTimers({ now, toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+                service.settings.instant = undefined;
+                Object.assign(preview, {
+                    cdtStart: new Date(now + 1000).toISOString(),
+                    cdtEnd: new Date(now + 2000).toISOString(),
+                });
+                sandbox.stub(el, 'isConnected').get(() => true);
+                sandbox.stub(el, 'fragment').get(() => null);
+                const requestUpdate = sandbox.stub(el, 'requestUpdate');
+
+                el.updated(new Map());
+                expect(renderNotice().textContent).to.include('Countdown starts');
+                clock.tick(1001);
+                expect(requestUpdate.calledOnce).to.be.true;
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+
+                el.updated(new Map());
+                clock.tick(1000);
+                expect(requestUpdate.calledTwice).to.be.true;
+                expect(renderNotice().textContent).to.include('Countdown ended');
+
+                preview.cdtEnd = new Date(now + 10000).toISOString();
+                el.updated(new Map());
+                expect(clock.countTimers()).to.equal(1);
+                el.disconnectedCallback();
+                expect(clock.countTimers()).to.equal(0);
+            });
+
+            it('does not run a live clock for a fixed preview instant', () => {
+                const clock = sandbox.useFakeTimers({ now: Date.parse(start), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+                Object.assign(preview, { cdtStart: start, cdtEnd: end });
+                sandbox.stub(el, 'isConnected').get(() => true);
+                sandbox.stub(el, 'fragment').get(() => null);
+                el.updated(new Map());
+                expect(clock.countTimers()).to.equal(0);
+            });
+
+            it('retries failed lookups through the existing preview resolver', () => {
+                preview.countdownStatus = 'lookup-failed';
+                const button = renderNotice().querySelector('sp-button');
+                button.click();
+                expect(el.fragmentStore.previewStore.resolveFragment.calledOnceWithExactly(true)).to.be.true;
+            });
+
+            it('does not show a notice without a countdown link', () => {
+                preview.updateField('description', ['<p>Offer details</p>']);
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('waits for preview resolution before showing a notice', () => {
+                el.previewResolved = false;
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+        });
     });
 
     describe('missing variation state', () => {

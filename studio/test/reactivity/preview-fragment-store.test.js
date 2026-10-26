@@ -264,8 +264,10 @@ describe('PreviewFragmentStore', () => {
 
     describe('countdown dates', () => {
         const SENTINEL_FIELDS = [{ name: 'description', values: ['<p>Ends <a href="#">countdown-timer</a></p>'] }];
-        const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' };
-        const NONE = { cdtStart: undefined, cdtEnd: undefined };
+        const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z', countdownStatus: 'ready' };
+        const NONE = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
+        const FAILED = { ...NONE, countdownStatus: 'lookup-failed' };
+        const NO_PROJECT = { ...NONE, countdownStatus: 'no-project' };
         let repository;
         let service;
         let originalList;
@@ -285,6 +287,7 @@ describe('PreviewFragmentStore', () => {
         const createStore = (overrides) => {
             const store = new PreviewFragmentStore(createFragment(overrides), null, { lazy: true });
             sandbox.stub(store, 'previewPublishedFragment').resolves({
+                status: 200,
                 body: { promoProject: 'Black Friday' },
                 promoProjects: [{ label: 'Black Friday', project: DATES }],
             });
@@ -344,6 +347,7 @@ describe('PreviewFragmentStore', () => {
             expect(source.getFieldValue('description')).to.equal('{{offer-description}}');
             expect(source.cdtStart).to.be.undefined;
             expect(source.previewLocale).to.be.undefined;
+            expect(source.countdownStatus).to.be.undefined;
             expect(store.value.cdtStart).to.be.undefined;
 
             store.replaceFrom(result);
@@ -352,6 +356,7 @@ describe('PreviewFragmentStore', () => {
 
             expect(cleared.cdtStart).to.be.undefined;
             expect(cleared.cdtEnd).to.be.undefined;
+            expect(cleared.countdownStatus).to.be.undefined;
             expect(cleared.previewLocale).to.equal('ko_KR');
             expect(store.previewPublishedFragment.calledOnce).to.be.true;
             expect(repository.searchFragmentList.called).to.be.false;
@@ -403,7 +408,7 @@ describe('PreviewFragmentStore', () => {
             const store = createStore();
             store.previewPublishedFragment.onFirstCall().rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
             expect(store.previewPublishedFragment.callCount).to.equal(2);
             store.dispose();
@@ -422,16 +427,58 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
-        it('clears dates when the pipeline selects no project', async () => {
+        it('reports missing membership without inheriting the source card project for a clone', async () => {
+            const store = createStore({ path: '/content/dam/mas/test/en_US/card-copy' });
+            const project = rawProject();
+            project.fields.push({ name: 'fragments', values: ['/content/dam/mas/test/en_US/card'] });
+            repository.searchFragmentList.resolves([project]);
+            store.previewPublishedFragment.resolves({ status: 200, body: {}, promoProjects: [] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NO_PROJECT);
+            store.dispose();
+        });
+
+        it('distinguishes an associated project that does not apply to the preview', async () => {
+            const store = createStore({ path: '/content/dam/mas/test/en_GB/card' });
+            const project = rawProject();
+            project.fields.push({ name: 'fragments', values: ['/content/dam/mas/test/en_US/card'] });
+            repository.searchFragmentList.resolves([project]);
+            store.previewPublishedFragment.resolves({ status: 200, body: {}, promoProjects: [] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({ ...NONE, countdownStatus: 'no-match' });
+            store.dispose();
+        });
+
+        it('reports selected projects with missing countdown dates', async () => {
             const store = createStore();
-            store.previewPublishedFragment.resolves({ body: {}, promoProjects: [] });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            store.previewPublishedFragment.resolves({
+                status: 200,
+                body: { promoProject: 'Black Friday' },
+                promoProjects: [{ label: 'Black Friday', project: { cdtStart: DATES.cdtStart } }],
+            });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({ ...NONE, countdownStatus: 'missing-dates' });
+            store.dispose();
+        });
+
+        it('does not cache non-200 pipeline responses or misreport them as missing configuration', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.onFirstCall().resolves({ status: 503, body: {} });
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
+        it('reports incomplete project provenance as a failed lookup', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.resolves({ status: 200, body: { promoProject: 'Missing' }, promoProjects: [] });
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 
         it('skips the pipeline for a card that cannot be a MAS default card', async () => {
             const store = createStore({ path: '/somewhere/else' });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NO_PROJECT);
             expect(store.previewPublishedFragment.called).to.be.false;
             store.dispose();
         });
@@ -440,7 +487,7 @@ describe('PreviewFragmentStore', () => {
             const store = createStore();
             store.previewPublishedFragment.rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 
@@ -467,7 +514,7 @@ describe('PreviewFragmentStore', () => {
             repository.searchFragmentList.rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
             store.dispose();
         });
 

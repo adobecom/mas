@@ -996,6 +996,7 @@ function createConsonantButton(
 const isFilled = (cta) => cta.classList.contains('blue');
 const filledFirst = (ctas) =>
     [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+const getCtaSource = (cta) => cta.source ?? cta;
 
 export async function processCTAs(
     fields,
@@ -1068,9 +1069,9 @@ export async function processCTAs(
                             checkout.hasAttribute('data-replaced-osi')
                         ) {
                             if (buyNowExists) {
-                                cta.classList.remove('blue');
-                                cta.removeAttribute('data-analytics-id');
-                                cta.remove();
+                                checkout.classList.remove('blue');
+                                checkout.removeAttribute('data-analytics-id');
+                                checkout.remove();
                                 trialCtaSwapped(true);
                             } else if (
                                 merchCard.priceLiterals?.buyNow &&
@@ -1104,7 +1105,7 @@ export async function processCTAs(
                             }
                         } else {
                             cta.hidden = false;
-                            trialCtaSwapped(false);
+                            trialCtaSwapped(true);
                         }
                     })
                     .catch(() => {
@@ -1116,15 +1117,23 @@ export async function processCTAs(
                 trialCtaSwappedPromises,
             );
             if (trialCtaSwappedResults.some((c) => c === true)) {
-                const hasBlueCta = ctas.some(
-                    (c) => footer.contains(c) && c.classList.contains('blue'),
-                );
-                const buyNowCta = ctas.find(
-                    (c) => c.getAttribute('data-analytics-id') === 'buy-now',
-                );
+                const hasBlueCta = ctas.some((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        footer.contains(c) &&
+                        checkout.classList.contains('blue')
+                    );
+                });
+                const buyNowCta = ctas.find((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    );
+                });
                 if (!hasBlueCta && buyNowCta) {
-                    buyNowCta.classList.remove('primary');
-                    buyNowCta.classList.add('blue');
+                    const checkout = getCtaSource(buyNowCta);
+                    checkout.classList.remove('primary');
+                    checkout.classList.add('blue');
                 }
             }
         }

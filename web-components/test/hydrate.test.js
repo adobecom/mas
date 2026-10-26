@@ -443,6 +443,33 @@ describe('processCTAs', async () => {
         expect(button.textContent).to.equal('Buy now');
     });
 
+    it('should replace free-trial CTA with buy-now in headless when hideTrialCTAs is true', async () => {
+        const merchCard = mockMerchCard();
+        const aemFragmentMapping = {
+            ctas: {
+                slot: 'footer',
+                size: 'm',
+            },
+        };
+
+        merchCard.variant = 'headless';
+        const fields = {
+            ctas: '<p><a href="#" data-wcs-osi="abm" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a></p>',
+        };
+
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+
+        const footer = getFooterElement(merchCard);
+        expect(footer).to.exist;
+        expect(footer.querySelector('a.blue[data-analytics-id="buy-now"]')).to
+            .exist;
+        expect(footer.querySelector('a').textContent).to.equal('Buy now');
+        expect(footer.querySelector('a[data-analytics-id="free-trial"]')).to.not
+            .exist;
+    });
+
     it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour non-buy-now CTA exists', async () => {
         const fields = {
             ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="select" class="accent">Select</a></p>`,
@@ -712,8 +739,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
             merchCard.variant = variant;
             const fields = {
                 ctas:
-                    '<a class="primary" data-wcs-osi="abm">Buy</a>' +
-                    '<a class="secondary" data-wcs-osi="stock-m2m-mult">Try</a>',
+                    '<a class="primary" data-wcs-osi="abm" data-analytics-id="buy-now">Buy</a>' +
+                    '<a class="secondary" data-wcs-osi="stock-m2m-mult" data-analytics-id="free-trial">Try</a>',
             };
             processCTAs(fields, merchCard, aemFragmentMapping, variant, {
                 hideTrialCTAs: true,

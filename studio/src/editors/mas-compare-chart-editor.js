@@ -1907,6 +1907,11 @@ class MasCompareChartEditor extends LitElement {
         this.fragmentStore?.updateFieldInternal('description', e.target.value);
     }
 
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
+    }
+
     get #generalInfo() {
         return html`
             <div class="compchart-general-info">
@@ -1932,6 +1937,14 @@ class MasCompareChartEditor extends LitElement {
                             value=${this.fragment?.description || ''}
                             @input=${this.#handleFragmentDescriptionUpdate}
                         ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group>
+                        <sp-field-label for="compchart-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="compchart-enable-baselines"
+                            ?checked=${this.fragment?.getField('enableBaselines')?.values[0]}
+                            @click=${this.#handleEnableBaselines}
+                        ></sp-switch>
                     </sp-field-group>
                 </div>
             </div>

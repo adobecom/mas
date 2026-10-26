@@ -463,6 +463,26 @@ describe('aup-select checkout routing', () => {
                 );
             });
 
+            it('switches the href when aup-select is set after the link resolved', async () => {
+                meta.remove();
+                service.setAttribute('aup-select', 'off');
+                const element = await create(Class);
+                expect(element.getAttribute(hrefAttribute)).to.equal(
+                    element.checkoutUrl,
+                );
+                service.setAttribute('aup-select', 'on');
+                expect(element.getAttribute(hrefAttribute)).to.equal('#');
+                service.setAttribute('aup-select', 'off');
+                expect(element.getAttribute(hrefAttribute)).to.equal(
+                    element.checkoutUrl,
+                );
+                element.remove();
+                service.setAttribute('aup-select', 'on');
+                expect(element.getAttribute(hrefAttribute)).to.equal(
+                    element.checkoutUrl,
+                );
+            });
+
             it('restores the destination for native checkout when the SDK is missing', async () => {
                 await service.registerCheckoutAction(() => undefined);
                 const element = await create(Class);
@@ -498,7 +518,7 @@ describe('aup-select checkout routing', () => {
                         },
                         params: {
                             lang: 'en',
-                            nr: 'stable',
+                            nr: 'adobe-com-stable',
                             ctxrturl: window.location.href,
                             ot: 'BASE',
                             items: `${element.value[0].offerId}|1`,
@@ -1189,7 +1209,7 @@ describe('aup-select checkout routing', () => {
             },
             params: {
                 lang: 'en',
-                nr: 'stable',
+                nr: 'adobe-com-stable',
                 ctxrturl: 'https://www.adobe.com/plans',
                 ot: 'BASE',
                 items: `${element.value[0].offerId}|1`,

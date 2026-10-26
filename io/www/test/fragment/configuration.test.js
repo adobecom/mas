@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { loadConfiguration, resetCache, validateApiKey } from '../../src/fragment/utils/configuration.js';
+import { getApiKeySurface, loadConfiguration, resetCache, validateApiKey } from '../../src/fragment/utils/configuration.js';
 import { MockState } from './mocks/MockState.js';
 
 const HARDCODED_PROD_WCS = { wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' };
@@ -122,5 +122,19 @@ describe('validateApiKey', () => {
 
     it('accepts a slash-wrapped regex added from state', () => {
         expect(validateApiKey({ api_key: 'my_v3', apiKeys: ['/^my_v\\d+$/'] })).to.deep.equal({ statusCode: 200 });
+    });
+});
+
+describe('getApiKeySurface', () => {
+    const apiKeySurfaces = { AdobeExpressWeb: 'express', '/^CreativeCloud_v\\d+_\\d+$/': 'ccd' };
+
+    it('maps literal and regex api keys to their surface', () => {
+        expect(getApiKeySurface({ api_key: 'AdobeExpressWeb', apiKeySurfaces })).to.equal('express');
+        expect(getApiKeySurface({ api_key: 'CreativeCloud_v6_4', apiKeySurfaces })).to.equal('ccd');
+    });
+
+    it('returns undefined for unmapped api keys or without configuration', () => {
+        expect(getApiKeySurface({ api_key: 'other', apiKeySurfaces })).to.be.undefined;
+        expect(getApiKeySurface({ api_key: 'AdobeExpressWeb' })).to.be.undefined;
     });
 });

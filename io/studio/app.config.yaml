@@ -208,16 +208,6 @@ application:
                             timeout: 3600000 # ms — 60 min
                         annotations:
                             require-adobe-auth: false
-                    custom-field-audit:
-                        function: src/custom-field-audit/index.js
-                        web: 'yes'
-                        runtime: nodejs:22
-                        inputs:
-                            odinEndpoint: $ODIN_ENDPOINT
-                        limits:
-                            timeout: 3600000 # ms — 60 min
-                        annotations:
-                            require-adobe-auth: false
                     bulk-save-snapshot:
                         function: src/bulk-publish/save-snapshot-action.js
                         web: 'yes'

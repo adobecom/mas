@@ -96,10 +96,10 @@ describe('Multifield', () => {
         expect(field.getAttribute('variant')).to.equal('pro');
     });
 
-    it('forwards renameAllowed=false to each rendered field, but not when true (the default)', async () => {
+    it('hides the add button when addAllowed is false', async () => {
         const el = await fixture(
             html`
-                <mas-multifield .value="${[{ value: 'a' }]}" .renameAllowed="${false}">
+                <mas-multifield .value="${[{ value: 'a' }]}" .addAllowed="${false}">
                     <template>
                         <sp-textfield class="field"></sp-textfield>
                     </template>
@@ -109,14 +109,11 @@ describe('Multifield', () => {
             { parentNode: spTheme() },
         );
         await el.updateComplete;
-        const field = el.shadowRoot.querySelector('.field-wrapper .field');
-        expect(field.renameAllowed).to.equal(false);
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.be.null;
 
-        el.renameAllowed = true;
-        el.value = [{ value: 'b' }];
+        el.addAllowed = true;
         await el.updateComplete;
-        const rerenderedField = el.shadowRoot.querySelector('.field-wrapper .field');
-        expect(rerenderedField.renameAllowed).to.not.equal(false);
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.exist;
     });
 
     it('should support mas-mnemonic-field', async () => {

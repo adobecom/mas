@@ -1,12 +1,10 @@
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import '../rte/rte-field.js';
-import { confirmation } from '../mas-confirm-dialog.js';
 
 class MasRteFieldItem extends LitElement {
     static properties = {
         label: { type: String },
         osi: { type: String },
-        renameAllowed: { type: Boolean },
         _labelLocked: { type: Boolean, state: true },
     };
 
@@ -69,7 +67,6 @@ class MasRteFieldItem extends LitElement {
         super();
         this.label = '';
         this.osi = '';
-        this.renameAllowed = true;
         this._labelLocked = false;
     }
 
@@ -80,17 +77,25 @@ class MasRteFieldItem extends LitElement {
         }
     }
 
+    // A named custom field is referenced by name in documents, so it can neither be
+    // renamed (the label stays read-only) nor deleted (MWPW-205018).
+    get deleteButton() {
+        if (this._labelLocked) return nothing;
+        return html`
+            <sp-action-button class="delete-btn" quiet @click=${this.#handleDelete}>
+                <sp-icon-delete slot="icon"></sp-icon-delete>
+            </sp-action-button>
+        `;
+    }
+
     render() {
         return html`
             <div class="wrapper">
-                <sp-action-button class="delete-btn" quiet @click=${this.#handleDelete}>
-                    <sp-icon-delete slot="icon"></sp-icon-delete>
-                </sp-action-button>
+                ${this.deleteButton}
                 <sp-textfield
                     placeholder="Enter title"
                     .value="${this.label || ''}"
                     ?readonly=${this._labelLocked}
-                    @click=${this.#handleLabelClick}
                     @input=${(e) => e.stopPropagation()}
                     @change=${this.#handleLabelChange}
                 ></sp-textfield>
@@ -111,22 +116,6 @@ class MasRteFieldItem extends LitElement {
 
     #handleDelete = () => {
         this.dispatchEvent(new CustomEvent('delete-field', { bubbles: true, composed: true }));
-    };
-
-    #handleLabelClick = async (e) => {
-        if (!this._labelLocked || !this.renameAllowed) return;
-        e.preventDefault();
-        const confirmed = await confirmation({
-            variant: 'warning',
-            title: 'Rename custom field',
-            content: `"${this.label}" is used as the key in any documents that reference this field. Renaming it will break those references. Are you sure?`,
-            confirmLabel: 'Rename',
-            cancelLabel: 'Cancel',
-        });
-        if (!confirmed) return;
-        this._labelLocked = false;
-        await this.updateComplete;
-        this.shadowRoot.querySelector('sp-textfield')?.focus();
     };
 
     #handleLabelChange = (e) => {

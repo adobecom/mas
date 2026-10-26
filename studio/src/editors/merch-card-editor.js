@@ -6,7 +6,6 @@ import '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
-import { isCustomFieldRenameAllowed } from '../promotions/custom-field-sync.js';
 import { isGeoTag } from './variation-utils.js';
 import './variant-picker.js';
 import '../rte/rte-field.js';
@@ -2058,7 +2057,7 @@ class MerchCardEditor extends LitElement {
                         data-field-state="${this.getFieldState('customFields')}"
                         .value="${this.customFieldValues}"
                         .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
-                        .renameAllowed="${isCustomFieldRenameAllowed({ isPromoVariation: this.isPromoVariation })}"
+                        .addAllowed="${!this.isPromoVariation && !this.isGroupedVariation}"
                         @change="${this.#updateCustomFields}"
                         @input="${this.#updateCustomFields}"
                     >

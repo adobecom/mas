@@ -44,7 +44,6 @@ import * as promotionsRepository from './promotions/promotions-repository.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
-import { diffCustomFields } from './promotions/custom-field-sync.js';
 
 async function confirmReferenceDiagnosis(aem, roots) {
     const { MasReferenceDiagnosisDialog } = await import('./publish/mas-reference-diagnosis-dialog.js');
@@ -124,19 +123,6 @@ export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     cacheData.fields = normalizedFields;
 
     fragmentCache.add(cacheData);
-}
-
-/**
- * Reads a fragment's custom-field entries ({ name, value }) from its customFields/customFieldLabels
- * fields, pairing them by position the same way the merch-card-editor's customFieldValues getter does.
- * @param {{ getFieldValues?: (name: string) => unknown[] }} fragment
- * @returns {Array<{ name: string, value: string }>}
- */
-function readCustomFieldEntries(fragment) {
-    const values = fragment?.getFieldValues?.('customFields') || [];
-    const labels = fragment?.getFieldValues?.('customFieldLabels') || [];
-    const count = Math.max(values.length, labels.length);
-    return Array.from({ length: count }, (_, i) => ({ name: labels[i] || '', value: values[i] || '' }));
 }
 
 function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
@@ -1498,8 +1484,6 @@ export class MasRepository extends LitElement {
             fragmentCache?.add(new Fragment(savedFragment));
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
-            } else if (!fragmentIsPromoVariation(fragment)) {
-                await this.propagateCustomFieldsToPromoVariations(new Fragment(savedFragment));
             }
             Events.fragmentSaved.emit(savedFragment.id);
             if (withToast) showToast('Fragment successfully saved.', 'positive');
@@ -1844,65 +1828,6 @@ export class MasRepository extends LitElement {
     async bulkDeleteFragments(fragments, options) {
         const promises = fragments.map((fragment) => this.deleteFragment(fragment, options));
         return Promise.all(promises);
-    }
-
-    /**
-     * Propagates custom fields newly added on a default fragment to all of its related promo
-     * variations (MWPW-205018), so authors don't have to recreate them by hand. Only appends
-     * fields a variation is missing — it never rewrites a variation's own existing values, since
-     * correcting an already-mismatched name is the audit's job, not a side effect of every save.
-     * Best-effort: a failure here must never fail the save that already succeeded.
-     * @param {Fragment} defaultFragment
-     */
-    async propagateCustomFieldsToPromoVariations(defaultFragment) {
-        const defaultEntries = readCustomFieldEntries(defaultFragment);
-        if (!defaultEntries.some((entry) => entry.name)) return;
-
-        let promoVariations;
-        try {
-            const enrichedData = await promotionsRepository.mergePromoReferencesIntoFragmentData(
-                this.aem,
-                defaultFragment,
-                () => this.loadPromotions({ rethrow: true }),
-            );
-            promoVariations = new Fragment(enrichedData).listPromoVariations();
-        } catch (error) {
-            console.warn('Failed to resolve promo variations for custom field propagation:', error?.message || error);
-            return;
-        }
-
-        for (const variation of promoVariations) {
-            try {
-                const variationFragment = await this.aem.sites.cf.fragments.getById(variation.id);
-                if (!variationFragment) continue;
-                const promoEntries = readCustomFieldEntries(new Fragment(variationFragment));
-                const { missing } = diffCustomFields({ defaultEntries, promoEntries });
-                if (!missing.length) continue;
-
-                const correctedEntries = [
-                    ...promoEntries,
-                    ...missing.map((name) => ({
-                        name,
-                        value: defaultEntries.find((entry) => entry.name === name)?.value || '',
-                    })),
-                ];
-                const updatedFragment = new Fragment(variationFragment);
-                updatedFragment.updateField(
-                    'customFields',
-                    correctedEntries.map((entry) => entry.value),
-                );
-                updatedFragment.updateField(
-                    'customFieldLabels',
-                    correctedEntries.map((entry) => entry.name),
-                );
-                await this.aem.sites.cf.fragments.save(updatedFragment);
-            } catch (error) {
-                console.warn(
-                    `Failed to propagate custom fields to promo variation ${variation.path}:`,
-                    error?.message || error,
-                );
-            }
-        }
     }
 
     /**

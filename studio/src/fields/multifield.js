@@ -13,7 +13,7 @@ class MasMultifield extends LitElement {
             variant: { type: String, reflect: true },
             osi: { type: String, attribute: 'osi' },
             dispatchOnAdd: { type: Boolean, attribute: 'dispatch-on-add' },
-            renameAllowed: { type: Boolean },
+            addAllowed: { type: Boolean },
         };
     }
 
@@ -66,7 +66,7 @@ class MasMultifield extends LitElement {
         this.draggingIndex = -1;
         this.min = 0;
         this.buttonLabel = 'Add';
-        this.renameAllowed = true;
+        this.addAllowed = true;
         this.#boundHandlers = {
             deleteField: this.#handleDeleteField.bind(this),
         };
@@ -333,9 +333,6 @@ class MasMultifield extends LitElement {
         if (this.osi) {
             fieldEl.setAttribute('osi', this.osi);
         }
-        if (!this.renameAllowed) {
-            fieldEl.renameAllowed = false;
-        }
 
         return html`
             <div
@@ -352,16 +349,22 @@ class MasMultifield extends LitElement {
         `;
     }
 
+    get addButton() {
+        if (!this.addAllowed) return nothing;
+        return html`
+            <div class="add-button-wrapper">
+                <sp-action-button @click=${this.addField}>
+                    <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
+                </sp-action-button>
+            </div>
+        `;
+    }
+
     render() {
         if (!this.#template || !this.value) return nothing;
         return html`
             <div @change="${this.handleChange}" @input="${this.handleInput}">
-                ${this.value.map((field, index) => this.renderField(field, index))}
-                <div class="add-button-wrapper">
-                    <sp-action-button @click=${this.addField}>
-                        <sp-icon-add label="Add" slot="icon"></sp-icon-add>${this.buttonLabel}
-                    </sp-action-button>
-                </div>
+                ${this.value.map((field, index) => this.renderField(field, index))} ${this.addButton}
             </div>
         `;
     }

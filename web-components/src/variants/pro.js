@@ -33,7 +33,11 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
-const WHATS_INCLUDED_TOGGLE_KEY = 'see-whats-included';
+// Both forms `replace` can leave behind: the bare key (key missing) or the raw token (no dictionary).
+const UNRESOLVED_TOGGLE_LABELS = [
+    'see-whats-included',
+    '{{see-whats-included}}',
+];
 
 // A hidden CTA has no box, so only visible ones count as wrapped.
 const hasWrappedCtas = (card) =>
@@ -191,7 +195,7 @@ export class Pro extends VariantLayout {
         const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
             authored ||
-            (localized !== WHATS_INCLUDED_TOGGLE_KEY && localized) ||
+            (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
             "See what's included:"
         );
     }

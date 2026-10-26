@@ -522,37 +522,6 @@ runTests(async () => {
                 fragment3.remove();
             });
 
-            it('adds references under suffixed keys with inheritance', () => {
-                const card = (id, priceLiterals) => ({
-                    type: 'content-fragment',
-                    value: { id, fields: {}, priceLiterals },
-                });
-                const collection = {
-                    id: 'masked-coll',
-                    fields: {},
-                    priceLiterals: { planTypeLabel: 'FR' },
-                    references: {
-                        a: card('mc-a', {}),
-                        b: card('mc-b', {}),
-                        c: card('mc-c', { planTypeLabel: 'own' }),
-                    },
-                };
-                cache.add(collection, true, '-m_cpro-photo');
-                ['mc-a', 'mc-b', 'mc-c'].forEach((id) => {
-                    expect(cache.has(`${id}-m_cpro-photo`)).to.be.true;
-                    expect(cache.has(id)).to.be.false;
-                });
-                expect(
-                    cache.get('mc-a-m_cpro-photo').priceLiterals.planTypeLabel,
-                ).to.equal('FR');
-                expect(
-                    cache.get('mc-b-m_cpro-photo').priceLiterals.planTypeLabel,
-                ).to.equal('FR');
-                expect(
-                    cache.get('mc-c-m_cpro-photo').priceLiterals.planTypeLabel,
-                ).to.equal('own');
-            });
-
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');

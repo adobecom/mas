@@ -40,11 +40,10 @@ class FragmentCache {
      * Add fragment to cache
      * @param {Object} fragment fragment object.
      */
-    add(fragment, references = true, suffix = '') {
-        const missing = [fragment.id, fragment.fields?.originalId]
-            .filter(Boolean)
-            .map((key) => `${key}${suffix}`)
-            .filter((key) => !this.has(key));
+    add(fragment, references = true) {
+        const missing = [fragment.id, fragment.fields?.originalId].filter(
+            (key) => key && !this.has(key),
+        );
         if (!missing.length) return;
         missing.forEach((key) => this.set(key, fragment));
 
@@ -74,7 +73,7 @@ class FragmentCache {
                     ...fragment?.priceLiterals,
                     ...value.priceLiterals,
                 };
-                this.add(value, fragment, suffix);
+                this.add(value, fragment);
             }
         }
     }
@@ -199,12 +198,8 @@ export class AemFragment extends HTMLElement {
         ];
     }
 
-    #cacheSuffix() {
-        return `${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
-    }
-
     cacheKey() {
-        return `${this.#fragmentId}${this.#cacheSuffix()}`;
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -430,8 +425,6 @@ export class AemFragment extends HTMLElement {
         fragment = await this.#getFragment(endpoint);
         fragment.fields.originalId ??= this.#fragmentId;
         if (this.#mask || this.#pzn) {
-            // merge collection context into children under mask-scoped keys
-            cache.add(fragment, true, this.#cacheSuffix());
             cache.set(this.cacheKey(), fragment);
         } else {
             cache.add(fragment);

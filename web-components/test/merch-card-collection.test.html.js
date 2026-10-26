@@ -369,6 +369,88 @@ runTests(async () => {
         });
     });
 
+    describe('merch-card-collection localized price labels', () => {
+        const { cache } = customElements.get('aem-fragment');
+
+        beforeEach(() => {
+            cache.clear();
+            document.location.hash = '';
+        });
+
+        afterEach(() => {
+            document.getElementById('content').innerHTML = '';
+            cache.clear();
+        });
+
+        for (const attribute of ['mask', 'pzn']) {
+            it(`inherits collection price labels with ${attribute} and preserves card overrides`, async () => {
+                [merchCards, render] = prepareTemplate(
+                    'plansTwoCardsColl',
+                    false,
+                );
+                const fragment = merchCards.querySelector('aem-fragment');
+                fragment.setAttribute(attribute, 'localized');
+                const cacheKey = `${fragment.getAttribute('fragment')}-${attribute === 'mask' ? 'm' : 'p'}_localized`;
+                const labels = [
+                    'Abonnement annuel, facturation mensuelle',
+                    'Facturation mensuelle, engagement annuel',
+                ];
+                const cards = labels.map((label, index) => ({
+                    id: `localized-card-${index}`,
+                    fields: {
+                        variant: 'pro',
+                        cardTitle: `Photoshop ${index + 1}`,
+                        prices: '<span is="inline-price" data-template="legal" data-wcs-osi="abm-mult"></span>',
+                    },
+                    settings: { displayPlanType: true },
+                    ...(index === 1
+                        ? {
+                              priceLiterals: {
+                                  planTypeLabel: `{planType, select, ABM {${label}} other {}}`,
+                              },
+                          }
+                        : {}),
+                }));
+                cache.set(cacheKey, {
+                    id: 'localized-collection',
+                    fields: { cards: cards.map(({ id }) => id) },
+                    priceLiterals: {
+                        planTypeLabel: `{planType, select, ABM {${labels[0]}} other {}}`,
+                    },
+                    references: Object.fromEntries(
+                        cards.map((card) => [
+                            card.id,
+                            { type: 'content-fragment', value: card },
+                        ]),
+                    ),
+                    referencesTree: cards.map(({ id }) => ({
+                        fieldName: 'cards',
+                        identifier: id,
+                        referencesTree: [],
+                    })),
+                });
+
+                render();
+                await merchCards.hydrationReady;
+                for (const card of cards) {
+                    expect(cache.has(card.id)).to.be.true;
+                }
+                await merchCards.checkReady();
+                const prices = merchCards.querySelectorAll(
+                    '[is="inline-price"]',
+                );
+                await Promise.all(
+                    [...prices].map((price) => price.onceSettled()),
+                );
+                expect(
+                    [...merchCards.querySelectorAll('.price-plan-type')].map(
+                        (label) => label.textContent,
+                    ),
+                ).to.deep.equal(labels);
+            });
+        }
+    });
+
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 
@@ -471,100 +553,6 @@ runTests(async () => {
                 ),
             ).to.not.exist;
             aemFragment.cache.clear();
-        });
-    });
-
-    describe('merch-card-collection masked cache', () => {
-        const cardIds = ['mask-card-1', 'mask-card-2', 'mask-card-3'];
-        const buildPayload = (id) => ({
-            id,
-            path: `/content/dam/mas/test/${id}`,
-            fields: {},
-            priceLiterals: { planTypeLabel: 'Abonnement annuel' },
-            placeholders: {},
-            referencesTree: cardIds.map((identifier) => ({
-                fieldName: 'cards',
-                identifier,
-                referencesTree: [],
-            })),
-            references: Object.fromEntries(
-                cardIds.map((cardId, index) => [
-                    cardId,
-                    {
-                        type: 'content-fragment',
-                        value: {
-                            id: cardId,
-                            path: `/content/dam/mas/test/${cardId}`,
-                            fields: { variant: 'plans', tags: [] },
-                            // first card defines its own literal
-                            ...(index === 0 && {
-                                priceLiterals: {
-                                    planTypeLabel: 'Propre libelle',
-                                },
-                            }),
-                        },
-                    },
-                ]),
-            ),
-        });
-
-        const loadCollection = async (collectionId, cacheKey, mask) => {
-            const { cache } = customElements.get('aem-fragment');
-            cache.clear();
-            cache.set(cacheKey, buildPayload(collectionId));
-            const content = document.getElementById('content');
-            content.innerHTML = `<merch-card-collection><aem-fragment fragment="${collectionId}"${
-                mask ? ` mask="${mask}"` : ''
-            }></aem-fragment></merch-card-collection>`;
-            const collection = content.querySelector('merch-card-collection');
-            await collection.checkReady();
-            return { cache, collection };
-        };
-
-        it('caches every card under mask-scoped keys', async () => {
-            const { cache, collection } = await loadCollection(
-                'masked-coll',
-                'masked-coll-m_cpro-photo',
-                'cpro-photo',
-            );
-            for (const id of cardIds) {
-                expect(cache.has(`${id}-m_cpro-photo`)).to.be.true;
-                expect(cache.has(id)).to.be.false;
-            }
-            expect(
-                cache.get('mask-card-2-m_cpro-photo').priceLiterals
-                    ?.planTypeLabel,
-            ).to.equal('Abonnement annuel');
-            expect(
-                cache.get('mask-card-1-m_cpro-photo').priceLiterals
-                    ?.planTypeLabel,
-            ).to.equal('Propre libelle');
-            const cardFragments = collection.querySelectorAll(
-                'merch-card > aem-fragment',
-            );
-            expect(cardFragments.length).to.equal(cardIds.length);
-            cardFragments.forEach((el) =>
-                expect(el.getAttribute('mask')).to.equal('cpro-photo'),
-            );
-            cache.clear();
-        });
-
-        it('caches every card under plain ids when unmasked', async () => {
-            const { cache, collection } = await loadCollection(
-                'plain-coll',
-                'plain-coll',
-            );
-            for (const id of cardIds) {
-                expect(cache.has(id)).to.be.true;
-                expect(cache.has(`${id}-m_cpro-photo`)).to.be.false;
-            }
-            collection
-                .querySelectorAll('merch-card > aem-fragment')
-                .forEach((el) => {
-                    expect(el.hasAttribute('mask')).to.be.false;
-                    expect(el.hasAttribute('pzn')).to.be.false;
-                });
-            cache.clear();
         });
     });
 

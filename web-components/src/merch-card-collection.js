@@ -403,10 +403,6 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return;
         this.id = aemFragment.getAttribute('fragment');
-        // read before the aem-fragment is removed; cards inherit them
-        const mask = aemFragment.getAttribute('mask');
-        const pzn = aemFragment.getAttribute('pzn');
-        const suffix = `${pzn ? `-p_${pzn}` : ''}${mask ? `-m_${mask}` : ''}`;
 
         this.hydrating = true;
         let resolveHydration;
@@ -540,8 +536,11 @@ export class MerchCardCollection extends LitElement {
                     : null;
 
             for (const card of cards) {
-                if (suffix) aemFragment.cache.add(card, true, suffix);
-                else aemFragment.cache.add(card);
+                card.priceLiterals = {
+                    ...event.detail.priceLiterals,
+                    ...card.priceLiterals,
+                };
+                aemFragment.cache.add(card);
             }
             const checkDefaultChild = (collections, fragmentId) => {
                 for (const collection of collections) {
@@ -614,8 +613,6 @@ export class MerchCardCollection extends LitElement {
 
                 const mcAemFragment = document.createElement('aem-fragment');
                 mcAemFragment.setAttribute('fragment', fragmentId);
-                if (pzn) mcAemFragment.setAttribute('pzn', pzn);
-                if (mask) mcAemFragment.setAttribute('mask', mask);
                 merchCard.append(mcAemFragment);
                 // if no filters are set, set the default filter
                 if (Object.keys(merchCard.filters).length === 0) {

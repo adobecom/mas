@@ -33,6 +33,7 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
+const WHATS_INCLUDED_TOGGLE_KEY = 'see-whats-included';
 
 // A hidden CTA has no box, so only visible ones count as wrapped.
 const hasWrappedCtas = (card) =>
@@ -184,12 +185,17 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">; English
-        // fallback covers fragments authored before the label existed.
+        // Authored as a leading <p class="whats-included-label">. Otherwise the
+        // dictionary placeholder; an unresolved one comes back as its own key,
+        // so it is ignored until the dictionary entry exists.
+        const authored = this.card
+            .querySelector('[slot="whats-included"] .whats-included-label')
+            ?.textContent.trim();
+        const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
-            this.card
-                .querySelector('[slot="whats-included"] .whats-included-label')
-                ?.textContent.trim() || "See what's included:"
+            authored ||
+            (localized !== WHATS_INCLUDED_TOGGLE_KEY && localized) ||
+            "See what's included:"
         );
     }
 

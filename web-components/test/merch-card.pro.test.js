@@ -958,6 +958,26 @@ describe('pro whats-included toggle label', () => {
         expect(label.textContent.trim()).to.equal("See what's included:");
     });
 
+    it('uses the localized placeholder when no label is authored', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'Xem nội dung :' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('Xem nội dung :');
+    });
+
+    it('ignores the placeholder when the dictionary left it unresolved', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'see-whats-included' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal("See what's included:");
+    });
+
     it('uses the authored whats-included label in the toggle', async () => {
         card = await renderCard(
             `<div slot="whats-included"><p class="whats-included-label">Voir le contenu :</p>${SECTION}</div>`,

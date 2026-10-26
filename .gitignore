@@ -1,5 +1,6 @@
 **/logs/
-.pinata/docs/
+.pinata/docs/*
+!/docs/decisions/
 .pinata/logs/
 .pinata/specs/
 .pinata/state/
@@ -62,8 +63,11 @@ masStudio-*.json
 .superpowers/
 
 
-# Worktree documentation (per-ticket, not committed)
+# Worktree documentation (per-ticket, not committed); ADRs are versioned
 docs/
+!/docs/
+/docs/*
+!/docs/decisions/
 # But the AI assistant ships its documentation knowledge as runtime source —
 # those modules must be committed so deploys outside this worktree work.
 !io/studio/src/ai-chat/docs/

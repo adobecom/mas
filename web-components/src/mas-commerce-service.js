@@ -1,4 +1,5 @@
 import { Checkout } from './checkout.js';
+import { refreshCheckoutLinks } from './checkout-mixin.js';
 import * as Constants from './constants.js';
 import {
     EVENT_TYPE_READY,
@@ -11,7 +12,7 @@ import { Ims } from './ims.js';
 import { getPriceLiterals } from './literals.js';
 import { Log } from './log.js';
 import { Price } from './price.js';
-import { getSettings } from './settings.js';
+import { getAupSelect, getSettings } from './settings.js';
 import { Wcs } from './wcs.js';
 import { updateConfig as updateLanaConfig } from './lana.js';
 import { printMeasure } from './utils.js';
@@ -27,6 +28,8 @@ const MEASURE_READY = 'mas-commerce-service:ready';
  * web component to provide commerce and fragment service to consumers.
  */
 export class MasCommerceService extends HTMLElement {
+    static observedAttributes = ['aup-select'];
+
     #measure;
     #featureFlags;
 
@@ -180,6 +183,17 @@ export class MasCommerceService extends HTMLElement {
     connectedCallback() {
         performance.mark(MARK_START);
         this.activate();
+    }
+
+    // Target can set aup-select after the service is active. Settings are
+    // read at activation, so a late value updates them and the checkout links.
+    attributeChangedCallback() {
+        if (!this.settings) return;
+        const aupSelect = getAupSelect(this);
+        if (aupSelect === this.settings.aupSelect) return;
+        this.settings.aupSelect = aupSelect;
+        refreshCheckoutLinks();
+        this.log.debug('Refreshed checkout links');
     }
 
     flushWcsCache() {

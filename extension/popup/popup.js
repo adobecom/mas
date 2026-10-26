@@ -119,13 +119,18 @@ function isAdobePage(urlStr) {
     }
 }
 
-function showNonAdobePageHint() {
+const NON_ADOBE_PAGE_HINT =
+    'Open an Adobe page with merch cards (e.g. adobe.com/creativecloud/plans.html) and reopen this popup.';
+// Reloading the extension disconnects the scripts in open tabs until each tab reloads.
+const UNREACHABLE_PAGE_HINT =
+    "Can't reach this page. If you just reloaded the extension, reload this tab and reopen this popup.";
+
+function showNoCardsHint(hint) {
     currentCards = [];
     renderCards();
     const noCardsHint = document.querySelector('#noCards .hint');
     if (noCardsHint) {
-        noCardsHint.textContent =
-            'Open an Adobe page with merch cards (e.g. adobe.com/creativecloud/plans.html) and reopen this popup.';
+        noCardsHint.textContent = hint;
     }
 }
 
@@ -133,7 +138,7 @@ async function loadCards(retryCount = 0) {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!tab || !isAdobePage(tab.url)) {
-        showNonAdobePageHint();
+        showNoCardsHint(NON_ADOBE_PAGE_HINT);
         return;
     }
 
@@ -143,8 +148,7 @@ async function loadCards(retryCount = 0) {
                 setTimeout(() => loadCards(retryCount + 1), 500);
                 return;
             }
-            currentCards = [];
-            renderCards();
+            showNoCardsHint(UNREACHABLE_PAGE_HINT);
             return;
         }
 

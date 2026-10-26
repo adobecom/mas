@@ -110,7 +110,10 @@ function homepage(extra = {}) {
 const swappedCta = () => fakeElement({ attrs: { 'fragment-id': GROUPED }, visible: true });
 
 // The bridge posts onLoadState when the page loads, then answers every GET_MEP_STATE with replyState.
-function loadSources({ fields = [], detected = [] }, { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState } = {}) {
+function loadSources(
+    { fields = [], detected = [] },
+    { onLoadState = F.inputs.mepState, replyState = F.inputs.mepState, misses = {} } = {},
+) {
     const fetched = [];
     const messages = [];
     const marked = [];
@@ -134,8 +137,9 @@ function loadSources({ fields = [], detected = [] }, { onLoadState = F.inputs.me
                 sendMessage(message, callback) {
                     messages.push(message);
                     fetched.push(message.fragmentId);
-                    const data = FRAGMENTS[message.fragmentId];
-                    callback(data ? { success: true, data } : { success: false, error: 'fetch_failed' });
+                    const miss = misses[message.fragmentId];
+                    const data = miss ? null : FRAGMENTS[message.fragmentId];
+                    callback(data ? { success: true, data } : { success: false, error: 'fetch_failed', miss });
                 },
             },
         },
@@ -227,7 +231,19 @@ test('the fetch carries the element locale, country and service config', async (
     await sources.getSourcesFor('field-2');
     assert.deepEqual(plain(messages), [
         { type: 'FETCH_FRAGMENT_DATA', fragmentId: PROMO_VAR, locale: 'en_US', country: 'US', ...SERVICE_CONFIG },
+        { type: 'FETCH_FRAGMENT_DATA', fragmentId: GROUPED, locale: 'en_US', country: 'US', ...SERVICE_CONFIG },
     ]);
+});
+
+test('a failed field is labeled with the reason IO gives for refusing it', async () => {
+    const misses = { [GROUPED]: { kind: 'missing-locale', locale: 'en_GB' } };
+    const { sources } = loadSources(homepage(), { misses });
+    const result = await sources.getSourcesFor('field-2');
+    const description = result.entries.find((e) => e.field === 'description');
+    assert.deepEqual(
+        [description.label, description.reason],
+        ['Not in en_GB', `Fragment 369630bd has no en_GB copy, so this field renders empty; Swapped by MEP · ${MANIFEST}`],
+    );
 });
 
 test('a field the detector has not badged yet fetches with the page locale', async () => {

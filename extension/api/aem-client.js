@@ -1,5 +1,20 @@
 const DEFAULT_MAS_IO_URL = 'https://www.adobe.com/mas/io';
 const DEFAULT_WCS_API_KEY = 'wcms-commerce-ims-ro-user-milo-extension';
+const LOCALE_PATH_PATTERN = /^Fragment with identifier \/content\/dam\/mas\/[^/]+\/([a-z]{2}_[A-Z]{2})\//;
+const NOT_FOUND = { kind: 'not-found' };
+
+// IO names the DAM path it looked up when the fragment has no copy in the requested language,
+// and the fragment id when the fragment itself does not exist.
+async function missOf(response) {
+    try {
+        const { message } = JSON.parse(await response.text());
+        const locale = LOCALE_PATH_PATTERN.exec(message)?.[1];
+        if (locale) return { kind: 'missing-locale', locale };
+    } catch {
+        // An unreadable body still means IO found nothing.
+    }
+    return NOT_FOUND;
+}
 
 function getValidators() {
     if (typeof self !== 'undefined' && self.MASValidators) return self.MASValidators;
@@ -50,7 +65,7 @@ class AEMClient {
                     throw new Error('Fragment API rejected the request. It may not be published.');
                 }
                 if (response.status === 404) {
-                    throw new Error('Fragment not found.');
+                    throw Object.assign(new Error('Fragment not found.'), { miss: await missOf(response) });
                 }
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }

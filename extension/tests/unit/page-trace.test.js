@@ -55,7 +55,7 @@ test('the homepage card chain reads request, MEP swap, IO merge, failure', () =>
         'Page asks for 4e3e071a',
         'MEP swaps description, ctas → 369630bd (hp-09-21-26-mas-implementation-pzn.json)',
         'IO merges Promo · GlobalIntroPricingHPandGNAV (da021c0a) into shortDescription',
-        'Failed: description (369630bd did not load)',
+        'Failed to load: description (369630bd)',
     ]);
 });
 
@@ -123,10 +123,17 @@ test('a whole-card swap without a manifest reads manifest unknown', () => {
     assert.equal(stepsFor(stamps, entries, mepState)[1], 'MEP swaps whole card → 369630bd (manifest unknown)');
 });
 
-test('a failed card reads Failed: card', () => {
+test('a failed card reads Failed to load: card', () => {
     const stamps = { ...CARD, failed: true };
     const entries = resolveCard(stamps, { mepState: null }, { variant: 'plans' });
-    assert.deepEqual(stepsFor(stamps, entries, null), ['Page asks for 4e3e071a', 'Failed: card (4e3e071a did not load)']);
+    assert.deepEqual(stepsFor(stamps, entries, null), ['Page asks for 4e3e071a', 'Failed to load: card (4e3e071a)']);
+});
+
+test('a failed field missing in the page language reads with its label', () => {
+    const miss = { kind: 'missing-locale', locale: 'en_GB' };
+    const entry = resolveField(F.stamps.description, { ...F.inputs, miss });
+    const group = { groupKey: AUTHORED, cardName: 'CC Pro', entries: [entry], mixed: false };
+    assert.equal(buildPageTrace([group], F.inputs.mepState).cards[0].steps.at(-1), 'Not in en_GB: description (369630bd)');
 });
 
 test('a swapped field with an IO-merged variation also gets its IO step', () => {

@@ -170,17 +170,24 @@
         return { ...content, reason: `${content.reason}; Regional promo may also apply` };
     }
 
-    function failedSource(requestedId, swap, mepState) {
-        const reason = requestedId ? `Fragment ${id8(requestedId)} did not load` : 'Fragment did not load';
-        return {
-            source: 'failed',
-            label: 'Failed to load',
-            reason: swap.swapped ? `${reason}; ${swapReason(swap, mepState)}` : reason,
-        };
+    // IO's 404 tells a fragment with no copy in the page's language from one that does not exist.
+    const FAILURES = {
+        'missing-locale': ({ locale }) => ({
+            label: `Not in ${locale}`,
+            detail: `has no ${locale} copy, so this field renders empty`,
+        }),
+        'not-found': () => ({ label: 'Not found', detail: 'does not exist or is not published' }),
+    };
+    const DID_NOT_LOAD = { label: 'Failed to load', detail: 'did not load' };
+
+    function failedSource(requestedId, swap, mepState, miss) {
+        const { label, detail } = FAILURES[miss?.kind]?.(miss) ?? DID_NOT_LOAD;
+        const reason = requestedId ? `Fragment ${id8(requestedId)} ${detail}` : `Fragment ${detail}`;
+        return { source: 'failed', label, reason: swap.swapped ? `${reason}; ${swapReason(swap, mepState)}` : reason };
     }
 
     function stampedSource(stamps, inputs, requestedId, swap) {
-        if (stamps.failed) return failedSource(requestedId, swap, inputs.mepState);
+        if (stamps.failed) return failedSource(requestedId, swap, inputs.mepState, inputs.miss);
         if (stamps.loading) return { ...UNKNOWN, reason: 'Fragment still loading' };
         if (!requestedId) return { ...UNKNOWN, reason: 'Not linked to a MAS fragment' };
         // An unwrapped element's resolved id can differ from the MEP replacement id (e.g. on localized pages).
@@ -332,7 +339,7 @@
     function failedSteps(entries) {
         return entries
             .filter((entry) => entry.source === 'failed')
-            .map((entry) => `Failed: ${entry.field || 'card'} (${id8(entry.requestedId)} did not load)`);
+            .map((entry) => `${entry.label}: ${entry.field || 'card'} (${id8(entry.requestedId)})`);
     }
 
     function cardTrace(group, mepState) {

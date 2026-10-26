@@ -64,6 +64,26 @@ test('acceptance: the MEP-swapped description that failed to load says so and na
     assert.equal(e.reason, 'Fragment 369630bd did not load; Swapped by MEP · hp-09-21-26-mas-implementation-pzn.json');
 });
 
+test('a failed field with no copy in the page language says so instead of failing', () => {
+    const e = resolveField(F.stamps.description, { ...F.inputs, miss: { kind: 'missing-locale', locale: 'en_GB' } });
+    assert.deepEqual(
+        [e.source, e.label, e.reason],
+        [
+            'failed',
+            'Not in en_GB',
+            `Fragment 369630bd has no en_GB copy, so this field renders empty; Swapped by MEP · ${MANIFEST}`,
+        ],
+    );
+});
+
+test('a failed field IO cannot find is labeled not found', () => {
+    const e = resolveField(F.stamps.description, { ...F.inputs, miss: { kind: 'not-found' } });
+    assert.deepEqual(
+        [e.label, e.reason],
+        ['Not found', `Fragment 369630bd does not exist or is not published; Swapped by MEP · ${MANIFEST}`],
+    );
+});
+
 test('a swapped grouped field that loads is labeled grouped with the manifest', () => {
     const e = resolveField(
         { ...F.stamps.description, failed: false, resolvedId: GROUPED },

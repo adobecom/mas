@@ -25,23 +25,32 @@
         return new Promise((resolve) => {
             try {
                 chrome.runtime.sendMessage(message, (response) => {
-                    resolve(!chrome.runtime.lastError && response?.success ? (response.data ?? null) : null);
+                    resolve(chrome.runtime.lastError ? {} : (response ?? {}));
                 });
             } catch {
-                resolve(null);
+                resolve({});
             }
         });
     }
 
     // Concurrent callers share one request; a cached id costs no budget.
-    function fetchFragment(id, locale, country) {
-        if (!id) return Promise.resolve(null);
+    function fetchResponse(id, locale, country) {
+        if (!id) return Promise.resolve({});
         const key = `${id}|${locale ?? ''}|${country ?? ''}`;
         if (!fragmentCache.has(key)) {
-            if (!consumeBudget()) return Promise.resolve(null);
+            if (!consumeBudget()) return Promise.resolve({});
             fragmentCache.set(key, requestFragment(id, locale, country));
         }
         return fragmentCache.get(key);
+    }
+
+    function fetchFragment(id, locale, country) {
+        return fetchResponse(id, locale, country).then((response) => (response.success ? (response.data ?? null) : null));
+    }
+
+    // Why IO refused a fragment, as its 404 tells; null when it gave no reason.
+    function fetchMiss(id, locale, country) {
+        return fetchResponse(id, locale, country).then((response) => response.miss ?? null);
     }
 
     function emptyResult() {
@@ -74,10 +83,12 @@
     // A whole card always needs its requested fragment to list its fields (the card-name fetch already
     // cached it); an inline field needs it only to label a swap.
     async function collectInputs(stamps, { locale, country }, page, { wholeCard = false } = {}) {
-        const inputs = { ...page, variationData: null, requestedData: null, maskData: null, isRegionLocale: false };
-        // The engine resolves a failed or loading field from its stamps alone, so it spends no budget.
-        if (stamps.failed || stamps.loading) return inputs;
-        const requestedId = wholeCard || isSwapped(stamps, page) ? (stamps.requestedId ?? stamps.resolvedId) : null;
+        const inputs = { ...page, variationData: null, requestedData: null, maskData: null, isRegionLocale: false, miss: null };
+        // A loading field resolves from its stamps alone; a failed one spends one fetch to learn why from IO.
+        if (stamps.loading) return inputs;
+        const ownId = stamps.requestedId ?? stamps.resolvedId;
+        if (stamps.failed) return { ...inputs, miss: await fetchMiss(ownId, locale, country) };
+        const requestedId = wholeCard || isSwapped(stamps, page) ? ownId : null;
         const load = (id) => fetchFragment(id, locale, country);
         const [variationData, maskData, requestedData] = await Promise.all(
             [stamps.variationId, stamps.maskId, requestedId].map(load),

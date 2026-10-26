@@ -41,7 +41,7 @@ async function handleFetchFragmentData(message, sendResponse) {
         const data = await client.fetchFragmentData(fragmentId, locale, country);
         sendResponse({ success: true, data });
     } catch (error) {
-        sendResponse({ success: false, error: 'fetch_failed' });
+        sendResponse({ success: false, error: 'fetch_failed', miss: error.miss ?? null });
     }
 }
 

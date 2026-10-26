@@ -1032,7 +1032,11 @@ class MasSideNav extends LitElement {
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
-                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                      <mas-side-nav-item
+                          label="Duplicate"
+                          ?disabled=${loading || this.fragmentEditor?.canDuplicateFragment === false}
+                          @nav-click="${this.duplicateFragment}"
+                      >
                           <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       </mas-side-nav-item>
                   `
@@ -1040,7 +1044,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
                 <sp-icon-preview slot="icon"></sp-icon-preview>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item
+                label="Publish"
+                ?disabled=${loading || this.fragmentEditor?.canPublishFragment === false}
+                @nav-click="${this.publishFragment}"
+            >
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" disabled>
@@ -1056,7 +1064,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item
+                label="Delete"
+                ?disabled=${loading || this.fragmentEditor?.canDeleteFragment === false}
+                @nav-click="${this.deleteFragment}"
+            >
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

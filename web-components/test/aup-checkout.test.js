@@ -518,7 +518,7 @@ describe('aup-select checkout routing', () => {
                         },
                         params: {
                             lang: 'en',
-                            nr: 'stable',
+                            nr: 'adobe-com-stable',
                             ctxrturl: window.location.href,
                             ot: 'BASE',
                             items: `${element.value[0].offerId}|1`,
@@ -1209,7 +1209,7 @@ describe('aup-select checkout routing', () => {
             },
             params: {
                 lang: 'en',
-                nr: 'stable',
+                nr: 'adobe-com-stable',
                 ctxrturl: 'https://www.adobe.com/plans',
                 ot: 'BASE',
                 items: `${element.value[0].offerId}|1`,

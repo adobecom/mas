@@ -7,6 +7,7 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { ReactiveStore } from '../reactivity/reactive-store.js';
 import styles from './mas-promotions-editor-css.js';
 import {
     SURFACES,
@@ -16,6 +17,7 @@ import {
     QUICK_ACTION,
     EVENT_OST_OFFER_SELECT,
     TAG_PROMOTION_PREFIX,
+    PZN_COUNTRY_TAG_PATH_PREFIX,
     STAGED,
     VARIATION_TAB_NAME,
 } from '../constants.js';
@@ -36,7 +38,19 @@ import { Fragment } from '../aem/fragment.js';
 import { Promotion } from '../aem/promotion.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-search-and-filters.js';
+import '../common/components/mas-grouped-selector.js';
+import '../common/components/mas-region-picker.js';
+import {
+    getEligibleCountries,
+    getPersonalizationGeos,
+    getSelectedCountries,
+    pruneIneligibleCountries,
+    setCountriesInGeos,
+    setPersonalizationGeos,
+} from './promotion-countries.js';
+import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
+import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
@@ -62,6 +76,7 @@ import {
     buildDuplicatePromotionToastArgs,
     getPromotionTitles,
     PROMOTION_FIELD_TYPE_MAP,
+    GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
 import './mas-promo-codes-manager.js';
@@ -82,7 +97,7 @@ import {
 } from './promotion-publish-utils.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
-import { canEditPromotions } from '../groups.js';
+import { canEditPromotions, canManagePromotions } from '../groups.js';
 import {
     duplicatePromotionProject,
     getAllAttachedPromoVariations,
@@ -106,9 +121,17 @@ const PROMOTION_VIEW_TABS = [
     { value: TABLE_TYPE.COLLECTIONS, label: 'Collections' },
 ];
 
+const PROMOTION_GROUP_BY_OPTIONS = [
+    { value: GROUP_BY.TEMPLATE, label: 'Template' },
+    { value: GROUP_BY.OFFER, label: 'Offer' },
+    { value: GROUP_BY.NONE, label: 'None' },
+];
+
 const PROMOTION_ITEM_PICKER_ALLOWED_TYPES = [TABLE_TYPE.CARDS, TABLE_TYPE.COLLECTIONS];
 const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED];
 const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
+const PROMOTION_ITEM_VARIATION_COLUMNS = promoVariationColumns.filter(({ key }) => !['actions', 'relatedPages'].includes(key));
+const PROMOTION_ITEM_VARIATION_CELLS = promoVariationCells.filter((cell) => !['Actions', 'RelatedPages'].includes(cell));
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -149,6 +172,8 @@ class MasPromotionsEditor extends LitElement {
         promotionItemsAddButtonLabel: { type: String, state: true },
         promotionEmptyItemsTab: { type: String, state: true },
         selectedItemsViewTab: { type: String, state: true },
+        promotionGroupBy: { type: String, state: true },
+        promotionItemsLoading: { type: Boolean, state: true },
         promotionPublish: { type: Boolean, state: true },
         promotionPublishAction: { type: String, state: true },
         duplicateDialogOpen: { type: Boolean, state: true },
@@ -173,8 +198,11 @@ class MasPromotionsEditor extends LitElement {
     #promotionItemsPickerHoldEmptyState = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
+    #countryItemsKey = null;
+    #countryItems = [];
     #boundHandleOstOfferSelect = null;
     #promoCodesManagerLoading = false;
+    #countriesStore = new ReactiveStore([]);
 
     constructor() {
         super();
@@ -189,6 +217,8 @@ class MasPromotionsEditor extends LitElement {
         this.promoManagerOffers = [];
         this.promotionItemsAddButtonLabel = 'Add selected fragments';
         this.promotionEmptyItemsTab = TABLE_TYPE.OFFERS;
+        this.promotionGroupBy = GROUP_BY.NONE;
+        this.promotionItemsLoading = true;
         this.selectedItemsViewTab = TABLE_TYPE.OFFERS;
         this.promotionPublish = false;
         this.promotionPublishAction = null;
@@ -295,20 +325,27 @@ class MasPromotionsEditor extends LitElement {
     }
 
     get canManagePromoCodes() {
-        if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
+        if (!canManagePromotions()) return false;
         const hasOffers = Store.promotions.selectedOffers.value.length > 0 || Store.promotions.selectedCards.value.length > 0;
-        return hasOffers && geos.length > 0;
+        return hasOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canManagePromoCodesInEmptyState() {
-        if (!this.canEdit) return false;
-        const geos = this.fragment?.getFieldValues('geos') ?? [];
-        return this.hasSelectedOffers && geos.length > 0;
+        if (!canManagePromotions()) return false;
+        return this.hasSelectedOffers && getSelectedCountries(this.geos).length > 0;
     }
 
     get canEditPromotionItemsInEmptyState() {
         return this.canEdit && this.hasSelectedOffers;
+    }
+
+    get canConfigurePromotion() {
+        return canManagePromotions();
+    }
+
+    #checkPermission(allowed) {
+        if (!allowed) showToast('You do not have permission to make this promotion change.', 'negative');
+        return allowed;
     }
 
     get promotionTag() {
@@ -316,6 +353,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handleStagedToggle = ({ target }) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         const tags = this.fragment?.getFieldValues('tags') || [];
         const newTags = [...tags];
         const index = newTags.indexOf(STAGED.TAG);
@@ -372,10 +410,12 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #openPromoCodesManager() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (this.#promoCodesManagerLoading) return;
         this.#promoCodesManagerLoading = true;
         try {
             await this.#loadPromoManagerOffers();
+            if (!this.#checkPermission(canManagePromotions())) return;
             this.promoCodesManagerOpen = true;
         } finally {
             this.#promoCodesManagerLoading = false;
@@ -384,6 +424,49 @@ class MasPromotionsEditor extends LitElement {
 
     get promotionPickerSurfaces() {
         return parsePromotionSurfacesFieldValues(this.fragment?.fields?.find((f) => f.name === 'surfaces')?.values ?? []);
+    }
+
+    get geos() {
+        return this.fragment?.getFieldValues('geos') ?? [];
+    }
+
+    get countryItems() {
+        const surfaces = this.promotionPickerSurfaces;
+        const key = surfaces.join(',');
+        if (key !== this.#countryItemsKey) {
+            this.#countryItemsKey = key;
+            this.#countryItems = getEligibleCountries(surfaces).map((country) => ({ value: country, country }));
+        }
+        return this.#countryItems;
+    }
+
+    get countriesSelector() {
+        const hasSurfaces = this.promotionPickerSurfaces.length > 0;
+        return html`
+            <mas-grouped-selector
+                id="promotion-countries"
+                class="form-field"
+                label="Selected countries"
+                heading="Select countries"
+                add-label=${hasSurfaces ? 'Add countries' : 'Select surfaces first'}
+                description=${hasSurfaces
+                    ? 'Choose one or more countries for your promotion.'
+                    : 'Countries will be generated automatically once surfaces are selected.'}
+                ?readonly=${!this.canConfigurePromotion}
+                ?disabled=${!this.canConfigurePromotion || !hasSurfaces}
+                .selected=${getSelectedCountries(this.geos)}
+                @open=${this.#openCountriesSelection}
+                @confirm=${this.#confirmCountriesSelection}
+            >
+                <mas-region-picker
+                    .store=${this.#countriesStore}
+                    .items=${this.countryItems}
+                    noun="country"
+                    noun-plural="countries"
+                    search-placeholder="Search country"
+                ></mas-region-picker>
+            </mas-grouped-selector>
+        `;
     }
 
     get #itemsSelectionDirty() {
@@ -530,7 +613,7 @@ class MasPromotionsEditor extends LitElement {
         if (!fragment) return null;
         let promotion = new Promotion(fragment);
         this.#ensurePromotionModelFields(promotion);
-        if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished) {
+        if (promotion.promotionStatus === 'expired' && promotion.isPromotionPublished && canManagePromotions()) {
             const ok = await this.repository.unpublishFragment(promotion, false);
             if (ok) {
                 fragment = await this.repository.aem.sites.cf.fragments.getById(id, undefined, { references: 'none' });
@@ -585,6 +668,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #publishOrSchedulePromotion() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast(PROMOTION_SAVE_BEFORE_PUBLISH_MESSAGE, 'info');
@@ -601,6 +685,7 @@ class MasPromotionsEditor extends LitElement {
         }
         const { confirmed, variationPaths, skippedCount } = await this.#confirmPublishWithUnpublishedPromoVariations();
         if (!confirmed) return;
+        if (!this.#checkPermission(canManagePromotions())) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'publish';
         try {
@@ -613,6 +698,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handlePublishPromotion = async () => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const confirmed =
             !this.fragment?.isStaged ||
             (await showConfirmDialog(this, STAGED.DIALOG_TITLE, STAGED.DIALOG_CONFIRM_TEXT, {
@@ -626,6 +712,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleUnpublishPromotion = async () => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         if (!this.fragment.isPromotionPublished) {
             showToast('This promotion is not published.', 'info');
@@ -637,6 +724,7 @@ class MasPromotionsEditor extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!this.#checkPermission(canManagePromotions())) return;
         this.promotionPublish = true;
         this.promotionPublishAction = 'unpublish';
         try {
@@ -669,19 +757,57 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handleGeosChange = (event) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         const value = event.target.getAttribute('value');
-        const newGeos = value ? value.split(',') : [];
-        this.fragmentStore.updateField('geos', newGeos);
+        const personalizationGeos = value ? value.split(',') : [];
+        this.fragmentStore.updateField('geos', setPersonalizationGeos(this.geos, personalizationGeos));
     };
 
+    #openCountriesSelection = () => {
+        this.#countriesStore.set(getSelectedCountries(this.geos));
+    };
+
+    #confirmCountriesSelection = ({ detail }) => {
+        detail.pending = this.#applyCountriesSelection();
+    };
+
+    async #applyCountriesSelection() {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return false;
+        const countries = this.#countriesStore.value;
+        const existing = new Set(getSelectedCountries(this.geos));
+        try {
+            const tags = countries.some((country) => !existing.has(country))
+                ? (await this.repository.aem.tags.list(PZN_COUNTRY_TAG_PATH_PREFIX)).hits
+                : [];
+            if (!this.#checkPermission(this.canConfigurePromotion)) return false;
+            this.fragmentStore.updateField('geos', setCountriesInGeos(this.geos, countries, tags));
+            return true;
+        } catch (error) {
+            showToast(error.message, 'negative');
+            return false;
+        }
+    }
+
+    #updateSurfaces(surfaces) {
+        this.fragmentStore.updateField('surfaces', surfaces);
+        const { geos } = this;
+        const prunedGeos = pruneIneligibleCountries(geos, this.promotionPickerSurfaces);
+        if (prunedGeos === geos) return;
+        const kept = new Set(getSelectedCountries(prunedGeos));
+        const removed = getSelectedCountries(geos).filter((country) => !kept.has(country));
+        this.fragmentStore.updateField('geos', prunedGeos);
+        showToast(`Removed countries not available on the selected surfaces: ${removed.join(', ')}.`, 'info');
+    }
+
     #handleCloseAddSurfacesDialog = (event) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         // Get the table element and its selected rows
         const table = event.target.querySelector('#surfaces-table');
         const selectedSurfaces = table?.selected || [];
 
         // Update the fragment with the selected surfaces
         if (selectedSurfaces.length > 0) {
-            this.fragmentStore.updateField('surfaces', selectedSurfaces);
+            this.#updateSurfaces(selectedSurfaces);
         }
 
         const closeEvent = new Event('close', { bubbles: true, composed: true });
@@ -689,6 +815,7 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handlePromoCodesSave = (event) => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const { exceptions, offerSubstitutions = new Map(), ignoredVariations = new Map() } = event.detail;
         this.fragmentStore.updateField(
             'offers',
@@ -702,16 +829,16 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #handleSurfaceDelete = (event) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         const deletedSurface = event.target.attributes.getNamedItem('value').value;
         const surfaces = this.fragment.fields.find((field) => field.name === 'surfaces')?.values || [];
-        this.fragmentStore.updateField(
-            'surfaces',
-            surfaces.filter((surface) => surface !== deletedSurface),
-        );
+        this.#updateSurfaces(surfaces.filter((surface) => surface !== deletedSurface));
     };
 
     #handleFragmentUpdate({ target, detail, values }) {
         const fieldName = target.dataset.field;
+        const allowed = fieldName === 'promoCode' ? canManagePromotions() : this.canConfigurePromotion;
+        if (!this.#checkPermission(allowed)) return;
         let value = values;
         if (!value) {
             value = target.value || detail?.value || target.checked;
@@ -725,11 +852,13 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #handleEvergreenToggle = ({ target }) => {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         this.evergreenEnabled = target.checked;
         this.fragmentStore.updateField('endDate', ['']);
     };
 
     #handleDateUpdate({ target }) {
+        if (!this.#checkPermission(this.canConfigurePromotion)) return;
         const fieldName = target.dataset.field;
         const raw = target.value?.trim() ?? '';
         if (!raw) {
@@ -795,6 +924,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleCreatePromotion() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const validationMessage = this.#getRequiredFieldsValidation(this.fragment);
         if (validationMessage) {
             showToast(validationMessage, 'negative');
@@ -818,6 +948,10 @@ class MasPromotionsEditor extends LitElement {
         }
 
         try {
+            if (!this.#checkPermission(canManagePromotions())) {
+                if (tag) await this.#deletePromotionTag(tag);
+                return;
+            }
             const newPromotion = await this.repository.createFragment(
                 this.#buildPromotionFragmentPayload(this.fragment.getFieldValue('title')),
                 false,
@@ -848,7 +982,45 @@ class MasPromotionsEditor extends LitElement {
         }
     }
 
+    #hasRestrictedPromotionChanges() {
+        const original = new Promotion(this.fragment.initialValue);
+        if (
+            this.evergreenEnabled !== original.isEvergreen ||
+            ['startDate', 'endDate', 'cdtStart', 'cdtEnd'].some(
+                (name) => (original.getFieldValue(name) ?? '') !== (this.fragment.getFieldValue(name) ?? ''),
+            )
+        )
+            return true;
+        if (
+            ['title', 'tags', 'geos', 'promoCode'].some(
+                (name) => JSON.stringify(original.getFieldValues(name)) !== JSON.stringify(this.fragment.getFieldValues(name)),
+            ) ||
+            JSON.stringify(serializePromotionSurfacesForAem(original.getFieldValues('surfaces'))) !==
+                JSON.stringify(serializePromotionSurfacesForAem(this.fragment.getFieldValues('surfaces')))
+        )
+            return true;
+        const selected = new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]);
+        if (
+            [...original.getFieldValues('fragments'), ...original.getFieldValues('collections')].some(
+                (path) => !selected.has(path),
+            )
+        )
+            return true;
+        const originalOfferIds = parseSelectedOfferIdsFromOffersField(original.getFieldValues('offers'));
+        if (
+            originalOfferIds.length !== Store.promotions.selectedOffers.value.length ||
+            originalOfferIds.some((id) => !Store.promotions.selectedOffers.value.includes(id))
+        )
+            return true;
+        return (
+            JSON.stringify(buildPromotionOffersFieldValues(original, [])) !==
+            JSON.stringify(buildPromotionOffersFieldValues(this.fragment, []))
+        );
+    }
+
     async #handleUpdatePromotion() {
+        if (!this.#checkPermission(canEditPromotions())) return;
+        if (!this.#checkPermission(canManagePromotions() || !this.#hasRestrictedPromotionChanges())) return;
         const validationMessage = this.#getRequiredFieldsValidation(this.fragment);
         if (validationMessage) {
             showToast(validationMessage, 'negative');
@@ -942,6 +1114,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleDuplicatePromotion() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion || this.duplicating) return;
         if (this.#promotionPublishOptions.hasUnsavedChanges) {
             showToast('Save your changes before duplicating.', 'info');
@@ -956,6 +1129,7 @@ class MasPromotionsEditor extends LitElement {
         try {
             this.#duplicateProposedTitle = `${this.fragment.getFieldValue('title').trim()} copy`;
             const projects = await getPromotionProjectsForProbe(() => this.repository.loadPromotions());
+            if (!this.#checkPermission(canManagePromotions())) return;
             this.#duplicateExistingTitles = getPromotionTitles(projects);
             this.duplicateDialogOpen = true;
         } catch (error) {
@@ -968,6 +1142,7 @@ class MasPromotionsEditor extends LitElement {
 
     #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
         this.duplicateDialogOpen = false;
+        if (!this.#checkPermission(canManagePromotions())) return;
         this.duplicating = true;
         try {
             const { newPromotion, failedVariations } = await duplicatePromotionProject(this.repository, this.fragment, {
@@ -998,6 +1173,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     async #handleDeletePromotion() {
+        if (!this.#checkPermission(canManagePromotions())) return;
         if (!this.fragment?.id || this.isNewPromotion) return;
         const attachedVariations = await getAllAttachedPromoVariations(this.repository.aem, this.fragment);
         const confirmed = await showConfirmDialog(
@@ -1011,6 +1187,7 @@ class MasPromotionsEditor extends LitElement {
             },
         );
         if (!confirmed) return;
+        if (!this.#checkPermission(canManagePromotions())) return;
         const tagId = getPromotionTagFromFragment(this.fragmentStore.get());
         const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
@@ -1036,6 +1213,12 @@ class MasPromotionsEditor extends LitElement {
 
     get disabledPromotionQuickActions() {
         const disabled = new Set([QUICK_ACTION.LOCK]);
+        if (!canManagePromotions()) {
+            disabled.add(QUICK_ACTION.DELETE);
+            disabled.add(QUICK_ACTION.DUPLICATE);
+            disabled.add(QUICK_ACTION.PUBLISH);
+            disabled.add(QUICK_ACTION.UNPUBLISH);
+        }
         if (!this.canEdit) {
             PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
             return disabled;
@@ -1112,6 +1295,23 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #confirmItemSelection = ({ target }) => {
+        if (!this.#checkPermission(canEditPromotions())) return;
+        if (!canManagePromotions()) {
+            const selected = new Set([...Store.promotions.selectedCards.value, ...Store.promotions.selectedCollections.value]);
+            let restoredItems = false;
+            for (const [store, snapshot] of [
+                [Store.promotions.selectedCards, this.#cardsSnapshot],
+                [Store.promotions.selectedCollections, this.#collectionsSnapshot],
+            ]) {
+                const removed = snapshot.filter((path) => !selected.has(path));
+                if (removed.length) {
+                    restoredItems = true;
+                    store.set([...new Set([...removed, ...store.value])]);
+                    for (const path of removed) selected.add(path);
+                }
+            }
+            if (restoredItems) this.#checkPermission(false);
+        }
         this.#cardsSnapshot = [];
         this.#collectionsSnapshot = [];
         this.#itemsPickerConfirmed = true;
@@ -1279,14 +1479,35 @@ class MasPromotionsEditor extends LitElement {
     };
 
     #renderPromotionViewTable = (tab, host) => {
-        return html`<mas-promotions-items-table
-            .type=${tab.value}
-            .getDisplayName=${host.getDisplayName}
-            .renderFragmentStatusCell=${host.renderFragmentStatusCell}
-            @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
-            @promotion-offer-removed=${() =>
-                host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
-        ></mas-promotions-items-table>`;
+        const groupByEnabled = tab.value === TABLE_TYPE.CARDS;
+        return html`${groupByEnabled
+                ? html`<mas-group-by-select
+                      .options=${PROMOTION_GROUP_BY_OPTIONS}
+                      .value=${this.promotionGroupBy}
+                      ?pending=${this.promotionItemsLoading && this.promotionGroupBy !== GROUP_BY.NONE}
+                      @change=${this.#onPromotionGroupByChange}
+                  ></mas-group-by-select>`
+                : nothing}
+            <mas-promotions-items-table
+                .type=${tab.value}
+                .groupBy=${groupByEnabled ? this.promotionGroupBy : GROUP_BY.NONE}
+                .getDisplayName=${host.getDisplayName}
+                .renderFragmentStatusCell=${host.renderFragmentStatusCell}
+                @view-only-loading-change=${this.#onPromotionItemsLoadingChange}
+                @group-by-cancel=${() => (this.promotionGroupBy = GROUP_BY.NONE)}
+                @show-toast=${(e) => host.openToast(e.detail.text, e.detail.variant)}
+                @promotion-offer-removed=${() =>
+                    host.dispatchEvent(new CustomEvent('promotion-offer-removed', { bubbles: true, composed: true }))}
+            ></mas-promotions-items-table>`;
+    };
+
+    #onPromotionGroupByChange = (e) => {
+        this.promotionGroupBy = e.detail.value ?? GROUP_BY.NONE;
+    };
+
+    #onPromotionItemsLoadingChange = (e) => {
+        if (e.target.type !== TABLE_TYPE.CARDS) return;
+        this.promotionItemsLoading = e.detail.loading;
     };
 
     #onPromotionOfferRemoved = () => {
@@ -1298,10 +1519,12 @@ class MasPromotionsEditor extends LitElement {
 
     #openPromotionsOst = (e) => {
         e?.stopPropagation?.();
+        if (!this.#checkPermission(canManagePromotions())) return;
         openOfferSelectorTool(document.createElement('osi-field'), null);
     };
 
     #handleOstOfferSelect = async (event) => {
+        if (!this.#checkPermission(canManagePromotions())) return;
         const added = await handlePromotionOstOfferSelect(event, Store.promotions);
         if (added) {
             this.#syncPromotionSelectionFieldsToFragment();
@@ -1327,6 +1550,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     #preparePromotionItemsPicker() {
+        if (!this.#checkPermission(canEditPromotions())) return false;
         if (!this.hasSelectedOffers) {
             showToast('Select at least one offer before adding fragments.', 'info');
             return false;
@@ -1409,7 +1633,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionOffersEmptyPanel() {
         return html`<div class="offers-empty-state">
             <div class="icon">
-                <sp-button variant="secondary" ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
+                <sp-button variant="secondary" ?disabled=${!canManagePromotions()} @click=${this.#openPromotionsOst}>
                     <sp-icon-add size="xxl"></sp-icon-add>
                 </sp-button>
             </div>
@@ -1450,7 +1674,7 @@ class MasPromotionsEditor extends LitElement {
     #renderPromotionEmptyToolbarActions() {
         return html`
             ${this.promotionEmptyItemsTab === TABLE_TYPE.OFFERS
-                ? html`<sp-action-button quiet ?disabled=${!this.canEdit} @click=${this.#openPromotionsOst}>
+                ? html`<sp-action-button quiet ?disabled=${!canManagePromotions()} @click=${this.#openPromotionsOst}>
                       <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
                       Add offer
                   </sp-action-button>`
@@ -1573,6 +1797,9 @@ class MasPromotionsEditor extends LitElement {
                     .hideGroupedVariations=${true}
                     .variationTabs=${PROMOTION_ITEM_VARIATION_TABS}
                     .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
+                    .variationColumns=${PROMOTION_ITEM_VARIATION_COLUMNS}
+                    .variationCells=${PROMOTION_ITEM_VARIATION_CELLS}
+                    .hideVariationExpand=${true}
                     .restrictImportSurface=${this.promotionPickerSurfaces}
                     .validateImportFragment=${this.#validatePromotionImportFragment}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
@@ -1590,7 +1817,7 @@ class MasPromotionsEditor extends LitElement {
     }
 
     willUpdate() {
-        this.canEdit = canEditPromotions();
+        this.canEdit = this.isNewPromotion ? canManagePromotions() : canEditPromotions();
     }
 
     renderValidationBanner() {
@@ -1676,7 +1903,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="promoCode"
                                 data-field="promoCode"
                                 value="${form.promoCode?.values[0]}"
-                                ?disabled=${readOnly}
+                                ?disabled=${!canManagePromotions()}
                                 @input=${this.#handleFragmentUpdate}
                             ></sp-textfield>
                             <sp-field-label for="startDate" required>Start Date (UTC)</sp-field-label>
@@ -1685,7 +1912,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="startDate"
                                 value="${form.startDate?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="startDate"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="endDate" ?required=${!this.evergreenEnabled}>End Date (UTC)</sp-field-label>
@@ -1695,19 +1922,19 @@ class MasPromotionsEditor extends LitElement {
                                     id="endDate"
                                     value="${form.endDate?.values[0]?.slice(0, 16) ?? ''}"
                                     data-field="endDate"
-                                    ?disabled=${readOnly || this.evergreenEnabled}
+                                    ?disabled=${!this.canConfigurePromotion || this.evergreenEnabled}
                                     @change=${this.#handleDateUpdate}
                                 />
                                 <sp-switch
                                     ?checked=${this.evergreenEnabled}
-                                    ?disabled=${readOnly}
+                                    ?disabled=${!this.canConfigurePromotion}
                                     @change=${this.#handleEvergreenToggle}
                                     >Evergreen promo</sp-switch
                                 >
                             </div>
                             <sp-switch
                                 ?checked=${this.fragment?.isStaged}
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleStagedToggle}
                                 >Staged</sp-switch
                             >
@@ -1717,7 +1944,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtStart"
                                 value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtStart"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label for="cdtEnd">Countdown Timer End (UTC)</sp-field-label>
@@ -1726,7 +1953,7 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtEnd"
                                 value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtEnd"
-                                ?disabled=${readOnly}
+                                ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
                             <sp-field-label required>Promotion tag</sp-field-label>
@@ -1741,16 +1968,17 @@ class MasPromotionsEditor extends LitElement {
                                 class="promotion-tag-field"
                             ></aem-tag-picker-field>
                             <sp-field-group id="promotion-geos-tags">
-                                <sp-field-label required>Geos</sp-field-label>
+                                <sp-field-label>Personalization tags</sp-field-label>
                                 <aem-tag-picker-field
                                     selection="checkbox-tags"
                                     display-value
-                                    label="Locale tags"
+                                    label="Personalization tags"
                                     namespace="/content/cq:tags/mas"
                                     top="locale,pzn"
+                                    exclude-country-tags
                                     multiple
-                                    ?disabled=${readOnly}
-                                    value="${form.geos?.values.join(',') || ''}"
+                                    ?disabled=${!this.canConfigurePromotion}
+                                    value="${getPersonalizationGeos(this.geos).join(',')}"
                                     @change=${this.#handleGeosChange}
                                 ></aem-tag-picker-field>
                             </sp-field-group>
@@ -1765,7 +1993,11 @@ class MasPromotionsEditor extends LitElement {
                                               <div class="icon">
                                                   <overlay-trigger type="modal" id="add-surfaces-overlay">
                                                       ${this.addSurfacesDialog}
-                                                      <sp-button slot="trigger" variant="secondary" ?disabled=${readOnly}>
+                                                      <sp-button
+                                                          slot="trigger"
+                                                          variant="secondary"
+                                                          ?disabled=${!this.canConfigurePromotion}
+                                                      >
                                                           <sp-icon-add size="xxl"></sp-icon-add>
                                                       </sp-button>
                                                   </overlay-trigger>
@@ -1789,7 +2021,7 @@ class MasPromotionsEditor extends LitElement {
                                                           return html`
                                                               <sp-tag
                                                                   value="${surface}"
-                                                                  ?deletable=${!readOnly}
+                                                                  ?deletable=${this.canConfigurePromotion}
                                                                   @delete=${this.#handleSurfaceDelete}
                                                               >
                                                                   ${surfaceLabel}
@@ -1803,7 +2035,7 @@ class MasPromotionsEditor extends LitElement {
                                                           slot="trigger"
                                                           variant="secondary"
                                                           icon-only
-                                                          ?disabled=${readOnly}
+                                                          ?disabled=${!this.canConfigurePromotion}
                                                       >
                                                           <sp-icon-add slot="icon" size="m"></sp-icon-add>
                                                       </sp-button>
@@ -1815,6 +2047,7 @@ class MasPromotionsEditor extends LitElement {
                         </div>
                     </div>
                 </div>
+                ${this.countriesSelector}
                 <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState
@@ -1831,7 +2064,7 @@ class MasPromotionsEditor extends LitElement {
                                           ${this.selectedItemsViewTab === TABLE_TYPE.OFFERS
                                               ? html`<sp-action-button
                                                     quiet
-                                                    ?disabled=${readOnly}
+                                                    ?disabled=${!canManagePromotions()}
                                                     @click=${this.#openPromotionsOst}
                                                 >
                                                     <sp-icon-add slot="icon" label="Add offer"></sp-icon-add>
@@ -1880,6 +2113,10 @@ class MasPromotionsEditor extends LitElement {
                                             .getDisplayName=${getPromotionPickerFragmentLabel}
                                             .renderFragmentStatusCell=${renderFragmentStatusCell}
                                             .renderTable=${this.#renderPromotionViewTable}
+                                            .renderData=${{
+                                                groupBy: this.promotionGroupBy,
+                                                loading: this.promotionItemsLoading,
+                                            }}
                                             .onTabChange=${this.#onSelectedItemsViewTabChange}
                                             @promotion-offer-removed=${this.#onPromotionOfferRemoved}
                                         ></mas-items-selector>`

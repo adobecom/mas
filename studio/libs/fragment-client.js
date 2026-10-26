@@ -17,7 +17,7 @@ import { transformer as mask } from '../../io/www/src/fragment/transformers/mask
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
-import { mark } from '../../io/www/src/fragment/utils/common.js';
+import { clearPendingFetches, mark } from '../../io/www/src/fragment/utils/common.js';
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
@@ -66,10 +66,19 @@ if (typeof window !== 'undefined') {
 }
 
 function clearCaches() {
+    for (const key of Object.keys(localStorage)) {
+        if (key === 'promo-variations' || key.startsWith('promotions-') || key.startsWith('promo-variations-')) {
+            localStorage.removeItem(key);
+        }
+    }
     clearDictionaryCache(true);
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    clearPendingFetches();
+    Object.keys(window.localStorage)
+        .filter((key) => key.startsWith('req-'))
+        .forEach((key) => window.localStorage.removeItem(key));
 }
 
 function getPageWcsConfiguration(serviceElement) {
@@ -77,6 +86,22 @@ function getPageWcsConfiguration(serviceElement) {
     if (!settings?.wcsURL) return null;
     const isStage = settings.env === 'STAGE';
     return [{ wcsURL: settings.wcsURL, env: isStage ? 'stage' : 'prod', landscape: isStage ? 'ALL' : settings.landscape }];
+}
+
+const REQUEST_METADATA_TTL = 5 * 60 * 1000;
+
+function isFreshMetadata(metadata) {
+    return Date.now() - Date.parse(metadata?.lastModified) < REQUEST_METADATA_TTL;
+}
+
+async function loadRequestMetadata(context) {
+    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
+    const freshMetadata = isFreshMetadata(cachedMetadata) ? cachedMetadata : null;
+    return { requestKey, cachedMetadata: freshMetadata, metadataContext: extractContextFromMetadata(freshMetadata) };
+}
+
+function saveRequestMetadata(context, requestKey, cachedMetadata) {
+    return storeRequestMetadata(context, requestKey, cachedMetadata, 'nohash');
 }
 
 async function previewFragment(id, options) {
@@ -93,10 +118,10 @@ async function previewFragment(id, options) {
     context = await loadConfiguration(context, now);
     const pageWcsConfiguration = getPageWcsConfiguration(serviceElement);
     if (pageWcsConfiguration) context.wcsConfiguration = pageWcsConfiguration;
-    const cachedMetadata = await getRequestMetadata(context);
-    const metadataContext = extractContextFromMetadata(cachedMetadata);
+    const { requestKey, cachedMetadata, metadataContext } = await loadRequestMetadata(context);
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
+    context.measures = context.measures || [];
     try {    
         for (const transformer of PIPELINE) {
             if (transformer.init) {
@@ -105,6 +130,7 @@ async function previewFragment(id, options) {
                     ...structuredClone(context),
                     promises: initPromises,
                     fragmentsIds: context.fragmentsIds,
+                    measures: context.measures,
                 };
                 initContext.loggedTransformer = `${transformer.name}-init`;
                 logDebug(() => `Initializing transformer ${transformer.name}`, initContext);
@@ -130,7 +156,7 @@ async function previewFragment(id, options) {
         logError(message, context);
         context.body = { message };
     } else {
-        await storeRequestMetadata(context, cachedMetadata, 'nohash');
+        await saveRequestMetadata(context, requestKey, cachedMetadata);
     }
     return options.fullContext ? context : context.body;
 }
@@ -157,6 +183,7 @@ async function previewStudioFragment(body, options) {
         }),
     };
     context.fragmentsIds = context.fragmentsIds || {};
+    context.measures = context.measures || [];
     context.hasExternalDictionary = Boolean(context.dictionary);
     for (const transformer of [settings, replace, corrector]) {
         if (transformer.init) {
@@ -164,6 +191,7 @@ async function previewStudioFragment(body, options) {
                 ...structuredClone(context),
                 promises: initPromises,
                 fragmentsIds: context.fragmentsIds,
+                measures: context.measures,
             };
             initContext.loggedTransformer = `${transformer.name}-init`;
             initPromises[transformer.name] = transformer.init(initContext);
@@ -185,4 +213,16 @@ async function previewStudioFragment(body, options) {
     return context.body;
 }
 
-export { DEFAULT_CONTEXT, clearCaches, previewFragment, previewStudioFragment, customize, settings, replace, getDictionary, corrector };
+export {
+    DEFAULT_CONTEXT,
+    clearCaches,
+    previewFragment,
+    previewStudioFragment,
+    loadRequestMetadata,
+    saveRequestMetadata,
+    customize,
+    settings,
+    replace,
+    getDictionary,
+    corrector,
+};

@@ -22,7 +22,7 @@ permissions:
 jobs:
     run-milo-commerce-tests:
         name: ${{ matrix.project == 'mas' && 'Running MAS (all browsers)' || format('Running on • {0} browser', matrix.browser) }}
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         timeout-minutes: 18
         env:
             # Directly set base URL to Milo's main branch

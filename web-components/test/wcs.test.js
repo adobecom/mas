@@ -1,11 +1,59 @@
 import { Defaults } from '../src/defaults.js';
-import { Wcs } from '../src/wcs.js';
+import { Wcs, applyPlanType } from '../src/wcs.js';
+import sinon from 'sinon';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { expect } from './utilities.js';
 
+describe('applyPlanType', () => {
+    it('uses an empty plan type for missing commitments through both public APIs', () => {
+        const client = Wcs({ settings: Defaults });
+        const offer = { term: 'MONTHLY' };
+        const expected = { term: 'MONTHLY', planType: '' };
+        expect(applyPlanType(offer)).to.deep.equal(expected);
+        expect(client.applyPlanType(offer)).to.deep.equal(expected);
+    });
+
+    it('preserves annual-monthly normalization and the public plan-type constants', () => {
+        const client = Wcs({ settings: Defaults });
+        const offer = {
+            commitment: 'YEAR',
+            term: 'MONTHLY',
+            planType: 'STALE',
+        };
+        const expected = { ...offer, planType: 'ABM' };
+        expect(applyPlanType(offer)).to.deep.equal(expected);
+        expect(client.applyPlanType(offer)).to.deep.equal(expected);
+        expect(client.PlanType.ABM).to.equal('ABM');
+        expect(offer.planType).to.equal('STALE');
+    });
+});
+
 describe('resolveOfferSelectors', () => {
+    it('leaves browser requests without a default timeout', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings: Defaults });
+        await Promise.all(client.resolveOfferSelectors({ wcsOsi: ['abm'] }));
+        expect(fetch.firstCall.args[1]).to.not.have.property('signal');
+    });
+
+    it('passes an opt-in fetch timeout to WCS requests', async () => {
+        await mockFetch(withWcs);
+        const signal = new AbortController().signal;
+        const timeoutStub = sinon.stub(AbortSignal, 'timeout').returns(signal);
+        try {
+            const client = Wcs({ settings: Defaults, fetchTimeout: 5000 });
+            await Promise.all(
+                client.resolveOfferSelectors({ wcsOsi: ['abm'] }),
+            );
+            expect(timeoutStub.calledOnceWithExactly(5000)).to.be.true;
+            expect(fetch.firstCall.args[1].signal).to.equal(signal);
+        } finally {
+            timeoutStub.restore();
+        }
+    });
+
     it('ignores multiple OSIs and loads them one by one', async () => {
         await mockFetch(withWcs);
         const client = Wcs({
@@ -146,7 +194,7 @@ describe('prefillWcsCache', () => {
         expect(fetch.callCount).to.equal(0);
         expect(offer1).to.deep.equal({
             foo: 'bar',
-            planType: 'Value is not an offer',
+            planType: '',
         });
         const [[offer2]] = await Promise.all(
             client.resolveOfferSelectors({
@@ -159,7 +207,7 @@ describe('prefillWcsCache', () => {
         expect(fetch.callCount).to.equal(0);
         expect(offer2).to.deep.equal({
             baz: 'qux',
-            planType: 'Value is not an offer',
+            planType: '',
         });
     });
 });

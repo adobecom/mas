@@ -9,14 +9,21 @@ import './fields/user-picker.js';
 import './common/fields/tree-picker-field.js';
 import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
+import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from './mas-chat/chat-router.js';
 import { initUsers } from './users.js';
+import { canAccessBulkPublish } from './groups.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
 import Store from './store.js';
 import router from './router.js';
+import Events from './events.js';
 import { CONSUMER_FEATURE_FLAGS, PAGE_NAMES, PICKERS, WCS_ENV_PROD } from './constants.js';
 import './utils/price-error-handler.js';
+import { startOdinTelemetry } from './utils/odin-telemetry.js';
+
+const LAZY_IMPORT_RETRIES = 2;
+const LAZY_IMPORT_RETRY_DELAY = 1000;
 
 const BUCKET_TO_ENV = {
     e155390: 'qa',
@@ -25,12 +32,14 @@ const BUCKET_TO_ENV = {
 };
 
 router.start();
+startOdinTelemetry();
 
 class MasStudio extends LitElement {
     static properties = {
         bucket: { type: String, attribute: 'aem-bucket' },
         baseUrl: { type: String, attribute: 'base-url' },
         masJsReady: { type: Boolean, state: true },
+        chatDrawerOpen: { state: true },
     };
 
     #unsubscribeLocaleObserver;
@@ -42,6 +51,7 @@ class MasStudio extends LitElement {
         super();
         this.bucket = 'e59433';
         this.masJsReady = false;
+        this.chatDrawerOpen = false;
     }
 
     connectedCallback() {
@@ -122,7 +132,7 @@ class MasStudio extends LitElement {
         if (this.#failedImports.has(elementName)) return false;
         if (!this.#pendingImports.has(elementName)) {
             this.#pendingImports.add(elementName);
-            import(importPath).catch(() => {
+            this.#importWithRetry(importPath).catch(() => {
                 this.#pendingImports.delete(elementName);
                 this.#failedImports.add(elementName);
                 console.error(`Failed to load ${elementName} from ${importPath}`);
@@ -133,11 +143,28 @@ class MasStudio extends LitElement {
         return false;
     }
 
+    // Browsers cache a failed module fetch (e.g. a transient 429) per URL, so retries need a distinct URL.
+    async #importWithRetry(importPath, attempt = 0) {
+        try {
+            return await this.importModule(attempt ? `${importPath}?retry=${attempt}` : importPath);
+        } catch (error) {
+            if (attempt >= LAZY_IMPORT_RETRIES) throw error;
+            await new Promise((resolve) => setTimeout(resolve, LAZY_IMPORT_RETRY_DELAY * (attempt + 1)));
+            return this.#importWithRetry(importPath, attempt + 1);
+        }
+    }
+
+    importModule(path) {
+        return import(path);
+    }
+
     get aemEnv() {
         return BUCKET_TO_ENV[this.bucket] || BUCKET_TO_ENV.e59433;
     }
 
     page = new StoreController(this, Store.page);
+    users = new StoreController(this, Store.users);
+    profile = new StoreController(this, Store.profile);
     landscape = new StoreController(this, Store.landscape);
     viewMode = new StoreController(this, Store.viewMode);
 
@@ -217,14 +244,32 @@ class MasStudio extends LitElement {
 
     get bulkPublish() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH) return nothing;
+        if (!this.bulkPublishAccessReady) return nothing;
         if (!this.#lazyLoad('mas-bulk-publish', './bulk-publish/mas-bulk-publish.js')) return nothing;
         return html`<mas-bulk-publish></mas-bulk-publish>`;
     }
 
     get bulkPublishEditor() {
         if (this.page.value !== PAGE_NAMES.BULK_PUBLISH_EDITOR) return nothing;
+        if (!this.bulkPublishAccessReady) return nothing;
         if (!this.#lazyLoad('mas-bulk-publish-editor', './bulk-publish/mas-bulk-publish-editor.js')) return nothing;
         return html`<mas-bulk-publish-editor></mas-bulk-publish-editor>`;
+    }
+
+    get bulkEdit() {
+        if (this.page.value !== PAGE_NAMES.BULK_EDIT) return nothing;
+        if (!this.#lazyLoad('mas-bulk-edit', './bulk-edit/mas-bulk-edit.js')) return nothing;
+        return html`<mas-bulk-edit></mas-bulk-edit>`;
+    }
+
+    get bulkEditEditor() {
+        if (this.page.value !== PAGE_NAMES.BULK_EDIT_EDITOR) return nothing;
+        if (!this.#lazyLoad('mas-bulk-edit-editor', './bulk-edit/mas-bulk-edit-editor.js')) return nothing;
+        return html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`;
+    }
+
+    get bulkPublishAccessReady() {
+        return Store.users.getMeta('loaded') && canAccessBulkPublish();
     }
 
     get advancedTools() {
@@ -242,7 +287,7 @@ class MasStudio extends LitElement {
 
     renderCommerceService() {
         const ffDefaults = CONSUMER_FEATURE_FLAGS[Store.surface()]?.['mas-ff-defaults'] ?? 'on';
-        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true"></mas-commerce-service>`;
+        this.commerceService.outerHTML = `<mas-commerce-service env="${WCS_ENV_PROD}" locale="${Store.localeOrRegion()}" data-mas-ff-defaults="${ffDefaults}" preview="true" lana-tags="studio"></mas-commerce-service>`;
 
         // Update service landscape settings based on Store.landscape
         if (this.commerceService?.settings && Store.landscape.value) {
@@ -278,18 +323,22 @@ class MasStudio extends LitElement {
         return html`<mas-side-nav></mas-side-nav>`;
     }
 
-    get editorPanel() {
-        if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
-        if (!this.#lazyLoad('editor-panel', './editor-panel.js')) return nothing;
-        return html`<editor-panel></editor-panel>`;
-    }
-
     get currentPage() {
+        if (
+            [PAGE_NAMES.BULK_PUBLISH, PAGE_NAMES.BULK_PUBLISH_EDITOR].includes(this.page.value) &&
+            !Store.users.getMeta('loaded')
+        ) {
+            return html`
+                <div class="loading-container">
+                    <sp-progress-circle indeterminate size="l" label="Loading users"></sp-progress-circle>
+                </div>
+            `;
+        }
         switch (this.page.value) {
             case PAGE_NAMES.WELCOME:
                 return this.splashScreen;
             case PAGE_NAMES.CONTENT:
-                return html`${this.content}${this.editorPanel}`;
+                return this.content;
             case PAGE_NAMES.PLACEHOLDERS:
                 return this.placeholders;
             case PAGE_NAMES.FRAGMENT_EDITOR:
@@ -308,6 +357,10 @@ class MasStudio extends LitElement {
                 return this.bulkPublish;
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
                 return this.bulkPublishEditor;
+            case PAGE_NAMES.BULK_EDIT:
+                return this.bulkEdit;
+            case PAGE_NAMES.BULK_EDIT_EDITOR:
+                return this.bulkEditEditor;
             case PAGE_NAMES.ADVANCED_TOOLS:
                 return this.advancedTools;
             case PAGE_NAMES.SETTINGS:
@@ -328,11 +381,21 @@ class MasStudio extends LitElement {
             ${this.topNav}
             <mas-repository bucket="${this.bucket}" base-url="${this.baseUrl}"></mas-repository>
             <div class="studio-content">
-                ${this.sideNav} ${this.masJsReady ? html`<div class="main-container">${this.currentPage}</div>` : nothing}
+                ${this.sideNav}
+                ${this.masJsReady
+                    ? html`<div class="main-container">
+                          ${this.currentPage}${renderChatPages(this.page.value, (name, path) => this.#lazyLoad(name, path))}
+                      </div>`
+                    : nothing}
             </div>
             <mas-toast></mas-toast>
             <mas-confirm-dialog></mas-confirm-dialog>
             <mas-card-preview></mas-card-preview>
+            ${renderChatOverlay(
+                (event) => handleChatDrawerToggle(event, this),
+                (name, path) => this.#lazyLoad(name, path),
+                this.chatDrawerOpen && this.page.value !== PAGE_NAMES.AI_ASSISTANT,
+            )}
         `;
     }
 }

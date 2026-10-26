@@ -1,6 +1,6 @@
 /**
  * A fetch wrapper that retries failed requests up to a specified number of times.
- * Only retries on network errors, not server errors (HTTP status codes).
+ * Only retries on network errors, not server errors (HTTP status codes) or timeouts.
  * @param {string|Request} resource - The resource to fetch
  * @param {Object} [options] - The options for the fetch request
  * @param {number} [retries=3] - Maximum number of retry attempts
@@ -21,8 +21,8 @@ async function masFetch(resource, options = {}, retries = 2, baseDelay = 100) {
             lastError = error;
             lastError.retryCount = attempt;
 
-            // If we've used all our retries, throw the error
-            if (attempt > retries) break;
+            // A timeout won't resolve by retrying — fail fast.
+            if (error.name === 'TimeoutError' || attempt > retries) break;
 
             // Wait before retrying
             await new Promise((resolve) =>

@@ -1,6 +1,17 @@
-import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
+import {
+    SELECTOR_MAS_INLINE_PRICE,
+    TRIAL_ANALYTICS_IDS,
+    HEADLESS_STYLE_CTA_VARIANTS,
+} from './constants.js';
 import { UptLink } from './upt-link.js';
-import { createTag } from './utils.js';
+import {
+    createTag,
+    getService,
+    getHeadlessCtaVariant,
+    hydrateHeadlessCta,
+} from './utils.js';
+import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
+import { isCountdownLinkText } from './countdown.js';
 import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
@@ -17,13 +28,6 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-/** Variants whose CTAs are authored via the 3-option headless picker (see merch-card-editor.js's HEADLESS_STYLE_CTA_VARIANTS). */
-const HEADLESS_STYLE_CTA_VARIANTS = new Set([
-    'headless',
-    'marquee',
-    'banner-blade',
-]);
-const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
 
 /**
  * Normalizes variant names for consistency.
@@ -63,7 +67,32 @@ export function appendSlot(fieldName, fields, el, mapping) {
 
         const tag = createTag(config.tag, attributes, content);
         el.append(tag);
+        return tag;
     }
+}
+
+// Splits `<li>` items made only of `<p>` children into one `<li>` per paragraph.
+export function splitParagraphListItems(root) {
+    if (!root) return;
+    root.querySelectorAll('li').forEach((li) => {
+        const elements = [...li.children];
+        if (!elements.length || elements.some((child) => child.tagName !== 'P'))
+            return;
+        const hasText = [...li.childNodes].some(
+            (node) =>
+                node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
+        );
+        if (hasText) return;
+        const items = elements.map((p) => {
+            const item = document.createElement('li');
+            [...li.attributes].forEach(({ name, value }) =>
+                item.setAttribute(name, value),
+            );
+            item.append(...p.childNodes);
+            return item;
+        });
+        li.replaceWith(...items);
+    });
 }
 
 export function processMnemonics(fields, merchCard, mnemonicsConfig) {
@@ -506,28 +535,6 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
-/**
- * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
- * step/modal options) without adding a button-style class, mirroring mas-field.js's
- * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
- * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
- * still a real checkout CTA and must resolve through CheckoutLink to get its options.
- */
-function createHeadlessCheckoutElement(linkElement) {
-    const CheckoutLink = customElements.get('checkout-link');
-    const button =
-        CheckoutLink?.createCheckoutLink(
-            linkElement.dataset,
-            linkElement.innerHTML,
-        ) ?? linkElement;
-    if (button === linkElement) return button;
-    for (const attr of linkElement.attributes) {
-        if (['class', 'is', 'href'].includes(attr.name)) continue;
-        button.setAttribute(attr.name, attr.value);
-    }
-    return button;
-}
-
 function transformLinkToButton(
     linkElement,
     merchCard,
@@ -538,25 +545,32 @@ function transformLinkToButton(
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const parentTag = linkElement.parentElement?.tagName;
-    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
-    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
-    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
-    // headless-family card so other fields/variants (which may legitimately have no class and
-    // rely on the accent default) are unaffected.
     const isHeadlessCta =
-        isCtaField &&
-        !originalClassName &&
-        HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant);
+        isCtaField && HEADLESS_STYLE_CTA_VARIANTS.includes(merchCard.variant);
+    if (isHeadlessCta) {
+        const variant = getHeadlessCtaVariant(linkElement);
+        const button = hydrateHeadlessCta(linkElement);
+        const label = createTag('span', {
+            class: 'headless-cta-variant-label',
+        });
+        label.textContent = variant.endsWith('-link')
+            ? 'Link'
+            : variant.startsWith('accent') || variant.startsWith('primary')
+              ? 'Primary'
+              : 'Secondary';
+        const item = createTag('span', { class: 'headless-cta-item' });
+        item.append(button, label);
+        item.source = button;
+        return item;
+    }
     const checkoutLinkStyle = originalClassName
         ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
         : 'accent';
-    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
-    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
-    const isSecondary =
-        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
-    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
+    const isAccent = checkoutLinkStyle.includes('accent');
+    const isPrimary = checkoutLinkStyle.includes('primary');
+    const isSecondary = checkoutLinkStyle.includes('secondary');
+    const isOutline = checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -573,10 +587,7 @@ function transformLinkToButton(
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement =
-            isHeadlessCta && isCheckoutLink
-                ? createHeadlessCheckoutElement(linkElement)
-                : linkElement;
+        newButtonElement = linkElement;
     } else {
         let variant;
         if (isAccent) {
@@ -605,21 +616,6 @@ function transformLinkToButton(
                   );
     }
 
-    if (isHeadlessCta) {
-        let ctaElement = newButtonElement;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
-            const wrapper = document.createElement(parentTag.toLowerCase());
-            wrapper.append(newButtonElement);
-            ctaElement = wrapper;
-        }
-        const label = document.createElement('span');
-        label.className = 'headless-cta-variant-label';
-        label.textContent = HEADLESS_CTA_VARIANT_LABELS[parentTag] ?? 'Link';
-        const item = document.createElement('span');
-        item.className = 'headless-cta-item';
-        item.append(ctaElement, label);
-        return item;
-    }
     return newButtonElement;
 }
 
@@ -676,7 +672,29 @@ export function processDescription(fields, merchCard, mapping, settings) {
     processDescriptionLinks(merchCard, mapping);
     appendSlot('callout', fields, merchCard, mapping);
     processQuantitySelect(fields, merchCard, mapping, settings);
-    appendSlot('whatsIncluded', fields, merchCard, mapping);
+    splitParagraphListItems(
+        appendSlot('whatsIncluded', fields, merchCard, mapping),
+    );
+}
+
+function processCountdown(merchCard, mapping, fragment) {
+    const description = merchCard.querySelector(
+        `[slot="${mapping.description?.slot}"]`,
+    );
+    const settings = getService()?.settings;
+    for (const anchor of description?.querySelectorAll('a') ?? []) {
+        if (!isCountdownLinkText(anchor.textContent)) continue;
+        const timer = document.createElement('merch-countdown');
+        timer.className = [...anchor.classList]
+            .filter((name) => COUNTDOWN_COLOR_CLASSES.includes(name))
+            .join(' ');
+        timer.start = fragment.cdtStart;
+        timer.end = fragment.cdtEnd;
+        timer.locale = fragment.previewLocale ?? settings?.locale ?? 'en_US';
+        timer.instant = settings?.instant;
+        timer.template = fragment.placeholders?.countdownTimerText;
+        anchor.replaceWith(timer);
+    }
 }
 
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
@@ -974,6 +992,11 @@ function createConsonantButton(
     return button;
 }
 
+// Filled (accent) CTA first, so Tab and screen-reader order match what is shown.
+const isFilled = (cta) => cta.classList.contains('blue');
+const filledFirst = (ctas) =>
+    [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+
 export function processCTAs(
     fields,
     merchCard,
@@ -999,7 +1022,11 @@ export function processCTAs(
         );
 
         footer.textContent = '';
-        footer.append(...ctas);
+        footer.append(
+            ...(['pro', 'product-pricing'].includes(merchCard.variant)
+                ? filledFirst(ctas)
+                : ctas),
+        );
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
@@ -1150,7 +1177,12 @@ export async function hydrate(fragment, merchCard) {
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);
 
-    if (mapping.style === 'consonant') {
+    // A consumer-declared `consonant` or `spectrum` wins; otherwise the variant metadata decides.
+    if (
+        mapping.style === 'consonant' &&
+        !merchCard.hasAttribute('consonant') &&
+        !merchCard.hasAttribute('spectrum')
+    ) {
         merchCard.setAttribute('consonant', true);
     }
     processMnemonics(fields, merchCard, mapping.mnemonics);
@@ -1172,6 +1204,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processCountdown(merchCard, mapping, fragment);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);

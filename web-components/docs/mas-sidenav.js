@@ -25,13 +25,17 @@ class MasSidenav extends HTMLElement {
       <a href="/web-components/docs/minicompare.html">Mini Compare Gallery</a>
       <a href="/web-components/docs/minicomparemweb.html">Mini Compare MWeb Gallery</a>
       <a href="/web-components/docs/product.html">Product Gallery</a>
+      <a href="/web-components/docs/productc2.html">Product-C2 Gallery</a>
       <a href="/web-components/docs/brand-concierge.html">Brand Concierge Gallery</a>
       <a href="/web-components/docs/segment.html">Segment Gallery</a>
       <a href="/web-components/docs/specialoffer.html">Special Offer Gallery</a>
       <a href="/web-components/docs/image.html">Image Gallery</a>
+      <a href="/web-components/docs/promo-use-cases.html">Promo Use Cases</a>
       <a href="/web-components/docs/json-ld.html">JSON-LD Pricing Schema</a>
       <a href="/web-components/docs/feature-flags.html">Feature Flags</a>
       <a href="/web-components/docs/benchmarks.html">Benchmarks</a>
+      <hr>
+      <a href="/web-components/docs/agent.html">Agent API</a>
     `;
     }
 }

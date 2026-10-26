@@ -15,9 +15,13 @@ import {
     STAGED,
 } from '../../src/constants.js';
 import { normalizeKey, UserFriendlyError } from '../../src/utils.js';
-import { buildPromotionTagPath, serializePromotionSurfacesForAem } from '../../src/promotions/promotion-editor-utils.js';
+import {
+    buildPromotionTagPath,
+    serializePromotionSurfacesForAem,
+    GROUP_BY,
+} from '../../src/promotions/promotion-editor-utils.js';
 import { makeSearchStub as makeSharedSearchStub, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
-import { resetTagCache } from '../helpers/tag-cache.js';
+import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '@spectrum-web-components/tabs/sp-tab.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
@@ -90,9 +94,13 @@ describe('MasPromotionsEditor', () => {
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
         Store.promotions.promotionId.set(null);
-        // Default to a promotions editor so mutating UI renders; viewer cases override this.
         Store.profile.set({ email: 'editor@adobe.com' });
-        Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        Store.users.set([
+            {
+                userPrincipalName: 'editor@adobe.com',
+                groups: ['GRP-ODIN-MAS-PROMO-EDITORS', 'GRP-ODIN-MAS-PROMO-POWERUSERS'],
+            },
+        ]);
         setItemsSelectionStore(Store.promotions);
     });
 
@@ -124,9 +132,9 @@ describe('MasPromotionsEditor', () => {
         await flushPromises();
     }
 
-    async function mountEditor() {
+    async function mountEditor(repo = null) {
         const el = new MasPromotionsEditor();
-        sandbox.stub(el, 'repository').get(() => null);
+        sandbox.stub(el, 'repository').get(() => repo);
         document.body.appendChild(el);
         await waitForEditorConnect(el);
         return el;
@@ -148,6 +156,7 @@ describe('MasPromotionsEditor', () => {
             getCollectionPathsForSurfaces: sandbox.stub().resolves(new Set()),
             operation: { set: sandbox.stub() },
             processError: sandbox.stub(),
+            clearStagedTag: sandbox.stub().resolves(null),
             aem: {
                 sites: {
                     cf: {
@@ -184,11 +193,443 @@ describe('MasPromotionsEditor', () => {
         el.fragmentStore.updateField('startDate', ['2024-01-01T00:00:00.000Z']);
         el.fragmentStore.updateField('endDate', ['2024-12-31T00:00:00.000Z']);
         el.fragmentStore.updateField('tags', ['mas:promotion/code-test']);
-        el.fragmentStore.updateField('geos', ['mas:locale/us']);
+        el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
         el.fragmentStore.updateField('surfaces', ['sandbox']);
         Store.promotions.selectedCards.set(['/some/card']);
         await el.updateComplete;
     }
+
+    describe('tiered permissions', () => {
+        function setGroups(groups) {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups }]);
+        }
+
+        async function mountExistingPromotion(repo = null, overrides = {}) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({
+                id: 'tiered-promo',
+                title: 'Tiered promotion',
+                surfaces: ['sandbox'],
+                geos: ['mas:locale/us'],
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2099-12-31T00:00:00.000Z',
+                ...overrides,
+            });
+            promotion.fields.push({ name: 'offers', type: 'text', multiple: true, values: ['offer-1'] });
+            promotion.refreshFrom(promotion);
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            const el = await mountEditor(repo);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            await el.updateComplete;
+            el.fragment.refreshFrom(el.fragment);
+            await el.updateComplete;
+            return el;
+        }
+
+        for (const id of ['startDate', 'endDate', 'cdtStart', 'cdtEnd']) {
+            it(`disables ${id} for promo editors`, async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                const el = await mountExistingPromotion();
+                expect(el.renderRoot.querySelector(`#${id}`).disabled).to.be.true;
+            });
+
+            it(`rejects dispatched ${id} changes from promo editors`, async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                const el = await mountExistingPromotion();
+                const before = [...el.fragment.getFieldValues(id)];
+                const input = el.renderRoot.querySelector(`#${id}`);
+                input.value = '2030-02-01T00:00';
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                expect(el.fragment.getFieldValues(id)).to.deep.equal(before);
+            });
+        }
+
+        it('disables the evergreen toggle for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('.end-date-row sp-switch').hasAttribute('disabled')).to.be.true;
+        });
+
+        it('rejects dispatched evergreen changes from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const toggle = el.renderRoot.querySelector('.end-date-row sp-switch');
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.evergreenEnabled).to.be.false;
+            expect(el.fragment.getFieldValue('endDate')).to.equal('2099-12-31T00:00:00.000Z');
+        });
+
+        for (const action of ['Publish', 'Unpublish']) {
+            it(`disables ${action} for promo editors`, async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                const el = await mountExistingPromotion(null, { status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED' });
+                expect(isPromotionQuickActionDisabled(el, action)).to.be.true;
+            });
+
+            it(`rejects dispatched ${action} events from promo editors`, async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                const repo = makeRepo();
+                repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
+                repo.aem.sites.cf.fragments.getWithEtag.resolves({ id: 'tiered-promo', etag: '"etag"' });
+                const el = await mountExistingPromotion(repo, { status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED' });
+                getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
+                await flushPromises();
+                expect(repo.aem.sites.cf.fragments[action.toLowerCase()].called).to.be.false;
+            });
+
+            for (const revokeAccess of [true, false]) {
+                it(`${revokeAccess ? 'rejects' : 'allows'} ${action} when poweruser access is ${
+                    revokeAccess ? 'lost' : 'retained'
+                } during variation confirmation`, async () => {
+                    const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+                    const promoFolder = '/content/dam/mas/sandbox/en_US/promotions/tiered';
+                    const variation = {
+                        id: 'variation',
+                        path: `${promoFolder}/my-card`,
+                        status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                        etag: '"variation-etag"',
+                    };
+                    const promotionWithEtag = { id: 'tiered-promo', etag: '"etag"' };
+                    const repo = makeRepo();
+                    repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'parent', path: parentPath, fields: [] });
+                    repo.aem.sites.cf.fragments.unpublish = sandbox.stub().resolves();
+                    repo.aem.sites.cf.fragments.getByPath = sandbox.stub().withArgs(variation.path).resolves(variation);
+                    repo.aem.sites.cf.fragments.getWithEtag.withArgs('tiered-promo').resolves(promotionWithEtag);
+                    repo.aem.sites.cf.fragments.getWithEtag.withArgs(variation.id).resolves(variation);
+                    repo.aem.sites.cf.fragments.search = makeSearchStub({
+                        [promoFolder]: [variation],
+                    });
+                    setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+                    const el = await mountExistingPromotion(repo, {
+                        status: action === 'Publish' ? 'DRAFT' : 'PUBLISHED',
+                        tags: [{ id: 'mas:promotion/tiered' }],
+                        fragments: [parentPath],
+                    });
+                    getPromotionQuickActions(el).dispatchEvent(new CustomEvent(action.toLowerCase()));
+                    await flushPromises();
+                    await el.updateComplete;
+                    expect(el.isDialogOpen).to.be.true;
+                    if (revokeAccess) setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                    el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+                    await flushPromises();
+                    expect(repo.processError.called).to.be.false;
+                    expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+                    if (action === 'Publish') {
+                        expect(repo.aem.sites.cf.fragments.publishFragments.callCount).to.equal(revokeAccess ? 0 : 1);
+                        if (!revokeAccess) {
+                            expect(repo.aem.sites.cf.fragments.publishFragments.firstCall.args[0]).to.deep.equal([
+                                promotionWithEtag,
+                                variation,
+                            ]);
+                        }
+                    } else {
+                        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+                        expect(repo.aem.sites.cf.fragments.unpublish.callCount).to.equal(revokeAccess ? 0 : 2);
+                    }
+                });
+            }
+        }
+
+        it('rejects publishing when poweruser access is lost during staged confirmation', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const repo = makeRepo();
+            const el = await mountExistingPromotion(repo);
+            el.fragmentStore.updateField('tags', [STAGED.TAG]);
+            el.fragment.refreshFrom(el.fragment);
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('publish'));
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await flushPromises();
+            expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        });
+
+        for (const group of ['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']) {
+            it(`keeps dates editable for ${group} without editor membership`, async () => {
+                setGroups([group]);
+                const el = await mountExistingPromotion();
+                for (const id of ['startDate', 'endDate', 'cdtStart', 'cdtEnd']) {
+                    expect(el.renderRoot.querySelector(`#${id}`).disabled).to.be.false;
+                }
+            });
+        }
+
+        it('disables adding offers for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('.promotion-empty-actions sp-action-button').hasAttribute('disabled')).to.be
+                .true;
+        });
+
+        it('rejects OST offer selection events from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            await mountExistingPromotion();
+            document.dispatchEvent(
+                new CustomEvent(EVENT_OST_OFFER_SELECT, {
+                    detail: { offerSelectorId: 'forbidden-offer', offer: { product_code: 'FFSA', offer_id: 'wcs-1' } },
+                }),
+            );
+            await flushPromises();
+            expect(Store.promotions.selectedOffers.value).to.deep.equal(['offer-1']);
+        });
+
+        it('disables project geos and surfaces for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field').disabled).to.be.true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-button').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-tag').hasAttribute('deletable')).to.be.false;
+        });
+
+        it('makes selected countries read-only for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            await selector.updateComplete;
+            expect(selector.readonly).to.be.true;
+            expect(selector.disabled).to.be.true;
+            expect(selector.selected).to.deep.equal(['US']);
+            expect(selector.shadowRoot.querySelector('.edit-button')).to.be.null;
+        });
+
+        for (const group of ['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']) {
+            it(`allows country selection changes for ${group} without editor membership`, async () => {
+                setGroups([group]);
+                const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+                const selector = el.renderRoot.querySelector('#promotion-countries');
+                expect(selector.readonly).to.be.false;
+                expect(selector.disabled).to.be.false;
+                selector.dispatchEvent(new Event('open'));
+                selector.querySelector('mas-region-picker').store.set([]);
+                const confirmEvent = new CustomEvent('confirm', { detail: {} });
+                selector.dispatchEvent(confirmEvent);
+                expect(await confirmEvent.detail.pending).to.be.true;
+                expect(el.fragment.getFieldValues('geos')).to.deep.equal([]);
+            });
+        }
+
+        it('rejects dispatched country confirmations from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set([]);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('rejects country confirmation when poweruser access is lost with the selector open', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set([]);
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('rejects country changes when poweruser access is lost during taxonomy loading', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const repo = makeRepo();
+            repo.aem.tags.list = sandbox.stub().callsFake(async () => {
+                setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+                return { hits: [{ path: '/content/cq:tags/mas/pzn/country/FR' }] };
+            });
+            const el = await mountExistingPromotion(repo, { geos: ['mas:pzn/country/US'] });
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['FR']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('rejects dispatched geo changes from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const picker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            picker.setAttribute('value', 'mas:locale/gb');
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:locale/us']);
+        });
+
+        it('rejects surface deletion events from promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            el.renderRoot
+                .querySelector('.promotions-form-surfaces sp-tag')
+                .dispatchEvent(new Event('delete', { bubbles: true }));
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['sandbox']);
+        });
+
+        it('disables the default promo code for promo editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            expect(el.renderRoot.querySelector('#promoCode').hasAttribute('disabled')).to.be.true;
+        });
+
+        it('does not open promo mappings for an editor even on a dispatched click', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const button = [...el.renderRoot.querySelectorAll('sp-action-button')].find((item) =>
+                item.textContent.includes('Manage promo codes'),
+            );
+            button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            await flushPromises();
+            expect(el.promoCodesManagerOpen).to.be.false;
+        });
+
+        it('rejects forged promo mappings save events for editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const before = [...el.fragment.getFieldValues('offers')];
+            el.renderRoot.querySelector('mas-promo-codes-manager').dispatchEvent(
+                new CustomEvent('promo-codes-save', {
+                    detail: { exceptions: new Map([['offer-1|US', 'FORBIDDEN']]) },
+                    bubbles: true,
+                }),
+            );
+            expect(el.fragment.getFieldValues('offers')).to.deep.equal(before);
+        });
+
+        it('allows powerusers without the editors group to manage promo mappings', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-POWERUSERS']);
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
+            expect(el.renderRoot.querySelector('#promoCode').hasAttribute('disabled')).to.be.false;
+        });
+
+        it('reacts to a poweruser membership being removed', async () => {
+            const el = await mountExistingPromotion(null, { geos: ['mas:pzn/country/US'] });
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodesInEmptyState).to.be.false;
+        });
+
+        it('rejects staged tag changes by promo editors on existing projects', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const staged = el.renderRoot.querySelector('.end-date-row + sp-switch');
+            staged.checked = true;
+            staged.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal([]);
+        });
+
+        it('makes the new project form read-only for editors', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountEditor();
+            expect(el.renderRoot.querySelector('#campaignTitle').hasAttribute('disabled')).to.be.true;
+            expect(el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field').hasAttribute('disabled')).to.be
+                .true;
+            expect(el.renderRoot.querySelector('.promotions-form-surfaces sp-button').hasAttribute('disabled')).to.be.true;
+            expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
+        });
+
+        it('keeps existing fragments when an editor deselects them in the item picker', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const el = await mountExistingPromotion();
+            const existing = '/content/dam/mas/sandbox/en_US/existing';
+            const added = '/content/dam/mas/sandbox/en_US/added';
+            Store.promotions.selectedCards.set([existing]);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            Store.promotions.selectedCards.set([added]);
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.include.members([existing, added]);
+            expect(el.fragment.getFieldValues('fragments')).to.include.members([existing, added]);
+        });
+
+        it('restores cards and collections with a single permission toast', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const repo = makeRepo();
+            repo.aem.getFragmentByPath = sandbox.stub().resolves(null);
+            const tableClass = customElements.get('mas-promotions-items-table');
+            sandbox.stub(tableClass.prototype, 'repository').get(() => repo);
+            const el = await mountExistingPromotion(repo);
+            const card = '/content/dam/mas/sandbox/en_US/existing-card';
+            const collection = '/content/dam/mas/sandbox/en_US/existing-collection';
+            Store.promotions.selectedCards.set([card]);
+            Store.promotions.selectedCollections.set([collection]);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            Store.promotions.selectedCards.set([]);
+            Store.promotions.selectedCollections.set([]);
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+
+            expect(Store.promotions.selectedCards.value).to.deep.equal([card]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collection]);
+            expect(toast.getCalls().filter(({ args }) => args[0].variant === 'negative')).to.have.length(1);
+        });
+
+        it('keeps a collection in only its refined category when classification finishes while the picker is open', async () => {
+            setGroups(['GRP-ODIN-MAS-PROMO-EDITORS']);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const collectionPath = '/content/dam/mas/sandbox/en_US/collection-a';
+            Store.promotions.inEdit.set(
+                new FragmentStore(
+                    makePromotion({
+                        id: 'classification-project',
+                        surfaces: ['sandbox'],
+                        fragments: [collectionPath],
+                    }),
+                ),
+            );
+            let finishClassification;
+            const classification = new Promise((resolve) => {
+                finishClassification = resolve;
+            });
+            const { el } = await mountEditorWithRepo({
+                getCollectionPathsForSurfaces: sandbox.stub().returns(classification),
+            });
+            await waitForEditorConnect(el);
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.selectedItemsViewTab = TABLE_TYPE.CARDS;
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            expect(Store.promotions.selectedCards.value).to.deep.equal([collectionPath]);
+            const edit = [...el.renderRoot.querySelectorAll('.selected-items-header sp-action-button')].find(
+                (button) => button.textContent.trim() === 'Edit',
+            );
+            edit.click();
+            await el.updateComplete;
+            finishClassification(new Set([collectionPath]));
+            await classification;
+            await el.updateComplete;
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+
+            el.renderRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+
+            expect(Store.promotions.selectedCards.value).to.deep.equal([]);
+            expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal([collectionPath]);
+        });
+    });
 
     describe('publishing overlay', () => {
         it('shows a progress circle while promotionPublish is true and hides it otherwise', async () => {
@@ -262,6 +703,26 @@ describe('MasPromotionsEditor', () => {
             expect(el.canManagePromoCodesInEmptyState).to.be.false;
             const editBtn = el.renderRoot.querySelector('.promotion-empty-actions sp-action-button');
             expect(editBtn?.hasAttribute('disabled')).to.be.true;
+        });
+
+        it('disables manage promo codes when geos contain no country', async () => {
+            const el = await mountEditor();
+            el.canEdit = true;
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodes).to.be.false;
+            expect(el.canManagePromoCodesInEmptyState).to.be.false;
+        });
+
+        it('enables manage promo codes when a country geo is selected', async () => {
+            const el = await mountEditor();
+            el.canEdit = true;
+            Store.promotions.selectedOffers.set(['offer-1']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            expect(el.canManagePromoCodes).to.be.true;
+            expect(el.canManagePromoCodesInEmptyState).to.be.true;
         });
 
         it('shows Add offer for offers on Offers tab and Edit for fragments on Fragments tab', async () => {
@@ -362,12 +823,15 @@ describe('MasPromotionsEditor', () => {
             await el.updateComplete;
             document.dispatchEvent(
                 new CustomEvent(EVENT_OST_OFFER_SELECT, {
-                    detail: { offerSelectorId: 'ffsa-osi', offer: { product_code: 'FFSA', offer_id: 'wcs-1' } },
+                    detail: {
+                        offerSelectorId: 'ffsa-osi',
+                        offer: { product_code: 'FFSA', offer_id: 'wcs-1', product_arrangement_code: 'ffsa_direct_individual' },
+                    },
                     bubbles: true,
                     composed: true,
                 }),
             );
-            await new Promise((resolve) => setTimeout(resolve, 50));
+            await flushPromises();
             await el.updateComplete;
             expect(Store.promotions.selectedOffers.value).to.include('ffsa-osi');
             expect(el.fragment.getFieldValues('offers')).to.include('ffsa-osi');
@@ -487,6 +951,24 @@ describe('MasPromotionsEditor', () => {
             await Promise.resolve();
             await el.updateComplete;
             expect(unpublishFragment.calledOnce).to.be.true;
+        });
+
+        it('does not unpublish an expired project when a promo editor opens it', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const expiredPublished = makeFragmentData({
+                id: 'promo-exp',
+                title: 'Expired',
+                startDate: '2020-01-01T00:00:00.000Z',
+                endDate: '2020-06-01T00:00:00.000Z',
+                status: 'PUBLISHED',
+            });
+            Store.promotions.promotionId.set('promo-exp');
+            const repo = makeRepo();
+            repo.aem.sites.cf.fragments.getById.resolves(expiredPublished);
+            const { el } = await mountEditorWithRepo(repo);
+            await waitForEditorConnect(el);
+            expect(el.fragment.id).to.equal('promo-exp');
+            expect(repo.unpublishFragment.called).to.be.false;
         });
 
         it('handles load failure gracefully and shows empty state', async () => {
@@ -675,6 +1157,7 @@ describe('MasPromotionsEditor', () => {
                     },
                     getFragmentByPath: sandbox.stub().resolves(null),
                 },
+                clearStagedTag: sandbox.stub().resolves(null),
             });
             await el.updateComplete;
             clickPromotionQuickAction(el, 'Publish');
@@ -866,16 +1349,256 @@ describe('MasPromotionsEditor', () => {
             expect(tagsPicker.getAttribute('value')).to.equal('mas:promotion/new');
         });
 
-        it('updates geos via change on geos tag-picker-field', async () => {
+        it('removes locale tags from the picker and keeps country geos', async () => {
+            seedTagCache(MAS_TAG_NAMESPACE, []);
             const el = await mountEditor();
-            const tagPickers = el.renderRoot.querySelectorAll('aem-tag-picker-field');
-            const geosPicker = tagPickers[1];
-            expect(geosPicker).to.not.be.null;
-            geosPicker.setAttribute('value', 'mas:locale/us');
-            geosPicker.dispatchEvent(new Event('change', { bubbles: true }));
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
             await el.updateComplete;
-            const geos = el.fragment.getFieldValues('geos');
-            expect(geos).to.deep.equal(['mas:locale/us']);
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            await geosPicker.updateComplete;
+            const localeTag = geosPicker.shadowRoot.querySelector('sp-tag[data-path="/content/cq:tags/mas/locale/en_US"]');
+            expect(localeTag.hasAttribute('deletable')).to.be.true;
+            localeTag.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+            await flushPromises();
+            await geosPicker.updateComplete;
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US', 'mas:pzn/smb']);
+        });
+
+        it('shows Personalization tags in the picker', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            const geosPicker = el.renderRoot.querySelector('#promotion-geos-tags aem-tag-picker-field');
+            expect(geosPicker.getAttribute('top')).to.equal('locale,pzn');
+            expect(geosPicker.getAttribute('label')).to.equal('Personalization tags');
+            expect(geosPicker.value).to.deep.equal(['/content/cq:tags/mas/locale/en_US', '/content/cq:tags/mas/pzn/smb']);
+        });
+
+        it('disables the countries selector with a hint when no surface is selected', async () => {
+            const el = await mountEditor();
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            expect(selector.disabled).to.be.true;
+            expect(selector.addLabel).to.equal('Select surfaces first');
+            expect(selector.description).to.equal('Countries will be generated automatically once surfaces are selected.');
+        });
+
+        it('offers only countries available on every selected surface', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom', 'ccd']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-region-picker');
+            const countries = picker.items.map(({ country }) => country);
+            expect(selector.disabled).to.be.false;
+            expect(countries).to.include('US');
+            expect(countries).to.not.include('BG');
+        });
+
+        it('keeps the same country items reference across unrelated field edits', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            await el.updateComplete;
+            const picker = el.renderRoot.querySelector('#promotion-countries mas-region-picker');
+            const items = picker.items;
+            el.fragmentStore.updateField('title', ['Renamed']);
+            await el.updateComplete;
+            expect(picker.items).to.equal(items);
+        });
+
+        it('rebuilds country items when surfaces change', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            await el.updateComplete;
+            const picker = el.renderRoot.querySelector('#promotion-countries mas-region-picker');
+            const items = picker.items;
+            el.fragmentStore.updateField('surfaces', ['acom', 'ccd']);
+            await el.updateComplete;
+            expect(picker.items).to.not.equal(items);
+        });
+
+        it('hides selected country editing controls without edit permission', async () => {
+            Store.users.set([]);
+            const el = await mountEditor();
+            el.canEdit = false;
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            await selector.updateComplete;
+            expect(selector.hasAttribute('readonly')).to.be.true;
+            expect(selector.shadowRoot.querySelector('.edit-button')).to.be.null;
+            expect(selector.shadowRoot.querySelector('.add-button')).to.be.null;
+        });
+
+        it('shows selected countries from pzn country tags only', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US', 'mas:pzn/smb']);
+            await el.updateComplete;
+            expect(el.renderRoot.querySelector('#promotion-countries').selected).to.deep.equal(['US']);
+        });
+
+        it('writes confirmed countries as pzn country tags and keeps other geos', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().resolves({
+                hits: [{ path: '/content/cq:tags/mas/pzn/country/fr' }, { path: '/content/cq:tags/mas/pzn/country/DE' }],
+            });
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/smb', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            const picker = selector.querySelector('mas-region-picker');
+            selector.dispatchEvent(new Event('open'));
+            expect(picker.store.value).to.deep.equal(['US']);
+            picker.store.set(['FR', 'DE']);
+            selector.dispatchEvent(new CustomEvent('confirm', { detail: {} }));
+            await flushPromises();
+            await el.updateComplete;
+            expect(repo.aem.tags.list.calledOnceWithExactly('/content/cq:tags/mas/pzn/country')).to.be.true;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal([
+                'mas:locale/en_US',
+                'mas:pzn/smb',
+                'mas:pzn/country/fr',
+                'mas:pzn/country/DE',
+            ]);
+        });
+
+        it('keeps original country geos on unchanged confirmation without loading taxonomy', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub();
+            const geos = ['mas:pzn/country/fr_FR', '/content/cq:tags/mas/pzn/country/au', 'mas:pzn/smb'];
+            el.fragmentStore.updateField('geos', geos);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.dispatchEvent(new CustomEvent('confirm', { detail: {} }));
+            await flushPromises();
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(geos);
+            expect(repo.aem.tags.list.called).to.be.false;
+        });
+
+        it('leaves geos untouched and reports a missing taxonomy tag', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().resolves({ hits: [] });
+            const toast = sandbox.spy();
+            Events.toast.subscribe(toast);
+            try {
+                const geos = ['mas:pzn/country/fr_FR', 'mas:pzn/smb'];
+                el.fragmentStore.updateField('geos', geos);
+                await el.updateComplete;
+                const selector = el.renderRoot.querySelector('#promotion-countries');
+                selector.dispatchEvent(new Event('open'));
+                selector.querySelector('mas-region-picker').store.set(['AU']);
+                const confirmEvent = new CustomEvent('confirm', { detail: {} });
+                selector.dispatchEvent(confirmEvent);
+                expect(await confirmEvent.detail.pending).to.be.false;
+                expect(el.fragment.getFieldValues('geos')).to.deep.equal(geos);
+                expect(toast.lastCall.args[0].variant).to.equal('negative');
+                expect(toast.lastCall.args[0].content).to.include('AU');
+            } finally {
+                Events.toast.unsubscribe(toast);
+            }
+        });
+
+        it('keeps geos and resolves pending false when the country taxonomy lookup fails', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            repo.aem.tags.list = sandbox.stub().rejects(new Error('Tags unavailable'));
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['US', 'FR']);
+            const confirmEvent = new CustomEvent('confirm', { detail: {} });
+            selector.dispatchEvent(confirmEvent);
+            expect(await confirmEvent.detail.pending).to.be.false;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+            expect(toastStub.lastCall.args[0]).to.include({ content: 'Tags unavailable', variant: 'negative' });
+        });
+
+        it('does not change geos when country selection is cancelled', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US']);
+            await el.updateComplete;
+            const selector = el.renderRoot.querySelector('#promotion-countries');
+            selector.dispatchEvent(new Event('open'));
+            selector.querySelector('mas-region-picker').store.set(['FR']);
+            selector.dispatchEvent(new Event('cancel'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/country/US']);
+        });
+
+        it('removes countries not available on newly added surfaces', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US', 'mas:pzn/country/BG']);
+            await el.updateComplete;
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:pzn/smb', 'mas:pzn/country/US']);
+        });
+
+        it('shows an info toast listing countries removed by a surface change', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/country/US', 'mas:pzn/country/BG']);
+            await el.updateComplete;
+            const toastStub = sandbox.stub(Events.toast, 'emit');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(toastStub.calledOnce).to.be.true;
+            expect(toastStub.lastCall.args[0].variant).to.equal('info');
+            expect(toastStub.lastCall.args[0].content).to.equal(
+                'Removed countries not available on the selected surfaces: BG.',
+            );
+        });
+
+        it('does not rewrite geos when all countries remain eligible after adding a surface', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:pzn/smb', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            const geos = el.geos;
+            const updateField = sandbox.spy(el.fragmentStore, 'updateField');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['acom', 'ccd']);
+            expect(updateField.calledWith('geos')).to.be.false;
+            expect(el.geos).to.equal(geos);
+        });
+
+        it('does not write geos on surface change when the fragment has no geos field', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const fields = makeFragmentData({ surfaces: ['acom'] }).fields.filter(({ name }) => name !== 'geos');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ fields })));
+            const el = await mountEditor();
+            const updateField = sandbox.spy(el.fragmentStore, 'updateField');
+            const table = el.renderRoot.querySelector('#surfaces-table');
+            table.selected = ['acom', 'ccd'];
+            table.closest('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
+            await el.updateComplete;
+            expect(updateField.calledWith('geos')).to.be.false;
+        });
+
+        it('removes all countries when the last surface is deleted', async () => {
+            const el = await mountEditor();
+            el.fragmentStore.updateField('surfaces', ['acom']);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US', 'mas:pzn/country/US']);
+            await el.updateComplete;
+            el.renderRoot
+                .querySelector('sp-tag[deletable][value="acom"]')
+                .dispatchEvent(new Event('delete', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(el.fragment.getFieldValues('surfaces')).to.deep.equal([]);
+            expect(el.fragment.getFieldValues('geos')).to.deep.equal(['mas:locale/en_US']);
         });
 
         it('removes surface on delete event from sp-tag', async () => {
@@ -893,6 +1616,33 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('create flow', () => {
+        it('rejects forged project save events from editors before creating the project tag', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('save', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(repo.aem.tags.create.called).to.be.false;
+            expect(repo.createFragment.called).to.be.false;
+            expect(el.isCreated).to.be.false;
+        });
+
+        it('does not create a project when poweruser access is lost while creating its tag', async () => {
+            const createTag = sandbox.stub().callsFake(async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            });
+            const deleteTag = sandbox.stub().resolves();
+            const { el, repo } = await mountEditorWithRepo({
+                aem: { tags: { create: createTag, delete: deleteTag } },
+            });
+            await fillValidFields(el);
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.createFragment.called).to.be.false;
+            expect(deleteTag.calledOnce).to.be.true;
+            expect(el.isCreated).to.be.false;
+        });
+
         it('aborts create and does not call repository when required fields are missing', async () => {
             const { el, repo } = await mountEditorWithRepo();
             clickPromotionQuickAction(el, 'Save');
@@ -911,16 +1661,19 @@ describe('MasPromotionsEditor', () => {
             expect(repo.createFragment.called).to.be.false;
         });
 
-        it('creates promotion when all required fields are valid', async () => {
-            const { el, repo } = await mountEditorWithRepo();
-            await fillValidFields(el);
-            clickPromotionQuickAction(el, 'Save');
-            await el.updateComplete;
-            await flushPromises();
-            await el.updateComplete;
-            expect(repo.createFragment.calledOnce).to.be.true;
-            expect(el.isCreated).to.be.true;
-        });
+        for (const group of ['GRP-ODIN-MAS-PROMO-POWERUSERS', 'GRP-ODIN-MAS-ADMINS']) {
+            it(`allows ${group} to create a promotion when all required fields are valid`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [group] }]);
+                const { el, repo } = await mountEditorWithRepo();
+                await fillValidFields(el);
+                clickPromotionQuickAction(el, 'Save');
+                await el.updateComplete;
+                await flushPromises();
+                await el.updateComplete;
+                expect(repo.createFragment.calledOnce).to.be.true;
+                expect(el.isCreated).to.be.true;
+            });
+        }
 
         it('handles create error gracefully without setting isCreated', async () => {
             const { el, repo } = await mountEditorWithRepo({
@@ -1135,6 +1888,33 @@ describe('MasPromotionsEditor', () => {
             expect(toastEmitStub.calledWith({ variant: 'negative', content: 'Please enter a title.' })).to.be.true;
         });
 
+        it('blocks create when geos hold neither countries nor personalization tags', async () => {
+            const toastEmitStub = sandbox.stub(Events.toast, 'emit');
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('geos', ['mas:locale/en_US']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.called).to.be.false;
+            expect(
+                toastEmitStub.calledWith({
+                    variant: 'negative',
+                    content: 'Please select at least one country or personalization tag.',
+                }),
+            ).to.be.true;
+        });
+
+        it('allows create when geos hold only personalization tags', async () => {
+            const { el, repo } = await mountEditorWithRepo();
+            await fillValidFields(el);
+            el.fragmentStore.updateField('geos', ['mas:pzn/edu']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await el.updateComplete;
+            expect(repo.createFragment.calledOnce).to.be.true;
+        });
+
         it('passes promoCode field values through unchanged in the create payload', async () => {
             const { el, repo } = await mountEditorWithRepo();
             await fillValidFields(el);
@@ -1148,6 +1928,153 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('update flow', () => {
+        async function mountBasicEditor({ collections = [], surfaces = ['sandbox'] } = {}) {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const cardPath = '/content/dam/mas/sandbox/en_US/card-a';
+            const promotion = makePromotion({
+                id: 'editor-project',
+                title: 'Editor project',
+                startDate: '2030-01-01T00:00:00.000Z',
+                endDate: '2030-12-31T00:00:00.000Z',
+                surfaces,
+                geos: ['mas:pzn/country/US'],
+                fragments: [cardPath],
+            });
+            promotion.fields.push(
+                { name: 'offers', type: 'text', multiple: true, values: [] },
+                { name: 'collections', type: 'content-fragment', multiple: true, values: collections },
+                { name: 'cdtStart', values: ['2030-01-01T00:00:00.000Z'] },
+                { name: 'cdtEnd', values: ['2030-12-31T00:00:00.000Z'] },
+            );
+            promotion.getField('tags').values = ['mas:promotion/editor-project'];
+            promotion.refreshFrom(promotion);
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const repo = makeRepo();
+            repo.aem.getFragmentByPath = sandbox.stub().resolves({ id: 'card-a', path: cardPath, fields: [] });
+            const result = await mountEditorWithRepo(repo);
+            await waitForEditorConnect(result.el);
+            Store.promotions.selectedCards.set([cardPath]);
+            await result.el.updateComplete;
+            return { ...result, cardPath };
+        }
+
+        for (const name of ['startDate', 'endDate', 'cdtStart', 'cdtEnd']) {
+            it(`rejects saving a restricted ${name} change after poweruser access is lost`, async () => {
+                const { el, repo } = await mountBasicEditor();
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+                el.fragmentStore.updateField(name, ['2030-02-01T00:00:00.000Z']);
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                await el.updateComplete;
+                clickPromotionQuickAction(el, 'Save');
+                await flushPromises();
+                expect(repo.saveFragment.called).to.be.false;
+            });
+        }
+
+        it('rejects saving an evergreen toggle after poweruser access is lost', async () => {
+            const { el, repo, cardPath } = await mountBasicEditor();
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            el.evergreenEnabled = true;
+            Store.promotions.selectedCards.set([cardPath, '/content/dam/mas/sandbox/en_US/card-b']);
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        for (const failure of ['false result', 'rejected request']) {
+            it(`allows an editor to retry saving legacy surfaces after a ${failure}`, async () => {
+                const { el, repo } = await mountBasicEditor({ surfaces: ['Sandbox, CCD'] });
+                if (failure === 'false result') repo.saveFragment.onFirstCall().resolves(false);
+                else repo.saveFragment.onFirstCall().rejects(new Error('Temporary save failure'));
+                Store.promotions.selectedCards.set([
+                    '/content/dam/mas/sandbox/en_US/card-a',
+                    '/content/dam/mas/sandbox/en_US/card-b',
+                ]);
+                await el.updateComplete;
+                clickPromotionQuickAction(el, 'Save');
+                await flushPromises();
+                expect(repo.saveFragment.calledOnce).to.be.true;
+                expect(el.fragment.getFieldValues('surfaces')).to.deep.equal(['sandbox', 'ccd']);
+
+                clickPromotionQuickAction(el, 'Save');
+                await flushPromises();
+
+                expect(repo.saveFragment.callCount).to.equal(2);
+                expect(el.fragment.getFieldValues('fragments')).to.include('/content/dam/mas/sandbox/en_US/card-b');
+            });
+        }
+
+        it('rejects an actual surface change by an editor', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('surfaces', ['ccd']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('allows an editor to attach additional fragments', async () => {
+            const { el, repo, cardPath } = await mountBasicEditor();
+            const addedPath = '/content/dam/mas/sandbox/en_US/card-b';
+            Store.promotions.selectedCards.set([cardPath, addedPath]);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.calledOnce).to.be.true;
+            expect(el.fragment.getFieldValues('fragments')).to.deep.equal([cardPath, addedPath]);
+        });
+
+        it('rejects saving additional offers by an editor', async () => {
+            const { el, repo } = await mountBasicEditor();
+            Store.promotions.selectedOffers.set(['forbidden-offer']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving a restricted geo change made before poweruser membership was removed', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('geos', ['mas:locale/gb']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving removal of an existing fragment by an editor', async () => {
+            const { el, repo } = await mountBasicEditor();
+            Store.promotions.selectedCards.set(['/content/dam/mas/sandbox/en_US/replacement']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving removal of an existing legacy collection by an editor', async () => {
+            const { el, repo, cardPath } = await mountBasicEditor({
+                collections: ['/content/dam/mas/sandbox/en_US/collection-a'],
+            });
+            Store.promotions.selectedCollections.set([]);
+            Store.promotions.selectedCards.set([cardPath, '/content/dam/mas/sandbox/en_US/card-b']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
+        it('rejects saving modified promo-code mappings after poweruser permission is removed', async () => {
+            const { el, repo } = await mountBasicEditor();
+            el.fragmentStore.updateField('offers', ['offer-1|NEWCODE|mas:pzn/country/us']);
+            await el.updateComplete;
+            clickPromotionQuickAction(el, 'Save');
+            await flushPromises();
+            expect(repo.saveFragment.called).to.be.false;
+        });
+
         it('saves promotion when all required fields are valid', async () => {
             const { el, repo } = await mountEditorWithRepo();
             el.isNewPromotion = false;
@@ -1298,7 +2225,7 @@ describe('MasPromotionsEditor', () => {
             el.disconnectedCallback();
             await el.connectedCallback();
             await el.updateComplete;
-            await new Promise((r) => setTimeout(r, 50));
+            await getCollectionPathsForSurfaces.lastCall.returnValue;
             expect(getCollectionPathsForSurfaces.calledWith(['sandbox'])).to.be.true;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
@@ -1330,7 +2257,7 @@ describe('MasPromotionsEditor', () => {
             // User adds a card while the surface search is still pending.
             Store.promotions.selectedCards.set([cardPath, collectionPath, addedPath]);
             releaseSearch();
-            await new Promise((r) => setTimeout(r, 50));
+            await getCollectionPathsForSurfaces.lastCall.returnValue;
             expect(Store.promotions.selectedCards.value).to.deep.equal([cardPath, addedPath]);
             expect(Store.promotions.selectedCollections.value).to.deep.equal([collectionPath]);
         });
@@ -1854,6 +2781,83 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('delete quick action', () => {
+        it('disables project deletion for editors even without promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' })));
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            expect(isPromotionQuickActionDisabled(el, 'Delete')).to.be.true;
+        });
+
+        it('rejects editor delete events for projects without promo variations', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' })));
+            const { el, repo } = await mountEditorWithRepo({ deleteFragment: sandbox.stub().resolves(true) });
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(el.isDialogOpen).to.be.false;
+            expect(repo.deleteFragment.called).to.be.false;
+        });
+
+        it('rejects project deletion when poweruser access is lost during confirmation', async () => {
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const store = new FragmentStore(makePromotion({ id: 'empty-project', title: 'Empty project' }));
+            Store.promotions.inEdit.set(store);
+            const { el, repo } = await mountEditorWithRepo({ deleteFragment: sandbox.stub().resolves(true) });
+            clickPromotionQuickAction(el, 'Delete');
+            await flushPromises();
+            await el.updateComplete;
+            expect(el.isDialogOpen).to.be.true;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.renderRoot.querySelector('#promotion-unsaved-changes-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await flushPromises();
+            expect(repo.deleteFragment.called).to.be.false;
+            expect(Store.promotions.inEdit.get()).to.equal(store);
+        });
+
+        for (const attachmentField of ['fragments', 'collections']) {
+            it(`prevents editors deleting projects with promo variations attached through ${attachmentField}`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                const promotion = makePromotion({
+                    id: 'restricted-project',
+                    title: 'Restricted project',
+                    fragments: ['/content/dam/mas/sandbox/en_US/my-card'],
+                    tags: [{ id: 'mas:promotion/summer' }],
+                });
+                promotion.getField('fragments').name = attachmentField;
+                Store.promotions.inEdit.set(new FragmentStore(promotion));
+                const { el, repo } = await mountEditorWithRepo({
+                    deleteFragment: sandbox.stub().resolves(true),
+                    aem: {
+                        sites: {
+                            cf: {
+                                fragments: {
+                                    getById: sandbox.stub().resolves(null),
+                                    search: makeSearchStub({
+                                        '/content/dam/mas/sandbox/en_US/promotions/summer': [
+                                            {
+                                                id: 'variation',
+                                                path: '/content/dam/mas/sandbox/en_US/promotions/summer/my-card',
+                                                status: 'DRAFT',
+                                            },
+                                        ],
+                                    }),
+                                },
+                            },
+                        },
+                    },
+                });
+                clickPromotionQuickAction(el, 'Delete');
+                await flushPromises();
+                expect(el.isDialogOpen).to.be.false;
+                expect(repo.deleteFragment.called).to.be.false;
+            });
+        }
+
         it('opens confirmation dialog when Delete is clicked on a saved promotion', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-1', title: 'To Delete' })));
@@ -1903,21 +2907,24 @@ describe('MasPromotionsEditor', () => {
             );
         });
 
-        it('calls deleteFragment when delete dialog is confirmed', async () => {
-            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
-            Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-2', title: 'Deletable' })));
-            const deleteFragment = sandbox.stub().resolves(true);
-            const { el, repo } = await mountEditorWithRepo({ deleteFragment });
-            await el.updateComplete;
-            clickPromotionQuickAction(el, 'Delete');
-            await new Promise((r) => setTimeout(r, 0));
-            await el.updateComplete;
-            el.renderRoot
-                .querySelector('#promotion-unsaved-changes-dialog')
-                .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
-            await new Promise((r) => setTimeout(r, 0));
-            expect(repo.deleteFragment.calledOnce).to.be.true;
-        });
+        for (const group of ['GRP-ODIN-MAS-PROMO-POWERUSERS', 'GRP-ODIN-MAS-ADMINS']) {
+            it(`allows ${group} to delete a project after confirmation`, async () => {
+                Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: [group] }]);
+                const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+                Store.promotions.inEdit.set(new FragmentStore(makePromotion({ id: 'del-2', title: 'Deletable' })));
+                const deleteFragment = sandbox.stub().resolves(true);
+                const { el, repo } = await mountEditorWithRepo({ deleteFragment });
+                await el.updateComplete;
+                clickPromotionQuickAction(el, 'Delete');
+                await new Promise((r) => setTimeout(r, 0));
+                await el.updateComplete;
+                el.renderRoot
+                    .querySelector('#promotion-unsaved-changes-dialog')
+                    .dispatchEvent(new CustomEvent('confirm', { bubbles: true, composed: true }));
+                await new Promise((r) => setTimeout(r, 0));
+                expect(repo.deleteFragment.calledOnce).to.be.true;
+            });
+        }
 
         it('does not delete attached promo variations when deleting the project', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
@@ -2002,6 +3009,58 @@ describe('MasPromotionsEditor', () => {
     });
 
     describe('duplicate quick action', () => {
+        it('disables project duplication for editors', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'existing-project', title: 'Existing project' })),
+            );
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { el } = await mountEditorWithRepo();
+            await waitForEditorConnect(el);
+            expect(isPromotionQuickActionDisabled(el, 'Duplicate')).to.be.true;
+        });
+
+        it('rejects dispatched project duplication requests from editors', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            const promotion = makePromotion({
+                id: 'existing-project',
+                title: 'Existing project',
+                startDate: '2024-01-01T00:00:00.000Z',
+                endDate: '2024-12-31T00:00:00.000Z',
+                geos: ['mas:locale/us'],
+                surfaces: ['sandbox'],
+                fragments: ['/some/card'],
+            });
+            promotion.getField('tags').values = ['mas:promotion/existing-project'];
+            Store.promotions.inEdit.set(new FragmentStore(promotion));
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            const { el } = await mountEditorWithRepo({ loadPromotions: sandbox.stub().resolves([]) });
+            await waitForEditorConnect(el);
+            getPromotionQuickActions(el).dispatchEvent(new CustomEvent('duplicate', { bubbles: true, composed: true }));
+            await flushPromises();
+            expect(el.duplicateDialogOpen).to.be.false;
+        });
+
+        it('rejects project duplication confirmation after poweruser access is lost', async () => {
+            const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
+            Store.promotions.inEdit.set(
+                new FragmentStore(makePromotion({ id: 'existing-project', title: 'Existing project' })),
+            );
+            const { el, repo } = await mountEditorWithRepo();
+            el.duplicateDialogOpen = true;
+            await el.updateComplete;
+            Store.users.set([{ userPrincipalName: 'editor@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+            el.renderRoot.querySelector('mas-promotion-duplicate-dialog').dispatchEvent(
+                new CustomEvent('duplicate-confirmed', {
+                    bubbles: true,
+                    composed: true,
+                    detail: { title: 'Existing project copy' },
+                }),
+            );
+            await flushPromises();
+            expect(repo.createFragment.called).to.be.false;
+        });
+
         afterEach(() => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');
@@ -2041,7 +3100,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });
@@ -2091,7 +3150,7 @@ describe('MasPromotionsEditor', () => {
                     { name: 'endDate', values: ['2024-12-31T00:00:00.000Z'] },
                     { name: 'tags', values: ['mas:promotion/original'] },
                     { name: 'surfaces', type: 'text', multiple: false, values: ['sandbox'] },
-                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:locale/us'] },
+                    { name: 'geos', type: 'tag', multiple: true, values: ['mas:pzn/country/US'] },
                     { name: 'fragments', type: 'content-fragment', multiple: true, values: [cardPath] },
                 ],
             });
@@ -2964,6 +4023,28 @@ describe('MasPromotionsEditor', () => {
                 const toast = selector.shadowRoot.querySelector('sp-toast');
                 expect(toast.textContent).to.equal('Toast text');
                 expect(toast.variant).to.equal('positive');
+            });
+
+            it('updates promotionGroupBy when mas-group-by-select emits change', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                const selector = viewSelector(el);
+                const groupBySelect = selector.shadowRoot.querySelector('mas-group-by-select');
+                expect(groupBySelect).to.not.be.null;
+                groupBySelect.dispatchEvent(new CustomEvent('change', { detail: { value: GROUP_BY.OFFER } }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.OFFER);
+            });
+
+            it('resets promotionGroupBy when the items table cancels a pending grouping', async () => {
+                const { el } = await mountEditorWithRepo();
+                await openWithSelection(el);
+                el.promotionGroupBy = GROUP_BY.TEMPLATE;
+                await el.updateComplete;
+                const table = viewSelector(el).shadowRoot.querySelector('mas-promotions-items-table');
+                table.dispatchEvent(new CustomEvent('group-by-cancel', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                expect(el.promotionGroupBy).to.equal(GROUP_BY.NONE);
             });
         });
     });

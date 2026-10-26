@@ -1,14 +1,4 @@
-import { COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH, STAGED } from '../constants.js';
-
-export function getProjectField(project, name, fallback) {
-    const data = project.value ?? project;
-    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
-}
-
-export function getProjectFieldList(project, name) {
-    const data = project.value ?? project;
-    return data.getFieldValues?.(name) ?? data[name] ?? [];
-}
+import { COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH } from '../constants.js';
 
 export function itemTypeFromPath(path) {
     return path?.includes('/dictionary/') ? 'placeholder' : 'fragment';
@@ -22,7 +12,7 @@ export function itemTypeFromFragment(fragment) {
 
 export function buildItemsMetadata(items) {
     const meta = items
-        .filter((item) => (item.status === 'valid' || item.reason === STAGED.NAME) && item.path)
+        .filter((item) => item.status === 'valid' && item.path)
         .map((item) => ({ path: item.path, type: item.type ?? itemTypeFromPath(item.path), status: 'valid' }));
     return JSON.stringify(meta);
 }

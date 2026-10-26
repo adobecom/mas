@@ -7,6 +7,7 @@ import { extractLocaleFromPath, extractSurfaceFromPath } from '../../utils.js';
 const PAGE_ID_PARAM = {
     [PAGE_NAMES.TRANSLATION_EDITOR]: 'translationProjectId',
     [PAGE_NAMES.BULK_PUBLISH_EDITOR]: 'bulkPublishProjectId',
+    [PAGE_NAMES.BULK_EDIT_EDITOR]: 'bulkEditProjectId',
     [PAGE_NAMES.PROMOTIONS_EDITOR]: 'promotionId',
 };
 

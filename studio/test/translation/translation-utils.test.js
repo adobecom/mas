@@ -27,7 +27,7 @@ describe('translation-utils', () => {
         originalSearchValue = Store.search.get();
         Store.search.set({ path: 'acom' });
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
     });
 
     afterEach(() => {
@@ -35,7 +35,7 @@ describe('translation-utils', () => {
         sandbox.restore();
         Store.search.set(originalSearchValue);
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
     });
 
     describe('canDuplicateTranslationProject', () => {

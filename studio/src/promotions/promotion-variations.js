@@ -1,9 +1,7 @@
 import { PATH_TOKENS, STATUS_PUBLISHED, STATUS_DRAFT, TAG_PROMOTION_PREFIX, PZN_FOLDER } from '../constants.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { UserFriendlyError, resolveHydratedParentFragment } from '../utils.js';
+import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
-import { createPreviewDataWithParent } from '../reactivity/source-fragment-store.js';
-import { INHERITED_SETTINGS_FIELDS } from '../reactivity/preview-fragment-store.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import {
     buildCandidateCollisionPath,
@@ -284,27 +282,6 @@ export async function createPromoVariation(
         ? (sourceFragment.fields || []).find((field) => field.name === 'pznTags')?.values || []
         : [];
 
-    // A grouped variation only stores its own overrides, everything else is inherited from the default fragment.
-    // Resolve the effective content first, so the clone matches what's rendered.
-    let effectiveFields = sourceFragment.fields || [];
-    if (isGroupedVariationSource) {
-        const parentFragment = await resolveHydratedParentFragment(aem, sourceFragment.path);
-        if (parentFragment) {
-            const mergedFields = createPreviewDataWithParent(sourceFragment, parentFragment).fields || [];
-            // A model field is always present on AEM fragments, even when unset (values: ['']).
-            // Check for an actual value, not just presence.
-            const hasOwnValue = (field) => (field?.values || []).some((value) => value !== '' && value != null);
-            const ownFieldNamesWithValue = new Set(
-                (sourceFragment.fields || []).filter(hasOwnValue).map((field) => field.name),
-            );
-            effectiveFields = mergedFields.filter(
-                (field) =>
-                    field.name !== 'variation_tags' &&
-                    (!INHERITED_SETTINGS_FIELDS.has(field.name) || ownFieldNamesWithValue.has(field.name)),
-            );
-        }
-    }
-
     const existingVariations = await probePromoVariationsForFragment(aem, sourceFragment.path, promoTagId);
     const existingGeoTagsByVariation = existingVariations.map((variation) => ({
         ...variation,
@@ -334,7 +311,7 @@ export async function createPromoVariation(
     const fragmentName = targetPath.split('/').pop();
     await aem.sites.cf.fragments.ensureFolderExists(parentFolder);
 
-    const fieldsWithGeoTags = effectiveFields.filter((field) => field.name !== 'pznTags');
+    const fieldsWithGeoTags = (sourceFragment.fields || []).filter((field) => field.name !== 'pznTags');
     const mergedPznTags = [...new Set([...preservedPznTags, ...geoTags])];
     if (mergedPznTags.length) {
         fieldsWithGeoTags.push({ name: 'pznTags', type: 'tag', multiple: true, values: mergedPznTags });

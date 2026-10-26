@@ -256,6 +256,16 @@
         return [...seen.values()];
     }
 
+    function groupBy(items, keyOf) {
+        const groups = new Map();
+        items.forEach((item) => {
+            const key = keyOf(item);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(item);
+        });
+        return [...groups.values()];
+    }
+
     // A swap keyed by the empty field replaces the whole card.
     function joinFields(fields) {
         return [...new Set(fields.map((field) => field || 'whole card'))].join(', ');
@@ -271,11 +281,9 @@
 
     function mapSwapSteps(group, mepState) {
         const { normalizeField } = deps().mep;
-        const swaps = groupSwaps(group, mepState);
-        return uniqueBy(swaps, (swap) => swap.replacementId).map((first) => {
-            const fields = swaps
-                .filter((swap) => swap.replacementId === first.replacementId)
-                .map((swap) => normalizeField(swap.field));
+        return groupBy(groupSwaps(group, mepState), (swap) => swap.replacementId).map((swaps) => {
+            const [first] = swaps;
+            const fields = swaps.map((swap) => normalizeField(swap.field));
             return swapStep(fields, first.replacementId, first.manifestId);
         });
     }
@@ -289,18 +297,17 @@
     // Swapped entries the map does not list (known only from mas-overrides) still show their swap.
     function unmappedSwapSteps(entries, mepState) {
         const swapped = entries.filter((entry) => entry.swapped && !mapExplains(entry, mepState));
-        return uniqueBy(swapped, (entry) => entry.requestedId).map((first) => {
-            const fields = swapped.filter((entry) => entry.requestedId === first.requestedId).map((entry) => entry.field);
-            return swapStep(fields, first.requestedId, null);
+        return groupBy(swapped, (entry) => entry.requestedId).map((group) => {
+            const fields = group.map((entry) => entry.field);
+            return swapStep(fields, group[0].requestedId, null);
         });
     }
 
     function ioMergeSteps(entries) {
         const merged = entries.filter((entry) => entry.ioMerged);
-        return uniqueBy(merged, (entry) => `${entry.variationId}|${entry.label}`).map((first) => {
-            const fields = merged
-                .filter((entry) => entry.variationId === first.variationId && entry.label === first.label)
-                .map((entry) => entry.field);
+        return groupBy(merged, (entry) => `${entry.variationId}|${entry.label}`).map((group) => {
+            const [first] = group;
+            const fields = group.map((entry) => entry.field);
             return `IO merges ${first.label} (${id8(first.variationId)}) into ${joinFields(fields)}`;
         });
     }
@@ -350,11 +357,9 @@
 
     function mepManifests(mepState) {
         if (!mepState) return [];
-        return uniqueBy(mepState.swaps, (swap) => swap.manifestId).map((first) => ({
-            manifestId: first.manifestId,
-            swaps: mepState.swaps
-                .filter((swap) => swap.manifestId === first.manifestId)
-                .map(({ authoredId, field, replacementId }) => ({ authoredId, field, replacementId })),
+        return groupBy(mepState.swaps, (swap) => swap.manifestId).map((swaps) => ({
+            manifestId: swaps[0].manifestId,
+            swaps: swaps.map(({ authoredId, field, replacementId }) => ({ authoredId, field, replacementId })),
         }));
     }
 

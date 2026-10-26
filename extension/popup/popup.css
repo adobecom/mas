@@ -491,3 +491,7 @@ body.spectrum--dark .card-list {
 .mas-trace-link:hover {
     text-decoration: underline;
 }
+
+.sources-legend {
+    padding: 0 16px 8px;
+}

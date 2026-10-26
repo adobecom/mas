@@ -652,6 +652,45 @@
     color: #f5d68a;
 }
 
+.mas-ext-legend {
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.mas-ext-legend summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.mas-ext-legend-list {
+    display: grid;
+    gap: 4px;
+    margin: 6px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mas-ext-legend-item {
+    display: grid;
+    grid-template-columns: 12px max-content 1fr;
+    align-items: center;
+    gap: 8px;
+}
+
+.mas-ext-legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.mas-ext-legend-label {
+    font-weight: 600;
+}
+
+.mas-ext-legend-note {
+    margin: 2px 0 0;
+}
+
 .mas-ext-panel.spectrum--dark .mas-ext-src-default {
     background: #2c3440;
     color: #e3e7ee;

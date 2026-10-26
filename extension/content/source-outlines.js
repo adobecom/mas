@@ -23,10 +23,7 @@
     }
 
     function allClasses() {
-        return [
-            BASE_CLASS,
-            ...['default', 'grouped', 'promo', 'locale', 'mask', 'failed', 'unknown'].map((name) => `${BASE_CLASS}-${name}`),
-        ];
+        return [BASE_CLASS, ...window.MASSourceLegend.SOURCES.map((name) => `${BASE_CLASS}-${name}`)];
     }
 
     function apply(element, entry, title) {

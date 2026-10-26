@@ -20,7 +20,7 @@ function fakeElement() {
 }
 
 // Runs popup.js against a fake popup DOM; reply decides what the tab's content script answers.
-async function openPopup({ tab = ADOBE_TAB, reply }) {
+async function openPopup({ tab = ADOBE_TAB, reply, stored = {} }) {
     const elements = new Map();
     const element = (key) => {
         if (!elements.has(key)) elements.set(key, fakeElement());
@@ -28,7 +28,7 @@ async function openPopup({ tab = ADOBE_TAB, reply }) {
     };
     const chrome = {
         runtime: { lastError: undefined },
-        storage: { local: { get: (keys, callback) => callback({}) } },
+        storage: { local: { get: (keys, callback) => callback(stored) } },
         tabs: {
             query: async () => [tab],
             sendMessage: (tabId, message, callback) => {
@@ -51,11 +51,16 @@ async function openPopup({ tab = ADOBE_TAB, reply }) {
             querySelectorAll: () => [],
         },
         MASPageTraceView: { bindPageTrace: () => ({ refresh: () => {} }) },
+        MASSourceLegend: require('../../utils/source-legend.js'),
     };
     sandbox.window = sandbox;
     runInContext(POPUP, createContext(sandbox), { filename: 'popup.js' });
     for (let tick = 0; tick < 10; tick++) await new Promise(setImmediate);
-    return { hint: element('#noCards .hint').textContent, noCards: element('noCards').style.display };
+    return {
+        hint: element('#noCards .hint').textContent,
+        noCards: element('noCards').style.display,
+        legend: element('sourcesLegend'),
+    };
 }
 
 const UNREACHABLE = { lastError: { message: 'Could not establish connection. Receiving end does not exist.' } };
@@ -74,4 +79,16 @@ test('a non-Adobe tab still asks for an Adobe page', async () => {
         popup.hint,
         'Open an Adobe page with merch cards (e.g. adobe.com/creativecloud/plans.html) and reopen this popup.',
     );
+});
+
+const NO_CARDS = { response: { success: true, cards: [] } };
+
+test('the color key stays hidden while Show sources is off', async () => {
+    const { legend } = await openPopup({ reply: () => NO_CARDS });
+    assert.equal(legend.hidden, true);
+});
+
+test('the color key shows, open, while Show sources is on', async () => {
+    const { legend } = await openPopup({ reply: () => NO_CARDS, stored: { masShowSources: true } });
+    assert.deepEqual([legend.hidden, legend.innerHTML.startsWith('<details class="mas-ext-legend" open>')], [false, true]);
 });

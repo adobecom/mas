@@ -93,13 +93,22 @@ async function toggleExtensionEnabled(enabled) {
     });
 }
 
+// The page outlines appear only while Show sources is on, so their color key does too.
+function showSourcesLegend(enabled) {
+    document.getElementById('sourcesLegend').hidden = !enabled;
+}
+
 function loadShowSources() {
+    document.getElementById('sourcesLegend').innerHTML = window.MASSourceLegend.renderSourceLegend({ open: true });
     chrome.storage.local.get(['masShowSources'], (result) => {
-        document.getElementById('sourcesToggle').checked = result.masShowSources === true;
+        const enabled = result.masShowSources === true;
+        document.getElementById('sourcesToggle').checked = enabled;
+        showSourcesLegend(enabled);
     });
 }
 
 async function toggleShowSources(enabled) {
+    showSourcesLegend(enabled);
     await chrome.storage.local.set({ masShowSources: enabled });
 
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });

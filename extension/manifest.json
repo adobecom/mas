@@ -30,6 +30,7 @@
                 "utils/mep-state.js",
                 "utils/merge-mirror.js",
                 "utils/source-engine.js",
+                "utils/source-legend.js",
                 "content/sources.js",
                 "content/source-outlines.js",
                 "content/overlay.js",

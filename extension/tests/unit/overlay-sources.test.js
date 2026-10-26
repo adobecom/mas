@@ -4,13 +4,14 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { createContext, runInContext, runInNewContext } = require('node:vm');
 const escape = require('../../utils/escape.js');
+const legend = require('../../utils/source-legend.js');
 const F = require('./fixtures/homepage-cc-lapsed.js');
 
 const source = readFileSync(resolve(__dirname, '../../content/overlay.js'), 'utf8');
 const empty = { groupKey: null, entries: [], mixed: false, focusField: null };
 
 function createOverlay() {
-    const window = { MASEscape: escape };
+    const window = { MASEscape: escape, MASSourceLegend: legend };
     runInNewContext(source, { window, chrome: { runtime: {} } });
     return window.MASCardOverlay;
 }
@@ -62,7 +63,11 @@ test('a hostile promotion title stays escaped in its link', () => {
 
 test('clicking a source link opens its target in Studio', () => {
     const opened = [];
-    const window = { MASEscape: escape, MASStudioLinker: { openLink: (dataset) => opened.push(dataset) } };
+    const window = {
+        MASEscape: escape,
+        MASSourceLegend: legend,
+        MASStudioLinker: { openLink: (dataset) => opened.push(dataset) },
+    };
     runInNewContext(source, { window, chrome: { runtime: {} } });
     const link = fakeLink({ fragmentId: F.PROMO_VAR });
     const { panel } = createPanel([link]);
@@ -84,7 +89,7 @@ test('warns when the card mixes sources', () => {
 });
 
 test('does not warn for a single-source card', () => {
-    assert.doesNotMatch(overlay.contentSourcesHtml({ ...F.result, mixed: false }), /mixes sources/);
+    assert.doesNotMatch(overlay.contentSourcesHtml({ ...F.result, mixed: false }), /mas-ext-src-warning/);
 });
 
 test('escapes a hostile manifest name and field name', () => {
@@ -206,4 +211,13 @@ test('a failed fragment-details fetch clears the variation loading placeholder',
     overlay.overlays.set('o6', { panel, cardData: { sourceFragmentId: F.AUTHORED, locale: 'en_US', country: 'US' } });
     overlay.loadFragmentDetails('o6');
     assert.equal(content.innerHTML, '');
+});
+
+test('the content sources section ends with the color key, collapsed', () => {
+    const html = overlay.contentSourcesHtml(F.result);
+    assert.ok(html.endsWith(legend.renderSourceLegend()));
+});
+
+test('a source the legend does not know is shown as unknown', () => {
+    assert.equal(overlay.sourceClass('something-new'), 'unknown');
 });

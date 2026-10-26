@@ -4,6 +4,7 @@ const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { runInNewContext } = require('node:vm');
 
+const legend = require('../../utils/source-legend.js');
 const outlineSource = readFileSync(resolve(__dirname, '../../content/source-outlines.js'), 'utf8');
 const overlaySource = readFileSync(resolve(__dirname, '../../content/overlay.js'), 'utf8');
 
@@ -67,6 +68,7 @@ function createFixture({ priorTitle, cardEntries } = {}) {
     ];
     const groupOf = (overlayId) => groups.find((group) => group.overlayIds.includes(overlayId));
     const window = {
+        MASSourceLegend: legend,
         MASCardDetector: { getCardByFragmentId: (id) => cards[id] },
         MASSources: {
             getPageGroups: async () => groups,

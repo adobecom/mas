@@ -530,8 +530,7 @@ class CardOverlay {
     }
 
     sourceClass(source) {
-        const known = ['default', 'grouped', 'promo', 'locale', 'mask', 'failed'];
-        return known.includes(source) ? source : 'unknown';
+        return window.MASSourceLegend.SOURCES.includes(source) ? source : 'unknown';
     }
 
     // The background looks a promotion up by its variation folder name, else by the title IO stamped.
@@ -581,7 +580,7 @@ class CardOverlay {
       </div>`;
             })
             .join('');
-        return `${warning}<div class="mas-ext-src-table">${rows}</div>`;
+        return `${warning}<div class="mas-ext-src-table">${rows}</div>${window.MASSourceLegend.renderSourceLegend()}`;
     }
 
     renderContentSources(overlayId, result) {

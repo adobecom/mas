@@ -1,7 +1,8 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
 import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../locales.js';
+import { resolveCommerceCountries } from '../locales.js';
+import { resolveOfferInfos } from './offer.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -32,26 +33,29 @@ async function resolveRequestInfos(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
-    const fixedCountry = restrictCountryToLocaleMarket(surface, locale, country);
-    const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+    const { requestedSurface } = initContext;
+    if (requestedSurface && requestedSurface !== surface) {
+        return { status: 404, message: `fragment ${id} not found on surface '${requestedSurface}'` };
+    }
     return {
         status: 200,
         body: response.body,
         parsedLocale,
         surface,
         fragmentPath,
-        country: fixedCountry,
-        wcsCountry,
+        ...resolveCommerceCountries(surface, locale, country),
     };
 }
 
 /**
  * First fragment fetch + path parse. Result is `promises.fetchFragment` (and `promises.requestInfos`).
  * Default-language variation + region locale run in the `defaultLanguage` transformer (before promotions).
+ * Without a fragment `id`, the main body is an offer/template baseline resolved by the `offer` transformer
+ * (see {@link resolveOfferInfos}), whose promise is shared as the `offer` init result.
  */
 function init(initContext) {
     const { promises } = initContext;
-    const requestInfosPromise = resolveRequestInfos(initContext);
+    const requestInfosPromise = initContext.id ? resolveRequestInfos(initContext) : resolveOfferInfos(initContext);
     if (promises) {
         promises.requestInfos = requestInfosPromise;
     }

@@ -49,4 +49,15 @@ function odinUrl(surface, { locale, fragmentPath, preview }) {
     return `${root}?path=${MAS_ROOT}/${surface}/${locale}/${fragmentPath}`;
 }
 
-export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, REFERENCES, odinUrl, odinId, odinReferences };
+/**
+ * builds a fetchable url listing (recursively) the fragments of a folder
+ * @param {string} folder full path of the folder
+ * @param {*} options.preview preview object if to be used
+ * @param {number} options.limit page size
+ * @param {string} options.cursor cursor of the page to fetch, if not the first one
+ */
+function odinFolder(folder, { preview, limit, cursor }) {
+    return `${rootURL(preview)}/?path=${folder}&limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`;
+}
+
+export { PATH_TOKENS, FRAGMENT_URL_PREFIX, MAS_ROOT, REFERENCES, odinUrl, odinId, odinReferences, odinFolder };

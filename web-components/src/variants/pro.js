@@ -33,6 +33,19 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
+// Both forms `replace` can leave behind: the bare key (key missing) or the raw token (no dictionary).
+const UNRESOLVED_TOGGLE_LABELS = [
+    'see-whats-included',
+    '{{see-whats-included}}',
+];
+
+// A hidden CTA has no box, so only visible ones count as wrapped.
+const hasWrappedCtas = (card) =>
+    new Set(
+        [...card.querySelectorAll('[slot="footer"] a, [slot="footer"] button')]
+            .filter((cta) => cta.getClientRects().length)
+            .map((cta) => Math.round(cta.getBoundingClientRect().top)),
+    ).size > 1;
 
 export const PRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -176,12 +189,14 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">; English
-        // fallback covers fragments authored before the label existed.
+        const authored = this.card
+            .querySelector('[slot="whats-included"] .whats-included-label')
+            ?.textContent.trim();
+        const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
-            this.card
-                .querySelector('[slot="whats-included"] .whats-included-label')
-                ?.textContent.trim() || "See what's included:"
+            authored ||
+            (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
+            ''
         );
     }
 
@@ -359,6 +374,9 @@ export class Pro extends VariantLayout {
             row.forEach((card) => this.clearSyncedHeights(card));
             // A lone card has nothing to match, so it keeps its natural height.
             if (row.length < 2) continue;
+            // A wrapped CTA stacks every card in the row so the buttons line up.
+            const stack = row.some(hasWrappedCtas);
+            row.forEach((card) => card.toggleAttribute('stacked', stack));
             // Reserve first — it grows the price block everything below measures.
             // A per-card shortfall covers short, wrapped and missing strikes alike.
             const strikes = row.map((card) =>
@@ -397,6 +415,7 @@ export class Pro extends VariantLayout {
     }
 
     clearSyncedHeights(card) {
+        card.removeAttribute('stacked');
         card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
         card.style.removeProperty(STRIKE_RESERVE_PROP);
         SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
@@ -500,7 +519,10 @@ export class Pro extends VariantLayout {
     // placeholders, resolved per locale). No "|" → unchanged for every quantity;
     // pluralization is never derived in code (appending "s" breaks most locales).
     licenseLabel(count) {
-        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const title =
+            this.quantitySelectEl?.getAttribute('title') ||
+            this.card.placeholders?.licenseLabel ||
+            '';
         const [singular, plural] = title.split('|').map((s) => s.trim());
         return Number(count) === 1 ? singular : plural || singular;
     }
@@ -686,15 +708,26 @@ export class Pro extends VariantLayout {
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
         const label = this.licenseLabel(Number(current));
+        // The card title tells each card's dropdown apart. The title lives in
+        // light DOM, so a hidden copy in this shadow root is what gets referenced.
+        const product = this.card.title;
+        const labelledBy = product
+            ? 'license-select-product license-select-label'
+            : 'license-select-label';
         return html`
             <div class="license-select" ?data-open=${open}>
+                ${product
+                    ? html`<span id="license-select-product" hidden
+                          >${product}</span
+                      >`
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -718,7 +751,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}
@@ -1010,6 +1043,8 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) footer ::slotted([slot='footer']) {
             display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
             gap: 8px;
             flex: 1;
         }

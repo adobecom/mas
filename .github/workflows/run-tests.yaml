@@ -35,6 +35,9 @@ jobs:
             - name: Run the tests
               run: xvfb-run -a npm test
 
+            - name: Run the .github script tests
+              run: node --test ".github/scripts/*.test.mjs"
+
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v5
               continue-on-error: true

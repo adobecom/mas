@@ -4,6 +4,7 @@ import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
+import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/offer.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
@@ -33,6 +34,7 @@ describe('pipeline end to end', () => {
         resetCache();
         clearSettingsCache();
         clearPromoCache();
+        clearBaselineCache();
     });
 
     afterEach(() => {
@@ -52,6 +54,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.body.placeholders.countdownTimerText).to.equal('countdown-timer-text');
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
@@ -898,6 +901,319 @@ describe('pipeline end to end', () => {
             expect(result.body.fields.description.value).to.include('countdown-timer');
             expect(result.body.cdtStart).to.be.undefined;
             expect(result.body.cdtEnd).to.be.undefined;
+        });
+    });
+    describe('collection of plans cards on one product with offer & fragment baselines (ADR CONT-0005)', () => {
+        const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
+        const PA = 'phsp_direct_individual';
+        const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+        const OFFER_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy';
+        const PLAN_TYPES = {
+            ABM: { commitment: 'YEAR', term: 'MONTHLY' },
+            PUF: { commitment: 'YEAR', term: 'ANNUAL' },
+            M2M: { commitment: 'MONTH', term: 'MONTHLY' },
+        };
+        const price = (osi) => `<span is="inline-price" data-template="price" data-wcs-osi="${osi}"></span>`;
+        // one card per market segment & plan type, each overriding its own fields over the baselines
+        const CARDS = [
+            { segment: 'COM', planType: 'ABM', overrides: { badge: 'Best value' } },
+            { segment: 'COM', planType: 'PUF', overrides: { callout: '<p>Pay upfront and save</p>' } },
+            { segment: 'COM', planType: 'M2M', overrides: { shortDescription: '<p>Cancel anytime</p>' } },
+            { segment: 'EDU', planType: 'ABM', overrides: { cardTitle: 'Photoshop for students and teachers' } },
+            {
+                segment: 'EDU',
+                planType: 'PUF',
+                overrides: { cardTitle: 'Photoshop for students and teachers', badge: 'Save 60%' },
+            },
+            {
+                segment: 'EDU',
+                planType: 'M2M',
+                overrides: { description: '<p>Student pricing, cancel anytime.</p>' },
+            },
+        ].map(({ segment, planType, overrides }) => {
+            const id = `phsp-${segment}-${planType}`.toLowerCase();
+            const osi = `osi-${id}`;
+            return {
+                id,
+                osi,
+                segment,
+                planType,
+                overrides,
+                fragment: {
+                    id,
+                    path: `/content/dam/mas/sandbox/en_US/photoshop/${id}`,
+                    model: { id: CARD_MODEL_ID },
+                    fields: {
+                        variant: 'plans',
+                        osi,
+                        prices: price(osi),
+                        tags: [`mas:market_segments/${segment.toLowerCase()}`, `mas:plan_type/${planType.toLowerCase()}`],
+                        ...overrides,
+                    },
+                },
+                resolvedOffer: {
+                    offerSelectorIds: [osi],
+                    productArrangementCode: PA,
+                    customerSegment: 'INDIVIDUAL',
+                    marketSegments: [segment],
+                    offerType: 'BASE',
+                    ...PLAN_TYPES[planType],
+                },
+            };
+        });
+        const COLLECTION = {
+            id: 'photoshop-plans-collection',
+            path: '/content/dam/mas/sandbox/en_US/photoshop/plans-collection',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
+            references: Object.fromEntries(
+                CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
+            ),
+            referencesTree: CARDS.map(({ id }) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        const OFFER_BASELINE = {
+            id: 'phsp-offer-baseline',
+            path: `/content/dam/mas/offers/en_US/baselines/${PA}/baseline`,
+            model: { id: OFFER_MODEL_ID },
+            fields: {
+                name: 'Photoshop',
+                description: 'Creative Cloud single-app membership for Photoshop',
+                icons: ['https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/ps_appicon_256x256.svg'],
+                paCode: PA,
+            },
+        };
+        const FRAGMENT_BASELINE = {
+            id: 'phsp-plans-baseline',
+            path: `/content/dam/mas/sandbox/en_US/baselines/plans/${PA}/baseline`,
+            model: { id: CARD_MODEL_ID },
+            fields: {
+                variant: 'plans',
+                cardTitle: 'Photoshop',
+                mnemonicIcon: ['https://www.adobe.com/cc-shared/assets/img/product-icons/svg/photoshop.svg'],
+                description: '<p>Create gorgeous images, rich graphics, and incredible art.</p>',
+                shortDescription: '<p>Includes 100GB of cloud storage</p>',
+                ctas: '<a href="https://www.adobe.com/products/photoshop.html">Learn more</a>',
+                variations: ['ignored-baseline-variation'],
+            },
+        };
+        const offerSelectorIds = (url) =>
+            typeof url === 'string' && url.includes('web_commerce_artifact')
+                ? new URL(url).searchParams.get('offer_selector_ids')
+                : null;
+        const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
+        let state;
+        const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
+
+        beforeEach(() => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub.withArgs(`${ODIN}/${COLLECTION.id}?references=all-hydrated`).returns(createResponse(200, COLLECTION));
+            for (const { osi, resolvedOffer } of CARDS) {
+                fetchStub
+                    .withArgs(sinon.match((url) => offerSelectorIds(url) === osi))
+                    .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
+            }
+            state = new MockState();
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
+            fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: [FRAGMENT_BASELINE] }));
+        });
+
+        it('layers offer baseline < plans baseline < card overrides for each of the 6 cards', async () => {
+            const result = await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.id).to.equal(COLLECTION.id);
+            expect(result.body.fields.cards).to.deep.equal(CARDS.map(({ id }) => id));
+            for (const { id, osi, segment, planType, overrides } of CARDS) {
+                const card = result.body.references[id].value;
+                const label = `${segment} ${planType}`;
+                expect(card.offerBaselineId, label).to.equal(OFFER_BASELINE.id);
+                expect(card.fragmentBaselineId, label).to.equal(FRAGMENT_BASELINE.id);
+                // offer baseline fields are mapped to card fields (cardTitle, mnemonicIcon), the others dropped
+                expect(card.fields, label).to.not.have.any.keys('name', 'paCode', 'icons');
+                // the plans baseline sets its own icon: the offer baseline's alt text, describing its icon, is dropped
+                expect(card.fields.mnemonicAlt, label).to.be.undefined;
+                expect(card.fields, label).to.deep.include({
+                    // plans baseline, over the offer baseline (cardTitle, mnemonicIcon) unless the card overrides it
+                    variant: 'plans',
+                    cardTitle: FRAGMENT_BASELINE.fields.cardTitle,
+                    mnemonicIcon: FRAGMENT_BASELINE.fields.mnemonicIcon,
+                    description: FRAGMENT_BASELINE.fields.description,
+                    shortDescription: FRAGMENT_BASELINE.fields.shortDescription,
+                    ctas: FRAGMENT_BASELINE.fields.ctas,
+                    // card's own fields
+                    osi,
+                    prices: price(osi),
+                    ...overrides,
+                });
+                // baselines' variations never leak into cards
+                expect(card.fields.variations, label).to.be.undefined;
+                expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([
+                    CARDS.find((c) => c.osi === osi).resolvedOffer,
+                ]);
+            }
+            const EDU_ABM = result.body.references['phsp-edu-abm'].value;
+            expect(EDU_ABM.fields.badge).to.be.undefined;
+            expect(result.body.references['phsp-com-abm'].value.fields.cardTitle).to.equal('Photoshop');
+        });
+
+        it('requests each offer, the offer baseline and the plans baselines once', async () => {
+            await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            for (const { osi } of CARDS) {
+                const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
+                expect(calls, osi).to.have.length(1);
+            }
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
+            expect(callsTo(PLANS_LISTING)).to.have.length(1);
+        });
+    });
+    describe('collection of plans cards on 3 products & 3 plan types with offer & fragment baselines (ADR CONT-0005)', () => {
+        const ODIN = 'https://odin.adobe.com/adobe/contentFragments';
+        const COLLECTION_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NvbGxlY3Rpb24';
+        const OFFER_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL29mZmVy';
+        const PLAN_TYPES = {
+            ABM: { commitment: 'YEAR', term: 'MONTHLY' },
+            PUF: { commitment: 'YEAR', term: 'ANNUAL' },
+            M2M: { commitment: 'MONTH', term: 'MONTHLY' },
+        };
+        const PRODUCTS = [
+            { key: 'phsp', pa: 'phsp_direct_individual', name: 'Photoshop', icon: 'ps' },
+            { key: 'ilst', pa: 'ilst_direct_individual', name: 'Illustrator', icon: 'ai' },
+            { key: 'ppro', pa: 'ppro_direct_individual', name: 'Premiere Pro', icon: 'pr' },
+        ].map((product) => ({
+            ...product,
+            offerBaseline: {
+                id: `${product.key}-offer-baseline`,
+                path: `/content/dam/mas/offers/en_US/baselines/${product.pa}/baseline`,
+                model: { id: OFFER_MODEL_ID },
+                fields: {
+                    name: product.name,
+                    description: `Creative Cloud single-app membership for ${product.name}`,
+                    icons: [`https://mcs.odin.adobe.com/content/dam/mcs/en/icons/raw/svg/${product.icon}_appicon_256x256.svg`],
+                    paCode: product.pa,
+                },
+            },
+            fragmentBaseline: {
+                id: `${product.key}-plans-baseline`,
+                path: `/content/dam/mas/sandbox/en_US/baselines/plans/${product.pa}/baseline`,
+                model: { id: CARD_MODEL_ID },
+                fields: {
+                    variant: 'plans',
+                    cardTitle: product.name,
+                    description: `<p>${product.name} plans description.</p>`,
+                    ctas: `<a href="https://www.adobe.com/products/${product.key}.html">Learn more</a>`,
+                    variations: ['ignored-baseline-variation'],
+                },
+            },
+        }));
+        const PLAN_OVERRIDES = {
+            ABM: { badge: 'Best value' },
+            PUF: { callout: '<p>Pay upfront and save</p>' },
+            M2M: { shortDescription: '<p>Cancel anytime</p>' },
+        };
+        const CARDS = PRODUCTS.flatMap((product) =>
+            Object.keys(PLAN_TYPES).map((planType) => {
+                const id = `${product.key}-${planType}`.toLowerCase();
+                const osi = `osi-${id}`;
+                return {
+                    id,
+                    osi,
+                    product,
+                    planType,
+                    overrides: PLAN_OVERRIDES[planType],
+                    fragment: {
+                        id,
+                        path: `/content/dam/mas/sandbox/en_US/plans/${id}`,
+                        model: { id: CARD_MODEL_ID },
+                        fields: {
+                            variant: 'plans',
+                            osi,
+                            tags: [`mas:plan_type/${planType.toLowerCase()}`],
+                            ...PLAN_OVERRIDES[planType],
+                        },
+                    },
+                    resolvedOffer: {
+                        offerSelectorIds: [osi],
+                        productArrangementCode: product.pa,
+                        customerSegment: 'INDIVIDUAL',
+                        marketSegments: ['COM'],
+                        offerType: 'BASE',
+                        ...PLAN_TYPES[planType],
+                    },
+                };
+            }),
+        );
+        const COLLECTION = {
+            id: 'cc-single-apps-plans-collection',
+            path: '/content/dam/mas/sandbox/en_US/plans/single-apps-collection',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { enableBaselines: true, cards: CARDS.map(({ id }) => id) },
+            references: Object.fromEntries(
+                CARDS.map(({ id, fragment }) => [id, { type: 'content-fragment', value: fragment }]),
+            ),
+            referencesTree: CARDS.map(({ id }) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        const offerSelectorIds = (url) =>
+            typeof url === 'string' && url.includes('web_commerce_artifact')
+                ? new URL(url).searchParams.get('offer_selector_ids')
+                : null;
+        const callsTo = (url) => fetchStub.getCalls().filter(({ args: [called] }) => called === url);
+        let state;
+        const PLANS_LISTING = `${ODIN}/?path=/content/dam/mas/sandbox/en_US/baselines/plans&limit=50`;
+
+        beforeEach(() => {
+            setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+            fetchStub.withArgs(`${ODIN}/${COLLECTION.id}?references=all-hydrated`).returns(createResponse(200, COLLECTION));
+            for (const { osi, resolvedOffer } of CARDS) {
+                fetchStub
+                    .withArgs(sinon.match((url) => offerSelectorIds(url) === osi))
+                    .returns(createResponse(200, { resolvedOffers: [resolvedOffer] }));
+            }
+            state = new MockState();
+            const offerBaselines = Object.fromEntries(PRODUCTS.map(({ pa, offerBaseline }) => [pa, offerBaseline]));
+            fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, offerBaselines));
+            const fragmentBaselines = PRODUCTS.map(({ fragmentBaseline }) => fragmentBaseline);
+            fetchStub.withArgs(PLANS_LISTING).returns(createResponse(200, { items: fragmentBaselines }));
+        });
+
+        it('layers each product offer baseline < its plans baseline < card overrides for the 9 cards', async () => {
+            const result = await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.fields.cards).to.deep.equal(CARDS.map(({ id }) => id));
+            for (const { id, osi, product, planType, overrides, resolvedOffer } of CARDS) {
+                const card = result.body.references[id].value;
+                const label = `${product.name} ${planType}`;
+                const { offerBaseline, fragmentBaseline } = product;
+                expect(card.offerBaselineId, label).to.equal(offerBaseline.id);
+                expect(card.fragmentBaselineId, label).to.equal(fragmentBaseline.id);
+                expect(card.fields, label).to.deep.include({
+                    // offer baseline: the plans baseline defines no icon
+                    mnemonicIcon: [offerBaseline.fields.icons[0]],
+                    mnemonicAlt: [offerBaseline.fields.name],
+                    variant: 'plans',
+                    cardTitle: fragmentBaseline.fields.cardTitle,
+                    description: fragmentBaseline.fields.description,
+                    ctas: fragmentBaseline.fields.ctas,
+                    osi,
+                    ...overrides,
+                });
+                expect(card.fields.variations, label).to.be.undefined;
+                for (const [otherPlanType, otherOverrides] of Object.entries(PLAN_OVERRIDES)) {
+                    if (otherPlanType === planType) continue;
+                    for (const field of Object.keys(otherOverrides)) {
+                        expect(card.fields[field], `${label} ${field}`).to.be.undefined;
+                    }
+                }
+                expect(result.body.wcs.prod[`${osi}-us-mult`], label).to.deep.equal([resolvedOffer]);
+            }
+        });
+
+        it('requests each of the 9 offers, the offer baselines and the plans baselines once', async () => {
+            await getFragment({ id: COLLECTION.id, state, locale: 'en_US' });
+            for (const { osi } of CARDS) {
+                const calls = fetchStub.getCalls().filter(({ args: [url] }) => offerSelectorIds(url) === osi);
+                expect(calls, osi).to.have.length(1);
+            }
+            expect(callsTo(offersUrl('en_US'))).to.have.length(1);
+            expect(callsTo(PLANS_LISTING)).to.have.length(1);
         });
     });
 });

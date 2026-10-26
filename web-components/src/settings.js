@@ -13,7 +13,19 @@ import { Env, CheckoutWorkflow, CheckoutWorkflowStep } from './constants.js';
 import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 
 import { toQuantity } from './utilities.js';
-import { isAllowedMasIOUrl } from './utils.js';
+import { resolveMasIOUrl } from './utils.js';
+
+const isAupSelectEnabled = (value) =>
+    value != null && value !== 'off' && value !== 'false';
+
+export const getAupSelect = (service) =>
+    isAupSelectEnabled(
+        getParameter(
+            'aup-select',
+            { 'aup-select': service.getAttribute('aup-select') },
+            { search: true, storage: false },
+        ),
+    );
 
 const PREVIEW_REGISTERED_SURFACE = {
     'wcms-commerce-ims-ro.+': 'acom',
@@ -124,21 +136,15 @@ function getSettings(config = {}, service) {
         previewParam !== 'false';
     let previewSettings = {};
     if (preview) previewSettings = { preview };
-    const masIOUrlParam = getParameter('mas-io-url') ?? config.masIOUrl;
-    const masIOUrl = isAllowedMasIOUrl(masIOUrlParam)
-        ? masIOUrlParam
-        : `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
+    const masIOUrl =
+        resolveMasIOUrl(getParameter('mas-io-url') ?? config.masIOUrl) ??
+        `https://www${env === Env.STAGE ? '.stage' : ''}.adobe.com/mas/io`;
     const preselectPlan = getParameter('preselect-plan') ?? undefined;
     const instant = getParameter('instant') ?? config.instant;
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
-        aupSelect:
-            getParameter(
-                'aup-select',
-                { 'aup-select': service.getAttribute('aup-select') },
-                { search: true, storage: false },
-            ) === 'on',
+        aupSelect: getAupSelect(service),
         displayOldPrice,
         checkoutClientId,
         checkoutWorkflowStep,

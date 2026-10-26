@@ -3,6 +3,7 @@ import { Fragment } from './aem/fragment.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
+import { canEditPromotions, canManagePromotions } from './groups.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import {
@@ -11,6 +12,7 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
+    PROMOTION_MODEL_ID,
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
@@ -48,6 +50,9 @@ import { getCountryName, getDefaultLocaleCode, getLocaleByCode } from '../../io/
 import { normalizePznTagToLocaleCode } from './editors/variation-utils.js';
 import Events from './events.js';
 import { branch2Icon } from './icons.js';
+
+const LOCALE_VARIATION_DEPRECATION_MESSAGE =
+    'Local variations are deprecated in favour of Grouped Variation. Locale variation will show up as usual until they are migrated. If you can, migrate this variation to become a Grouped variation';
 
 // Preview locale codes from the fragment's pznTags — country tags map to the surface locale so
 // they stay in sync with the grouped-preview selector (shared normalizer, see variation-utils).
@@ -185,6 +190,14 @@ export default class MasFragmentEditor extends LitElement {
             gap: 0;
             padding-bottom: 0;
             overflow: hidden;
+        }
+
+        #editor-content.full-width-content {
+            grid-template-columns: 1fr;
+        }
+
+        #editor-content.full-width-content #form-column {
+            padding-right: 0;
         }
 
         #form-column {
@@ -426,6 +439,24 @@ export default class MasFragmentEditor extends LitElement {
             color: var(--spectrum-global-color-yellow-700);
         }
 
+        .locale-variation-deprecation-notice {
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            background: var(--spectrum-yellow-100, var(--spectrum-global-color-yellow-100));
+            border: 2px solid var(--spectrum-yellow-400, var(--spectrum-global-color-yellow-400));
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
+        }
+
+        .locale-variation-deprecation-notice-icon {
+            flex-shrink: 0;
+            color: var(--spectrum-yellow-900, var(--spectrum-global-color-yellow-700));
+        }
+
         #orphan-grouped-variation-panel {
             align-self: anchor-center;
             background: var(--spectrum-global-color-red-100);
@@ -607,6 +638,8 @@ export default class MasFragmentEditor extends LitElement {
         Store.promotions.inEdit,
         Store.search,
         Store.filters,
+        Store.profile,
+        Store.users,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
@@ -849,6 +882,13 @@ export default class MasFragmentEditor extends LitElement {
         return this.fragment?.model?.path === COLLECTION_MODEL_PATH && hasNonEmptyCompareChart(this.fragment);
     }
 
+    /** Collections without a related-variations preview column (i.e. not grouped variations) render full width. */
+    get #isFullWidthContent() {
+        if (this.isCompareChart) return false;
+        if (this.fragment?.model?.path !== COLLECTION_MODEL_PATH) return false;
+        return this.previewColumn === nothing;
+    }
+
     get fragmentStore() {
         return this.inEdit.get();
     }
@@ -1023,6 +1063,8 @@ export default class MasFragmentEditor extends LitElement {
             this.operation,
             Store.search,
             Store.filters,
+            Store.profile,
+            Store.users,
         ]);
     }
 
@@ -1280,6 +1322,7 @@ export default class MasFragmentEditor extends LitElement {
     async initFragment() {
         const fragmentId = this.fragmentId;
         this.#pendingPromoRefresh = null;
+        this.variationsToDelete = [];
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1490,18 +1533,6 @@ export default class MasFragmentEditor extends LitElement {
         await router.navigateToFragmentEditor(this.localeDefaultFragment.id);
     }
 
-    getFragmentEditorUrl(fragmentId) {
-        // Preserve the current path parameter from the URL
-        const currentParams = new URLSearchParams(window.location.hash.slice(1));
-        const path = currentParams.get('path');
-
-        let url = `#page=fragment-editor&fragmentId=${fragmentId}`;
-        if (path) {
-            url += `&path=${path}`;
-        }
-        return url;
-    }
-
     promptDiscardChanges() {
         if (this.#pendingDiscardPromise) {
             return this.#pendingDiscardPromise;
@@ -1552,7 +1583,16 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canDeleteFragment() {
+        return canManagePromotions() || !this.isPromoVariationFragment();
+    }
+
     async deleteFragment() {
+        this.variationsToDelete = [];
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         const isVariation = this.editorContextStore.isVariation(this.fragment.id);
         if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
             if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
@@ -1570,10 +1610,18 @@ export default class MasFragmentEditor extends LitElement {
         } else {
             this.variationsToDelete = [];
         }
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.showDeleteDialog = true;
     }
 
     async confirmDelete() {
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.deleteInProgress = true;
         showToast('Deleting fragment...');
         const wasPromoVariation = this.isPromoVariationFragment();
@@ -1618,12 +1666,25 @@ export default class MasFragmentEditor extends LitElement {
     cancelDelete() {
         if (this.deleteInProgress) return;
         this.showDeleteDialog = false;
+        this.variationsToDelete = [];
+    }
+
+    get isPromotionProject() {
+        return this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID);
+    }
+
+    get canDuplicateFragment() {
+        return !this.isPromotionProject || canManagePromotions();
     }
 
     async showClone() {
-        if (Store.editor.hasChanges) {
+        if (this.canDuplicateFragment && Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
+        }
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
@@ -1638,6 +1699,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async confirmClone() {
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         const osi = this.fragment.getFieldValue('osi', 0);
         if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
             showToast('Please select an offer', 'negative');
@@ -1674,9 +1739,6 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
-                migrateLegacyVariant(this.fragmentStore);
-            }
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -1684,6 +1746,17 @@ export default class MasFragmentEditor extends LitElement {
                 dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
                     (store) => store.get?.().hasChanges,
                 );
+            }
+            if (
+                (this.isPromoVariationFragment() ||
+                    dirtyCardFragmentStores.some((store) => isPromoVariationPath(store.get().path))) &&
+                !canEditPromotions()
+            ) {
+                showToast('You do not have permission to update promo variations.', 'negative');
+                return;
+            }
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                migrateLegacyVariant(this.fragmentStore);
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
@@ -1708,9 +1781,21 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canPublishFragment() {
+        if (this.isPromotionProject) {
+            return canManagePromotions();
+        }
+        return canEditPromotions() || !this.isPromoVariationFragment();
+    }
+
     async publishFragment() {
+        if (!this.canPublishFragment) {
+            showToast('You do not have permission to publish this content.', 'negative');
+            return;
+        }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
+            let publishOptions;
             if (refs.variations.length || refs.cards.length) {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
@@ -1729,19 +1814,21 @@ export default class MasFragmentEditor extends LitElement {
                     if (!resultStaged.confirmed) return;
                 }
 
-                await this.repository.publishFragment(this.fragment, {
+                publishOptions = {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,
-                });
-            } else {
-                if (this.fragment.isStaged) {
-                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-                    const resultStaged = await MasPublishStagedDialog.show();
-                    if (!resultStaged.confirmed) return;
-                }
-
-                await this.repository.publishFragment(this.fragment);
+                };
+            } else if (this.fragment.isStaged) {
+                const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                const resultStaged = await MasPublishStagedDialog.show();
+                if (!resultStaged.confirmed) return;
             }
+
+            if (!this.canPublishFragment) {
+                showToast('You do not have permission to publish this content.', 'negative');
+                return;
+            }
+            await this.repository.publishFragment(this.fragment, publishOptions);
         } catch (error) {
             console.error('Failed to publish fragment:', error);
             showToast(`Failed to publish fragment: ${error.message}`, 'negative');
@@ -1863,7 +1950,12 @@ export default class MasFragmentEditor extends LitElement {
                       `
                     : nothing}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelClone}"> Cancel </sp-button>
-                <sp-button slot="button" variant="accent" ?disabled=${this.cloneInProgress} @click="${this.confirmClone}">
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.cloneInProgress || !this.canDuplicateFragment}
+                    @click="${this.confirmClone}"
+                >
                     ${this.cloneInProgress
                         ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                         : html`Clone`}
@@ -1897,8 +1989,7 @@ export default class MasFragmentEditor extends LitElement {
             if (AemFragment?.cache) {
                 AemFragment.cache.add(copiedFragment);
             }
-            const viewPage = this.fragment?.model?.path === COLLECTION_MODEL_PATH;
-            router.navigateToFragmentEditor(copiedFragment.id, { viewPage });
+            router.navigateToFragmentEditor(copiedFragment.id);
         }
     }
 
@@ -1924,6 +2015,10 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;
+    }
+
+    get isPromoReadOnly() {
+        return this.isPromoVariationFragment() && !canEditPromotions();
     }
 
     isPromoVariationFragment() {
@@ -2034,6 +2129,21 @@ export default class MasFragmentEditor extends LitElement {
             return nothing;
         }
         return this.variationTypeHeader('locale-variation-header');
+    }
+
+    /** A deprecated locale (regional) variation: neither a promo nor a grouped variation. */
+    get isLocaleVariation() {
+        if (!this.fragment || this.isPromoVariationFragment()) return false;
+        if (Fragment.isGroupedVariationPath(this.fragment.path)) return false;
+        return this.editorContextStore.isVariation(this.fragment.id);
+    }
+
+    get localeVariationDeprecationNotice() {
+        if (!this.isLocaleVariation) return nothing;
+        return html`<div class="locale-variation-deprecation-notice" role="status">
+            <sp-icon-alert class="locale-variation-deprecation-notice-icon"></sp-icon-alert>
+            <span class="locale-variation-deprecation-notice-message">${LOCALE_VARIATION_DEPRECATION_MESSAGE}</span>
+        </div>`;
     }
 
     #handleGroupedPreviewLocaleChange = (event) => {
@@ -2227,8 +2337,11 @@ export default class MasFragmentEditor extends LitElement {
         }
 
         return html`
-            ${this.derivedFromContainer}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
+            ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
+            ${this.isPromoReadOnly
+                ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
+                : nothing}
+            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;
@@ -2419,7 +2532,14 @@ export default class MasFragmentEditor extends LitElement {
         return html`
             ${this.styles}
             <div id="fragment-editor" class=${this.isCompareChart ? 'compare-chart-editor' : ''}>
-                <div id="editor-content" class=${this.isCompareChart ? 'compare-chart-content' : ''}>
+                <div
+                    id="editor-content"
+                    class=${this.isCompareChart
+                        ? 'compare-chart-content'
+                        : this.#isFullWidthContent
+                          ? 'full-width-content'
+                          : ''}
+                >
                     <div id="form-column" class=${this.isCompareChart ? 'compare-chart-column' : ''}>
                         ${this.fragmentEditor}
                     </div>

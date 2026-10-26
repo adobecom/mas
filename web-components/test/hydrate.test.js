@@ -30,6 +30,7 @@ import {
     processBadge,
     processFeatures,
     normalizeVariant,
+    splitParagraphListItems,
 } from '../src/hydrate.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
@@ -251,6 +252,23 @@ describe('processCTAs', async () => {
         expect(link.getAttribute('data-replaced-osi')).to.equal('original-abm');
     });
 
+    const OUTLINE_FIRST =
+        '<a is="checkout-link" data-wcs-osi="a" class="primary-outline">Try</a><a is="checkout-link" data-wcs-osi="b" class="accent">Buy</a>';
+
+    ['pro', 'product-pricing', 'plans'].forEach((variant) => {
+        it(`should ${variant === 'plans' ? 'keep the authored CTA order' : 'put the filled CTA first'} on ${variant} cards`, async () => {
+            merchCard.consonant = true;
+            merchCard.variant = variant;
+
+            processCTAs({ ctas: OUTLINE_FIRST }, merchCard, aemFragmentMapping);
+
+            const [first] = getFooterElement(merchCard).children;
+            expect(first.classList.contains('blue')).to.equal(
+                variant !== 'plans',
+            );
+        });
+    });
+
     it('should preserve authored aria-label on consonant checkout links', async () => {
         merchCard.consonant = true;
         const fields = {
@@ -430,7 +448,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
 
         const footer = getFooterElement(merchCard);
         const item = footer.querySelector('.headless-cta-item');
-        expect(item.querySelector('strong a')).to.exist;
+        expect(item.querySelector('a.con-button.blue')).to.exist;
+        expect(item.querySelector('strong, em')).to.not.exist;
         expect(
             item.querySelector('.headless-cta-variant-label').textContent,
         ).to.equal('Primary');
@@ -444,7 +463,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
 
         const footer = getFooterElement(merchCard);
         const item = footer.querySelector('.headless-cta-item');
-        expect(item.querySelector('em a')).to.exist;
+        expect(item.querySelector('a.con-button.outline')).to.exist;
+        expect(item.querySelector('strong, em')).to.not.exist;
         expect(
             item.querySelector('.headless-cta-variant-label').textContent,
         ).to.equal('Secondary');
@@ -516,15 +536,95 @@ describe('processCTAs - headless CTA variant labels', async () => {
         expect(link.options.modal).to.be.ok;
     });
 
-    it('does not label CTAs that carry an authored style class, even on a headless card', async () => {
+    it('labels persisted variants on a headless card', async () => {
         merchCard.variant = 'headless';
         const fields = { ctas: '<a href="#" class="accent">Buy now</a>' };
 
         processCTAs(fields, merchCard, aemFragmentMapping);
 
         const footer = getFooterElement(merchCard);
-        expect(footer.querySelector('.headless-cta-item')).to.not.exist;
+        expect(footer.querySelector('.headless-cta-item')).to.exist;
+        expect(
+            footer.querySelector('.headless-cta-variant-label').textContent,
+        ).to.equal('Primary');
+        expect(footer.querySelector('a.con-button.blue')).to.exist;
     });
+
+    for (const variant of ['headless', 'marquee', 'banner-blade']) {
+        it(`hydrates persisted ${variant} variants in authored order, independently of formatting`, () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<strong><a class="secondary" href="/secondary" data-key="secondary">Secondary</a></strong>' +
+                    '<em><a class="primary" href="/primary" data-key="primary">Primary</a></em>' +
+                    '<strong><a class="secondary-link" href="/link" data-key="link">Link</a></strong>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping);
+            const links = [
+                ...getFooterElement(merchCard).querySelectorAll('a'),
+            ];
+            expect(links.map((link) => link.dataset.key)).to.deep.equal([
+                'secondary',
+                'primary',
+                'link',
+            ]);
+            expect(links[0].classList.contains('outline')).to.be.true;
+            expect(links[1].classList.contains('blue')).to.be.true;
+            expect(links[2].classList.contains('con-button')).to.be.false;
+            expect(links[0].querySelector('strong')).to.exist;
+            expect(links[1].querySelector('em')).to.exist;
+            expect(links[2].querySelector('strong')).to.exist;
+        });
+
+        it(`preserves ${variant} checkout options and CTA order after asynchronous resolution`, async () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<a class="secondary" data-key="trial" data-wcs-osi="stock-m2m-mult">Trial</a>' +
+                    '<a class="primary button-xl" data-key="buy" data-wcs-osi="abm" data-locked-osi="true" ' +
+                    'data-checkout-workflow-step="segmentation" data-modal="true" data-extra-options=\'{"promoid":"test"}\' ' +
+                    'aria-label="Buy Adobe" target="_blank" data-analytics-id="buy-now">Buy</a>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping);
+            const links = [
+                ...getFooterElement(merchCard).querySelectorAll('a'),
+            ];
+            await Promise.all(links.map((link) => link.onceSettled()));
+            expect(links.map((link) => link.dataset.key)).to.deep.equal([
+                'trial',
+                'buy',
+            ]);
+            expect(links[1].options.checkoutWorkflowStep).to.equal(
+                'segmentation',
+            );
+            expect(links[1].options.modal).to.be.ok;
+            expect(links[1].dataset.extraOptions).to.equal(
+                '{"promoid":"test"}',
+            );
+            expect(links[1].dataset.lockedOsi).to.equal('true');
+            expect(links[1].dataset.analyticsId).to.equal('buy-now');
+            expect(links[1].getAttribute('aria-label')).to.equal('Buy Adobe');
+            expect(links[1].getAttribute('target')).to.equal('_blank');
+            expect(links[1].classList.contains('button-xl')).to.be.true;
+        });
+
+        it(`continues filtering resolved trial checkout CTAs on ${variant} previews`, async () => {
+            merchCard.variant = variant;
+            const fields = {
+                ctas:
+                    '<a class="primary" data-wcs-osi="abm">Buy</a>' +
+                    '<a class="secondary" data-wcs-osi="stock-m2m-mult">Try</a>',
+            };
+            processCTAs(fields, merchCard, aemFragmentMapping, variant, {
+                hideTrialCTAs: true,
+            });
+            const footer = getFooterElement(merchCard);
+            const items = [...footer.children];
+            await Promise.all(items.map((item) => item.source.onceSettled()));
+            expect(footer.children).to.have.lengthOf(1);
+            expect(footer.querySelector('a').textContent).to.equal('Buy');
+        });
+    }
 
     it('does not label CTAs on variants outside the headless-style set', async () => {
         merchCard.variant = 'plans';
@@ -1077,6 +1177,92 @@ describe('hydrate', () => {
         expect(cardB.promotionCode).to.equal('PROMO_B');
         cardA.remove();
         cardB.remove();
+    });
+});
+
+describe('hydrate rendering mode (consonant vs spectrum)', () => {
+    let card;
+
+    const ctas = '<a href="#" class="accent">Buy now</a>';
+    const brandConciergeFragment = () => ({
+        id: 'bc-card',
+        fields: {
+            variant: 'brand-concierge-product',
+            cardTitle: 'Photoshop',
+            ctas,
+        },
+    });
+    const ccdSliceFragment = () => ({
+        id: 'ccd-slice-card',
+        fields: {
+            variant: 'ccd-slice',
+            mnemonicIcon: [],
+            mnemonicAlt: [],
+            mnemonicLink: [],
+            ctas,
+        },
+    });
+
+    const createCard = async (attributes = {}) => {
+        await customElements.whenDefined('merch-card');
+        card = document.createElement('merch-card');
+        for (const [name, value] of Object.entries(attributes)) {
+            card.setAttribute(name, value);
+        }
+        document.body.append(card);
+        return card;
+    };
+
+    const footerCta = () =>
+        card.querySelector('[slot="footer"]').firstElementChild;
+
+    afterEach(() => {
+        card.remove();
+    });
+
+    it('sets consonant from the metadata of a consonant variant', async () => {
+        await createCard();
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.getAttribute('consonant')).to.equal('true');
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(footerCta().classList.contains('con-button')).to.be.true;
+    });
+
+    it('leaves a non-consonant variant without consonant or spectrum attributes', async () => {
+        await createCard();
+        await hydrate(ccdSliceFragment(), card);
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
+    });
+
+    it('renders SWC CTAs for spectrum="swc" on a consonant variant', async () => {
+        await createCard({ spectrum: 'swc' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(card.getAttribute('spectrum')).to.equal('swc');
+        expect(footerCta().tagName).to.equal('SP-BUTTON');
+    });
+
+    it('renders Spectrum CSS CTAs for spectrum="css" on a consonant variant', async () => {
+        await createCard({ spectrum: 'css' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(card.hasAttribute('consonant')).to.be.false;
+        expect(footerCta().classList.contains('spectrum-Button')).to.be.true;
+    });
+
+    it('keeps an explicit consonant on a non-consonant variant', async () => {
+        await createCard({ consonant: '' });
+        await hydrate(ccdSliceFragment(), card);
+        expect(card.getAttribute('consonant')).to.equal('');
+        expect(card.hasAttribute('spectrum')).to.be.false;
+        expect(footerCta().classList.contains('con-button')).to.be.true;
+    });
+
+    it('lets an explicit consonant win over spectrum', async () => {
+        await createCard({ consonant: '', spectrum: 'swc' });
+        await hydrate(brandConciergeFragment(), card);
+        expect(footerCta().classList.contains('con-button')).to.be.true;
     });
 });
 
@@ -2056,6 +2242,70 @@ describe('merch-badge rendering', () => {
 
         host.remove();
         clone.remove();
+    });
+});
+
+describe('splitParagraphListItems', () => {
+    const run = (html) => {
+        const root = document.createElement('div');
+        root.innerHTML = html;
+        splitParagraphListItems(root);
+        return root.innerHTML;
+    };
+
+    it('splits paragraphs into sibling list items', () => {
+        expect(
+            run('<ul><li>Keep</li><li><p>A</p><p>B</p></li><li>End</li></ul>'),
+        ).to.equal('<ul><li>Keep</li><li>A</li><li>B</li><li>End</li></ul>');
+    });
+
+    it('turns empty paragraphs into empty list items', () => {
+        expect(run('<ul><li><p>A</p><p></p><p>B</p></li></ul>')).to.equal(
+            '<ul><li>A</li><li></li><li>B</li></ul>',
+        );
+    });
+
+    it('preserves inline markup and list attributes', () => {
+        expect(
+            run(
+                '<ul><li class="x"><p>Go <a href="#x">link</a> <strong>b</strong></p><p><em>i</em></p></li></ul>',
+            ),
+        ).to.equal(
+            '<ul><li class="x">Go <a href="#x">link</a> <strong>b</strong></li><li class="x"><em>i</em></li></ul>',
+        );
+    });
+
+    it('leaves plain, mixed and nested items unchanged', () => {
+        const html =
+            '<ul><li>A</li><li>Text <p>A</p></li><li><p>A</p><span>x</span></li><li><p>A</p><ul><li>n</li></ul></li></ul>';
+        expect(run(html)).to.equal(html);
+    });
+
+    it('is idempotent and tolerates a missing root', () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<ul><li><p>A</p><p>B</p></li></ul>';
+        splitParagraphListItems(root);
+        const once = root.innerHTML;
+        splitParagraphListItems(root);
+        expect(root.innerHTML).to.equal(once);
+        expect(() => splitParagraphListItems(null)).to.not.throw();
+    });
+
+    it('splits whatsIncluded but not description in processDescription', () => {
+        const markup = '<ul><li><p>A</p><p>B</p></li></ul>';
+        const card = document.createElement('div');
+        processDescription(
+            { whatsIncluded: markup, description: markup },
+            card,
+            PLANS_AEM_FRAGMENT_MAPPING,
+            {},
+        );
+        expect(
+            card.querySelector('[slot="whats-included"]').innerHTML,
+        ).to.equal('<ul><li>A</li><li>B</li></ul>');
+        expect(card.querySelector('[slot="body-xs"]').innerHTML).to.equal(
+            markup,
+        );
     });
 });
 

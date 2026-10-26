@@ -10,6 +10,15 @@ describe('surfaces', () => {
         });
     });
 
+    describe('SURFACES.GENUINE and SURFACES.ACOM_EDU', () => {
+        it('are registered with the expected names and labels', () => {
+            expect(SURFACES.GENUINE.name).to.equal('genuine');
+            expect(SURFACES.GENUINE.label).to.equal('Genuine');
+            expect(SURFACES.ACOM_EDU.name).to.equal('acom-edu');
+            expect(SURFACES.ACOM_EDU.label).to.equal('ACOM EDU');
+        });
+    });
+
     it('is included in PLACEHOLDER_CTA_SURFACES like ACOM', () => {
         expect(PLACEHOLDER_CTA_SURFACES).to.include(SURFACES.ACOM.name);
         expect(PLACEHOLDER_CTA_SURFACES).to.include(SURFACES.BRAND_CONCIERGE.name);

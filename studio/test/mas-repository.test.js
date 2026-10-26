@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
+import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
 import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
@@ -410,53 +411,72 @@ describe('MasRepository dictionary helpers', () => {
             expect([...(await repository.getCollectionPathsForSurfaces(['acom']))]).to.deep.equal([]);
         });
 
-        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
-            const repository = createFullRepository();
-            const { default: Store } = await import('../src/store.js');
-            const expiredPublished = {
-                id: 'promo-exp',
-                etag: 'e',
-                model: { id: 'promotion-model' },
-                path: '/content/dam/mas/promotions/promo-exp',
-                title: 'Expired Pub',
-                description: '',
-                status: 'PUBLISHED',
-                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
-                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
-                fields: [
-                    { name: 'title', type: 'text', values: ['Expired Pub'] },
-                    { name: 'promoCode', type: 'text', values: ['X'] },
-                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
-                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
-                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
-                    { name: 'surfaces', type: 'text', values: [] },
-                ],
-                tags: [],
-            };
-            const refreshed = {
-                ...expiredPublished,
-                status: 'DRAFT',
-                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
-            };
-            let refreshComplete;
-            const refreshCompletePromise = new Promise((resolve) => {
-                refreshComplete = resolve;
+        for (const { role, groups, canUnpublish } of [
+            { role: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], canUnpublish: true },
+            { role: 'promo poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], canUnpublish: true },
+            { role: 'promo editor', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'], canUnpublish: false },
+            { role: 'viewer', groups: [], canUnpublish: false },
+            { role: 'user with membership not yet loaded', groups: null, canUnpublish: false },
+        ]) {
+            it(`loadPromotions ${canUnpublish ? 'auto-unpublishes' : 'does not auto-unpublish'} expired published promotions for a ${role}`, async () => {
+                sandbox.stub(Store.profile, 'get').returns({ email: 'author@adobe.com' });
+                sandbox
+                    .stub(Store.users, 'get')
+                    .returns(groups === null ? [] : [{ userPrincipalName: 'author@adobe.com', groups }]);
+                const repository = createFullRepository();
+                const expiredPublished = {
+                    id: 'promo-exp',
+                    etag: 'e',
+                    model: { id: 'promotion-model' },
+                    path: '/content/dam/mas/promotions/promo-exp',
+                    title: 'Expired Pub',
+                    description: '',
+                    status: 'PUBLISHED',
+                    created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                    modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                    fields: [
+                        { name: 'title', type: 'text', values: ['Expired Pub'] },
+                        { name: 'promoCode', type: 'text', values: ['X'] },
+                        { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                        { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                        { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                        { name: 'surfaces', type: 'text', values: [] },
+                    ],
+                    tags: [],
+                };
+                const refreshed = {
+                    ...expiredPublished,
+                    status: 'DRAFT',
+                    fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+                };
+                let refreshComplete;
+                const refreshCompletePromise = new Promise((resolve) => {
+                    refreshComplete = resolve;
+                });
+                repository.aem = createAemMock();
+                repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+                const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+                repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                    refreshComplete();
+                    return refreshed;
+                });
+                Store.promotions.list.data.set([]);
+                await repository.loadPromotions();
+                if (!canUnpublish) {
+                    expect(unpublishStub.called).to.be.false;
+                    expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
+                    expect(Store.promotions.list.data.get()[0].get().isPromotionPublished).to.be.true;
+                    expect(Store.promotions.list.loading.get()).to.be.false;
+                    expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+                    return;
+                }
+                await refreshCompletePromise;
+                expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+                expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+                const row = Store.promotions.list.data.get()[0].get();
+                expect(row.isPromotionPublished).to.be.false;
             });
-            repository.aem = createAemMock();
-            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
-            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
-            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
-                refreshComplete();
-                return refreshed;
-            });
-            Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            await refreshCompletePromise;
-            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
-            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
-            const row = Store.promotions.list.data.get()[0].get();
-            expect(row.isPromotionPublished).to.be.false;
-        });
+        }
 
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();
@@ -543,17 +563,32 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads bulk edit projects on BULK_EDIT_EDITOR page so duplicate-title check works on direct links', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.BULK_EDIT_EDITOR };
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                expect(repository.searchFragmentList.firstCall.args[0].path).to.include('/bulk-edit-projects/');
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {
         beforeEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         afterEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         it('keeps a newly duplicated project first when search has not indexed it yet', async () => {
@@ -563,7 +598,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([original]);
 
             await repository.loadTranslationProjects();
@@ -579,7 +614,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.search = { value: { path: 'acom' } };
             const duplicate = createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` });
             Store.translationProjects.list.data.setMeta(
-                'pendingDuplicates',
+                'pendingProjects',
                 new Map([['duplicate', new FragmentStore(new Fragment(duplicate))]]),
             );
             const searchStub = sandbox.stub();
@@ -592,7 +627,7 @@ describe('MasRepository dictionary helpers', () => {
             await repository.loadTranslationProjects();
 
             expect(Store.translationProjects.list.data.get()).to.deep.equal([]);
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').size).to.equal(0);
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').size).to.equal(0);
         });
 
         it('does not mix pending duplicates from different surfaces', async () => {
@@ -601,7 +636,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/sandbox/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([]);
 
             await repository.loadTranslationProjects();
@@ -4834,9 +4869,11 @@ describe('MasRepository dictionary helpers', () => {
 
 describe('MasRepository publishFragment', () => {
     let sandbox;
+    let diagnosis;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
 
     afterEach(() => {
@@ -4864,6 +4901,33 @@ describe('MasRepository publishFragment', () => {
     };
 
     const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+
+    it('does not activate the fragment when diagnosis is closed', async () => {
+        const repo = makeRepo();
+        diagnosis.resolves(false);
+
+        const result = await repo.publishFragment(fragment);
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+    });
+
+    it('waits for an explicit diagnosis decision before activation', async () => {
+        const repo = makeRepo();
+        let decide;
+        diagnosis.returns(
+            new Promise((resolve) => {
+                decide = resolve;
+            }),
+        );
+
+        const publishing = repo.publishFragment(fragment);
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        decide(true);
+        await publishing;
+
+        expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+    });
 
     it('publishes with empty filterReferencesByStatus when no options given', async () => {
         const repo = makeRepo();
@@ -4937,6 +5001,7 @@ describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', ()
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
     afterEach(() => sandbox.restore());
 
@@ -5009,12 +5074,14 @@ describe('MasRepository bulkPublishFragments', () => {
     let sandbox;
     let repo;
     let originalStoreData;
+    let diagnosis;
 
     const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', etag: 'etag-1' };
     const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2', etag: 'etag-2' };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
         repo = new MasRepository();
         repo.operation = { set: sandbox.stub() };
         repo.aem = {
@@ -5045,6 +5112,15 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls publishFragments with default statuses when no options given', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'UNPUBLISHED'])).to.be.true;
+    });
+
+    it('does not activate any selected root when diagnosis is closed', async () => {
+        diagnosis.resolves(false);
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
     it('calls publishFragments with custom publishReferencesWithStatus when provided', async () => {

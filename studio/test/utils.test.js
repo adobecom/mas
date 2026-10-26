@@ -20,6 +20,7 @@ import {
     describeVariationsToDelete,
     extractImageUrl,
     getFragmentEditorUrl,
+    resolvePromoVariationDefaultCard,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -886,6 +887,41 @@ describe('describeVariationsToDelete', () => {
         expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
             '1 grouped, 1 promo variation(s)',
         );
+    });
+});
+
+describe('resolvePromoVariationDefaultCard', () => {
+    const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+    const defaultCard = {
+        id: 'default-id',
+        path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+        fields: [{ name: 'variations', values: [groupedPath] }],
+    };
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getReferencedBy: async () => ({ parentReferences: [{ path: defaultCard.path }] }),
+                    getByPath: async (path) => (path === defaultCard.path ? defaultCard : null),
+                    getById: async (id) => (id === defaultCard.id ? defaultCard : null),
+                },
+            },
+        },
+    };
+
+    it('resolves a grouped variation source to its default card', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, { id: 'edu-id', path: groupedPath });
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a default card source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, defaultCard);
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a null source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, null);
+        expect(result).to.be.null;
     });
 });
 

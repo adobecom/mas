@@ -1,6 +1,6 @@
 import * as snapshots from './__snapshots__/index.snapshot.js';
-import { expect } from '../utilities.js';
-import { dataTrees } from '../mocks/priceInfo.js';
+import { expectHtml } from '../helpers.js';
+import { dataTrees } from '../../fixtures/price-info.js';
 
 import {
     price,
@@ -10,13 +10,11 @@ import {
     priceAnnual,
     priceWithAnnual,
     pricePromoWithAnnual,
-} from '../../src/price/index.js';
+} from '../../../src/price/index.js';
 
 const globals = { country: 'US', language: 'en' };
 
-const data = await fetch('/test/price/data.json').then((response) =>
-    response.json(),
-);
+const data = await fetch(new URL('./data.json', import.meta.url)).then((response) => response.json());
 
 const root = document.createElement('div');
 document.body.append(root);
@@ -32,7 +30,7 @@ const renderAndComparePrice = (id, html) => {
     el.setAttribute('id', id);
     el.innerHTML = html;
     root.append(el);
-    expect(el.innerHTML).to.be.html(snapshots[id]);
+    expectHtml(el.innerHTML, snapshots[id]);
 };
 
 // WCS response formats. Both must produce the same markup, so the matrix runs
@@ -78,11 +76,7 @@ Object.entries({
                                 );
                                 renderAndComparePrice(
                                     `${idPrefix}1`,
-                                    template(
-                                        { ...context, ...globals },
-                                        applyFormat(offer, name),
-                                        {},
-                                    ),
+                                    template({ ...context, ...globals }, applyFormat(offer, name), {}),
                                 );
                             });
                         });

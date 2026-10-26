@@ -90,7 +90,7 @@ function getRequest(offers, options, hasUpgradeAction) {
         lang: new URL(applyPageLocaleToCheckoutUrl(localeUrl)).searchParams.get(
             'lang',
         ),
-        nr: 'stable',
+        nr: 'adobe-com-stable',
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
         items: offers

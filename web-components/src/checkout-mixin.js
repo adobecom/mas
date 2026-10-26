@@ -5,8 +5,9 @@ import {
 } from './mas-element.js';
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
-import { selectOffers, getService } from './utilities.js';
-import { isPromotionActive } from './price/utilities.js';
+import { getService } from './utilities.js';
+import { selectOffers } from '../../price/src/index.js';
+import { isPromotionActive } from '../../price/src/price/utilities.js';
 import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     MODAL_TYPE_3_IN_1,

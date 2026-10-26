@@ -2,6 +2,7 @@ import {
     ERROR_MESSAGE_OFFER_NOT_FOUND,
     STATE_FAILED,
     STATE_RESOLVED,
+    LOG_NAMESPACE,
 } from '../src/constants.js';
 import { InlinePrice, resolvePriceOffers } from '../src/inline-price.js';
 import { Price } from '../src/price.js';
@@ -20,16 +21,33 @@ import {
     segmentGrossAmount,
     segmentNetAmount,
     taxInclusiveGrossTree,
-} from './mocks/priceInfo.js';
+} from '../../price/test/fixtures/price-info.js';
 import {
     initMasCommerceService,
     expect,
+    sinon,
     removeMasCommerceService,
 } from './utilities.js';
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
-import { sumOffers, selectOffers } from '../src/utilities.js';
+import {
+    sumOffers,
+    selectOffers,
+    buildPriceHTML as sharedBuildPriceHTML,
+} from '../../price/src/index.js';
+import { Log } from '../src/log.js';
+import {
+    cases,
+    instant,
+    baseOffer,
+    promotion,
+} from '../../price/test/fixtures/cases.js';
+import golden from '../../price/test/fixtures/price-html.expected.json' with { type: 'json' };
+
+const nodeResults = await fetch('/node-price-results').then((response) =>
+    response.json(),
+);
 
 /**
  * @param {string} wcsOsi
@@ -52,17 +70,22 @@ before(() => {
     document.head.appendChild(metaDefaultFlag);
 });
 
-afterEach(() => {
-    removeMasCommerceService();
-    unmockLana();
-});
+function setupCommerceMocks() {
+    afterEach(() => {
+        removeMasCommerceService();
+        unmockLana();
+        Log.reset();
+    });
 
-beforeEach(async () => {
-    await mockFetch(withWcs);
-    mockLana();
-});
+    beforeEach(async () => {
+        await mockFetch(withWcs);
+        mockLana();
+    });
+}
 
 describe('class "InlinePrice"', () => {
+    setupCommerceMocks();
+
     it('renders price', async () => {
         await initMasCommerceService();
         const inlinePrice = mockInlinePrice('price', 'puf');
@@ -227,6 +250,38 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.innerHTML).to.be.html(
             '<span class="price-unavailable">No price available</span>',
         );
+    });
+
+    it('forwards unavailable-price literal errors to M@S logging', async () => {
+        const commerce = initMasCommerceService();
+        commerce.providers.price((element, options) => {
+            options.literals = { priceUnavailableLabel: '{invalid' };
+        });
+        const entries = [];
+        Log.use({ append: (entry) => entries.push(entry) });
+        const inlinePrice = mockInlinePrice(
+            'invalidUnavailableLabel',
+            'no-offer',
+        );
+        await expect(inlinePrice.onceSettled()).to.be.eventually.rejectedWith(
+            ERROR_MESSAGE_OFFER_NOT_FOUND,
+        );
+        expect(inlinePrice.innerHTML).to.be.html(
+            '<span class="price-unavailable disabled"></span>',
+        );
+        expect(
+            entries.map(({ level, namespace, message, params }) => ({
+                level,
+                namespace,
+                message,
+                params,
+            })),
+        ).to.deep.include({
+            level: 'error',
+            namespace: 'ConsonantTemplates/price',
+            message: 'Failed to format literal:',
+            params: ['{invalid'],
+        });
     });
 
     it('does not render missing offer in preview/Studio context', async () => {
@@ -1325,6 +1380,8 @@ describe('class "InlinePrice"', () => {
 });
 
 describe('commerce service', () => {
+    setupCommerceMocks();
+
     const offers = [
         {
             priceDetails: {
@@ -1478,6 +1535,8 @@ describe('commerce service', () => {
 // priceDetails/priceInfo pair for one country, so the tree the client indexes is
 // the tree WCS actually sends.
 describe('priceInfo (WCS pre-split tree)', () => {
+    setupCommerceMocks();
+
     const opts = { country: 'US', language: 'en', template: 'price' };
     const withInfo = (offer, priceInfo) => ({ ...offer, priceInfo });
 
@@ -2337,6 +2396,8 @@ describe('priceInfo (WCS pre-split tree)', () => {
 });
 
 describe('priceDetails-only paths (priceInfo dropped)', () => {
+    setupCommerceMocks();
+
     it('sumOffers (soft bundle) drops priceInfo so the sum renders numerically', () => {
         const base = {
             offerSelectorIds: ['sb-1'],
@@ -2460,6 +2521,8 @@ describe('priceDetails-only paths (priceInfo dropped)', () => {
 // offers.json has no priceInfo, so the existing suites never hit the pre-split
 // path. These re-run representative scenarios on the new format.
 describe('WCS preformatted response format', () => {
+    setupCommerceMocks();
+
     const partsOf = (el) =>
         ['integer', 'decimals-delimiter', 'decimals']
             .map((c) => el.querySelector(`.price-${c}`)?.textContent ?? '')
@@ -2552,6 +2615,36 @@ describe('WCS preformatted response format', () => {
 // Offer selection, summing, discounts, and tax re-selection are covered through InlinePrice above;
 // these cover the option defaults the agent action relies on when it calls this without an element.
 describe('function "resolvePriceOffers"', () => {
+    setupCommerceMocks();
+
+    it('forwards bundle compatibility warnings to browser logging', async () => {
+        const entries = [];
+        Log.use({ append: (entry) => entries.push(entry) });
+        const first = {
+            commitment: 'YEAR',
+            priceDetails: { price: 10 },
+        };
+        await resolvePriceOffers(
+            [[first], [{ ...first, commitment: 'MONTH' }]],
+            {},
+            {},
+        );
+        expect(
+            entries.map(({ level, namespace, message, params }) => ({
+                level,
+                namespace,
+                message,
+                params,
+            })),
+        ).to.deep.include({
+            level: 'warn',
+            namespace: `${LOG_NAMESPACE}/utilities`,
+            message:
+                'Offers have different commitment types, summing may produce unexpected results',
+            params: [{ expected: 'YEAR', actual: 'MONTH' }],
+        });
+    });
+
     const wcsOffer = (customerSegment = 'INDIVIDUAL') => ({
         customerSegment,
         marketSegments: ['COM'],
@@ -2613,4 +2706,189 @@ describe('function "resolvePriceOffers"', () => {
         await resolvePriceOffers([[wcsOffer()]], flagOff, {});
         expect(flagOff).to.not.have.property('displayAnnual');
     });
+});
+
+describe('Price browser adapter', () => {
+    const settings = { country: 'US', language: 'en' };
+    const service = () => Price({ settings, literals: { price: {} } });
+    const promoOffer = () => ({
+        ...structuredClone(baseOffer),
+        promotion: structuredClone(promotion),
+    });
+    let clock;
+    let originalUrl;
+
+    beforeEach(() => {
+        clock = sinon.useFakeTimers({
+            now: new Date(instant),
+            toFake: ['Date'],
+        });
+        originalUrl = location.href;
+    });
+
+    afterEach(() => {
+        clock.restore();
+        history.replaceState(null, '', originalUrl);
+        Log.reset();
+    });
+
+    it('merges price overrides after service settings', () => {
+        const options = { country: 'GB', language: 'en' };
+        expect(service().buildPriceHTML([baseOffer], options)).to.equal(
+            sharedBuildPriceHTML([baseOffer], { ...settings, ...options }),
+        );
+    });
+
+    for (const [key, value] of [
+        ['template', 'discount'],
+        ['displayAnnual', true],
+        ['alternativePrice', true],
+        ['promotionCode', 'PROMO'],
+    ]) {
+        it(`does not select a template from the service setting ${key}`, () => {
+            const renderer = Price({
+                settings: { ...settings, [key]: value },
+                literals: { price: {} },
+            });
+            const offer = promoOffer();
+            expect(renderer.buildPriceHTML([offer], {})).to.equal(
+                sharedBuildPriceHTML([offer], settings),
+            );
+        });
+    }
+
+    it('uses query-string instant for promo-with-annual prices', () => {
+        history.replaceState(null, '', '?instant=2030-01-01T00%3A00%3A00.000Z');
+        const offer = promoOffer();
+        const options = { displayAnnual: true, promotionCode: 'PROMO' };
+        expect(service().buildPriceHTML([offer], options)).to.equal(
+            sharedBuildPriceHTML([offer], {
+                ...settings,
+                ...options,
+                instant: '2030-01-01T00:00:00.000Z',
+            }),
+        );
+    });
+
+    for (const [label, value] of [
+        ['an empty string', ''],
+        ['zero', 0],
+        ['false', false],
+        ['NaN', NaN],
+    ]) {
+        it(`uses query-string instant when explicit instant is ${label}`, () => {
+            history.replaceState(
+                null,
+                '',
+                '?instant=2030-01-01T00%3A00%3A00.000Z',
+            );
+            const offer = promoOffer();
+            const options = {
+                displayAnnual: true,
+                promotionCode: 'PROMO',
+                instant: value,
+            };
+            expect(service().buildPriceHTML([offer], options)).to.equal(
+                sharedBuildPriceHTML([offer], {
+                    ...settings,
+                    ...options,
+                    instant: '2030-01-01T00:00:00.000Z',
+                }),
+            );
+        });
+    }
+
+    it('prefers explicit instant over the query-string instant', () => {
+        history.replaceState(null, '', '?instant=2030-01-01T00%3A00%3A00.000Z');
+        const offer = promoOffer();
+        const options = {
+            displayAnnual: true,
+            promotionCode: 'PROMO',
+            instant,
+        };
+        expect(service().buildPriceHTML([offer], options)).to.equal(
+            sharedBuildPriceHTML([offer], { ...settings, ...options }),
+        );
+    });
+
+    it('does not apply query-string instant to the annual template', () => {
+        history.replaceState(null, '', '?instant=2030-01-01T00%3A00%3A00.000Z');
+        const options = {
+            template: 'annual',
+            displayAnnual: true,
+            promotionCode: 'PROMO',
+        };
+        const offer = promoOffer();
+        expect(service().buildPriceHTML([offer], options)).to.equal(
+            sharedBuildPriceHTML([offer], { ...settings, ...options }),
+        );
+    });
+
+    it('leaves caller options unchanged when resolving query-string instant', () => {
+        history.replaceState(null, '', '?instant=2030-01-01T00%3A00%3A00.000Z');
+        const options = { displayAnnual: true, promotionCode: 'PROMO' };
+        service().buildPriceHTML([promoOffer()], options);
+        expect(options).to.deep.equal({
+            displayAnnual: true,
+            promotionCode: 'PROMO',
+        });
+    });
+
+    it('returns empty markup when price options are absent', () => {
+        expect(service().buildPriceHTML([baseOffer])).to.equal('');
+    });
+
+    it('forwards rendered literal errors to M@S logging', () => {
+        const entries = [];
+        Log.use({ append: (entry) => entries.push(entry) });
+        service().buildPriceHTML([baseOffer], {
+            literals: { recurrenceLabel: '{invalid' },
+        });
+        expect(
+            entries.map(({ level, namespace, message, params }) => ({
+                level,
+                namespace,
+                message,
+                params,
+            })),
+        ).to.deep.equal([
+            {
+                level: 'error',
+                namespace: 'ConsonantTemplates/price',
+                message: 'Failed to format literal:',
+                params: ['{invalid'],
+            },
+        ]);
+    });
+});
+
+describe('browser service golden Node parity', () => {
+    let clock;
+    let service;
+
+    before(() => {
+        clock = sinon.useFakeTimers({
+            now: new Date(instant),
+            toFake: ['Date'],
+        });
+        service = Price({
+            settings: { country: 'US', language: 'en' },
+            literals: { price: {} },
+        });
+    });
+
+    after(() => {
+        clock.restore();
+    });
+
+    for (const { id, offers, options } of cases) {
+        it(`matches original golden and native Node markup for ${id}`, () => {
+            const actual = service.buildPriceHTML(
+                structuredClone(offers),
+                structuredClone(options),
+            );
+            expect(actual).to.equal(golden.results[id]);
+            expect(actual).to.equal(nodeResults[id]);
+        });
+    }
 });

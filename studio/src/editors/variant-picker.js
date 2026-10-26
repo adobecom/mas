@@ -140,7 +140,7 @@ export const VARIANTS = [
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_EDU],
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Compare Chart Column',

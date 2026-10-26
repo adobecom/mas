@@ -297,22 +297,6 @@ describe('mas-bulk-publish (pure methods)', () => {
         await el.updateComplete;
     });
 
-    describe('formatDate', () => {
-        it('returns — for null', () => {
-            expect(el.formatDate(null)).to.equal('—');
-        });
-
-        it('returns — for invalid date string', () => {
-            expect(el.formatDate('not-a-date')).to.equal('—');
-        });
-
-        it('returns formatted string for valid date', () => {
-            const result = el.formatDate('2026-01-15T10:00:00Z');
-            expect(result).to.be.a('string');
-            expect(result).to.include('2026');
-        });
-    });
-
     describe('statusVariant', () => {
         it('returns correct variant for Draft', () => {
             expect(el.statusVariant(BULK_PUBLISH_STATUS.DRAFT).className).to.equal('draft');

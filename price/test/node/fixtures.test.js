@@ -2,9 +2,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { it } from 'node:test';
 import { cases, dimensions, parityCases } from '../fixtures/cases.js';
+import { messageCases } from '../fixtures/message-cases.js';
 
 const golden = JSON.parse(await readFile(new URL('../fixtures/price-html.expected.json', import.meta.url)));
 const parityIds = new Set(parityCases.map(({ id }) => id));
+
+it('uses alternate ICU parameters without changing the default fixture inputs', () => {
+    const messages = { text: { '{x}': { en: ['X'] } } };
+    const parameters = { text: [{ x: 0, y: undefined }] };
+    assert.deepEqual(messageCases(messages, parameters)[0].parameters, { x: 0, y: undefined });
+    assert.deepEqual(messageCases(messages)[0].parameters, { g: 'a', x: 'X', y: 'Y' });
+});
 
 it('executes every locale-template-offer combination with per-unit display on and off', () => {
     for (const [country, language] of dimensions.locales) {

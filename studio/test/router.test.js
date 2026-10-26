@@ -940,6 +940,40 @@ describe('Router', () => {
         });
     });
 
+    describe('bulk edit route and editor branches', () => {
+        let originalBulkEditProjectId;
+
+        beforeEach(() => {
+            originalBulkEditProjectId = Store.bulkEditProjects.projectId.get();
+        });
+
+        afterEach(() => {
+            Store.bulkEditProjects.projectId.set(originalBulkEditProjectId);
+            document.querySelectorAll('mas-bulk-edit-editor').forEach((el) => el.remove());
+        });
+
+        it('should return bulk edit editor metadata on bulk edit editor page', () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT_EDITOR;
+            const bulkEditEditor = document.createElement('mas-bulk-edit-editor');
+            bulkEditEditor.hasChanges = true;
+            document.body.appendChild(bulkEditEditor);
+
+            const result = router.getActiveEditor();
+            expect(result.editor).to.equal(bulkEditEditor);
+            expect(result.hasChanges).to.equal(true);
+            expect(result.shouldCheckUnsavedChanges).to.equal(true);
+        });
+
+        it('should set the bulk edit project id when navigating with one', async () => {
+            Store.page.set(PAGE_NAMES.BULK_EDIT);
+            Store.bulkEditProjects.projectId.set(null);
+
+            await router.navigateToPage(PAGE_NAMES.BULK_EDIT_EDITOR, { bulkEditProjectId: 'be-1' })();
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BULK_EDIT_EDITOR);
+            expect(Store.bulkEditProjects.projectId.get()).to.equal('be-1');
+        });
+    });
+
     describe('masks route and editor branches', () => {
         let originalMasksCreating;
         let originalMasksFragmentId;

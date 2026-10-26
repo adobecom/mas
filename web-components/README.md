@@ -41,9 +41,21 @@ Generic commerce-related logic, including:
 
 ### Installation
 
+Install development dependencies from the repository root.
+
 ```sh
 npm install
 ```
+
+### Shared price rendering
+
+Web-components adapts the [shared price renderer](../price/README.md) through
+relative `.js` imports, retaining option collection, tax defaults, WCS fetching,
+DOM updates and browser diagnostics. `buildPriceHTML(offers, options)` remains
+unchanged, including the query-string fallback for missing/falsy `instant`.
+
+Use Node 22+ for web-components tests and builds; Studio and the repository's
+`.nvmrc` remain on Node 20.
 
 ### Building
 

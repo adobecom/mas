@@ -169,6 +169,10 @@
         "fieldLabel": "Loc ready",
         "type": "boolean"
     },
+    "enableBaselines": {
+        "fieldLabel": "Enable baselines",
+        "type": "boolean"
+    },
     "features": {
         "fieldLabel": "Features",
         "type": "long-text[]"

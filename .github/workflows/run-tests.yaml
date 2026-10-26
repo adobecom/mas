@@ -66,6 +66,9 @@ jobs:
                       xvfb-run -a npm run test:ci "${workspaces[@]}"
                   fi
 
+            - name: Run the .github script tests
+              run: node --test ".github/scripts/*.test.mjs"
+
             - name: Upload coverage to Codecov
               uses: codecov/codecov-action@v5
               continue-on-error: true

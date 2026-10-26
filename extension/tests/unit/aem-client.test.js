@@ -75,3 +75,26 @@ test('a 404 with an unreadable body reports the fragment as not found', async ()
 test('a server error carries no miss', async () => {
     assert.equal(await missFor(503, '{}'), undefined);
 });
+
+async function errorsLoggedFor(status, body) {
+    const logged = [];
+    const original = console.error;
+    console.error = (...args) => logged.push(args);
+    try {
+        await missFor(status, body);
+    } finally {
+        console.error = original;
+    }
+    return logged.length;
+}
+
+test('a 404 is an answer, not logged as an error', async () => {
+    assert.equal(
+        await errorsLoggedFor(404, JSON.stringify({ message: `Fragment with identifier ${FRAGMENT_ID} not found` })),
+        0,
+    );
+});
+
+test('a server error is still logged', async () => {
+    assert.equal(await errorsLoggedFor(503, '{}'), 1);
+});

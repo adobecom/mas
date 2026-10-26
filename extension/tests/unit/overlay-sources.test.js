@@ -153,7 +153,7 @@ function createParserOverlay({ response = null } = {}) {
     const sandbox = { MASEscape: escape, chrome: { runtime: { sendMessage: (message, callback) => callback(response) } } };
     sandbox.window = sandbox;
     sandbox.self = sandbox;
-    sandbox.MASCardDetector = { getServiceConfig: () => ({}) };
+    sandbox.MASCardDetector = { getServiceConfig: () => ({}), isMasPreview: () => false };
     const context = createContext(sandbox);
     for (const file of ['utils/locales.js', 'utils/fragment-parser.js', 'content/overlay.js']) {
         runInContext(readFileSync(resolve(__dirname, '../..', file), 'utf8'), context, { filename: file });

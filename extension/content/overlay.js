@@ -301,7 +301,6 @@ class CardOverlay {
         const sourceFragmentId = cardData?.sourceFragmentId;
         if (!sourceFragmentId) return;
 
-        const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
         const key = this.cacheKey(sourceFragmentId, cardData?.locale, cardData?.country);
 
         if (window.MASSources) {
@@ -338,10 +337,8 @@ class CardOverlay {
                         this.renderVariationInfo(fragmentId, response.data, cardData?.locale);
                         this.renderFragmentDetails(fragmentId, response.data);
                     } else {
-                        this.updateBasicInfoPath(fragmentId, null);
-                        this.clearVariationLoading(overlayData);
-                        const message = this.formatFragmentError(response?.error);
-                        contentDiv.innerHTML = `<div class="mas-ext-error">${this.escapeHtml(message)}</div>`;
+                        const preview = window.MASCardDetector.isMasPreview();
+                        this.renderFragmentError(fragmentId, this.formatFragmentError(response, preview));
                     }
                 },
             );
@@ -380,16 +377,38 @@ class CardOverlay {
           </div>`;
     }
 
-    formatFragmentError(code) {
+    // IO's 404 tells a fragment missing in this language from one missing altogether; on a page in MAS
+    // preview, a fragment missing from published IO is a draft the page reads from preview content.
+    formatFragmentError(response, preview = false) {
+        const miss = response?.miss;
+        if (miss?.kind === 'missing-locale') return `No ${miss.locale} copy of this fragment.`;
+        if (miss?.kind === 'not-found') {
+            return preview
+                ? 'Not published — this page shows preview content (mas.preview). The extension reads published IO.'
+                : 'Not found — the fragment does not exist or is not published.';
+        }
         const map = {
             invalid_fragment_id: 'Invalid fragment ID.',
             invalid_locale: 'Invalid locale.',
             invalid_country: 'Invalid country.',
             fetch_failed: 'Could not fetch fragment data.',
-            'Fragment not found.': 'Fragment not found for this locale.',
         };
+        const code = response?.error;
         if (!code) return 'Could not load fragment data.';
         return map[code] || code;
+    }
+
+    // The details section starts collapsed, so the reason also goes under Basic info, where it is seen.
+    renderFragmentError(fragmentId, message) {
+        const overlayData = this.overlays.get(fragmentId);
+        if (!overlayData?.panel) return;
+        const { panel } = overlayData;
+        this.updateBasicInfoPath(fragmentId, null);
+        this.clearVariationLoading(overlayData);
+        const html = `<div class="mas-ext-notice">${this.escapeHtml(message)}</div>`;
+        panel.querySelector('.mas-ext-section-basic')?.insertAdjacentHTML('beforeend', html);
+        const details = panel.querySelector('[data-section="details"] .mas-ext-section-content');
+        if (details) details.innerHTML = `<div class="mas-ext-error">${this.escapeHtml(message)}</div>`;
     }
 
     renderFragmentDetails(fragmentId, fragmentData) {

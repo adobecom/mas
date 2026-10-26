@@ -14,6 +14,7 @@ function createFixture() {
     const opened = [];
     const parent = { id: PARENT_ID, path: '/content/dam/mas/acom/en_US/parent', fields: [] };
     const window = {
+        MASEscape: require('../../utils/escape.js'),
         MASCardDetector: { getServiceConfig: () => ({ apiKey: 'test-api-key' }) },
         MASStudioLinker: {
             openParentInStudio: (variation, id) => opened.push({ variation, id }),
@@ -135,4 +136,50 @@ test('a wheel over the panel scrolls the panel instead of reaching the page', ()
     let stopped = false;
     listeners[0].listener({ stopPropagation: () => (stopped = true) });
     assert.deepEqual([listeners[0].type, listeners[0].options.passive, stopped], ['wheel', true, true]);
+});
+
+const NOT_FOUND = { success: false, error: 'fetch_failed', miss: { kind: 'not-found' } };
+
+test('a fragment missing from published IO on a preview page reads as not published', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.formatFragmentError(NOT_FOUND, true),
+        'Not published — this page shows preview content (mas.preview). The extension reads published IO.',
+    );
+});
+
+test('a fragment missing from IO outside preview reads as not found', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.formatFragmentError(NOT_FOUND, false), 'Not found — the fragment does not exist or is not published.');
+});
+
+test('a fragment with no copy in the page language says which language', () => {
+    const { overlay } = createFixture();
+    const response = { success: false, error: 'fetch_failed', miss: { kind: 'missing-locale', locale: 'fr_FR' } };
+    assert.equal(overlay.formatFragmentError(response, true), 'No fr_FR copy of this fragment.');
+});
+
+test('other fetch errors keep their message', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.formatFragmentError({ success: false, error: 'fetch_failed' }, false),
+        'Could not fetch fragment data.',
+    );
+});
+
+test('a failed fetch shows its reason in the basic info, not only in the collapsed details', () => {
+    const { overlay } = createFixture();
+    const inserted = [];
+    const nodes = {
+        '.mas-ext-path-value': { textContent: 'Loading…' },
+        '.mas-ext-section-basic': { insertAdjacentHTML: (position, html) => inserted.push([position, html]) },
+        '.mas-ext-variation-content': { innerHTML: 'Loading variation data…' },
+        '[data-section="details"] .mas-ext-section-content': { innerHTML: '' },
+    };
+    overlay.overlays.set('card-9', { cardData: {}, panel: { querySelector: (selector) => nodes[selector] || null } });
+    overlay.renderFragmentError('card-9', 'Not published — reason');
+    assert.deepEqual(
+        [nodes['.mas-ext-path-value'].textContent, inserted, nodes['.mas-ext-variation-content'].innerHTML],
+        ['N/A', [['beforeend', '<div class="mas-ext-notice">Not published — reason</div>']], ''],
+    );
 });

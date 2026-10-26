@@ -704,3 +704,33 @@ test('mutations inside one field queue it once, so they cannot crowd out later e
         Object.assign(global, saved);
     }
 });
+
+function previewPage({ search = '', previewAttr = null } = {}) {
+    const saved = { document: global.document, location: window.location };
+    const service = previewAttr === null ? null : commerceService({ preview: previewAttr });
+    global.document = {
+        ...global.document,
+        querySelector: (selector) => (selector === 'mas-commerce-service' ? service : null),
+    };
+    window.location = { pathname: '/', search };
+    return () => {
+        global.document = saved.document;
+        window.location = saved.location;
+    };
+}
+
+for (const [name, page, expected] of [
+    ['a service with preview on is in MAS preview', { previewAttr: 'on' }, true],
+    ['mas.preview=off in the URL overrides the service attribute', { previewAttr: 'on', search: '?mas.preview=off' }, false],
+    ['mas.preview=on in the URL turns preview on', { search: '?mas.preview=on' }, true],
+    ['a page without a service or parameter is not in preview', {}, false],
+]) {
+    test(name, () => {
+        const restore = previewPage(page);
+        try {
+            assert.equal(new CardDetector().isMasPreview(), expected);
+        } finally {
+            restore();
+        }
+    });
+}

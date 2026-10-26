@@ -91,6 +91,14 @@ class CardDetector {
         };
     }
 
+    // Mirrors MAS settings: the mas.preview URL parameter wins over the service's preview attribute. In
+    // preview the page renders draft content, which published IO, where the extension reads, may not have.
+    isMasPreview() {
+        const param = new URLSearchParams(window.location.search).get('mas.preview');
+        const value = param ?? document.querySelector('mas-commerce-service')?.getAttribute('preview');
+        return value != null && value !== 'off' && value !== 'false';
+    }
+
     localeFromCommerceService() {
         const commerceService = document.querySelector('mas-commerce-service');
         if (!commerceService) return null;

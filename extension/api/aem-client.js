@@ -86,7 +86,8 @@ class AEMClient {
 
             return data;
         } catch (error) {
-            console.error('Error fetching fragment data:', error);
+            // A 404 is an answer the panel explains (no copy in this language, not published), not a failure.
+            if (!error.miss) console.error('Error fetching fragment data:', error);
             throw error;
         }
     }

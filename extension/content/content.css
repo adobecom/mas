@@ -597,7 +597,8 @@
     border-radius: 10px;
 }
 
-.mas-ext-src-warning {
+.mas-ext-src-warning,
+.mas-ext-notice {
     margin-bottom: 6px;
     padding: 6px 8px;
     border-radius: 6px;
@@ -605,6 +606,10 @@
     font-weight: 600;
     background: #fff4ce;
     color: #7a4b00;
+}
+
+.mas-ext-notice {
+    margin-top: 8px;
 }
 
 .mas-ext-src-default {
@@ -647,7 +652,8 @@
     border-color: #8a6d12;
 }
 
-.mas-ext-panel.spectrum--dark .mas-ext-src-warning {
+.mas-ext-panel.spectrum--dark .mas-ext-src-warning,
+.mas-ext-panel.spectrum--dark .mas-ext-notice {
     background: #3a2f10;
     color: #f5d68a;
 }

@@ -1446,8 +1446,8 @@ class MasPromotionsEditor extends LitElement {
         s.allCollections.set([]);
         s.allCollections.setMeta('loaded', false);
         s.displayCollections.set([]);
-        this.#syncOfferProductTagsToFragmentSearch();
-        this.repository?.loadAllCollections?.();
+        this.repository?.searchFragments?.();
+        this.repository?.loadAllCollections?.(s);
         this.repository?.loadPlaceholders?.();
     };
 
@@ -1613,7 +1613,7 @@ class MasPromotionsEditor extends LitElement {
         Store.promotions.displayCards.set([]);
         this.#syncPromotionSearchToRepository('');
         selector?.resetFilters();
-        this.activeFilterOfferId = OFFER_FILTER_ALL;
+        this.activeFilterOfferId = '';
         this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {

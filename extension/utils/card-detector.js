@@ -184,12 +184,18 @@ class CardDetector {
         }
     }
 
+    // Every mutation inside an element queues it again; duplicates would fill the maxCards budget
+    // and drop the later mutation that finally shows it, so each element waits in the queue once.
+    queueElement(element) {
+        if (!this.pendingCards.includes(element)) this.pendingCards.push(element);
+    }
+
     startObserving() {
         const enqueue = (node) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
             if (node.nodeType !== Node.ELEMENT_NODE) return;
-            if (node.matches?.(SELECTOR_DETECTABLE)) this.pendingCards.push(node);
-            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.pendingCards.push(c));
+            if (node.matches?.(SELECTOR_DETECTABLE)) this.queueElement(node);
+            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.queueElement(c));
         };
 
         // A mas-field renders its content asynchronously, and a text-only field (a title,
@@ -198,7 +204,7 @@ class CardDetector {
         const enqueueFieldOwner = (target) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
             const owner = target?.closest?.(SELECTOR_MAS_FIELD);
-            if (owner && !this.elementIds.has(owner)) this.pendingCards.push(owner);
+            if (owner && !this.elementIds.has(owner)) this.queueElement(owner);
         };
 
         this.observer = new MutationObserver((mutations) => {
@@ -260,7 +266,7 @@ class CardDetector {
         for (const { target } of entries) {
             if (!this.hasBox(target)) continue;
             this.resizeObserver.unobserve(target);
-            this.pendingCards.push(...this.hiddenElements.get(target));
+            this.hiddenElements.get(target).forEach((element) => this.queueElement(element));
             this.hiddenElements.delete(target);
         }
         if (this.pendingCards.length) this.scheduleProcessing();

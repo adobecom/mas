@@ -675,3 +675,32 @@ test('a hidden inline element is watched through its nearest laid-out ancestor',
     notifyResize(slide);
     assert.equal(d.detectedCards.size, 1);
 });
+
+test('mutations inside one field queue it once, so they cannot crowd out later elements', () => {
+    const saved = {
+        MutationObserver: global.MutationObserver,
+        Node: global.Node,
+        requestIdleCallback: global.requestIdleCallback,
+    };
+    let onMutations;
+    global.MutationObserver = class {
+        constructor(callback) {
+            onMutations = callback;
+        }
+        observe() {}
+    };
+    global.Node = { ELEMENT_NODE: 1 };
+    // Holds processing back so the queue can be inspected.
+    global.requestIdleCallback = () => 1;
+    try {
+        const d = new CardDetector();
+        const busyField = fakeMasField({ fragmentId: 'frag-busy' });
+        d.startObserving();
+        onMutations(Array.from({ length: 250 }, () => ({ addedNodes: [], target: { closest: () => busyField } })));
+        const later = { ...fakeMasField({ fragmentId: 'frag-later' }), nodeType: 1, matches: () => true };
+        onMutations([{ addedNodes: [later], target: {} }]);
+        assert.deepEqual([d.pendingCards.length, d.pendingCards.includes(later)], [2, true]);
+    } finally {
+        Object.assign(global, saved);
+    }
+});

@@ -1999,6 +1999,83 @@
                             expect(container.textContent.trim()).to.equal('');
                         });
                     });
+
+                    describe('CTA modification warning', () => {
+                        const COPY =
+                            'Changing these CTAs may affect the user experience on pages using this fragment. Removing or reordering CTAs may affect existing page references. Review the impact before publishing.';
+                        const ORIGINAL = '<a data-key="a" href="/a">A</a><a data-key="b" href="/b">B</a>';
+
+                        const makeEditor = (variant, ctas = ORIGINAL) => {
+                            const fragment = new Fragment({
+                                path: '/content/dam/mas/x/en_US/base',
+                                fields: [
+                                    { name: 'variant', values: [variant] },
+                                    { name: 'cardTitle', values: ['Title'] },
+                                    { name: 'ctas', values: [ctas] },
+                                ],
+                            });
+                            const editor = document.createElement('merch-card-editor');
+                            editor.isVariation = false;
+                            editor.fragmentStore = { get: () => fragment };
+                            return { editor, fragment };
+                        };
+
+                        const renderWarning = (editor) => {
+                            const container = document.createElement('div');
+                            render(editor.renderCtaModificationWarning(), container);
+                            return container;
+                        };
+
+                        const changes = {
+                            add: `${ORIGINAL}<a data-key="c" href="/c">C</a>`,
+                            edit: '<a data-key="a" href="/a2">A</a><a data-key="b" href="/b">B</a>',
+                            remove: '<a data-key="a" href="/a">A</a>',
+                            reorder: '<a data-key="b" href="/b">B</a><a data-key="a" href="/a">A</a>',
+                        };
+
+                        for (const variant of ['headless', 'marquee', 'banner-blade']) {
+                            for (const [change, ctas] of Object.entries(changes)) {
+                                it(`shows the warning on ${variant} when a CTA is ${change}`, () => {
+                                    const { editor, fragment } = makeEditor(variant);
+                                    fragment.updateField('ctas', [ctas]);
+                                    const warning = renderWarning(editor).querySelector('.cta-modification-warning');
+                                    expect(warning).to.exist;
+                                    expect(warning.textContent.trim()).to.equal(COPY);
+                                });
+                            }
+                        }
+
+                        it('does not show the CTA modification warning on first open, on unrelated field edits, or on other template variants', () => {
+                            const { editor, fragment } = makeEditor('headless');
+                            expect(renderWarning(editor).querySelector('.cta-modification-warning')).to.not.exist;
+                            fragment.updateField('cardTitle', ['Other title']);
+                            expect(renderWarning(editor).querySelector('.cta-modification-warning')).to.not.exist;
+
+                            const plans = makeEditor('plans');
+                            plans.fragment.updateField('ctas', [changes.remove]);
+                            expect(renderWarning(plans.editor).querySelector('.cta-modification-warning')).to.not.exist;
+                        });
+
+                        it('clears the warning when the CTAs are restored', () => {
+                            const { editor, fragment } = makeEditor('marquee');
+                            fragment.updateField('ctas', [changes.reorder]);
+                            fragment.updateField('ctas', [ORIGINAL]);
+                            expect(renderWarning(editor).querySelector('.cta-modification-warning')).to.not.exist;
+                        });
+
+                        it('shows alongside the CTA reference key warning', () => {
+                            const { editor, fragment } = makeEditor(
+                                'banner-blade',
+                                '<a data-key="d">A</a><a data-key="d">B</a>',
+                            );
+                            fragment.updateField('ctas', ['<a data-key="d">A</a><a data-key="d">C</a>']);
+                            const container = document.createElement('div');
+                            render(html`${editor.renderCtaKeyWarning()} ${editor.renderCtaModificationWarning()}`, container);
+                            expect(container.textContent).to.contain('CTA references need fixing');
+                            expect(container.querySelector('sp-link.field-status-restore-link')).to.exist;
+                            expect(container.querySelector('.cta-modification-warning')).to.exist;
+                        });
+                    });
                 });
             });
         </script>

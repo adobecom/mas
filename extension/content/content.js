@@ -1,11 +1,16 @@
 let initialized = false;
 let extensionEnabled = true;
+// Show sources is on, so cards detected later are outlined as they arrive.
+let outlinesOn = false;
 
-const FETCH_BUDGET = 50;
-let fetchCount = 0;
+function enableSourceOutlines() {
+    outlinesOn = true;
+    window.MASSourceOutlines.enable().catch(() => {});
+}
 
-function isContextInvalidated(err) {
-    return err && typeof err.message === 'string' && err.message.includes('Extension context invalidated');
+function disableSourceOutlines() {
+    outlinesOn = false;
+    window.MASSourceOutlines.disable();
 }
 
 let masPrefersDark = false;
@@ -57,6 +62,9 @@ function initialize() {
     }
     initialized = true;
 
+    // The page bridge's on-load state can arrive before this world listens, so ask again.
+    window.MASMepState.request();
+
     window.MASCardDetector.onCardDetected((cardData) => {
         const badge = window.MASCardOverlay.createBadge(cardData);
         if (!extensionEnabled) {
@@ -67,48 +75,38 @@ function initialize() {
             window.MASCardOverlay.updatePositions();
         });
 
+        if (outlinesOn) {
+            window.MASSourceOutlines.outline(cardData.fragmentId).catch(() => {});
+        }
+
         if (!cardData.sourceFragmentId) return;
 
-        if (fetchCount >= FETCH_BUDGET) return;
-        fetchCount += 1;
-        try {
-            chrome.runtime.sendMessage(
-                {
-                    type: 'FETCH_FRAGMENT_DATA',
-                    fragmentId: cardData.sourceFragmentId,
-                    locale: cardData.locale,
-                    country: cardData.country,
-                },
-                (response) => {
-                    if (chrome.runtime.lastError) return;
-                    if (response?.success && response.data) {
-                        const cardName = extractCardNameFromFragment(response.data);
-                        if (cardName) {
-                            window.MASCardDetector.updateCardName(cardData.fragmentId, cardName);
-                            window.MASCardOverlay.updateCardNameInPanel(cardData.fragmentId, cardName);
-                        }
-                        // Only cards are labelled by their template; a price, cta or field
-                        // badge keeps the label for its own role.
-                        const isCard = cardData.elementType === 'card' || cardData.elementType === 'collection';
-                        const variant = isCard ? extractVariantFromFragment(response.data) : null;
-                        if (variant) {
-                            window.MASCardOverlay.updateBadgeVariant(cardData.fragmentId, variant);
-                        }
-                    }
-                },
-            );
-        } catch (err) {
-            if (!isContextInvalidated(err)) throw err;
-        }
+        window.MASSources.fetchFragment(cardData.sourceFragmentId, cardData.locale, cardData.country).then((data) => {
+            if (!data) return;
+            const cardName = extractCardNameFromFragment(data);
+            if (cardName) {
+                window.MASCardDetector.updateCardName(cardData.fragmentId, cardName);
+                window.MASCardOverlay.updateCardNameInPanel(cardData.fragmentId, cardName);
+            }
+            // Only cards are labelled by their template; a price, cta or field
+            // badge keeps the label for its own role.
+            const isCard = cardData.elementType === 'card' || cardData.elementType === 'collection';
+            const variant = isCard ? extractVariantFromFragment(data) : null;
+            if (variant) {
+                window.MASCardOverlay.updateBadgeVariant(cardData.fragmentId, variant);
+            }
+        });
     });
 
-    chrome.storage.local.get(['masExtensionEnabled'], (result) => {
+    chrome.storage.local.get(['masExtensionEnabled', 'masShowSources'], (result) => {
         extensionEnabled = result.masExtensionEnabled !== false;
 
         window.MASCardDetector.initialize();
 
         if (!extensionEnabled) {
             window.MASCardOverlay.hide();
+        } else if (result.masShowSources === true) {
+            enableSourceOutlines();
         }
     });
 
@@ -151,10 +149,32 @@ function initialize() {
             extensionEnabled = message.enabled;
             if (extensionEnabled) {
                 window.MASCardOverlay.show();
+                chrome.storage.local.get(['masShowSources'], (result) => {
+                    if (result.masShowSources === true) {
+                        enableSourceOutlines();
+                    }
+                });
             } else {
+                disableSourceOutlines();
                 window.MASCardOverlay.hide();
             }
             sendResponse({ success: true });
+        } else if (message.type === 'SET_SOURCE_OUTLINES') {
+            if (message.enabled && extensionEnabled) {
+                enableSourceOutlines();
+            } else {
+                disableSourceOutlines();
+            }
+            sendResponse({ success: true });
+        } else if (message.type === 'GET_PAGE_TRACE') {
+            window.MASSources.getPageGroups().then(
+                (groups) =>
+                    sendResponse({
+                        success: true,
+                        trace: window.MASSourceEngine.buildPageTrace(groups, window.MASMepState.latest()),
+                    }),
+                () => sendResponse({ success: false, error: 'trace_failed' }),
+            );
         }
         return true;
     });

@@ -10,6 +10,10 @@ function getLocaleHelpers() {
     return null;
 }
 
+const PZN_TAG_PREFIX = 'mas:pzn/';
+const PZN_COUNTRY_PREFIX = 'mas:pzn/country/';
+const PROMOTION_TAG_PREFIX = 'mas:promotion/';
+
 class FragmentParser {
     parseFragmentData(fragmentData) {
         if (!fragmentData || !fragmentData.fields) {
@@ -179,6 +183,7 @@ class FragmentParser {
             surface: null,
             fragmentPath: null,
             isVariation: false,
+            variationType: null,
             localeDefaultLocale: null,
             localeDefaultPath: null,
             requestedLocale: requestedLocale || null,
@@ -209,12 +214,14 @@ class FragmentParser {
         }
 
         const variations = this.extractVariations(fragmentData);
+        const { type: variationType } = this.classifyVariation(fragmentData);
 
         return {
             locale,
             surface,
             fragmentPath,
-            isVariation: !isLocaleDefault,
+            isVariation: variationType !== null,
+            variationType,
             localeDefaultLocale,
             localeDefaultPath,
             requestedLocale: requestedLocale || null,
@@ -257,23 +264,29 @@ class FragmentParser {
                 fragmentPath: varFragmentPath,
             };
 
-            if (refData.path.includes('/pzn/')) {
-                const pznCountries = (refData.tags || [])
-                    .map((t) => t && (t.id || t))
-                    .filter((id) => typeof id === 'string' && id.startsWith('mas:pzn/country/'))
-                    .map((id) => id.slice('mas:pzn/country/'.length));
+            const classification = this.classifyVariation(refData);
+            if (classification.type === 'grouped') {
+                const pznCountries = this.getTagIds(refData)
+                    .filter((id) => id.startsWith(PZN_COUNTRY_PREFIX))
+                    .map((id) => id.slice(PZN_COUNTRY_PREFIX.length));
                 const nameSegments = varFragmentPath.split('/');
                 const name = nameSegments[nameSegments.length - 1];
-                buckets.grouped.push({ ...baseEntry, type: 'grouped', pznCountries, name });
+                buckets.grouped.push({
+                    ...baseEntry,
+                    type: 'grouped',
+                    pznCountries,
+                    audiences: classification.audiences,
+                    name,
+                });
                 return;
             }
 
-            const promoTag = (refData.tags || [])
-                .map((t) => t && (t.id || t))
-                .find((id) => typeof id === 'string' && id.startsWith('mas:promotion/'));
-            if (promoTag) {
-                const promotionName = promoTag.slice('mas:promotion/'.length);
-                buckets.promo.push({ ...baseEntry, type: 'promo', promotionName });
+            if (classification.type === 'promo') {
+                buckets.promo.push({
+                    ...baseEntry,
+                    type: 'promo',
+                    promotionName: classification.promotionName,
+                });
                 return;
             }
 
@@ -281,6 +294,83 @@ class FragmentParser {
         });
 
         return buckets;
+    }
+
+    getTagIds(fragmentData) {
+        const ids = (fragmentData.tags || []).map((t) => t && (t.id || t));
+        const fields = fragmentData.fields;
+        const pznField = Array.isArray(fields) ? fields.find((f) => f.name === 'pznTags')?.values : fields?.pznTags;
+        if (Array.isArray(pznField)) ids.push(...pznField.map((t) => t && (t.id || t)));
+        return ids.filter((id) => typeof id === 'string');
+    }
+
+    classifyVariation(fragmentData) {
+        const path = fragmentData?.path || '';
+        const tagIds = this.getTagIds(fragmentData || {});
+        const promoTag = tagIds.find((id) => id.startsWith(PROMOTION_TAG_PREFIX));
+        const base = { type: null, audiences: [], promotionName: null, legacy: false };
+
+        if (path.includes('/pzn/')) {
+            const audiences = tagIds
+                .filter((id) => id.startsWith(PZN_TAG_PREFIX) && !id.startsWith(PZN_COUNTRY_PREFIX))
+                .map((id) => id.slice(PZN_TAG_PREFIX.length));
+            return { ...base, type: 'grouped', audiences: [...new Set(audiences)] };
+        }
+
+        if (path.includes('/promotions/') || promoTag) {
+            // IO reads promo variations from a promotions/<name>/ folder named after the project's tag.
+            const folderName = path.match(/\/promotions\/([^/]+)\//)?.[1] ?? null;
+            return {
+                ...base,
+                type: 'promo',
+                promotionName: promoTag ? promoTag.slice(PROMOTION_TAG_PREFIX.length) : folderName,
+            };
+        }
+
+        const pathMatch = path.match(/\/content\/dam\/mas\/([^/]+)\/([^/]+)\//);
+        if (pathMatch) {
+            const [, surface, locale] = pathMatch;
+            const locales = getLocaleHelpers();
+            const isLocaleDefault = locales ? locales.isDefaultLocale(locale, surface) : locale === 'en_US';
+            if (!isLocaleDefault) return { ...base, type: 'locale', legacy: true };
+        }
+
+        return base;
+    }
+
+    summarizeVariationInfo(variationInfo) {
+        const buckets = variationInfo.variations || {};
+        const promo = buckets.promo || [];
+        const grouped = buckets.grouped || [];
+        const locale = buckets.locale || [];
+        const variationLabels = [
+            ...promo.map((v) => `Promo · ${v.promotionName || v.name || 'promotion'}`),
+            ...grouped.map((v) => `Grouped · ${(v.audiences || []).join(', ') || v.name}`),
+            ...locale.map((v) => v.locale),
+        ];
+
+        let typeLabel = 'Standalone';
+        let typeClass = 'variation-standalone';
+        const labelsByType = {
+            grouped: 'Grouped variation',
+            promo: 'Promo variation',
+            locale: 'Locale variation (legacy)',
+        };
+        if (variationInfo.variationType) {
+            typeLabel = labelsByType[variationInfo.variationType];
+            typeClass = 'variation-child';
+        } else if (variationLabels.length > 0) {
+            typeLabel = 'Default (Parent)';
+            typeClass = 'variation-parent';
+        }
+
+        return {
+            typeLabel,
+            typeClass,
+            locale: variationInfo.locale || null,
+            parentLocale: variationInfo.localeDefaultLocale || null,
+            variationLabels,
+        };
     }
 
     getLocaleDisplayName(localeCode) {

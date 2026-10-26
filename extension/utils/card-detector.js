@@ -381,6 +381,14 @@ class CardDetector {
     }
 
     /**
+     * mas-field is display:contents, so it has no box of its own to anchor a badge to; it renders
+     * through its content span, or the commerce element it hosts.
+     */
+    fieldAnchor(element) {
+        return element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || element.querySelector(SELECTOR_BARE_ELEMENT) || element;
+    }
+
+    /**
      * Records a <mas-field>, whatever it renders. A title or description is a plain
      * content field; a price or CTA field owns the commerce element inside it, so that
      * element is skipped in processBareElement and the whole field gets a single badge.
@@ -396,11 +404,9 @@ class CardDetector {
         if (this.detectedCards.size >= this.maxCards) return;
 
         const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
-        // mas-field is display:contents, so it has no box of its own to anchor a badge to; use its
-        // rendered content span (or the commerce element it hosts). A field in a hidden responsive
-        // variant renders a zero-size content span, so skip it until it has a box -- a later mutation
-        // re-queues the field -- rather than badging an invisible duplicate.
-        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
+        // A field in a hidden responsive variant renders a zero-size content span, so skip it until it
+        // has a box -- a later mutation re-queues the field -- rather than badging an invisible duplicate.
+        const anchorElement = this.fieldAnchor(element);
         if (!this.hasBox(anchorElement)) return;
 
         const id = `field-${++this.elementCounter}`;

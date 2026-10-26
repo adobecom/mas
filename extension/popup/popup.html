@@ -13,6 +13,11 @@
                 <h1 class="spectrum-Heading spectrum-Heading--sizeS">Merch @ Scale</h1>
             </div>
             <label class="spectrum-Switch">
+                <input type="checkbox" class="spectrum-Switch-input" id="sourcesToggle" />
+                <span class="spectrum-Switch-switch"></span>
+                <span class="spectrum-Switch-label">Show sources</span>
+            </label>
+            <label class="spectrum-Switch">
                 <input type="checkbox" class="spectrum-Switch-input" id="enableToggle" checked />
                 <span class="spectrum-Switch-switch"></span>
                 <span class="spectrum-Switch-label">On</span>
@@ -40,6 +45,11 @@
                 </div>
             </div>
 
+            <details class="page-trace" id="pageTrace" hidden>
+                <summary class="page-trace-summary">How this page resolved</summary>
+                <div class="page-trace-body" id="pageTraceBody" hidden></div>
+            </details>
+
             <div class="card-list" id="cardList"></div>
             <div class="no-cards" id="noCards" style="display: none">
                 <p class="spectrum-Body spectrum-Body--sizeS">No merch cards detected on this page.</p>
@@ -48,6 +58,9 @@
         </div>
 
         <script src="../utils/icons.js"></script>
+        <script src="../utils/escape.js"></script>
+        <script src="../utils/studio-linker.js"></script>
+        <script src="page-trace-view.js"></script>
         <script src="popup.js"></script>
     </body>
 </html>

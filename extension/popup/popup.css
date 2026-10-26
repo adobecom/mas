@@ -427,3 +427,67 @@ body.spectrum--dark .card-list {
     background: #f5f5f5;
     color: #616161;
 }
+
+.page-trace {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--spectrum-gray-300, #e1e1e1);
+}
+
+.page-trace[hidden] {
+    display: none;
+}
+
+.page-trace-summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.page-trace-body {
+    max-height: 240px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.mas-trace-note,
+.mas-trace-manifests {
+    margin: 0 0 8px;
+    font-size: 12px;
+}
+
+.mas-trace-manifests {
+    padding-left: 16px;
+}
+
+.mas-trace-card {
+    margin-bottom: 8px;
+}
+
+.mas-trace-card-name {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.mas-trace-mixed {
+    margin-left: 4px;
+    padding: 0 6px;
+    border-radius: 8px;
+    background: var(--spectrum-orange-400, #f29423);
+    color: #000;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.mas-trace-steps {
+    margin: 2px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+}
+
+.mas-trace-link {
+    color: var(--spectrum-accent-color-700, #1473e6);
+    text-decoration: none;
+}
+
+.mas-trace-link:hover {
+    text-decoration: underline;
+}

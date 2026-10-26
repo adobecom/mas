@@ -93,6 +93,21 @@ async function toggleExtensionEnabled(enabled) {
     });
 }
 
+function loadShowSources() {
+    chrome.storage.local.get(['masShowSources'], (result) => {
+        document.getElementById('sourcesToggle').checked = result.masShowSources === true;
+    });
+}
+
+async function toggleShowSources(enabled) {
+    await chrome.storage.local.set({ masShowSources: enabled });
+
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab?.id) {
+        chrome.tabs.sendMessage(activeTab.id, { type: 'SET_SOURCE_OUTLINES', enabled }).catch(() => {});
+    }
+}
+
 function isAdobePage(urlStr) {
     if (typeof urlStr !== 'string' || !urlStr) return false;
     try {
@@ -146,6 +161,33 @@ async function loadCards(retryCount = 0) {
         }
     });
 }
+
+async function activeAdobeTab() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab && isAdobePage(tab.url) ? tab : null;
+}
+
+async function requestPageTrace() {
+    const tab = await activeAdobeTab();
+    if (!tab) return null;
+    return new Promise((resolve) => {
+        chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_TRACE' }, (response) => {
+            resolve(chrome.runtime.lastError || !response?.success ? null : (response.trace ?? null));
+        });
+    });
+}
+
+// The summary must be visible to be opened, so the closed section shows on any Adobe page.
+async function showPageTraceSection() {
+    document.getElementById('pageTrace').hidden = !(await activeAdobeTab());
+}
+
+const pageTrace = window.MASPageTraceView.bindPageTrace({
+    section: document.getElementById('pageTrace'),
+    body: document.getElementById('pageTraceBody'),
+    fetchTrace: requestPageTrace,
+    openLink: (dataset) => window.MASStudioLinker.openLink(dataset),
+});
 
 function renderCards() {
     const cardList = document.getElementById('cardList');
@@ -515,45 +557,35 @@ function formatFieldName(fieldName) {
 }
 
 function renderVariationSection(variationInfo) {
-    let variationType = 'Standalone';
-    let typeClass = 'variation-standalone';
-
-    if (variationInfo.hasVariations) {
-        variationType = 'Default (Parent)';
-        typeClass = 'variation-parent';
-    } else if (variationInfo.isVariation) {
-        variationType = 'Variation';
-        typeClass = 'variation-child';
-    }
+    const summary = window.MASFragmentParser.summarizeVariationInfo(variationInfo);
 
     let html = `
     <div class="card-details-subsection">
       <h5>Variation Info</h5>
       <div class="card-details-field">
         <label>Locale:</label>
-        <span class="variation-locale">${escapeHtml(variationInfo.locale)}</span>
+        <span class="variation-locale">${escapeHtml(summary.locale || '')}</span>
       </div>
       <div class="card-details-field">
         <label>Type:</label>
-        <span class="variation-type ${typeClass}">${variationType}</span>
+        <span class="variation-type ${summary.typeClass}">${escapeHtml(summary.typeLabel)}</span>
       </div>
   `;
 
-    if (variationInfo.isVariation && variationInfo.parentLocale) {
+    if (summary.parentLocale) {
         html += `
       <div class="card-details-field">
         <label>Parent:</label>
-        <span class="variation-locale">${escapeHtml(variationInfo.parentLocale)}</span>
+        <span class="variation-locale">${escapeHtml(summary.parentLocale)}</span>
       </div>
     `;
     }
 
-    if (variationInfo.hasVariations && variationInfo.variations.length > 0) {
-        const localeList = variationInfo.variations.map((v) => v.locale).join(', ');
+    if (summary.variationLabels.length > 0) {
         html += `
       <div class="card-details-field">
         <label>Variations:</label>
-        <span>${escapeHtml(localeList)}</span>
+        <span>${escapeHtml(summary.variationLabels.join(', '))}</span>
       </div>
     `;
     }
@@ -568,14 +600,22 @@ document.getElementById('searchInput').addEventListener('input', renderCards);
 
 document.getElementById('refreshBtn').addEventListener('click', loadCards);
 
+document.getElementById('refreshBtn').addEventListener('click', () => pageTrace.refresh());
+
 document.getElementById('exportBtn').addEventListener('click', exportCardsAsJSON);
 
 document.getElementById('enableToggle').addEventListener('change', (e) => {
     toggleExtensionEnabled(e.target.checked);
 });
 
+document.getElementById('sourcesToggle').addEventListener('change', (e) => {
+    toggleShowSources(e.target.checked);
+});
+
 loadExtensionEnabled();
+loadShowSources();
 loadCards();
+showPageTraceSection();
 
 function renderPopupIcons() {
     if (!window.MASIcons) return;

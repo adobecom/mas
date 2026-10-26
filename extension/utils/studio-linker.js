@@ -45,6 +45,33 @@ class StudioLinker {
         });
     }
 
+    openFragmentInStudio(fragmentId) {
+        chrome.runtime.sendMessage({ type: 'OPEN_STUDIO_LINK', view: 'fragment-editor', fragmentId });
+    }
+
+    openVersionHistory(fragmentId) {
+        chrome.runtime.sendMessage({ type: 'OPEN_STUDIO_LINK', view: 'version', fragmentId });
+    }
+
+    // The page knows a promotion only by name and title; the background looks up its project id.
+    openPromotionInStudio({ name, title }) {
+        chrome.runtime.sendMessage({
+            type: 'OPEN_STUDIO_LINK',
+            view: 'promotion',
+            promotionName: name || null,
+            promotionTitle: title || null,
+        });
+    }
+
+    // Rendered links carry either data-fragment-id or data-promotion-name/-title.
+    openLink(dataset) {
+        if (dataset.fragmentId) {
+            this.openFragmentInStudio(dataset.fragmentId);
+            return;
+        }
+        this.openPromotionInStudio({ name: dataset.promotionName, title: dataset.promotionTitle });
+    }
+
     copyLinkToClipboard(fragmentId, options = {}) {
         const locale = options.locale || 'en_US';
         const path = options.path || '/content/dam/mas';

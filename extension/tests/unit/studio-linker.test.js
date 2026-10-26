@@ -47,6 +47,39 @@ test('an unwrapped CTA opens its source fragment directly, not a content search'
     assert.equal(lastMessage().view, 'fragment-editor');
 });
 
+test('a fragment opens in the fragment editor by id alone', () => {
+    linker.openFragmentInStudio(CCD_FRAGMENT_ID);
+    assert.deepEqual(lastMessage(), { type: 'OPEN_STUDIO_LINK', view: 'fragment-editor', fragmentId: CCD_FRAGMENT_ID });
+});
+
+test('version history opens the version view for the fragment', () => {
+    linker.openVersionHistory(CCD_FRAGMENT_ID);
+    assert.deepEqual(lastMessage(), { type: 'OPEN_STUDIO_LINK', view: 'version', fragmentId: CCD_FRAGMENT_ID });
+});
+
+test('a promotion sends its name and title for the background to resolve', () => {
+    linker.openPromotionInStudio({ name: 'globalintropricinghpandgnav', title: 'GlobalIntroPricingHPandGNAV' });
+    assert.deepEqual(lastMessage(), {
+        type: 'OPEN_STUDIO_LINK',
+        view: 'promotion',
+        promotionName: 'globalintropricinghpandgnav',
+        promotionTitle: 'GlobalIntroPricingHPandGNAV',
+    });
+});
+
+test('a link carrying a fragment id opens that fragment', () => {
+    linker.openLink({ fragmentId: CCD_FRAGMENT_ID });
+    assert.equal(lastMessage().view, 'fragment-editor');
+});
+
+test('a link carrying only a promotion title opens that promotion', () => {
+    linker.openLink({ promotionTitle: 'GlobalIntroPricingHPandGNAV' });
+    assert.deepEqual(
+        [lastMessage().view, lastMessage().promotionName, lastMessage().promotionTitle],
+        ['promotion', null, 'GlobalIntroPricingHPandGNAV'],
+    );
+});
+
 test('the final URL for an unwrapped price from a non-acom fragment targets the editor, not the acom surface', () => {
     linker.openInStudio(CCD_FRAGMENT_ID, { locale: 'en_US', elementType: 'price' });
     const params = hashParams(buildStudioUrl(lastMessage()));

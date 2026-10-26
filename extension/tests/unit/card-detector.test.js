@@ -414,6 +414,15 @@ test('processMasField anchors positioning on the rendered content span', () => {
     assert.equal(data.element, el);
 });
 
+test('fieldAnchor prefers the content span, then the commerce child, then the field itself', () => {
+    const contentSpan = {};
+    const commerceChild = {};
+    const bare = fakeMasField({ contentSpan: null });
+    assert.equal(detector.fieldAnchor(fakeMasField({ contentSpan, commerceChild })), contentSpan);
+    assert.equal(detector.fieldAnchor(fakeMasField({ contentSpan: null, commerceChild })), commerceChild);
+    assert.equal(detector.fieldAnchor(bare), bare);
+});
+
 test('processMasField skips a field that renders no visible content', () => {
     // A field whose content span and commerce child have no box is a hidden responsive variant;
     // badging it would pin an invisible badge, so it is not detected.

@@ -6,7 +6,7 @@ const { createContext, runInContext } = require('node:vm');
 
 const F = require('./fixtures/homepage-cc-lapsed.js');
 
-const SCRIPTS = ['content/sources.js', 'content/content.js'];
+const SCRIPTS = ['utils/escape.js', 'content/sources.js', 'content/content.js'];
 const FRAGMENT = { id: F.AUTHORED_RESOLVED, fields: { cardTitle: 'CC Pro' } };
 
 const flush = () => new Promise(setImmediate);
@@ -101,6 +101,14 @@ test('each badge sharing the fetch still gets the card name', async () => {
         ['field-1', 'CC Pro'],
         ['field-2', 'CC Pro'],
     ]);
+});
+
+test('a rich-text card title names the badge in plain text', async () => {
+    const cardTitle = { mimeType: 'text/html', value: '<strong>Create at the highest level.</strong>' };
+    const { detect, named } = loadContent({ response: { success: true, data: { ...FRAGMENT, fields: { cardTitle } } } });
+    detect(badge('field-1'));
+    await flush();
+    assert.deepEqual(named, [['field-1', 'Create at the highest level.']]);
 });
 
 test('a failed card-name fetch leaves the badge unnamed', async () => {

@@ -81,9 +81,7 @@ class CardOverlay {
         const isField = cardData.elementType === 'field';
         // Set for cards, and for anything mas-field rendered; null for a standalone offer.
         const sourceFragmentId = cardData.sourceFragmentId;
-        const headerLabel = isCollection
-            ? `Collection: ${this.escapeHtml(cardData.cardName)}`
-            : this.escapeHtml(cardData.cardName);
+        const headerLabel = this.escapeHtml(this.panelTitle(cardData));
         const promotion = !isCollection && window.MASPromo ? window.MASPromo.readElementPromotion(cardData.element) : null;
         const idFields = [];
         if (isBareElement) idFields.push({ label: 'OSI', value: cardData.osi });
@@ -782,9 +780,17 @@ class CardOverlay {
         if (overlayData.panel) {
             const header = overlayData.panel.querySelector('.mas-ext-panel-header h3');
             if (header) {
-                header.textContent = cardName;
+                header.textContent = this.panelTitle(overlayData.cardData);
             }
         }
+    }
+
+    // Sibling fields share their card's name, so a field, price or CTA panel also names its own role.
+    panelTitle({ cardName, elementType, variant }) {
+        if (elementType === 'collection') return `Collection: ${cardName}`;
+        if (!['field', 'price', 'cta'].includes(elementType)) return cardName;
+        const role = elementType === 'field' ? variant : elementType;
+        return role && role !== cardName ? `${cardName} · ${role}` : cardName;
     }
 
     updateBadgeVariant(fragmentId, variant) {

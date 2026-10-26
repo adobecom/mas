@@ -88,3 +88,42 @@ test('different overlays for the same source fragment share the parent response'
 
     assert.equal(requests.length, 1);
 });
+
+const CARD_NAME = 'Create at the highest level.';
+
+test('a field panel title names its card and its field', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.panelTitle({ cardName: CARD_NAME, elementType: 'field', variant: 'subtitle' }),
+        `${CARD_NAME} · subtitle`,
+    );
+});
+
+test('a price panel title names its card and its role', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: CARD_NAME, elementType: 'price', variant: 'plans' }), `${CARD_NAME} · price`);
+});
+
+test('a card panel title is the card name alone', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: CARD_NAME, elementType: 'card', variant: 'plans' }), CARD_NAME);
+});
+
+test('a collection panel title keeps its prefix', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: 'Plans', elementType: 'collection' }), 'Collection: Plans');
+});
+
+test('a field still named after itself does not repeat its name', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: 'subtitle', elementType: 'field', variant: 'subtitle' }), 'subtitle');
+});
+
+test('a card name arriving later keeps the field in an open panel title', () => {
+    const { overlay } = createFixture();
+    const header = { textContent: '' };
+    const cardData = { cardName: 'Come back', elementType: 'field', variant: 'subtitle' };
+    overlay.overlays.set('field-9', { cardData, panel: { querySelector: () => header } });
+    overlay.updateCardNameInPanel('field-9', CARD_NAME);
+    assert.equal(header.textContent, `${CARD_NAME} · subtitle`);
+});

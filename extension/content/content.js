@@ -38,10 +38,11 @@ function extractCardNameFromFragment(fragmentData) {
     const fields = fragmentData.fields;
     if (!fields) return fragmentData.name || fragmentData.title || null;
 
-    const cardTitle = typeof fields.cardTitle === 'object' ? fields.cardTitle?.value : fields.cardTitle;
+    const { plainText } = window.MASEscape;
+    const cardTitle = plainText(typeof fields.cardTitle === 'object' ? fields.cardTitle?.value : fields.cardTitle);
     if (cardTitle) return cardTitle;
 
-    const cardName = typeof fields.cardName === 'object' ? fields.cardName?.value : fields.cardName;
+    const cardName = plainText(typeof fields.cardName === 'object' ? fields.cardName?.value : fields.cardName);
     if (cardName) return cardName;
 
     return fragmentData.name || fragmentData.title || null;

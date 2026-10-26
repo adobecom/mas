@@ -293,7 +293,7 @@ export async function enrichCards(
                     getDisplayName,
                     includePersonalizationVariations,
                 }),
-            OFFER_DATA_CONCURRENCY_LIMIT,
+            includePersonalizationVariations ? 1 : OFFER_DATA_CONCURRENCY_LIMIT,
         );
 
         if (signal?.aborted) return [];

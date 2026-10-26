@@ -1399,7 +1399,8 @@ class MasPromotionsEditor extends LitElement {
 
     #handleProductFilterChange = (event) => {
         event.stopPropagation();
-        this.#pickerProductFilterOverridden ||= event.detail.value !== this.#pickerProductFilter;
+        this.#pickerProductFilterOverridden ||=
+            [...event.detail.value].sort().join(',') !== [...this.#pickerProductFilter].sort().join(',');
         this.#pickerProductFilter = event.detail.value;
         const tags = this.#pickerProductFilter.join(',') || undefined;
         if (Store.filters.get().tags !== tags) {

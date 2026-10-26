@@ -230,8 +230,10 @@ export class MasRepository extends LitElement {
     #onSearchChange = () => {
         clearDictionaryCache();
         this.#searchCursor = null;
-        this.#abortControllers.search?.abort();
+        if (!this.#abortControllers.search) return;
+        this.#abortControllers.search.abort();
         this.#abortControllers.search = null;
+        Store.fragments.list.loading.set(false);
     };
 
     /**

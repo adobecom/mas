@@ -145,16 +145,23 @@ async function processCardsData(allCards, repository, state, getDisplayName, sto
         if (signal?.aborted) return;
         const cardsByPaths = new Map(store.cardsByPaths.get() || []);
         const mergedVariations = new Map(store.groupedVariationsByParent.get());
+        let variationsChanged = false;
         for (const card of enrichedCards) {
             cardsByPaths.set(card.path, card);
-            if (card.groupedVariations.length) {
+            const existingVariations = mergedVariations.get(card.path);
+            if (
+                card.groupedVariations.length &&
+                (existingVariations?.size !== card.groupedVariations.length ||
+                    card.groupedVariations.some((variation) => existingVariations.get(variation.path) !== variation))
+            ) {
                 mergedVariations.set(
                     card.path,
                     new Map(card.groupedVariations.map((variation) => [variation.path, variation])),
                 );
+                variationsChanged = true;
             }
         }
-        setCardVariationsByPaths(mergedVariations, store);
+        if (variationsChanged) setCardVariationsByPaths(mergedVariations, store);
         store.displayCards.set(enrichedCards);
         store.allCards.set(enrichedCards);
         store.cardsByPaths.set(cardsByPaths);

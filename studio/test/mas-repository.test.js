@@ -1587,7 +1587,7 @@ describe('MasRepository dictionary helpers', () => {
                 });
             }
 
-            it('invalidates an old UUID request as soon as the next query is queued', async () => {
+            it('invalidates an old UUID request and clears loading when no replacement search starts', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };
                 repository.search = { value: { path: 'acom', query: variationUuid } };
@@ -1604,11 +1604,13 @@ describe('MasRepository dictionary helpers', () => {
                 let oldSearch;
                 try {
                     oldSearch = repository.searchFragments();
+                    expect(Store.fragments.list.loading.get()).to.be.true;
                     Store.search.set((previous) => ({ ...previous, query: parentUuid }));
+                    expect(Store.fragments.list.loading.get()).to.be.false;
                     resolveOld(createFragment({ id: variationUuid, path: `${ROOT_PATH}/acom/en_US/old` }));
                     await oldSearch;
                     expect(mockDataStore.get()).to.deep.equal([]);
-                    expect(Store.fragments.list.loading.get()).to.be.true;
+                    expect(Store.fragments.list.loading.get()).to.be.false;
                 } finally {
                     resolveOld(null);
                     await oldSearch;

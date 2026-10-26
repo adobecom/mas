@@ -414,6 +414,37 @@ describe('common/utils/item-loading', () => {
         expect(cards[0].groupedVariations[0].path).to.equal(groupedVariationPath);
     });
 
+    for (const includePersonalizationVariations of [false, true]) {
+        it(`enrichCards limits grouped variation requests to ${includePersonalizationVariations ? 5 : 25} concurrently`, async () => {
+            const cards = Array.from({ length: 5 }, (_, index) => {
+                const path = `/content/dam/mas/acom/en_US/cards/card${index}`;
+                const paths = Array.from({ length: 5 }, (_, variation) => `${path}/pzn/v${variation}`);
+                return {
+                    path,
+                    fields: [{ name: 'variations', values: paths }],
+                    references: paths.map((variationPath) => ({ path: variationPath })),
+                };
+            });
+            let activeCount = 0;
+            let maxActiveCount = 0;
+            const getByPath = sandbox.stub().callsFake(async (path) => {
+                activeCount += 1;
+                maxActiveCount = Math.max(maxActiveCount, activeCount);
+                await Promise.resolve();
+                activeCount -= 1;
+                return { path, fieldTags: [{ id: 'tag-1' }], fields: [] };
+            });
+
+            const enriched = await enrichCards(cards, { getByPath, includePersonalizationVariations });
+
+            expect(maxActiveCount).to.equal(includePersonalizationVariations ? 5 : 25);
+            expect(getByPath.callCount).to.equal(25);
+            expect(enriched.map((card) => card.groupedVariations.map(({ path }) => path))).to.deep.equal(
+                cards.map((card) => card.fields[0].values),
+            );
+        });
+    }
+
     it('waits for offer data before returning enriched personalization variations', async () => {
         const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
         const card = {

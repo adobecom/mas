@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { waitUntil } from '@open-wc/testing-helpers/pure';
+import { oneEvent, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
@@ -3916,8 +3916,11 @@ describe('MasPromotionsEditor', () => {
                 let el;
                 let selector;
                 let cardsFilter;
+                let originalFirstPageLoaded;
 
                 beforeEach(async () => {
+                    originalFirstPageLoaded = Store.fragments.list.firstPageLoaded.get();
+                    Store.fragments.list.firstPageLoaded.set(true);
                     ({ el } = await mountEditorWithRepo());
                     Store.promotions.offerRecordsCache.set('offer-1', { tags: [{ id: 'mas:product_code/phsp' }] });
                     Store.promotions.offerRecordsCache.set('offer-2', { tags: [{ id: 'mas:product_code/ilst' }] });
@@ -3931,6 +3934,10 @@ describe('MasPromotionsEditor', () => {
                         { id: 'other', path: '/other', fields: [], tags: [{ id: 'mas:product_code/other' }] },
                     ]);
                     await cardsFilter.updateComplete;
+                });
+
+                afterEach(() => {
+                    Store.fragments.list.firstPageLoaded.set(originalFirstPageLoaded);
                 });
 
                 async function selectOffer(value) {
@@ -4036,6 +4043,66 @@ describe('MasPromotionsEditor', () => {
                     expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/ilst']);
                     expect(Store.filters.get().tags).to.equal('mas:product_code/ilst');
                     expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['illustrator']);
+                });
+
+                for (const selection of ['unchanged', 'reordered', 'empty']) {
+                    it(`refreshes All offers after Product Code Apply (${selection} selection)`, async () => {
+                        Store.promotions.offerRecordsCache.delete('delayed-offer');
+                        if (selection === 'empty') {
+                            Store.promotions.offerRecordsCache.delete('offer-1');
+                            Store.promotions.offerRecordsCache.delete('offer-2');
+                        }
+                        Store.promotions.selectedOffers.set(['offer-1', 'offer-2', 'delayed-offer']);
+                        await selectOffer('all');
+                        const productPicker = cardsFilter.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                        await productPicker.updateComplete;
+                        productPicker.tempValue = [...productPicker.value];
+                        if (selection === 'reordered') productPicker.tempValue.reverse();
+
+                        const changed = oneEvent(productPicker, 'change');
+                        await productPicker.applySelection();
+                        await changed;
+                        await cardsFilter.updateComplete;
+                        await el.updateComplete;
+                        Store.promotions.offerRecordsCache.set('delayed-offer', {
+                            tags: [{ id: 'mas:product_code/other' }],
+                        });
+                        Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                        await el.updateComplete;
+                        await selector.updateComplete;
+                        await cardsFilter.updateComplete;
+
+                        const expectedProducts =
+                            selection === 'empty'
+                                ? ['mas:product_code/other']
+                                : ['mas:product_code/phsp', 'mas:product_code/ilst', 'mas:product_code/other'];
+                        expect(cardsFilter.productFilter).to.have.members(expectedProducts);
+                        expect(Store.filters.get().tags.split(',')).to.have.members(expectedProducts);
+                        expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(
+                            selection === 'empty' ? ['other'] : ['photoshop', 'illustrator', 'other'],
+                        );
+                    });
+                }
+
+                it('preserves an actual Product Code Apply change after offer hydration', async () => {
+                    await selectOffer('all');
+                    const productPicker = cardsFilter.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                    await productPicker.updateComplete;
+                    productPicker.tempValue = ['/content/cq:tags/mas/product_code/other'];
+                    const changed = oneEvent(productPicker, 'change');
+                    await productPicker.applySelection();
+                    await changed;
+                    await cardsFilter.updateComplete;
+                    await el.updateComplete;
+
+                    Store.promotions.offerRecordsHydrated.set(Store.promotions.offerRecordsHydrated.get() + 1);
+                    await el.updateComplete;
+                    await selector.updateComplete;
+                    await cardsFilter.updateComplete;
+
+                    expect(cardsFilter.productFilter).to.deep.equal(['mas:product_code/other']);
+                    expect(Store.filters.get().tags).to.equal('mas:product_code/other');
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['other']);
                 });
 
                 it('applies only the chosen offer after Clear all', async () => {

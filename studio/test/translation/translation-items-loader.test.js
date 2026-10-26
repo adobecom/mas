@@ -271,6 +271,75 @@ describe('translation-items-loader', () => {
             }
         });
 
+        it('does not publish variation maps for batches without grouped variations', async () => {
+            const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+            const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+            const state = {};
+            const subscription = loadAllFragments(TABLE_TYPE.CARDS, null, state, {
+                getDisplayName: mockGetDisplayName,
+                store: Store.translationProjects,
+            });
+
+            try {
+                await waitUntil(() => !state.isProcessingCards);
+                Store.fragments.list.data.set([
+                    { value: new Fragment({ path: '/card/without-variations', model: { path: CARD_MODEL_PATH } }) },
+                ]);
+                await waitUntil(() => !state.isProcessingCards);
+
+                expect(parentSet.called).to.be.false;
+                expect(dataSet.called).to.be.false;
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+
+        it('publishes updated variation data even when its path stays the same', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/card1';
+            const variationPath = `${cardPath}/pzn/v1`;
+            const card = new Fragment({
+                path: cardPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+            });
+            const getFragmentByPath = sandbox.stub().resolves({
+                path: variationPath,
+                title: 'Original',
+                fieldTags: [{ id: 't1' }],
+                fields: [],
+            });
+            const state = {};
+            const subscription = loadAllFragments(TABLE_TYPE.CARDS, { aem: { getFragmentByPath } }, state, {
+                getDisplayName: mockGetDisplayName,
+                store: Store.translationProjects,
+            });
+
+            try {
+                await waitUntil(() => !state.isProcessingCards);
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => !state.isProcessingCards);
+                const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+                const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+                getFragmentByPath.resolves({
+                    path: variationPath,
+                    title: 'Updated',
+                    fieldTags: [{ id: 't1' }],
+                    fields: [],
+                });
+                Store.translationProjects.allCards.set([]);
+
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => !state.isProcessingCards);
+
+                expect(parentSet.calledOnce).to.be.true;
+                expect(dataSet.calledOnce).to.be.true;
+                expect(Store.translationProjects.groupedVariationsData.get().get(variationPath).title).to.equal('Updated');
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+
         it('publishes Promotions EDU variations only after offer enrichment completes', async () => {
             const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
             const card = new Fragment({
@@ -429,17 +498,27 @@ describe('translation-items-loader', () => {
             });
 
             Store.fragments.list.data.set([{ value: mockCardFragment }]);
-            await new Promise((r) => setTimeout(r, 200));
+            await waitUntil(() => !state.isProcessingCards);
 
             const callCountAfterFirst = repo.aem.getFragmentByPath.callCount;
             expect(callCountAfterFirst).to.be.greaterThan(0);
+            const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+            const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+            const previousParents = Store.translationProjects.groupedVariationsByParent.get();
+            const previousData = Store.translationProjects.groupedVariationsData.get();
 
-            Store.fragments.list.data.set([{ value: mockCardFragment }]);
-            await new Promise((r) => setTimeout(r, 200));
+            try {
+                Store.fragments.list.data.set([{ value: mockCardFragment }]);
+                await waitUntil(() => !state.isProcessingCards);
 
-            expect(repo.aem.getFragmentByPath.callCount).to.equal(callCountAfterFirst);
-
-            result.unsubscribe();
+                expect(repo.aem.getFragmentByPath.callCount).to.equal(callCountAfterFirst);
+                expect(parentSet.called).to.be.false;
+                expect(dataSet.called).to.be.false;
+                expect(Store.translationProjects.groupedVariationsByParent.get()).to.equal(previousParents);
+                expect(Store.translationProjects.groupedVariationsData.get()).to.equal(previousData);
+            } finally {
+                result.unsubscribe();
+            }
         });
     });
 

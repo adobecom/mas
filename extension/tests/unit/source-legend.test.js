@@ -13,8 +13,8 @@ test('each legend swatch carries its label color and its page outline', () => {
 
 test('the legend names personalized sources in plain words', () => {
     const html = renderSourceLegend();
-    assert.match(html, /Grouped<\/span>\s*<span class="mas-ext-legend-meaning">Personalized for an audience \(PZN\)/);
-    assert.match(html, /Promo<\/span>\s*<span class="mas-ext-legend-meaning">Promotion content/);
+    assert.match(html, /Grouped variation<\/span>\s*<span class="mas-ext-legend-meaning">Personalized for an audience \(PZN\)/);
+    assert.match(html, /Promotion variation<\/span>\s*<span class="mas-ext-legend-meaning">Promotion content/);
 });
 
 test('the legend explains the amber badge and MEP swaps', () => {

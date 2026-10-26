@@ -54,7 +54,7 @@ test('the homepage card chain reads request, MEP swap, IO merge, failure', () =>
     assert.deepEqual(plain(buildPageTrace(F.groups, F.inputs.mepState).cards[0].steps), [
         'Page asks for 4e3e071a',
         'MEP swaps description, ctas → 369630bd (hp-09-21-26-mas-implementation-pzn.json)',
-        'IO merges Promo · GlobalIntroPricingHPandGNAV (da021c0a) into shortDescription',
+        'IO merges Promotion variation · GlobalIntroPricingHPandGNAV (da021c0a) into shortDescription',
         'Failed to load: description (369630bd)',
     ]);
 });
@@ -64,7 +64,7 @@ test('the homepage card links each fragment id and the promo label in its steps'
         { text: '4e3e071a', fragmentId: AUTHORED },
         { text: '369630bd', fragmentId: GROUPED },
         { text: 'da021c0a', fragmentId: PROMO_VAR },
-        { text: `Promo · ${PROMO_PROJECT}`, promotion: { name: F.PROMO_FOLDER, title: PROMO_PROJECT } },
+        { text: `Promotion variation · ${PROMO_PROJECT}`, promotion: { name: F.PROMO_FOLDER, title: PROMO_PROJECT } },
     ]);
 });
 
@@ -151,7 +151,7 @@ test('a swapped field with an IO-merged variation also gets its IO step', () => 
     assert.deepEqual(stepsFor(stamps, [entry], mepState), [
         'Page asks for 4e3e071a',
         `MEP swaps shortDescription → 369630bd (${MANIFEST})`,
-        `IO merges Promo · ${PROMO_PROJECT} (da021c0a) into shortDescription`,
+        `IO merges Promotion variation · ${PROMO_PROJECT} (da021c0a) into shortDescription`,
     ]);
 });
 

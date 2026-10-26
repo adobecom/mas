@@ -82,7 +82,7 @@ test('the popup summary labels a parent with variations and lists them', () => {
         variations: { locale: [], promo: [{ promotionName: 'cci' }], grouped: [{ audiences: ['cc-lapsed'], name: 'n' }] },
     });
     assert.equal(s.typeLabel, 'Default (Parent)');
-    assert.deepEqual(s.variationLabels, ['Promo · cci', 'Grouped · cc-lapsed']);
+    assert.deepEqual(s.variationLabels, ['Promotion variation · cci', 'Grouped variation · cc-lapsed']);
 });
 
 test('the popup summary marks a locale variation as legacy', () => {

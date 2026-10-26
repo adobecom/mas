@@ -79,7 +79,7 @@ test('clicking a source link opens its target in Studio', () => {
 
 test('renders one row per field with its source chip and reason', () => {
     const html = overlay.contentSourcesHtml(F.result);
-    assert.match(html, /mas-ext-src-chip mas-ext-src-promo">Promo · GlobalIntroPricingHPandGNAV</);
+    assert.match(html, /mas-ext-src-chip mas-ext-src-promo">Promotion variation · GlobalIntroPricingHPandGNAV</);
     assert.match(html, /IO applied promo GlobalIntroPricingHPandGNAV/);
     assert.match(html, /mas-ext-src-chip mas-ext-src-failed"/);
 });

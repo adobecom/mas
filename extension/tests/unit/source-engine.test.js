@@ -90,7 +90,7 @@ test('a swapped grouped field that loads is labeled grouped with the manifest', 
         { ...F.inputs, requestedData: F.groupedData },
     );
     assert.equal(e.source, 'grouped');
-    assert.equal(e.label, 'Grouped · cc-lapsed');
+    assert.equal(e.label, 'Grouped variation · cc-lapsed');
 });
 
 test('without MEP state a field listed in mas-overrides is swapped with the ?mep hint', () => {
@@ -288,7 +288,7 @@ test('an IO-applied grouped variation names its audience', () => {
         promoVariationProject: null,
     };
     const e = resolveField(stamps, { ...F.inputs, variationData: F.groupedData });
-    assert.equal(e.label, 'Grouped · cc-lapsed');
+    assert.equal(e.label, 'Grouped variation · cc-lapsed');
     assert.equal(e.reason, 'IO applied grouped variation for cc-lapsed');
 });
 
@@ -359,8 +359,8 @@ test('a card swapped as a whole marks every field swapped', () => {
     };
     const entries = resolveCard(stamps, { ...F.inputs, mepState, requestedData: F.groupedData }, { variant: 'plans' });
     assert.deepEqual(plain(entries.map((e) => [e.field, e.label, e.swapped])), [
-        ['description', 'Grouped · cc-lapsed', true],
-        ['ctas', 'Grouped · cc-lapsed', true],
+        ['description', 'Grouped variation · cc-lapsed', true],
+        ['ctas', 'Grouped variation · cc-lapsed', true],
     ]);
 });
 
@@ -395,7 +395,7 @@ test('a field listed in mas-overrides is swapped even when the MEP map has no sw
     const e = resolveField({ ...F.stamps.description, failed: false }, inputs);
     assert.deepEqual(
         [e.swapped, e.label, e.reason],
-        [true, 'Grouped · cc-lapsed', 'Swapped by MEP — add ?mep to the URL to see which manifest'],
+        [true, 'Grouped variation · cc-lapsed', 'Swapped by MEP — add ?mep to the URL to see which manifest'],
     );
 });
 
@@ -420,7 +420,7 @@ test('compare-chart features combined with the default card keep the variation l
     const [e] = resolveCard(CARD, { ...F.inputs, variationData }, { variant: 'compare-chart-column' });
     assert.deepEqual(
         [e.field, e.source, e.label, e.reason],
-        ['features', 'promo', `Promo · ${PROMO_PROJECT}`, 'Combined with default card features'],
+        ['features', 'promo', `Promotion variation · ${PROMO_PROJECT}`, 'Combined with default card features'],
     );
 });
 

@@ -95,7 +95,7 @@ const inputs = {
 
 function entry(field, requestedId, variationId) {
     const source = variationId
-        ? { source: 'promo', label: `Promo · ${PROMO_PROJECT}`, reason: `IO applied promo ${PROMO_PROJECT}` }
+        ? { source: 'promo', label: `Promotion variation · ${PROMO_PROJECT}`, reason: `IO applied promo ${PROMO_PROJECT}` }
         : { source: 'default', label: 'Default card', reason: 'No variation applied' };
     const ioMerged = Boolean(variationId);
     return { field, ...source, requestedId, variationId, authoredId: requestedId, manifestId: null, swapped: false, ioMerged };
@@ -106,7 +106,7 @@ const entries = [
     {
         field: 'shortDescription',
         source: 'promo',
-        label: `Promo · ${PROMO_PROJECT}`,
+        label: `Promotion variation · ${PROMO_PROJECT}`,
         reason: `IO applied promo ${PROMO_PROJECT}`,
         requestedId: AUTHORED,
         variationId: PROMO_VAR,

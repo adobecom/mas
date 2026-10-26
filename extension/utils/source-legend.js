@@ -3,8 +3,8 @@
 (() => {
     const SOURCE_LEGEND = [
         { source: 'default', label: 'Default card', meaning: 'Authored card, no variation applied' },
-        { source: 'grouped', label: 'Grouped', meaning: 'Personalized for an audience (PZN)' },
-        { source: 'promo', label: 'Promo', meaning: 'Promotion content' },
+        { source: 'grouped', label: 'Grouped variation', meaning: 'Personalized for an audience (PZN)' },
+        { source: 'promo', label: 'Promotion variation', meaning: 'Promotion content' },
         { source: 'mask', label: 'Mask', meaning: 'Mask applied after the variation' },
         { source: 'locale', label: 'Locale', meaning: 'Legacy locale variation' },
         { source: 'failed', label: 'Not rendered', meaning: 'No copy in this language, not found, or failed to load' },

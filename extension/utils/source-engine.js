@@ -84,8 +84,10 @@
 
     function describe(type, audiences, project) {
         const audience = audiences.join(', ');
-        if (type === 'grouped') return { source: 'grouped', label: audience ? `Grouped · ${audience}` : 'Grouped variation' };
-        if (type === 'promo') return { source: 'promo', label: project ? `Promo · ${project}` : 'Promo variation' };
+        if (type === 'grouped')
+            return { source: 'grouped', label: audience ? `Grouped variation · ${audience}` : 'Grouped variation' };
+        if (type === 'promo')
+            return { source: 'promo', label: project ? `Promotion variation · ${project}` : 'Promotion variation' };
         if (type === 'locale') return { source: 'locale', label: 'Locale variation (legacy)' };
         return DEFAULT_CARD;
     }

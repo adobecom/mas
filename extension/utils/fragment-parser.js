@@ -344,8 +344,8 @@ class FragmentParser {
         const grouped = buckets.grouped || [];
         const locale = buckets.locale || [];
         const variationLabels = [
-            ...promo.map((v) => `Promo · ${v.promotionName || v.name || 'promotion'}`),
-            ...grouped.map((v) => `Grouped · ${(v.audiences || []).join(', ') || v.name}`),
+            ...promo.map((v) => `Promotion variation · ${v.promotionName || v.name || 'promotion'}`),
+            ...grouped.map((v) => `Grouped variation · ${(v.audiences || []).join(', ') || v.name}`),
             ...locale.map((v) => v.locale),
         ];
 
@@ -353,7 +353,7 @@ class FragmentParser {
         let typeClass = 'variation-standalone';
         const labelsByType = {
             grouped: 'Grouped variation',
-            promo: 'Promo variation',
+            promo: 'Promotion variation',
             locale: 'Locale variation (legacy)',
         };
         if (variationInfo.variationType) {

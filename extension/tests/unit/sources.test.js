@@ -266,7 +266,7 @@ test('a badged bare CTA joins its card group, labeled from its fetched replaceme
     const cta = result.entries.find((e) => e.overlayId === 'cta-3');
     assert.equal(result.groupKey, AUTHORED);
     assert.equal(result.focusField, 'ctas');
-    assert.equal(cta.label, 'Grouped · cc-lapsed');
+    assert.equal(cta.label, 'Grouped variation · cc-lapsed');
     assert.equal(cta.reason, `Swapped by MEP · ${MANIFEST}`);
 });
 
@@ -334,7 +334,10 @@ test('a stale empty MEP state from page load is replaced by the fresh reply befo
     const result = await sources.getSourcesFor('field-2');
     const description = result.entries.find((e) => e.field === 'description');
     assert.deepEqual([result.groupKey, result.mixed], [AUTHORED, true]);
-    assert.deepEqual([description.label, description.reason], ['Grouped · cc-lapsed', `Swapped by MEP · ${MANIFEST}`]);
+    assert.deepEqual(
+        [description.label, description.reason],
+        ['Grouped variation · cc-lapsed', `Swapped by MEP · ${MANIFEST}`],
+    );
 });
 
 test('after a stale load-time MEP state the page trace shows the MEP swap', async () => {

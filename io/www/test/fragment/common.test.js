@@ -168,6 +168,90 @@ describe('common utils', () => {
             global.fetch = originalFetch;
         });
 
+        describe('attempt cancellation', () => {
+            let clock;
+
+            beforeEach(() => {
+                clock = sinon.useFakeTimers();
+            });
+
+            afterEach(() => {
+                clock.restore();
+            });
+
+            for (const status of [400, 401, 403, 404, 408, 429]) {
+                it(`does not retry HTTP ${status}`, async () => {
+                    fetchStub.callsFake(() => createResponse(status, { detail: 'unavailable' }));
+                    const response = await odinFetch(URL_A, publishedContext(), 'fragment');
+                    expect(response.status).to.equal(status);
+                    expect(fetchStub.callCount).to.equal(1);
+                });
+            }
+
+            it('aborts a timed-out fetch before starting the next attempt', async () => {
+                const events = [];
+                fetchStub.onFirstCall().callsFake((url, { signal }) => {
+                    signal?.addEventListener('abort', () => events.push('abort'));
+                    return new Promise(() => {});
+                });
+                fetchStub.onSecondCall().callsFake(() => {
+                    events.push('retry');
+                    return createResponse(200, { id: 'a' });
+                });
+                const pending = odinFetch(URL_A, publishedContext(), 'fragment');
+                await clock.tickAsync(51);
+                expect((await pending).status).to.equal(200);
+                expect(events).to.deep.equal(['abort', 'retry']);
+            });
+
+            it('aborts a timed-out response body before retrying', async () => {
+                const events = [];
+                fetchStub.onFirstCall().callsFake(async (url, { signal }) => {
+                    signal?.addEventListener('abort', () => events.push('abort'));
+                    const response = await createResponse(200, {});
+                    response.json = () => new Promise(() => {});
+                    return response;
+                });
+                fetchStub.onSecondCall().callsFake(() => {
+                    events.push('retry');
+                    return createResponse(200, { id: 'a' });
+                });
+                const pending = odinFetch(URL_A, publishedContext(), 'fragment');
+                await clock.tickAsync(51);
+                expect((await pending).status).to.equal(200);
+                expect(events).to.deep.equal(['abort', 'retry']);
+            });
+
+            it('clears timeout timers after a successful attempt', async () => {
+                fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
+                await odinFetch(URL_A, publishedContext(), 'fragment');
+                expect(clock.countTimers()).to.equal(0);
+            });
+
+            it('clears timeout timers when error reporting throws', async () => {
+                const failure = new Error('logger unavailable');
+                const errorStub = sinon.stub(console, 'error').throws(failure);
+                fetchStub.rejects(new Error('network unavailable'));
+                try {
+                    const response = await odinFetch(URL_A, publishedContext(), 'fragment').catch((error) => error);
+                    expect(response).to.equal(failure);
+                    expect(clock.countTimers()).to.equal(0);
+                } finally {
+                    errorStub.restore();
+                }
+            });
+
+            for (const status of [503, 504]) {
+                it(`bounds retries for HTTP ${status}`, async () => {
+                    fetchStub.callsFake(() => createResponse(status, { detail: 'unavailable' }));
+                    const pending = odinFetch(URL_A, publishedContext(), 'fragment');
+                    await clock.tickAsync(10);
+                    expect((await pending).status).to.equal(status);
+                    expect(fetchStub.callCount).to.equal(2);
+                });
+            }
+        });
+
         it('shares one request between concurrent preview reads of the same URL', async () => {
             fetchStub.callsFake(() => createResponse(200, { id: 'a' }));
             const responses = await Promise.all([1, 2, 3].map(() => odinFetch(URL_A, previewContext(), 'fragment')));

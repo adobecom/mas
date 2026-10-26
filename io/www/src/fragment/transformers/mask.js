@@ -7,21 +7,53 @@ import {
 } from '../utils/common.js';
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { logDebug, logError } from '../utils/log.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 
 const MASKS_FOLDER = 'masks';
+const maskIdCache = createSwrCache({
+    name: 'mask-ids',
+    ttl: 5 * 60 * 1000,
+    previewTtl: 60 * 1000,
+    jitter: 0,
+    staleWhileRevalidate: false,
+    shouldCache: ({ status }) => status === 404,
+});
+
+export function clearMaskCache(preview = false) {
+    maskIdCache.clear(preview);
+}
 
 /**
  * Fetches the mask card fragment by path convention (`masks/<name>`) for a given surface/locale.
- * Returns the skimmed fragment (references stripped) or null when not found.
+ * Returns the skimmed fragment or the failed lookup/hydration status.
  */
 async function fetchMaskAtLocale(context, surface, locale, mask) {
     const { preview } = context;
     const url = odinUrl(surface, { locale, fragmentPath: `${MASKS_FOLDER}/${mask}`, preview });
-    const { id, status } = await getFragmentId(context, url, `mask-id-${locale}`);
-    if (status !== 200) return null;
+    const { id, status } = await maskIdCache.get(context, url, () =>
+        getFragmentId(context, url, `mask-id-${surface}-${locale}-${mask}`),
+    );
+    if (status !== 200) return { status, operation: 'lookup' };
     const response = await fetch(odinReferences(id, preview), context, `mask-${locale}`);
-    if (response.status !== 200) return null;
-    return skimFragmentFromReferences(response.body);
+    if (response.status !== 200) return { status: response.status, operation: 'hydrate' };
+    return { fragment: skimFragmentFromReferences(response.body) };
+}
+
+function maskFailure({ mask, surface, defaultLocale }, failures) {
+    const unavailable = failures.find(({ status, operation }) => status !== 404 || operation !== 'lookup');
+    return {
+        error: {
+            code: unavailable ? 'mask-fetch-failed' : 'mask-not-found',
+            status: unavailable?.status ?? 404,
+            mask,
+            surface,
+            defaultLocale,
+            failures,
+            message: unavailable
+                ? `Unable to load mask '${mask}' for ${surface}/${defaultLocale}: ${unavailable.operation} failed in ${unavailable.locale} (HTTP ${unavailable.status}).`
+                : `Mask '${mask}' not found for ${surface}/${defaultLocale}. Please translate and publish the mask.`,
+        },
+    };
 }
 
 /**
@@ -31,11 +63,13 @@ async function fetchMaskAtLocale(context, surface, locale, mask) {
 async function fetchMask(context) {
     const { defaultLocale, mask, regionLocale, surface } = context;
     const locales = regionLocale === defaultLocale ? [regionLocale] : [regionLocale, defaultLocale];
+    const failures = [];
     for (const locale of locales) {
-        const maskFragment = await fetchMaskAtLocale(context, surface, locale, mask);
-        if (maskFragment) return maskFragment;
+        const result = await fetchMaskAtLocale(context, surface, locale, mask);
+        if (result.fragment) return result.fragment;
+        failures.push({ locale, ...result });
     }
-    return null;
+    return maskFailure(context, failures);
 }
 
 async function init(context) {
@@ -68,6 +102,15 @@ async function init(context) {
  */
 async function mask(context) {
     const maskFragment = await context.promises?.mask;
+    if (maskFragment?.error) {
+        const { error } = maskFragment;
+        logError(JSON.stringify({ event: 'mask-resolution-failed', ...error }), context);
+        return {
+            ...context,
+            maskError: error,
+            ...(context.preview ? { status: error.status, message: error.message } : {}),
+        };
+    }
     if (!maskFragment) {
         logDebug(() => `No mask to process`, context);
         return context;

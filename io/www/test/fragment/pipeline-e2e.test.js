@@ -4,6 +4,7 @@ import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
+import { clearMaskCache } from '../../src/fragment/transformers/mask.js';
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
@@ -33,10 +34,32 @@ describe('pipeline end to end', () => {
         resetCache();
         clearSettingsCache();
         clearPromoCache();
+        clearMaskCache();
     });
 
     afterEach(() => {
         fetchStub.restore();
+    });
+
+    it('keeps a production response successful when a requested mask cannot be resolved', async () => {
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        const missingUrl =
+            'https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/masks/missing-photo';
+        fetchStub.withArgs(missingUrl).returns(createResponse(404, { detail: 'Not Found' }, 'Not Found'));
+        const errorStub = sinon.stub(console, 'error');
+        try {
+            const result = await getFragment({
+                id: 'some-en-us-fragment',
+                state: new MockState(),
+                locale: 'fr_FR',
+                mask: 'missing-photo',
+            });
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(errorStub.calledWith(sinon.match('mask-resolution-failed'))).to.equal(true);
+        } finally {
+            errorStub.restore();
+        }
     });
 
     it('should return fully baked /content/dam/mas/sandbox/fr_FR/someFragment', async () => {

@@ -950,12 +950,12 @@ describe('pro whats-included toggle label', () => {
     const SECTION =
         '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
 
-    it('falls back to the English label when no label is authored', async () => {
+    it('renders an empty label when none is authored or localized', async () => {
         card = await renderCard(`<div slot="whats-included">${SECTION}</div>`);
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('uses the localized placeholder when no label is authored', async () => {
@@ -975,7 +975,7 @@ describe('pro whats-included toggle label', () => {
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('ignores the raw token when no dictionary was applied', async () => {
@@ -987,7 +987,7 @@ describe('pro whats-included toggle label', () => {
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('uses the authored whats-included label in the toggle', async () => {

@@ -196,7 +196,7 @@ export class Pro extends VariantLayout {
         return (
             authored ||
             (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
-            "See what's included:"
+            ''
         );
     }
 

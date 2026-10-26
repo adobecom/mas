@@ -1,11 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 
-import {
-    formatAnnualPrice,
-    formatOpticalPrice,
-    isPromotionActive,
-} from '../../src/price/utilities.js';
-import { Commitment, Term } from '../../src/constants.js';
+import { formatAnnualPrice, formatOpticalPrice, isPromotionActive } from '../../../src/price/utilities.js';
+import { Commitment, Term } from '../../../src/constants.js';
 
 const OPTICAL_TEST_CASES = [
     [
@@ -262,33 +258,23 @@ describe('isPromotionActive', () => {
         },
     };
     it('promotion is active when date is within promotion period', () => {
-        expect(
-            isPromotionActive(validPromotion, '2024-06-15T12:00:00.000Z'),
-        ).to.equal(true);
+        expect(isPromotionActive(validPromotion, '2024-06-15T12:00:00.000Z')).to.equal(true);
     });
 
     it('promotion is active when date matches start date exactly', () => {
-        expect(
-            isPromotionActive(validPromotion, '2024-01-01T00:00:00.000Z'),
-        ).to.equal(true);
+        expect(isPromotionActive(validPromotion, '2024-01-01T00:00:00.000Z')).to.equal(true);
     });
 
     it('promotion is active when date matches end date exactly', () => {
-        expect(
-            isPromotionActive(validPromotion, '2024-12-31T23:59:59.999Z'),
-        ).to.equal(true);
+        expect(isPromotionActive(validPromotion, '2024-12-31T23:59:59.999Z')).to.equal(true);
     });
 
     it('promotion is not active when date is before promotion period', () => {
-        expect(
-            isPromotionActive(validPromotion, '2023-12-31T23:59:59.999Z'),
-        ).to.equal(false);
+        expect(isPromotionActive(validPromotion, '2023-12-31T23:59:59.999Z')).to.equal(false);
     });
 
     it('promotion is not active when date is after promotion period', () => {
-        expect(
-            isPromotionActive(validPromotion, '2025-01-01T00:00:00.000Z'),
-        ).to.equal(false);
+        expect(isPromotionActive(validPromotion, '2025-01-01T00:00:00.000Z')).to.equal(false);
     });
 
     it('promotion is not active when promotion dates are missing', () => {

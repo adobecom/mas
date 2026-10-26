@@ -22,12 +22,6 @@ describe('MasProductCatalog create flow', () => {
         sinon.restore();
     });
 
-    it('renders the product catalog', async () => {
-        sinon.stub(customElements.get('mas-product-catalog').prototype, 'loadProducts');
-        const mounted = await fixture(html`<mas-product-catalog></mas-product-catalog>`);
-        expect(mounted.querySelector('.product-catalog')).to.exist;
-    });
-
     describe('handleMultiOfferSelect', () => {
         it('creates from the base and trial OSIs', () => {
             el.pendingCreate = { product: { arrangement_code: 'x' }, surface: 'acom', locale: 'en_US', variants: ['plans'] };

@@ -202,6 +202,7 @@ class CardOverlay {
         });
 
         this.positionPanel(panel, cardData.anchorElement);
+        this.keepWheelInside(panel);
         document.body.appendChild(panel);
 
         const overlayData = this.overlays.get(cardData.fragmentId);
@@ -782,6 +783,12 @@ class CardOverlay {
                 header.textContent = this.panelTitle(overlayData.cardData);
             }
         }
+    }
+
+    // Some pages (the adobe.com homepage) turn every wheel event that reaches them into a page scroll, so
+    // the panel keeps its wheel events and scrolls its own body.
+    keepWheelInside(element) {
+        element.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
     }
 
     // Sibling fields share their card's name, so a field, price or CTA panel also names its own role.

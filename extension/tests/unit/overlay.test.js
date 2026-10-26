@@ -127,3 +127,12 @@ test('a card name arriving later keeps the field in an open panel title', () => 
     overlay.updateCardNameInPanel('field-9', CARD_NAME);
     assert.equal(header.textContent, `${CARD_NAME} · subtitle`);
 });
+
+test('a wheel over the panel scrolls the panel instead of reaching the page', () => {
+    const { overlay } = createFixture();
+    const listeners = [];
+    overlay.keepWheelInside({ addEventListener: (type, listener, options) => listeners.push({ type, listener, options }) });
+    let stopped = false;
+    listeners[0].listener({ stopPropagation: () => (stopped = true) });
+    assert.deepEqual([listeners[0].type, listeners[0].options.passive, stopped], ['wheel', true, true]);
+});

@@ -535,3 +535,53 @@ test('highlightCard does nothing when no ancestor renders a box', () => {
     assert.doesNotThrow(() => d.highlightCard('x'));
     assert.equal(anchor.scrolled, false);
 });
+
+function commerceService(attrs) {
+    return { getAttribute: (name) => attrs[name] ?? null };
+}
+
+// Starts a detector the way content.js does, on a page whose mas-commerce-service is whatever service() returns.
+function startedDetector(service) {
+    const saved = { document: global.document, MutationObserver: global.MutationObserver, location: window.location };
+    global.document = {
+        ...global.document,
+        body: {},
+        documentElement: { ...global.document.documentElement, lang: 'en' },
+        querySelector: (selector) => (selector === 'mas-commerce-service' ? service() : null),
+    };
+    global.MutationObserver = class {
+        observe() {}
+    };
+    window.location = { pathname: '/' };
+    const log = console.log;
+    console.log = () => {};
+    const d = new CardDetector();
+    d.initialize();
+    console.log = log;
+    const restore = () => {
+        global.document = saved.document;
+        global.MutationObserver = saved.MutationObserver;
+        window.location = saved.location;
+    };
+    return { d, restore };
+}
+
+test('a detector started before Milo adds mas-commerce-service takes the locale Milo gives it later', () => {
+    let service = null;
+    const { d, restore } = startedDetector(() => service);
+    try {
+        service = commerceService({ locale: 'en_GB', country: 'IN', language: 'en' });
+        assert.deepEqual(d.currentLocale(), { locale: 'en_GB', country: 'IN' });
+    } finally {
+        restore();
+    }
+});
+
+test('without mas-commerce-service the locale falls back to en_US', () => {
+    const { d, restore } = startedDetector(() => null);
+    try {
+        assert.deepEqual(d.currentLocale(), { locale: 'en_US', country: 'US' });
+    } finally {
+        restore();
+    }
+});

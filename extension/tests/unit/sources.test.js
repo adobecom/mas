@@ -145,7 +145,7 @@ function loadSources(
         },
         MASCardDetector: {
             detectedCards,
-            pageLocale: { locale: 'en_US', country: 'US' },
+            currentLocale: () => ({ locale: 'en_US', country: 'US' }),
             getCardByFragmentId: (id) => detectedCards.get(id),
             hasBox: (element) => Boolean(element?.visible),
             fieldAnchor: CardDetector.prototype.fieldAnchor,

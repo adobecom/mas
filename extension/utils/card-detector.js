@@ -53,9 +53,15 @@ class CardDetector {
     }
 
     initialize() {
-        this.pageLocale = this.getPageLocale();
         this.detectExistingCards();
         this.startObserving();
+    }
+
+    // Milo adds mas-commerce-service after this script starts, so only its locale is kept;
+    // until it appears, the URL or en_US fallback is read again on every call.
+    currentLocale() {
+        this.pageLocale ??= this.localeFromCommerceService();
+        return this.pageLocale ?? this.getPageLocale();
     }
 
     getPageLocale() {
@@ -255,7 +261,7 @@ class CardDetector {
         // stored for this fragment rather than losing the dedupe race to an invisible element.
         if (!this.hasBox(cardElement)) return;
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
         const rawVariant = cardElement.variant || cardElement.getAttribute('variant');
         const variant = rawVariant || (elementType === 'collection' ? 'collection' : 'unknown');
@@ -355,7 +361,7 @@ class CardDetector {
         const id = `${elementType}-${++this.elementCounter}`;
         this.elementIds.set(element, id);
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const promotion = this.readPromotion(element, elementType);
 
         const displayText = (element.textContent || '').trim();
@@ -412,7 +418,7 @@ class CardDetector {
         const id = `field-${++this.elementCounter}`;
         this.elementIds.set(element, id);
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const fieldName = element.getAttribute('field') || 'field';
         const displayText = (element.textContent || '').trim();
 

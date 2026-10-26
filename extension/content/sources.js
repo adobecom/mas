@@ -164,7 +164,7 @@
         const overlayIds = members.map(({ overlayId }) => overlayId).filter(Boolean);
         const cardData = detector().getCardByFragmentId(overlayIds[0]);
         // A group the detector has not badged yet falls back to the page locale every badge uses.
-        const context = cardData ?? detector().pageLocale ?? {};
+        const context = cardData ?? detector().currentLocale();
         const entries = await Promise.all(
             dedupeTwins(members).map(async ({ stamps, overlayId }) => ({
                 ...engine().resolveField(stamps, await collectInputs(stamps, context, page)),

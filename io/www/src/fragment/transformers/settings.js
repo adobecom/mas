@@ -367,7 +367,6 @@ const PLACEHOLDER_TEMPLATES = {
     },
     // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
     countdown: { countdownTimerText: '{{countdown-timer-text}}' },
-    // Toggle copy of the pro "See what's included:" dropdown, used when the card has no authored label.
     whatsIncludedToggle: { whatsIncludedToggleLabel: '{{see-whats-included}}' },
     license: { licenseLabel: '{{license-label}}|{{licenses-label}}' },
 };

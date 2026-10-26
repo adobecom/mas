@@ -185,9 +185,6 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">. Otherwise the
-        // dictionary placeholder; an unresolved one comes back as its own key,
-        // so it is ignored until the dictionary entry exists.
         const authored = this.card
             .querySelector('[slot="whats-included"] .whats-included-label')
             ?.textContent.trim();

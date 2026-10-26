@@ -26,6 +26,10 @@ const MEASURE_READY = 'mas-commerce-service:ready';
 
 /**
  * web component to provide commerce and fragment service to consumers.
+ *
+ * @attr {string} aup-select - routes checkout links through the AUP SDK. Can be set after
+ * activation (e.g. once Target has settled): the service re-resolves `settings.aupSelect`
+ * and refreshes the connected checkout links. URL parameter and metadata still take precedence.
  */
 export class MasCommerceService extends HTMLElement {
     static observedAttributes = ['aup-select'];

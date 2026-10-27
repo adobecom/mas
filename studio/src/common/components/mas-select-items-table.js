@@ -350,17 +350,17 @@ class MasSelectItemsTable extends LitElement {
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Item type', key: 'itemType' },
                     { label: 'Status', key: 'status' },
                 ],
@@ -368,13 +368,13 @@ class MasSelectItemsTable extends LitElement {
             collections: {
                 selectable: [
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
             },
@@ -466,13 +466,13 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
+                            <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             <sp-table-cell>
                                 ${renderEditorLink(fragment, fragment.title || '-', {
                                     selectionOnly: !this.viewOnly,
                                     nativeKeyboard: this.viewOnly,
                                 })}
                             </sp-table-cell>
-                            <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,
                 )}`;

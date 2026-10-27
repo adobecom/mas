@@ -193,7 +193,12 @@ runTests(async () => {
             const slot = card.shadowRoot.querySelector(
                 'slot[name="quantity-select"]',
             );
+            expect(slot.previousElementSibling.name).to.equal('body-m');
             expect(slot.assignedElements()).to.include(selector.parentElement);
+            expect(selector.getBoundingClientRect().top).to.be.at.least(
+                card.querySelector('[slot="body-m"]').getBoundingClientRect()
+                    .bottom,
+            );
             expect(selector.getBoundingClientRect().height).to.be.greaterThan(
                 0,
             );

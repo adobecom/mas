@@ -372,9 +372,9 @@ export class MiniCompareChartMweb extends VariantLayout {
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
                     </div>
-                    <slot name="quantity-select"></slot>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
+                    <slot name="quantity-select"></slot>
                 </div>
                 ${this.getMiniCompareFooter()}
             </div>

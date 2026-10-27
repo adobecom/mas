@@ -2,7 +2,13 @@ import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../constants.js';
 import Store from '../store.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey, UserFriendlyError } from '../utils.js';
+import {
+    formatAuthorPath,
+    getFragmentPartsToUse,
+    MODEL_WEB_COMPONENT_MAPPING,
+    normalizeKey,
+    UserFriendlyError,
+} from '../utils.js';
 import { trackPendingProject } from '../common/utils/project-list-utils.js';
 
 /** Field types for duplication; `title` is replaced and `status`, `submissionDate`, and `completedLocales` are reset. */
@@ -137,14 +143,14 @@ export function getOdinLocTaskNameValidationError(value) {
 }
 
 /**
- * Returns a human-readable fragment name for display (e.g. "merch-card: SURFACE / Title").
+ * Returns a human-readable fragment name for display (e.g. "SURFACE / merch-card / Title").
  * @param {Object} data - Fragment data (object with model.path, fields, tags, etc.)
  * @returns {string}
  */
 export function getFragmentName(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
     const { fragmentParts } = getFragmentPartsToUse(data, Store.search.value.path);
-    return `${webComponentName}: ${fragmentParts}`;
+    return formatAuthorPath(webComponentName, fragmentParts);
 }
 
 /**

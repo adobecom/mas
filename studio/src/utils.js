@@ -270,6 +270,23 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
+/**
+ * Builds the M@S author path with the content type right after the surface
+ * (e.g. "ACOM / merch-card / Catalog / Teams").
+ * @param {string} contentType - Web component name, e.g. "merch-card"
+ * @param {string} fragmentParts - Parts string starting with the surface, joined by " / "
+ * @returns {string}
+ */
+export function formatAuthorPath(contentType, fragmentParts) {
+    if (!fragmentParts) return '';
+    if (!contentType) return fragmentParts;
+    const separatorIndex = fragmentParts.indexOf(' / ');
+    if (separatorIndex === -1) return `${fragmentParts} / ${contentType}`;
+    const surface = fragmentParts.slice(0, separatorIndex);
+    const rest = fragmentParts.slice(separatorIndex + 3);
+    return `${surface} / ${contentType} / ${rest}`;
+}
+
 export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
@@ -283,7 +300,7 @@ export function generateLinkToUse(fragment, path, page, failMessage) {
     }
 
     const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-    const authorPath = `${webComponentName}: ${fragmentParts}`;
+    const authorPath = formatAuthorPath(webComponentName, fragmentParts);
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,

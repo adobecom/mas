@@ -103,7 +103,6 @@ class MasMaskEditor extends LitElement {
             display: grid;
             grid-template-columns: minmax(360px, 1fr) minmax(320px, 420px);
             gap: 32px;
-            padding: 32px;
             box-sizing: border-box;
         }
 

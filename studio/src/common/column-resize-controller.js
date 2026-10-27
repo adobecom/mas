@@ -66,16 +66,24 @@ export class ColumnResizeController {
         return this.widths.size ? [...this.widths.keys()].join(' ') : undefined;
     }
 
-    /** Current width of the column: the set width, or the rendered width before the first resize. */
-    #width(key, event) {
-        return this.widths.get(key) ?? event.currentTarget.closest('sp-table-head-cell').getBoundingClientRect().width;
+    /**
+     * On the first resize, pins every column to its rendered width. Unpinned columns size to each row's
+     * content, so rows would stop lining up with the header.
+     */
+    #pinColumns(handle) {
+        if (this.widths.size) return;
+        for (const other of handle.closest('sp-table-head').querySelectorAll('.column-resize-handle')) {
+            const cell = other.closest('sp-table-head-cell');
+            this.widths.set(other.dataset.column, clampColumnWidth(cell.getBoundingClientRect().width));
+        }
     }
 
     #onPointerDown(key, event) {
         event.stopPropagation();
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        this.#dragging = { startX: event.clientX, startWidth: this.#width(key, event) };
+        this.#pinColumns(event.currentTarget);
+        this.#dragging = { startX: event.clientX, startWidth: this.widths.get(key) };
     }
 
     #onPointerMove(key, event) {
@@ -92,7 +100,8 @@ export class ColumnResizeController {
     #onKeyDown(key, event) {
         const direction = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
         if (direction) {
-            this.setWidth(key, this.#width(key, event) + direction * COLUMN_RESIZE_STEP);
+            this.#pinColumns(event.currentTarget);
+            this.setWidth(key, this.widths.get(key) + direction * COLUMN_RESIZE_STEP);
         } else if (event.key !== 'Enter' && event.key !== ' ') {
             return;
         }
@@ -111,6 +120,7 @@ export class ColumnResizeController {
             role="separator"
             aria-orientation="vertical"
             tabindex="0"
+            data-column=${key}
             aria-label="Resize ${label} column"
             aria-valuenow=${ifDefined(this.widths.get(key))}
             aria-valuemin=${MIN_COLUMN_WIDTH}

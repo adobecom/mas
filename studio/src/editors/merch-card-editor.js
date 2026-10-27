@@ -94,6 +94,9 @@ function checkoutOptionsProvider(element, options) {
     options.promotionCode = promoCode;
 }
 
+const CTA_MODIFICATION_WARNING =
+    'Changing these CTAs may affect the user experience on pages using this fragment. Removing or reordering CTAs may affect existing page references. Review the impact before publishing.';
+
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
         description: {
@@ -464,6 +467,22 @@ class MerchCardEditor extends LitElement {
                 <sp-link href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}
                     >Fix references</sp-link
                 >
+            </div>
+        `;
+    }
+
+    /** Warns that consuming pages reference these CTAs by position or key. Compares against the as-loaded
+     *  snapshot rather than the rte-field output, so add/edit/remove/reorder are all covered and the
+     *  editor's first-open normalization cannot trigger it. */
+    renderCtaModificationWarning() {
+        if (!HEADLESS_STYLE_CTA_VARIANTS.includes(this.getEffectiveFieldValue('variant'))) return nothing;
+        const initial = this.fragment?.initialValue?.fields?.find((field) => field.name === 'ctas')?.values?.[0] ?? '';
+        const current = this.fragment?.getFieldValue('ctas', 0) ?? '';
+        if (initial === current) return nothing;
+        return html`
+            <div class="field-status-indicator cta-modification-warning" role="status">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">${CTA_MODIFICATION_WARNING}</span>
             </div>
         `;
     }
@@ -2094,6 +2113,7 @@ class MerchCardEditor extends LitElement {
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
+                    ${this.renderCtaModificationWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>

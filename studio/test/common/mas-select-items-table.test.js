@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -49,10 +49,10 @@ describe('MasSelectItemsTable', () => {
      * Sets up cards in all stores needed for testing.
      * This prevents the component from subscribing to fragments.list.data
      */
-    const setupCardsInStore = (cards) => {
-        Store.translationProjects.allCards.set(cards);
-        Store.translationProjects.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
-        Store.translationProjects.displayCards.set([...cards]);
+    const setupCardsInStore = (cards, store = Store.translationProjects) => {
+        store.allCards.set(cards);
+        store.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
+        store.displayCards.set([...cards]);
     };
 
     /**
@@ -95,6 +95,7 @@ describe('MasSelectItemsTable', () => {
         Store.fragments.list.data.set([]);
         Store.fragments.list.firstPageLoaded.set(true);
         Store.fragments.list.loading.set(false);
+        Store.fragments.list.hasMore.set(false);
         Store.placeholders.list.data.set([]);
         Store.placeholders.list.loading.set(false);
     };
@@ -480,6 +481,105 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('rendering - loading state', () => {
+        async function mountSearchTable(repository = null, store = Store.promotions) {
+            setItemsSelectionStore(store);
+            store.allCards.set([]);
+            store.displayCards.set([]);
+            store.cardsByPaths.set(new Map());
+            store.groupedVariationsByParent.set(new Map());
+            store.groupedVariationsData.set(new Map());
+            const el = document.createElement('mas-select-items-table');
+            el.type = TABLE_TYPE.CARDS;
+            el.getDisplayName = (fragment) => fragment.path;
+            sandbox.stub(el, 'repository').get(() => repository);
+            await fixture(el);
+            await waitUntil(() => el.dataReady && !el.dataState.isProcessingCards);
+            return el;
+        }
+
+        for (const name of ['translationProjects', 'compareChart', 'collectionCards', 'bulkPublishProjects']) {
+            it(`preserves the existing post-load empty state while fetching in ${name}`, async () => {
+                const el = await mountSearchTable(null, Store[name]);
+                Store.fragments.list.loading.set(true);
+                await el.updateComplete;
+                expect(el.shadowRoot.textContent).to.include('No items found.');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+            });
+        }
+
+        it('keeps the loading skeleton when an empty search is still fetching after the initial page', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).not.to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+        });
+
+        it('keeps the loading skeleton while more search pages remain and no matches are available yet', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.hasMore.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).not.to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+        });
+
+        it('keeps loading until a grouped variation search result is ready to render', async () => {
+            const path = '/content/dam/mas/acom/en_US/parent';
+            const variationPath = `${path}/pzn/smb`;
+            let resolveVariation;
+            const variationPending = new Promise((resolve) => {
+                resolveVariation = resolve;
+            });
+            const getFragmentByPath = sandbox.stub().returns(variationPending);
+            const el = await mountSearchTable({ aem: { getFragmentByPath } });
+            const card = {
+                ...createMockCard(path, 'UUID parent result'),
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+            };
+            try {
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => getFragmentByPath.calledWith(variationPath));
+                await el.updateComplete;
+                expect(el.shadowRoot.textContent).not.to.include('No items found.');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+
+                resolveVariation({ path: variationPath, fields: [], fieldTags: [{ id: 'mas:personalization/smb' }] });
+                await waitUntil(() => !el.dataState.isProcessingCards);
+                await el.updateComplete;
+                const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+                await row.updateComplete;
+                expect(row.shadowRoot.textContent).to.include('UUID parent result');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+            } finally {
+                resolveVariation(null);
+                await waitUntil(() => !el.dataState.isProcessingCards);
+            }
+        });
+
+        it('shows the empty state once fetching and card processing have both completed without results', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            Store.fragments.list.data.set([]);
+            Store.fragments.list.loading.set(false);
+            await waitUntil(() => !el.dataState.isProcessingCards);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+        });
+
+        it('keeps existing results visible while fetching another page', async () => {
+            const el = await mountSearchTable();
+            setupCardsInStore([createMockCard('/existing', 'Existing result')], Store.promotions);
+            await el.updateComplete;
+            const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('mas-collapsible-table-row')).to.equal(row);
+            expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+        });
+
         it('should render skeleton rows when loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;

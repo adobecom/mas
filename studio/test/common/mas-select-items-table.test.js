@@ -1475,11 +1475,13 @@ describe('MasSelectItemsTable', () => {
                     html`<mas-select-items-table type="collections" .viewOnly=${viewOnly}></mas-select-items-table>`,
                 );
                 await el.updateComplete;
-                setupCollectionsInStore([
+                const collections = [
                     createMockCollection('/path/collection1', 'Collection 1', {
                         studioPath: 'merch-card-collection: ACOM / Collection 1',
                     }),
-                ]);
+                ];
+                setupCollectionsInStore(collections);
+                if (viewOnly) el.viewOnlyFragments = collections;
                 await el.updateComplete;
                 const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
                 const cells = [...el.shadowRoot.querySelector('sp-table-row').querySelectorAll('sp-table-cell')];
@@ -1495,7 +1497,9 @@ describe('MasSelectItemsTable', () => {
                     html`<mas-select-items-table type="cards" .viewOnly=${viewOnly}></mas-select-items-table>`,
                 );
                 await el.updateComplete;
-                setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+                const cards = [createMockCard('/path/card1', 'Card 1')];
+                setupCardsInStore(cards);
+                if (viewOnly) el.viewOnlyFragments = cards;
                 await el.updateComplete;
                 const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
                 expect(headers.indexOf('Fragment title')).to.equal(headers.indexOf('Path') + 1);

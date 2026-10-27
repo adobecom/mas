@@ -1906,7 +1906,7 @@ class MasPromotionsEditor extends LitElement {
                     this.duplicateDialogOpen = false;
                 }}
             ></mas-promotion-duplicate-dialog>
-            <div class="promotions-form-container">
+            <div class="page-container">
                 ${this.renderValidationBanner()}
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
@@ -2082,7 +2082,6 @@ class MasPromotionsEditor extends LitElement {
                     </div>
                 </div>
                 ${this.countriesSelector}
-                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState
                         ? this.#renderPromotionItemsEmptyState()
@@ -2170,6 +2169,7 @@ class MasPromotionsEditor extends LitElement {
                         }}
                     ></mas-promo-codes-manager>
                 </div>
+                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
             </div>
             ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions

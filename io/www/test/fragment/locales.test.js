@@ -266,6 +266,16 @@ describe('locales', function () {
             expect(result.length).to.equal(0);
         });
 
+        it('should return ACOM locales for genuine, acom-edu, dalp and elements', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            for (const surface of ['genuine', 'acom-edu', 'dalp', 'elements']) {
+                const result = getSurfaceLocales(surface);
+                expect(result, surface).to.not.be.empty;
+                expect(result, surface).to.deep.equal(acomLocales);
+                expect(getDefaultLocales(surface), surface).to.deep.equal(getDefaultLocales('acom'));
+            }
+        });
+
         it('should return same locales for acom-cc as acom', function () {
             const acomLocales = getSurfaceLocales('acom');
             const acomCcLocales = getSurfaceLocales('acom-cc');

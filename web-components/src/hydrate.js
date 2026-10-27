@@ -2,6 +2,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TRIAL_ANALYTICS_IDS,
     HEADLESS_STYLE_CTA_VARIANTS,
+    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import {
@@ -17,6 +18,7 @@ import {
     sanitizePictureMarkup,
 } from './image-markup.js';
 import { getFragmentMapping } from './variants/variants.js';
+import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -1113,9 +1115,20 @@ export async function processCTAs(
                         trialCtaSwapped(false);
                     });
             });
-            const trialCtaSwappedResults = await Promise.all(
-                trialCtaSwappedPromises,
-            );
+            const settleAll = Promise.all(trialCtaSwappedPromises);
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setForegroundTimeout(
+                    () => resolve(false),
+                    MERCH_CARD_LOAD_TIMEOUT,
+                );
+            });
+            const trialCtaSwappedResults = await Promise.race([
+                settleAll,
+                timeout,
+            ]);
+            clearForegroundTimeout(timeoutId);
+
             if (trialCtaSwappedResults.some((c) => c === true)) {
                 const hasBlueCta = ctas.some((c) => {
                     const checkout = getCtaSource(c);

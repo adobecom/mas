@@ -85,8 +85,8 @@ export async function stripTrialCtas(template, indexed, self) {
                       'mas-field[field^="ctas"]',
                   );
         masFields.forEach((c) => {
-            if (c.getAttribute('field') !== thisField) {
-                masFieldsReadyPromises.push(c.checkReady);
+            if (c.getAttribute('field') !== thisField && c.checkReady) {
+                masFieldsReadyPromises.push(c.checkReady());
             }
         });
         const settleAll = Promise.all(masFieldsReadyPromises);

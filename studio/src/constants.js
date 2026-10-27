@@ -72,6 +72,7 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_CLOSE = 'ost-close';
 export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
@@ -145,6 +146,7 @@ export const PAGE_NAMES = {
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
     OFFER_MAPPING: 'offer-mapping',
+    BASELINES: 'baselines',
 };
 
 /**
@@ -182,6 +184,8 @@ export const PROMOTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/promotion
 export const BULK_PUBLISH_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/bulk-publish-project';
 export const TRANSLATION_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/translation-project';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const BASELINE_CREATE_TYPE = 'baseline';
+export const BASELINE_NAME = 'baseline';
 export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
@@ -263,6 +267,9 @@ export const VARIATION_TYPES = {
 };
 
 export const PZN_FOLDER = 'pzn';
+
+export const BASELINES_FOLDER = 'baselines';
+export const BASELINE_SOURCE_LOCALE = 'en_US';
 
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
 

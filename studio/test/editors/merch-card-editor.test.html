@@ -92,6 +92,7 @@
             import Store from '../../src/store.js';
             import { COMPAT_VERSION, PAGE_NAMES, TAG_PROMOTION_PREFIX } from '../../src/constants.js';
             import { buildBackgroundsHtml, parseBackgroundsUrls } from '../../src/editors/backgrounds-url.js';
+            import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
             import { delay } from '../utils.js';
 
             // Background URL edits measure the image before committing; test URLs don't resolve,
@@ -1828,43 +1829,55 @@
                         });
                     });
 
-                    describe('loc-ready metadata toggle', () => {
-                        it('renders fragment-locready-group in General info, not the old #locReady group', async () => {
-                            const { editor } = await setupTestEnvironment({}, 'locready-render');
+                    describe('send to translation toggle removed', () => {
+                        const assertToggleAbsent = (editor) => {
+                            expect(editor.querySelector('sp-field-group#fragment-locready-group')).to.be.null;
+                            expect(editor.querySelector('sp-switch#fragment-locready')).to.be.null;
+                            expect(editor.querySelector('sp-field-label[for="fragment-locready"]')).to.be.null;
                             expect(editor.querySelector('sp-field-group#locReady')).to.be.null;
-                            expect(editor.querySelector('sp-field-group#fragment-locready-group')).to.exist;
-                            expect(editor.querySelector('sp-field-label[for="fragment-locready"]')).to.exist;
-                            expect(editor.querySelector('sp-switch#fragment-locready')).to.exist;
+                            expect(editor.textContent).to.not.include('Send to translation');
+                        };
+
+                        for (const variant of Object.values(VARIANT_NAMES).filter((value) => value !== 'all')) {
+                            it(`does not render the toggle for the ${variant} template`, async () => {
+                                const { editor } = await setupTestEnvironment(
+                                    { isVariation: false, variant: [variant] },
+                                    `no-locready-${variant}`,
+                                );
+                                await editor.toggleFields();
+                                assertToggleAbsent(editor);
+                            });
+                        }
+
+                        const expectedGridOrder = [
+                            'variant',
+                            'cardName',
+                            'fragment-title-group',
+                            'fragment-description-group',
+                            'fragment-enable-baselines-group',
+                        ];
+
+                        it('keeps the General info fields in order without a gap', async () => {
+                            const { editor } = await setupTestEnvironment({ isVariation: false }, 'no-locready-order');
+                            const grid = editor.querySelector('.editor-form-container .two-column-grid');
+                            expect([...grid.children].map((child) => child.id)).to.deep.equal(expectedGridOrder);
                         });
 
-                        it('toggle starts unchecked when locReady field is absent', async () => {
-                            const { editor } = await setupTestEnvironment({}, 'locready-unchecked');
-                            const sw = editor.querySelector('sp-switch#fragment-locready');
-                            expect(sw.hasAttribute('checked')).to.be.false;
+                        it('keeps the General info fields in order for a variation', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'no-locready-variation');
+                            const grid = editor.querySelector('.editor-form-container .two-column-grid');
+                            expect([...grid.children].map((child) => child.id)).to.deep.equal(expectedGridOrder);
                         });
 
-                        it('clicking the toggle sets locReady to true', async () => {
-                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'locready-click');
-                            fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [false] });
+                        it('leaves an existing locReady value unchanged', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'no-locready-existing');
+                            fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [true] });
                             fragmentStore.notify();
-                            await editor.updateComplete;
-                            const sw = editor.querySelector('sp-switch#fragment-locready');
-                            sw.click();
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([true]);
-                        });
-
-                        it('clicking the toggle twice restores locReady to false', async () => {
-                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'locready-double-click');
-                            fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [false] });
-                            fragmentStore.notify();
+                            editor.querySelector('sp-switch#fragment-enable-baselines').click();
                             await editor.updateComplete;
-                            const sw = editor.querySelector('sp-switch#fragment-locready');
-                            sw.click();
-                            await editor.updateComplete;
-                            sw.click();
-                            await editor.updateComplete;
-                            expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([false]);
+                            expect(fragmentStore.get().getFieldValues('locReady')).to.deep.equal([true]);
                         });
                     });
 

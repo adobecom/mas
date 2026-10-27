@@ -438,6 +438,85 @@ runTests(async () => {
                 fragment3.remove();
             });
 
+            it('saves content under missing requested ID when returned ID is already cached', async () => {
+                cache.add({ id: 'kr-id', fields: {} });
+                const waiter = cache.getAsPromise('default-id');
+                cache.add({
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id' },
+                });
+                expect(cache.has('default-id')).to.be.true;
+                expect(cache.get('default-id').fields.originalId).to.equal(
+                    'default-id',
+                );
+                const resolved = await Promise.race([
+                    waiter.then(() => true),
+                    delay(50).then(() => false),
+                ]);
+                expect(resolved).to.be.true;
+                const late = await Promise.race([
+                    cache.getAsPromise('default-id').then(() => true),
+                    delay(50).then(() => false),
+                ]);
+                expect(late).to.be.true;
+            });
+
+            it('does not overwrite existing cache entries', async () => {
+                const a = { id: 'kr-id', fields: {} };
+                const b = { id: 'default-id', fields: {} };
+                cache.add(a);
+                cache.add(b);
+                cache.add({
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id' },
+                });
+                expect(cache.get('kr-id')).to.equal(a);
+                expect(cache.get('default-id')).to.equal(b);
+            });
+
+            it('resumes component waiting on requested ID without fallback', async () => {
+                cache.add({ id: 'kr-id', fields: { title: 'KR' } });
+                const count = aemMock.count;
+                const el = addFragment('default-id', 'cache');
+                const loaded = oneEvent(el, EVENT_AEM_LOAD, 1000);
+                cache.add({
+                    id: 'kr-id',
+                    fields: { originalId: 'default-id', title: 'KR' },
+                });
+                await loaded;
+                expect(aemMock.count).to.equal(count);
+                expect(el.data.fields.title).to.equal('KR');
+            });
+
+            it('still loads referenced fragments', async () => {
+                cache.add({ id: 'kr-coll', fields: {} });
+                cache.add({
+                    id: 'kr-coll',
+                    fields: { originalId: 'default-coll' },
+                    settings: { s: 1 },
+                    references: {
+                        ref1: {
+                            type: 'content-fragment',
+                            value: { id: 'ref1', fields: {} },
+                        },
+                    },
+                });
+                expect(cache.has('default-coll')).to.be.true;
+                expect(cache.has('ref1')).to.be.true;
+                expect(cache.get('ref1').settings).to.include({ s: 1 });
+            });
+
+            it('does not invent entries for IDs that never load', async () => {
+                const waiter = cache.getAsPromise('never-loaded');
+                cache.add({ id: 'other', fields: {} });
+                const resolved = await Promise.race([
+                    waiter.then(() => true),
+                    delay(50).then(() => false),
+                ]);
+                expect(resolved).to.be.false;
+                expect(cache.has('never-loaded')).to.be.false;
+            });
+
             it('populates the fragment cache from references', async () => {
                 const topCollection = addFragment('collection');
                 await oneEvent(topCollection, 'aem:load');

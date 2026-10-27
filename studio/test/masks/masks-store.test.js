@@ -112,7 +112,10 @@ describe('MasksStore', () => {
         await store.saveMask(fragment);
 
         expect(aem.sites.cf.fragments.save.calledOnce).to.equal(true);
-        expect(aem.sites.cf.fragments.save.firstCall.args[0].newTags).to.deep.equal(['mas:masks/acom/m1', 'mas:product_code/phsp']);
+        expect(aem.sites.cf.fragments.save.firstCall.args[0].newTags).to.deep.equal([
+            'mas:masks/acom/m1',
+            'mas:product_code/phsp',
+        ]);
     });
 
     it('rejects saving a fragment that is not a card model', async () => {

@@ -63,6 +63,17 @@
                 await filterPanel.updateComplete;
             }
 
+            function variationCheckbox(filterPanel, variation) {
+                return filterPanel.shadowRoot.querySelector(`[data-filter-type="variation"] sp-checkbox[value="${variation}"]`);
+            }
+
+            async function toggleVariation(filterPanel, variation, checked) {
+                const checkbox = variationCheckbox(filterPanel, variation);
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await filterPanel.updateComplete;
+            }
+
             async function clickStatusFooterButton(filterPanel, label) {
                 const buttons = filterPanel.shadowRoot.querySelectorAll('[data-filter-type="status"] sp-button');
                 [...buttons].find((button) => button.textContent.trim() === label).click();
@@ -180,15 +191,17 @@
                         expect(statusCheckbox(filterPanel, 'DRAFT').checked).to.be.false;
                     });
 
-                    it('Should render the "Has variation?" picker with its three options', async function () {
+                    it('Should render the "Variations" dropdown with three unchecked checkboxes', async function () {
                         Store.filters.set({ tags: '' });
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        const picker = filterPanel.shadowRoot.querySelector('sp-picker[data-filter-type="variation"]');
-                        expect(picker.label).to.equal('Has variation?');
-                        const options = [...picker.querySelectorAll('sp-menu-item')].map((item) => item.textContent.trim());
-                        expect(options).to.deep.equal(['Has promo variation', 'Has grouped variation', 'No variations']);
+                        const picker = filterPanel.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation"]');
+                        expect(picker.querySelector('sp-action-button').textContent.trim()).to.equal('Variations');
+                        expect(picker.querySelector('sp-action-button').getAttribute('aria-label')).to.equal('Variations');
+                        const checkboxes = [...picker.querySelectorAll('sp-checkbox')];
+                        expect(checkboxes.map((item) => item.textContent.trim())).to.deep.equal(['Promo', 'Grouped', 'None']);
+                        expect(checkboxes.every((item) => !item.checked)).to.be.true;
                     });
 
                     it('Should set the variation filter, show a chip, and clear it when the chip is deleted', async function () {
@@ -196,19 +209,111 @@
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
-                        const picker = filterPanel.shadowRoot.querySelector('sp-picker[data-filter-type="variation"]');
-                        picker.value = 'grouped';
-                        picker.dispatchEvent(new Event('change', { bubbles: true }));
-                        await filterPanel.updateComplete;
+                        await toggleVariation(filterPanel, 'grouped', true);
 
                         expect(Store.filters.get().variation).to.equal('grouped');
                         expect(Store.filters.get().status).to.equal('DRAFT');
                         const chip = filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]');
-                        expect(chip.textContent.trim()).to.equal('Has grouped variation');
+                        expect(chip.textContent.trim()).to.equal('Grouped');
 
                         chip.dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
                         await filterPanel.updateComplete;
                         expect(Store.filters.get().variation).to.be.undefined;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.false;
+                    });
+
+                    for (const variation of ['promo', 'grouped']) {
+                        it(`Should uncheck None when ${variation} is checked`, async function () {
+                            Store.filters.set({ variation: 'none' });
+                            const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                            await filterPanel.updateComplete;
+
+                            await toggleVariation(filterPanel, variation, true);
+
+                            expect(Store.filters.get().variation).to.equal(variation);
+                            expect(variationCheckbox(filterPanel, variation).checked).to.be.true;
+                            expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
+                        });
+                    }
+
+                    it('Should allow Promo and Grouped together and remove each independently', async function () {
+                        Store.filters.set({ locale: 'fr_FR', tags: 'mas:offer_type/base', status: 'DRAFT' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        await toggleVariation(filterPanel, 'promo', true);
+                        await toggleVariation(filterPanel, 'grouped', true);
+
+                        expect(Store.filters.get()).to.include({
+                            variation: 'promo,grouped',
+                            locale: 'fr_FR',
+                            tags: 'mas:offer_type/base',
+                            status: 'DRAFT',
+                        });
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.true;
+                        expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
+                        const chips = [...filterPanel.shadowRoot.querySelectorAll('sp-tag[data-filter-type="variation"]')];
+                        expect(chips.map((chip) => chip.textContent.trim())).to.deep.equal(['Promo', 'Grouped']);
+
+                        chips[0].dispatchEvent(new CustomEvent('delete', { bubbles: true, composed: true }));
+                        await filterPanel.updateComplete;
+                        expect(Store.filters.get().variation).to.equal('grouped');
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.true;
+
+                        await toggleVariation(filterPanel, 'grouped', false);
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        expect(filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]')).to.not.exist;
+                    });
+
+                    it('Should uncheck Promo and Grouped when None is checked', async function () {
+                        Store.filters.set({ variation: 'promo,grouped' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        await toggleVariation(filterPanel, 'none', true);
+
+                        expect(Store.filters.get().variation).to.equal('none');
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'none').checked).to.be.true;
+
+                        await toggleVariation(filterPanel, 'none', false);
+                        expect(Store.filters.get().variation).to.be.undefined;
+                    });
+
+                    it('Should select both types through checkbox input clicks', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        for (const variation of ['promo', 'grouped']) {
+                            const checkbox = variationCheckbox(filterPanel, variation);
+                            await checkbox.updateComplete;
+                            checkbox.shadowRoot.querySelector('input').click();
+                            await filterPanel.updateComplete;
+                            expect(checkbox.checked).to.be.true;
+                        }
+
+                        expect(Store.filters.get().variation).to.equal('promo,grouped');
+                    });
+
+                    it('Should restore checkboxes from store changes and clear them with Reset Filters', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        Store.filters.set({ variation: 'promo,grouped' });
+                        await filterPanel.updateComplete;
+
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.true;
+
+                        filterPanel.shadowRoot.querySelector('sp-action-button[title="Clear all filters"]').click();
+                        await filterPanel.updateComplete;
+
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
                     });
 
                     it('Should normalize an invalid variation to undefined', function () {

@@ -64,6 +64,35 @@ describe('store', () => {
         });
     });
 
+    describe('filtersValidator variation normalization', () => {
+        afterEach(() => {
+            Store.filters.set({ locale: 'en_US' });
+        });
+
+        it('keeps single selections and canonicalizes combined selections', () => {
+            for (const variation of ['promo', 'grouped', 'none', 'promo,grouped']) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.equal(variation);
+            }
+            Store.filters.set({ variation: 'grouped,promo,promo' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+        });
+
+        it('makes No variation exclusive for URL input', () => {
+            Store.filters.set({ variation: 'grouped,none,promo' });
+            expect(Store.filters.get().variation).to.equal('none');
+        });
+
+        it('removes invalid entries and clears empty selections', () => {
+            Store.filters.set({ variation: 'promo,bogus,grouped' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+            for (const variation of ['bogus', '', undefined]) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.be.undefined;
+            }
+        });
+    });
+
     describe('filtersValidator status normalization', () => {
         afterEach(() => {
             Store.filters.set({ locale: 'en_US' });

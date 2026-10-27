@@ -85,12 +85,43 @@ describe('fragment-list-filters', () => {
             expect(run('promo')).to.deep.equal(['promo', 'both']);
         });
 
+        it('keeps cards with either promo or grouped variations when both are selected', () => {
+            expect(run('promo,grouped')).to.deep.equal(['grouped', 'promo', 'both']);
+            expect(run('grouped,promo')).to.deep.equal(['grouped', 'promo', 'both']);
+        });
+
         it('keeps cards without any variation', () => {
             expect(run('none')).to.deep.equal(['plain']);
         });
 
         it('returns all cards when unset', () => {
             expect(run(undefined)).to.have.lengthOf(5);
+            expect(run('')).to.have.lengthOf(5);
+        });
+
+        it('combines variation matching with personalization filtering', () => {
+            const personalized = makeStore({ ...both.get(), tags: [{ id: 'mas:pzn/device/mobile' }] });
+            const options = { page: PAGE_NAMES.CONTENT, variation: 'promo,grouped', promoParentPaths };
+            expect(
+                applyFragmentListFilters([personalized, both], { ...options, personalizationFilterEnabled: false }),
+            ).to.deep.equal([both]);
+            expect(
+                applyFragmentListFilters([personalized, both], { ...options, personalizationFilterEnabled: true }),
+            ).to.deep.equal([personalized, both]);
+        });
+
+        it('recognizes promo references when matching either variation type', () => {
+            const referenced = makeStore({
+                ...promo.get(),
+                references: [{ path: '/content/dam/mas/acom/en_US/promotions/sale/both' }],
+            });
+            expect(
+                applyFragmentListFilters([referenced, grouped], {
+                    page: PAGE_NAMES.CONTENT,
+                    personalizationFilterEnabled: false,
+                    variation: 'promo,grouped',
+                }),
+            ).to.deep.equal([referenced, grouped]);
         });
 
         it('ignores the filter outside the CONTENT page', () => {

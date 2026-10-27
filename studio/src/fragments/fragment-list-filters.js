@@ -30,21 +30,28 @@ function hasPromoVariation(fragment, promoParentPaths) {
 }
 
 /**
- * Keeps the cards that match the "Has variation?" filter.
+ * Keeps the cards that match the "Variations" filter.
  * Promo variations are not listed in the `variations` field, so promo parents come from a separate lookup.
+ * Selecting promo and grouped matches either type; none excludes variations of every type, including regional.
  * @param {import('../reactivity/fragment-store.js').FragmentStore[]} fragmentStores
- * @param {string|undefined} variation one of VARIATION_FILTER, falsy for no filtering
+ * @param {string|undefined} variation comma-separated VARIATION_FILTER values, falsy for no filtering
  * @param {Set<string>} [promoParentPaths] paths of cards that have promo variations
  * @returns {import('../reactivity/fragment-store.js').FragmentStore[]}
  */
 export function filterStoresByVariation(fragmentStores, variation, promoParentPaths) {
     if (!variation) return fragmentStores;
+    const selected = variation.split(',');
     return fragmentStores.filter((fs) => {
         const fragment = fs.get?.() ?? fs.value;
         const variationPaths = getVariationPaths(fragment);
-        if (variation === VARIATION_FILTER.GROUPED) return variationPaths.some((path) => Fragment.isGroupedVariationPath(path));
-        if (variation === VARIATION_FILTER.PROMO) return hasPromoVariation(fragment, promoParentPaths);
-        return variationPaths.length === 0 && !hasPromoVariation(fragment, promoParentPaths);
+        if (selected.includes(VARIATION_FILTER.NONE)) {
+            return variationPaths.length === 0 && !hasPromoVariation(fragment, promoParentPaths);
+        }
+        return (
+            (selected.includes(VARIATION_FILTER.PROMO) && hasPromoVariation(fragment, promoParentPaths)) ||
+            (selected.includes(VARIATION_FILTER.GROUPED) &&
+                variationPaths.some((path) => Fragment.isGroupedVariationPath(path)))
+        );
     });
 }
 

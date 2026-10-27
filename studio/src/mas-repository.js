@@ -208,11 +208,11 @@ export class MasRepository extends LitElement {
 
     /**
      * Promo variations are separate copies under <surface>/<locale>/promotions and are not linked from their parent card,
-     * so the "Has variation?" filter needs this lookup to know which cards have one.
+     * so the "Variations" filter needs this lookup to know which cards have one.
      */
     async #ensurePromoParentPaths(path, locale) {
-        const variation = this.filters.value.variation;
-        const needsPromoLookup = variation === VARIATION_FILTER.PROMO || variation === VARIATION_FILTER.NONE;
+        const variations = this.filters.value.variation?.split(',') ?? [];
+        const needsPromoLookup = variations.includes(VARIATION_FILTER.PROMO) || variations.includes(VARIATION_FILTER.NONE);
         if (this.page.value !== PAGE_NAMES.CONTENT || !needsPromoLookup) return;
         const key = `${path}|${locale}`;
         const lastEdit = Store.fragments.list.data.getMeta('lastEdit');
@@ -445,7 +445,10 @@ export class MasRepository extends LitElement {
         const contentTypesNarrowed =
             prev.contentTypes.length === 0 || (next.contentTypes.length > 0 && isSubset(prev.contentTypes, next.contentTypes));
         const statusNarrowed = prevStatus.length === 0 || (nextStatus.length > 0 && isSubset(prevStatus, nextStatus));
-        const variationNarrowed = !prev.variation || prev.variation === next.variation;
+        const prevVariations = prev.variation?.split(',').filter(Boolean) ?? [];
+        const nextVariations = next.variation?.split(',').filter(Boolean) ?? [];
+        const variationNarrowed =
+            prevVariations.length === 0 || (nextVariations.length > 0 && isSubset(prevVariations, nextVariations));
         return (
             queryNarrowed &&
             variationNarrowed &&

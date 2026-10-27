@@ -2185,6 +2185,65 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('loads promo parents and matches either type for the combined variation filter', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: '', variation: 'promo,grouped', personalizationFilterEnabled: false },
+            };
+            const makeCard = (id, grouped) =>
+                createFragment({
+                    id,
+                    path: `${ROOT_PATH}/acom/en_US/cards/${id}`,
+                    tags: [],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: grouped ? [`${ROOT_PATH}/acom/en_US/pzn/mobile/${id}`] : [],
+                        },
+                    ],
+                });
+            const cards = [makeCard('both', true), makeCard('promo-only', false), makeCard('grouped-only', true)];
+            const promoParents = sandbox.stub(repository, 'searchFragmentList').resolves(
+                ['both', 'promo-only'].map((id) =>
+                    createFragment({
+                        id: `promo-${id}`,
+                        path: `${ROOT_PATH}/acom/en_US/promotions/sale/cards/${id}`,
+                        tags: [{ id: 'mas:promotion/sale' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            repository.aem = createAemMock({
+                fragments: { search: sandbox.stub().resolves(createMockCursor([cards])) },
+            });
+            const originalProfile = Store.profile.get();
+            const originalData = Store.fragments.list.data;
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            Store.profile.set({ name: 'test-user' });
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+
+                expect(promoParents.calledOnce).to.be.true;
+                expect(promoParents.firstCall.args[0].path).to.equal(`${ROOT_PATH}/acom/en_US/promotions`);
+                expect(mockDataStore.set.lastCall.args[0].map((store) => store.get().id)).to.deep.equal([
+                    'both',
+                    'promo-only',
+                    'grouped-only',
+                ]);
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
         it('no longer treats mas:status/published as a status filter (tag passes through untouched)', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -5170,7 +5229,7 @@ describe('status filter narrowing', () => {
         expect(narrowed).to.equal(true);
     });
 
-    it('treats a variation change as narrowing only from unset to set', () => {
+    it('treats selecting a variation as narrowing and switching types or clearing as widening', () => {
         const repository = createRepository();
         const base = { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] };
         expect(repository.testOnlyIsNarrowing({ ...base, variation: '' }, { ...base, variation: 'grouped' })).to.equal(true);
@@ -5178,6 +5237,25 @@ describe('status filter narrowing', () => {
             false,
         );
         expect(repository.testOnlyIsNarrowing({ ...base, variation: 'grouped' }, { ...base, variation: '' })).to.equal(false);
+    });
+
+    it('treats adding another variation type as widening and removing either as narrowing', () => {
+        const repository = createRepository();
+        const base = { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] };
+        for (const variation of ['promo', 'grouped']) {
+            expect(repository.testOnlyIsNarrowing({ ...base, variation }, { ...base, variation: 'promo,grouped' })).to.equal(
+                false,
+            );
+            expect(repository.testOnlyIsNarrowing({ ...base, variation: 'promo,grouped' }, { ...base, variation })).to.equal(
+                true,
+            );
+        }
+        expect(
+            repository.testOnlyIsNarrowing({ ...base, variation: 'promo,grouped' }, { ...base, variation: 'none' }),
+        ).to.equal(false);
+        expect(
+            repository.testOnlyIsNarrowing({ ...base, variation: 'none' }, { ...base, variation: 'promo,grouped' }),
+        ).to.equal(false);
     });
 
     it('filters in memory on item.status, not tags', () => {

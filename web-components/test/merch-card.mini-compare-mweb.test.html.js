@@ -184,6 +184,32 @@ runTests(async () => {
             variantLayout.updatePriceQuantity({});
         });
 
+        it('should display the seat dropdown and carry the selected quantity to checkout', async () => {
+            const card = document.querySelector('#card-mweb-1');
+            await card.checkReady();
+            const selector = card.querySelector('merch-quantity-select');
+            await selector.updateComplete;
+
+            const slot = card.shadowRoot.querySelector(
+                'slot[name="quantity-select"]',
+            );
+            expect(slot.assignedElements()).to.include(selector.parentElement);
+            expect(selector.getBoundingClientRect().height).to.be.greaterThan(
+                0,
+            );
+            expect(selector.selectedValue).to.equal(3);
+
+            selector.button.click();
+            await selector.updateComplete;
+            selector.shadowRoot.querySelector('#qs-item-2').click();
+            await selector.updateComplete;
+
+            expect(selector.selectedValue).to.equal(5);
+            expect(card.variantLayout.mainPrice.dataset.quantity).to.equal('5');
+            expect(card.checkoutLinks).to.have.length(1);
+            expect(card.checkoutLinks[0].dataset.quantity).to.equal('5');
+        });
+
         it('should configure price display options via priceOptionsProvider', async () => {
             const card = document.querySelector('#card-mweb-1');
             await card.checkReady();

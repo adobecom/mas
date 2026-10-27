@@ -78,6 +78,12 @@ describe('ColumnResizeController', () => {
         expect(el.columnResize.widths.get('first')).to.equal(MIN_COLUMN_WIDTH);
     });
 
+    it('pins every column on the first resize so rows keep lining up', async () => {
+        const el = await fixture(testHtml`<resize-host-test></resize-host-test>`);
+        press(handleOf(el, 'first'), 'ArrowRight');
+        expect([...el.columnResize.widths.keys()]).to.have.members(['first', 'second']);
+    });
+
     it('does not let handle events reach the header cell', async () => {
         const el = await fixture(testHtml`<resize-host-test></resize-host-test>`);
         const handle = handleOf(el, 'first');

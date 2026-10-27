@@ -22,6 +22,7 @@ import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/v
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
+    formatAuthorPath,
     generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
@@ -2293,7 +2294,7 @@ export default class MasFragmentEditor extends LitElement {
                 fragmentParts = getFragmentPartsToUse(this.fragment, Store.search.value.path).fragmentParts || '';
             }
             if (!fragmentParts) return nothing;
-            return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+            return html`<p id="author-path">${formatAuthorPath(modelName, fragmentParts)}</p>`;
         }
 
         const pathParts = this.fragment.path?.split('/') || [];
@@ -2313,7 +2314,7 @@ export default class MasFragmentEditor extends LitElement {
         const buildPart = (part) => (part ? ` / ${part}` : '');
         const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
-        return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+        return html`<p id="author-path">${formatAuthorPath(modelName, fragmentParts)}</p>`;
     }
 
     // Collections and projects that reference the open card or collection; other models have none.

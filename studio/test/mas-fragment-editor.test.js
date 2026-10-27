@@ -2883,7 +2883,8 @@ describe('MasFragmentEditor', () => {
             };
             const ap = el.authorPath;
             expect(ap).to.not.equal(nothing);
-            expect(ap.values[1]).to.include('Parent collection title');
+            expect(ap.values[0]).to.include('Parent collection title');
+            expect(ap.values[0]).to.match(/ \/ merch-card-collection \/ Parent collection title$/);
         });
 
         it('renders non-grouped collection author path from fragment parts helper', () => {
@@ -2902,8 +2903,7 @@ describe('MasFragmentEditor', () => {
             const ap = el.authorPath;
 
             expect(ap).to.not.equal(nothing);
-            expect(ap.values[1]).to.be.a('string');
-            expect(ap.values[1].length).to.be.greaterThan(0);
+            expect(ap.values[0]).to.equal('SANDBOX / merch-card-collection / Root collection');
         });
     });
 

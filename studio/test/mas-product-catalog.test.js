@@ -1,5 +1,4 @@
 import { expect } from '@esm-bundle/chai';
-import { fixture, html } from '@open-wc/testing';
 import sinon from 'sinon';
 import '../src/swc.js';
 import '../src/mas-product-catalog.js';

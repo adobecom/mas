@@ -371,19 +371,29 @@ runTests(async () => {
 
     describe('merch-card-collection localized price labels', () => {
         const { cache } = customElements.get('aem-fragment');
+        let originalFetch;
 
         beforeEach(() => {
+            originalFetch = window.fetch;
             cache.clear();
             document.location.hash = '';
         });
 
         afterEach(() => {
+            window.fetch = originalFetch;
             document.getElementById('content').innerHTML = '';
             cache.clear();
         });
 
-        for (const attributes of [['mask'], ['pzn'], ['mask', 'pzn']]) {
-            it(`inherits collection context with ${attributes.join(' and ')} without changing unmasked cards`, async () => {
+        const scenarios = [[], ['mask'], ['pzn'], ['mask', 'pzn']].flatMap(
+            (attributes) =>
+                [false, true].map((overridden) => ({
+                    attributes,
+                    overridden,
+                })),
+        );
+        for (const { attributes, overridden } of scenarios) {
+            it(`inherits collection context for ${overridden ? 'overridden' : 'original'} cards with ${attributes.join(' and ') || 'no mask'}`, async () => {
                 [merchCards, render] = prepareTemplate(
                     'plansTwoCardsColl',
                     false,
@@ -418,6 +428,44 @@ runTests(async () => {
                           }
                         : {}),
                 }));
+                const resolvedCards = overridden
+                    ? cards.map((card, index) => ({
+                          ...card,
+                          id: `localized-override-${index}`,
+                          fields: {
+                              ...card.fields,
+                              cardTitle: `Overridden Photoshop ${index + 1}`,
+                          },
+                      }))
+                    : cards;
+                if (overridden) {
+                    merchCards.setAttribute(
+                        'overrides',
+                        cards
+                            .map(
+                                (card, index) =>
+                                    `${card.id}:${resolvedCards[index].id}`,
+                            )
+                            .join(','),
+                    );
+                    cache.set(
+                        `${resolvedCards[1].id}${suffix}`,
+                        resolvedCards[1],
+                    );
+                    window.fetch = async (...args) => {
+                        const id = new URL(
+                            String(args[0]),
+                            window.location,
+                        ).searchParams.get('id');
+                        const card = resolvedCards.find(
+                            (card) => card.id === id,
+                        );
+                        if (card) {
+                            return new Response(JSON.stringify(card));
+                        }
+                        return originalFetch(...args);
+                    };
+                }
                 cache.set(cacheKey, {
                     id: 'localized-collection',
                     fields: { cards: cards.map(({ id }) => id) },
@@ -447,15 +495,22 @@ runTests(async () => {
 
                 render();
                 await merchCards.hydrationReady;
-                for (const card of cards) {
-                    expect(cache.has(`${card.id}${suffix}`)).to.be.true;
-                    expect(cache.has(card.id)).to.be.false;
-                }
                 await merchCards.checkReady();
                 const renderedCards = [
                     ...merchCards.querySelectorAll('merch-card'),
                 ];
+                await Promise.all(
+                    renderedCards.map((card) => card.checkReady()),
+                );
+                for (const card of resolvedCards) {
+                    expect(cache.has(`${card.id}${suffix}`)).to.be.true;
+                    if (suffix) expect(cache.has(card.id)).to.be.false;
+                }
                 for (const [index, card] of renderedCards.entries()) {
+                    expect(card.id).to.equal(resolvedCards[index].id);
+                    expect(
+                        card.querySelector('[slot="heading-xs"]').textContent,
+                    ).to.equal(resolvedCards[index].fields.cardTitle);
                     expect(card.settings.displayPlanType).to.be.true;
                     expect(card.settings.secureLabel).to.equal(
                         index === 0
@@ -470,6 +525,10 @@ runTests(async () => {
                     expect(card.aemFragment.data.dictionary.product).to.equal(
                         index === 0 ? 'Photoshop' : 'Photoshop personnalisé',
                     );
+                    expect(
+                        cache.get(`${card.id}${suffix}`).settings
+                            .displayPlanType,
+                    ).to.be.true;
                 }
                 const prices = merchCards.querySelectorAll(
                     '[is="inline-price"]',
@@ -483,8 +542,9 @@ runTests(async () => {
                     ),
                 ).to.deep.equal(labels);
 
+                if (!suffix) return;
                 const unmasked = {
-                    id: cards[0].id,
+                    id: resolvedCards[0].id,
                     fields: { cardTitle: 'Unmasked Photoshop' },
                     settings: { displayPlanType: false },
                     priceLiterals: { planTypeLabel: 'Unmasked label' },
@@ -502,7 +562,7 @@ runTests(async () => {
                     'Unmasked label',
                 );
                 expect(
-                    cache.get(`${cards[0].id}${suffix}`).settings
+                    cache.get(`${resolvedCards[0].id}${suffix}`).settings
                         .displayPlanType,
                 ).to.be.true;
             });
@@ -514,23 +574,6 @@ runTests(async () => {
 
         beforeEach(async () => {
             document.location.hash = '';
-        });
-
-        it('preserves card overrides in masked collections', async () => {
-            [collectionElement, render] = prepareTemplate('override', false);
-            collectionElement
-                .querySelector('aem-fragment')
-                .setAttribute('mask', 'localized');
-            render();
-
-            await collectionElement.checkReady();
-            expect(
-                collectionElement.querySelector('merch-card[id="cafe-bebebe"]'),
-            ).to.exist;
-            expect(
-                collectionElement.querySelector('merch-card[id="bebe-cafe"]'),
-            ).to.exist;
-            customElements.get('aem-fragment').cache.clear();
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {

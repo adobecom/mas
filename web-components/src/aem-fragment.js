@@ -160,6 +160,7 @@ if (!document.querySelector('style[data-aem-fragment]')) {
 export class AemFragment extends HTMLElement {
     cache = cache; // TO be deprecated
     static cache = cache;
+    inheritedContext;
     #log;
 
     #rawData = null;
@@ -344,6 +345,22 @@ export class AemFragment extends HTMLElement {
         } catch (e) {
             this.#fail(e.message);
             return false;
+        }
+        if (this.inheritedContext) {
+            // Other cache entries may still reference the original payload.
+            this.#rawData = { ...this.#rawData };
+            for (const key of [
+                'settings',
+                'placeholders',
+                'dictionary',
+                'priceLiterals',
+            ]) {
+                this.#rawData[key] = {
+                    ...this.inheritedContext[key],
+                    ...this.#rawData[key],
+                };
+            }
+            cache.set(this.cacheKey(), this.#rawData);
         }
         const { references, referencesTree, placeholders, wcs } =
             this.#rawData || {};

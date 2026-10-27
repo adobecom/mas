@@ -607,26 +607,20 @@ export class MerchCardCollection extends LitElement {
                 populateFilters(hierarchy);
 
                 const mcAemFragment = document.createElement('aem-fragment');
-                mcAemFragment.setAttribute('fragment', fragment.id);
+                mcAemFragment.setAttribute('fragment', fragmentId);
                 if (mask) mcAemFragment.setAttribute('mask', mask);
                 if (pzn) mcAemFragment.setAttribute('pzn', pzn);
-                for (const key of [
-                    'settings',
-                    'placeholders',
-                    'dictionary',
-                    'priceLiterals',
-                ]) {
-                    fragment[key] = {
-                        ...event.detail[key],
-                        ...fragment[key],
-                    };
+                mcAemFragment.inheritedContext = event.detail;
+                if (fragmentId === fragment.id) {
+                    if (mask || pzn) {
+                        aemFragment.cache.set(
+                            mcAemFragment.cacheKey(),
+                            fragment,
+                        );
+                    } else {
+                        aemFragment.cache.add(fragment);
+                    }
                 }
-                if (mask || pzn) {
-                    aemFragment.cache.set(mcAemFragment.cacheKey(), fragment);
-                } else {
-                    aemFragment.cache.add(fragment);
-                }
-                mcAemFragment.setAttribute('fragment', fragmentId);
                 merchCard.append(mcAemFragment);
                 // if no filters are set, set the default filter
                 if (Object.keys(merchCard.filters).length === 0) {

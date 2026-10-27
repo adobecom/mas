@@ -319,6 +319,16 @@ describe('PreviewFragmentStore', () => {
             originalList.removeMeta('listFetched');
         });
 
+        it('reports an unloaded project, not an unlinked card, when the tag matches no loaded project', async () => {
+            repository.searchFragmentList.resolves([]);
+            const store = createStore({ ...variation(), tags: [{ id: 'mas:promotion/unloaded' }] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal({
+                ...NONE,
+                countdownStatus: 'project-not-loaded',
+            });
+            store.dispose();
+        });
+
         it('makes no read for a card without the sentinel', async () => {
             const store = createStore();
             expect(await store.getCountdownDates([{ name: 'description', values: ['<p>plain</p>'] }])).to.deep.equal(NONE);

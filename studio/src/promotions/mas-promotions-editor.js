@@ -79,7 +79,7 @@ import {
     GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
-import { countdownDateError } from './countdown-preview.js';
+import { COUNTDOWN_RANGE_MESSAGE, countdownDateError } from './countdown-preview.js';
 import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
@@ -1846,7 +1846,7 @@ class MasPromotionsEditor extends LitElement {
         return {
             'missing-dates': 'Set both countdown timer start and end dates, or leave both empty.',
             'invalid-dates': 'Set valid UTC dates for countdown timer start and end.',
-            'invalid-range': 'Countdown end must be later than countdown start.',
+            'invalid-range': COUNTDOWN_RANGE_MESSAGE,
         }[error];
     }
 

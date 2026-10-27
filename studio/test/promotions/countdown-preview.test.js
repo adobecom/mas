@@ -2,6 +2,8 @@ import { expect } from '@esm-bundle/chai';
 import { Promotion } from '../../src/aem/promotion.js';
 import {
     countdownDateError,
+    countdownNotice,
+    nextCountdownBoundary,
     countdownPreviewOfProvenance,
     countdownPreviewOfTag,
     countdownPreviewState,
@@ -81,8 +83,10 @@ describe('countdown-preview', () => {
             expect(countdownPreviewOfTag(projects, '/content/cq:tags/mas/promotion/p1')).to.deep.equal(READY);
         });
 
-        it('distinguishes an unknown tag from a project with missing dates', () => {
-            expect(countdownPreviewOfTag(projects, 'mas:promotion/missing')).to.deep.equal(NO_PROJECT);
+        it('distinguishes an unloaded tagged project from a project with missing dates', () => {
+            expect(countdownPreviewOfTag(projects, 'mas:promotion/missing')).to.deep.equal({
+                countdownStatus: 'project-not-loaded',
+            });
             expect(countdownPreviewOfTag([{ tag: 'mas:promotion/p1', cdtStart: 'a' }], 'mas:promotion/p1')).to.deep.equal(
                 MISSING_DATES,
             );
@@ -155,11 +159,44 @@ describe('countdown-preview', () => {
             }
         });
 
+        it('shows nothing until the lookup has set a status', () => {
+            expect(countdownPreviewState({}, 0)).to.be.null;
+        });
+
         it('diagnoses missing or invalid dates and invalid preview time', () => {
-            expect(countdownPreviewState({}, 0)).to.equal('missing-dates');
-            expect(countdownPreviewState({ cdtStart: 'bad', cdtEnd: 'bad' }, 0)).to.equal('invalid-dates');
-            expect(countdownPreviewState({ cdtStart: DATES.cdtEnd, cdtEnd: DATES.cdtStart }, 0)).to.equal('invalid-range');
+            const ready = (dates) => ({ ...dates, countdownStatus: 'ready' });
+            expect(countdownPreviewState(ready({}), 0)).to.equal('missing-dates');
+            expect(countdownPreviewState(ready({ cdtStart: 'bad', cdtEnd: 'bad' }), 0)).to.equal('invalid-dates');
+            expect(countdownPreviewState(ready({ cdtStart: DATES.cdtEnd, cdtEnd: DATES.cdtStart }), 0)).to.equal(
+                'invalid-range',
+            );
             expect(countdownPreviewState(READY, NaN)).to.equal('invalid-preview-time');
         });
+    });
+});
+
+describe('countdown notice', () => {
+    const preview = { cdtStart: '2030-01-01T00:00:00Z', cdtEnd: '2030-01-02T00:00:00Z', countdownStatus: 'ready' };
+    const before = Date.parse('2029-12-31T00:00:00Z');
+
+    it('is null while the countdown is active', () => {
+        expect(countdownNotice(preview, Date.parse('2030-01-01T12:00:00Z'), 'en_US')).to.be.null;
+    });
+
+    it('names the start date while scheduled', () => {
+        const { state, text } = countdownNotice(preview, before, 'en_US');
+        expect(state).to.equal('scheduled');
+        expect(text).to.include('1 Jan 2030, 00:00 UTC');
+    });
+
+    it('reports the locale and preview time when nothing matches', () => {
+        const { text } = countdownNotice({ countdownStatus: 'no-match' }, before, 'fr_FR');
+        expect(text).to.include('fr_FR').and.include('31 Dec 2029, 00:00 UTC');
+    });
+
+    it('finds the next boundary and ignores invalid ranges', () => {
+        expect(nextCountdownBoundary(preview, before)).to.equal(Date.parse(preview.cdtStart));
+        expect(nextCountdownBoundary(preview, Date.parse(preview.cdtEnd))).to.be.undefined;
+        expect(nextCountdownBoundary({ cdtStart: preview.cdtEnd, cdtEnd: preview.cdtStart }, before)).to.be.undefined;
     });
 });

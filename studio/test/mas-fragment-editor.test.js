@@ -2126,13 +2126,19 @@ describe('MasFragmentEditor', () => {
             }
 
             it('clears the notice when both dates resolve and the countdown is active', () => {
+                preview.countdownStatus = 'missing-dates';
                 expect(el.countdownPreviewNotice).to.not.equal(nothing);
-                Object.assign(preview, { cdtStart: start, cdtEnd: end });
+                Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('stays silent while the countdown lookup has not run for a freshly typed sentinel', () => {
+                delete preview.countdownStatus;
                 expect(el.countdownPreviewNotice).to.equal(nothing);
             });
 
             it('explains an invalid countdown range', () => {
-                Object.assign(preview, { cdtStart: end, cdtEnd: start });
+                Object.assign(preview, { cdtStart: end, cdtEnd: start, countdownStatus: 'ready' });
                 expect(renderNotice().textContent).to.include('Countdown end must be later than countdown start.');
             });
 
@@ -2143,6 +2149,7 @@ describe('MasFragmentEditor', () => {
                 Object.assign(preview, {
                     cdtStart: new Date(now + 1000).toISOString(),
                     cdtEnd: new Date(now + 2000).toISOString(),
+                    countdownStatus: 'ready',
                 });
                 sandbox.stub(el, 'isConnected').get(() => true);
                 sandbox.stub(el, 'fragment').get(() => null);

@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { PAGE_NAMES } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import '../../src/masks/mas-masks.js';
 import '../../src/mas-confirm-dialog.js';
@@ -39,6 +40,7 @@ describe('mas-masks', () => {
         Store.search.set({});
         Store.masks.destroy();
         Store.masks.setAem(null);
+        Store.page.set(PAGE_NAMES.MASKS);
         document.querySelectorAll('mas-masks').forEach((node) => node.remove());
     });
 
@@ -75,6 +77,12 @@ describe('mas-masks', () => {
             await el.updateComplete;
             return el;
         }
+
+        it('wraps the mask editor in the page container', async () => {
+            Store.page.set(PAGE_NAMES.MASKS_EDITOR);
+            const el = await mountWithMasks();
+            expect(el.shadowRoot.querySelector('.page-container > mas-mask-editor')).to.exist;
+        });
 
         it('exposes a native deep link to the dedicated mask editor', async () => {
             const el = await mountWithMasks();

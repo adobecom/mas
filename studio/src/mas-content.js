@@ -5,6 +5,7 @@ import { RECOGNIZED_VARIANT_NAMES } from './editors/variant-picker.js';
 import Store from './store.js';
 import { isUUID } from './utils.js';
 import './mas-fragment.js';
+import { sortFragmentStores } from './mas-fragment-table.js';
 import Events from './events.js';
 import { CARD_MODEL_PATH } from './constants.js';
 import {
@@ -76,6 +77,7 @@ class MasContent extends LitElement {
     selection = new StoreController(this, Store.selection);
     search = new StoreController(this, Store.search);
     filters = new StoreController(this, Store.filters);
+    sort = new StoreController(this, Store.sort);
 
     connectedCallback() {
         super.connectedCallback();
@@ -289,6 +291,19 @@ class MasContent extends LitElement {
         `;
     }
 
+    sortDirectionFor(sortKey) {
+        const { sortBy, sortDirection } = this.sort.value;
+        return sortBy === sortKey ? sortDirection : nothing;
+    }
+
+    handleSort(event) {
+        event.stopPropagation();
+        const sortKey = event.target.sortKey;
+        const { sortBy, sortDirection } = Store.sort.get();
+        const nextDirection = sortBy === sortKey && sortDirection === 'asc' ? 'desc' : 'asc';
+        Store.sort.set({ sortBy: sortKey, sortDirection: nextDirection });
+    }
+
     get tableView() {
         if (!this.firstPageLoaded.value) {
             return html`<sp-table emphasized scroller>
@@ -299,7 +314,7 @@ class MasContent extends LitElement {
                     <sp-table-head-cell class="wf-status">Workflow Status</sp-table-head-cell>
                     <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
                     <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
+                    <sp-table-head-cell class="last-modified-by">Last Modified</sp-table-head-cell>
                     <sp-table-head-cell class="price">Price</sp-table-head-cell>
                     <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
@@ -308,7 +323,9 @@ class MasContent extends LitElement {
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
-        const visibleFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
+        const loadedFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
+        // Client sorting is only correct on the full result set, so rows keep arrival order while pages load.
+        const visibleFragments = this.loading.value ? loadedFragments : sortFragmentStores(loadedFragments, this.sort.value);
         const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
         const body = personalizationOn
             ? this.#renderTableBodyGrouped(visibleFragments)
@@ -327,14 +344,35 @@ class MasContent extends LitElement {
             >
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
+                    <sp-table-head-cell
+                        sortable
+                        sort-key="path"
+                        sort-direction=${this.sortDirectionFor('path')}
+                        @sorted=${this.handleSort}
+                        class="name"
+                        >Path</sp-table-head-cell
+                    >
+                    <sp-table-head-cell
+                        sortable
+                        sort-key="title"
+                        sort-direction=${this.sortDirectionFor('title')}
+                        @sorted=${this.handleSort}
+                        class="title"
+                        >Fragment Title</sp-table-head-cell
+                    >
                     <sp-table-head-cell class="wf-status">Workflow Status</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
+                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
+                    <sp-table-head-cell
+                        sortable
+                        sort-key="modifiedOrCreated"
+                        sort-direction=${this.sortDirectionFor('modifiedOrCreated')}
+                        @sorted=${this.handleSort}
+                        class="last-modified-by"
+                        >Last Modified</sp-table-head-cell
+                    >
+                    <sp-table-head-cell class="price">Price</sp-table-head-cell>
+                    <sp-table-head-cell class="status">Status</sp-table-head-cell>
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
                     <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
                 </sp-table-head>

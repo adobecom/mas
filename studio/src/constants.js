@@ -247,6 +247,8 @@ export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 // The first value in the array should be the default value
 export const SORT_COLUMNS = {
+    // null means no active sort: the API default order (modifiedOrCreated DESC)
+    content: [null, 'path', 'title', 'modifiedOrCreated'],
     placeholders: ['key', 'value', 'status', 'locale', 'updatedBy', 'updatedAt'],
 };
 

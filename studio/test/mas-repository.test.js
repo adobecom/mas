@@ -3589,7 +3589,7 @@ describe('MasRepository dictionary helpers', () => {
         });
     });
 
-    describe('eagerLoadAllPznPages cap', () => {
+    describe('eagerLoadRemainingPages cap', () => {
         const setupPznSearchTest = async (pageCount) => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -3651,8 +3651,8 @@ describe('MasRepository dictionary helpers', () => {
             };
         };
 
-        it('stops eager loading after MAX_EAGER_PZN_PAGES and sets hasMore true', async () => {
-            const pageCount = MasRepository.MAX_EAGER_PZN_PAGES + 5;
+        it('stops eager loading after MAX_EAGER_PAGES and sets hasMore true', async () => {
+            const pageCount = MasRepository.MAX_EAGER_PAGES + 5;
             const { repository, cleanup } = await setupPznSearchTest(pageCount);
             try {
                 await repository.searchFragments();
@@ -3665,7 +3665,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('does not set hasMore when all pages fit within MAX_EAGER_PZN_PAGES', async () => {
+        it('does not set hasMore when all pages fit within MAX_EAGER_PAGES', async () => {
             const pageCount = 2;
             const { repository, cleanup } = await setupPznSearchTest(pageCount);
             try {
@@ -3673,6 +3673,156 @@ describe('MasRepository dictionary helpers', () => {
                 await new Promise((resolve) => setTimeout(resolve, 50));
                 const { default: Store } = await import('../src/store.js');
                 expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+    });
+
+    describe('searchFragments sort', () => {
+        const setupSortTest = async ({ pageCount, sort }) => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', status: '' } };
+            const pages = Array.from({ length: pageCount }, (_, p) =>
+                Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
+                    createFragment({
+                        id: `sort-${p}-${i}`,
+                        path: `${ROOT_PATH}/acom/en_US/sort-${p}-${i}`,
+                        fields: [{ name: 'variant', values: ['plans'] }],
+                    }),
+                ),
+            );
+            const state = { nextCalls: 0 };
+            const mockCursor = {
+                next: async () => {
+                    state.nextCalls++;
+                    const page = pages[state.nextCalls - 1];
+                    if (!page) return { done: true };
+                    return {
+                        done: false,
+                        value: {
+                            [Symbol.asyncIterator]: async function* () {
+                                for (const item of page) yield item;
+                            },
+                        },
+                    };
+                },
+            };
+            const searchStub = sandbox.stub().resolves(mockCursor);
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalPage = Store.page.value;
+            const originalSort = Store.sort.value;
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            Store.page.set(PAGE_NAMES.CONTENT);
+            Store.sort.set(sort);
+            Store.fragments.list.data.set([]);
+            Store.fragments.list.data.removeMeta('apiSort');
+            return {
+                repository,
+                searchStub,
+                state,
+                Store,
+                cleanup: () => {
+                    Store.profile.set(originalProfile);
+                    Store.page.set(originalPage);
+                    Store.sort.set(originalSort);
+                    Store.fragments.list.data.set([]);
+                },
+            };
+        };
+        const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+        it('sends the Last Modified sort to the API and refetches when it changes', async () => {
+            const { repository, searchStub, Store, cleanup } = await setupSortTest({
+                pageCount: 1,
+                sort: { sortBy: 'modifiedOrCreated', sortDirection: 'asc' },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                expect(searchStub.firstCall.args[0].sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'ASC' }]);
+                Store.sort.set({ sortBy: 'modifiedOrCreated', sortDirection: 'desc' });
+                await repository.searchFragments();
+                await settle();
+                expect(searchStub.callCount).to.equal(2);
+                expect(searchStub.secondCall.args[0].sort).to.deep.equal([{ on: 'modifiedOrCreated', order: 'DESC' }]);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not refetch when only the client-side sort changes and keeps the tags', async () => {
+            const { repository, searchStub, Store, cleanup } = await setupSortTest({
+                pageCount: 1,
+                sort: { sortBy: 'path', sortDirection: 'asc' },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                Store.sort.set({ sortBy: 'path', sortDirection: 'desc' });
+                await repository.searchFragments();
+                await settle();
+                expect(searchStub.callCount).to.equal(1);
+                expect(Store.fragments.list.data.getMeta('tags')).to.be.null;
+                expect(Store.fragments.list.loading.value).to.be.false;
+                expect(Store.fragments.list.data.value.length).to.be.greaterThan(0);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('eagerly loads pages for a Path sort, up to the cap, then leaves hasMore true', async () => {
+            const { repository, state, Store, cleanup } = await setupSortTest({
+                pageCount: MasRepository.MAX_EAGER_PAGES + 5,
+                sort: { sortBy: 'path', sortDirection: 'asc' },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                expect(state.nextCalls).to.be.greaterThan(
+                    MasRepository.MIN_FILTERED_PAGE_RESULTS / MasRepository.MIN_PAGE_SIZE,
+                );
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('continues on the existing cursor when a Path header is clicked while hasMore is true', async () => {
+            const { repository, searchStub, state, Store, cleanup } = await setupSortTest({
+                pageCount: 3,
+                sort: { sortBy: 'modifiedOrCreated', sortDirection: 'desc' },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                await repository.searchFragments();
+                await settle();
+                expect(searchStub.callCount).to.equal(1);
+                expect(state.nextCalls).to.be.greaterThan(2);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('does not eager load on the default load', async () => {
+            const { repository, state, Store, cleanup } = await setupSortTest({
+                pageCount: MasRepository.MAX_EAGER_PAGES + 5,
+                sort: { sortBy: null, sortDirection: 'asc' },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                expect(state.nextCalls).to.be.lessThan(MasRepository.MAX_EAGER_PAGES);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
             } finally {
                 cleanup();
             }
@@ -3812,7 +3962,7 @@ describe('MasRepository dictionary helpers', () => {
         it('skips refill when personalization is on (eager-pzn path runs instead)', async () => {
             // Pages of all-pzn items so #filterStoresByPersonalizationEnabled (with pzn ON)
             // returns everything. We just want to confirm the refill method is NOT the one
-            // running; #eagerLoadAllPznPages handles this path.
+            // running; #eagerLoadRemainingPages handles this path.
             const pages = Array.from({ length: 3 }, (_, p) =>
                 Array.from({ length: MasRepository.MIN_PAGE_SIZE }, (_, i) =>
                     createFragment({

@@ -12,6 +12,31 @@ import { MasRepository } from './mas-repository.js';
 import router from './router.js';
 import './mas-variation-dialog.js';
 
+/** Case-insensitive, number-aware collator; created once because construction is expensive. */
+export const FRAGMENT_SORT_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+const FRAGMENT_SORT_KEYS = {
+    path: (fragment) => getFragmentName(fragment) || fragment.path,
+    title: (fragment) => fragment.title || '',
+};
+
+/**
+ * Sorts fragment stores on the client for the Path and Fragment Title columns.
+ * Any other sort is applied by the API, so the input is returned untouched.
+ * @param {Array} fragmentStores
+ * @param {{ sortBy: string | null, sortDirection: 'asc' | 'desc' }} sort
+ * @returns {Array}
+ */
+export function sortFragmentStores(fragmentStores, { sortBy, sortDirection }) {
+    const getKey = FRAGMENT_SORT_KEYS[sortBy];
+    if (!getKey) return fragmentStores;
+    const direction = sortDirection === 'desc' ? -1 : 1;
+    return fragmentStores
+        .map((fragmentStore) => [getKey(fragmentStore.get()), fragmentStore])
+        .sort(([a], [b]) => direction * FRAGMENT_SORT_COLLATOR.compare(a, b))
+        .map(([, fragmentStore]) => fragmentStore);
+}
+
 class MasFragmentTable extends LitElement {
     static properties = {
         fragmentStore: { type: Object, attribute: false },
@@ -299,7 +324,10 @@ class MasFragmentTable extends LitElement {
                         : ''}
                 </sp-table-cell>
                 <sp-table-cell class="offer-type">${this.offerData?.offerType}</sp-table-cell>
-                <sp-table-cell class="last-modified-by">${data.modified?.by}</sp-table-cell>
+                <sp-table-cell class="last-modified-by">
+                    <div class="last-modified-at">${data.modified?.at ? new Date(data.modified.at).toLocaleString() : '—'}</div>
+                    <div>${data.modified?.by}</div>
+                </sp-table-cell>
                 <sp-table-cell class="price">${this.price}</sp-table-cell>
                 <sp-table-cell class="status ${data.status?.toLowerCase()}-cell"
                     ><div class="status-dot"></div>

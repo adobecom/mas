@@ -425,8 +425,11 @@ export function toggleSelection(id) {
 
 export default Store;
 
-// Reset sort on page change
+// Reset sort on page change. Re-setting the same page (e.g. router.start()) must keep a sortBy loaded from the URL.
+let previousPage;
 Store.page.subscribe((value) => {
+    if (value === previousPage) return;
+    previousPage = value;
     Store.sort.set({ sortBy: SORT_COLUMNS[value]?.[0], sortDirection: 'asc' });
 });
 

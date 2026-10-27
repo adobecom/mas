@@ -141,6 +141,8 @@ function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
     return false;
 }
 
+const CLIENT_SORT_KEYS = new Set(['path', 'title']);
+
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -171,6 +173,7 @@ export class MasRepository extends LitElement {
         this.search = new StoreController(this, Store.search);
         this.promotionsItemPickerSurface = new StoreController(this, Store.promotions.itemPickerSurface);
         this.filters = new StoreController(this, Store.filters);
+        this.sort = new StoreController(this, Store.sort);
         this.page = new StoreController(this, Store.page);
         this.foldersLoaded = new StoreController(this, Store.folders.loaded);
         this.reactiveController = new ReactiveController(this, [Store.profile, Store.createdByUsers]);
@@ -182,7 +185,22 @@ export class MasRepository extends LitElement {
     #abortControllers;
     #publishAttemptInProgress = false;
     #searchCursor = null;
+    /** Cursor snapshot already handed to #eagerLoadRemainingPages, so it never runs twice on the same cursor. */
+    #eagerLoadingCursor = null;
     #addonPlaceholdersRequest = null;
+
+    /** Path and Fragment Title are sorted on the client, which needs the complete result set. */
+    #clientSortActive() {
+        return this.page.value === PAGE_NAMES.CONTENT && CLIENT_SORT_KEYS.has(Store.sort.get().sortBy);
+    }
+
+    /** Last Modified is sorted by the API; every other sort keeps the default newest-first order. */
+    #apiSortOrder() {
+        const { sortBy, sortDirection } = Store.sort.get();
+        return this.page.value === PAGE_NAMES.CONTENT && sortBy === 'modifiedOrCreated' && sortDirection === 'asc'
+            ? 'ASC'
+            : 'DESC';
+    }
 
     #applyFragmentListFilters(fragmentStores) {
         return applyFragmentListFilters(fragmentStores, {
@@ -551,8 +569,12 @@ export class MasRepository extends LitElement {
             this.page.value !== PAGE_NAMES.PROMOTIONS_EDITOR ||
             (promotionPickerSurfaceMark ?? null) === (currentPromotionPickerMark ?? null);
 
+        const apiSortOrder = this.#apiSortOrder();
+        const clientSort = this.#clientSortActive();
+
         const sameSurface =
             promotionPickerMatches &&
+            (dataStore.getMeta('apiSort') || 'DESC') === apiSortOrder &&
             currentData?.length > 0 &&
             currentPath === path &&
             currentLocale === locale &&
@@ -560,10 +582,10 @@ export class MasRepository extends LitElement {
 
         const identicalFilters =
             sameSurface &&
-            currentQuery === query &&
-            currentTags === tagsString &&
-            currentCreatedBy === createdByString &&
-            currentStatus === statusString;
+            (currentQuery || '') === (query || '') &&
+            (currentTags || '') === tagsString &&
+            (currentCreatedBy || '') === createdByString &&
+            (currentStatus || '') === statusString;
 
         if (identicalFilters) {
             let filteredData = currentData.filter((fragmentStore) => {
@@ -574,7 +596,18 @@ export class MasRepository extends LitElement {
             if (filteredData.length !== currentData.length) {
                 dataStore.set(filteredData);
             }
-            Store.fragments.list.loading.set(false);
+            const pendingCursor = this.#searchCursor;
+            if (
+                clientSort &&
+                pendingCursor &&
+                this.#eagerLoadingCursor !== pendingCursor &&
+                !Store.fragments.list.loading.get()
+            ) {
+                // Continue on the existing cursor instead of restarting the search.
+                this.#eagerLoadRemainingPages(pendingCursor, this.#abortControllers.search, { trackLoading: true });
+            } else {
+                Store.fragments.list.loading.set(false);
+            }
             Store.fragments.list.firstPageLoaded.set(true);
             return;
         }
@@ -645,7 +678,7 @@ export class MasRepository extends LitElement {
             path: localizedPath,
             tags,
             ...(this.page.value !== PAGE_NAMES.TRANSLATION_EDITOR && { createdBy }),
-            sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
+            sort: [{ on: 'modifiedOrCreated', order: apiSortOrder }],
         };
 
         if (status.length > 0) {
@@ -844,14 +877,12 @@ export class MasRepository extends LitElement {
                 const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
-                if (personalizationOn && cursorState) {
-                    Store.fragments.list.hasMore.set(false);
-                    this.#eagerLoadAllPznPages(cursorState, searchController);
-                } else {
-                    if (cursorState) {
-                        refilling = true;
-                        this.#refillBelowThreshold(cursorState, searchController);
-                    }
+                if (cursorState && (personalizationOn || clientSort)) {
+                    refilling = clientSort;
+                    this.#eagerLoadRemainingPages(cursorState, searchController, { trackLoading: clientSort });
+                } else if (cursorState) {
+                    refilling = true;
+                    this.#refillBelowThreshold(cursorState, searchController);
                 }
             }
 
@@ -861,6 +892,7 @@ export class MasRepository extends LitElement {
             dataStore.setMeta('tags', tagsString);
             dataStore.setMeta('createdBy', createdByString);
             dataStore.setMeta('status', statusString);
+            dataStore.setMeta('apiSort', apiSortOrder);
             dataStore.setMeta('personalizationFilterEnabled', personalizationOn);
             if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                 dataStore.setMeta('promotionPickerSurface', Store.promotions.itemPickerSurface.get());
@@ -881,12 +913,13 @@ export class MasRepository extends LitElement {
 
     static MIN_PAGE_SIZE = 10;
     /**
-     * Soft cap on the eager personalization-page loop in #eagerLoadAllPznPages.
+     * Soft cap on the eager page loop in #eagerLoadRemainingPages (personalization
+     * and Path/Title client-side sorting).
      * Once the cap is hit, hasMore is set to true and the rest is delivered on
      * demand by loadNextPage() (one page per scroll-trigger). Pagination is not
      * lost — it simply stops being eager-prefetched after this many pages.
      */
-    static MAX_EAGER_PZN_PAGES = 20;
+    static MAX_EAGER_PAGES = 20;
     /**
      * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
      * When a cursor page, after #applyFragmentListFilters has been
@@ -899,7 +932,7 @@ export class MasRepository extends LitElement {
     static MIN_FILTERED_PAGE_RESULTS = 25;
     /**
      * Soft cap on the number of #fillPage rounds the refill loop will run before
-     * giving up. Mirrors MAX_EAGER_PZN_PAGES to keep the non-personalization
+     * giving up. Mirrors MAX_EAGER_PAGES to keep the non-personalization
      * refill path bounded when a filter matches very little in the catalog.
      * When the cap is hit, hasMore stays true so loadNextPage can continue
      * fetching on scroll.
@@ -953,12 +986,22 @@ export class MasRepository extends LitElement {
         return false;
     }
 
-    async #eagerLoadAllPznPages(cursorSnapshot, searchController) {
+    /**
+     * Loads the remaining cursor pages up to MAX_EAGER_PAGES, then leaves hasMore true for scroll loading.
+     * @param {object} cursorSnapshot
+     * @param {AbortController} searchController
+     * @param {{ trackLoading?: boolean }} options - keep `loading` true until done (client-side sort needs the full set)
+     */
+    async #eagerLoadRemainingPages(cursorSnapshot, searchController, { trackLoading = false } = {}) {
+        if (this.#eagerLoadingCursor === cursorSnapshot) return;
+        this.#eagerLoadingCursor = cursorSnapshot;
         const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let pagesLoaded = 0;
+        Store.fragments.list.hasMore.set(false);
+        if (trackLoading) Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                if (pagesLoaded >= MasRepository.MAX_EAGER_PZN_PAGES) {
+                if (pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
                     Store.fragments.list.hasMore.set(true);
                     break;
                 }
@@ -984,15 +1027,25 @@ export class MasRepository extends LitElement {
             if (this.#searchCursor === cursorSnapshot) {
                 Store.fragments.list.hasMore.set(true);
             }
+        } finally {
+            if (trackLoading && this.#abortControllers.search === searchController) {
+                Store.fragments.list.loading.set(false);
+            }
         }
     }
 
     async #refillBelowThreshold(cursorSnapshot, searchController) {
         const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         let rounds = 0;
+        let handedOff = false;
         Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
+                if (this.#clientSortActive()) {
+                    handedOff = true;
+                    this.#eagerLoadRemainingPages(cursorSnapshot, searchController, { trackLoading: true });
+                    return;
+                }
                 const filtered = this.#applyFragmentListFilters(fragmentStores);
                 if (filtered.length >= MasRepository.MIN_FILTERED_PAGE_RESULTS) return;
                 if (rounds >= MasRepository.MAX_REFILL_ROUNDS) {
@@ -1028,7 +1081,7 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.hasMore.set(true);
             }
         } finally {
-            if (this.#abortControllers.search === searchController) {
+            if (!handedOff && this.#abortControllers.search === searchController) {
                 Store.fragments.list.loading.set(false);
             }
         }

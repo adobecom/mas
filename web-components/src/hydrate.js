@@ -1037,7 +1037,7 @@ export async function processCTAs(
             const trialCtaSwappedPromises = [];
             ctas.forEach((cta) => {
                 let trialCtaSwapped;
-                const promise = new Promise((resolve, reject) => {
+                const promise = new Promise((resolve) => {
                     trialCtaSwapped = resolve;
                 });
                 trialCtaSwappedPromises.push(promise);
@@ -1071,7 +1071,7 @@ export async function processCTAs(
                             if (buyNowExists) {
                                 checkout.classList.remove('blue');
                                 checkout.removeAttribute('data-analytics-id');
-                                checkout.remove();
+                                cta.remove();
                                 trialCtaSwapped(true);
                             } else if (
                                 merchCard.priceLiterals?.buyNow &&
@@ -1105,7 +1105,7 @@ export async function processCTAs(
                             }
                         } else {
                             cta.hidden = false;
-                            trialCtaSwapped(true);
+                            trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
@@ -1299,7 +1299,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant, settings);
+    await processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

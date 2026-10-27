@@ -33,7 +33,7 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-variation-project',
 ];
 export const CHECKOUT_STYLE_PATTERN =
-    /(accent|primary|secondary)(-(outline|link))?/gm;
+    /\b(accent|primary|secondary)\b(-\b(outline|link)\b)?/g;
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -84,9 +84,9 @@ export async function stripTrialCtas(template, indexed, self) {
                 : self.parentElement.parentElement.querySelectorAll(
                       'mas-field[field^="ctas"]',
                   );
-        masFields.forEach(async (c) => {
+        masFields.forEach((c) => {
             if (c.getAttribute('field') !== thisField) {
-                masFieldsReadyPromises.push(c.checkReady());
+                masFieldsReadyPromises.push(c.checkReady);
             }
         });
         const settleAll = Promise.all(masFieldsReadyPromises);
@@ -104,6 +104,7 @@ export async function stripTrialCtas(template, indexed, self) {
         });
     }
 
+    let trialCtaSwapped = false;
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
             const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
@@ -117,6 +118,7 @@ export async function stripTrialCtas(template, indexed, self) {
                     anchor.setAttribute('data-modal', 'crm');
                 anchor.textContent = buyNowText;
             }
+            trialCtaSwapped = true;
         } else {
             anchor.remove();
         }
@@ -125,7 +127,7 @@ export async function stripTrialCtas(template, indexed, self) {
     const buyNowCtaNew =
         template.content.querySelector('a[data-analytics-id="buy-now"]') ||
         buyNowCta;
-    if (buyNowCtaNew) {
+    if (buyNowCtaNew && trialCtaSwapped) {
         if (buyNowCtaNew.className.trim()) {
             buyNowCtaNew.className
                 .match(CHECKOUT_STYLE_PATTERN)

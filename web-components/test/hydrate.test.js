@@ -470,6 +470,46 @@ describe('processCTAs', async () => {
             .exist;
     });
 
+    it('hide free-trial CTA with buy-now when hideTrialCTAs is true and no offer mapping', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const buttons = footer.querySelectorAll('button');
+        expect(buttons).to.have.lengthOf(1);
+        const button = buttons[0];
+        expect(button.textContent).to.equal('Buy now');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect([...button.classList].includes('blue')).to.be.false; // swap did not happen, just Free Trial CTA removed
+    });
+
+    it('hide free-trial CTA with buy-now when hideTrialCTAs is false and no offer mapping', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: false,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const buttons = footer.querySelectorAll('button');
+        expect(buttons).to.have.lengthOf(2);
+        const trialBtn = buttons[0];
+        expect(trialBtn.textContent).to.equal('Free trial');
+        expect(trialBtn.getAttribute('data-analytics-id')).to.equal(
+            'free-trial',
+        );
+        expect([...trialBtn.classList].includes('blue')).to.be.false;
+        const buyNowBtn = buttons[1];
+        expect(buyNowBtn.textContent).to.equal('Buy now');
+        expect(buyNowBtn.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect([...buyNowBtn.classList].includes('blue')).to.be.false;
+    });
+
     it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour non-buy-now CTA exists', async () => {
         const fields = {
             ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="select" class="accent">Select</a></p>`,

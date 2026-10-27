@@ -5,11 +5,10 @@ import {
     swapLocale,
     selectTargetLocales,
     isSourceFragment,
-    getSourceTitle,
     planTitleUpdate,
     buildTitleUpdateBody,
-    createSummary,
-    recordResult,
+    summarize,
+    formatSummary,
 } from '../content/copy-fragment-titles.mjs';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../content/common.js';
 
@@ -65,11 +64,6 @@ test('isSourceFragment filters by title, model and locale', () => {
     assert.equal(isSourceFragment({ ...card, path: `${base}/fr_FR/cards/ps` }), false);
 });
 
-test('getSourceTitle returns the top-level title', () => {
-    const fragment = { title: 'Top', fields: [{ name: 'title', values: ['Card'] }] };
-    assert.equal(getSourceTitle(fragment), 'Top');
-});
-
 test('planTitleUpdate decides missing, unchanged and update', () => {
     assert.equal(planTitleUpdate('A', null), 'missing');
     assert.equal(planTitleUpdate('A', { title: 'A' }), 'unchanged');
@@ -82,12 +76,24 @@ test('buildTitleUpdateBody changes only the title', () => {
     assert.deepEqual(body, { title: 'Photoshop', description: 'd', fields: target.fields });
 });
 
-test('recordResult counts per locale', () => {
-    const summary = createSummary();
-    recordResult(summary, 'fr_FR', 'updated');
-    recordResult(summary, 'de_DE', 'updated');
-    recordResult(summary, 'de_DE', 'failed');
-    assert.equal(summary.totals.updated, 2);
-    assert.equal(summary.totals.failed, 1);
-    assert.equal(summary.byLocale.de_DE.updated, 1);
+test('summarize counts per locale and in total', () => {
+    const summary = summarize([
+        { locale: 'fr_FR', outcome: 'updated' },
+        { locale: 'de_DE', outcome: 'updated' },
+        { locale: 'de_DE', outcome: 'failed' },
+    ]);
+    assert.deepEqual(summary.totals, { updated: 2, unchanged: 0, missing: 0, failed: 1 });
+    assert.deepEqual(summary.byLocale.de_DE, { updated: 1, unchanged: 0, missing: 0, failed: 1 });
+});
+
+test('formatSummary prints a sorted table and labels dry runs', () => {
+    const summary = summarize([
+        { locale: 'fr_FR', outcome: 'updated' },
+        { locale: 'de_DE', outcome: 'missing' },
+    ]);
+    assert.equal(
+        formatSummary(summary, false),
+        'locale\twould update\tunchanged\tmissing\tfailed\nde_DE\t0\t0\t1\t0\nfr_FR\t1\t0\t0\t0\ntotal\t1\t0\t1\t0',
+    );
+    assert.match(formatSummary(summary, true), /^locale\tupdated\t/);
 });

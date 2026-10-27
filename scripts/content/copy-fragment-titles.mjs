@@ -17,8 +17,7 @@
  *
  * Endpoints used:
  *   GET  {cf}/search?query=...   list en_US fragments (cursor paged)
- *   GET  {cf}?path={path}        resolve a counterpart by path -> items[0]
- *   GET  {cf}/{id}               fresh read (etag) right before the write
+ *   GET  {cf}?path={path}        resolve a counterpart by path -> items[0] (with etag)
  *   PUT  {cf}/{id}               full-body update {title,description,fields} + If-Match
  *
  * NOTE: a write refused by AEM as "locked by live relationship" is counted as failed.
@@ -37,6 +36,7 @@ import {
     COLLECTION_MODEL_ID,
     ROOT_PATH,
     createHeaders,
+    fetchIndexFragment,
     getValidLocaleCodes,
     listFolderFragments,
     parseArgs,
@@ -62,16 +62,12 @@ export function selectTargetLocales(validLocaleCodes, { sourceLocale = SOURCE_LO
     return [localeFilter];
 }
 
-export function getSourceTitle(fragment) {
-    return fragment.title;
-}
-
 export function isSourceFragment(fragment) {
     const modelId = fragment?.model?.id;
     return (
         (modelId === CARD_MODEL_ID || modelId === COLLECTION_MODEL_ID) &&
         getLocaleFromPath(fragment.path) === SOURCE_LOCALE &&
-        Boolean(getSourceTitle(fragment)?.trim())
+        Boolean(fragment.title?.trim())
     );
 }
 
@@ -84,53 +80,47 @@ export function buildTitleUpdateBody(target, sourceTitle) {
     return { title: sourceTitle, description: target.description, fields: target.fields };
 }
 
-export function createSummary() {
-    return { byLocale: {}, totals: { updated: 0, unchanged: 0, missing: 0, failed: 0 } };
+const OUTCOMES = ['updated', 'unchanged', 'missing', 'failed'];
+const countOutcomes = (outcomes) => Object.fromEntries(OUTCOMES.map((o) => [o, outcomes.filter((x) => x === o).length]));
+
+// results: [{ locale, outcome }] -> per-locale and total counts
+export function summarize(results) {
+    const locales = [...new Set(results.map((r) => r.locale))].sort();
+    return {
+        byLocale: Object.fromEntries(
+            locales.map((l) => [l, countOutcomes(results.filter((r) => r.locale === l).map((r) => r.outcome))]),
+        ),
+        totals: countOutcomes(results.map((r) => r.outcome)),
+    };
 }
 
-export function recordResult(summary, locale, outcome) {
-    summary.byLocale[locale] ??= { updated: 0, unchanged: 0, missing: 0, failed: 0 };
-    summary.byLocale[locale][outcome] += 1;
-    summary.totals[outcome] += 1;
+export function formatSummary({ byLocale, totals }, apply) {
+    const row = (name, c) => [name, c.updated, c.unchanged, c.missing, c.failed].join('\t');
+    return [
+        `locale\t${apply ? 'updated' : 'would update'}\tunchanged\tmissing\tfailed`,
+        ...Object.entries(byLocale).map(([locale, counts]) => row(locale, counts)),
+        row('total', totals),
+    ].join('\n');
 }
 
 const sourceKind = (path) => (path.includes('/pzn/') ? 'grouped' : path.includes('/promotions/') ? 'promotion' : 'fragment');
 
-async function pool(items, size, worker) {
-    const queue = items.slice();
-    const errors = [];
+// worker must not throw; results keep the order of items
+async function mapPool(items, size, worker) {
+    const results = new Array(items.length);
+    let next = 0;
     const runWorker = async () => {
-        let item;
-        while ((item = queue.shift()) !== undefined) {
-            try {
-                await worker(item);
-            } catch (error) {
-                errors.push(error);
-            }
+        while (next < items.length) {
+            const index = next++;
+            results[index] = await worker(items[index]);
         }
     };
-    await Promise.all(Array.from({ length: Math.min(size, items.length) || 1 }, runWorker));
-    return errors;
+    await Promise.all(Array.from({ length: Math.min(size, items.length) }, runWorker));
+    return results;
 }
 
 export async function run({ baseUrl, headers, surface, localeFilter, apply, concurrency = 4 }) {
     const cf = `${baseUrl}/adobe/sites/cf/fragments`;
-
-    const getFragmentById = async (id) => {
-        const response = await fetch(`${cf}/${id}`, { headers });
-        if (!response.ok) throw new Error(`GET ${id} -> ${response.status} ${response.statusText}`);
-        const fragment = await response.json();
-        fragment.etag = response.headers.get('Etag') ?? fragment.etag;
-        return fragment;
-    };
-
-    const getFragmentByPath = async (path) => {
-        const params = new URLSearchParams({ path });
-        const response = await fetch(`${cf}?${params}`, { headers });
-        if (!response.ok) throw new Error(`GET path ${path} -> ${response.status} ${response.statusText}`);
-        const { items } = await response.json();
-        return items?.length ? items[0] : null;
-    };
 
     const writeTitle = async (target, sourceTitle) => {
         const response = await fetch(`${cf}/${target.id}`, {
@@ -142,53 +132,37 @@ export async function run({ baseUrl, headers, surface, localeFilter, apply, conc
         await wait(1000);
     };
 
+    // Logs and returns { locale, outcome }; never throws.
+    const processJob = async ({ source, locale }) => {
+        const path = swapLocale(source.path, locale);
+        try {
+            const target = await fetchIndexFragment(baseUrl, headers, path);
+            const plan = planTitleUpdate(source.title, target);
+            if (plan === 'missing') console.log(`[${locale}] missing counterpart, skipped: ${path}`);
+            if (plan !== 'update') return { locale, outcome: plan };
+            if (apply) await writeTitle(target, source.title);
+            console.log(
+                `[${locale}] ${apply ? 'updated' : 'would update'} ${path}: title '${target.title}' -> '${source.title}'`,
+            );
+            return { locale, outcome: 'updated' };
+        } catch (error) {
+            console.error(`[${locale}] failed ${path}: ${error.message}`);
+            return { locale, outcome: 'failed' };
+        }
+    };
+
     const sources = (await listFolderFragments(baseUrl, headers, `${ROOT_PATH}/${surface}/${SOURCE_LOCALE}`)).filter(
         isSourceFragment,
     );
     console.log(`Sources with a title under ${surface}/${SOURCE_LOCALE}: ${sources.length}`);
-    for (const source of sources) console.log(`  [${sourceKind(source.path)}] ${source.path} = '${getSourceTitle(source)}'`);
+    for (const source of sources) console.log(`  [${sourceKind(source.path)}] ${source.path} = '${source.title}'`);
 
     const locales = selectTargetLocales(getValidLocaleCodes(surface), { localeFilter });
     const jobs = sources.flatMap((source) => locales.map((locale) => ({ source, locale })));
     console.log(`Target locales: ${locales.length}, jobs: ${jobs.length}\n`);
 
-    const summary = createSummary();
-    await pool(jobs, concurrency, async ({ source, locale }) => {
-        const path = swapLocale(source.path, locale);
-        const sourceTitle = getSourceTitle(source);
-        try {
-            let target = await getFragmentByPath(path);
-            const plan = planTitleUpdate(sourceTitle, target);
-            if (plan === 'missing') {
-                console.log(`[${locale}] missing counterpart, skipped: ${path}`);
-                recordResult(summary, locale, 'missing');
-                return;
-            }
-            if (plan === 'unchanged') {
-                recordResult(summary, locale, 'unchanged');
-                return;
-            }
-            if (!apply) {
-                console.log(`[${locale}] would update ${path}: title '${target.title}' -> '${sourceTitle}'`);
-                recordResult(summary, locale, 'updated');
-                return;
-            }
-            target = await getFragmentById(target.id); // fresh etag
-            await writeTitle(target, sourceTitle);
-            console.log(`[${locale}] updated ${path}: title '${target.title}' -> '${sourceTitle}'`);
-            recordResult(summary, locale, 'updated');
-        } catch (error) {
-            console.error(`[${locale}] failed ${path}: ${error.message}`);
-            recordResult(summary, locale, 'failed');
-        }
-    });
-
-    console.log(`\nlocale\t${apply ? 'updated' : 'would update'}\tunchanged\tmissing\tfailed`);
-    for (const [locale, counts] of Object.entries(summary.byLocale).sort(([a], [b]) => a.localeCompare(b))) {
-        console.log(`${locale}\t${counts.updated}\t${counts.unchanged}\t${counts.missing}\t${counts.failed}`);
-    }
-    const { totals } = summary;
-    console.log(`total\t${totals.updated}\t${totals.unchanged}\t${totals.missing}\t${totals.failed}`);
+    const summary = summarize(await mapPool(jobs, concurrency, processJob));
+    console.log(`\n${formatSummary(summary, apply)}`);
     return summary;
 }
 

@@ -22,8 +22,7 @@ import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js'
 
 const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
-    constructor() {        
-    }
+    constructor() {}
 
     async get(key) {
         return new Promise((resolve) => {
@@ -59,6 +58,7 @@ const DEFAULT_CONTEXT = {
 
 if (typeof window !== 'undefined') {
     const params = new URLSearchParams(window.location.search);
+    DEFAULT_CONTEXT.failOnMaskError = window.location.hostname !== 'www.stage.adobe.com';
     DEFAULT_CONTEXT.debugLogs = params.has('debug.io') || DEFAULT_CONTEXT.state.get('debug.io') === 'true';
     if (params.get('mas.cache') === 'off') {
         clearCaches();
@@ -123,7 +123,7 @@ async function previewFragment(id, options) {
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     context.measures = context.measures || [];
-    try {    
+    try {
         for (const transformer of PIPELINE) {
             if (transformer.init) {
                 //we fork context to avoid init to override any context property

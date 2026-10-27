@@ -236,6 +236,22 @@ describe('mask transformer init', function () {
         ]);
     });
 
+    it('preserves rendering when preview mask failures are nonfatal', async function () {
+        const body = { id: 'stage-collection' };
+        const error = { code: 'mask-not-found', status: 404, message: 'Missing mask' };
+        const result = await mask.process({
+            ...BASE,
+            status: 200,
+            body,
+            preview: true,
+            failOnMaskError: false,
+            promises: { mask: Promise.resolve({ error }) },
+        });
+        expect(result.status).to.equal(200);
+        expect(result.body).to.equal(body);
+        expect(result.maskError).to.equal(error);
+    });
+
     it('keeps production rendering and reports final failures even when misses are cached', async function () {
         fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
         const errorStub = sinon.stub(console, 'error');

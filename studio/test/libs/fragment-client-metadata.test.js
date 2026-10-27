@@ -82,34 +82,46 @@ describe('fragment-client request metadata', () => {
         expect(localStorage.getItem('unrelated-key')).to.equal('keep');
     });
 
-    it('returns a full-context mask error from the real preview pipeline', async () => {
-        const originalFetch = window.fetch;
-        let maskLookups = 0;
-        window.fetch = async (url) => {
-            if (url.includes('/masks/missing-photo')) maskLookups++;
-            const fragmentFound = url.includes('/some-en-us-fragment?');
-            return new Response(JSON.stringify(fragmentFound ? FRAGMENT_RESPONSE_EN : { detail: 'Not Found' }), {
-                status: fragmentFound ? 200 : 404,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        };
-        try {
-            for (const run of [1, 2]) {
-                const result = await previewFragment('some-en-us-fragment', {
-                    locale: 'en_US',
-                    country: 'US',
-                    mask: 'missing-photo',
-                    requestId: `mask-preview-${run}`,
-                    fullContext: true,
-                });
-                expect(result.status).to.equal(404);
-                expect(result.message).to.include('missing-photo').and.include('sandbox/en_US');
-                expect(result.body.message).to.equal(result.message);
-                expect(result.maskError.code).to.equal('mask-not-found');
-            }
-            expect(maskLookups).to.equal(1);
-        } finally {
-            window.fetch = originalFetch;
-        }
+    it('defaults to fatal mask failures outside stage', () => {
+        expect(DEFAULT_CONTEXT.failOnMaskError).to.equal(true);
     });
+
+    for (const failOnMaskError of [true, false]) {
+        it(`${failOnMaskError ? 'fails' : 'preserves rendering'} after a missing mask in the real preview pipeline`, async () => {
+            const originalFetch = window.fetch;
+            let maskLookups = 0;
+            window.fetch = async (url) => {
+                if (url.includes('/masks/missing-photo')) maskLookups++;
+                const fragmentFound = url.includes('/some-en-us-fragment?');
+                return new Response(JSON.stringify(fragmentFound ? FRAGMENT_RESPONSE_EN : { detail: 'Not Found' }), {
+                    status: fragmentFound ? 200 : 404,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            };
+            try {
+                for (const run of [1, 2]) {
+                    const result = await previewFragment('some-en-us-fragment', {
+                        locale: 'en_US',
+                        country: 'US',
+                        mask: 'missing-photo',
+                        requestId: `mask-preview-${run}`,
+                        fullContext: true,
+                        failOnMaskError,
+                    });
+                    expect(result.status).to.equal(failOnMaskError ? 404 : 200);
+                    expect(result.maskError.code).to.equal('mask-not-found');
+                    if (failOnMaskError) {
+                        expect(result.message).to.include('missing-photo').and.include('sandbox/en_US');
+                        expect(result.body.message).to.equal(result.message);
+                    } else {
+                        expect(result.body).to.have.property('id', FRAGMENT_RESPONSE_EN.id);
+                        expect(result.body).not.to.have.property('message');
+                    }
+                }
+                expect(maskLookups).to.equal(1);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+    }
 });

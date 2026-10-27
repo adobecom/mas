@@ -108,7 +108,7 @@ async function mask(context) {
         return {
             ...context,
             maskError: error,
-            ...(context.preview ? { status: error.status, message: error.message } : {}),
+            ...(context.preview && context.failOnMaskError !== false ? { status: error.status, message: error.message } : {}),
         };
     }
     if (!maskFragment) {

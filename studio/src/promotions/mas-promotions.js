@@ -62,7 +62,7 @@ const PROMOTION_COLUMNS = [
 class MasPromotions extends LitElement {
     static styles = [styles, columnResizeStyles(PROMOTION_COLUMNS, { match: 'index' })];
 
-    columnResize = new ColumnResizeController(this, { columns: PROMOTION_COLUMNS });
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         filter: { type: String, state: true },

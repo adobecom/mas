@@ -32,11 +32,9 @@ export class ColumnResizeController {
 
     /**
      * @param {import('lit').ReactiveControllerHost} host
-     * @param {{ columns: { key: string, label: string }[] }} options
      */
-    constructor(host, { columns }) {
+    constructor(host) {
         this.host = host;
-        this.columns = columns;
         host.addController(this);
     }
 
@@ -48,16 +46,6 @@ export class ColumnResizeController {
     setWidth(key, px) {
         this.widths.set(key, clampColumnWidth(px));
         this.host.requestUpdate();
-    }
-
-    /**
-     * Changes a column width relative to its current width.
-     * @param {string} key column key
-     * @param {number} deltaPx change in px
-     * @param {number} [currentPx] width to start from when the column has not been resized yet
-     */
-    adjust(key, deltaPx, currentPx = MIN_COLUMN_WIDTH) {
-        this.setWidth(key, (this.widths.get(key) ?? currentPx) + deltaPx);
     }
 
     /**
@@ -78,15 +66,16 @@ export class ColumnResizeController {
         return this.widths.size ? [...this.widths.keys()].join(' ') : undefined;
     }
 
-    #measure(event) {
-        return event.currentTarget.closest('sp-table-head-cell').getBoundingClientRect().width;
+    /** Current width of the column: the set width, or the rendered width before the first resize. */
+    #width(key, event) {
+        return this.widths.get(key) ?? event.currentTarget.closest('sp-table-head-cell').getBoundingClientRect().width;
     }
 
     #onPointerDown(key, event) {
         event.stopPropagation();
         event.preventDefault();
         event.currentTarget.setPointerCapture(event.pointerId);
-        this.#dragging = { startX: event.clientX, startWidth: this.widths.get(key) ?? this.#measure(event) };
+        this.#dragging = { startX: event.clientX, startWidth: this.#width(key, event) };
     }
 
     #onPointerMove(key, event) {
@@ -103,7 +92,7 @@ export class ColumnResizeController {
     #onKeyDown(key, event) {
         const direction = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
         if (direction) {
-            this.adjust(key, direction * COLUMN_RESIZE_STEP, this.#measure(event));
+            this.setWidth(key, this.#width(key, event) + direction * COLUMN_RESIZE_STEP);
         } else if (event.key !== 'Enter' && event.key !== ' ') {
             return;
         }

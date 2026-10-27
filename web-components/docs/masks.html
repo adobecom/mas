@@ -24,6 +24,7 @@
     <aside is="mas-sidenav"></aside>
 <main>
 <sp-theme color="light" scale="medium">
+<script type="module" src="../dist/merch-card-collection.js"></script>
 <h1 id="masks" tabindex="-1">Masks <a class="header-anchor" href="#masks" href="#masks" title="Permalink to this heading">#</a></h1>
 <p>A <strong>mask</strong> is a card content fragment that is overlaid on top of another card fragment at pipeline time. Only the fields present in the mask override the base fragment; all other fields are left untouched.</p>
 <p>Typical use cases: seasonal promotions, regional copy overrides, A/B copy variants — all without duplicating the base fragment.</p>
@@ -85,6 +86,7 @@
 </ul>
 <p>See the <a href="../../studio/src/masks/README.md">studio masks README</a> for the full authoring and AEM folder reference.</p>
 <h2 id="example" tabindex="-1">Example <a class="header-anchor" href="#example" href="#example" title="Permalink to this heading">#</a></h2>
+<div id="standalone">
 <div class="mask-parent">
     <style>
         .mask-parent {
@@ -112,6 +114,14 @@
             <button id="btnUnMask">Remove Mask</button>
         </p>
     </div>
+</div>
+</div>
+<h2 id="collections" tabindex="-1">Collections <a class="header-anchor" href="#collections" href="#collections" title="Permalink to this heading">#</a></h2>
+<p>A <code>mask</code> attribute on a collection’s <code>&lt;aem-fragment&gt;</code> applies to every card it contains, at any depth, by design. There is one mask per collection; individual cards inside it cannot choose a different one. This collection is masked in the markup, so its three cards render masked on load.</p>
+<div id="collection">
+    <merch-card-collection>
+        <aem-fragment fragment="74295c36-f9a8-4b0b-8b9e-ac84fdaf0a02" mask="nala-mask"></aem-fragment>
+    </merch-card-collection>
 </div>
 <script type="module">
     document.getElementById('btnMask').addEventListener('click', () => {

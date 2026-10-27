@@ -415,7 +415,7 @@ describe('common/utils/item-loading', () => {
     });
 
     for (const includePersonalizationVariations of [false, true]) {
-        it(`enrichCards limits grouped variation requests to ${includePersonalizationVariations ? 5 : 25} concurrently`, async () => {
+        it(`enrichCards limits grouped variation requests to ${includePersonalizationVariations ? 15 : 25} concurrently`, async () => {
             const cards = Array.from({ length: 5 }, (_, index) => {
                 const path = `/content/dam/mas/acom/en_US/cards/card${index}`;
                 const paths = Array.from({ length: 5 }, (_, variation) => `${path}/pzn/v${variation}`);
@@ -437,7 +437,7 @@ describe('common/utils/item-loading', () => {
 
             const enriched = await enrichCards(cards, { getByPath, includePersonalizationVariations });
 
-            expect(maxActiveCount).to.equal(includePersonalizationVariations ? 5 : 25);
+            expect(maxActiveCount).to.equal(includePersonalizationVariations ? 15 : 25);
             expect(getByPath.callCount).to.equal(25);
             expect(enriched.map((card) => card.groupedVariations.map(({ path }) => path))).to.deep.equal(
                 cards.map((card) => card.fields[0].values),

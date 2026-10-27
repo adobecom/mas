@@ -758,6 +758,79 @@ describe('MasSearchAndFilters', () => {
         });
     });
 
+    describe('external product filter events', () => {
+        it('does not echo the initial product filter or subsequent parent updates', async () => {
+            const onChange = sandbox.spy();
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                    @product-filter-change=${onChange}
+                ></mas-search-and-filters>`,
+            );
+            expect(onChange.called).to.be.false;
+
+            el.productFilter = ['mas:product_code/illustrator'];
+            await el.updateComplete;
+
+            expect(onChange.called).to.be.false;
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:product_code/illustrator');
+        });
+
+        it('does not emit a product filter event for a programmatic reset', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                ></mas-search-and-filters>`,
+            );
+            const onChange = sandbox.spy();
+            el.addEventListener('product-filter-change', onChange);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(el.productFilter).to.deep.equal([]);
+            expect(onChange.called).to.be.false;
+        });
+
+        for (const action of ['picker selection', 'chip deletion', 'Clear all']) {
+            it(`emits one product filter event for user ${action}`, async () => {
+                const el = await fixture(
+                    html`<mas-search-and-filters
+                        type="cards"
+                        .externalProductFilter=${true}
+                        .productFilter=${['mas:product_code/photoshop']}
+                    ></mas-search-and-filters>`,
+                );
+                el.productOptions = [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }];
+                await el.updateComplete;
+                const onChange = sandbox.spy();
+                el.addEventListener('product-filter-change', onChange);
+
+                if (action === 'picker selection') {
+                    const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                    picker.value = ['/content/cq:tags/mas/product_code/illustrator'];
+                    picker.dispatchEvent(new Event('change', { bubbles: true }));
+                } else if (action === 'chip deletion') {
+                    el.shadowRoot.querySelector('.applied-filters sp-tag').dispatchEvent(new CustomEvent('delete'));
+                } else {
+                    el.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                }
+                await el.updateComplete;
+
+                expect(onChange.calledOnce).to.be.true;
+                expect(onChange.firstCall.args[0].detail.value).to.deep.equal(
+                    action === 'picker selection' ? ['mas:product_code/illustrator'] : [],
+                );
+                expect(onChange.firstCall.args[0].bubbles).to.be.true;
+                expect(onChange.firstCall.args[0].composed).to.be.true;
+            });
+        }
+    });
+
     describe('typeUppercased getter', () => {
         it('should return Cards for cards type', async () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);

@@ -536,15 +536,6 @@ class MasSearchAndFilters extends LitElement {
     }
 
     willUpdate(changed) {
-        if (this.type === TABLE_TYPE.CARDS && this.externalProductFilter && changed.has('productFilter')) {
-            this.dispatchEvent(
-                new CustomEvent('product-filter-change', {
-                    detail: { value: this.productFilter },
-                    bubbles: true,
-                    composed: true,
-                }),
-            );
-        }
         if (changed.has('lockedTemplateFilter') || (changed.has('templateFilter') && this.#isTemplateFilterLocked)) {
             this.#syncLockedTemplateFilter();
         }
@@ -590,6 +581,17 @@ class MasSearchAndFilters extends LitElement {
             }
             this.#applyFilters();
         }
+    }
+
+    #notifyProductFilterChange() {
+        if (this.type !== TABLE_TYPE.CARDS || !this.externalProductFilter) return;
+        this.dispatchEvent(
+            new CustomEvent('product-filter-change', {
+                detail: { value: this.productFilter },
+                bubbles: true,
+                composed: true,
+            }),
+        );
     }
 
     #handleCheckboxChange(filterType, optionId, e) {
@@ -648,6 +650,7 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = currentValues;
+                this.#notifyProductFilterChange();
                 break;
             case FILTER_TYPE.OFFER_TYPE:
                 this.offerTypeFilter = currentValues;
@@ -683,6 +686,7 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = selectedTagIds.map((tagId) => this.#productParentTagId(tagId));
+                this.#notifyProductFilterChange();
                 break;
             case FILTER_TYPE.OFFER_TYPE:
                 this.offerTypeFilter = selectedTagIds;
@@ -720,6 +724,7 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.PRODUCT:
                 this.productFilter = this.productFilter.filter((filterId) => filterId !== id);
+                this.#notifyProductFilterChange();
                 break;
             case FILTER_TYPE.OFFER_TYPE:
                 this.offerTypeFilter = this.offerTypeFilter.filter((filterId) => filterId !== id);
@@ -794,7 +799,14 @@ class MasSearchAndFilters extends LitElement {
                         `,
                     )}
                 </sp-tags>
-                <sp-action-button quiet @click=${this.#clearAllFilters}>Clear all</sp-action-button>
+                <sp-action-button
+                    quiet
+                    @click=${() => {
+                        this.#clearAllFilters();
+                        this.#notifyProductFilterChange();
+                    }}
+                    >Clear all</sp-action-button
+                >
             </div>
         `;
     }

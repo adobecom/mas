@@ -1,5 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles } from './common/column-resize-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import { RECOGNIZED_VARIANT_NAMES } from './editors/variant-picker.js';
 import Store from './store.js';
@@ -40,7 +43,26 @@ const tableSkeletonRow = () =>
         <sp-table-cell class="actions"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
         <sp-table-cell class="preview"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
     </sp-table-row>`;
+const CONTENT_TABLE_COLUMNS = [
+    { key: 'name', label: 'Path' },
+    { key: 'title', label: 'Fragment Title' },
+    { key: 'wf-status', label: 'Workflow Status' },
+    { key: 'offer-id', label: 'Offer ID' },
+    { key: 'offer-type', label: 'Offer Type' },
+    { key: 'last-modified-by', label: 'Last Modified By' },
+    { key: 'price', label: 'Price' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions' },
+    { key: 'preview', label: 'Preview' },
+];
+
+const SORTABLE_COLUMNS = new Set(['name', 'title', 'offer-id', 'offer-type', 'last-modified-by', 'price', 'status']);
+
+const CONTENT_TABLE_RESIZE_CSS = columnResizeStyles(CONTENT_TABLE_COLUMNS, { match: 'class' }).cssText;
+
 class MasContent extends LitElement {
+    columnResize = new ColumnResizeController(this, { columns: CONTENT_TABLE_COLUMNS });
+
     static properties = {
         tableSelects: { type: String, state: true },
     };
@@ -291,19 +313,20 @@ class MasContent extends LitElement {
 
     get tableView() {
         if (!this.firstPageLoaded.value) {
-            return html`<sp-table emphasized scroller>
+            return html`<sp-table
+                emphasized
+                scroller
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+            >
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell class="title">Fragment Title</sp-table-head-cell>
-                    <sp-table-head-cell class="wf-status">Workflow Status</sp-table-head-cell>
-                    <sp-table-head-cell class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell class="status">Status</sp-table-head-cell>
-                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+                    ${CONTENT_TABLE_COLUMNS.map(
+                        ({ key, label }) =>
+                            html`<sp-table-head-cell class=${key}>
+                                ${label} ${this.columnResize.handle(key, label)}
+                            </sp-table-head-cell>`,
+                    )}
                 </sp-table-head>
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
@@ -321,22 +344,20 @@ class MasContent extends LitElement {
         return html`<sp-table
                 emphasized
                 scroller
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
                 selects=${this.tableSelects}
                 selected=${JSON.stringify(this.parentRowSelection)}
                 @change=${this.updateTableSelection}
             >
                 <sp-table-head>
                     <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    <sp-table-head-cell sortable class="name">Path</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="title">Fragment Title</sp-table-head-cell>
-                    <sp-table-head-cell class="wf-status">Workflow Status</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-id">Offer ID</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="offer-type">Offer Type</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="last-modified-by">Last Modified By</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="price">Price</sp-table-head-cell>
-                    <sp-table-head-cell sortable class="status">Status</sp-table-head-cell>
-                    <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
-                    <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
+                    ${CONTENT_TABLE_COLUMNS.map(
+                        ({ key, label }) =>
+                            html`<sp-table-head-cell ?sortable=${SORTABLE_COLUMNS.has(key)} class=${key}>
+                                ${label} ${this.columnResize.handle(key, label)}
+                            </sp-table-head-cell>`,
+                    )}
                 </sp-table-head>
                 <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
             </sp-table>
@@ -428,7 +449,14 @@ class MasContent extends LitElement {
             default:
                 view = this.renderView;
         }
-        return html`<div id="content">${this.hasEmptySearchResult ? this.emptyState : view}</div>
+        const resizeStyles =
+            this.renderMode.value === 'table'
+                ? html`<style>
+                      ${CONTENT_TABLE_RESIZE_CSS}
+                  </style>`
+                : nothing;
+        return html`${resizeStyles}
+            <div id="content">${this.hasEmptySearchResult ? this.emptyState : view}</div>
             ${this.hasMore.value ? html`<div class="scroll-sentinel"></div>` : nothing} ${this.pageLoadingSkeletons}`;
     }
 }

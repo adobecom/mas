@@ -1,4 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles } from '../common/column-resize-controller.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
@@ -32,8 +35,21 @@ const STATUS_VARIANT = {
     [BULK_PUBLISH_STATUS.REVERTED]: { label: 'Reverted', className: 'reverted' },
 };
 
+const BULK_PUBLISH_COLUMNS = [
+    { key: 'project', label: 'Project' },
+    { key: 'fragment', label: 'Fragment', center: true },
+    { key: 'collection', label: 'Collection', center: true },
+    { key: 'placeholder', label: 'Placeholder', center: true },
+    { key: 'created-by', label: 'Created by' },
+    { key: 'scheduled', label: 'Scheduled publish date' },
+    { key: 'status', label: 'Status' },
+    { key: 'actions', label: 'Actions', center: true },
+];
+
 class MasBulkPublish extends LitElement {
-    static styles = styles;
+    static styles = [...styles, columnResizeStyles(BULK_PUBLISH_COLUMNS, { match: 'index' })];
+
+    columnResize = new ColumnResizeController(this, { columns: BULK_PUBLISH_COLUMNS });
 
     static properties = {
         duplicatePending: { state: true },
@@ -372,16 +388,20 @@ class MasBulkPublish extends LitElement {
                 ${showEmpty
                     ? html`<p class="empty" data-testid="empty">No bulk publish projects yet.</p>`
                     : html`
-                          <sp-table emphasized class="item-table">
+                          <sp-table
+                              emphasized
+                              class="item-table"
+                              style=${styleMap(this.columnResize.tableStyle())}
+                              data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+                          >
                               <sp-table-head>
-                                  <sp-table-head-cell>Project</sp-table-head-cell>
-                                  <sp-table-head-cell class="center">Fragment</sp-table-head-cell>
-                                  <sp-table-head-cell class="center">Collection</sp-table-head-cell>
-                                  <sp-table-head-cell class="center">Placeholder</sp-table-head-cell>
-                                  <sp-table-head-cell>Created by</sp-table-head-cell>
-                                  <sp-table-head-cell>Scheduled publish date</sp-table-head-cell>
-                                  <sp-table-head-cell>Status</sp-table-head-cell>
-                                  <sp-table-head-cell class="center">Actions</sp-table-head-cell>
+                                  ${BULK_PUBLISH_COLUMNS.map(
+                                      ({ key, label, center }) => html`
+                                          <sp-table-head-cell class=${ifDefined(center ? 'center' : undefined)}>
+                                              ${label} ${this.columnResize.handle(key, label)}
+                                          </sp-table-head-cell>
+                                      `,
+                                  )}
                               </sp-table-head>
                               <sp-table-body>
                                   ${isLoading ? renderSkeletonRows(8) : projects.map((p) => this.renderRow(p))}

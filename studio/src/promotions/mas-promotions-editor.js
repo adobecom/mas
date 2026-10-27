@@ -50,7 +50,12 @@ import {
 } from './promotion-countries.js';
 import '../common/components/mas-group-by-select.js';
 import './mas-promotions-items-table.js';
-import { promoVariationColumns, promoVariationCells } from './mas-promotions-items-table.js';
+import {
+    promoVariationColumns,
+    promoVariationCells,
+    groupedVariationColumns,
+    groupedVariationCells,
+} from './mas-promotions-items-table.js';
 import { getItemsSelectionStore, pushItemsSelectionStore, popItemsSelectionStore } from '../common/items-selection-store.js';
 import { showConfirmDialog, renderConfirmDialog } from './confirm-dialog-utils.js';
 import {
@@ -133,6 +138,19 @@ const PROMOTION_ITEM_VARIATION_TABS = [VARIATION_TAB_NAME.PROMOTION, VARIATION_T
 const PROMOTION_ITEM_SELECTABLE_TABS = [VARIATION_TAB_NAME.GROUPED];
 const PROMOTION_ITEM_VARIATION_COLUMNS = promoVariationColumns.filter(({ key }) => !['actions', 'relatedPages'].includes(key));
 const PROMOTION_ITEM_VARIATION_CELLS = promoVariationCells.filter((cell) => !['Actions', 'RelatedPages'].includes(cell));
+export const PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS = [
+    { label: '', key: 'select', class: 'table-icon-cell' },
+    ...groupedVariationColumns
+        .filter(({ key }) => !['chevron', 'actions', 'relatedPages'].includes(key))
+        .flatMap((column) =>
+            column.key === 'pznTags'
+                ? [column, { label: 'Promo code', key: 'promoCode', class: 'promo-code-head-cell' }]
+                : [column],
+        ),
+];
+export const PROMOTION_ITEM_GROUPED_VARIATION_CELLS = groupedVariationCells
+    .filter((cell) => !['Actions', 'RelatedPages'].includes(cell))
+    .flatMap((cell) => (cell === 'PersonalizationTags' ? [cell, 'PromoCodeValue'] : [cell]));
 
 const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.SAVE,
@@ -1833,6 +1851,8 @@ class MasPromotionsEditor extends LitElement {
                     .selectableTabs=${PROMOTION_ITEM_SELECTABLE_TABS}
                     .variationColumns=${PROMOTION_ITEM_VARIATION_COLUMNS}
                     .variationCells=${PROMOTION_ITEM_VARIATION_CELLS}
+                    .groupedVariationColumns=${PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS}
+                    .groupedVariationCells=${PROMOTION_ITEM_GROUPED_VARIATION_CELLS}
                     .hideVariationExpand=${true}
                     .restrictImportSurface=${this.promotionPickerSurfaces}
                     .validateImportFragment=${this.#validatePromotionImportFragment}

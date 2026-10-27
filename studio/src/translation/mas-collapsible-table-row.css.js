@@ -170,14 +170,17 @@ export const styles = [
             .offer-id,
             .osi-head-cell,
             .osi,
-            .applies-to-head-cell,
-            .applies-to-cell {
+            .pzn-tags-head-cell,
+            .pzn-tags,
+            .promo-code-head-cell,
+            .promo-code {
                 flex: 1 0 var(--column-width);
             }
 
             sp-table-head {
                 width: max-content;
                 min-width: 100%;
+                height: var(--items-table-head-height);
                 background: var(--spectrum-gray-75);
                 border-top-left-radius: 12px;
                 border-top-right-radius: 12px;
@@ -200,6 +203,35 @@ export const styles = [
             }
         }
 
+        .promo-variations-table.grouped-variations-table {
+            border-left: none;
+            border-right: none;
+            border-bottom: none;
+
+            sp-table-head,
+            sp-table-row:not(.grouped-promo-variation-row) {
+                border-left: 1px solid var(--spectrum-gray-300);
+                border-right: 1px solid var(--spectrum-gray-300);
+            }
+
+            sp-table-row[expanded]:not(.grouped-promo-variation-row) {
+                border-bottom: 1px solid var(--spectrum-gray-300);
+            }
+
+            sp-table-row:last-of-type {
+                border-bottom-right-radius: 12px;
+                border-bottom-left-radius: 12px;
+            }
+
+            sp-table-row:last-of-type:not(.grouped-promo-variation-row) {
+                border-bottom: 1px solid var(--spectrum-gray-300);
+            }
+
+            .grouped-promo-variation-row .table-icon-cell--chevron {
+                padding: 0 var(--spectrum-spacing-500);
+            }
+        }
+
         .related-pages sp-action-button {
             --mod-actionbutton-content-color-default: var(--spectrum-blue-900);
             --mod-actionbutton-edge-to-text: 0;
@@ -208,6 +240,31 @@ export const styles = [
         .country {
             min-width: 0;
             overflow-wrap: anywhere;
+        }
+
+        .pzn-tags sp-tag {
+            --mod-tag-background-color: var(--spectrum-gray-100);
+            --mod-tag-border-color: transparent;
+        }
+
+        .grouped-promo-variation-row {
+            margin: var(--spectrum-spacing-200) 0;
+        }
+
+        .grouped-promo-variation-row sp-table-cell:not(.table-cell--invisible) {
+            border-bottom: 1px solid var(--spectrum-gray-300);
+        }
+
+        .grouped-promo-variation-row sp-table-cell:nth-of-type(2) {
+            border-left: 1px solid var(--spectrum-gray-300);
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .grouped-promo-variation-row sp-table-cell:last-of-type {
+            border-right: 1px solid var(--spectrum-gray-300);
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
         }
 
         sp-tabs {

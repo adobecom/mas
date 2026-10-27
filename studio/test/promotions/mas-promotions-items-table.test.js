@@ -2158,6 +2158,7 @@ describe('MasPromotionsItemsTable', () => {
 
             const variations = el.existingPromoVariationsByPath.get(defaultPath);
             expect(variations?.some((v) => v.id === 'grouped-promo-var-id')).to.be.true;
+            expect(variations.find((v) => v.id === 'grouped-promo-var-id').groupedVariationPath).to.equal(groupedPath);
             el.remove();
             Store.promotions.selectedCards.set([]);
         });
@@ -2903,10 +2904,10 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Fragment title',
                 'Path',
-                'Related pages',
                 'Offer ID',
                 'OSI',
                 'Status',
+                'Related pages',
             ]);
             const container = el.shadowRoot.querySelector('.scrollable-table-container');
             expect(container).to.exist;
@@ -2918,27 +2919,26 @@ describe('MasPromotionsItemsTable', () => {
                 'actions',
                 'fragmentTitle',
                 'path',
-                'relatedPages',
                 'offerId',
                 'osi',
                 'status',
+                'relatedPages',
             ]);
             expect(selectItemsTable.cellsOverride).to.deep.equal([
                 'OfferName',
                 'Actions',
                 'Title',
                 'StudioPath',
-                'RelatedPages',
                 'OfferId',
                 'Osi',
                 'Status',
+                'RelatedPages',
             ]);
             expect(selectItemsTable.variationColumns.map(({ key }) => key)).to.deep.equal([
                 'offer',
                 'actions',
                 'fragmentTitle',
                 'path',
-                'applies-to',
                 'country',
                 'offerId',
                 'osi',
@@ -2950,12 +2950,34 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Title',
                 'StudioPath',
-                'AppliesTo',
                 'Country',
                 'OfferId',
                 'Osi',
                 'RelatedPages',
                 'Status',
+            ]);
+            expect(selectItemsTable.groupedVariationColumns.map(({ key }) => key)).to.deep.equal([
+                'chevron',
+                'offer',
+                'actions',
+                'fragmentTitle',
+                'path',
+                'pznTags',
+                'offerId',
+                'osi',
+                'status',
+                'relatedPages',
+            ]);
+            expect(selectItemsTable.groupedVariationCells).to.deep.equal([
+                'OfferName',
+                'Actions',
+                'Title',
+                'StudioPath',
+                'PersonalizationTags',
+                'OfferId',
+                'Osi',
+                'Status',
+                'RelatedPages',
             ]);
             expect(selectItemsTable.hideVariationExpand).to.be.true;
             expect(container.scrollWidth).to.be.greaterThan(container.clientWidth);
@@ -3007,7 +3029,6 @@ describe('MasPromotionsItemsTable', () => {
                 'Actions',
                 'Fragment title',
                 'Path',
-                'Applies to',
                 'Country',
                 'Offer ID',
                 'OSI',
@@ -3019,7 +3040,6 @@ describe('MasPromotionsItemsTable', () => {
                 'actions-head-cell',
                 'title-head-cell',
                 'path-head-cell',
-                'applies-to-head-cell',
                 'country-head-cell',
                 'offer-id-head-cell',
                 'osi-head-cell',

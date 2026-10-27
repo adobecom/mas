@@ -1,6 +1,7 @@
-import { expect } from '../utilities.js';
+import { expect } from '@esm-bundle/chai';
+import { expectHtml } from '../helpers.js';
 import * as snapshots from './__snapshots__/legal.snapshots.js';
-import { legalTemplate } from '../../src/price/legal.js';
+import { legalTemplate } from '../../../src/price/legal.js';
 
 const root = document.createElement('div');
 document.body.append(root);
@@ -10,7 +11,7 @@ function renderAndComparePrice(id, html) {
     el.setAttribute('id', id);
     el.innerHTML = html;
     root.append(el);
-    expect(el.innerHTML).to.be.html(snapshots[id]);
+    expectHtml(el.innerHTML, snapshots[id]);
 }
 
 describe('function "createLegalTemplate"', () => {

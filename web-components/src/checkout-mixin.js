@@ -5,8 +5,9 @@ import {
 } from './mas-element.js';
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
-import { selectOffers, getService } from './utilities.js';
-import { isPromotionActive } from './price/utilities.js';
+import { getService } from './utilities.js';
+import { selectOffers } from '../../price/src/index.js';
+import { isPromotionActive } from '../../price/src/price/utilities.js';
 import {
     EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
     MODAL_TYPE_3_IN_1,
@@ -21,6 +22,11 @@ const CHECKOUT_PARAM_VALUE_MAPPING = {
     t: 'TEAM',
 };
 let aupCheckoutPending = false;
+const connectedCheckoutElements = new Set();
+
+export function refreshCheckoutLinks() {
+    connectedCheckoutElements.forEach((el) => el.updateCheckoutUrl());
+}
 
 /**
  * @typedef {'open' | 'close'} AupHandlerType
@@ -103,6 +109,7 @@ export function CheckoutMixin(Base) {
 
         connectedCallback() {
             this.masElement.connectedCallback();
+            connectedCheckoutElements.add(this);
             this.addEventListener('click', this.clickHandler);
             this.addEventListener('auxclick', this.handleAupModifiedClick);
             this.updateCheckoutUrl();
@@ -110,6 +117,7 @@ export function CheckoutMixin(Base) {
 
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
+            connectedCheckoutElements.delete(this);
             this.removeEventListener('click', this.clickHandler);
             this.removeEventListener('auxclick', this.handleAupModifiedClick);
         }

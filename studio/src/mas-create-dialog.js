@@ -352,15 +352,15 @@ export class MasCreateDialog extends LitElement {
             return;
         }
 
+        if (!this.normalizeFragmentName(this.title)) {
+            this.#setError('title', INVALID_TITLE_ERROR);
+            return;
+        }
+
         if (this.type === BASELINE_CREATE_TYPE) {
             if (this.osi && !this.productArrangementCode) this.#setError('offer', MISSING_PA_CODE_ERROR);
             if (!this.osi || !this.productArrangementCode || !this.surface || !this.template) return;
             await this.#submitBaseline();
-            return;
-        }
-
-        if (!this.normalizeFragmentName(this.title)) {
-            this.#setError('title', INVALID_TITLE_ERROR);
             return;
         }
 

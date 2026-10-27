@@ -379,20 +379,17 @@
                                 });
                             });
 
-                            it('creates a baseline with a title without letters or digits', async () => {
+                            it('blocks baseline creation with a title without letters or digits', async () => {
                                 dialog.title = '###';
-                                sandbox.stub(fragments, 'ensureFolderExists').resolves(true);
-                                sandbox
-                                    .stub(fragments, 'getByPath')
-                                    .rejects(Object.assign(new Error('Fragment not found'), { status: 404 }));
                                 const create = sandbox.stub(repository, 'createFragment').resolves({ id: 'baseline-id' });
 
                                 await dialog.handleSubmit();
+                                await dialog.updateComplete;
 
-                                expect(create.calledOnce).to.be.true;
-                                expect(create.firstCall.args[0].title).to.equal('###');
-                                expect(create.firstCall.args[0].name).to.equal(BASELINE_NAME);
-                                expect(create.firstCall.args[0].data.cardTitle).to.equal('###');
+                                expect(create.called).to.be.false;
+                                expect(dialog.shadowRoot.querySelector('#title-error').textContent.trim()).to.equal(
+                                    'Title must contain letters or digits',
+                                );
                             });
 
                             it('opens the created baseline in the fragment editor of the current surface', async () => {

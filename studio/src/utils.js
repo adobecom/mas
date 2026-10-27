@@ -331,6 +331,13 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
     return buildStudioFragmentHref({ webComponentName, fragmentId: fragment.id, page, path });
 }
 
+export function buildProjectDeepLink(page, param, id, surface) {
+    if (!id) return null;
+    const params = new URLSearchParams({ page, [param]: id });
+    if (surface) params.set('path', surface);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
 /**
  * Parses pasted multi-line URLs
  * @param {string} text

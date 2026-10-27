@@ -237,9 +237,9 @@ describe('MasSelectItemsTable', () => {
                 'chevron',
                 'checkbox',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'status',
             ]);
         });
@@ -250,9 +250,9 @@ describe('MasSelectItemsTable', () => {
             expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
                 'chevron',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'itemType',
                 'status',
             ]);
@@ -271,9 +271,9 @@ describe('MasSelectItemsTable', () => {
             expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
                 'chevron',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'itemType',
                 'status',
                 'preview',
@@ -284,7 +284,7 @@ describe('MasSelectItemsTable', () => {
         it('exposes selectable collection columns', async () => {
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
             await el.updateComplete;
-            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'collectionTitle', 'path', 'status']);
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'path', 'collectionTitle', 'status']);
         });
 
         it('exposes view-only collection columns without a preview column even when a preview renderer is provided', async () => {
@@ -297,7 +297,7 @@ describe('MasSelectItemsTable', () => {
                 ></mas-select-items-table>`,
             );
             await el.updateComplete;
-            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['collectionTitle', 'path', 'status', 'actions']);
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['path', 'collectionTitle', 'status', 'actions']);
         });
 
         it('exposes selectable placeholder columns', async () => {
@@ -642,9 +642,9 @@ describe('MasSelectItemsTable', () => {
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(7);
             expect(headers[2].textContent.trim()).to.include('Offer');
-            expect(headers[3].textContent.trim()).to.include('Fragment title');
-            expect(headers[4].textContent.trim()).to.include('Offer ID');
-            expect(headers[5].textContent.trim()).to.include('Path');
+            expect(headers[3].textContent.trim()).to.include('Path');
+            expect(headers[4].textContent.trim()).to.include('Fragment title');
+            expect(headers[5].textContent.trim()).to.include('Offer ID');
             expect(headers[6].textContent.trim()).to.include('Status');
         });
 
@@ -656,9 +656,27 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(4);
-            expect(headers[1].textContent.trim()).to.include('Collection title');
-            expect(headers[2].textContent.trim()).to.include('Path');
+            expect(headers[1].textContent.trim()).to.include('Path');
+            expect(headers[2].textContent.trim()).to.include('Collection title');
             expect(headers[3].textContent.trim()).to.include('Status');
+        });
+
+        it('should keep non-Path/title column order unchanged in the full header lists', async () => {
+            const cardsEl = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await cardsEl.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await cardsEl.updateComplete;
+            const cardHeaders = [...cardsEl.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+            expect(cardHeaders).to.deep.equal(['', '', 'Offer', 'Path', 'Fragment title', 'Offer ID', 'Status']);
+
+            const collectionsEl = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await collectionsEl.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await collectionsEl.updateComplete;
+            const collectionHeaders = [...collectionsEl.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) =>
+                h.textContent.trim(),
+            );
+            expect(collectionHeaders.slice(1)).to.deep.equal(['Path', 'Collection title', 'Status']);
         });
 
         it('should render table headers for placeholders', async () => {
@@ -692,7 +710,7 @@ describe('MasSelectItemsTable', () => {
             expect(collapsibleRow).to.exist;
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
             expect(cells[2].textContent.trim()).to.equal('Photoshop');
-            expect(cells[3].textContent.trim()).includes('Test Card');
+            expect(cells[4].textContent.trim()).includes('Test Card');
         });
 
         it('should display placeholder when no product tag exists', async () => {
@@ -751,7 +769,7 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[4].textContent).to.include('no offer data');
+            expect(cells[5].textContent).to.include('no offer data');
         });
     });
 
@@ -769,7 +787,8 @@ describe('MasSelectItemsTable', () => {
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(1);
             const cells = rows[0].querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent.trim()).to.equal('Test Collection');
+            expect(cells[1].textContent.trim()).to.equal('merch-card-collection: ACOM / Test Collection');
+            expect(cells[2].textContent.trim()).to.equal('Test Collection');
         });
 
         it('should display "-" for collection with no title', async () => {
@@ -780,7 +799,7 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent.trim()).to.equal('-');
+            expect(cells[2].textContent.trim()).to.equal('-');
         });
     });
 
@@ -985,7 +1004,7 @@ describe('MasSelectItemsTable', () => {
             Store.translationProjects.selectedCollections.set(['/path/col1']);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
-            const titleCell = row.querySelectorAll('sp-table-cell')[1];
+            const titleCell = row.querySelectorAll('sp-table-cell')[2];
             titleCell.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
             await el.updateComplete;
             expect(Store.translationProjects.selectedCollections.get()).to.not.include('/path/col1');
@@ -1445,8 +1464,50 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             const cells = row?.querySelectorAll('sp-table-cell');
-            expect(cells?.[2]?.textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
+            expect(cells?.[1]?.textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
         });
+
+        for (const viewOnly of [false, true]) {
+            const mode = viewOnly ? 'viewOnly' : 'selectable';
+
+            it(`should render collection path cell before the title cell and match header order (${mode})`, async () => {
+                const el = await fixture(
+                    html`<mas-select-items-table type="collections" .viewOnly=${viewOnly}></mas-select-items-table>`,
+                );
+                await el.updateComplete;
+                const collections = [
+                    createMockCollection('/path/collection1', 'Collection 1', {
+                        studioPath: 'merch-card-collection: ACOM / Collection 1',
+                    }),
+                ];
+                setupCollectionsInStore(collections);
+                if (viewOnly) el.viewOnlyFragments = collections;
+                await el.updateComplete;
+                const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+                const cells = [...el.shadowRoot.querySelector('sp-table-row').querySelectorAll('sp-table-cell')];
+                const pathIndex = headers.indexOf('Path');
+                const titleIndex = headers.indexOf('Collection title');
+                expect(titleIndex).to.equal(pathIndex + 1);
+                expect(cells[pathIndex].textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
+                expect(cells[titleIndex].textContent.trim()).to.equal('Collection 1');
+            });
+
+            it(`should render card path cell immediately before the title cell (${mode})`, async () => {
+                const el = await fixture(
+                    html`<mas-select-items-table type="cards" .viewOnly=${viewOnly}></mas-select-items-table>`,
+                );
+                await el.updateComplete;
+                const cards = [createMockCard('/path/card1', 'Card 1')];
+                setupCardsInStore(cards);
+                if (viewOnly) el.viewOnlyFragments = cards;
+                await el.updateComplete;
+                const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+                expect(headers.indexOf('Fragment title')).to.equal(headers.indexOf('Path') + 1);
+                const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+                const path = row.shadowRoot.querySelector('.path');
+                expect(path.nextElementSibling.classList.contains('title')).to.be.true;
+            });
+        }
     });
 
     describe('data loading early returns', () => {
@@ -2070,7 +2131,7 @@ describe('MasSelectItemsTable column overrides and sorting', () => {
         el.dataReady = true;
         await el.updateComplete;
         const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
-        expect(headers).to.deep.equal(['', '', 'Offer', 'Fragment title', 'Offer ID', 'Path', 'Status']);
+        expect(headers).to.deep.equal(['', '', 'Offer', 'Path', 'Fragment title', 'Offer ID', 'Status']);
     });
 
     it('renders columnsOverride verbatim', async () => {

@@ -326,12 +326,12 @@ describe('render-utils', () => {
             Store.promotions.itemPickerSurface.set(null);
         });
 
-        it('returns the prefixed studio path (authorPath) for the active surface', () => {
+        it('returns the studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
             expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
-            expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
+            expect(getStudioFragmentDisplayPath(fragment)).to.match(/^ACOM \/ merch-card/);
         });
 
         it('returns an empty string when no web component maps to the model', () => {

@@ -57,12 +57,16 @@ export function filterStoresByVariation(fragmentStores, variation, promoParentPa
 
 /**
  * Applies content-list filters (personalization + hide promo variations and variation presence on CONTENT page).
+ * The Promotions picker owns its own personalization filtering.
  * @param {import('../reactivity/fragment-store.js').FragmentStore[]} fragmentStores
  * @param {{ page: string, personalizationFilterEnabled: boolean, variation?: string, promoParentPaths?: Set<string> }} options
  * @returns {import('../reactivity/fragment-store.js').FragmentStore[]}
  */
 export function applyFragmentListFilters(fragmentStores, { page, personalizationFilterEnabled, variation, promoParentPaths }) {
-    const filteredByPersonalization = filterStoresByPersonalizationEnabled(fragmentStores, personalizationFilterEnabled);
+    const filteredByPersonalization =
+        page === PAGE_NAMES.PROMOTIONS_EDITOR
+            ? fragmentStores
+            : filterStoresByPersonalizationEnabled(fragmentStores, personalizationFilterEnabled);
     if (page !== PAGE_NAMES.CONTENT) return filteredByPersonalization;
     const withoutPromoVariations = filteredByPersonalization.filter((fs) => {
         const fragment = fs.get?.() ?? fs.value;

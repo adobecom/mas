@@ -10,6 +10,7 @@ import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import '../../src/promotions/mas-promotions-items-table.js';
+import '../../src/common/components/mas-selected-items.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
@@ -31,6 +32,8 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
+        Store.promotions.collectionsByPaths.set(new Map());
         Store.promotions.offerRecordsCache = new Map();
         // mas-select-items-table's showSkeleton calc factors in the global fragments list
         // loading state even in viewOnly mode, so it must reflect an already-settled list
@@ -46,6 +49,8 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
+        Store.promotions.collectionsByPaths.set(new Map());
         Store.promotions.offerRecordsCache = new Map();
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
@@ -165,6 +170,79 @@ describe('MasPromotionsItemsTable', () => {
         await selectItemsTable.updateComplete;
         expect(selectItemsTable.shadowRoot.textContent).to.include('Collection title');
         el.remove();
+    });
+
+    describe('selection sidebar cache', () => {
+        for (const { type, modelPath } of [
+            { type: TABLE_TYPE.CARDS, modelPath: CARD_MODEL_PATH },
+            { type: TABLE_TYPE.COLLECTIONS, modelPath: COLLECTION_MODEL_PATH },
+        ]) {
+            it(`displays nine already-loaded ${type} without waiting for catalog results or fetching them again`, async () => {
+                const paths = Array.from({ length: 9 }, (_, i) => `/content/dam/mas/sandbox/en_US/selected-${i}`);
+                const selectedStore =
+                    type === TABLE_TYPE.CARDS ? Store.promotions.selectedCards : Store.promotions.selectedCollections;
+                selectedStore.set(paths);
+                Store.promotions.showSelected.set(true);
+                const getFragmentByPath = sandbox.stub().callsFake(async (path) => ({
+                    id: path,
+                    path,
+                    title: `Selected ${path.split('/').pop()}`,
+                    model: { path: modelPath },
+                    fields: [],
+                    tags: [],
+                }));
+                const el = createItemsTable();
+                el.type = type;
+                sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+                document.body.appendChild(el);
+                try {
+                    await waitUntil(() => el.viewOnlyFragments.length === 9 && !el.viewOnlyLoading);
+                    const sidebar = await fixture(html`<mas-selected-items></mas-selected-items>`);
+                    expect(sidebar.shadowRoot.querySelectorAll('.item').length).to.equal(9);
+                    expect(getFragmentByPath.callCount).to.equal(9);
+                } finally {
+                    el.remove();
+                    Store.promotions.showSelected.set(false);
+                }
+            });
+        }
+
+        it('displays selected card titles while grouped variation enrichment is still pending', async () => {
+            const path = '/content/dam/mas/sandbox/en_US/selected-card';
+            const variationPath = `${path}/pzn/smb`;
+            let resolveVariation;
+            const variationPending = new Promise((resolve) => {
+                resolveVariation = resolve;
+            });
+            const card = {
+                id: 'selected-card',
+                path,
+                title: 'Already selected card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(card);
+            getFragmentByPath.withArgs(variationPath).returns(variationPending);
+            Store.promotions.selectedCards.set([path]);
+            Store.promotions.showSelected.set(true);
+            const el = createItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            try {
+                await waitUntil(() => getFragmentByPath.calledWith(variationPath));
+                const sidebar = await fixture(html`<mas-selected-items></mas-selected-items>`);
+                expect(el.viewOnlyLoading).to.be.true;
+                expect(sidebar.shadowRoot.querySelector('.title')?.textContent).to.equal('Already selected card');
+            } finally {
+                resolveVariation(null);
+                await waitUntil(() => !el.viewOnlyLoading);
+                el.remove();
+                Store.promotions.showSelected.set(false);
+            }
+        });
     });
 
     describe('viewOnly windowing', () => {

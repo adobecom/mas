@@ -2,6 +2,7 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import {
     buildCardsDeepLink,
+    buildProjectDeepLink,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -374,6 +375,24 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildProjectDeepLink', () => {
+    it('builds a Studio editor URL from page, id param and surface', () => {
+        const href = buildProjectDeepLink('bulkPublishEditor', 'bulkPublishProjectId', 'proj-123', 'acom');
+        expect(href).to.equal(
+            'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=proj-123&path=acom',
+        );
+    });
+
+    it('omits the surface when it is unknown', () => {
+        const href = buildProjectDeepLink('promotions-editor', 'promotionId', 'promo-1');
+        expect(href).to.equal('https://mas.adobe.com/studio.html#page=promotions-editor&promotionId=promo-1');
+    });
+
+    it('returns null when id is missing', () => {
+        expect(buildProjectDeepLink('translation-editor', 'translationProjectId', null, 'acom')).to.be.null;
     });
 });
 

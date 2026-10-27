@@ -336,6 +336,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
 
     const payload = {
         ...buildPromotionDuplicatePayload(sourcePromotion, title, tag?.slug),
+        auditAction: 'duplicate',
         parentPath: repository.getPromotionsPath(),
         modelId: PROMOTION_MODEL_ID,
     };

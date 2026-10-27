@@ -76,6 +76,7 @@ import {
 import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
 import { Promotion } from './aem/promotion.js';
 import { canManagePromotions } from './groups.js';
+import { withPromotionAudit } from './promotions/promotion-audit.js';
 
 let fragmentCache;
 
@@ -196,7 +197,9 @@ export class MasRepository extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
-        this.aem = new AEM(this.bucket, this.baseUrl);
+        this.aem = new AEM(this.bucket, this.baseUrl, (action, target, write) =>
+            withPromotionAudit(this, action, target, write),
+        );
 
         Store.filters.subscribe(this.#onFiltersChange);
         Store.search.subscribe(this.#onSearchChange);

@@ -15,6 +15,7 @@ import ACOMProCardPage from '../studio/acom/pro/pro.page.js';
 import SandboxBrandConciergePage from '../studio/sandbox/brand-concierge/brand-concierge.page.js';
 import EXPRESSFullPricingPage from '../studio/express/full-pricing/full-pricing.page.js';
 import VersionPage from '../studio/versions/versions.page.js';
+import PromoHistoryPage from '../studio/promo-history/promo-history.page.js';
 import PlaceholdersPage from '../studio/placeholders/placeholders.page.js';
 import TranslationsPage from '../studio/translations/translations.page.js';
 import TranslationEditorPage from '../studio/translations/translation-editor.page.js';
@@ -39,6 +40,7 @@ let brandConcierge;
 let fullPricingExpress;
 let placeholders;
 let versions;
+let promoHistory;
 let translations;
 let translationEditor;
 let bulkPublish;
@@ -106,6 +108,7 @@ const masTest = base.extend({
         bulkPublish = new BulkPublishPage(page);
         webUtil = new WebUtil(page);
         versions = new VersionPage(page);
+        promoHistory = new PromoHistoryPage(page);
         placeholders = new PlaceholdersPage(page);
 
         await installEdsThrottleOnPage(page);
@@ -187,6 +190,7 @@ export {
     placeholders,
     webUtil,
     versions,
+    promoHistory,
     setClonedCardID,
     getClonedCardID,
     setTestPage,

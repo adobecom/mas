@@ -357,6 +357,19 @@ class MasTopNav extends LitElement {
                 { label: 'Version history' },
             ];
         }
+        if (this.page.value === PAGE_NAMES.PROMOTIONS_HISTORY) {
+            return [
+                { label: 'Promotions', handler: handlers.promotions },
+                {
+                    label: this.promotions.inEdit.get()?.get()?.getFieldValue('title') || 'Promotion project',
+                    handler: () => {
+                        Store.promotions.inEdit.set(null);
+                        router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+                    },
+                },
+                { label: 'Version history' },
+            ];
+        }
         if (this.page.value === PAGE_NAMES.SETTINGS) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },

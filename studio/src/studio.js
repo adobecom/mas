@@ -230,6 +230,18 @@ class MasStudio extends LitElement {
         return html`<mas-promotions-editor></mas-promotions-editor>`;
     }
 
+    get promotionsHistory() {
+        if (this.page.value !== PAGE_NAMES.PROMOTIONS_HISTORY) return nothing;
+        if (!this.#lazyLoad('mas-promotion-history', './promotions/mas-promotion-history.js')) return nothing;
+        return html`<mas-promotion-history
+            .projectId=${Store.promotions.promotionId.get()}
+            @history-back=${() => {
+                Store.promotions.inEdit.set(null);
+                router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
+            }}
+        ></mas-promotion-history>`;
+    }
+
     get translation() {
         if (this.page.value !== PAGE_NAMES.TRANSLATIONS) return nothing;
         if (!this.#lazyLoad('mas-translation', './translation/mas-translation.js')) return nothing;
@@ -279,7 +291,7 @@ class MasStudio extends LitElement {
     }
 
     get pickersToHide() {
-        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
+        if ([PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY, PAGE_NAMES.PROMOTIONS].includes(this.page.value)) {
             return [PICKERS.FOLDER, PICKERS.LOCALE];
         }
         return [];
@@ -347,6 +359,8 @@ class MasStudio extends LitElement {
                 return this.promotions;
             case PAGE_NAMES.PROMOTIONS_EDITOR:
                 return this.promotionsEditor;
+            case PAGE_NAMES.PROMOTIONS_HISTORY:
+                return this.promotionsHistory;
             case PAGE_NAMES.VERSION:
                 return this.versionPage;
             case PAGE_NAMES.TRANSLATIONS:

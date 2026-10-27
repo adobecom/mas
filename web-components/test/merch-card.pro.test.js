@@ -7,6 +7,7 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
+import { CSS as proCss } from '../src/variants/pro.css.js';
 
 let Pro;
 
@@ -1947,5 +1948,93 @@ describe('pro quantity selector repricing', () => {
         layout.updatePriceQuantity({});
         layout.updatePriceQuantity({ detail: {} });
         expect(price.dataset.quantity).to.be.undefined;
+    });
+});
+
+describe('pro 3+ card collection width', () => {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(proCss);
+    const mediaRules = [...sheet.cssRules].filter(
+        (rule) => rule.type === CSSRule.MEDIA_RULE,
+    );
+    const findMedia = (...needles) =>
+        mediaRules.find((rule) =>
+            needles.every((needle) => rule.conditionText.includes(needle)),
+        );
+    const widthRules = (media) => {
+        const rules = [...media.cssRules].filter((rule) =>
+            rule.selectorText.includes('nth-of-type(3)'),
+        );
+        return {
+            collection: rules.find(
+                (rule) => !rule.selectorText.includes('> merch-card['),
+            ),
+            card: rules.find((rule) =>
+                rule.selectorText.includes('> merch-card['),
+            ),
+        };
+    };
+    let fixtures = [];
+
+    afterEach(() => {
+        fixtures.forEach((el) => el.remove());
+        fixtures = [];
+    });
+
+    it('does not apply the 394px max width to cards in a 3+ card collection at XL/MD', () => {
+        const xl = widthRules(findMedia('1441px'));
+        expect(xl.collection.style.maxWidth).to.equal('1920px');
+        expect(xl.card.style.maxWidth).to.equal('none');
+
+        const md = widthRules(findMedia('768px', '1279px'));
+        expect(md.collection.style.maxWidth).to.equal('840px');
+        expect(md.card.style.maxWidth).to.equal('none');
+    });
+
+    it('matches the 3+ card rules only for collections with 3 or more cards', () => {
+        const rules = [
+            widthRules(findMedia('1441px')).collection,
+            widthRules(findMedia('768px', '1279px')).collection,
+        ];
+        const build = (count) => {
+            const collection = document.createElement('merch-card-collection');
+            collection.className = 'plans four-merch-cards';
+            for (let i = 0; i < count; i++) {
+                const card = document.createElement('merch-card');
+                card.setAttribute('variant', 'pro');
+                collection.appendChild(card);
+            }
+            document.body.appendChild(collection);
+            fixtures.push(collection);
+            return collection;
+        };
+        const expected = { 1: false, 2: false, 3: true, 4: true };
+        Object.entries(expected).forEach(([count, matches]) => {
+            const collection = build(Number(count));
+            rules.forEach((rule) => {
+                expect(collection.matches(rule.selectorText)).to.equal(matches);
+            });
+        });
+    });
+
+    it('keeps the exactly-two and four-column desktop rules unchanged', () => {
+        const rules = mediaRules
+            .filter((rule) => rule.conditionText.includes('1280px'))
+            .flatMap((rule) => [...rule.cssRules])
+            .filter((rule) => rule.selectorText);
+        const two = rules.find(
+            (rule) =>
+                rule.selectorText.endsWith('merch-card[variant="pro"]') &&
+                rule.selectorText.includes(':last-of-type'),
+        );
+        expect(two.style.maxWidth).to.equal(
+            'var(--consonant-merch-card-pro-2up-max-width)',
+        );
+        const four = rules.find(
+            (rule) =>
+                rule.selectorText.includes('.four-merch-cards') &&
+                rule.style.gridTemplateColumns,
+        );
+        expect(four.style.maxWidth).to.equal('1600px');
     });
 });

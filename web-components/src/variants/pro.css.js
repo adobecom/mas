@@ -705,6 +705,28 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
+/* Collections with 3+ cards fill the Milo content width so their edges align
+   with other blocks: up to 840px at MD (768–1279px) and 1920px at XL (≥1441px),
+   with the 394px card cap dropped. Fewer cards keep their narrower widths.
+   MWPW-206491. */
+@media screen and ${TABLET_UP} and (max-width: 1279px) {
+    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 840px;
+    }
+    merch-card-collection.plans:is(.two-merch-cards, .three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) > merch-card[variant="pro"]:not([size='edu']) {
+        max-width: none;
+    }
+}
+
+@media screen and (min-width: 1441px) {
+    merch-card-collection.plans:is(.three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) {
+        max-width: 1920px;
+    }
+    merch-card-collection.plans:is(.three-merch-cards, .four-merch-cards):has(merch-card[variant="pro"]):has(> merch-card:nth-of-type(3)) > merch-card[variant="pro"]:not([size='edu']) {
+        max-width: none;
+    }
+}
+
 @media screen and ${MOBILE_LANDSCAPE} {
     /* Mobile (320–767px): the default track caps cards at 394px, leaving side
        margins wider than the 24px gutter. Collapse to a single 1fr track and

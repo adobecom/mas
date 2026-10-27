@@ -1242,6 +1242,153 @@ describe('pro row-synced whats-included toggle', () => {
     });
 });
 
+describe('pro section grid layouts', () => {
+    const initialViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+    };
+    let fixture;
+
+    after(async () => {
+        await setViewport(initialViewport);
+    });
+    afterEach(() => fixture?.remove());
+
+    // shape: 'bare' puts the layout class on the grid itself; 'section' mirrors
+    // Milo's div.section.<layout> > div.content.
+    async function renderGrid(layout, count, shape, variant = 'pro') {
+        fixture = document.createElement('div');
+        let grid = fixture;
+        if (shape === 'section') {
+            fixture.className = `section ${layout}`;
+            grid = document.createElement('div');
+            grid.className = 'content';
+            fixture.appendChild(grid);
+        } else {
+            fixture.className = layout;
+        }
+        document.body.appendChild(fixture);
+        const cards = [];
+        for (let i = 0; i < count; i += 1) {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            card.innerHTML =
+                '<h3 slot="heading-xs">Plan</h3><div slot="body-xs">Plan description</div>';
+            grid.appendChild(card);
+            cards.push(card);
+        }
+        await Promise.all(cards.map((card) => card.updateComplete));
+        return { grid, cards };
+    }
+
+    const columnsOf = (cards) => {
+        const firstTop = cards[0].getBoundingClientRect().top;
+        return cards.filter(
+            (card) => card.getBoundingClientRect().top === firstTop,
+        ).length;
+    };
+
+    const layouts = [
+        ['one-merch-card', 1],
+        ['two-merch-cards', 2],
+        ['three-merch-cards', 3],
+        ['four-merch-cards', 4],
+    ];
+
+    // One viewport change per width keeps the sweep cheap; each width renders
+    // every layout in both container shapes.
+    for (const width of [768, 1024, 1200, 1279, 1280, 1920]) {
+        it(`lays pro cards out in columns at ${width}px`, async () => {
+            await setViewport({ width, height: 900 });
+            for (const shape of ['bare', 'section']) {
+                for (const [layout, count] of layouts) {
+                    const { cards } = await renderGrid(layout, count, shape);
+                    const expected = width >= 1280 ? count : Math.min(count, 2);
+                    const label = `${shape} ${layout} at ${width}px`;
+                    expect(columnsOf(cards), label).to.equal(expected);
+                    cards.forEach((card) =>
+                        expect(
+                            card.getBoundingClientRect().width,
+                            label,
+                        ).to.be.above(300),
+                    );
+                    if (count === 1) {
+                        expect(
+                            cards[0].getBoundingClientRect().width,
+                            label,
+                        ).to.be.closeTo(394, 1);
+                    }
+                    fixture.remove();
+                }
+            }
+        });
+    }
+
+    for (const width of [375, 767]) {
+        it(`stacks every card in a single column at ${width}px`, async () => {
+            await setViewport({ width, height: 900 });
+            for (const shape of ['bare', 'section']) {
+                const { grid, cards } = await renderGrid(
+                    'four-merch-cards',
+                    4,
+                    shape,
+                );
+                expect(columnsOf(cards), shape).to.equal(1);
+                expect(
+                    cards[0].getBoundingClientRect().width,
+                    shape,
+                ).to.be.closeTo(grid.getBoundingClientRect().width, 2);
+                fixture.remove();
+            }
+        });
+    }
+
+    it('leaves a collection inside a section on its own layout', async () => {
+        const expected = { 1024: 1280, 1920: 1920 };
+        for (const width of [1024, 1920]) {
+            await setViewport({ width, height: 900 });
+            fixture = document.createElement('div');
+            fixture.className = 'section three-merch-cards';
+            const content = document.createElement('div');
+            content.className = 'content';
+            const collection = document.createElement('merch-card-collection');
+            collection.className = 'plans three-merch-cards';
+            collection.setAttribute('filtered', 'all');
+            for (let i = 0; i < 3; i += 1) {
+                const card = document.createElement('merch-card');
+                card.setAttribute('variant', 'pro');
+                card.filters = { all: { order: i } };
+                collection.appendChild(card);
+            }
+            content.appendChild(collection);
+            fixture.appendChild(content);
+            document.body.appendChild(fixture);
+            await Promise.all(
+                [...collection.children].map((card) => card.updateComplete),
+            );
+            expect(getComputedStyle(collection).maxWidth).to.equal(
+                `${expected[width]}px`,
+            );
+            // The section content is not turned into a pro grid.
+            expect(getComputedStyle(content).gap).to.not.equal('8px');
+            fixture.remove();
+        }
+    });
+
+    ['image', 'product'].forEach((variant) => {
+        it(`keeps the base gap for ${variant}-only grids`, async () => {
+            await setViewport({ width: 1024, height: 900 });
+            const { grid } = await renderGrid(
+                'two-merch-cards',
+                2,
+                'bare',
+                variant,
+            );
+            expect(getComputedStyle(grid).gap).to.not.equal('8px');
+        });
+    });
+});
+
 describe('pro license dropdown interaction', () => {
     let card;
     afterEach(() => card?.remove());

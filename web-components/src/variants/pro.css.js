@@ -752,4 +752,51 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
+/* Section grid — pro cards placed straight into a 1/2/3/4 column layout, either
+   a bare layout container or a Milo .section > .content, without a collection.
+   Same C2 breakpoints (768, 1280) as the collection above. Collections and
+   anything containing one are excluded, so these rules never overlap the
+   collection block. Tracks keep a definite maximum (the pro card width): a Milo
+   .section sizes its single auto track to .content's max-content, so bare 1fr
+   tracks would collapse there. The layout class also lands on the .section
+   itself, where the base grid gives it that auto track; a full-width track
+   lets .content take the section width and centre its own tracks. */
+.section:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):has(> .content > merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):not(.section, merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card-collection)),
+.section:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards) > .content:has(merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, var(--consonant-merch-card-pro-max-width));
+    justify-content: center;
+    align-items: stretch;
+}
+
+@media screen and ${TABLET_UP} {
+    :is(.two-merch-cards, .three-merch-cards, .four-merch-cards):not(.section, merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card-collection)),
+    .section:is(.two-merch-cards, .three-merch-cards, .four-merch-cards) > .content:has(merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+        grid-template-columns: repeat(2, minmax(0, var(--consonant-merch-card-pro-max-width)));
+    }
+}
+
+@media screen and ${C2_DESKTOP_UP} {
+    .three-merch-cards:not(.section, merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card-collection)),
+    .section.three-merch-cards > .content:has(merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+        grid-template-columns: repeat(3, minmax(0, var(--consonant-merch-card-pro-max-width)));
+    }
+    .four-merch-cards:not(.section, merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card-collection)),
+    .section.four-merch-cards > .content:has(merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+        grid-template-columns: repeat(4, minmax(0, var(--consonant-merch-card-pro-max-width)));
+    }
+}
+
+@media screen and ${MOBILE_LANDSCAPE} {
+    :is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards):not(.section, merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card-collection)),
+    .section:is(.one-merch-card, .two-merch-cards, .three-merch-cards, .four-merch-cards) > .content:has(merch-card[variant="pro"]):not(:has(merch-card-collection)) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 `;

@@ -102,6 +102,19 @@ describe('MasksStore', () => {
         expect(saved).to.not.equal(false);
     });
 
+    it('hands fragments.save the fragment carrying newTags', async () => {
+        const aem = createAemMock();
+        store.setAem(aem);
+        await store.loadSurface('acom', 'en_US');
+
+        const fragment = new Fragment({ id: 'm1', title: 'Edited', path: 'p', fields: [], model: { path: '' } });
+        fragment.newTags = ['mas:masks/acom/m1', 'mas:product_code/phsp'];
+        await store.saveMask(fragment);
+
+        expect(aem.sites.cf.fragments.save.calledOnce).to.equal(true);
+        expect(aem.sites.cf.fragments.save.firstCall.args[0].newTags).to.deep.equal(['mas:masks/acom/m1', 'mas:product_code/phsp']);
+    });
+
     it('rejects saving a fragment that is not a card model', async () => {
         const aem = createAemMock();
         store.setAem(aem);

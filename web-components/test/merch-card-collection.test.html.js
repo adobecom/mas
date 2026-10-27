@@ -382,15 +382,18 @@ runTests(async () => {
             cache.clear();
         });
 
-        for (const attribute of ['mask', 'pzn']) {
-            it(`inherits collection price labels with ${attribute} and preserves card overrides`, async () => {
+        for (const attributes of [['mask'], ['pzn'], ['mask', 'pzn']]) {
+            it(`inherits collection context with ${attributes.join(' and ')} without changing unmasked cards`, async () => {
                 [merchCards, render] = prepareTemplate(
                     'plansTwoCardsColl',
                     false,
                 );
                 const fragment = merchCards.querySelector('aem-fragment');
-                fragment.setAttribute(attribute, 'localized');
-                const cacheKey = `${fragment.getAttribute('fragment')}-${attribute === 'mask' ? 'm' : 'p'}_localized`;
+                for (const attribute of attributes) {
+                    fragment.setAttribute(attribute, 'localized');
+                }
+                const suffix = `${attributes.includes('pzn') ? '-p_localized' : ''}${attributes.includes('mask') ? '-m_localized' : ''}`;
+                const cacheKey = `${fragment.getAttribute('fragment')}${suffix}`;
                 const labels = [
                     'Abonnement annuel, facturation mensuelle',
                     'Facturation mensuelle, engagement annuel',
@@ -402,9 +405,13 @@ runTests(async () => {
                         cardTitle: `Photoshop ${index + 1}`,
                         prices: '<span is="inline-price" data-template="legal" data-wcs-osi="abm-mult"></span>',
                     },
-                    settings: { displayPlanType: true },
                     ...(index === 1
                         ? {
+                              settings: { secureLabel: 'Paiement sécurisé' },
+                              placeholders: {
+                                  whatsIncludedToggleLabel: 'Autres avantages',
+                              },
+                              dictionary: { product: 'Photoshop personnalisé' },
                               priceLiterals: {
                                   planTypeLabel: `{planType, select, ABM {${label}} other {}}`,
                               },
@@ -414,6 +421,14 @@ runTests(async () => {
                 cache.set(cacheKey, {
                     id: 'localized-collection',
                     fields: { cards: cards.map(({ id }) => id) },
+                    settings: {
+                        displayPlanType: true,
+                        secureLabel: 'Transaction sécurisée',
+                    },
+                    placeholders: {
+                        whatsIncludedToggleLabel: 'Découvrir les avantages',
+                    },
+                    dictionary: { product: 'Photoshop' },
                     priceLiterals: {
                         planTypeLabel: `{planType, select, ABM {${labels[0]}} other {}}`,
                     },
@@ -433,9 +448,29 @@ runTests(async () => {
                 render();
                 await merchCards.hydrationReady;
                 for (const card of cards) {
-                    expect(cache.has(card.id)).to.be.true;
+                    expect(cache.has(`${card.id}${suffix}`)).to.be.true;
+                    expect(cache.has(card.id)).to.be.false;
                 }
                 await merchCards.checkReady();
+                const renderedCards = [
+                    ...merchCards.querySelectorAll('merch-card'),
+                ];
+                for (const [index, card] of renderedCards.entries()) {
+                    expect(card.settings.displayPlanType).to.be.true;
+                    expect(card.settings.secureLabel).to.equal(
+                        index === 0
+                            ? 'Transaction sécurisée'
+                            : 'Paiement sécurisé',
+                    );
+                    expect(card.placeholders.whatsIncludedToggleLabel).to.equal(
+                        index === 0
+                            ? 'Découvrir les avantages'
+                            : 'Autres avantages',
+                    );
+                    expect(card.aemFragment.data.dictionary.product).to.equal(
+                        index === 0 ? 'Photoshop' : 'Photoshop personnalisé',
+                    );
+                }
                 const prices = merchCards.querySelectorAll(
                     '[is="inline-price"]',
                 );
@@ -447,6 +482,29 @@ runTests(async () => {
                         (label) => label.textContent,
                     ),
                 ).to.deep.equal(labels);
+
+                const unmasked = {
+                    id: cards[0].id,
+                    fields: { cardTitle: 'Unmasked Photoshop' },
+                    settings: { displayPlanType: false },
+                    priceLiterals: { planTypeLabel: 'Unmasked label' },
+                };
+                cache.add(unmasked);
+                const standalone = document.createElement('aem-fragment');
+                standalone.setAttribute('fragment', unmasked.id);
+                document.getElementById('content').append(standalone);
+                await standalone.updateComplete;
+                expect(standalone.data.fields.cardTitle).to.equal(
+                    'Unmasked Photoshop',
+                );
+                expect(standalone.data.settings.displayPlanType).to.be.false;
+                expect(standalone.data.priceLiterals.planTypeLabel).to.equal(
+                    'Unmasked label',
+                );
+                expect(
+                    cache.get(`${cards[0].id}${suffix}`).settings
+                        .displayPlanType,
+                ).to.be.true;
             });
         }
     });
@@ -456,6 +514,23 @@ runTests(async () => {
 
         beforeEach(async () => {
             document.location.hash = '';
+        });
+
+        it('preserves card overrides in masked collections', async () => {
+            [collectionElement, render] = prepareTemplate('override', false);
+            collectionElement
+                .querySelector('aem-fragment')
+                .setAttribute('mask', 'localized');
+            render();
+
+            await collectionElement.checkReady();
+            expect(
+                collectionElement.querySelector('merch-card[id="cafe-bebebe"]'),
+            ).to.exist;
+            expect(
+                collectionElement.querySelector('merch-card[id="bebe-cafe"]'),
+            ).to.exist;
+            customElements.get('aem-fragment').cache.clear();
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {

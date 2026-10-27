@@ -403,6 +403,8 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return;
         this.id = aemFragment.getAttribute('fragment');
+        const mask = aemFragment.getAttribute('mask');
+        const pzn = aemFragment.getAttribute('pzn');
 
         this.hydrating = true;
         let resolveHydration;
@@ -535,13 +537,6 @@ export class MerchCardCollection extends LitElement {
                       event.detail.fields.defaultchild
                     : null;
 
-            for (const card of cards) {
-                card.priceLiterals = {
-                    ...event.detail.priceLiterals,
-                    ...card.priceLiterals,
-                };
-                aemFragment.cache.add(card);
-            }
             const checkDefaultChild = (collections, fragmentId) => {
                 for (const collection of collections) {
                     if (collection.defaultchild === fragmentId) return true;
@@ -612,6 +607,25 @@ export class MerchCardCollection extends LitElement {
                 populateFilters(hierarchy);
 
                 const mcAemFragment = document.createElement('aem-fragment');
+                mcAemFragment.setAttribute('fragment', fragment.id);
+                if (mask) mcAemFragment.setAttribute('mask', mask);
+                if (pzn) mcAemFragment.setAttribute('pzn', pzn);
+                for (const key of [
+                    'settings',
+                    'placeholders',
+                    'dictionary',
+                    'priceLiterals',
+                ]) {
+                    fragment[key] = {
+                        ...event.detail[key],
+                        ...fragment[key],
+                    };
+                }
+                if (mask || pzn) {
+                    aemFragment.cache.set(mcAemFragment.cacheKey(), fragment);
+                } else {
+                    aemFragment.cache.add(fragment);
+                }
                 mcAemFragment.setAttribute('fragment', fragmentId);
                 merchCard.append(mcAemFragment);
                 // if no filters are set, set the default filter

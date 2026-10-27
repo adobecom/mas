@@ -1,0 +1,31 @@
+import { expect } from '@esm-bundle/chai';
+import '../src/baselines/mas-baselines.js';
+
+async function renderBaselines() {
+    const el = document.createElement('mas-baselines');
+    document.body.append(el);
+    await el.updateComplete;
+    return el;
+}
+
+describe('MasBaselines', () => {
+    afterEach(() => {
+        for (const el of document.querySelectorAll('mas-baselines')) {
+            el.remove();
+        }
+    });
+
+    it('renders the Baselines page heading', async () => {
+        const el = await renderBaselines();
+
+        expect(el.shadowRoot.querySelector('h2').textContent).to.equal('Baselines');
+    });
+
+    it('renders an enabled Create Baseline button', async () => {
+        const el = await renderBaselines();
+        const button = el.shadowRoot.querySelector('sp-button');
+
+        expect(button.textContent.trim()).to.equal('Create Baseline');
+        expect(button.hasAttribute('disabled')).to.be.false;
+    });
+});

@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import {
     buildCardsDeepLink,
     buildProjectDeepLink,
+    formatAuthorPath,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -74,7 +75,38 @@ describe('getFragmentEditorUrl', () => {
     });
 });
 
+describe('formatAuthorPath', () => {
+    it('inserts the content type right after the surface', () => {
+        expect(formatAuthorPath('merch-card', 'ACOM / Catalog / Teams')).to.equal('ACOM / merch-card / Catalog / Teams');
+    });
+
+    it('returns the parts unchanged without a content type', () => {
+        expect(formatAuthorPath('', 'ACOM / Catalog')).to.equal('ACOM / Catalog');
+    });
+
+    it('returns an empty string for empty parts', () => {
+        expect(formatAuthorPath('merch-card', '')).to.equal('');
+    });
+
+    it('keeps separators inside a title', () => {
+        expect(formatAuthorPath('merch-card-collection', 'ACOM / A / B')).to.equal('ACOM / merch-card-collection / A / B');
+    });
+});
+
 describe('generateLinkToUse', () => {
+    it('builds the path as surface / content type / parts', () => {
+        const { authorPath } = generateLinkToUse(mockFragmentForCode(CARD_MODEL_PATH), 'acom', 'content');
+        expect(authorPath).to.match(/^ACOM \/ merch-card \//);
+        expect(authorPath).to.not.match(/^merch-card:/);
+    });
+
+    it('puts the content type right after the surface for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        expect(generateLinkToUse(fragment, 'acom', 'content').authorPath).to.equal(
+            'ACOM / merch-card-collection / My Collection Title',
+        );
+    });
+
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
         const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');

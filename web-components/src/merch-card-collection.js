@@ -55,6 +55,68 @@ const SIDENAV_AUTOCLOSE = {
     plans: true,
 };
 
+const FEATURED_FILTER = 'featured';
+const FEATURED_LIMIT = 12;
+// queryLabels of the collections that "All" and search never include.
+const ALL_EXCLUDED_FILTERS = ['business', 'students-and-teachers'];
+const RESET_EVENT = 'merch-card-collection:reset';
+
+const nodeName = (node) => node.queryLabel ?? node.label?.toLowerCase() ?? '';
+
+// Filter names of every node under the segments that "All" includes.
+const includedNames = (hierarchy = []) => {
+    const names = new Set();
+    const visit = (nodes) => {
+        for (const node of nodes) {
+            names.add(nodeName(node));
+            visit(node.collections ?? []);
+        }
+    };
+    visit(
+        hierarchy.filter(
+            (node) => !ALL_EXCLUDED_FILTERS.includes(nodeName(node)),
+        ),
+    );
+    return names;
+};
+
+// A card is excluded only when it belongs to an excluded segment and to
+// no included one.
+const isExcludedFromAll = (card, included) => {
+    const keys = Object.keys(card.filters ?? {});
+    return (
+        keys.some((name) => ALL_EXCLUDED_FILTERS.includes(name)) &&
+        !keys.some((name) => included.has(name))
+    );
+};
+
+// Cards visible under "All": everything except the excluded segments.
+const allScope = (elements, collection) => {
+    const included = includedNames(collection?.data?.hierarchy);
+    return elements.filter(
+        (card) => card.filters && !isExcludedFromAll(card, included),
+    );
+};
+
+// Featured cards first (featured order), then the rest in catalog order.
+const allSorter = (elements) => {
+    const rank = (card) => {
+        const key = card.filters[FEATURED_FILTER] ? FEATURED_FILTER : 'all';
+        const order = card.filters[key]?.order;
+        return [
+            key === FEATURED_FILTER ? 0 : 1,
+            order == undefined || isNaN(order)
+                ? Number.MAX_SAFE_INTEGER
+                : order,
+        ];
+    };
+    return elements.sort((a, b) => {
+        const [groupA, orderA] = rank(a);
+        const [groupB, orderB] = rank(b);
+        return groupA - groupB || orderA - orderB;
+    });
+};
+
 const categoryFilter = (elements, { filter }) =>
     elements.filter(
         (element) =>
@@ -149,6 +211,8 @@ export class MerchCardCollection extends LitElement {
     #log;
 
     #merchCardElement;
+    #defaultState;
+    #preSearchState;
 
     constructor() {
         super();
@@ -177,6 +241,65 @@ export class MerchCardCollection extends LitElement {
     render() {
         return html` <slot></slot>
             ${this.footer}`;
+    }
+
+    // Plans-style collections carry a "featured" filter on at least one card.
+    get hasFeatured() {
+        return [...this.children].some(
+            (child) =>
+                child.tagName === 'MERCH-CARD' &&
+                Object.hasOwn(child.filters ?? {}, FEATURED_FILTER),
+        );
+    }
+
+    get defaultFilter() {
+        return this.hasFeatured ? FEATURED_FILTER : 'all';
+    }
+
+    willUpdate(changedProperties) {
+        // remember where the visitor was, so clearing the search can go back.
+        if (
+            changedProperties.has('search') &&
+            this.search &&
+            !changedProperties.get('search')
+        ) {
+            const hash = parseState();
+            this.#preSearchState = {
+                filter: this.filter,
+                page: this.page,
+                tagGroups: Object.fromEntries(
+                    (this.tagGroups ?? []).map(({ deeplink: key }) => [
+                        key,
+                        hash[key],
+                    ]),
+                ),
+            };
+        }
+    }
+
+    #applyState({ filter, search, page, tagGroups }) {
+        pushState({
+            filter,
+            search,
+            page: page > 1 ? page : undefined,
+            ...tagGroups,
+        });
+    }
+
+    /** Clears the search and returns to the state before it started. */
+    clearSearch() {
+        this.#applyState({
+            ...(this.#preSearchState ?? this.#defaultState),
+            search: undefined,
+        });
+    }
+
+    /** Puts the collection back to how it opened. */
+    resetFilters() {
+        this.#applyState({
+            ...this.#defaultState,
+            search: undefined,
+        });
     }
 
     checkReady() {
@@ -215,24 +338,37 @@ export class MerchCardCollection extends LitElement {
             });
         }
 
-        const sorter =
-            this.sort === SORT_ORDER.alphabetical
-                ? alphabeticalSorter
-                : authoredSorter;
-        const reducers = [
-            categoryFilter,
-            typeFilter,
-            tagGroupFilter,
-            searcher,
-            sorter,
-        ];
+        const plansMode = this.hasFeatured;
+        const searching = plansMode && !!this.search?.length;
+        const allView = plansMode && (searching || this.filter === 'all');
+        const sorter = allView
+            ? allSorter
+            : this.sort === SORT_ORDER.alphabetical
+              ? alphabeticalSorter
+              : authoredSorter;
+        const reducers = searching
+            ? [allScope, searcher, sorter]
+            : [
+                  allView ? allScope : categoryFilter,
+                  typeFilter,
+                  tagGroupFilter,
+                  searcher,
+                  sorter,
+              ];
 
         let result = reducers
             .reduce((elements, reducer) => reducer(elements, this), children)
             .map((element, index) => [element, index]);
 
+        const featuredView =
+            plansMode && !searching && this.filter === FEATURED_FILTER;
+        if (featuredView) {
+            result = result.slice(0, FEATURED_LIMIT);
+        }
         this.resultCount = result.length;
-        if (this.page && this.limit) {
+        if (featuredView) {
+            this.hasMore = false;
+        } else if (this.page && this.limit) {
             const pageSize = this.page * this.limit;
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
@@ -244,7 +380,11 @@ export class MerchCardCollection extends LitElement {
 
         children.forEach((child) => {
             if (reduced.has(child)) {
-                child.size = child.filters[this.filter]?.size;
+                child.size = (
+                    child.filters[this.filter] ??
+                    child.filters.all ??
+                    Object.values(child.filters)[0]
+                )?.size;
                 child.style.removeProperty('display');
                 child.requestUpdate();
             } else {
@@ -316,6 +456,22 @@ export class MerchCardCollection extends LitElement {
             this.stopFilterDeeplink = deeplink(() => this.requestUpdate());
         }
         this.initializePlaceholders();
+        this.#defaultState = {
+            filter: this.defaultFilter,
+            page: 1,
+            tagGroups: Object.fromEntries(
+                (this.tagGroups ?? []).map(({ deeplink: key }) => [
+                    key,
+                    undefined,
+                ]),
+            ),
+        };
+        const onReset = () => this.resetFilters();
+        const target = this.parentElement;
+        target?.addEventListener(RESET_EVENT, onReset);
+        this.onUnmount.push(() =>
+            target?.removeEventListener(RESET_EVENT, onReset),
+        );
     }
 
     disconnectedCallback() {
@@ -712,7 +868,7 @@ export class MerchCardCollection extends LitElement {
     startDeeplink() {
         this.stopDeeplink = deeplink(
             ({ category, filter, types, sort, search, single_app, page }) => {
-                filter = filter || category;
+                filter = filter || category || this.defaultFilter;
                 if (!this.filtered && filter && filter !== this.filter) {
                     // a filter has changed, reset page to 1.
                     setTimeout(() => {
@@ -822,6 +978,7 @@ export default class MerchCardCollectionHeader extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.resizeObserver?.disconnect();
         this.collection?.removeEventListener(
             EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
             this.updateLiterals,
@@ -833,6 +990,7 @@ export default class MerchCardCollectionHeader extends LitElement {
     }
 
     willUpdate() {
+        this.toggleAttribute('has-pills', !!this.collection?.hasFeatured);
         this.#visibility.search = this.getVisibility('search');
         this.#visibility.filter = this.getVisibility('filter');
         this.#visibility.sort = this.getVisibility('sort');
@@ -896,7 +1054,8 @@ export default class MerchCardCollectionHeader extends LitElement {
     }
 
     get searchAction() {
-        if (!this.#visibility.search) return nothing;
+        if (!this.#visibility.search && !this.collection?.hasFeatured)
+            return nothing;
         const searchPlaceholder = getSlotText(this, 'searchText');
         if (!searchPlaceholder) return nothing;
         return html`
@@ -906,9 +1065,129 @@ export default class MerchCardCollectionHeader extends LitElement {
                     placeholder="${searchPlaceholder}"
                     .size=${SEARCH_SIZE[this.variant]}
                     aria-label="${searchPlaceholder}"
+                    @reset="${() => this.collection.clearSearch()}"
                 ></sp-search>
             </merch-search>
         `;
+    }
+
+    // Pill scopes ignore the search term, so search never changes gray-out.
+    get pills() {
+        const cards = [...this.collection.children].filter(
+            (child) => child.tagName === 'MERCH-CARD' && !child.failed,
+        );
+        const has = (name) =>
+            cards.some((card) => Object.hasOwn(card.filters ?? {}, name));
+        // Nested nodes (pricing pills) follow their segment pill.
+        const nodes = [];
+        const visit = (level) => {
+            for (const node of level) {
+                const name = nodeName(node);
+                if (
+                    ALL_EXCLUDED_FILTERS.includes(name) ||
+                    nodes.some((pill) => pill.name === name)
+                )
+                    continue;
+                nodes.push({ name, label: node.label });
+                visit(node.collections ?? []);
+            }
+        };
+        visit(this.collection.data?.hierarchy ?? []);
+        return [
+            {
+                name: FEATURED_FILTER,
+                label: getSlotText(this, 'featuredText') || 'Featured',
+                disabled: !has(FEATURED_FILTER),
+            },
+            {
+                name: 'all',
+                label: getSlotText(this, 'allText') || 'All',
+                disabled: allScope(cards, this.collection).length === 0,
+            },
+            ...nodes.map(({ name, label }) => ({
+                name,
+                label,
+                disabled: !has(name),
+            })),
+        ];
+    }
+
+    get pillRow() {
+        if (!this.collection?.hasFeatured) return nothing;
+        return html`<div id="pills">
+            <div id="pill-track">
+                ${this.pills.map(
+                    ({ name, label, disabled }) =>
+                        html`<button
+                            class="pill ${disabled ? 'disabled' : ''}"
+                            aria-pressed="${this.collection.filter === name}"
+                            aria-disabled="${disabled}"
+                            @click="${() => this.selectPill(name, disabled)}"
+                        >
+                            ${label}
+                        </button>`,
+                )}
+            </div>
+            <button
+                id="pill-caret"
+                aria-label="Next filters"
+                @click="${this.scrollPills}"
+            >
+                <svg
+                    viewBox="0 0 10 10"
+                    width="10"
+                    height="10"
+                    aria-hidden="true"
+                >
+                    <path
+                        d="M3 1l4 4-4 4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+            </button>
+            <button
+                id="pill-reset"
+                @click="${() => this.collection.resetFilters()}"
+            >
+                ${getSlotText(this, 'resetText') || 'Reset'}
+            </button>
+        </div>`;
+    }
+
+    get nullState() {
+        if (!this.search || this.resultCount !== 0) return nothing;
+        return html`<div id="null-state">
+            <slot name="noSearchResultsText"></slot>
+        </div>`;
+    }
+
+    selectPill(name, disabled) {
+        if (disabled) return;
+        pushState({ filter: name, page: undefined });
+    }
+
+    scrollPills() {
+        const track = this.shadowRoot.getElementById('pill-track');
+        track?.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+    }
+
+    firstUpdated() {
+        this.resizeObserver = new ResizeObserver(() => this.checkOverflow());
+        this.resizeObserver.observe(this);
+    }
+
+    // Stack search above pills when both do not fit on one row.
+    checkOverflow() {
+        const track = this.shadowRoot.getElementById('pill-track');
+        const search = this.shadowRoot.getElementById('search');
+        const header = this.shadowRoot.getElementById('header');
+        if (!track || !header) return;
+        this.toggleAttribute(
+            'stacked',
+            track.scrollWidth + (search?.offsetWidth ?? 0) > header.clientWidth,
+        );
     }
 
     get filterAction() {
@@ -1018,8 +1297,9 @@ export default class MerchCardCollectionHeader extends LitElement {
         return html`
             <sp-theme color="light" scale="medium">
                 <div id="header">
-                    ${this.searchAction}${this.filterAction}${this
-                        .sortAction}${this.resultLabel}${this.customArea}
+                    ${this.searchAction}${this.pillRow}${this
+                        .filterAction}${this.sortAction}${this
+                        .resultLabel}${this.nullState}${this.customArea}
                 </div>
             </sp-theme>
         `;
@@ -1121,6 +1401,65 @@ export default class MerchCardCollectionHeader extends LitElement {
 
         #custom {
             grid-area: custom;
+        }
+
+        #pills {
+            grid-area: pills;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        #pill-track {
+            display: flex;
+            gap: 8px;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+            flex: 1;
+        }
+
+        .pill {
+            flex: none;
+            padding: 8px 16px;
+            border: 1px solid var(--merch-color-grey-80, #2c2c2c);
+            border-radius: 16px;
+            background: transparent;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .pill[aria-pressed='true'] {
+            background: var(--merch-color-grey-80, #2c2c2c);
+            color: #fff;
+        }
+
+        .pill.disabled {
+            opacity: 0.4;
+            color: var(--merch-card-collection-pill-disabled-color, #8f8f8f);
+            cursor: default;
+        }
+
+        #pill-caret,
+        #pill-reset {
+            flex: none;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+
+        #null-state {
+            grid-column: 1 / -1;
+        }
+
+        :host([has-pills]) #header {
+            grid-template-columns: auto 1fr;
+            grid-template-areas: 'search pills' 'result result';
+        }
+
+        :host([stacked]) #header {
+            grid-template-columns: 1fr;
+            grid-template-areas: 'search' 'pills' 'result';
         }
 
         /* tablets */

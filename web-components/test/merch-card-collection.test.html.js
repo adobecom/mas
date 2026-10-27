@@ -548,6 +548,111 @@ runTests(async () => {
             collection.remove();
         });
     });
+
+    describe('plans filtering and search', () => {
+        const visible = (collection) =>
+            [...collection.querySelectorAll('merch-card')].filter(
+                (card) => card.style.display !== 'none',
+            );
+
+        const buildCollection = async () => {
+            document.location.hash = '';
+            const collection = document.createElement('merch-card-collection');
+            collection.limit = 27;
+            collection.page = 1;
+            const add = (title, filters) => {
+                const card = document.createElement('merch-card');
+                card.title = title;
+                card.filters = filters;
+                collection.append(card);
+            };
+            for (let i = 1; i <= 15; i++) {
+                add(`Featured ${i}`, {
+                    featured: { order: i },
+                    all: { order: 100 + i },
+                });
+            }
+            for (let i = 1; i <= 30; i++) {
+                add(`Catalog ${i}`, { all: { order: i } });
+            }
+            for (let i = 1; i <= 3; i++) {
+                add(`Business ${i}`, { business: { order: i } });
+                add(`Student ${i}`, {
+                    'students-and-teachers': { order: i },
+                });
+            }
+            add('Marketing only', { 'marketing-and-data': { order: 1 } });
+            document.getElementById('content').appendChild(collection);
+            await collection.updateComplete;
+            return collection;
+        };
+
+        const settle = async (collection) => {
+            await collection.updateComplete;
+            await delay(20);
+        };
+
+        it('Featured shows 12 cards and no load-more control', async () => {
+            const collection = await buildCollection();
+            collection.filter = 'featured';
+            await settle(collection);
+            expect(visible(collection).length).to.equal(12);
+            expect(collection.hasMore).to.be.false;
+            collection.remove();
+        });
+
+        it('All excludes Business and Students and teachers and paginates', async () => {
+            const collection = await buildCollection();
+            collection.filter = 'all';
+            await settle(collection);
+            const cards = visible(collection);
+            expect(cards.length).to.equal(27);
+            expect(cards.some((card) => /Business|Student/.test(card.title))).to
+                .be.false;
+            expect(collection.hasMore).to.be.true;
+            await collection.showMore();
+            await settle(collection);
+            expect(visible(collection).length).to.equal(45);
+            collection.remove();
+        });
+
+        it('All orders Featured first, then catalog order', async () => {
+            const collection = await buildCollection();
+            collection.filter = 'all';
+            await settle(collection);
+            const titles = visible(collection).map((card) => card.title);
+            expect(titles[0]).to.equal('Featured 1');
+            expect(titles[14]).to.equal('Featured 15');
+            expect(titles[15]).to.equal('Catalog 1');
+            collection.remove();
+        });
+
+        it('search covers the full All set and its count', async () => {
+            const collection = await buildCollection();
+            collection.filter = 'featured';
+            collection.search = 'marketing';
+            await settle(collection);
+            expect(visible(collection).map((card) => card.title)).to.deep.equal(
+                ['Marketing only'],
+            );
+            expect(collection.resultCount).to.equal(1);
+            collection.search = 'business';
+            await settle(collection);
+            expect(collection.resultCount).to.equal(0);
+            collection.remove();
+        });
+
+        it('clearSearch restores the pre-search filter', async () => {
+            const collection = await buildCollection();
+            collection.filter = 'all';
+            await settle(collection);
+            collection.search = 'catalog';
+            await settle(collection);
+            collection.clearSearch();
+            expect(window.location.hash).to.not.include('search=');
+            collection.remove();
+        });
+    });
 });
 
 document.getElementById('showMore').addEventListener('click', () => {

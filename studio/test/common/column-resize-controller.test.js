@@ -19,7 +19,7 @@ const COLUMNS = [
 class ResizeHost extends LitElement {
     static styles = columnResizeStyles(COLUMNS, { match: 'class' });
 
-    columnResize = new ColumnResizeController(this, { columns: COLUMNS });
+    columnResize = new ColumnResizeController(this);
 
     headClicks = 0;
 

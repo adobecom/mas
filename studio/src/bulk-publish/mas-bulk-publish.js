@@ -49,7 +49,7 @@ const BULK_PUBLISH_COLUMNS = [
 class MasBulkPublish extends LitElement {
     static styles = [...styles, columnResizeStyles(BULK_PUBLISH_COLUMNS, { match: 'index' })];
 
-    columnResize = new ColumnResizeController(this, { columns: BULK_PUBLISH_COLUMNS });
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         duplicatePending: { state: true },

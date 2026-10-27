@@ -43,6 +43,7 @@ const tableSkeletonRow = () =>
         <sp-table-cell class="actions"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
         <sp-table-cell class="preview"><div class="skeleton-element skeleton-table-cell"></div></sp-table-cell>
     </sp-table-row>`;
+
 const CONTENT_TABLE_COLUMNS = [
     { key: 'name', label: 'Path' },
     { key: 'title', label: 'Fragment Title' },
@@ -61,7 +62,7 @@ const SORTABLE_COLUMNS = new Set(['name', 'title', 'offer-id', 'offer-type', 'la
 const CONTENT_TABLE_RESIZE_CSS = columnResizeStyles(CONTENT_TABLE_COLUMNS, { match: 'class' }).cssText;
 
 class MasContent extends LitElement {
-    columnResize = new ColumnResizeController(this, { columns: CONTENT_TABLE_COLUMNS });
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         tableSelects: { type: String, state: true },
@@ -311,6 +312,18 @@ class MasContent extends LitElement {
         `;
     }
 
+    #tableHead(sortable) {
+        return html`<sp-table-head>
+            <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
+            ${CONTENT_TABLE_COLUMNS.map(
+                ({ key, label }) =>
+                    html`<sp-table-head-cell ?sortable=${sortable && SORTABLE_COLUMNS.has(key)} class=${key}>
+                        ${label} ${this.columnResize.handle(key, label)}
+                    </sp-table-head-cell>`,
+            )}
+        </sp-table-head>`;
+    }
+
     get tableView() {
         if (!this.firstPageLoaded.value) {
             return html`<sp-table
@@ -319,15 +332,7 @@ class MasContent extends LitElement {
                 style=${styleMap(this.columnResize.tableStyle())}
                 data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
             >
-                <sp-table-head>
-                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    ${CONTENT_TABLE_COLUMNS.map(
-                        ({ key, label }) =>
-                            html`<sp-table-head-cell class=${key}>
-                                ${label} ${this.columnResize.handle(key, label)}
-                            </sp-table-head-cell>`,
-                    )}
-                </sp-table-head>
+                ${this.#tableHead(false)}
                 <sp-table-body> ${Array.from({ length: 8 }, tableSkeletonRow)} </sp-table-body>
             </sp-table>`;
         }
@@ -350,15 +355,7 @@ class MasContent extends LitElement {
                 selected=${JSON.stringify(this.parentRowSelection)}
                 @change=${this.updateTableSelection}
             >
-                <sp-table-head>
-                    <sp-table-head-cell class="expand-cell"></sp-table-head-cell>
-                    ${CONTENT_TABLE_COLUMNS.map(
-                        ({ key, label }) =>
-                            html`<sp-table-head-cell ?sortable=${SORTABLE_COLUMNS.has(key)} class=${key}>
-                                ${label} ${this.columnResize.handle(key, label)}
-                            </sp-table-head-cell>`,
-                    )}
-                </sp-table-head>
+                ${this.#tableHead(true)}
                 <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
             </sp-table>
             ${visibleFragments.length === 0 ? this.emptyState : nothing}`;

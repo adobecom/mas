@@ -65,21 +65,21 @@ const cardsTableColumns = [
     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
     { label: 'Offer', key: 'offer', sortable: true },
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
-    { label: 'Fragment title', key: 'fragmentTitle' },
     { label: 'Path', key: 'path' },
+    { label: 'Fragment title', key: 'fragmentTitle' },
     { label: 'Related pages', key: 'relatedPages' },
     { label: 'Offer ID', key: 'offerId' },
     { label: 'OSI', key: 'osi' },
     { label: 'Status', key: 'status' },
 ];
 
-const cardsTableCells = ['OfferName', 'Actions', 'Title', 'StudioPath', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
+const cardsTableCells = ['OfferName', 'Actions', 'StudioPath', 'Title', 'RelatedPages', 'OfferId', 'Osi', 'Status'];
 
 export const promoVariationColumns = [
     { label: 'Offer', key: 'offer', class: 'offer-head-cell' },
     { label: 'Actions', key: 'actions', class: 'actions-head-cell' },
-    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
     { label: 'Path', key: 'path', class: 'path-head-cell' },
+    { label: 'Fragment title', key: 'fragmentTitle', class: 'title-head-cell' },
     { label: 'Applies to', key: 'applies-to', class: 'applies-to-head-cell' },
     { label: 'Country', key: 'country', class: 'country-head-cell' },
     { label: 'Offer ID', key: 'offerId', class: 'offer-id-head-cell' },
@@ -91,8 +91,8 @@ export const promoVariationColumns = [
 export const promoVariationCells = [
     'OfferName',
     'Actions',
-    'Title',
     'StudioPath',
+    'Title',
     'AppliesTo',
     'Country',
     'OfferId',

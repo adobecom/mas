@@ -22,6 +22,34 @@ describe('aem.js', () => {
                 window.fetch = originalFetch;
             }
         });
+
+        it('rejects with status 404 when no fragment is found', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: true, json: async () => ({ items: [] }) });
+            try {
+                const error = await aem.sites.cf.fragments.getByPath('/content/dam/mas/missing').catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Fragment not found');
+                expect(error.status).to.equal(404);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
+        it('rejects with the response status when the request fails', async () => {
+            const originalFetch = window.fetch;
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Internal Server Error' });
+            try {
+                const error = await aem.sites.cf.fragments.getByPath('/content/dam/mas/sample').catch((err) => err);
+
+                expect(error).to.be.instanceOf(Error);
+                expect(error.message).to.equal('Failed to get fragment: 500 Internal Server Error');
+                expect(error.status).to.equal(500);
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
     });
 
     describe('filterByTags', () => {

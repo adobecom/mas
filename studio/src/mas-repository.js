@@ -14,6 +14,7 @@ import {
     UserFriendlyError,
     extractLocaleFromPath,
     extractSurfaceFromPath,
+    formatAuthorPath,
     isUUID,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
@@ -1140,7 +1141,7 @@ export class MasRepository extends LitElement {
                 let studioPath;
                 if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                     const surface = (extractSurfaceFromPath(fragment.path) ?? this.search.value.path)?.toUpperCase();
-                    studioPath = `merch-card-collection: ${surface} / ${fragment.title || ''}`;
+                    studioPath = formatAuthorPath('merch-card-collection', `${surface} / ${fragment.title || ''}`);
                 } else {
                     studioPath = getFragmentName(fragment);
                 }

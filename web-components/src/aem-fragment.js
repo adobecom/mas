@@ -272,7 +272,9 @@ export class AemFragment extends HTMLElement {
         if (this.#preview) {
             const preview = await this.generatePreview();
             if (preview.status === 200) {
-                return preview.body;
+                return preview.maskError
+                    ? { ...preview.body, maskError: preview.maskError }
+                    : preview.body;
             } else {
                 throw new MasError(
                     `Failed to generate preview: ${preview.message}`,
@@ -423,6 +425,13 @@ export class AemFragment extends HTMLElement {
         }
 
         fragment = await this.#getFragment(endpoint);
+        if (fragment.maskError) {
+            this.#log.error(
+                'mask-resolution-failed',
+                fragment.maskError,
+                this.#fetchInfo,
+            );
+        }
         fragment.fields.originalId ??= this.#fragmentId;
         if (this.#mask || this.#pzn) {
             cache.set(this.cacheKey(), fragment);

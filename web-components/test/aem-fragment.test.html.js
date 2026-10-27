@@ -17,6 +17,8 @@ import {
     EVENT_AEM_ERROR,
 } from '../src/constants.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../io/www/src/fragment/utils/explicit-empty.js';
+import { Log } from '../src/log.js';
+import { mockLana, unmockLana } from './mocks/lana.js';
 
 chai.use(chaiAsPromised);
 
@@ -701,6 +703,100 @@ runTests(async () => {
                 } finally {
                     publishService.remove();
                     delete document.cookie;
+                }
+            });
+
+            for (const preview of [false, true]) {
+                it(`logs a mask failure to Lana without failing ${preview ? 'preview' : 'production'} loading`, async () => {
+                    const existing = document.querySelector(
+                        'mas-commerce-service',
+                    );
+                    const service = document.createElement(
+                        'mas-commerce-service',
+                    );
+                    for (const attribute of existing.attributes) {
+                        service.setAttribute(attribute.name, attribute.value);
+                    }
+                    service.setAttribute('preview', preview ? 'on' : 'off');
+                    document.body.insertBefore(service, existing);
+
+                    const maskError = {
+                        code: 'mask-not-found',
+                        status: 404,
+                        mask: 'cpro-photo',
+                        surface: 'acom-cc',
+                        defaultLocale: 'en_GB',
+                        message:
+                            "Mask 'cpro-photo' not found for acom-cc/en_GB.",
+                    };
+                    const AemFragment = customElements.get('aem-fragment');
+                    const previewStub = preview
+                        ? sinon
+                              .stub(AemFragment.prototype, 'generatePreview')
+                              .resolves({ status: 200, body: cc, maskError })
+                        : null;
+                    if (!preview) {
+                        window.fetch
+                            .withArgs(
+                                sinon.match((url) =>
+                                    String(url).includes('id=mask-lana-test'),
+                                ),
+                            )
+                            .resolves(
+                                new Response(
+                                    JSON.stringify({ ...cc, maskError }),
+                                    {
+                                        status: 200,
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        },
+                                    },
+                                ),
+                            );
+                    }
+                    const lana = mockLana();
+                    Log.init({ name: 'prod' });
+                    const failed = sinon.spy();
+                    const fragment = document.createElement('aem-fragment');
+                    fragment.setAttribute('fragment', 'mask-lana-test');
+                    fragment.addEventListener(EVENT_AEM_ERROR, failed);
+                    try {
+                        document.body.appendChild(fragment);
+                        await fragment.updateComplete;
+                        expect(fragment.classList.contains('error')).to.be
+                            .false;
+                        expect(fragment.rawData.id).to.equal(cc.id);
+                        expect(failed.called).to.be.false;
+                        expect(lana.log.calledOnce).to.be.true;
+                        const [payload] = lana.log.firstCall.args;
+                        expect(payload).to.include('mask-resolution-failed');
+                        expect(payload).to.include('cpro-photo');
+                        expect(payload).to.include('en_GB');
+                    } finally {
+                        previewStub?.restore();
+                        fragment.remove();
+                        service.remove();
+                        unmockLana();
+                        Log.reset();
+                        Log.init({ name: 'local' });
+                        cache.clear();
+                    }
+                });
+            }
+
+            it('does not log successful fragment loads to Lana', async () => {
+                const lana = mockLana();
+                Log.init({ name: 'prod' });
+                const fragment = addFragment('fragment-cc-all-apps');
+                try {
+                    await fragment.updateComplete;
+                    expect(lana.log.called).to.be.false;
+                } finally {
+                    fragment.remove();
+                    unmockLana();
+                    Log.reset();
+                    Log.init({ name: 'local' });
+                    cache.clear();
                 }
             });
 

@@ -56,6 +56,11 @@ describe('pipeline end to end', () => {
             });
             expect(result.statusCode).to.equal(200);
             expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(result.body.maskError).to.include({
+                code: 'mask-not-found',
+                mask: 'missing-photo',
+                defaultLocale: 'fr_FR',
+            });
             expect(errorStub.calledWith(sinon.match('mask-resolution-failed'))).to.equal(true);
         } finally {
             errorStub.restore();
@@ -274,6 +279,7 @@ describe('pipeline end to end', () => {
         expect(result.body.id).to.equal('some-fr-fr-fragment');
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
+        expect(result.body).not.to.have.property('maskError');
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
     });
 

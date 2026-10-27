@@ -186,6 +186,7 @@ async function mainProcess(context) {
     };
     let responseBody = undefined;
     if (context.status == 200) {
+        if (context.maskError) context.body = { ...context.body, maskError: context.maskError };
         responseBody = JSON.stringify(context.body, null, 0);
         logDebug(() => `response body: ${responseBody}`, context);
         const hash = calculateHash(responseBody);

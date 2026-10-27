@@ -183,9 +183,10 @@ runTests(async () => {
             it('returns skeleton table when firstPageLoaded is false', () => {
                 Store.fragments.list.firstPageLoaded.set(false);
                 const result = masContent.tableView;
+                const head = result.values.find((v) => v?.strings?.join('').includes('sp-table-head'));
+                expect(head).to.exist;
                 const joined = result.strings.join('');
                 expect(joined).to.include('sp-table');
-                expect(joined).to.include('sp-table-head');
                 expect(joined).to.include('sp-table-body');
                 const skeletons = result.values.find((v) => Array.isArray(v) && v.length === 8);
                 expect(skeletons).to.exist;

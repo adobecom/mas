@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import { Fragment } from '../../src/aem/fragment.js';
 import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../src/constants.js';
@@ -7,6 +8,7 @@ import {
     enrichCards,
     fetchVariationDataByPath,
     flattenGroupedVariationsByParent,
+    hasGroupedVariationTags,
     loadCardVariationsByPath,
     loadGroupedVariations,
     loadItemsByPath,
@@ -204,6 +206,111 @@ describe('common/utils/item-loading', () => {
         expect(variations[0].offerData).to.deep.equal({ offerId: 'parent-offer-id' });
     });
 
+    it('loads grouped variation paths without hydrated references, excluding other locale families', async () => {
+        const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
+        const card = new Fragment({
+            path: '/content/dam/mas/sandbox/en_US/robert',
+            fields: [
+                {
+                    name: 'variations',
+                    values: [variationPath, '/content/dam/mas/sandbox/fr_FR/PA-2511/pzn/edu'],
+                },
+            ],
+            references: [],
+        });
+        const getByPath = sandbox.stub().resolves({
+            path: variationPath,
+            fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+        });
+
+        const variations = await loadGroupedVariations(card, { getByPath, includePersonalizationVariations: true });
+
+        expect(variations.map(({ path }) => path)).to.deep.equal([variationPath]);
+        expect(getByPath.calledOnceWith(variationPath)).to.be.true;
+    });
+
+    it('does not include deleted grouped variation paths as search matches', async () => {
+        const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
+        const card = {
+            path: '/content/dam/mas/sandbox/en_US/robert',
+            fields: [{ name: 'variations', values: [variationPath] }],
+            references: [],
+        };
+        const warning = sandbox.stub(console, 'warn');
+
+        const variations = await loadGroupedVariations(card, {
+            getByPath: sandbox.stub().rejects(new Error('Fragment not found')),
+            includePersonalizationVariations: true,
+        });
+
+        expect(variations).to.deep.equal([]);
+        expect(warning.calledOnce).to.be.true;
+    });
+
+    describe('personalization tags without fieldTags', () => {
+        const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
+        const variationPath = `${cardPath}/pzn/edu`;
+        const card = {
+            path: cardPath,
+            fields: [{ name: 'variations', values: [variationPath] }],
+            references: [{ path: variationPath }],
+        };
+        const tagSources = {
+            pznTags: { fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/pzn/edu'] }] },
+            tagsField: { fields: [{ name: 'tags', values: ['mas:pzn/edu'] }] },
+            metadata: { fields: [], tags: [{ id: 'mas:pzn/edu' }] },
+        };
+
+        it('rejects missing variations and variations without qualifying tags', () => {
+            for (const variation of [
+                null,
+                undefined,
+                { fields: [], fieldTags: [] },
+                { fields: [{ name: 'pznTags', values: ['mas:pzn/country/us'] }] },
+                { tags: [{ id: 'mas:product_code/phsp' }] },
+            ]) {
+                expect(hasGroupedVariationTags(variation)).to.be.false;
+            }
+        });
+
+        it('preserves legacy fieldTags-based variation eligibility', () => {
+            expect(hasGroupedVariationTags({ fieldTags: [{ id: 'legacy-tag' }] })).to.be.true;
+        });
+
+        it('does not discover unhydrated variation paths without opting in', async () => {
+            const getByPath = sandbox.stub();
+            const variations = await loadGroupedVariations({ ...card, references: [] }, { getByPath });
+            expect(variations).to.deep.equal([]);
+            expect(getByPath.called).to.be.false;
+        });
+
+        for (const [source, data] of Object.entries(tagSources)) {
+            const variation = { path: variationPath, fieldTags: [], ...data };
+
+            for (const includePersonalizationVariations of [false, true]) {
+                it(`loadGroupedVariations opts ${includePersonalizationVariations ? 'in to' : 'out of'} ${source} tags`, async () => {
+                    const getByPath = sandbox.stub().resolves(variation);
+                    const result = await loadGroupedVariations(card, { getByPath, includePersonalizationVariations });
+                    expect(result.map(({ path }) => path)).to.deep.equal(
+                        includePersonalizationVariations ? [variationPath] : [],
+                    );
+                });
+            }
+
+            it(`fetchVariationDataByPath preserves its legacy eligibility for ${source} tags`, async () => {
+                const getByPath = sandbox.stub().resolves(variation);
+                const result = await fetchVariationDataByPath(variationPath, { getByPath });
+                expect(result).to.be.null;
+            });
+
+            it(`loadCardVariationsByPath preserves its legacy eligibility for ${source} tags`, async () => {
+                const getByPath = sandbox.stub().resolves(variation);
+                const result = await loadCardVariationsByPath([variationPath], { getByPath });
+                expect(result.size).to.equal(0);
+            });
+        }
+    });
+
     it('fetchVariationDataByPath resolves and enriches grouped variations', async () => {
         const getDisplayName = sandbox.stub().returns('Variation Name');
         const getOfferData = sandbox.stub().resolves({ offerId: 'test-offer-id' });
@@ -305,6 +412,93 @@ describe('common/utils/item-loading', () => {
         expect(cards[0].offerData).to.deep.equal({ offerId: 'cached-offer' });
         expect(cards[0].groupedVariations).to.have.lengthOf(1);
         expect(cards[0].groupedVariations[0].path).to.equal(groupedVariationPath);
+    });
+
+    for (const includePersonalizationVariations of [false, true]) {
+        it(`enrichCards limits grouped variation requests to ${includePersonalizationVariations ? 15 : 25} concurrently`, async () => {
+            const cards = Array.from({ length: 5 }, (_, index) => {
+                const path = `/content/dam/mas/acom/en_US/cards/card${index}`;
+                const paths = Array.from({ length: 5 }, (_, variation) => `${path}/pzn/v${variation}`);
+                return {
+                    path,
+                    fields: [{ name: 'variations', values: paths }],
+                    references: paths.map((variationPath) => ({ path: variationPath })),
+                };
+            });
+            let activeCount = 0;
+            let maxActiveCount = 0;
+            const getByPath = sandbox.stub().callsFake(async (path) => {
+                activeCount += 1;
+                maxActiveCount = Math.max(maxActiveCount, activeCount);
+                await Promise.resolve();
+                activeCount -= 1;
+                return { path, fieldTags: [{ id: 'tag-1' }], fields: [] };
+            });
+
+            const enriched = await enrichCards(cards, { getByPath, includePersonalizationVariations });
+
+            expect(maxActiveCount).to.equal(includePersonalizationVariations ? 15 : 25);
+            expect(getByPath.callCount).to.equal(25);
+            expect(enriched.map((card) => card.groupedVariations.map(({ path }) => path))).to.deep.equal(
+                cards.map((card) => card.fields[0].values),
+            );
+        });
+    }
+
+    it('waits for offer data before returning enriched personalization variations', async () => {
+        const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
+        const card = {
+            path: '/content/dam/mas/sandbox/en_US/robert',
+            fields: [
+                { name: 'osi', values: ['parent-osi'] },
+                { name: 'variations', values: [variationPath] },
+            ],
+        };
+        let resolveOffer;
+        const offerPromise = new Promise((resolve) => {
+            resolveOffer = resolve;
+        });
+        const getOfferData = sandbox.stub().returns(offerPromise);
+        const getByPath = sandbox.stub().resolves({
+            path: variationPath,
+            fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+        });
+        const pending = enrichCards([card], {
+            getByPath,
+            getOfferData,
+            includePersonalizationVariations: true,
+        });
+
+        try {
+            await waitUntil(() => getOfferData.called);
+            expect(getByPath.called, 'Grouped metadata should wait for parent enrichment').to.be.false;
+        } finally {
+            resolveOffer({ offerId: 'parent-offer' });
+            const cards = await pending;
+            expect(cards[0].offerData.offerId).to.equal('parent-offer');
+            expect(cards[0].groupedVariations[0].offerData.offerId).to.equal('parent-offer');
+        }
+        expect(getOfferData.secondCall.args[1].fallbackWcsOsi).to.equal('parent-osi');
+    });
+
+    it('does not return partial cards from an aborted grouped variation load', async () => {
+        const controller = new AbortController();
+        const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
+        const card = {
+            path: '/content/dam/mas/sandbox/en_US/robert',
+            fields: [{ name: 'variations', values: [variationPath] }],
+        };
+
+        const result = await enrichCards([card], {
+            getByPath: async () => {
+                controller.abort();
+                return { path: variationPath, fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] };
+            },
+            signal: controller.signal,
+            includePersonalizationVariations: true,
+        });
+
+        expect(result).to.deep.equal([]);
     });
 
     it('enrichCards returns an empty array when the signal is already aborted after loading offer data', async () => {

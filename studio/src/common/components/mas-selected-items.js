@@ -7,14 +7,12 @@ import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
 import { getItemTypeLabel } from '../utils/render-utils.js';
 import { fetchUnresolvedVariations } from '../utils/items-loader.js';
 import { noItemsSelectedIcon } from '../../icons.js';
-import { Fragment } from '../../aem/fragment.js';
 
 class MasSelectedItems extends LitElement {
     static styles = styles;
     static properties = {
         getDisplayName: { type: Function },
         loading: { type: Boolean },
-        hideGroupedVariations: { type: Boolean },
     };
 
     #lastFetchedSelectedCardsKey = null;
@@ -26,7 +24,6 @@ class MasSelectedItems extends LitElement {
         super();
         this.getDisplayName = (fragmentData) => fragmentData?.path ?? '';
         this.loading = false;
-        this.hideGroupedVariations = false;
     }
 
     connectedCallback() {
@@ -90,10 +87,7 @@ class MasSelectedItems extends LitElement {
 
     get selectedItems() {
         const store = this.itemsSelection.value;
-        const selectedCardPaths = this.hideGroupedVariations
-            ? store.selectedCards.value?.filter((path) => !Fragment.isGroupedVariationPath(path))
-            : store.selectedCards.value;
-        const cards = selectedCardPaths
+        const cards = store.selectedCards.value
             ?.map((path) => store.cardsByPaths.value?.get(path) ?? store.groupedVariationsData.value?.get(path))
             .filter(Boolean);
         const collections = store.selectedCollections.value

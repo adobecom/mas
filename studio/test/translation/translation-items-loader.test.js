@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -87,6 +88,57 @@ describe('translation-items-loader', () => {
         });
     });
 
+    describe('personalization tags without fieldTags', () => {
+        const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
+        const variationPath = `${cardPath}/pzn/edu`;
+        const tagSources = {
+            pznTags: { fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }] },
+            metadata: { fields: [], tags: [{ id: 'mas:pzn/edu' }] },
+        };
+
+        for (const [source, data] of Object.entries(tagSources)) {
+            const repo = () => ({
+                aem: { getFragmentByPath: sandbox.stub().resolves({ path: variationPath, fieldTags: [], ...data }) },
+            });
+
+            for (const name of [
+                'promotions',
+                'translationProjects',
+                'compareChart',
+                'collectionCards',
+                'bulkPublishProjects',
+            ]) {
+                it(`fetchVariationByPath limits ${source} eligibility to Promotions in ${name}`, async () => {
+                    const store = Store[name];
+                    const groupedVariations = store.groupedVariationsByParent.get();
+                    try {
+                        await fetchVariationByPath(variationPath, repo(), {
+                            getDisplayName: mockGetDisplayName,
+                            store,
+                        });
+                        expect(store.groupedVariationsData.get().has(variationPath)).to.equal(name === 'promotions');
+                    } finally {
+                        setCardVariationsByPaths(groupedVariations, store);
+                    }
+                });
+
+                it(`loadCardVariations limits ${source} eligibility to Promotions in ${name}`, async () => {
+                    const store = Store[name];
+                    const groupedVariations = store.groupedVariationsByParent.get();
+                    try {
+                        await loadCardVariations(cardPath, [variationPath], repo(), {
+                            getDisplayName: mockGetDisplayName,
+                            store,
+                        });
+                        expect(store.groupedVariationsData.get().has(variationPath)).to.equal(name === 'promotions');
+                    } finally {
+                        setCardVariationsByPaths(groupedVariations, store);
+                    }
+                });
+            }
+        }
+    });
+
     describe('loadAllPlaceholders', () => {
         it('should return no-op subscription when allPlaceholders already has data', () => {
             Store.translationProjects.allPlaceholders.set([{ path: '/p1', key: 'k1', value: 'v1' }]);
@@ -119,6 +171,233 @@ describe('translation-items-loader', () => {
     });
 
     describe('loadAllFragments', () => {
+        for (const name of ['promotions', 'translationProjects', 'compareChart', 'collectionCards', 'bulkPublishProjects']) {
+            it(`restarts cancelled WCS loading without a partial cache in ${name}`, async () => {
+                const store = Store[name];
+                const service = document.querySelector('mas-commerce-service');
+                let resolveOffer;
+                service.resolveOfferSelectors.returns([
+                    new Promise((resolve) => {
+                        resolveOffer = resolve;
+                    }),
+                ]);
+                Store.fragments.list.data.set([
+                    {
+                        value: new Fragment({
+                            path: '/content/dam/mas/sandbox/en_US/card',
+                            model: { path: CARD_MODEL_PATH },
+                            fields: [{ name: 'osi', values: ['parent-osi'] }],
+                        }),
+                    },
+                ]);
+                const state = { abortController: new AbortController() };
+                let subscription = loadAllFragments(TABLE_TYPE.CARDS, null, state, {
+                    getDisplayName: mockGetDisplayName,
+                    store,
+                });
+
+                try {
+                    await waitUntil(() => service.resolveOfferSelectors.called);
+                    subscription.unsubscribe();
+                    state.abortController.abort();
+                    resolveOffer([{ offerId: 'cancelled-offer' }]);
+                    await waitUntil(() => !state.isProcessingCards);
+                    expect(store.allCards.get()).to.deep.equal([]);
+                    service.resolveOfferSelectors.returns([Promise.resolve([{ offerId: 'reloaded-offer' }])]);
+                    const nextState = { abortController: new AbortController() };
+                    subscription = loadAllFragments(TABLE_TYPE.CARDS, null, nextState, {
+                        getDisplayName: mockGetDisplayName,
+                        store,
+                    });
+                    await waitUntil(() => !nextState.isProcessingCards);
+                    expect(store.allCards.get()[0].offerData.offerId).to.equal('reloaded-offer');
+                } finally {
+                    resolveOffer([]);
+                    await waitUntil(() => !state.isProcessingCards);
+                    subscription.unsubscribe();
+                    store.allCards.set([]);
+                    store.cardsByPaths.set(new Map());
+                    store.displayCards.set([]);
+                    setCardVariationsByPaths(new Map(), store);
+                    store.offerDataCache.clear();
+                }
+            });
+
+            it(`limits selected-card path discovery without hydrated references to Promotions in ${name}`, async () => {
+                const cardPath = '/content/dam/mas/sandbox/en_US/parent';
+                const variationPath = `${cardPath}/pzn/edu`;
+                const getFragmentByPath = sandbox.stub();
+                getFragmentByPath.withArgs(cardPath).resolves({
+                    path: cardPath,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                    references: [],
+                });
+                getFragmentByPath.withArgs(variationPath).resolves({
+                    path: variationPath,
+                    fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                });
+                const onItems = sandbox.spy();
+                await loadSelectedFragments(
+                    [cardPath],
+                    TABLE_TYPE.CARDS,
+                    { aem: { getFragmentByPath } },
+                    {
+                        onItems,
+                        getDisplayName: mockGetDisplayName,
+                        store: Store[name],
+                    },
+                );
+                expect(onItems.calledOnce).to.be.true;
+                expect(onItems.firstCall.args[0][0].groupedVariations.map(({ path }) => path)).to.deep.equal(
+                    name === 'promotions' ? [variationPath] : [],
+                );
+                expect(getFragmentByPath.calledWith(variationPath)).to.equal(name === 'promotions');
+            });
+        }
+
+        it('publishes an unchanged empty snapshot only once', async () => {
+            const allCardsSet = sandbox.spy(Store.translationProjects.allCards, 'set');
+            const state = {};
+            const subscription = loadAllFragments(TABLE_TYPE.CARDS, null, state, {
+                getDisplayName: mockGetDisplayName,
+                store: Store.translationProjects,
+            });
+
+            try {
+                await waitUntil(() => !state.isProcessingCards);
+                expect(allCardsSet.calledOnce).to.be.true;
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+
+        it('does not publish variation maps for batches without grouped variations', async () => {
+            const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+            const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+            const state = {};
+            const subscription = loadAllFragments(TABLE_TYPE.CARDS, null, state, {
+                getDisplayName: mockGetDisplayName,
+                store: Store.translationProjects,
+            });
+
+            try {
+                await waitUntil(() => !state.isProcessingCards);
+                Store.fragments.list.data.set([
+                    { value: new Fragment({ path: '/card/without-variations', model: { path: CARD_MODEL_PATH } }) },
+                ]);
+                await waitUntil(() => !state.isProcessingCards);
+
+                expect(parentSet.called).to.be.false;
+                expect(dataSet.called).to.be.false;
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+
+        it('publishes updated variation data even when its path stays the same', async () => {
+            const cardPath = '/content/dam/mas/acom/en_US/cards/card1';
+            const variationPath = `${cardPath}/pzn/v1`;
+            const card = new Fragment({
+                path: cardPath,
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+            });
+            const getFragmentByPath = sandbox.stub().resolves({
+                path: variationPath,
+                title: 'Original',
+                fieldTags: [{ id: 't1' }],
+                fields: [],
+            });
+            const state = {};
+            const subscription = loadAllFragments(TABLE_TYPE.CARDS, { aem: { getFragmentByPath } }, state, {
+                getDisplayName: mockGetDisplayName,
+                store: Store.translationProjects,
+            });
+
+            try {
+                await waitUntil(() => !state.isProcessingCards);
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => !state.isProcessingCards);
+                const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+                const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+                getFragmentByPath.resolves({
+                    path: variationPath,
+                    title: 'Updated',
+                    fieldTags: [{ id: 't1' }],
+                    fields: [],
+                });
+                Store.translationProjects.allCards.set([]);
+
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => !state.isProcessingCards);
+
+                expect(parentSet.calledOnce).to.be.true;
+                expect(dataSet.calledOnce).to.be.true;
+                expect(Store.translationProjects.groupedVariationsData.get().get(variationPath).title).to.equal('Updated');
+            } finally {
+                subscription.unsubscribe();
+            }
+        });
+
+        it('publishes Promotions EDU variations only after offer enrichment completes', async () => {
+            const variationPath = '/content/dam/mas/sandbox/en_US/PA-2511/pzn/edu';
+            const card = new Fragment({
+                path: '/content/dam/mas/sandbox/en_US/robert',
+                model: { path: CARD_MODEL_PATH },
+                fields: [
+                    { name: 'osi', values: ['parent-osi'] },
+                    { name: 'variations', values: [variationPath] },
+                ],
+                references: [],
+            });
+            let resolveOffer;
+            document.querySelector('mas-commerce-service').resolveOfferSelectors.returns([
+                new Promise((resolve) => {
+                    resolveOffer = resolve;
+                }),
+            ]);
+            const state = {};
+            const onReady = sandbox.spy();
+            Store.fragments.list.firstPageLoaded.set(false);
+            Store.fragments.list.data.set([{ value: card }]);
+            const subscription = loadAllFragments(
+                TABLE_TYPE.CARDS,
+                {
+                    aem: {
+                        getFragmentByPath: sandbox.stub().resolves({
+                            path: variationPath,
+                            fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+                        }),
+                    },
+                },
+                state,
+                { getDisplayName: mockGetDisplayName, store: Store.promotions, onReady },
+            );
+
+            try {
+                await waitUntil(() => document.querySelector('mas-commerce-service').resolveOfferSelectors.called);
+                expect(onReady.called).to.be.false;
+                expect(Store.promotions.allCards.get()).to.deep.equal([]);
+                resolveOffer([{ offerId: 'parent-offer' }]);
+                await waitUntil(() => onReady.called);
+                const variations = Store.promotions.allCards.get()[0].groupedVariations;
+                expect(variations.map(({ path }) => path)).to.deep.equal([variationPath]);
+                expect(Store.promotions.allCards.get()[0].offerData.offerId).to.equal('parent-offer');
+                expect(Store.promotions.groupedVariationsData.get().has(variationPath)).to.be.true;
+            } finally {
+                resolveOffer([{ offerId: 'parent-offer' }]);
+                await waitUntil(() => !state.isProcessingCards);
+                subscription.unsubscribe();
+                Store.fragments.list.firstPageLoaded.set(true);
+                Store.promotions.allCards.set([]);
+                Store.promotions.cardsByPaths.set(new Map());
+                Store.promotions.displayCards.set([]);
+                setCardVariationsByPaths(new Map(), Store.promotions);
+                Store.promotions.offerDataCache.clear();
+            }
+        });
+
         it('should return no-op subscription when allCards already has data', () => {
             Store.translationProjects.allCards.set([{ path: '/card1', title: 'Card 1' }]);
             const result = loadAllFragments(
@@ -219,17 +498,27 @@ describe('translation-items-loader', () => {
             });
 
             Store.fragments.list.data.set([{ value: mockCardFragment }]);
-            await new Promise((r) => setTimeout(r, 200));
+            await waitUntil(() => !state.isProcessingCards);
 
             const callCountAfterFirst = repo.aem.getFragmentByPath.callCount;
             expect(callCountAfterFirst).to.be.greaterThan(0);
+            const parentSet = sandbox.spy(Store.translationProjects.groupedVariationsByParent, 'set');
+            const dataSet = sandbox.spy(Store.translationProjects.groupedVariationsData, 'set');
+            const previousParents = Store.translationProjects.groupedVariationsByParent.get();
+            const previousData = Store.translationProjects.groupedVariationsData.get();
 
-            Store.fragments.list.data.set([{ value: mockCardFragment }]);
-            await new Promise((r) => setTimeout(r, 200));
+            try {
+                Store.fragments.list.data.set([{ value: mockCardFragment }]);
+                await waitUntil(() => !state.isProcessingCards);
 
-            expect(repo.aem.getFragmentByPath.callCount).to.equal(callCountAfterFirst);
-
-            result.unsubscribe();
+                expect(repo.aem.getFragmentByPath.callCount).to.equal(callCountAfterFirst);
+                expect(parentSet.called).to.be.false;
+                expect(dataSet.called).to.be.false;
+                expect(Store.translationProjects.groupedVariationsByParent.get()).to.equal(previousParents);
+                expect(Store.translationProjects.groupedVariationsData.get()).to.equal(previousData);
+            } finally {
+                result.unsubscribe();
+            }
         });
     });
 
@@ -600,7 +889,7 @@ describe('translation-items-loader', () => {
             expect(variation).to.have.property('offerData');
         });
 
-        it('should filter out variations without fieldTags', async () => {
+        it('should filter out variations without fieldTags or personalization tags', async () => {
             const cardPath = '/content/dam/mas/acom/en_US/cards/parent';
             const invalidPath = '/content/dam/mas/acom/en_US/cards/parent/pzn/invalid';
             const mockInvalid = {
@@ -1010,7 +1299,7 @@ describe('translation-items-loader', () => {
             expect(variation).to.not.exist;
         });
 
-        it('should not add to store when variation has no fieldTags', async () => {
+        it('should not add to store when variation has no fieldTags or personalization tags', async () => {
             const mockInvalidVariation = {
                 path: variationPath,
                 fieldTags: [],

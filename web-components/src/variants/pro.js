@@ -33,6 +33,11 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
+// Both forms `replace` can leave behind: the bare key (key missing) or the raw token (no dictionary).
+const UNRESOLVED_TOGGLE_LABELS = [
+    'see-whats-included',
+    '{{see-whats-included}}',
+];
 
 // A hidden CTA has no box, so only visible ones count as wrapped.
 const hasWrappedCtas = (card) =>
@@ -184,12 +189,14 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">; English
-        // fallback covers fragments authored before the label existed.
+        const authored = this.card
+            .querySelector('[slot="whats-included"] .whats-included-label')
+            ?.textContent.trim();
+        const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
-            this.card
-                .querySelector('[slot="whats-included"] .whats-included-label')
-                ?.textContent.trim() || "See what's included:"
+            authored ||
+            (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
+            ''
         );
     }
 
@@ -701,15 +708,26 @@ export class Pro extends VariantLayout {
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
         const label = this.licenseLabel(Number(current));
+        // The card title tells each card's dropdown apart. The title lives in
+        // light DOM, so a hidden copy in this shadow root is what gets referenced.
+        const product = this.card.title;
+        const labelledBy = product
+            ? 'license-select-product license-select-label'
+            : 'license-select-label';
         return html`
             <div class="license-select" ?data-open=${open}>
+                ${product
+                    ? html`<span id="license-select-product" hidden
+                          >${product}</span
+                      >`
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -733,7 +751,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}

@@ -825,6 +825,124 @@ describe('pro license-zone gating', () => {
     });
 });
 
+describe('pro license dropdown accessible name', () => {
+    let cards = [];
+    afterEach(() => {
+        cards.forEach((card) => card.remove());
+        cards = [];
+    });
+
+    const qs = (title) =>
+        `<div slot="quantity-select"><merch-quantity-select${title === null ? '' : ` title="${title}"`} min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>`;
+
+    async function render(heading, title = 'License|Licenses', props) {
+        const card = await renderCard(`${heading}${qs(title)}`, props);
+        cards.push(card);
+        return card;
+    }
+
+    // Unit tests can't compute accname, so a "name" here is the text of the
+    // referenced elements joined with a space, as aria-labelledby builds it.
+    function nameOf(card, selector) {
+        const el = card.shadowRoot.querySelector(selector);
+        return el
+            .getAttribute('aria-labelledby')
+            .split(' ')
+            .map((id) => card.shadowRoot.getElementById(id).textContent.trim())
+            .join(' ');
+    }
+    const triggerName = (card) => nameOf(card, '.license-select-trigger');
+    const listboxName = (card) => nameOf(card, '#license-popover');
+
+    it('names each card dropdown after its product', async () => {
+        const photoshop = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const illustrator = await render(
+            '<h3 slot="heading-xs">Illustrator</h3>',
+        );
+        expect(triggerName(photoshop)).to.equal('Photoshop License');
+        expect(listboxName(photoshop)).to.equal('Photoshop License');
+        expect(triggerName(illustrator)).to.equal('Illustrator License');
+        expect(listboxName(illustrator)).to.equal('Illustrator License');
+    });
+
+    it('keeps the product copy hidden and out of the value', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const product = card.shadowRoot.getElementById(
+            'license-select-product',
+        );
+        expect(product.hidden).to.be.true;
+        expect(getComputedStyle(product).display).to.equal('none');
+        const trigger = card.shadowRoot.querySelector(
+            '.license-select-trigger',
+        );
+        expect(trigger.contains(product)).to.be.false;
+        expect(trigger.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+            '1 License',
+        );
+    });
+
+    it('follows the visible singular and plural label', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        card.variantLayout.selectLicenseQty('5');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop Licenses');
+        card.variantLayout.selectLicenseQty('1');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop License');
+    });
+
+    it('uses the authored label as is, in any language', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            'ライセンス',
+        );
+        expect(triggerName(card)).to.equal('Photoshop ライセンス');
+    });
+
+    it('uses the published license label when none is authored', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            null,
+            {
+                placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+            },
+        );
+        expect(
+            card.querySelector('merch-quantity-select').hasAttribute('title'),
+        ).to.be.false;
+        expect(triggerName(card)).to.equal('Photoshop Lizenz');
+    });
+
+    it('names the dropdown after the product when no label exists', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+        expect(triggerName(card).trim()).to.equal('Photoshop');
+        expect(listboxName(card).trim()).to.equal('Photoshop');
+    });
+
+    for (const [what, heading] of [
+        ['missing', ''],
+        ['empty', '<h3 slot="heading-xs"></h3>'],
+        ['blank', '<h3 slot="heading-xs">   </h3>'],
+    ]) {
+        it(`falls back to the label alone when the title is ${what}`, async () => {
+            const card = await render(heading);
+            expect(
+                card.shadowRoot
+                    .querySelector('.license-select-trigger')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(
+                card.shadowRoot
+                    .querySelector('#license-popover')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(card.shadowRoot.getElementById('license-select-product')).to
+                .be.null;
+            expect(triggerName(card)).to.equal('License');
+        });
+    }
+});
+
 describe('pro whats-included toggle label', () => {
     let card;
     afterEach(() => card?.remove());
@@ -832,12 +950,44 @@ describe('pro whats-included toggle label', () => {
     const SECTION =
         '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
 
-    it('falls back to the English label when no label is authored', async () => {
+    it('renders an empty label when none is authored or localized', async () => {
         card = await renderCard(`<div slot="whats-included">${SECTION}</div>`);
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('uses the localized placeholder when no label is authored', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'Xem nội dung :' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('Xem nội dung :');
+    });
+
+    it('ignores the placeholder when the dictionary left it unresolved', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'see-whats-included' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('ignores the raw token when no dictionary was applied', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: {
+                whatsIncludedToggleLabel: '{{see-whats-included}}',
+            },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('uses the authored whats-included label in the toggle', async () => {

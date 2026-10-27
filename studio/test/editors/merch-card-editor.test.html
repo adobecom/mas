@@ -1868,6 +1868,30 @@
                         });
                     });
 
+                    describe('enable baselines toggle', () => {
+                        it('renders an unchecked Enable baselines switch in General info', async () => {
+                            const { editor } = await setupTestEnvironment({}, 'baselines-render');
+                            expect(editor.querySelector('sp-field-label[for="fragment-enable-baselines"]')).to.exist;
+                            const sw = editor.querySelector('sp-switch#fragment-enable-baselines');
+                            expect(sw.hasAttribute('checked')).to.be.false;
+                        });
+
+                        it('clicking the switch toggles enableBaselines', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment({}, 'baselines-click');
+                            fragmentStore.get().fields.push({ name: 'enableBaselines', type: 'boolean', values: [] });
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+                            const sw = editor.querySelector('sp-switch#fragment-enable-baselines');
+                            sw.click();
+                            await editor.updateComplete;
+                            expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([true]);
+                            expect(sw.hasAttribute('checked')).to.be.true;
+                            sw.click();
+                            await editor.updateComplete;
+                            expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([false]);
+                        });
+                    });
+
                     describe('validationStatus banner', () => {
                         it('renders a banner listing each validationStatus property and message', async () => {
                             const { editor, fragmentStore } = await setupTestEnvironment({}, 'validation-banner');

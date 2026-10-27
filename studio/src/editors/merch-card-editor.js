@@ -1633,6 +1633,14 @@ class MerchCardEditor extends LitElement {
                                   ></sp-switch>
                               </sp-field-group>
                           `}
+                    <sp-field-group id="fragment-enable-baselines-group">
+                        <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="fragment-enable-baselines"
+                            ?checked="${form.enableBaselines?.values[0]}"
+                            @click="${this.#handleEnableBaselines}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
@@ -2178,6 +2186,11 @@ class MerchCardEditor extends LitElement {
     #handleLocReady() {
         const value = !this.fragment.getField('locReady')?.values[0];
         this.fragmentStore.updateField('locReady', [value]);
+    }
+
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
     }
 
     #whatsIncludedRowIsEmpty(value) {

@@ -231,7 +231,7 @@ class MasPromotions extends LitElement {
     render() {
         const statusCounts = this.#statusCounts;
         return html`
-            <div class="promotions-container">
+            <div class="page-container list-page">
                 <div class="promotions-page-header">
                     <h1 class="promotions-page-title">Promotions</h1>
                     ${canManagePromotions()

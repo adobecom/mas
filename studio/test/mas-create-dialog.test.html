@@ -36,6 +36,7 @@
             import { runTests } from '@web/test-runner-mocha';
             import { expect } from '@esm-bundle/chai';
             import { createSandbox, stub } from 'sinon';
+            import { waitUntil } from '@open-wc/testing-helpers/pure';
 
             import Store from '../src/store.js';
             import Events from '../src/events.js';
@@ -44,7 +45,7 @@
             import { delay } from './utils.js';
             import '../libs/swc.js';
             import '../../src/mas-create-dialog.js';
-            import '../../src/mas-repository.js';
+            import { MasRepository } from '../../src/mas-repository.js';
             runTests(async () => {
                 describe('mas-create-dialog custom element', async () => {
                     let dialog;
@@ -63,6 +64,14 @@
                     after(() => {
                         repository.remove();
                         loadFoldersStub.restore();
+                    });
+
+                    before(() => {
+                        stub(MasRepository.prototype, 'loadFolders').resolves();
+                        const repository = document.createElement('mas-repository');
+                        repository.setAttribute('bucket', 'test');
+                        repository.setAttribute('base-url', '/test/mocks');
+                        document.querySelector('main').prepend(repository);
                     });
 
                     beforeEach(async () => {
@@ -135,10 +144,12 @@
                                     detail: { offerSelectorId: 'ABC123', offer: {} },
                                 }),
                             );
-                            await delay();
+                            await waitUntil(
+                                () => dialog.errors.offer === 'No PA code found for this offer',
+                                'offer lookup should finish',
+                            );
 
                             expect(dialog.productArrangementCode).to.equal('');
-                            expect(dialog.errors.offer).to.equal('No PA code found for this offer');
                             expect(toast.called).to.be.false;
                         });
 

@@ -64,7 +64,30 @@ describe('Promotion history', () => {
                 ...extra,
             }),
         );
-    const backup = async () => (await call('backup')).event;
+    const prepareSave = (extra = {}) => call('record', { phase: 'prepare', action: 'save', ...extra });
+    const legacyBackup = async (ids = [PROJECT, VARIATION]) => {
+        const event = {
+            id: '44444444-4444-4444-8444-444444444444',
+            requestId: 'request-one',
+            action: 'backup',
+            isBackup: true,
+            createdAt: new Date().toISOString(),
+            user: { ...profile },
+            projectId: PROJECT,
+            projectPath,
+            changes: [],
+            snapshot: {
+                fragments: ids.map((id) => {
+                    const fragment = fragments.get(id);
+                    const versionId = `version-${versions.size + 1}`;
+                    versions.set(`${id}:${versionId}`, structuredClone(fragment));
+                    return { id, path: fragment.path, versionId };
+                }),
+            },
+        };
+        stored.set(`promo-history.${PROJECT}.event.${event.id}`, JSON.stringify(event));
+        return event;
+    };
 
     beforeEach(() => {
         stored = new Map();
@@ -113,10 +136,6 @@ describe('Promotion history', () => {
                 const historical = versions.get(`${fragmentId}:${versionId}`);
                 return historical ? response(historical) : response({}, 404);
             }
-            if (parsed.pathname.endsWith('/search')) {
-                const root = JSON.parse(parsed.searchParams.get('query')).filter.path;
-                return response({ items: [...fragments.values()].filter((fragment) => fragment.path.startsWith(`${root}/`)) });
-            }
             if (parsed.pathname.endsWith('/tags')) {
                 const fragment = fragments.get(parsed.pathname.split('/').at(-2));
                 if (options.method === 'PUT') fragment.tags = JSON.parse(options.body).tags.map((id) => ({ id }));
@@ -152,7 +171,9 @@ describe('Promotion history', () => {
     });
 
     it('uses IMS verified identity instead of caller supplied identity', async () => {
-        const event = (await call('backup', { user: { id: 'forged' }, before: { title: 'forged' } })).event;
+        const { intentId } = await prepareSave({ user: { id: 'forged' }, before: { title: 'forged' } });
+        fragments.get(PROJECT).title = 'Updated';
+        const { event } = await call('record', { phase: 'complete', intentId });
         expect(event.user.id).to.equal('verified-user');
         const entry = event.snapshot.fragments[0];
         expect(versions.get(`${entry.id}:${entry.versionId}`).title).to.equal('Project');
@@ -160,31 +181,31 @@ describe('Promotion history', () => {
 
     it('rejects invalid IMS tokens before any AEM request or persistence', async () => {
         allowed = false;
-        await expectError(call('backup'), 401);
+        await expectError(prepareSave(), 401);
         expect(fetchStub.called).to.equal(false);
         expect(stored.size).to.equal(0);
     });
 
     it('rejects a missing IMS identity', async () => {
         profile = {};
-        await expectError(call('backup'), 401);
+        await expectError(prepareSave(), 401);
     });
 
     it('allows authorized project readers to list without restore roles', async () => {
-        await backup();
+        await legacyBackup();
         roles = [];
         expect((await call('list')).events).to.have.length(1);
     });
 
     it('rejects restore without a verified admin or promo power-user role', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         roles = ['GRP-ODIN-MAS-ACOM-CURATORS'];
         await expectError(call('restore', { eventId: event.id, expected: [] }), 403);
         expect(fetchStub.getCalls().some(({ args }) => args[1]?.method === 'PUT')).to.equal(false);
     });
 
     it('restores for an LDAP admin even when IMS organizations does not contain MAS groups', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fetchStub.withArgs(sinon.match((url) => url.includes('/ims/organizations/'))).resolves(response([]));
         fragments.get(VARIATION).fields[0].values = ['Changed'];
 
@@ -199,7 +220,7 @@ describe('Promotion history', () => {
     });
 
     it('does not use caller-supplied identity or IMS organization roles to bypass LDAP membership', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fetchStub.withArgs(sinon.match((url) => url.includes('/ims/organizations/'))).resolves(
             response([
                 {
@@ -262,41 +283,26 @@ describe('Promotion history', () => {
         expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/'))).to.equal(false);
     });
 
-    it('persists immutable backups with at least ninety days retention and request idempotency', async () => {
-        const first = await backup();
-        const second = await backup();
-        expect(second.id).to.equal(first.id);
-        expect(state.put.callCount).to.equal(1);
-        expect(state.put.firstCall.args[2].ttl).to.be.at.least(90 * 86400);
-        expect(first.isBackup).to.equal(true);
-        expect(versions.size).to.equal(2);
-    });
+    it('rejects the removed manual backup operation without AEM writes or persistence', async () => {
+        await expectError(call('backup'), 400);
 
-    it('stores only AEM version manifests instead of fragment content in backups', async () => {
-        const event = await backup();
-        const persisted = JSON.parse(state.put.firstCall.args[1]);
-        expect(persisted.snapshot.fragments).to.deep.equal([
-            { id: PROJECT, path: projectPath, versionId: 'version-1' },
-            { id: VARIATION, path: variationPath, versionId: 'version-2' },
-        ]);
-        expect(persisted.snapshot).to.deep.equal(event.snapshot);
-        expect(state.put.firstCall.args[1]).not.to.include('"fields"');
-        expect(state.put.firstCall.args[1]).not.to.include('Unrelated');
-    });
-
-    it('does not persist a backup when AEM version creation fails', async () => {
-        fetchStub
-            .withArgs(
-                sinon.match((url) => url.endsWith(`/${VARIATION}/versions`)),
-                sinon.match({ method: 'POST' }),
-            )
-            .resolves(response({}, 503));
-        await expectError(call('backup'), 503);
+        expect(fetchStub.getCalls().some(({ args }) => ['POST', 'PUT', 'DELETE'].includes(args[1]?.method))).to.equal(false);
         expect(state.put.called).to.equal(false);
     });
 
+    it('stores only native version references in the completed save manifest', async () => {
+        const { intentId } = await prepareSave();
+        fragments.get(PROJECT).title = 'Updated';
+        const { event } = await call('record', { phase: 'complete', intentId });
+        const persisted = JSON.parse(state.put.lastCall.args[1]);
+        expect(persisted.snapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-1' }]);
+        expect(persisted.snapshot).to.deep.equal(event.snapshot);
+        expect(state.put.lastCall.args[1]).not.to.include('"fields"');
+        expect(state.put.lastCall.args[2].ttl).to.be.at.least(90 * 86400);
+    });
+
     for (const method of ['GET', 'POST']) {
-        it(`logs safe request context when an AEM version ${method} fails during backup`, async () => {
+        it(`logs safe request context when an AEM version ${method} fails during save preparation`, async () => {
             const resource = `/adobe/sites/cf/fragments/${PROJECT}/versions${method === 'GET' ? '/version-1' : ''}`;
             fetchStub
                 .withArgs(
@@ -305,12 +311,13 @@ describe('Promotion history', () => {
                 )
                 .resolves(response({ detail: 'private upstream response' }, 404, null, { 'x-request-id': 'aem-request' }));
 
-            await expectError(call('backup'), 404);
+            await expectError(prepareSave(), 404);
 
             expect(logger.error.callCount).to.equal(method === 'GET' ? 4 : 1);
             expect(JSON.parse(logger.error.firstCall.args[0])).to.deep.equal({
                 event: 'promo-history-aem-request-failed',
-                operation: 'backup',
+                operation: 'record',
+                phase: 'prepare',
                 projectId: PROJECT,
                 requestId: 'request-one',
                 method,
@@ -323,14 +330,14 @@ describe('Promotion history', () => {
         });
     }
 
-    it('creates a backup when a newly created AEM version becomes readable after transient 404s', async () => {
+    it('prepares a save when its new AEM version becomes readable after transient 404s', async () => {
         const reads = fetchStub.withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`)));
         reads.onFirstCall().resolves(response({}, 404));
         reads.onSecondCall().resolves(response({}, 404));
 
-        const result = await call('backup');
+        const result = await prepareSave();
 
-        expect(result.event.isBackup).to.equal(true);
+        expect(result.intentId).to.be.a('string');
         expect(reads.callCount).to.equal(3);
         expect(delay.args).to.deep.equal([[250], [500]]);
         expect(
@@ -341,12 +348,12 @@ describe('Promotion history', () => {
         ).to.equal(1);
     });
 
-    it('does not advertise a backup if its new version is still missing after bounded retries', async () => {
+    it('does not prepare a save if its new version is still missing after bounded retries', async () => {
         const reads = fetchStub
             .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`)))
             .resolves(response({}, 404));
 
-        await expectError(call('backup'), 404);
+        await expectError(prepareSave(), 404);
 
         expect(reads.callCount).to.equal(4);
         expect(delay.args).to.deep.equal([[250], [500], [1000]]);
@@ -360,7 +367,7 @@ describe('Promotion history', () => {
                 .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`)))
                 .resolves(response({}, status));
 
-            await expectError(call('backup'), status);
+            await expectError(prepareSave(), status);
 
             expect(reads.calledOnce).to.equal(true);
             expect(delay.called).to.equal(false);
@@ -375,20 +382,20 @@ describe('Promotion history', () => {
                 sinon.match({ method: 'POST' }),
             )
             .resolves(response({}, 201));
-        await expectError(call('backup'), 502);
+        await expectError(prepareSave(), 502);
         expect(state.put.called).to.equal(false);
     });
 
-    it('refuses a backup when the native version does not match the observed content', async () => {
+    it('refuses save preparation when the native version does not match the observed content', async () => {
         fetchStub
             .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`)))
             .resolves(response({ ...makeProject(), title: 'Concurrent edit' }));
-        await expectError(call('backup'), 409);
+        await expectError(prepareSave(), 409);
         expect(state.put.called).to.equal(false);
     });
 
     it('does not restore when a retained AEM version is missing', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         versions.clear();
         await expectError(
             call('restore', {
@@ -403,7 +410,7 @@ describe('Promotion history', () => {
     });
 
     it('keeps history listable when AEM version content is no longer available', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         versions.clear();
         fetchStub.resetHistory();
         expect((await call('list')).events[0].id).to.equal(event.id);
@@ -414,7 +421,7 @@ describe('Promotion history', () => {
         const otherId = '33333333-3333-4333-8333-333333333333';
         const other = { ...makeVariation(), id: otherId, path: `${variationPath}-other` };
         fragments.set(otherId, other);
-        const event = await backup();
+        const event = await legacyBackup([PROJECT, VARIATION, otherId]);
         const entry = event.snapshot.fragments.find((fragment) => fragment.id === otherId);
         versions.delete(`${entry.id}:${entry.versionId}`);
         const { restored } = await call('restore', {
@@ -434,10 +441,11 @@ describe('Promotion history', () => {
             category: 'fragments',
         });
         expect(event.changes.find((change) => change.field === 'headline').before).to.deep.equal(['Old']);
-        expect(event).not.to.have.property('snapshot');
+        expect(event.restoreMode).to.equal('undo');
+        expect(event.snapshot.fragments).to.deep.equal([{ id: VARIATION, path: variationPath, versionId: 'version-1' }]);
         expect(event.projectPath).to.equal(projectPath);
         expect(event.environment.aem).to.equal('https://author.example.com');
-        expect(versions.size).to.equal(0);
+        expect(versions.size).to.equal(1);
         const intent = [...stored.values()].map((value) => JSON.parse(value)).find((value) => value.id === intentId);
         expect(intent.before.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
         expect(intent.before.fragments[0].fields[0].values).to.deep.equal(['Old']);
@@ -445,16 +453,135 @@ describe('Promotion history', () => {
         expect(state.put.lastCall.args[2].ttl).to.be.at.least(90 * 86400);
     });
 
-    it('audits a project save without traversing unrelated fragments or calling the version APIs', async () => {
+    it('versions only the saved project without traversing unrelated fragments', async () => {
         fragments.delete(VARIATION);
-        fetchStub.withArgs(sinon.match((url) => url.includes('/versions'))).resolves(response({}, 404));
         const { intentId } = await call('record', { phase: 'prepare', action: 'save', targetId: PROJECT });
         fragments.get(PROJECT).fields.push({ name: 'promoCode', values: ['NEWCODE'] });
 
         const { event } = await call('record', { phase: 'complete', intentId });
 
         expect(event.changes.find(({ field }) => field === 'promoCode').after).to.deep.equal(['NEWCODE']);
-        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/versions'))).to.equal(false);
+        expect(event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
+        expect(versions.size).to.equal(1);
+    });
+
+    it('blocks save preparation when the native before version cannot be created', async () => {
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match({ method: 'POST' }),
+            )
+            .resolves(response({}, 503));
+
+        await expectError(call('record', { phase: 'prepare', action: 'save', targetId: VARIATION }), 503);
+
+        expect(state.put.called).to.equal(false);
+    });
+
+    it('reuses the automatic version when save preparation is retried', async () => {
+        const first = await call('record', { phase: 'prepare', action: 'save', targetId: VARIATION });
+        const retry = await call('record', { phase: 'prepare', action: 'save', targetId: VARIATION });
+
+        expect(retry.intentId).to.equal(first.intentId);
+        expect(versions.size).to.equal(1);
+    });
+
+    describe('automatic content undo', () => {
+        let event;
+
+        beforeEach(async () => {
+            const { intentId } = await call('record', { phase: 'prepare', action: 'save', targetId: VARIATION });
+            fragments.get(VARIATION).fields[0].values = ['New'];
+            ({ event } = await call('record', { phase: 'complete', intentId }));
+        });
+
+        it('restores the native before value without a manual backup and preserves unrelated edits', async () => {
+            fragments.get(VARIATION).fields[1].values = ['Keep later edit'];
+            profile = { id: 'another-admin', email: 'verified@example.com' };
+
+            const result = await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            expect(result.restored).to.deep.equal([VARIATION]);
+            expect(fragments.get(VARIATION).fields.map(({ values }) => values[0])).to.deep.equal(['Old', 'Keep later edit']);
+            expect(result.event.changes[0]).to.include({ field: 'headline' });
+            expect(result.event.changes[0].before).to.deep.equal(['New']);
+            expect(result.event.changes[0].after).to.deep.equal(['Old']);
+            expect(result.event.restoreMode).to.equal('undo');
+            expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+        });
+
+        it('refuses to overwrite a newer value even with a current ETag', async () => {
+            fragments.get(VARIATION).fields[0].values = ['Another user saved this'];
+            fetchStub.resetHistory();
+
+            await expectError(
+                call('restore', {
+                    eventId: event.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                }),
+                409,
+            );
+
+            expect(fetchStub.getCalls().some(({ args }) => ['PUT', 'POST'].includes(args[1]?.method))).to.equal(false);
+        });
+
+        it('does not allow undoing fields outside the selected event', async () => {
+            await expectError(
+                call('restore', {
+                    eventId: event.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['body'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                }),
+                400,
+            );
+        });
+
+        it('limits implicit undo to the fields changed by the event', async () => {
+            fragments.get(VARIATION).fields[1].values = ['Keep later edit'];
+
+            await call('restore', {
+                eventId: event.id,
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            expect(fragments.get(VARIATION).fields.map(({ values }) => values[0])).to.deep.equal(['Old', 'Keep later edit']);
+        });
+
+        it('can undo a restoration using its own native before version', async () => {
+            const first = await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            await call('restore', {
+                requestId: 'undo-restore',
+                eventId: first.event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['New']);
+        });
+
+        it('keeps audit listable but refuses undo when the native before version is missing', async () => {
+            versions.clear();
+
+            expect((await call('list')).events[0].id).to.equal(event.id);
+            await expectError(
+                call('restore', {
+                    eventId: event.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                }),
+                404,
+            );
+        });
     });
 
     for (const action of ['create', 'duplicate']) {
@@ -494,6 +621,7 @@ describe('Promotion history', () => {
         const { event } = await call('record', { phase: 'complete', intentId });
 
         expect(event.changes[0]).to.include({ fragmentId: VARIATION, path: shared.path });
+        expect(event).not.to.have.property('snapshot');
         expect(versions.size).to.equal(0);
     });
 
@@ -517,19 +645,19 @@ describe('Promotion history', () => {
         expect(versions.size).to.equal(0);
     });
 
-    it('rejects a backup if project content changes while its native versions are being captured', async () => {
+    it('rejects save preparation if the fragment changes while its native version is being captured', async () => {
         fetchStub
             .withArgs(sinon.match((url) => url.endsWith(`/${PROJECT}`)))
             .onSecondCall()
             .resolves(response({ ...makeProject(), title: 'Concurrent edit' }));
 
-        await expectError(call('backup'), 409);
+        await expectError(prepareSave(), 409);
 
         expect(stored.size).to.equal(0);
     });
 
     it('filters user action fragment dates and text with stable pagination', async () => {
-        await backup();
+        await legacyBackup();
         const { intentId } = await call('record', { phase: 'prepare', action: 'save', targetId: VARIATION, requestId: 'two' });
         fragments.get(VARIATION).fields[0].values = ['Searchable'];
         await call('record', { phase: 'complete', intentId, requestId: 'two' });
@@ -550,7 +678,7 @@ describe('Promotion history', () => {
     });
 
     it('preflights all ETags and does no writes on conflict', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         await expectError(
             call('restore', {
                 eventId: event.id,
@@ -565,7 +693,7 @@ describe('Promotion history', () => {
     });
 
     it('selectively restores historical values preserving unrelated current fields and never publishes', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(VARIATION).fields[0].values = ['Changed'];
         fragments.get(VARIATION).fields[1].values = ['Keep'];
         const result = await call('restore', {
@@ -587,7 +715,7 @@ describe('Promotion history', () => {
     });
 
     it('rejects missing historical fragments before any write and never recreates them', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.delete(VARIATION);
         fetchStub.resetHistory();
         await expectError(
@@ -604,7 +732,7 @@ describe('Promotion history', () => {
     });
 
     it('rejects empty selections and missing expected ETags', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         await expectError(call('restore', { eventId: event.id, selections: [], expected: [] }), 400);
         await expectError(call('restore', { eventId: event.id, selections: [{ fragmentId: PROJECT }] }), 400);
     });
@@ -655,7 +783,7 @@ describe('Promotion history', () => {
     });
 
     it('permits promotion power users to restore through the server-side LDAP cache', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         roles = ['grp-odin-mas-promo-powerusers'];
         const result = await call('restore', {
             eventId: event.id,
@@ -666,7 +794,7 @@ describe('Promotion history', () => {
     });
 
     it('preflights missing historical references before all writes', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.delete(VARIATION);
         await expectError(
             call('restore', {
@@ -680,7 +808,7 @@ describe('Promotion history', () => {
     });
 
     it('reports partial restore writes and persists their actual outcome', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(PROJECT).title = 'New project title';
         fragments.get(VARIATION).fields[0].values = ['New headline'];
         fetchStub
@@ -705,12 +833,12 @@ describe('Promotion history', () => {
             },
         ]);
         expect(result.event.restored).to.deep.equal([PROJECT]);
-        expect(result.event).not.to.have.property('snapshot');
+        expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
         expect(result.event.changes.some((change) => change.fragmentId === VARIATION)).to.equal(false);
     });
 
     it('restores metadata while preserving unrelated metadata and field values', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(VARIATION).title = 'Changed';
         fragments.get(VARIATION).description = 'Keep description';
         await call('restore', {
@@ -728,18 +856,27 @@ describe('Promotion history', () => {
         shared.path = '/content/dam/mas/acom/en_US/shared-card';
         fragments.set(shared.id, shared);
         fragments.get(PROJECT).fields[0].values.push(shared.path);
-        const event = await backup();
-        expect(event.snapshot.references.map(({ id }) => id)).to.include(shared.id);
-        expect(event.snapshot.fragments.map(({ id }) => id)).not.to.include(shared.id);
+        const event = await legacyBackup();
+        shared.fields[0].values = ['Keep shared content'];
+
+        await call('restore', {
+            eventId: event.id,
+            expected: [
+                { fragmentId: PROJECT, etag: '"one"' },
+                { fragmentId: VARIATION, etag: '"one"' },
+            ],
+        });
+
+        expect(fragments.get(shared.id).fields[0].values).to.deep.equal(['Keep shared content']);
     });
 
     it('rejects request ID reuse across different operations', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         await expectError(call('restore', { requestId: 'request-one', eventId: event.id, expected: [] }), 409);
     });
 
     it('checks the selected restore targets before retrying a request ID', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         const payload = {
             eventId: event.id,
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
@@ -756,7 +893,7 @@ describe('Promotion history', () => {
     });
 
     it('refuses events that exceed bounded storage before any restore write', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(VARIATION).fields[1].values = ['x'.repeat(800000)];
         await expectError(
             call('restore', {
@@ -772,18 +909,6 @@ describe('Promotion history', () => {
     it('does not record a successful publish when server state did not change', async () => {
         const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
         await expectError(call('record', { phase: 'complete', intentId }), 409);
-    });
-
-    it('finds attached promo copies using verified project tag and folder, not the project filename', async () => {
-        const shared = makeVariation();
-        shared.id = '33333333-3333-4333-8333-333333333333';
-        shared.path = '/content/dam/mas/acom/en_US/card';
-        shared.fields = [];
-        fragments.set(shared.id, shared);
-        fragments.get(PROJECT).fields[0].values = [shared.path];
-        const event = await backup();
-        expect(event.snapshot.fragments.map(({ id }) => id)).to.include(VARIATION);
-        expect(event.snapshot.fragments.map(({ id }) => id)).not.to.include(shared.id);
     });
 
     it('supports prepare after a new project is created with a historical empty baseline', async () => {
@@ -813,7 +938,7 @@ describe('Promotion history', () => {
 
     it('restores tags through the ETag-protected tags API, not ignored fragment PUT properties', async () => {
         fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(VARIATION).tags = [{ id: 'mas:new' }];
         const { restored } = await call('restore', {
             eventId: event.id,
@@ -826,20 +951,22 @@ describe('Promotion history', () => {
         expect(JSON.parse(write.args[1].body)).to.deep.equal({ tags: ['mas:old'] });
     });
 
-    it('audits a selective restore without creating another full project backup', async () => {
-        const event = await backup();
+    it('versions only changed restore targets so the restore can also be undone', async () => {
+        const event = await legacyBackup();
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
         const versionCount = versions.size;
         const result = await call('restore', {
             eventId: event.id,
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
             expected: [{ fragmentId: VARIATION, etag: '"one"' }],
         });
-        expect(result.event).not.to.have.property('snapshot');
-        expect(versions.size).to.equal(versionCount);
+        expect(result.event.restoreMode).to.equal('undo');
+        expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+        expect(versions.size).to.equal(versionCount + 1);
     });
 
     it('full fragment restore replaces the historical field set instead of retaining later additions', async () => {
-        const event = await backup();
+        const event = await legacyBackup();
         fragments.get(VARIATION).fields.push({ name: 'later', values: ['Added later'] });
         await call('restore', {
             eventId: event.id,
@@ -850,13 +977,19 @@ describe('Promotion history', () => {
     });
 
     it('deduplicates concurrent retries by request ID without mutable shared indexes', async () => {
-        const results = await Promise.all([call('backup'), call('backup')]);
+        const results = await Promise.all([
+            call('record', { action: 'create', targetId: PROJECT }),
+            call('record', { action: 'create', targetId: PROJECT }),
+        ]);
         expect(results[0].event.id).to.equal(results[1].event.id);
         expect((await call('list')).events).to.have.length(1);
     });
 
     it('retains independent simultaneous writes as separate events', async () => {
-        await Promise.all([call('backup', { requestId: 'one' }), call('backup', { requestId: 'two' })]);
+        await Promise.all([
+            call('record', { action: 'create', targetId: PROJECT, requestId: 'one' }),
+            call('record', { action: 'create', targetId: PROJECT, requestId: 'two' }),
+        ]);
         expect((await call('list')).events).to.have.length(2);
     });
 });

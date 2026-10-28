@@ -77,7 +77,6 @@ describe('Promotion version history', () => {
         client = {
             retryPendingPromotionAudits: sandbox.stub().resolves(),
             listPromotionHistory: sandbox.stub().resolves({ events: [version], cursor: null }),
-            createPromotionBackup: sandbox.stub().resolves({ event: { ...version, id: 'backup-1', isBackup: true } }),
             restorePromotionHistory: sandbox.stub().resolves({
                 event: { ...version, id: 'new-version' },
                 restored: [{ fragmentId: 'project-1', fields: ['@title'] }],
@@ -164,7 +163,7 @@ describe('Promotion version history', () => {
     it('keeps filters collapsed rather than above the history panels', async () => {
         const root = await mount();
         expect(root.querySelector('aside details.history-filters').open).to.be.false;
-        expect(root.querySelector('aside #create-backup')).to.exist;
+        expect(root.querySelector('aside #create-backup')).to.be.null;
     });
 
     it('shows the current marker and distinct current and selected card states', async () => {
@@ -499,6 +498,69 @@ describe('Promotion version history', () => {
         expect(getWithEtag.called).to.be.false;
     });
 
+    describe('automatic content undo', () => {
+        beforeEach(() => {
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...version,
+                        restoreMode: 'undo',
+                        changes: [version.changes[0]],
+                    },
+                ],
+                cursor: null,
+            });
+            getVersion.resolves({ ...fragment, title: 'Old' });
+            getWithEtag.resolves({ ...fragment, title: 'Wrong', etag: '"viewed-etag"' });
+        });
+
+        it('shows the original change and enables selective undo from its native before version', async () => {
+            const root = await mount();
+
+            expect(root.querySelector('[data-field="@title"] .before').textContent).to.include('Old');
+            expect(root.querySelector('[data-field="@title"] .after').textContent).to.include('Wrong');
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
+            expect(root.querySelector('[data-event-id="event-1"]').textContent).not.to.include('Read-only event');
+            expect(root.querySelector('#restore-full')).to.be.null;
+            element.requestRestore('full');
+            expect(element.confirmation).to.equal('');
+        });
+
+        it('uses the selected-change confirmation and only sends changed fields', async () => {
+            const root = await mount();
+            element.toggleRows(element.eligibleRows, true);
+            await element.updateComplete;
+            root.querySelector('#restore-selected').click();
+            await element.updateComplete;
+
+            expect(root.querySelector('#restore-confirmation').getAttribute('headline')).to.equal('Restore selected changes');
+            expect(root.querySelector('#restore-confirmation').textContent).to.include('before');
+            root.querySelector('#restore-confirmation').dispatchEvent(new Event('confirm'));
+            await waitUntil(() => client.restorePromotionHistory.called);
+
+            expect(client.restorePromotionHistory.firstCall.args[2]).to.deep.equal({
+                selections: [{ fragmentId: fragment.id, fields: ['@title'] }],
+                expected: [{ fragmentId: fragment.id, etag: '"viewed-etag"' }],
+            });
+        });
+
+        it('blocks fields with later edits instead of treating a fresh ETag as permission to overwrite', async () => {
+            getWithEtag.resolves({ ...fragment, title: 'Later edit', etag: '"fresh-etag"' });
+            const root = await mount();
+
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.true;
+            expect(root.querySelector('[data-field="@title"]').textContent).to.include('changed since this event');
+            expect(root.querySelector('#select-all').disabled).to.be.true;
+        });
+
+        it('does not block a changed field because an unrelated field was edited later', async () => {
+            getWithEtag.resolves({ ...fragment, title: 'Wrong', description: 'Later edit', etag: '"fresh-etag"' });
+            const root = await mount();
+
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
+        });
+    });
+
     it('identifies the action and target of an audit event with no field differences', async () => {
         client.listPromotionHistory.resolves({
             events: [
@@ -577,15 +639,6 @@ describe('Promotion version history', () => {
         });
     });
 
-    it('creates a backup and reports success', async () => {
-        const toast = sandbox.spy(Events.toast, 'emit');
-        const root = await mount();
-        root.querySelector('#create-backup').click();
-        await waitUntil(() => toast.called);
-        expect(client.createPromotionBackup.calledWith('project-1')).to.be.true;
-        expect(toast.firstCall.args[0].message).to.include('Backup created');
-    });
-
     it('shows a new draft version success summary after restoration', async () => {
         const toast = sandbox.spy(Events.toast, 'emit');
         const root = await mount();
@@ -648,17 +701,20 @@ describe('Promotion version history', () => {
     it('disables controls while a mutation is pending', async () => {
         const root = await mount();
         let complete;
-        client.createPromotionBackup.returns(
+        client.restorePromotionHistory.returns(
             new Promise((resolve) => {
                 complete = resolve;
             }),
         );
-        root.querySelector('#create-backup').click();
+        root.querySelector('#restore-full').click();
+        await element.updateComplete;
+        root.querySelector('#restore-confirmation').dispatchEvent(new Event('confirm'));
+        await waitUntil(() => client.restorePromotionHistory.called);
         await element.updateComplete;
         expect(root.querySelector('#restore-full').disabled).to.be.true;
         expect(root.querySelector('#history-back').disabled).to.be.true;
         expect(root.querySelector('[name="user"]').disabled).to.be.true;
-        complete({ event: version });
+        complete({ event: version, restored: ['project-1'] });
         await waitUntil(() => !element.busy);
     });
 

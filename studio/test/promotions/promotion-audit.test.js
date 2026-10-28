@@ -6,7 +6,6 @@ import {
     withPromotionAudit,
     retryPendingPromotionAudits,
     listPromotionHistory,
-    createPromotionBackup,
     restorePromotionHistory,
     recordPromotionHistory,
 } from '../../src/promotions/promotion-audit.js';
@@ -283,13 +282,6 @@ describe('promotion history client', () => {
         const options = fetchStub.firstCall.args[1];
         expect(JSON.parse(options.body)).to.include({ projectId: 'project', user: 'author', cursor: 'next' });
         expect(options.headers.Authorization).to.equal('Bearer test-token');
-    });
-
-    it('includes an idempotency key when creating backups', async () => {
-        await createPromotionBackup('project', 'Before launch');
-        const payload = JSON.parse(fetchStub.firstCall.args[1].body);
-        expect(payload.label).to.equal('Before launch');
-        expect(payload.requestId).to.be.a('string').and.not.empty;
     });
 
     it('passes the original expected revisions to restore', async () => {

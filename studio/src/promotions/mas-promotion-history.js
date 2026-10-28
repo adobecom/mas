@@ -243,18 +243,24 @@ export class MasPromotionHistory extends LitElement {
             if (!change.field) continue;
             const fragment = snapshot.get(change.fragmentId);
             const key = JSON.stringify([change.fragmentId, change.field]);
+            const conflicted =
+                event.restoreMode === 'undo' &&
+                current.has(change.fragmentId) &&
+                JSON.stringify(this.fieldValue(current.get(change.fragmentId), change.field)) !== JSON.stringify(change.after);
             rows.set(key, {
                 ...change,
                 key,
                 category: categoryLabels.get(change.category?.toLowerCase()) ?? 'Fragments',
                 restorable: Boolean(
                     fragment &&
+                        !conflicted &&
                         (change.field.startsWith('@')
                             ? Object.hasOwn(fragment, change.field.slice(1))
                             : fragment.fields.some((field) => field.name === change.field)),
                 ),
+                conflicted,
                 before: change.before,
-                after: fragment ? this.fieldValue(fragment, change.field) : change.after,
+                after: fragment && event.restoreMode !== 'undo' ? this.fieldValue(fragment, change.field) : change.after,
             });
         }
         for (const fragment of event.changes.length ? [] : snapshot.values()) {
@@ -365,13 +371,14 @@ export class MasPromotionHistory extends LitElement {
     }
 
     versionLabel(event) {
-        if (event.label) return event.label;
+        if (event.label && event.label !== event.createdAt) return event.label;
         if (event.version) return `Version ${event.version}`;
         return (
             {
                 create: 'Project created',
                 duplicate: 'Project duplicated',
-                restore: 'Restored version',
+                save: 'Saved changes',
+                restore: 'Restored changes',
                 publish: 'Published',
                 unpublish: 'Unpublished',
                 delete: 'Deleted',
@@ -422,6 +429,7 @@ export class MasPromotionHistory extends LitElement {
 
     requestRestore(mode) {
         if (!this.canRestore || (mode === 'full' && this.unavailable.length)) return;
+        if (mode === 'full' && this.selectedEvent.restoreMode === 'undo') return;
         if (mode === 'selected' && !this.selectedFields.size) return;
         this.confirmation = mode;
     }
@@ -429,6 +437,7 @@ export class MasPromotionHistory extends LitElement {
     async confirmRestore() {
         if (!this.canRestore || !this.confirmation) return;
         const full = this.confirmation === 'full';
+        if (full && this.selectedEvent.restoreMode === 'undo') return;
         if ((full && this.unavailable.length) || (!full && !this.selections.length)) return;
         const selections = this.selections;
         const targets = new Set(selections.map((selection) => selection.fragmentId));
@@ -453,7 +462,7 @@ export class MasPromotionHistory extends LitElement {
                     403: 'You do not have permission to restore this promotion. Check your MAS role and AEM permissions.',
                 }[status] ??
                 (status === 409 || status === 412
-                    ? 'The project changed since you viewed this version. Reload the version and review before restoring.'
+                    ? 'The selected fields changed since this event or since you viewed this version. Reload the version and review newer changes before restoring.'
                     : 'Could not restore this version. Reload the version and retry. Deleted fragments are not recreated.');
             return;
         } finally {
@@ -469,24 +478,6 @@ export class MasPromotionHistory extends LitElement {
         });
         this.dispatchEvent(new CustomEvent('history-restored', { bubbles: true, composed: true, detail: result }));
         this.currentEventId = result.event.id;
-        await this.loadHistory();
-    }
-
-    async createBackup() {
-        if (!canManagePromotions() || this.busy || !this.projectId) return;
-        const projectId = this.projectId;
-        this.operating = true;
-        this.operationError = '';
-        try {
-            await this.client.createPromotionBackup(projectId);
-        } catch {
-            if (projectId === this.projectId) this.operationError = 'Could not create a backup. Please retry.';
-            return;
-        } finally {
-            this.operating = false;
-        }
-        if (projectId !== this.projectId || !this.isConnected) return;
-        Events.toast.emit({ variant: 'positive', message: 'Backup created. No changes published.' });
         await this.loadHistory();
     }
 
@@ -648,9 +639,11 @@ export class MasPromotionHistory extends LitElement {
                     `,
                 )}
                 ${unavailable ? html`<small class="row-warning">Unavailable — cannot restore</small>` : nothing}
-                ${!row.restorable && this.selectedEvent.snapshot
-                    ? html`<small class="row-warning">Field is not present in this saved snapshot</small>`
-                    : nothing}
+                ${row.conflicted
+                    ? html`<small class="row-warning">This field has changed since this event. Review newer changes.</small>`
+                    : !row.restorable && !unavailable && this.selectedEvent.snapshot
+                      ? html`<small class="row-warning">Field is not present in this saved snapshot</small>`
+                      : nothing}
             </div>
         `;
     }
@@ -750,7 +743,7 @@ export class MasPromotionHistory extends LitElement {
                 </div>
             </div>
             ${!this.selectedEvent.snapshot
-                ? html`<p class="muted">Read-only event. Restore is available from a saved backup.</p>`
+                ? html`<p class="muted">Read-only event. No restorable AEM version was recorded for this operation.</p>`
                 : !canManagePromotions()
                   ? html`<p class="muted">Read-only access. Only promotion managers can restore.</p>`
                   : nothing}
@@ -765,13 +758,15 @@ export class MasPromotionHistory extends LitElement {
                   )}
             <footer class="details-footer">
                 <span class="muted">Restore saves a new draft. Nothing is published.</span>
-                <sp-action-button
-                    id="restore-full"
-                    quiet
-                    ?disabled=${!this.canRestore || this.unavailable.length > 0}
-                    @click=${() => this.requestRestore('full')}
-                    >Restore full project</sp-action-button
-                >
+                ${this.selectedEvent.restoreMode === 'undo'
+                    ? nothing
+                    : html`<sp-action-button
+                          id="restore-full"
+                          quiet
+                          ?disabled=${!this.canRestore || this.unavailable.length > 0}
+                          @click=${() => this.requestRestore('full')}
+                          >Restore full project</sp-action-button
+                      >`}
             </footer>
         `;
     }
@@ -784,7 +779,7 @@ export class MasPromotionHistory extends LitElement {
                 open
                 mode="modal"
                 underlay
-                headline="Restore version"
+                headline=${this.confirmation === 'full' ? 'Restore full project' : 'Restore selected changes'}
                 cancel-label="Cancel"
                 confirm-label="Restore"
                 @confirm=${this.confirmRestore}
@@ -799,7 +794,9 @@ export class MasPromotionHistory extends LitElement {
                     ${this.confirmation === 'full'
                         ? 'The complete saved project snapshot'
                         : `${this.selectedFields.size} selected field(s)`}
-                    will be restored to the current draft.
+                    ${this.selectedEvent.restoreMode === 'undo'
+                        ? 'will be returned to their values before this change in the current draft.'
+                        : 'will be restored to the current draft.'}
                 </p>
                 <p>
                     Nothing will be published. Deleted fragments will not be recreated. Unsaved changes in the main editor are
@@ -855,13 +852,6 @@ export class MasPromotionHistory extends LitElement {
                         : nothing}
                     ${this.filterTemplate}
                     <div class="sidebar-tools">
-                        <sp-action-button
-                            id="create-backup"
-                            quiet
-                            ?disabled=${this.busy || !canManagePromotions() || !this.projectId}
-                            @click=${this.createBackup}
-                            ><sp-icon-add slot="icon" size="s"></sp-icon-add>Create backup</sp-action-button
-                        >
                         <sp-action-button
                             id="history-back"
                             quiet

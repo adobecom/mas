@@ -29,10 +29,6 @@ export async function listPromotionHistory(projectId, filters = {}) {
     return callAction('list', { ...filters, projectId });
 }
 
-export async function createPromotionBackup(projectId, label = 'Manual backup') {
-    return callAction('backup', { projectId, label, requestId: crypto.randomUUID() });
-}
-
 export async function restorePromotionHistory(projectId, eventId, options) {
     return callAction('restore', { ...options, projectId, eventId, requestId: crypto.randomUUID() });
 }

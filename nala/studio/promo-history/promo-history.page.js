@@ -2,9 +2,7 @@ export default class PromoHistoryPage {
     constructor(page) {
         this.page = page;
         this.panel = page.locator('mas-promotion-history');
-        this.backupButton = this.panel.locator('#create-backup');
         this.cards = this.panel.locator('.history-card[data-event-id]');
-        this.restoreFullButton = this.panel.locator('#restore-full');
         this.restoreSelectedButton = this.panel.locator('#restore-selected');
         this.confirmation = this.panel.locator('#restore-confirmation');
         this.confirmRestore = this.confirmation.getByRole('button', { name: 'Restore', exact: true });

@@ -31,15 +31,6 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    promo-history-backup:
-                        function: src/promo-history/backup.js
-                        web: 'yes'
-                        runtime: nodejs:22
-                        inputs:
-                            odinEndpoint: $ODIN_ENDPOINT
-                        annotations:
-                            require-adobe-auth: false
-                            final: true
                     promo-history-restore:
                         function: src/promo-history/restore.js
                         web: 'yes'

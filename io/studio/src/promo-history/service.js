@@ -12,7 +12,7 @@ const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
-const ACTIONS = new Set(['create', 'save', 'delete', 'duplicate', 'publish', 'unpublish', 'restore', 'backup']);
+const ACTIONS = new Set(['create', 'save', 'delete', 'duplicate', 'publish', 'unpublish']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 function fail(statusCode, message) {
@@ -167,39 +167,6 @@ function ownVariation(project, fragment) {
     });
 }
 
-async function discoverVariations(context, project) {
-    const roots = new Set();
-    for (const path of references(project)) {
-        const match = /^\/content\/dam\/mas\/([\w-]+)\/([\w-]+)\//.exec(path);
-        if (!match) continue;
-        for (const name of promotionNames(project)) {
-            const root = `/content/dam/mas/${match[1]}/${match[2]}/promotions/${name}`;
-            pathValue(root);
-            roots.add(root);
-        }
-    }
-    const paths = [];
-    for (const root of roots) {
-        let cursor;
-        const cursors = new Set();
-        do {
-            const query = { filter: { path: root }, sort: [{ on: 'created', order: 'ASC' }] };
-            const params = new URLSearchParams({ query: JSON.stringify(query), limit: '50' });
-            if (cursor) params.set('cursor', cursor);
-            const response = await aem(context, `/search?${params}`);
-            const data = await response.json();
-            for (const fragment of data.items ?? []) {
-                if (ownVariation(project, fragment)) paths.push(pathValue(fragment.path));
-                if (paths.length > MAX_FRAGMENTS) fail(413, 'Project exceeds history snapshot limit');
-            }
-            cursor = data.cursor;
-            if (cursor && cursors.has(cursor)) fail(502, 'AEM returned a repeated search cursor');
-            cursors.add(cursor);
-        } while (cursor);
-    }
-    return paths;
-}
-
 function references(fragment) {
     return [
         ...new Set(
@@ -216,30 +183,6 @@ function references(fragment) {
             }),
         ),
     ];
-}
-
-async function snapshot(context, project, extra = []) {
-    const fragments = [project];
-    const visited = new Set([project.path]);
-    const queue = [...references(project), ...(await discoverVariations(context, project)), ...extra];
-    const referenceFragments = [];
-    while (queue.length) {
-        const path = queue.shift();
-        if (visited.has(path)) continue;
-        visited.add(path);
-        if (visited.size > MAX_FRAGMENTS) fail(413, 'Project exceeds history snapshot limit');
-        const fragment = await readPath(context, path);
-        if (ownVariation(project, fragment)) {
-            fragments.push(fragment);
-            queue.push(...references(fragment));
-        } else {
-            referenceFragments.push(fragment);
-            queue.push(...values(fragment, 'variations').filter((p) => ownVariation(project, { path: p })));
-        }
-    }
-    const result = { fragments, references: referenceFragments };
-    bounded(result);
-    return result;
 }
 
 async function readVersion(context, entry, retryDelays = []) {
@@ -293,8 +236,8 @@ async function versionSnapshot(context, current) {
     }
     const confirmed = { fragments: [] };
     for (const fragment of current.fragments) confirmed.fragments.push((await readFragment(context, fragment.id)).fragment);
-    if (diff(current, confirmed).length) fail(409, 'Project changed while creating its backup; reload and retry');
-    return { fragments, references: (current.references ?? []).map(({ id, path }) => ({ id, path })) };
+    if (diff(current, confirmed).length) fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+    return { fragments };
 }
 
 function auditSnapshot(fragment) {
@@ -507,9 +450,10 @@ async function record(context, params) {
         return writeEvent(context, intent.action, before, after, {
             intentId: intent.id,
             changes: changes.filter((change) => change.fragmentId === context.targetId),
+            ...(intent.snapshot ? { snapshot: intent.snapshot, restoreMode: 'undo' } : {}),
         });
     }
-    if (!ACTIONS.has(params.action) || ['restore', 'backup'].includes(params.action)) fail(400, 'Invalid audit action');
+    if (!ACTIONS.has(params.action)) fail(400, 'Invalid audit action');
     if (!params.phase) {
         if (!['create', 'duplicate'].includes(params.action)) fail(400, 'Prepare intent required');
         const target = await auditTarget(context, params);
@@ -534,6 +478,10 @@ async function record(context, params) {
     const target = await auditTarget(context, params);
     const current = auditSnapshot(target);
     const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
+    const manifest =
+        params.action === 'save' && target && (target.id === context.projectId || ownVariation(context.project, target))
+            ? await versionSnapshot(context, { fragments: [target] })
+            : null;
     const intent = {
         id: stableId(context, 'intent'),
         createdAt: new Date().toISOString(),
@@ -544,6 +492,7 @@ async function record(context, params) {
         targetId: target?.id ?? null,
         targetPath: params.targetPath ?? target?.path,
         before,
+        ...(manifest ? { snapshot: manifest } : {}),
         ...(params.action === 'delete'
             ? {
                   changes: diff(current, { fragments: [] }).filter(
@@ -691,10 +640,27 @@ async function restore(context, params, events) {
         if (selection.fields !== undefined && (!Array.isArray(selection.fields) || !selection.fields.length)) {
             fail(400, 'Invalid selected fields');
         }
+        const changes = source.changes.filter((change) => change.fragmentId === selection.fragmentId);
+        const fields = selection.fields ?? (source.restoreMode === 'undo' ? changes.map((change) => change.field) : undefined);
+        if (source.restoreMode === 'undo' && fields.some((field) => !changes.some((change) => change.field === field))) {
+            fail(400, 'Only fields changed by this event can be restored');
+        }
         const { fragment, etag } = await readFragment(context, historical.id);
         if (fragment.path !== historical.path) fail(409, 'Historical fragment moved');
         if (etag !== expected) fail(409, 'Fragment changed; reload before restoring');
-        const payload = restorePayload(fragment, historical, selection.fields);
+        if (source.restoreMode === 'undo') {
+            const currentValues = changeValues(fragment);
+            if (
+                changes.some(
+                    (change) =>
+                        fields.includes(change.field) &&
+                        JSON.stringify(currentValues.get(change.field) ?? null) !== JSON.stringify(change.after),
+                )
+            ) {
+                fail(409, 'Selected fields changed since this event; review the newer changes before restoring');
+            }
+        }
+        const payload = restorePayload(fragment, historical, fields);
         for (const path of references(payload)) await readPath(context, path);
         const tagsChanged = JSON.stringify(tagIds(payload.tags)) !== JSON.stringify(tagIds(fragment.tags ?? []));
         const tags = tagsChanged ? await readTags(context, fragment.id) : null;
@@ -706,7 +672,7 @@ async function restore(context, params, events) {
             payload,
             before: fragment,
             tags,
-            contentSelected: selection.fields === undefined || selection.fields.some((field) => field !== '@tags'),
+            contentSelected: fields === undefined || fields.some((field) => field !== '@tags'),
         });
     }
     const before = { fragments: plan.map((item) => item.before) };
@@ -716,6 +682,10 @@ async function restore(context, params, events) {
         changes: diff(before, { fragments: plan.map((item) => ({ ...item.before, ...item.payload })) }),
         reserved: ' '.repeat(20000),
     });
+    const changed = plan.filter(
+        (item) => diff({ fragments: [item.before] }, { fragments: [{ ...item.before, ...item.payload }] }).length,
+    );
+    const manifest = changed.length ? await versionSnapshot(context, { fragments: changed.map((item) => item.before) }) : null;
     await persist(
         context,
         'restore-intent',
@@ -754,16 +724,19 @@ async function restore(context, params, events) {
     }
     let result;
     try {
+        const changes = diff(before, { fragments: after });
+        const undoFragments = manifest?.fragments.filter((entry) => changes.some((change) => change.fragmentId === entry.id));
         result = await writeEvent(
             context,
             'restore',
             before,
             { fragments: after },
             {
-                changes: diff(before, { fragments: after }),
+                changes,
                 restored,
                 ...(failures.length ? { failures } : {}),
                 sourceEventId: source.id,
+                ...(undoFragments?.length ? { snapshot: { ...manifest, fragments: undoFragments }, restoreMode: 'undo' } : {}),
             },
         );
     } catch {
@@ -777,6 +750,7 @@ async function restore(context, params, events) {
 
 async function execute(operation, params) {
     if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
+    if (!['record', 'list', 'restore'].includes(operation)) fail(400, 'Unknown history operation');
     identifier(params.projectId);
     const identity = await authenticate(params);
     const state = await init();
@@ -826,14 +800,7 @@ async function execute(operation, params) {
     }
     if (operation === 'list') return list(events, params);
     if (operation === 'record') return record(context, params);
-    if (operation === 'backup') {
-        const label = params.label === undefined ? 'Manual backup' : text(params.label, 'backup label');
-        const current = await snapshot(context, context.project);
-        const manifest = await versionSnapshot(context, current);
-        return writeEvent(context, 'backup', current, current, { label, isBackup: true, snapshot: manifest });
-    }
-    if (operation === 'restore') return restore(context, params, events);
-    fail(400, 'Unknown history operation');
+    return restore(context, params, events);
 }
 
 module.exports = { execute };

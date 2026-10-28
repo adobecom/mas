@@ -1340,6 +1340,57 @@ describe('customize baselines', function () {
         expect(fields.features.value).to.deep.equal(['base', 'own']);
         expect(fields.backgrounds).to.deep.equal([]);
     });
+
+    describe('empty card fields', function () {
+        const processCard = (fields, baselineFields) =>
+            process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: { id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields, references: {}, referencesTree: [] },
+                baselines: { card: { fragmentBaseline: baseline('template', baselineFields) } },
+            });
+
+        it('inherits a baseline value when the card text field is an empty string', async function () {
+            const result = await processCard({ subtitle: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+        });
+
+        it('inherits a baseline value when the card rich text field has an empty value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html', value: '' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('inherits a baseline value when the card rich text field has no value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('clears a baseline value when the card stores the explicit empty sentinel', async function () {
+            const result = await processCard(
+                { subtitle: EXPLICIT_EMPTY_SENTINEL, callout: { mimeType: 'text/html', value: EXPLICIT_EMPTY_SENTINEL } },
+                { subtitle: 'Template subtitle', callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.subtitle).to.equal('');
+            expect(result.body.fields.callout.value).to.equal('');
+        });
+
+        it('keeps an empty card field that no baseline provides', async function () {
+            const result = await processCard({ subtitle: '', promoText: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.promoText).to.equal('');
+        });
+
+        it('keeps the card own value over the baseline value', async function () {
+            const result = await processCard({ subtitle: 'Own subtitle' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Own subtitle');
+        });
+    });
 });
 
 async function process(context) {

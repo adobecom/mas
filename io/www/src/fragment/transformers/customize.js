@@ -494,6 +494,20 @@ function withOfferIcon(offerBaseline, higherLayers) {
     return { ...offerBaseline, fields };
 }
 
+const isEmptyFieldValue = (value) => value === '' || value?.value === '';
+
+/**
+ * Odin delivers untouched text fields as `''` (rich text as `{ value: '' }`): such fields inherit from the baselines
+ * providing them, only the explicit_empty sentinel clears a baseline value.
+ */
+function withoutInheritedEmptyFields(fragment, baselines) {
+    const provided = new Set(baselines.flatMap(({ fields }) => Object.keys(fields)));
+    const fields = Object.fromEntries(
+        Object.entries(fragment.fields).filter(([name, value]) => !provided.has(name) || !isEmptyFieldValue(value)),
+    );
+    return { ...fragment, fields };
+}
+
 /**
  * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
  * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
@@ -507,7 +521,8 @@ function applyBaselines(fragment, { baselines }) {
         fragmentSegmentBaseline,
     ].filter((baseline) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
-    const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
+    const card = withoutInheritedEmptyFields(fragment, layers);
+    const merged = deepMerge(card, ...layers.map(prepareBaseline), card);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
     if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;

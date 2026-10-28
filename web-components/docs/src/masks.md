@@ -104,16 +104,22 @@ A `mask` attribute on a collection's `<aem-fragment>` applies to every card it c
     </merch-card-collection>
 </div>
 <script type="module">
-    document.getElementById('btnMask').addEventListener('click', () => {
-        document.querySelectorAll('aem-fragment').forEach(el => {
-            el.setAttribute('mask', 'nala-mask');
-            document.querySelector('mas-commerce-service').refreshFragments();
+    const buttons = [...document.querySelectorAll('#btnMask, #btnUnMask')];
+    async function setMask(mask) {
+        buttons.forEach((button) => {
+            button.disabled = true;
         });
-    });
-    document.getElementById('btnUnMask').addEventListener('click', () => {
-        document.querySelectorAll('aem-fragment').forEach(el => {
-            el.removeAttribute('mask');
-            document.querySelector('mas-commerce-service').refreshFragments();
+        const fragments = [...document.querySelectorAll('aem-fragment')];
+        fragments.forEach((fragment) => {
+            if (mask) fragment.setAttribute('mask', mask);
+            else fragment.removeAttribute('mask');
         });
-    });
+        await Promise.allSettled(fragments.map((fragment) => fragment.refresh()));
+        await Promise.allSettled([...document.querySelectorAll('merch-card')].map((card) => card.checkReady()));
+        buttons.forEach((button) => {
+            button.disabled = false;
+        });
+    }
+    document.getElementById('btnMask').addEventListener('click', () => setMask('nala-mask'));
+    document.getElementById('btnUnMask').addEventListener('click', () => setMask(null));
 </script>

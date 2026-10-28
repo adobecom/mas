@@ -228,7 +228,7 @@ class IconPickerField extends LitElement {
 
     renderIcon() {
         if (this.icon?.startsWith('sp-icon-')) {
-            return html`${renderSpIcon(this.icon, this.variant)}`;
+            return html`${renderSpIcon(this.icon)}`;
         }
         return html`<img
             src="${this.icon}"

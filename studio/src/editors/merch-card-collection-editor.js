@@ -896,7 +896,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (!iconPath) {
             return nothing;
         } else if (iconPath.startsWith('sp-icon-')) {
-            return html`${renderSpIcon(iconPath, VARIANT_NAMES.PLANS)}`;
+            return html`${renderSpIcon(iconPath)}`;
         } else {
             return html`<img src="${iconPath}" alt="${label} icon" class="item-icon" />`;
         }

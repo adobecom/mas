@@ -236,7 +236,7 @@ class IncludedField extends LitElement {
 
     renderIcon() {
         if (this.iconLibrary && this.icon?.startsWith('sp-icon-')) {
-            return html`${renderSpIcon(this.icon, this.variant)}`;
+            return html`${renderSpIcon(this.icon)}`;
         } else {
             return html`<img
                 src="${this.icon}"

@@ -308,6 +308,7 @@ describe('Icon picker field', () => {
         });
 
         expect(el.variant).to.equal('plans');
+        expect(el.shadowRoot.querySelector('sp-theme').getAttribute('system')).to.equal('spectrum-two');
     });
 
     it('should not dispatch delete-field when modal closes and alt contains only an icon-button', async () => {

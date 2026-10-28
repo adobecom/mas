@@ -36,8 +36,8 @@ const VARIANT_SPECTRUM = {
 
 export const getSpectrumVersion = (variant) => VARIANT_SPECTRUM[normalizeVariantName(variant)] || 'spectrum-two';
 
-export const renderSpIcon = (iconName, variant) => {
-    return html`<sp-theme color="light" scale="medium" system="${getSpectrumVersion(variant)}"
+export const renderSpIcon = (iconName) => {
+    return html`<sp-theme color="light" scale="medium" system="spectrum-two"
         >${unsafeHTML(`<${iconName}></${iconName}>`)}</sp-theme
     >`;
 };

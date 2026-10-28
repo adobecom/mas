@@ -201,7 +201,7 @@ describe('Included field', () => {
         expect(el.link).to.equal('');
     });
 
-    it('renders library icons in the spectrum system for the pro variant', async () => {
+    it('renders library icons in the spectrum-two system for the pro variant', async () => {
         const el = await fixture(
             html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="pro"></mas-included-field>`,
             { parentNode: spTheme() },
@@ -209,7 +209,7 @@ describe('Included field', () => {
 
         expect(el.variant).to.equal('pro');
         const theme = el.shadowRoot.querySelector('sp-theme');
-        expect(theme.getAttribute('system')).to.equal('spectrum');
+        expect(theme.getAttribute('system')).to.equal('spectrum-two');
     });
 
     it('should return correct value object', async () => {

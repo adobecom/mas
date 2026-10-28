@@ -343,7 +343,7 @@ class MasIconPickerModal extends LitElement {
                                 @click=${() => this.#handleIconSelect(item)}
                             >
                                 ${item.isSpectrum
-                                    ? html`${renderSpIcon(item.id, this.variant)}`
+                                    ? html`${renderSpIcon(item.id)}`
                                     : html`<img
                                           src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${item.id}.svg"
                                           alt="${item.name}"

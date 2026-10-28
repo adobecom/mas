@@ -330,7 +330,7 @@ class MasMnemonicModal extends LitElement {
                                 @click=${() => this.#handleProductSelect(product.id)}
                             >
                                 ${this.iconLibrary
-                                    ? html`${renderSpIcon(product.id, this.variant)}`
+                                    ? html`${renderSpIcon(product.id)}`
                                     : html` <img
                                           src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/${product.id}.svg"
                                           alt="${product.name}"

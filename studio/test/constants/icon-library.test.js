@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import { render } from 'lit';
 import { getSpectrumVersion, renderSpIcon, ICON_LIBRARY } from '../../src/constants/icon-library.js';
 import { VARIANT_NAMES } from '../../src/editors/variant-picker.js';
 
@@ -105,24 +106,27 @@ describe('icon-library', () => {
     });
 
     describe('renderSpIcon', () => {
-        it('should return a truthy TemplateResult', () => {
-            const result = renderSpIcon('sp-icon-star', VARIANT_NAMES.PLANS);
-            expect(result).to.exist;
+        const renderSystem = (variant) => {
+            const container = document.createElement('div');
+            render(renderSpIcon('sp-icon-star', variant), container);
+            expect(container.querySelector('sp-icon-star')).to.exist;
+            return container.querySelector('sp-theme').getAttribute('system');
+        };
+
+        it('should take only the icon name', () => {
+            expect(renderSpIcon.length).to.equal(1);
         });
 
-        it('should return a result for mini-compare-chart (spectrum)', () => {
-            const result = renderSpIcon('sp-icon-ribbon', VARIANT_NAMES.MINI_COMPARE_CHART);
-            expect(result).to.exist;
+        it('should use spectrum-two for a spectrum 1 variant', () => {
+            expect(renderSystem(VARIANT_NAMES.PLANS)).to.equal('spectrum-two');
         });
 
-        it('should return a result for express variant', () => {
-            const result = renderSpIcon('sp-icon-star', VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS);
-            expect(result).to.exist;
+        it('should use spectrum-two for an express variant', () => {
+            expect(renderSystem(VARIANT_NAMES.SIMPLIFIED_PRICING_EXPRESS)).to.equal('spectrum-two');
         });
 
-        it('should return a result for unknown variant (spectrum-two)', () => {
-            const result = renderSpIcon('sp-icon-star', 'unknown');
-            expect(result).to.exist;
+        it('should use spectrum-two for an unknown variant', () => {
+            expect(renderSystem('unknown-variant')).to.equal('spectrum-two');
         });
     });
 });

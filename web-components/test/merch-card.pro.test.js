@@ -1181,6 +1181,126 @@ describe('pro whats-included toggle interaction', () => {
     });
 });
 
+describe('pro section grid (no collection)', () => {
+    const fixtures = [];
+    const initialViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+    };
+
+    // Milo markup: <div class="section X-merch-cards"><div class="content">cards
+    async function renderSection(layout, cardVariants) {
+        const section = document.createElement('div');
+        section.className = `section ${layout}`;
+        section.style.cssText =
+            'width: calc(100vw - 48px); margin-inline: auto;';
+        const content = document.createElement('div');
+        content.className = 'content';
+        section.appendChild(content);
+        const cards = cardVariants.map((variant) => {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            card.innerHTML = '<h3 slot="heading-xs">Plan</h3>';
+            content.appendChild(card);
+            return card;
+        });
+        document.body.appendChild(section);
+        fixtures.push(section);
+        await Promise.all(cards.map((card) => card.updateComplete));
+        return { section, content, cards };
+    }
+
+    const tracks = (el) =>
+        getComputedStyle(el).gridTemplateColumns.split(' ').length;
+    const pro = (count) => Array(count).fill('pro');
+
+    afterEach(() => {
+        for (const fixture of fixtures) fixture.remove();
+        fixtures.length = 0;
+    });
+
+    after(() => setViewport(initialViewport));
+
+    // [layout, cards, columns at 375, 768, 1280]
+    for (const [layout, count, mobile, tablet, desktop] of [
+        ['one-merch-card', 1, 1, 1, 1],
+        ['two-merch-cards', 2, 1, 2, 2],
+        ['three-merch-cards', 3, 1, 2, 3],
+        ['four-merch-cards', 4, 1, 2, 4],
+    ]) {
+        it(`lays out pro cards in ${layout} at the collection breakpoints`, async () => {
+            for (const [width, columns] of [
+                [375, mobile],
+                [768, tablet],
+                [1280, desktop],
+            ]) {
+                await setViewport({ width, height: 1000 });
+                const { section, content, cards } = await renderSection(
+                    layout,
+                    pro(count),
+                );
+                expect(
+                    getComputedStyle(content).display,
+                    `${layout} @${width}: content`,
+                ).to.equal('contents');
+                expect(tracks(section), `${layout} @${width}: tracks`).to.equal(
+                    columns,
+                );
+                // Cards share one row, cap at the pro width and fill their track.
+                const [first] = cards;
+                const rows = new Set(
+                    cards.map((card) => card.getBoundingClientRect().top),
+                );
+                expect(rows.size).to.equal(Math.ceil(count / columns));
+                expect(first.getBoundingClientRect().width).to.be.at.most(
+                    count === 2 && width >= 1280 ? 596.5 : 1000,
+                );
+                if (width === 375) {
+                    expect(first.getBoundingClientRect().width).to.be.closeTo(
+                        section.getBoundingClientRect().width,
+                        1,
+                    );
+                }
+                section.remove();
+            }
+        });
+    }
+
+    it('caps a lone pro card at the pro max width', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const { cards } = await renderSection('one-merch-card', pro(1));
+        expect(cards[0].getBoundingClientRect().width).to.be.closeTo(394, 1);
+    });
+
+    it('leaves collections and mixed sections to their own rules', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const mixed = await renderSection('three-merch-cards', [
+            'pro',
+            'plans',
+            'plans',
+        ]);
+        expect(getComputedStyle(mixed.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(mixed.section).maxWidth).to.not.equal('1192px');
+
+        const wrapped = await renderSection('three-merch-cards', []);
+        const collection = document.createElement('merch-card-collection');
+        collection.className = 'plans three-merch-cards';
+        wrapped.content.appendChild(collection);
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'pro');
+        collection.appendChild(card);
+        await card.updateComplete;
+        expect(getComputedStyle(wrapped.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(wrapped.section).maxWidth).to.not.equal(
+            '1192px',
+        );
+    });
+});
+
 describe('pro row-synced whats-included toggle', () => {
     let container;
     afterEach(() => container?.remove());

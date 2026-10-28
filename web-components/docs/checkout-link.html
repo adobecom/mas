@@ -29,9 +29,30 @@
 <p>This custom element renders a checkout link supporting most of the features documented at <a href="https://wiki.corp.adobe.com/pages/viewpage.action?spaceKey=businessservices&amp;title=UCv3+Link+Creation+Guide.">https://wiki.corp.adobe.com/pages/viewpage.action?spaceKey=businessservices&amp;title=UCv3+Link+Creation+Guide.</a><br>
 Sometimes a checkout-link can be also referred as placeholder, as it can be used as an inline link resolving at runtime.<br>
 The term placeholder will be deprecated and it is recommended to refer as <strong>checkout-link custom element</strong> going forward.</p>
-<p>Behind the scene, it uses <a href="https://git.corp.adobe.com/PandoraUI/commerce-core">https://git.corp.adobe.com/PandoraUI/commerce-core</a> to generate the checkout url.</p>
+<p>Checkout URL construction and try/buy intent resolution use the shared source files in the repository-root <code>checkout/</code> folder.</p>
 <p>It requires an Offer Selector ID to retrieve the offer details from WCS.</p>
 <p>See <a href="mas.html#terminology">MAS</a> to learn more.</p>
+<h3 id="shared-checkout-source" tabindex="-1">Shared checkout source <a class="header-anchor" href="#shared-checkout-source" href="#shared-checkout-source" title="Permalink to this heading">#</a></h3>
+<p>The shared files run in Node and browsers without runtime dependencies or DOM access. Import them directly by relative path; there is no shared checkout package or workspace. For example, from <code>web-components/src/</code>:</p>
+<pre><code class="hljs language-js"><span class="hljs-keyword">import</span> { buildCheckoutUrl } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../../checkout/src/buildCheckoutUrl.js&#x27;</span>;
+<span class="hljs-keyword">import</span> { resolveCheckoutData, resolveCheckoutIntent } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;../../checkout/src/checkout.js&#x27;</span>;
+
+<span class="hljs-keyword">const</span> data = <span class="hljs-title function_">resolveCheckoutData</span>(resolvedOffers, normalizedOptions, {
+    <span class="hljs-attr">env</span>: <span class="hljs-string">&#x27;PRODUCTION&#x27;</span>,
+    <span class="hljs-attr">landscape</span>: <span class="hljs-string">&#x27;PUBLISHED&#x27;</span>,
+    <span class="hljs-attr">is3in1</span>: <span class="hljs-literal">false</span>,
+    <span class="hljs-attr">context</span>: <span class="hljs-string">&#x27;fp&#x27;</span>,
+});
+<span class="hljs-keyword">const</span> url = <span class="hljs-title function_">buildCheckoutUrl</span>(data, {
+    <span class="hljs-attr">search</span>: <span class="hljs-string">&#x27;?sdid=example&#x27;</span>,
+    <span class="hljs-attr">pathnames</span>: [<span class="hljs-string">&#x27;/us/products/example&#x27;</span>],
+});
+<span class="hljs-keyword">const</span> intent = <span class="hljs-title function_">resolveCheckoutIntent</span>(resolvedOffers[<span class="hljs-number">0</span>]);
+</code></pre>
+<p>Callers supply non-empty resolved offers and normalized options, including <code>checkoutClientId</code>, <code>checkoutWorkflowStep</code>, <code>country</code>, <code>language</code>, and a <code>quantity</code> array. The first offer is primary; its quantity applies to all URL items. Existing extra-option precedence is preserved, including <code>env</code> supplied in normalized options. <code>resolveCheckoutIntent</code> returns <code>try</code> for a primary <code>TRIAL</code> offer and <code>buy</code> otherwise.</p>
+<p><code>buildCheckoutUrl</code> also accepts already-resolved checkout data directly (<code>env</code>, <code>workflowStep</code>, <code>clientId</code>, <code>country</code>, and <code>items</code> for workflows other than segmentation and team-upgrade plans). It retains required-field errors and returns a URL string.</p>
+<p>The optional second argument is explicit page context. Only allowlisted search parameters are forwarded, with the same precedence and sanitation as browser checkout. A TW or HK traditional-Chinese pathname, including a supplied parent pathname, sets top-level and per-item checkout language to <code>zh-Hant</code>. Omit page context to avoid page-derived query or language changes.</p>
+<p>Web-components keep their existing APIs and collect page, parent-frame, iframe, meta-tag and service/provider state before calling the shared code. Custom checkout action URLs still receive the page-locale adjustment. Offer fetching, AUP SDK requests and launches, click handlers, and modal lifecycle remain browser-owned. Server pipeline wiring is a separate follow-up; this extraction does not enable server-side rendering.</p>
 <h3 id="example" tabindex="-1">Example <a class="header-anchor" href="#example" href="#example" title="Permalink to this heading">#</a></h3>
 <pre><code class="hljs demo language-html"><span class="hljs-tag">&lt;<span class="hljs-name">a</span>
     <span class="hljs-attr">href</span>=<span class="hljs-string">&quot;#&quot;</span>

@@ -1,0 +1,301 @@
+<!doctype html>
+<html>
+    <head>
+        <script>
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <title>MASA dashboard states and access</title>
+        <meta name="io-base-url" content="https://dashboard.example.test" />
+        <style>
+            body {
+                margin: 0;
+                background: #f5f5f5;
+                font-family: Arial, sans-serif;
+            }
+            .example {
+                max-width: 1200px;
+                padding: 24px;
+                margin: 0 auto 24px;
+            }
+            #interactive {
+                min-height: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme color="light" scale="medium">
+            <section class="example">
+                <h1>MASA dashboard · populated snapshot</h1>
+                <p>Synthetic data for visual review.</p>
+                <div id="populated"></div>
+            </section>
+            <section class="example">
+                <h1>Stale snapshot</h1>
+                <div id="stale"></div>
+            </section>
+            <section class="example">
+                <h1>Empty window</h1>
+                <div id="empty"></div>
+            </section>
+            <section class="example">
+                <h1>Loading, access and retry interactions</h1>
+                <div id="interactive"></div>
+            </section>
+            <section class="example">
+                <h1>Admin navigation</h1>
+                <div id="navigation"></div>
+            </section>
+        </sp-theme>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import sinon from 'sinon';
+            import { setViewport } from '@web/test-runner-commands';
+            import { html, render } from 'lit';
+            import '@spectrum-web-components/theme/sp-theme.js';
+            import '@spectrum-web-components/theme/src/themes.js';
+            import '../../src/masa-dashboard/mas-masa-dashboard.js';
+            import '../../src/mas-advanced-tools.js';
+            import { Router } from '../../src/router.js';
+            import Store from '../../src/store.js';
+            import { PAGE_NAMES } from '../../src/constants.js';
+
+            let snapshot;
+            let populated;
+            let stale;
+            let empty;
+            const fresh = () => ({ ...structuredClone(snapshot), generatedAt: new Date().toISOString() });
+            const mountView = async (id, data, time = Date.parse(snapshot.generatedAt)) => {
+                render(
+                    html`<masa-dashboard-view .snapshot=${data} .now=${time}></masa-dashboard-view>`,
+                    document.getElementById(id),
+                );
+                const view = document.getElementById(id).firstElementChild;
+                await view.updateComplete;
+                return view;
+            };
+            const settle = async () => {
+                for (let i = 0; i < 5; i += 1) await new Promise((resolve) => setTimeout(resolve, 0));
+            };
+            const admin = () => {
+                Store.profile.set({ email: 'admin@example.com' });
+                Store.users.set([{ userPrincipalName: 'admin@example.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+                Store.users.setMeta('loaded', true);
+                Store.users.notify();
+            };
+            const mountPage = async () => {
+                const page = document.createElement('mas-masa-dashboard');
+                document.querySelector('#interactive').append(page);
+                await settle();
+                return page;
+            };
+
+            runTests(() => {
+                before(async () => {
+                    snapshot = await (await fetch(new URL('./snapshot.json', import.meta.url))).json();
+                    const now = Date.parse(snapshot.generatedAt);
+                    populated = await mountView('populated', snapshot);
+                    stale = await mountView('stale', snapshot, now + 900000);
+                    const emptySnapshot = structuredClone(snapshot);
+                    emptySnapshot.windows[7].summary.jobs = 0;
+                    emptySnapshot.windows[7].summary.questions = 0;
+                    Object.assign(emptySnapshot.windows[7], {
+                        summary: {
+                            jobs: 0,
+                            questions: 0,
+                            requesters: 0,
+                            outcomesRecorded: 0,
+                            answeredShare: null,
+                            wallMsP50: null,
+                            wallMsP90: null,
+                            wallMsP95: null,
+                            promptTokens: 0,
+                            completionTokens: 0,
+                            promptTokensPerJobMean: null,
+                            promptTokensPerJobP90: null,
+                            cachedShare: null,
+                            queueWaitDerived: { p50Ms: null, p95Ms: null, jobs: 0 },
+                            jobStatuses: {},
+                        },
+                        daily: [],
+                        outcomes: {
+                            kinds: {},
+                            answerTypes: {},
+                            confidence: {},
+                            repairCauses: {},
+                            fallbackCauses: {},
+                            downgradeCauses: {},
+                            layers: {},
+                        },
+                        learning: { recorded: 0, labelled: 0, labelledShare: null, outcomes: {}, sources: {} },
+                        queue: { queued: 0, running: 0, oldestQueuedAgeMs: null },
+                        intents: { rows: [], unlabelled: 0, signals: {} },
+                        model: {
+                            durationMsP50: null,
+                            durationMsP95: null,
+                            errors: 0,
+                            calls: 0,
+                            rateLimited: 0,
+                            finishReasons: {},
+                            servedModels: {},
+                        },
+                        probes: [],
+                        rejections: [],
+                        costliest: [],
+                    });
+                    empty = await mountView('empty', emptySnapshot);
+                });
+                let stub;
+                beforeEach(() => {
+                    window.adobeid = { authorize: () => 'test-studio-token' };
+                    admin();
+                    stub = sinon.stub(window, 'fetch').callsFake(async () => new Response(JSON.stringify(fresh())));
+                });
+                afterEach(() => {
+                    document.querySelector('#interactive').replaceChildren();
+                    document.querySelector('#navigation').replaceChildren();
+                    sinon.restore();
+                });
+                it('switches time windows without a network request', async () => {
+                    const buttons = populated.shadowRoot.querySelectorAll('sp-action-button');
+                    buttons[0].click();
+                    await populated.updateComplete;
+                    expect(populated.days).to.equal(1);
+                    expect(populated.shadowRoot.querySelector('.metric strong').textContent).to.equal(
+                        String(snapshot.windows[1].summary.questions),
+                    );
+                    buttons[2].click();
+                    await populated.updateComplete;
+                    expect(populated.days).to.equal(30);
+                    expect(stub.called).to.equal(false);
+                    buttons[1].click();
+                    await populated.updateComplete;
+                });
+                it('distinguishes stale and empty states and avoids live-queue claims', () => {
+                    expect(stale.shadowRoot.textContent).to.include('Snapshot is stale');
+                    expect(empty.shadowRoot.textContent).to.include('No activity in this window');
+                    expect(populated.shadowRoot.textContent).to.include('Queue at snapshot');
+                    expect(populated.shadowRoot.textContent).to.include('not a resolution score');
+                });
+                it('renders model names as text', async () => {
+                    const data = structuredClone(snapshot);
+                    data.windows[7].model.servedModels = { '<img src=x onerror=alert(1)>': 1 };
+                    const view = await mountView('navigation', data);
+                    expect(view.shadowRoot.querySelector('img')).to.equal(null);
+                    expect(view.shadowRoot.textContent).to.include('<img src=x onerror=alert(1)>');
+                });
+                it('uses the configured service and Studio session token', async () => {
+                    const page = await mountPage();
+                    expect(stub.calledOnce).to.equal(true);
+                    expect(stub.firstCall.args[0]).to.equal('https://dashboard.example.test/masa-dashboard');
+                    expect(stub.firstCall.args[1].headers.Authorization).to.equal('Bearer test-studio-token');
+                    expect(page.shadowRoot.querySelector('masa-dashboard-view')).not.to.equal(null);
+                });
+                it('shows loading and aborts when removed', async () => {
+                    stub.callsFake(
+                        (_url, options) =>
+                            new Promise((_resolve, reject) =>
+                                options.signal.addEventListener('abort', () => reject(options.signal.reason)),
+                            ),
+                    );
+                    const page = await mountPage();
+                    expect(page.shadowRoot.querySelector('sp-progress-circle')).not.to.equal(null);
+                    expect(page.shadowRoot.querySelector('sp-button').disabled).to.equal(true);
+                    const signal = stub.firstCall.args[1].signal;
+                    page.remove();
+                    expect(signal.aborted).to.equal(true);
+                });
+                it('shows first-snapshot guidance and retries on Refresh', async () => {
+                    stub.onFirstCall().resolves(new Response('{}', { status: 404 }));
+                    const page = await mountPage();
+                    expect(page.shadowRoot.textContent).to.include('No dashboard snapshot has arrived yet');
+                    page.shadowRoot.querySelector('sp-button').click();
+                    await settle();
+                    expect(page.snapshot).not.to.equal(null);
+                    expect(page.error).to.equal('');
+                });
+                it('retains data on a network error and clears it on access denial', async () => {
+                    const page = await mountPage();
+                    stub.rejects(new TypeError('fetch failed'));
+                    await page.refresh();
+                    await page.updateComplete;
+                    expect(page.shadowRoot.textContent).to.include('Showing the last available snapshot');
+                    stub.resolves(new Response('{}', { status: 403 }));
+                    await page.refresh();
+                    await page.updateComplete;
+                    expect(page.snapshot).to.equal(null);
+                    expect(page.shadowRoot.textContent).to.include('MAS administrator access is required');
+                });
+                it('does not fetch for a non-admin', async () => {
+                    Store.users.set([]);
+                    const page = await mountPage();
+                    expect(stub.called).to.equal(false);
+                    expect(page.shadowRoot.querySelector('masa-dashboard-view')).to.equal(null);
+                });
+                it('ignores an old request after admin membership is removed', async () => {
+                    const page = await mountPage();
+                    let finish;
+                    stub.callsFake(
+                        () =>
+                            new Promise((resolve) => {
+                                finish = resolve;
+                            }),
+                    );
+                    const request = page.refresh();
+                    Store.users.set([]);
+                    await settle();
+                    expect(stub.lastCall.args[1].signal.aborted).to.equal(true);
+                    finish(new Response(JSON.stringify(fresh())));
+                    await request;
+                    await page.updateComplete;
+                    expect(page.snapshot).to.equal(null);
+                });
+                it('shows the Advanced tools link only to admins', async () => {
+                    const tools = document.createElement('mas-advanced-tools');
+                    document.querySelector('#navigation').append(tools);
+                    await tools.updateComplete;
+                    expect(tools.shadowRoot.querySelector('a[href="#page=masa-dashboard"]')).not.to.equal(null);
+                    Store.users.set([]);
+                    await tools.updateComplete;
+                    expect(tools.shadowRoot.querySelector('a[href="#page=masa-dashboard"]')).to.equal(null);
+                });
+                it('fits the populated dashboard in a narrow viewport', async () => {
+                    await setViewport({ width: 390, height: 844 });
+                    expect(populated.scrollWidth).to.be.at.most(populated.clientWidth);
+                    await setViewport({ width: 1200, height: 900 });
+                });
+                it('waits for membership before allowing an admin deep link', () => {
+                    Store.users.setMeta('loaded', false);
+                    Store.users.set([]);
+                    Store.search.set({ path: 'acom', query: '' });
+                    const router = new Router({ hash: '#page=masa-dashboard' });
+                    sinon.stub(router, 'updateHistory');
+                    router.start();
+                    expect(Store.page.get()).to.equal(PAGE_NAMES.MASA_DASHBOARD);
+                    admin();
+                    expect(Store.page.get()).to.equal(PAGE_NAMES.MASA_DASHBOARD);
+                });
+                it('redirects a non-admin deep link when membership finishes loading', () => {
+                    Store.users.setMeta('loaded', false);
+                    Store.users.set([]);
+                    Store.search.set({ path: 'acom', query: '' });
+                    const router = new Router({ hash: '#page=masa-dashboard' });
+                    sinon.stub(router, 'updateHistory');
+                    router.start();
+                    Store.users.setMeta('loaded', true);
+                    Store.users.notify();
+                    expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+                });
+                it('denies non-admin programmatic navigation', async () => {
+                    Store.users.set([]);
+                    Store.page.set(PAGE_NAMES.WELCOME);
+                    const router = new Router({ hash: '', pathname: '/studio.html', search: '' });
+                    sinon.stub(router, 'updateHistory');
+                    await router.navigateToPage(PAGE_NAMES.MASA_DASHBOARD)();
+                    expect(Store.page.get()).to.equal(PAGE_NAMES.WELCOME);
+                });
+            });
+        </script>
+    </body>
+</html>

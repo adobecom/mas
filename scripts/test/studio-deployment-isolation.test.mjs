@@ -41,3 +41,14 @@ test('AI secret retrieval is separate from required core secrets', async () => {
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs core'), true);
     assert.equal(workflow.includes('run: node scripts/deploy-actions.mjs assistant'), true);
 });
+
+test('dashboard actions protect their configuration and isolate the push body', () => {
+    const actions = manifest.config.application.runtimeManifest.packages.MerchAtScaleStudio.actions;
+    const ingest = actions['masa-dashboard-ingest'];
+    assert.equal(ingest.annotations.final, true);
+    assert.equal(ingest.annotations['raw-http'], true);
+    assert.equal(ingest.annotations['require-adobe-auth'], false);
+    assert.equal(Object.hasOwn(ingest.inputs, 'MAS_AGENT_DASHBOARD_PUSH_SECRET'), true);
+    assert.equal(actions['masa-dashboard'].annotations.final, true);
+    assert.equal(actions['masa-dashboard'].inputs?.MAS_AGENT_DASHBOARD_PUSH_SECRET, undefined);
+});

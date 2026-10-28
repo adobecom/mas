@@ -11,7 +11,7 @@ import './mas-recently-updated.js';
 import './mas-nav-folder-picker.js';
 import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from './mas-chat/chat-router.js';
 import { initUsers } from './users.js';
-import { canAccessBulkPublish } from './groups.js';
+import { canAccessBulkPublish, isMasAdmin } from './groups.js';
 import './mas-confirm-dialog.js';
 import './mas-card-preview.js';
 import StoreController from './reactivity/store-controller.js';
@@ -272,6 +272,12 @@ class MasStudio extends LitElement {
         return Store.users.getMeta('loaded') && canAccessBulkPublish();
     }
 
+    get masaDashboard() {
+        if (!Store.users.getMeta('loaded') || !isMasAdmin()) return nothing;
+        if (!this.#lazyLoad('mas-masa-dashboard', './masa-dashboard/mas-masa-dashboard.js')) return nothing;
+        return html`<mas-masa-dashboard></mas-masa-dashboard>`;
+    }
+
     get advancedTools() {
         if (this.page.value !== PAGE_NAMES.ADVANCED_TOOLS) return nothing;
         if (!this.#lazyLoad('mas-advanced-tools', './mas-advanced-tools.js')) return nothing;
@@ -331,7 +337,7 @@ class MasStudio extends LitElement {
 
     get currentPage() {
         if (
-            [PAGE_NAMES.BULK_PUBLISH, PAGE_NAMES.BULK_PUBLISH_EDITOR].includes(this.page.value) &&
+            [PAGE_NAMES.BULK_PUBLISH, PAGE_NAMES.BULK_PUBLISH_EDITOR, PAGE_NAMES.MASA_DASHBOARD].includes(this.page.value) &&
             !Store.users.getMeta('loaded')
         ) {
             return html`
@@ -367,6 +373,8 @@ class MasStudio extends LitElement {
                 return this.bulkEdit;
             case PAGE_NAMES.BULK_EDIT_EDITOR:
                 return this.bulkEditEditor;
+            case PAGE_NAMES.MASA_DASHBOARD:
+                return this.masaDashboard;
             case PAGE_NAMES.ADVANCED_TOOLS:
                 return this.advancedTools;
             case PAGE_NAMES.BASELINES:

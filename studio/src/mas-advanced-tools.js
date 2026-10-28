@@ -4,7 +4,7 @@ import Store from './store.js';
 import StoreController from './reactivity/store-controller.js';
 import { PAGE_NAMES } from './constants.js';
 import { bulkEditIcon } from './img/bulk-edit-icon.js';
-import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping, isMasAdmin } from './groups.js';
 
 class MasAdvancedTools extends LitElement {
     static styles = css`
@@ -205,6 +205,27 @@ class MasAdvancedTools extends LitElement {
         `;
     }
 
+    get masaDashboardCard() {
+        if (!isMasAdmin()) return nothing;
+        return html`<a
+            class="tool-card"
+            href="#page=masa-dashboard"
+            @click=${(event) => {
+                event.preventDefault();
+                router.navigateToPage(PAGE_NAMES.MASA_DASHBOARD)();
+            }}
+        >
+            <span class="tool-card-icon" aria-hidden="true"
+                ><sp-icon-graph-bar-vertical size="xxl"></sp-icon-graph-bar-vertical
+            ></span>
+            <div class="tool-card-text">
+                <span class="tool-card-title">MASA dashboard</span>
+                <span class="tool-card-description">Review MASA usage, outcomes and performance.</span>
+            </div>
+            ${this.arrowIcon}
+        </a>`;
+    }
+
     get bulkPublishCard() {
         if (!canAccessBulkPublish()) return nothing;
         return html`
@@ -324,6 +345,7 @@ class MasAdvancedTools extends LitElement {
                 </div>
                 <div class="tool-list">
                     ${this.bulkPublishCard} ${this.bulkEditCard} ${this.settingsCard} ${this.masksCard} ${this.offerMappingCard}
+                    ${this.masaDashboardCard}
                 </div>
             </div>
         `;

@@ -1,0 +1,738 @@
+{
+    "generatedAt": "2026-10-28T12:00:00.000Z",
+    "windows": {
+        "1": {
+            "generatedAt": "2026-10-28T12:00:00.000Z",
+            "days": 1,
+            "summary": {
+                "jobs": 4,
+                "questions": 4,
+                "requesters": 4,
+                "jobStatuses": {
+                    "done": 4
+                },
+                "jobKinds": {
+                    "question": 4
+                },
+                "outcomesRecorded": 4,
+                "answeredShare": 0.75,
+                "wallMsP50": 12240,
+                "wallMsP90": 12360,
+                "wallMsP95": 12360,
+                "queueWaitDerived": {
+                    "p50Ms": 1460,
+                    "p95Ms": 1490,
+                    "jobs": 4
+                },
+                "roundsMean": 2,
+                "promptTokensPerJobMean": 7405,
+                "promptTokensPerJobP90": 7810,
+                "promptTokens": 29620,
+                "completionTokens": 2460,
+                "cachedShare": 0.5401755570560433
+            },
+            "daily": [
+                {
+                    "day": "2026-10-27",
+                    "jobs": 2,
+                    "promptTokens": 15350
+                },
+                {
+                    "day": "2026-10-28",
+                    "jobs": 2,
+                    "promptTokens": 14270
+                }
+            ],
+            "outcomes": {
+                "kinds": {
+                    "fallback": 1,
+                    "answer": 3
+                },
+                "answerTypes": {
+                    "explain": 2,
+                    "diagnose": 1
+                },
+                "confidence": {
+                    "medium": 3
+                },
+                "repairCauses": {},
+                "downgradeCauses": {},
+                "fallbackCauses": {
+                    "format": 1
+                },
+                "layers": {
+                    "client": 2
+                }
+            },
+            "intents": {
+                "rows": [
+                    {
+                        "intent": "answer",
+                        "questions": 2,
+                        "answeredShare": 1,
+                        "wallMsP50": 12240,
+                        "wallMsP90": 12240,
+                        "roundsMean": 2,
+                        "promptTokensMean": 7405,
+                        "answerTypes": {
+                            "explain": 2
+                        }
+                    },
+                    {
+                        "intent": "troubleshoot",
+                        "questions": 2,
+                        "answeredShare": 0.5,
+                        "wallMsP50": 12360,
+                        "wallMsP90": 12360,
+                        "roundsMean": 2,
+                        "promptTokensMean": 7405,
+                        "answerTypes": {
+                            "diagnose": 1
+                        }
+                    }
+                ],
+                "unlabelled": 0,
+                "signals": {
+                    "url": 4
+                }
+            },
+            "model": {
+                "calls": 4,
+                "errors": 0,
+                "finishReasons": {
+                    "stop": 4
+                },
+                "servedModels": {
+                    "example-model": 4
+                },
+                "durationMsP50": 740,
+                "durationMsP95": 810,
+                "rateLimited": 0
+            },
+            "queue": {
+                "generatedAt": "2026-10-28T12:00:00.000Z",
+                "queued": 0,
+                "running": 0,
+                "oldestQueuedAgeMs": null
+            },
+            "learning": {
+                "recorded": 0,
+                "labelled": 0,
+                "labelledShare": null,
+                "outcomes": {},
+                "sources": {}
+            },
+            "probes": [
+                {
+                    "probe": "browser_inspect",
+                    "calls": 2,
+                    "statuses": {
+                        "error": 1,
+                        "ok": 1
+                    },
+                    "okShare": 0.5,
+                    "meanMs": 150,
+                    "p90Ms": 180
+                },
+                {
+                    "probe": "code_read",
+                    "calls": 2,
+                    "statuses": {
+                        "ok": 2
+                    },
+                    "okShare": 1,
+                    "meanMs": 150,
+                    "p90Ms": 160
+                }
+            ],
+            "rejections": [],
+            "costliest": [
+                {
+                    "jobId": "job_1c8079fd-eb27-4c98-afab-06a0283830ae",
+                    "modelCalls": 1,
+                    "promptTokens": 7810,
+                    "completionTokens": 630,
+                    "outcome": "diagnose",
+                    "probes": ["browser_inspect"]
+                },
+                {
+                    "jobId": "job_ffaf028b-88b9-4a05-8ec3-b81306830e77",
+                    "modelCalls": 1,
+                    "promptTokens": 7540,
+                    "completionTokens": 620,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_20d11275-f6e1-418e-8671-b4c53a87ac79",
+                    "modelCalls": 1,
+                    "promptTokens": 7270,
+                    "completionTokens": 610,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_175baca8-58c3-4292-8317-9caf3953250b",
+                    "modelCalls": 1,
+                    "promptTokens": 7000,
+                    "completionTokens": 600,
+                    "outcome": "fallback",
+                    "probes": ["browser_inspect"]
+                }
+            ]
+        },
+        "7": {
+            "generatedAt": "2026-10-28T12:00:00.000Z",
+            "days": 7,
+            "summary": {
+                "jobs": 24,
+                "questions": 24,
+                "requesters": 12,
+                "jobStatuses": {
+                    "done": 24
+                },
+                "jobKinds": {
+                    "question": 24
+                },
+                "outcomesRecorded": 24,
+                "answeredShare": 0.875,
+                "wallMsP50": 13440,
+                "wallMsP90": 14520,
+                "wallMsP95": 14640,
+                "queueWaitDerived": {
+                    "p50Ms": 1760,
+                    "p95Ms": 2060,
+                    "jobs": 24
+                },
+                "roundsMean": 2,
+                "promptTokensPerJobMean": 10105,
+                "promptTokensPerJobP90": 12670,
+                "promptTokens": 242520,
+                "completionTokens": 17160,
+                "cachedShare": 0.3958436417615042
+            },
+            "daily": [
+                {
+                    "day": "2026-10-21",
+                    "jobs": 1,
+                    "promptTokens": 13210
+                },
+                {
+                    "day": "2026-10-22",
+                    "jobs": 4,
+                    "promptTokens": 50140
+                },
+                {
+                    "day": "2026-10-23",
+                    "jobs": 3,
+                    "promptTokens": 34770
+                },
+                {
+                    "day": "2026-10-24",
+                    "jobs": 4,
+                    "promptTokens": 42580
+                },
+                {
+                    "day": "2026-10-25",
+                    "jobs": 3,
+                    "promptTokens": 29100
+                },
+                {
+                    "day": "2026-10-26",
+                    "jobs": 3,
+                    "promptTokens": 26670
+                },
+                {
+                    "day": "2026-10-27",
+                    "jobs": 4,
+                    "promptTokens": 31780
+                },
+                {
+                    "day": "2026-10-28",
+                    "jobs": 2,
+                    "promptTokens": 14270
+                }
+            ],
+            "outcomes": {
+                "kinds": {
+                    "fallback": 3,
+                    "answer": 21
+                },
+                "answerTypes": {
+                    "explain": 14,
+                    "diagnose": 7
+                },
+                "confidence": {
+                    "medium": 21
+                },
+                "repairCauses": {},
+                "downgradeCauses": {},
+                "fallbackCauses": {
+                    "format": 3
+                },
+                "layers": {
+                    "client": 8
+                }
+            },
+            "intents": {
+                "rows": [
+                    {
+                        "intent": "answer",
+                        "questions": 16,
+                        "answeredShare": 0.875,
+                        "wallMsP50": 13560,
+                        "wallMsP90": 14640,
+                        "roundsMean": 2,
+                        "promptTokensMean": 10240,
+                        "answerTypes": {
+                            "explain": 14
+                        }
+                    },
+                    {
+                        "intent": "troubleshoot",
+                        "questions": 8,
+                        "answeredShare": 0.875,
+                        "wallMsP50": 13440,
+                        "wallMsP90": 14520,
+                        "roundsMean": 2,
+                        "promptTokensMean": 9835,
+                        "answerTypes": {
+                            "diagnose": 7
+                        }
+                    }
+                ],
+                "unlabelled": 0,
+                "signals": {
+                    "url": 24
+                }
+            },
+            "model": {
+                "calls": 24,
+                "errors": 0,
+                "finishReasons": {
+                    "stop": 24
+                },
+                "servedModels": {
+                    "example-model": 24
+                },
+                "durationMsP50": 1440,
+                "durationMsP95": 2140,
+                "rateLimited": 0
+            },
+            "queue": {
+                "generatedAt": "2026-10-28T12:00:00.000Z",
+                "queued": 0,
+                "running": 0,
+                "oldestQueuedAgeMs": null
+            },
+            "learning": {
+                "recorded": 0,
+                "labelled": 0,
+                "labelledShare": null,
+                "outcomes": {},
+                "sources": {}
+            },
+            "probes": [
+                {
+                    "probe": "code_read",
+                    "calls": 16,
+                    "statuses": {
+                        "ok": 14,
+                        "error": 2
+                    },
+                    "okShare": 0.875,
+                    "meanMs": 360,
+                    "p90Ms": 560
+                },
+                {
+                    "probe": "browser_inspect",
+                    "calls": 8,
+                    "statuses": {
+                        "error": 1,
+                        "ok": 7
+                    },
+                    "okShare": 0.875,
+                    "meanMs": 330,
+                    "p90Ms": 540
+                }
+            ],
+            "rejections": [],
+            "costliest": [
+                {
+                    "jobId": "job_725a73a3-8868-4dd1-9f40-ee83af278344",
+                    "modelCalls": 1,
+                    "promptTokens": 13210,
+                    "completionTokens": 830,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_d337f702-95f3-4c9f-8b91-f65b8fef3c5a",
+                    "modelCalls": 1,
+                    "promptTokens": 12940,
+                    "completionTokens": 820,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_c293481d-6834-4933-9500-5afb38c40363",
+                    "modelCalls": 1,
+                    "promptTokens": 12670,
+                    "completionTokens": 810,
+                    "outcome": "diagnose",
+                    "probes": ["browser_inspect"]
+                },
+                {
+                    "jobId": "job_e58023f2-986b-422f-979b-664580877694",
+                    "modelCalls": 1,
+                    "promptTokens": 12400,
+                    "completionTokens": 800,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_84fb5c09-6725-4bda-8b2e-09a5c1bd8166",
+                    "modelCalls": 1,
+                    "promptTokens": 12130,
+                    "completionTokens": 790,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                }
+            ]
+        },
+        "30": {
+            "generatedAt": "2026-10-28T12:00:00.000Z",
+            "days": 30,
+            "summary": {
+                "jobs": 90,
+                "questions": 90,
+                "requesters": 12,
+                "jobStatuses": {
+                    "done": 90
+                },
+                "jobKinds": {
+                    "question": 90
+                },
+                "outcomesRecorded": 90,
+                "answeredShare": 0.8666666666666667,
+                "wallMsP50": 17400,
+                "wallMsP90": 21720,
+                "wallMsP95": 22200,
+                "queueWaitDerived": {
+                    "p50Ms": 2750,
+                    "p95Ms": 3950,
+                    "jobs": 90
+                },
+                "roundsMean": 2,
+                "promptTokensPerJobMean": 19015,
+                "promptTokensPerJobP90": 28870,
+                "promptTokens": 1711350,
+                "completionTokens": 94050,
+                "cachedShare": 0.2103602419142782
+            },
+            "daily": [
+                {
+                    "day": "2026-09-28",
+                    "jobs": 0,
+                    "promptTokens": 0
+                },
+                {
+                    "day": "2026-09-29",
+                    "jobs": 0,
+                    "promptTokens": 0
+                },
+                {
+                    "day": "2026-09-30",
+                    "jobs": 0,
+                    "promptTokens": 0
+                },
+                {
+                    "day": "2026-10-01",
+                    "jobs": 0,
+                    "promptTokens": 0
+                },
+                {
+                    "day": "2026-10-02",
+                    "jobs": 2,
+                    "promptTokens": 61790
+                },
+                {
+                    "day": "2026-10-03",
+                    "jobs": 4,
+                    "promptTokens": 120340
+                },
+                {
+                    "day": "2026-10-04",
+                    "jobs": 3,
+                    "promptTokens": 87420
+                },
+                {
+                    "day": "2026-10-05",
+                    "jobs": 3,
+                    "promptTokens": 84990
+                },
+                {
+                    "day": "2026-10-06",
+                    "jobs": 4,
+                    "promptTokens": 109540
+                },
+                {
+                    "day": "2026-10-07",
+                    "jobs": 3,
+                    "promptTokens": 79320
+                },
+                {
+                    "day": "2026-10-08",
+                    "jobs": 4,
+                    "promptTokens": 101980
+                },
+                {
+                    "day": "2026-10-09",
+                    "jobs": 3,
+                    "promptTokens": 73650
+                },
+                {
+                    "day": "2026-10-10",
+                    "jobs": 4,
+                    "promptTokens": 94420
+                },
+                {
+                    "day": "2026-10-11",
+                    "jobs": 3,
+                    "promptTokens": 67980
+                },
+                {
+                    "day": "2026-10-12",
+                    "jobs": 3,
+                    "promptTokens": 65550
+                },
+                {
+                    "day": "2026-10-13",
+                    "jobs": 4,
+                    "promptTokens": 83620
+                },
+                {
+                    "day": "2026-10-14",
+                    "jobs": 3,
+                    "promptTokens": 59880
+                },
+                {
+                    "day": "2026-10-15",
+                    "jobs": 4,
+                    "promptTokens": 76060
+                },
+                {
+                    "day": "2026-10-16",
+                    "jobs": 3,
+                    "promptTokens": 54210
+                },
+                {
+                    "day": "2026-10-17",
+                    "jobs": 4,
+                    "promptTokens": 68500
+                },
+                {
+                    "day": "2026-10-18",
+                    "jobs": 3,
+                    "promptTokens": 48540
+                },
+                {
+                    "day": "2026-10-19",
+                    "jobs": 3,
+                    "promptTokens": 46110
+                },
+                {
+                    "day": "2026-10-20",
+                    "jobs": 4,
+                    "promptTokens": 57700
+                },
+                {
+                    "day": "2026-10-21",
+                    "jobs": 3,
+                    "promptTokens": 40440
+                },
+                {
+                    "day": "2026-10-22",
+                    "jobs": 4,
+                    "promptTokens": 50140
+                },
+                {
+                    "day": "2026-10-23",
+                    "jobs": 3,
+                    "promptTokens": 34770
+                },
+                {
+                    "day": "2026-10-24",
+                    "jobs": 4,
+                    "promptTokens": 42580
+                },
+                {
+                    "day": "2026-10-25",
+                    "jobs": 3,
+                    "promptTokens": 29100
+                },
+                {
+                    "day": "2026-10-26",
+                    "jobs": 3,
+                    "promptTokens": 26670
+                },
+                {
+                    "day": "2026-10-27",
+                    "jobs": 4,
+                    "promptTokens": 31780
+                },
+                {
+                    "day": "2026-10-28",
+                    "jobs": 2,
+                    "promptTokens": 14270
+                }
+            ],
+            "outcomes": {
+                "kinds": {
+                    "fallback": 12,
+                    "answer": 78
+                },
+                "answerTypes": {
+                    "explain": 52,
+                    "diagnose": 26
+                },
+                "confidence": {
+                    "medium": 78
+                },
+                "repairCauses": {},
+                "downgradeCauses": {},
+                "fallbackCauses": {
+                    "format": 12
+                },
+                "layers": {
+                    "client": 30
+                }
+            },
+            "intents": {
+                "rows": [
+                    {
+                        "intent": "answer",
+                        "questions": 60,
+                        "answeredShare": 0.8666666666666667,
+                        "wallMsP50": 17520,
+                        "wallMsP90": 21840,
+                        "roundsMean": 2,
+                        "promptTokensMean": 19150,
+                        "answerTypes": {
+                            "explain": 52
+                        }
+                    },
+                    {
+                        "intent": "troubleshoot",
+                        "questions": 30,
+                        "answeredShare": 0.8666666666666667,
+                        "wallMsP50": 17400,
+                        "wallMsP90": 21720,
+                        "roundsMean": 2,
+                        "promptTokensMean": 18745,
+                        "answerTypes": {
+                            "diagnose": 26
+                        }
+                    }
+                ],
+                "unlabelled": 0,
+                "signals": {
+                    "url": 90
+                }
+            },
+            "model": {
+                "calls": 90,
+                "errors": 0,
+                "finishReasons": {
+                    "stop": 90
+                },
+                "servedModels": {
+                    "example-model": 90
+                },
+                "durationMsP50": 3750,
+                "durationMsP95": 6550,
+                "rateLimited": 0
+            },
+            "queue": {
+                "generatedAt": "2026-10-28T12:00:00.000Z",
+                "queued": 0,
+                "running": 0,
+                "oldestQueuedAgeMs": null
+            },
+            "learning": {
+                "recorded": 0,
+                "labelled": 0,
+                "labelledShare": null,
+                "outcomes": {},
+                "sources": {}
+            },
+            "probes": [
+                {
+                    "probe": "code_read",
+                    "calls": 60,
+                    "statuses": {
+                        "ok": 52,
+                        "error": 8
+                    },
+                    "okShare": 0.8666666666666667,
+                    "meanMs": 1020,
+                    "p90Ms": 1760
+                },
+                {
+                    "probe": "browser_inspect",
+                    "calls": 30,
+                    "statuses": {
+                        "error": 4,
+                        "ok": 26
+                    },
+                    "okShare": 0.8666666666666667,
+                    "meanMs": 990,
+                    "p90Ms": 1740
+                }
+            ],
+            "rejections": [],
+            "costliest": [
+                {
+                    "jobId": "job_e4cb97dc-c2e7-4e58-8edf-adc08edc9abf",
+                    "modelCalls": 1,
+                    "promptTokens": 31030,
+                    "completionTokens": 1490,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_4fe2da6a-18b2-4edc-b24d-7249970859be",
+                    "modelCalls": 1,
+                    "promptTokens": 30760,
+                    "completionTokens": 1480,
+                    "outcome": "fallback",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_35d2af68-b3a4-4f36-ba3e-b42e13bc8a94",
+                    "modelCalls": 1,
+                    "promptTokens": 30490,
+                    "completionTokens": 1470,
+                    "outcome": "diagnose",
+                    "probes": ["browser_inspect"]
+                },
+                {
+                    "jobId": "job_1dd598cd-8fe7-4d2f-9bb9-6b0c4c37afc3",
+                    "modelCalls": 1,
+                    "promptTokens": 30220,
+                    "completionTokens": 1460,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                },
+                {
+                    "jobId": "job_4bb61ce7-5f72-4d5c-9b0f-75f7ab291805",
+                    "modelCalls": 1,
+                    "promptTokens": 29950,
+                    "completionTokens": 1450,
+                    "outcome": "explain",
+                    "probes": ["code_read"]
+                }
+            ]
+        }
+    }
+}

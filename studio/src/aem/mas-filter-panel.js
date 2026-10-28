@@ -33,6 +33,7 @@ class MasFilterPanel extends LitElement {
         tagsByType: { type: Object, state: true },
         selectedStatuses: { type: Array, state: true },
         pendingStatuses: { type: Array, state: true },
+        pendingVariations: { type: Array, state: true },
     };
 
     static styles = css`
@@ -99,7 +100,7 @@ class MasFilterPanel extends LitElement {
             align-items: center;
         }
 
-        .status-filter-footer {
+        .filter-footer {
             display: flex;
             align-items: center;
             justify-content: end;
@@ -108,7 +109,7 @@ class MasFilterPanel extends LitElement {
             padding: 8px;
         }
 
-        .status-filter-footer span {
+        .filter-footer span {
             flex: 1;
         }
     `;
@@ -117,6 +118,7 @@ class MasFilterPanel extends LitElement {
 
     /** @type {() => void} */
     #onRouterChange = () => this.#initializeTagFilters();
+    #appliedVariation;
 
     constructor() {
         super();
@@ -125,6 +127,15 @@ class MasFilterPanel extends LitElement {
         };
         this.selectedStatuses = [];
         this.pendingStatuses = [];
+        this.pendingVariations = [];
+    }
+
+    willUpdate() {
+        const variation = Store.filters.get().variation;
+        if (variation !== this.#appliedVariation) {
+            this.#appliedVariation = variation;
+            this.pendingVariations = this.#selectedVariations;
+        }
     }
 
     firstUpdated() {
@@ -326,6 +337,7 @@ class MasFilterPanel extends LitElement {
 
     #resetPendingStatuses() {
         this.pendingStatuses = [];
+        this.pendingVariations = [];
     }
 
     #discardPendingStatuses() {
@@ -392,18 +404,32 @@ class MasFilterPanel extends LitElement {
     }
 
     #setVariations(variations) {
+        this.pendingVariations = variations;
         Store.filters.set((prev) => ({ ...prev, variation: variations.join(',') || undefined }));
     }
 
     #handleVariationChange(optionId, e) {
-        const selected = this.#selectedVariations;
+        const selected = this.pendingVariations;
         if (!e.target.checked) {
-            this.#setVariations(selected.filter((id) => id !== optionId));
+            this.pendingVariations = selected.filter((id) => id !== optionId);
         } else if (optionId === VARIATION_FILTER.NONE) {
-            this.#setVariations([VARIATION_FILTER.NONE]);
+            this.pendingVariations = [VARIATION_FILTER.NONE];
         } else {
-            this.#setVariations([...selected.filter((id) => id !== VARIATION_FILTER.NONE), optionId]);
+            this.pendingVariations = [...selected.filter((id) => id !== VARIATION_FILTER.NONE), optionId];
         }
+    }
+
+    #applyVariations() {
+        this.#setVariations(this.pendingVariations);
+        this.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation"]').open = false;
+    }
+
+    #resetPendingVariations() {
+        this.pendingVariations = [];
+    }
+
+    #discardPendingVariations() {
+        this.pendingVariations = this.#selectedVariations;
     }
 
     #handleVariationDelete(e) {
@@ -412,7 +438,12 @@ class MasFilterPanel extends LitElement {
 
     get variationPickerTemplate() {
         return html`
-            <overlay-trigger class="filter-trigger" placement="bottom" data-filter-type="variation">
+            <overlay-trigger
+                class="filter-trigger"
+                placement="bottom"
+                data-filter-type="variation"
+                @sp-closed=${this.#discardPendingVariations}
+            >
                 <sp-action-button slot="trigger" quiet aria-label=${VARIATION_FILTER_LABEL}>
                     ${VARIATION_FILTER_LABEL}
                     <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
@@ -424,13 +455,20 @@ class MasFilterPanel extends LitElement {
                                 (option) => html`
                                     <sp-checkbox
                                         value=${option.id}
-                                        .checked=${this.#selectedVariations.includes(option.id)}
+                                        .checked=${this.pendingVariations.includes(option.id)}
                                         @change=${(e) => this.#handleVariationChange(option.id, e)}
                                     >
                                         ${option.title}
                                     </sp-checkbox>
                                 `,
                             )}
+                        </div>
+                        <div class="filter-footer">
+                            <span>${this.pendingVariations.length} selected</span>
+                            <sp-button size="s" variant="secondary" treatment="outline" @click=${this.#resetPendingVariations}>
+                                Reset
+                            </sp-button>
+                            <sp-button size="s" @click=${this.#applyVariations}>Apply</sp-button>
                         </div>
                     </div>
                 </sp-popover>
@@ -486,7 +524,7 @@ class MasFilterPanel extends LitElement {
                                 `,
                             )}
                         </div>
-                        <div class="status-filter-footer">
+                        <div class="filter-footer">
                             <span>${pendingCount} ${pendingCount === 1 ? 'status' : 'statuses'} selected</span>
                             <sp-button size="s" variant="secondary" treatment="outline" @click=${this.#resetPendingStatuses}>
                                 Reset

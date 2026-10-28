@@ -80,6 +80,12 @@
                 await filterPanel.updateComplete;
             }
 
+            async function clickVariationFooterButton(filterPanel, label) {
+                const buttons = filterPanel.shadowRoot.querySelectorAll('[data-filter-type="variation"] sp-button');
+                [...buttons].find((button) => button.textContent.trim() === label).click();
+                await filterPanel.updateComplete;
+            }
+
             runTests(async () => {
                 let fetchPromise;
                 const originalFetch = window.fetch;
@@ -204,14 +210,20 @@
                         expect(checkboxes.every((item) => !item.checked)).to.be.true;
                     });
 
-                    it('Should set the variation filter, show a chip, and clear it when the chip is deleted', async function () {
+                    it('Should apply the variation filter, show a chip, and clear it when the chip is deleted', async function () {
                         Store.filters.set({ tags: '', status: 'DRAFT' });
                         const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
                         await filterPanel.updateComplete;
 
                         await toggleVariation(filterPanel, 'grouped', true);
 
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        expect(filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]')).to.not.exist;
+                        await clickVariationFooterButton(filterPanel, 'Apply');
+
                         expect(Store.filters.get().variation).to.equal('grouped');
+                        expect(filterPanel.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation"]').open).to.be
+                            .false;
                         expect(Store.filters.get().status).to.equal('DRAFT');
                         const chip = filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]');
                         expect(chip.textContent.trim()).to.equal('Grouped');
@@ -230,9 +242,11 @@
 
                             await toggleVariation(filterPanel, variation, true);
 
-                            expect(Store.filters.get().variation).to.equal(variation);
+                            expect(Store.filters.get().variation).to.equal('none');
                             expect(variationCheckbox(filterPanel, variation).checked).to.be.true;
                             expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
+                            await clickVariationFooterButton(filterPanel, 'Apply');
+                            expect(Store.filters.get().variation).to.equal(variation);
                         });
                     }
 
@@ -243,6 +257,9 @@
 
                         await toggleVariation(filterPanel, 'promo', true);
                         await toggleVariation(filterPanel, 'grouped', true);
+
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        await clickVariationFooterButton(filterPanel, 'Apply');
 
                         expect(Store.filters.get()).to.include({
                             variation: 'promo,grouped',
@@ -263,6 +280,8 @@
                         expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.true;
 
                         await toggleVariation(filterPanel, 'grouped', false);
+                        expect(Store.filters.get().variation).to.equal('grouped');
+                        await clickVariationFooterButton(filterPanel, 'Apply');
                         expect(Store.filters.get().variation).to.be.undefined;
                         expect(filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]')).to.not.exist;
                     });
@@ -274,12 +293,16 @@
 
                         await toggleVariation(filterPanel, 'none', true);
 
-                        expect(Store.filters.get().variation).to.equal('none');
+                        expect(Store.filters.get().variation).to.equal('promo,grouped');
                         expect(variationCheckbox(filterPanel, 'promo').checked).to.be.false;
                         expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.false;
                         expect(variationCheckbox(filterPanel, 'none').checked).to.be.true;
+                        await clickVariationFooterButton(filterPanel, 'Apply');
+                        expect(Store.filters.get().variation).to.equal('none');
 
                         await toggleVariation(filterPanel, 'none', false);
+                        expect(Store.filters.get().variation).to.equal('none');
+                        await clickVariationFooterButton(filterPanel, 'Apply');
                         expect(Store.filters.get().variation).to.be.undefined;
                     });
 
@@ -295,7 +318,65 @@
                             expect(checkbox.checked).to.be.true;
                         }
 
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        await clickVariationFooterButton(filterPanel, 'Apply');
                         expect(Store.filters.get().variation).to.equal('promo,grouped');
+                    });
+
+                    it('Should reset pending variations without changing applied filters until Apply', async function () {
+                        Store.filters.set({ variation: 'promo,grouped', status: 'DRAFT' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+
+                        await clickVariationFooterButton(filterPanel, 'Reset');
+
+                        expect(Store.filters.get().variation).to.equal('promo,grouped');
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.false;
+                        expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
+                        expect(
+                            filterPanel.shadowRoot.querySelectorAll('sp-tag[data-filter-type="variation"]'),
+                        ).to.have.lengthOf(2);
+
+                        await clickVariationFooterButton(filterPanel, 'Apply');
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        expect(Store.filters.get().status).to.equal('DRAFT');
+                        expect(filterPanel.shadowRoot.querySelector('sp-tag[data-filter-type="variation"]')).to.not.exist;
+                    });
+
+                    it('Should discard unapplied variation changes and Reset when the dropdown closes', async function () {
+                        Store.filters.set({ variation: 'promo' });
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        const trigger = filterPanel.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation"]');
+
+                        await toggleVariation(filterPanel, 'none', true);
+                        trigger.dispatchEvent(new Event('sp-closed'));
+                        await filterPanel.updateComplete;
+
+                        expect(Store.filters.get().variation).to.equal('promo');
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
+                        expect(variationCheckbox(filterPanel, 'none').checked).to.be.false;
+
+                        await clickVariationFooterButton(filterPanel, 'Reset');
+                        trigger.dispatchEvent(new Event('sp-closed'));
+                        await filterPanel.updateComplete;
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
+                        expect(Store.filters.get().variation).to.equal('promo');
+                    });
+
+                    it('Should keep pending variation choices when an unrelated filter changes', async function () {
+                        const filterPanel = initElementFromTemplate('filterPanel1', this.test.title);
+                        await filterPanel.updateComplete;
+                        await toggleVariation(filterPanel, 'promo', true);
+                        Store.filters.set((prev) => ({ ...prev, status: 'DRAFT' }));
+                        await filterPanel.updateComplete;
+
+                        expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
+                        expect(Store.filters.get().variation).to.be.undefined;
+                        await clickVariationFooterButton(filterPanel, 'Apply');
+                        expect(Store.filters.get().variation).to.equal('promo');
+                        expect(Store.filters.get().status).to.equal('DRAFT');
                     });
 
                     it('Should restore checkboxes from store changes and clear them with Reset Filters', async function () {
@@ -306,6 +387,7 @@
 
                         expect(variationCheckbox(filterPanel, 'promo').checked).to.be.true;
                         expect(variationCheckbox(filterPanel, 'grouped').checked).to.be.true;
+                        await toggleVariation(filterPanel, 'none', true);
 
                         filterPanel.shadowRoot.querySelector('sp-action-button[title="Clear all filters"]').click();
                         await filterPanel.updateComplete;

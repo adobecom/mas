@@ -175,9 +175,8 @@ export class MasPromotionHistory extends LitElement {
         this.cursor = page.cursor;
         if ((!append || !this.currentEventId) && Object.values(this.filters).every((value) => !value)) {
             this.currentEventId =
-                this.events.find(
-                    (event) => event.snapshot && !event.isBackup && !['backup', 'publish', 'unpublish'].includes(event.action),
-                )?.id ?? '';
+                this.events.find((event) => !event.isBackup && !['backup', 'publish', 'unpublish'].includes(event.action))
+                    ?.id ?? '';
         }
         if (!append && this.events.length) await this.selectVersion(this.events[0]);
     }
@@ -460,7 +459,7 @@ export class MasPromotionHistory extends LitElement {
         const failed = result.failures?.length ?? 0;
         Events.toast.emit({
             variant: failed ? 'warning' : 'positive',
-            message: `Restored ${result.restored.length} fragment(s) as new draft version ${result.event.id}. Nothing published.${
+            message: `Restored ${result.restored.length} fragment(s) as a draft. Audit event ${result.event.id}. Nothing published.${
                 failed ? ` ${failed} fragment(s) could not be restored.` : ''
             }`,
         });
@@ -572,6 +571,7 @@ export class MasPromotionHistory extends LitElement {
                     by ${event.user.name || event.user.email || event.user.id}
                 </strong>
                 <span class="card-summary">
+                    <span class="category-tag">${event.action}</span>
                     <strong
                         >${event.action === 'create'
                             ? 'Project created'
@@ -583,6 +583,7 @@ export class MasPromotionHistory extends LitElement {
                         (label) => html`<span class="category-tag">${label}</span>`,
                     )}
                 </span>
+                <span class="muted">${event.targetPath ?? event.targetId ?? event.projectId}</span>
                 ${!event.snapshot ? html`<span class="muted">Read-only event</span>` : nothing}
             </button>
         `;
@@ -643,7 +644,7 @@ export class MasPromotionHistory extends LitElement {
                     `,
                 )}
                 ${unavailable ? html`<small class="row-warning">Unavailable — cannot restore</small>` : nothing}
-                ${!row.restorable
+                ${!row.restorable && this.selectedEvent.snapshot
                     ? html`<small class="row-warning">Field is not present in this saved snapshot</small>`
                     : nothing}
             </div>
@@ -745,21 +746,19 @@ export class MasPromotionHistory extends LitElement {
                 </div>
             </div>
             ${!this.selectedEvent.snapshot
-                ? html`<p class="empty">Read-only event. No saved snapshot is available for restoration.</p>`
-                : html`
-                      ${!canManagePromotions()
-                          ? html`<p class="muted">Read-only access. Only promotion managers can restore.</p>`
-                          : nothing}
-                      ${this.baselineLoading
-                          ? html`<div class="loading">
-                                <sp-progress-circle indeterminate aria-label="Loading comparison"></sp-progress-circle>
-                            </div>`
-                          : repeat(
-                                this.groups,
-                                (group) => group.label,
-                                (group) => this.groupTemplate(group),
-                            )}
-                  `}
+                ? html`<p class="muted">Read-only event. Restore is available from a saved backup.</p>`
+                : !canManagePromotions()
+                  ? html`<p class="muted">Read-only access. Only promotion managers can restore.</p>`
+                  : nothing}
+            ${this.baselineLoading
+                ? html`<div class="loading">
+                      <sp-progress-circle indeterminate aria-label="Loading comparison"></sp-progress-circle>
+                  </div>`
+                : repeat(
+                      this.groups,
+                      (group) => group.label,
+                      (group) => this.groupTemplate(group),
+                  )}
             <footer class="details-footer">
                 <span class="muted">Restore saves a new draft. Nothing is published.</span>
                 <sp-action-button
@@ -796,7 +795,7 @@ export class MasPromotionHistory extends LitElement {
                     ${this.confirmation === 'full'
                         ? 'The complete saved project snapshot'
                         : `${this.selectedFields.size} selected field(s)`}
-                    will be restored as a new draft version.
+                    will be restored to the current draft.
                 </p>
                 <p>
                     Nothing will be published. Deleted fragments will not be recreated. Unsaved changes in the main editor are

@@ -1,10 +1,12 @@
 const crypto = require('node:crypto');
+const { setTimeout: delay } = require('node:timers/promises');
 const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken, isAllowed } = require('../../utils.js');
 
 const logger = Core.Logger('promo-history', { level: 'info' });
 const RETENTION = 95 * 86400;
+const INTENT_RETENTION = 86400;
 const MAX_ENTRIES = 2000;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
@@ -230,10 +232,17 @@ async function snapshot(context, project, extra = []) {
     return result;
 }
 
-async function readVersion(context, entry) {
+async function readVersion(context, entry, retryDelays = []) {
     const versionId = text(entry.versionId, 'AEM version ID');
     if (['.', '..'].includes(versionId)) fail(400, 'Invalid AEM version ID');
-    const response = await aem(context, `/${identifier(entry.id)}/versions/${encodeURIComponent(versionId)}`);
+    let response;
+    try {
+        response = await aem(context, `/${identifier(entry.id)}/versions/${encodeURIComponent(versionId)}`);
+    } catch (error) {
+        if (error.statusCode !== 404 || !retryDelays.length) throw error;
+        await delay(retryDelays[0]);
+        return readVersion(context, entry, retryDelays.slice(1));
+    }
     return { ...(await response.json()), id: entry.id, path: entry.path, status: entry.status };
 }
 
@@ -266,13 +275,65 @@ async function versionSnapshot(context, current) {
             versionId,
             ...(fragment.status ? { status: fragment.status } : {}),
         };
-        const historical = await readVersion(context, entry);
+        const historical = await readVersion(context, entry, [250, 500, 1000]);
         if (diff({ fragments: [fragment] }, { fragments: [historical] }).length) {
             fail(409, 'Fragment changed while creating its AEM version; reload and retry');
         }
         fragments.push(entry);
     }
+    const confirmed = { fragments: [] };
+    for (const fragment of current.fragments) confirmed.fragments.push((await readFragment(context, fragment.id)).fragment);
+    if (diff(current, confirmed).length) fail(409, 'Project changed while creating its backup; reload and retry');
     return { fragments, references: (current.references ?? []).map(({ id, path }) => ({ id, path })) };
+}
+
+function auditSnapshot(fragment) {
+    return {
+        fragments: fragment
+            ? [
+                  {
+                      ...Object.fromEntries(
+                          ['id', 'path', 'model', 'modelId', 'title', 'description', 'tags', 'status'].map((key) => [
+                              key,
+                              fragment[key],
+                          ]),
+                      ),
+                      fields: (fragment.fields ?? []).map(({ name, values }) => ({ name, values })),
+                  },
+              ]
+            : [],
+    };
+}
+
+async function auditTarget(context, params) {
+    const project = context.project;
+    if (params.targetPath) {
+        pathValue(params.targetPath);
+        if (
+            params.targetPath !== project.path &&
+            !ownVariation(project, { path: params.targetPath }) &&
+            !references(project).includes(params.targetPath)
+        )
+            fail(403, 'Target path is outside this promotion project');
+    }
+    let target = project;
+    if (params.targetId && params.targetId !== project.id) {
+        try {
+            target = (await readFragment(context, params.targetId)).fragment;
+        } catch (error) {
+            if (error.statusCode !== 404) throw error;
+            fail(403, 'Target is outside this promotion project');
+        }
+    } else if (!params.targetId && params.targetPath && params.targetPath !== project.path) {
+        target = ['create', 'duplicate'].includes(params.action) ? null : await readPath(context, params.targetPath);
+    }
+    if (target) {
+        if (target.id !== project.id && !ownVariation(project, target) && !references(project).includes(target.path)) {
+            fail(403, 'Target is outside this promotion project');
+        }
+        if (params.targetPath && params.targetPath !== target.path) fail(403, 'Target path does not match the fragment');
+    }
+    return target;
 }
 
 function bounded(value) {
@@ -298,8 +359,8 @@ async function readEntries(state, projectId, kind = 'event') {
     return [...new Map(result.reverse().map((entry) => [entry.id, entry])).values()];
 }
 
-async function persist(context, kind, value) {
-    await context.state.put(`${namespace(context.projectId, kind)}${crypto.randomUUID()}`, bounded(value), { ttl: RETENTION });
+async function persist(context, kind, value, ttl = RETENTION) {
+    await context.state.put(`${namespace(context.projectId, kind)}${crypto.randomUUID()}`, bounded(value), { ttl });
     return value;
 }
 
@@ -370,10 +431,11 @@ async function writeEvent(context, action, before, after, extra = {}) {
         createdAt,
         user: context.user,
         projectId: context.projectId,
+        projectPath: context.project?.path ?? context.projectPath,
+        environment: { aem: context.endpoint, runtime: process.env.__OW_NAMESPACE },
         targetId: context.targetId ?? context.projectId,
         targetPath: context.targetPath ?? context.project?.path,
         changes: extra.changes ?? (after ? diff(before, after) : []),
-        snapshot: after ? await versionSnapshot(context, after) : undefined,
         label: createdAt,
         fingerprint: context.fingerprint,
         ...extra,
@@ -400,18 +462,26 @@ async function record(context, params) {
             if (error.statusCode !== 404 || intent.action !== 'delete' || intent.targetId !== context.projectId) throw error;
         }
         context.project = project;
-        let after = { fragments: [], references: [] };
-        if (project) {
-            const extras =
-                intent.targetPath && intent.targetId !== context.projectId && intent.action !== 'delete'
-                    ? [intent.targetPath]
-                    : [];
-            after = await snapshot(context, project, extras);
-            const target = after.fragments.find((fragment) => fragment.path === intent.targetPath);
-            if (target) context.targetId = target.id;
-            if (params.targetId && params.targetId !== context.targetId) fail(403, 'Completed target does not match intent');
+        context.projectPath = intent.projectPath;
+        let target;
+        try {
+            target =
+                intent.targetId === context.projectId
+                    ? project
+                    : intent.targetId
+                      ? (await readFragment(context, intent.targetId)).fragment
+                      : await readPath(context, intent.targetPath);
+        } catch (error) {
+            if (error.statusCode !== 404 || intent.action !== 'delete') throw error;
         }
-        const before = intent.action === 'delete' ? { fragments: [] } : await readSnapshot(context, intent.before);
+        if (target && target.path !== intent.targetPath) fail(409, 'Audit target moved; reload before continuing');
+        if (target) context.targetId = target.id;
+        if (params.targetId && params.targetId !== context.targetId) fail(403, 'Completed target does not match intent');
+        const after = auditSnapshot(target);
+        const before =
+            intent.action !== 'delete' && intent.before.fragments.some((fragment) => fragment.versionId)
+                ? await readSnapshot(context, intent.before)
+                : intent.before;
         const changes = intent.action === 'delete' ? intent.changes : diff(before, after);
         if (intent.action === 'delete' && after.fragments.some((fragment) => fragment.id === context.targetId)) {
             fail(409, 'No server-observed deletion');
@@ -432,7 +502,11 @@ async function record(context, params) {
     if (!ACTIONS.has(params.action) || ['restore', 'backup'].includes(params.action)) fail(400, 'Invalid audit action');
     if (!params.phase) {
         if (!['create', 'duplicate'].includes(params.action)) fail(400, 'Prepare intent required');
-        return writeEvent(context, params.action, { fragments: [] }, await snapshot(context, context.project));
+        const target = await auditTarget(context, params);
+        if (!target) fail(404, 'Created fragment is not available');
+        context.targetId = target.id;
+        context.targetPath = target.path;
+        return writeEvent(context, params.action, { fragments: [] }, auditSnapshot(target));
     }
     if (params.phase !== 'prepare') fail(400, 'Invalid record phase');
     const intents = await readEntries(context.state, context.projectId, 'intent');
@@ -447,31 +521,19 @@ async function record(context, params) {
         return { intentId: existing.id };
     }
     if (intents.length >= MAX_ENTRIES) fail(507, 'Project history intent capacity reached');
-    const current = await snapshot(context, context.project);
-    const newProject =
-        ['create', 'duplicate'].includes(params.action) &&
-        (params.targetId === context.projectId || (!params.targetId && !params.targetPath));
-    const before = newProject ? { fragments: [], references: [] } : current;
-    if (params.targetId) {
-        identifier(params.targetId);
-        if (!current.fragments.some((f) => f.id === params.targetId)) fail(403, 'Target is outside this promotion project');
-    }
-    if (params.targetPath) {
-        pathValue(params.targetPath);
-        if (params.targetPath !== context.project.path && !ownVariation(context.project, { path: params.targetPath })) {
-            fail(403, 'Target path is outside this promotion project');
-        }
-    }
-    const target = current.fragments.find((fragment) => fragment.id === params.targetId);
+    const target = await auditTarget(context, params);
+    const current = auditSnapshot(target);
+    const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
     const intent = {
         id: stableId(context, 'intent'),
         createdAt: new Date().toISOString(),
         user: context.user,
+        projectPath: context.project.path,
         requestId: context.requestId,
         action: params.action,
-        targetId: params.targetId ?? (params.targetPath ? null : context.projectId),
+        targetId: target?.id ?? null,
         targetPath: params.targetPath ?? target?.path,
-        before: await versionSnapshot(context, before),
+        before,
         ...(params.action === 'delete'
             ? {
                   changes: diff(current, { fragments: [] }).filter(
@@ -481,7 +543,7 @@ async function record(context, params) {
             : {}),
     };
     bounded(intent);
-    await persist(context, 'intent', intent);
+    await persist(context, 'intent', intent, INTENT_RETENTION);
     return { intentId: intent.id };
 }
 
@@ -638,23 +700,25 @@ async function restore(context, params, events) {
         });
     }
     const before = { fragments: plan.map((item) => item.before) };
-    const fullBefore = await snapshot(context, context.project);
     bounded({
-        snapshot: fullBefore,
         before,
         after: plan.map((item) => ({ ...item.before, ...item.payload })),
         changes: diff(before, { fragments: plan.map((item) => ({ ...item.before, ...item.payload })) }),
         reserved: ' '.repeat(20000),
     });
-    await persist(context, 'restore-intent', {
-        id: crypto.randomUUID(),
-        requestId: context.requestId,
-        user: context.user,
-        createdAt: new Date().toISOString(),
-        eventId: source.id,
-        targets: plan.map(({ id, expected }) => ({ fragmentId: id, etag: expected })),
-        snapshot: await versionSnapshot(context, fullBefore),
-    });
+    await persist(
+        context,
+        'restore-intent',
+        {
+            id: crypto.randomUUID(),
+            requestId: context.requestId,
+            user: context.user,
+            createdAt: new Date().toISOString(),
+            eventId: source.id,
+            targets: plan.map(({ id, expected }) => ({ fragmentId: id, etag: expected })),
+        },
+        INTENT_RETENTION,
+    );
     const restored = [];
     const failures = [];
     const after = [];
@@ -678,26 +742,20 @@ async function restore(context, params, events) {
             break;
         }
     }
-    let fullAfter;
-    try {
-        const currentProject = (await readFragment(context, context.projectId)).fragment;
-        fullAfter = await snapshot(
-            context,
-            currentProject,
-            plan.map((item) => item.before.path).filter((path) => path !== currentProject.path),
-        );
-    } catch {
-        fullAfter = null;
-        failures.push({ statusCode: 502, error: 'Draft writes finished; complete snapshot could not be confirmed' });
-    }
     let result;
     try {
-        result = await writeEvent(context, 'restore', before, fullAfter, {
-            changes: diff(before, { fragments: after }),
-            restored,
-            ...(failures.length ? { failures } : {}),
-            sourceEventId: source.id,
-        });
+        result = await writeEvent(
+            context,
+            'restore',
+            before,
+            { fragments: after },
+            {
+                changes: diff(before, { fragments: after }),
+                restored,
+                ...(failures.length ? { failures } : {}),
+                sourceEventId: source.id,
+            },
+        );
     } catch {
         throw Object.assign(new Error('Draft writes finished but audit completion failed; do not retry blindly'), {
             statusCode: 503,
@@ -757,9 +815,10 @@ async function execute(operation, params) {
     if (operation === 'list') return list(events, params);
     if (operation === 'record') return record(context, params);
     if (operation === 'backup') {
-        const label = params.label === undefined ? 'auto: pre-publish' : text(params.label, 'backup label');
+        const label = params.label === undefined ? 'Manual backup' : text(params.label, 'backup label');
         const current = await snapshot(context, context.project);
-        return writeEvent(context, 'backup', current, current, { label, isBackup: true });
+        const manifest = await versionSnapshot(context, current);
+        return writeEvent(context, 'backup', current, current, { label, isBackup: true, snapshot: manifest });
     }
     if (operation === 'restore') return restore(context, params, events);
     fail(400, 'Unknown history operation');

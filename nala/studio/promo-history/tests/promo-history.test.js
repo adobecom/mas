@@ -55,6 +55,12 @@ test.describe('M@S Studio - Promo project history', () => {
         });
 
         await test.step('Save a later draft value on the real project', async () => {
+            const completion = page.waitForResponse(
+                (res) =>
+                    res.url().endsWith('/promo-history-record') &&
+                    res.request().method() === 'POST' &&
+                    res.request().postDataJSON().phase === 'complete',
+            );
             await page.evaluate(
                 async ({ id, code }) => {
                     const aem = document.querySelector('mas-repository').aem;
@@ -63,6 +69,21 @@ test.describe('M@S Studio - Promo project history', () => {
                     await aem.sites.cf.fragments.save(current, { refetchEtag: false });
                 },
                 { id: fragment.id, code: data.updatedCode },
+            );
+            const auditResponse = await completion;
+            expect(auditResponse.ok()).toBeTruthy();
+            const { event } = await auditResponse.json();
+            expect(event.action).toBe('save');
+            expect(event.targetId).toBe(fragment.id);
+            expect(event.snapshot).toBeUndefined();
+            expect(event.changes).toEqual(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        field: 'promoCode',
+                        before: [data.originalCode],
+                        after: [data.updatedCode],
+                    }),
+                ]),
             );
             await page.reload();
             await expect(promoHistory.cards.filter({ hasText: 'Manual backup' })).toHaveCount(1);
@@ -73,7 +94,15 @@ test.describe('M@S Studio - Promo project history', () => {
             await expect(promoHistory.restoreFullButton).toBeEnabled();
             await promoHistory.restoreFullButton.click();
             await expect(promoHistory.confirmation).toBeVisible();
+            const response = page.waitForResponse(
+                (res) => res.url().endsWith('/promo-history-restore') && res.request().method() === 'POST',
+            );
             await promoHistory.confirmRestore.click();
+            const restoreResponse = await response;
+            expect(restoreResponse.ok()).toBeTruthy();
+            const { event } = await restoreResponse.json();
+            expect(event.action).toBe('restore');
+            expect(event.snapshot).toBeUndefined();
             await expect(studio.toastPositive).toBeVisible();
             const restored = await page.evaluate(async (id) => {
                 const fragment = await document.querySelector('mas-repository').aem.sites.cf.fragments.getById(id);

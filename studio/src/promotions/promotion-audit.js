@@ -45,25 +45,29 @@ function isProject(fragment) {
     return (fragment.modelId ?? fragment.model?.id)?.replace(/={1,2}$/, '') === PROMOTION_MODEL_ID.replace(/={1,2}$/, '');
 }
 
-async function resolveProjectId(repository, fragment) {
-    if (isProject(fragment)) return fragment.id;
-    if (!isPromoVariationPath(fragment.path)) return null;
+async function resolveProjectIds(repository, fragment) {
+    if (isProject(fragment)) return [fragment.id];
+    if (!fragment.path) return [];
     const tag = getPromotionTagFromFragment(fragment);
-    let projects = Store.promotions.list.data.get();
+    let projects = Store.promotions.list.data.get().map((store) => store.get());
     if (!projects.length) {
-        await repository.loadPromotions();
-        projects = Store.promotions.list.data.get();
+        projects = await repository.searchFragmentList(
+            { path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] },
+            50,
+        );
     }
-    const project = projects
-        .map((store) => store.get())
-        .find((item) => {
-            const projectTag = getPromotionTagFromFragment(item);
-            if (tag) return projectTag === tag;
-            const promoName = getPromoNameFromTag(projectTag ?? '');
-            return promoName && fragment.path.includes(`/promotions/${promoName}/`);
-        });
-    if (!project) throw new Error('The promotion project could not be resolved. Reload and try again.');
-    return project.id;
+    const matches = projects.filter((item) => {
+        if (item.fields?.some((field) => field.name === 'fragments' && field.values.includes(fragment.path))) return true;
+        if (!isPromoVariationPath(fragment.path)) return false;
+        const projectTag = getPromotionTagFromFragment(item);
+        if (tag) return projectTag === tag;
+        const promoName = getPromoNameFromTag(projectTag ?? '');
+        return promoName && fragment.path.includes(`/promotions/${promoName}/`);
+    });
+    if (!matches.length && isPromoVariationPath(fragment.path)) {
+        throw new Error('The promotion project could not be resolved. Reload and try again.');
+    }
+    return matches.map((project) => project.id);
 }
 
 function readPending() {
@@ -92,9 +96,7 @@ export async function retryPendingPromotionAudits(projectId) {
     }
 }
 
-async function prepareAudit(repository, action, fragment) {
-    const projectId = await resolveProjectId(repository, fragment);
-    if (!projectId) return null;
+async function prepareAudit(projectId, action, fragment) {
     const requestId = crypto.randomUUID();
     const payload = { projectId, action, targetId: fragment.id, targetPath: fragment.path, requestId };
     const { intentId } = await recordPromotionHistory({ ...payload, phase: 'prepare' });
@@ -104,31 +106,31 @@ async function prepareAudit(repository, action, fragment) {
 /** Runs promotion writes with a durable server-verified intent and a confirmed completion. */
 export async function withPromotionAudit(repository, action, target, write) {
     const targets = Array.isArray(target) ? target : [target];
-    const relevant = targets.filter((fragment) => isProject(fragment) || isPromoVariationPath(fragment.path));
-    if (!relevant.length) return write();
     const actualAction = target.auditAction ?? action;
-    const isNewProject = actualAction === 'create' && relevant.every((fragment) => !fragment.id && isProject(fragment));
+    const isNewProject = actualAction === 'create' && targets.every((fragment) => !fragment.id && isProject(fragment));
     if (isNewProject || actualAction === 'duplicate') {
         const created = await write();
-        try {
-            const intent = await prepareAudit(repository, actualAction, created);
-            if (intent) await completeAudit(intent);
-        } catch (error) {
-            console.error('Promotion creation audit failed:', error);
-            showToast('Content created, but its history could not be recorded.', 'warning');
+        if (!created) throw new Error('Created fragment could not be confirmed. Reload before retrying.');
+        for (const projectId of await resolveProjectIds(repository, created)) {
+            await completeAudit({
+                projectId,
+                action: actualAction,
+                targetId: created.id,
+                targetPath: created.path,
+                requestId: crypto.randomUUID(),
+            });
         }
         return created;
     }
-    if (actualAction === 'publish') {
-        const projectIds = new Set();
-        for (const fragment of relevant) projectIds.add(await resolveProjectId(repository, fragment));
-        for (const projectId of projectIds) await createPromotionBackup(projectId, 'auto: pre-publish');
-    }
     const intents = [];
-    for (const fragment of relevant) intents.push(await prepareAudit(repository, actualAction, fragment));
+    for (const fragment of targets) {
+        for (const projectId of await resolveProjectIds(repository, fragment)) {
+            intents.push(await prepareAudit(projectId, actualAction, fragment));
+        }
+    }
     const result = await write();
     for (const intent of intents) {
-        if (intent) await completeAudit({ ...intent, targetId: intent.targetId ?? result?.id });
+        await completeAudit({ ...intent, targetId: intent.targetId ?? result?.id });
     }
     return result;
 }

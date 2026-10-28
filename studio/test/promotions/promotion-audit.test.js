@@ -41,7 +41,11 @@ describe('promotion write audit capture', () => {
                 JSON.stringify(payload.phase === 'prepare' ? { intentId: 'intent' } : { event: { id: 'event' } }),
             );
         });
-        repository = { loadPromotions: sandbox.stub().resolves() };
+        repository = {
+            loadPromotions: sandbox.stub().resolves(),
+            getPromotionsPath: sandbox.stub().returns('/content/dam/mas/promotions'),
+            searchFragmentList: sandbox.stub().resolves([]),
+        };
     });
 
     afterEach(() => {
@@ -57,6 +61,33 @@ describe('promotion write audit capture', () => {
         expect(await withPromotionAudit(repository, 'save', { path: '/content/dam/mas/acom/en_US/card' }, write)).to.equal(
             'saved',
         );
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('finds shared-fragment projects without triggering promotion loading side effects', async () => {
+        const shared = { id: 'shared', path: '/content/dam/mas/acom/en_US/shared' };
+        Store.promotions.list.data.set([]);
+        repository.searchFragmentList.resolves([
+            { ...project, fields: [...project.fields, { name: 'fragments', values: [shared.path] }] },
+        ]);
+        const write = sandbox.stub().resolves(shared);
+
+        await withPromotionAudit(repository, 'save', shared, write);
+
+        expect(repository.loadPromotions.called).to.be.false;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({ projectId: project.id, targetId: shared.id });
+        expect(write.calledOnce).to.be.true;
+    });
+
+    it('does not mask an unconfirmed duplicate with an audit of its source', async () => {
+        let failure;
+        try {
+            await withPromotionAudit(repository, 'duplicate', project, sandbox.stub().resolves(null));
+        } catch (error) {
+            failure = error;
+        }
+
+        expect(failure?.message).to.include('could not be confirmed');
         expect(fetchStub.called).to.be.false;
     });
 
@@ -115,12 +146,53 @@ describe('promotion write audit capture', () => {
         expect(JSON.parse(fetchStub.firstCall.args[1].body).projectId).to.equal('project');
     });
 
-    it('takes a complete backup before publishing', async () => {
+    it('audits publishing without automatically creating a project backup', async () => {
         const write = sandbox.stub().callsFake(async () => {
-            expect(fetchStub.getCalls().some((call) => call.args[0].endsWith('/promo-history-backup'))).to.be.true;
+            expect(JSON.parse(fetchStub.firstCall.args[1].body).phase).to.equal('prepare');
         });
         await withPromotionAudit(repository, 'publish', project, write);
-        expect(JSON.parse(fetchStub.firstCall.args[1].body).label).to.equal('auto: pre-publish');
+        expect(fetchStub.getCalls().every((call) => call.args[0].endsWith('/promo-history-record'))).to.be.true;
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('audits a shared fragment for each project that directly references it', async () => {
+        const shared = { id: 'shared', path: '/content/dam/mas/acom/en_US/shared' };
+        Store.promotions.list.data.set(
+            ['first', 'second'].map(
+                (id) =>
+                    new FragmentStore(
+                        new Fragment({
+                            ...project,
+                            id,
+                            fields: [...project.fields, { name: 'fragments', values: [shared.path] }],
+                        }),
+                    ),
+            ),
+        );
+        const write = sandbox.stub().resolves(shared);
+
+        await withPromotionAudit(repository, 'save', shared, write);
+
+        expect(write.calledOnce).to.be.true;
+        const prepares = fetchStub
+            .getCalls()
+            .map((call) => JSON.parse(call.args[1].body))
+            .filter((payload) => payload.phase === 'prepare');
+        expect(prepares.map(({ projectId }) => projectId)).to.deep.equal(['first', 'second']);
+        expect(fetchStub.callCount).to.equal(4);
+    });
+
+    it('queues a failed project creation audit for retry without creating versions', async () => {
+        fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
+
+        await withPromotionAudit(repository, 'create', { modelId: PROMOTION_MODEL_ID }, sandbox.stub().resolves(project));
+
+        const [pending] = JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'));
+        expect(pending).to.include({ projectId: project.id, targetId: project.id, action: 'create' });
+        expect(pending).not.to.have.property('fields');
+        await retryPendingPromotionAudits();
+        expect(JSON.parse(fetchStub.secondCall.args[1].body).requestId).to.equal(pending.requestId);
+        expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))).to.deep.equal([]);
     });
 
     it('prepares every target in a batch once and executes the batch once', async () => {

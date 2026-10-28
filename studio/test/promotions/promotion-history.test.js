@@ -484,6 +484,55 @@ describe('Promotion version history', () => {
         expect(getWithEtag.called).to.be.false;
     });
 
+    it('shows recorded field differences for audit entries without loading any AEM versions', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, snapshot: undefined }],
+            cursor: null,
+        });
+
+        const root = await mount();
+
+        expect(root.querySelector('[data-field="@title"] .before').textContent).to.include('Old');
+        expect(root.querySelector('[data-field="@title"] .after').textContent).to.include('Wrong');
+        expect(root.querySelector('#restore-full').disabled).to.be.true;
+        expect(getVersion.called).to.be.false;
+        expect(getWithEtag.called).to.be.false;
+    });
+
+    it('identifies the action and target of an audit event with no field differences', async () => {
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    snapshot: undefined,
+                    action: 'publish',
+                    changes: [],
+                    targetPath: fragment.path,
+                    label: version.createdAt,
+                },
+            ],
+            cursor: null,
+        });
+
+        const root = await mount();
+
+        const card = root.querySelector('[data-event-id="event-1"]');
+        expect(card.textContent).to.include('publish');
+        expect(card.textContent).to.include(fragment.path);
+    });
+
+    it('marks the latest content audit entry current without requiring an automatic snapshot', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, id: 'latest-audit', snapshot: undefined }, version],
+            cursor: null,
+        });
+
+        const root = await mount();
+
+        expect(element.currentEventId).to.equal('latest-audit');
+        expect(root.querySelector('[data-event-id="latest-audit"]').classList.contains('current')).to.be.true;
+    });
+
     it('does not allow deleted targets to be selected', async () => {
         getWithEtag.rejects(Object.assign(new Error('Not found'), { status: 404 }));
         const root = await mount();

@@ -9,6 +9,7 @@ import {
     buildOfferMapping,
     resolveOfferSubstituteMap,
     clearOfferMappingCache,
+    clearWcsCache,
 } from '../../src/fragment/transformers/wcs.js';
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
@@ -1541,6 +1542,190 @@ describe('offer-mapping fallback (MWPW-203764)', function () {
             }),
         );
         expect(result.body.fields.osi).to.equal('MAPPED');
+    });
+});
+
+describe('wcs preview request reuse', function () {
+    let fetchStub;
+
+    const context = (osis = 'OSI-A', overrides = {}) => ({
+        api_key: 'testing_wcs',
+        locale: 'es_AR',
+        preview: { url: 'https://preview.example.com' },
+        wcsConfiguration: CONFIGURATION(),
+        body: { fields: { prices: `<span data-wcs-osi="${osis}"></span>` } },
+        ...overrides,
+    });
+
+    beforeEach(function () {
+        globalThis.localStorage = {
+            getItem: () => null,
+            setItem: () => {},
+        };
+        clearWcsCache();
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            const params = new URL(url).searchParams;
+            return createResponse(200, {
+                resolvedOffers: params
+                    .get('offer_selector_ids')
+                    .split(',')
+                    .map((osi) => ({ offerSelectorIds: [osi], promotionCode: params.get('promotion_code') })),
+            });
+        });
+    });
+
+    afterEach(function () {
+        clearWcsCache();
+        fetchStub.restore();
+        delete globalThis.localStorage;
+    });
+
+    it('reuses completed requests across preview fragments', async function () {
+        await wcs.process(context());
+        const second = await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(1);
+        expect(second.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+    });
+
+    it('reuses concurrent requests across preview fragments', async function () {
+        await Promise.all([wcs.process(context()), wcs.process(context())]);
+
+        expect(fetchStub.callCount).to.equal(1);
+    });
+
+    it('reuses an individual offer for comparison placeholders without losing the other offer', async function () {
+        await wcs.process(context());
+        const comparison = await wcs.process(context('OSI-B,OSI-A'));
+        await wcs.process(context('OSI-B,OSI-A'));
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(
+            fetchStub.getCalls().map(({ args: [url] }) => new URL(url).searchParams.get('offer_selector_ids')),
+        ).to.deep.equal(['OSI-A', 'OSI-B']);
+        expect(comparison.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+        expect(comparison.body.wcs.prod['OSI-B-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-B']);
+    });
+
+    it('keeps plain and promoted lookups separate', async function () {
+        await wcs.process(context());
+        const promoContext = () =>
+            context('OSI-A', {
+                body: {
+                    fields: {
+                        osi: 'OSI-A',
+                        promoCode: 'ACTIVE_PROMO',
+                        prices: '<span data-wcs-osi="OSI-A"></span>',
+                    },
+                },
+            });
+        const promoted = await wcs.process(promoContext());
+        await wcs.process(promoContext());
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(promoted.body.wcs.prod['OSI-A-ar-mult-active_promo'][0].promotionCode).to.equal('ACTIVE_PROMO');
+    });
+
+    it('does not let an optional comparison lookup shorten the timeout of a required offer', async function () {
+        const clock = sinon.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        fetchStub
+            .withArgs(sinon.match((url) => new URL(url).searchParams.get('offer_selector_ids') === 'OSI-A'))
+            .callsFake(
+                () =>
+                    new Promise((resolve) =>
+                        setTimeout(
+                            () => resolve(createResponse(200, { resolvedOffers: [{ offerSelectorIds: ['OSI-A'] }] })),
+                            1100,
+                        ),
+                    ),
+            );
+        try {
+            const pending = wcs.process(
+                context('OSI-A', {
+                    body: {
+                        fields: { prices: '<span data-wcs-osi="OSI-A"></span>' },
+                        settings: { prices: '<span data-wcs-osi="OSI-A,OSI-B"></span>' },
+                    },
+                }),
+            );
+            await clock.tickAsync(1100);
+            const result = await pending;
+
+            expect(result.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+        } finally {
+            clock.restore();
+        }
+    });
+
+    for (const [name, overrides] of [
+        ['country', { locale: 'es_CL' }],
+        ['locale', { locale: 'en_AR' }],
+        ['API key', { api_key: 'another_client' }],
+        [
+            'endpoint',
+            { wcsConfiguration: [{ wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', env: 'stage' }] },
+        ],
+        ['landscape', { wcsConfiguration: [{ ...CONFIGURATION()[0], landscape: 'ALL' }] }],
+    ]) {
+        it(`does not reuse offers for a different ${name}`, async function () {
+            await wcs.process(context());
+            await wcs.process(context('OSI-A', overrides));
+
+            expect(fetchStub.callCount).to.equal(2);
+        });
+    }
+
+    it('does not share mutations between preview fragments', async function () {
+        const first = await wcs.process(context());
+        first.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds.push('changed');
+        const second = await wcs.process(context());
+
+        expect(second.body.wcs.prod['OSI-A-ar-mult'][0].offerSelectorIds).to.deep.equal(['OSI-A']);
+    });
+
+    it('retries failed requests instead of caching failures', async function () {
+        fetchStub.onFirstCall().returns(createResponse(404, {}));
+        await wcs.process(context());
+        const retry = await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(retry.body.wcs.prod).to.have.property('OSI-A-ar-mult');
+    });
+
+    it('fetches fresh offers after clearing the preview cache', async function () {
+        await wcs.process(context());
+        clearWcsCache();
+        await wcs.process(context());
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('fetches fresh offers after the preview cache expires', async function () {
+        await wcs.process(context());
+        const expired = Date.now() + 6 * 60 * 1000 + 1;
+        const now = sinon.stub(Date, 'now').returns(expired);
+        try {
+            await wcs.process(context());
+        } finally {
+            now.restore();
+        }
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('does not cache requests carrying custom headers', async function () {
+        const overrides = { DEFAULT_HEADERS: { 'X-Test': 'custom' } };
+        await wcs.process(context('OSI-A', overrides));
+        await wcs.process(context('OSI-A', overrides));
+
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('does not cache published requests', async function () {
+        await wcs.process(context('OSI-A', { preview: false }));
+        await wcs.process(context('OSI-A', { preview: false }));
+
+        expect(fetchStub.callCount).to.equal(2);
     });
 });
 

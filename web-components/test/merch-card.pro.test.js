@@ -451,6 +451,39 @@ describe('pro dark theme rendering', () => {
         );
     });
 
+    it('draws a contrast-safe focus-visible ring on footer CTAs', async () => {
+        // :focus-visible is unreliable here, so assert the rules themselves.
+        card = await renderCard(
+            '<div slot="footer"><a class="con-button primary" href="#">Free trial</a><button>Buy</button></div>',
+        );
+        const rules = [...document.querySelectorAll('style')]
+            .flatMap((s) => [...(s.sheet?.cssRules ?? [])])
+            .filter(
+                (r) =>
+                    r.selectorText?.includes('merch-card[variant="pro"]') &&
+                    r.selectorText.includes('[slot="footer"]') &&
+                    r.selectorText.includes(':focus'),
+            );
+        const base = rules.find(
+            (r) => !r.selectorText.includes('border-color'),
+        );
+        const black = rules.find((r) =>
+            r.selectorText.includes('[border-color="black"]'),
+        );
+        expect(base.selectorText).to.include('a:focus-visible');
+        expect(base.selectorText).to.include('button:focus-visible');
+        expect(base.style.outline).to.include('2px solid');
+        expect(base.style.outlineOffset).to.equal('2px');
+        expect(base.style.outline).to.match(/#1473e6|rgb\(20, 115, 230\)/);
+        expect(black.style.outlineColor).to.match(
+            /#fff|rgb\(255, 255, 255\)/,
+        );
+        rules.forEach((r) => {
+            expect(r.cssText).to.not.include('s2a-color-focus-ring-default');
+            expect(r.selectorText).to.not.match(/:focus(?!-visible)/);
+        });
+    });
+
     it('washes the outline CTA with white@64% and knocks its label to black on hover', async () => {
         // S2A Button/Core/Primary, outlined + on-dark + hover (node 2161:54613).
         // The hover itself is plain CSS, so assert the tokens the rule reads.

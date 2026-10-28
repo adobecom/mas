@@ -532,6 +532,21 @@ merch-card[variant="pro"] [slot="footer"] [data-button-type="primary"]:hover {
     );
 }
 
+/* Own keyboard focus ring: Milo's token ring resolves to #8EB9FC (2:1) on a
+   white card inside a .dark section. */
+merch-card[variant="pro"] [slot="footer"] a:focus-visible,
+merch-card[variant="pro"] [slot="footer"] button:focus-visible {
+    outline: 2px solid #1473e6;
+    outline-offset: 2px;
+}
+
+merch-card[variant="pro"][border-color="black"] [slot="footer"] a:focus-visible,
+merch-card[variant="pro"][border-color="black"]
+    [slot="footer"]
+    button:focus-visible {
+    outline-color: #fff;
+}
+
 /* heading-m holds the price. inline-price cards are covered by the .price-span
    rules below; "free" cards author literal text ("Free") that has no .price spans,
    so style the slot itself to match the Figma price (18px/900, node 1114:39070)

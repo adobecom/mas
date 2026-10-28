@@ -97,7 +97,7 @@ const EXPECTED_BODY = {
     path: '/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app',
 };
 // Includes the settings, price literals and countdown-copy placeholder.
-const EXPECTED_BODY_HASH = '306da70c01f5149b51ce6317675859b545fa99a5107ffecc900b4e75045d2eeb';
+const EXPECTED_BODY_HASH = '437972efe6c41266955d0fd790f557aece31de78dd1def2a830684f002a29f48';
 
 const RANDOM_OLD_DATE = 'Thu, 27 Jul 1978 09:00:00 GMT';
 

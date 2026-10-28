@@ -351,7 +351,7 @@ function hasExplicitMapping(osis, customizeContext, { project, label, promoMap, 
  * @returns the selected `{ project, promoMap, substituteMap, fragmentPaths }` entry, or null
  *          when no promo project targets the fragment.
  */
-function selectPromoProjectForFragment(root, customizeContext) {
+export function selectPromoProjectForFragment(root, customizeContext) {
     const promoEntries = findPromoMapsForFragment(root, customizeContext);
     if (!promoEntries.length) return null;
 
@@ -389,7 +389,7 @@ function selectPromoProjectForFragment(root, customizeContext) {
     return selected;
 }
 
-function mergeVariations(root, customizeContext, selectedPromoProject) {
+export function mergeVariations(root, customizeContext, selectedPromoProject) {
     const { variation, label } = findPromoVariation(root, customizeContext, selectedPromoProject);
     if (variation) {
         const merged = deepMerge(root, variation);
@@ -436,7 +436,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
  * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation
  * @returns {Array}
  */
-function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
+export function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
     const customizedCards = customizedRoot.fields?.cards;
     const customizedCollections = customizedRoot.fields?.collections;
     if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
@@ -651,8 +651,21 @@ async function customize(context) {
         customizedFragment = deepMerge(customizedFragment, maskFragment);
         customizedFragment.maskId = maskFragment.id;
     }
-    customizedFragment.references = customizedReferences;
-    customizedFragment.referencesTree = customizedReferenceTree;
+    const activeReferences = new Set([customizedFragment.id]);
+    const collectReferences = (tree) =>
+        tree
+            .filter(({ fieldName }) => fieldName !== 'variations')
+            .map((entry) => {
+                activeReferences.add(entry.identifier);
+                return entry.referencesTree ? { ...entry, referencesTree: collectReferences(entry.referencesTree) } : entry;
+            });
+    const activeTree = collectReferences(customizedReferenceTree);
+    customizedFragment.references = Object.fromEntries(
+        Object.entries(customizedReferences ?? {}).filter(
+            ([id, ref]) => ref.type !== 'content-fragment' || activeReferences.has(id),
+        ),
+    );
+    customizedFragment.referencesTree = activeTree;
     return {
         ...context,
         status: 200,

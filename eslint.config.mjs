@@ -75,8 +75,8 @@ const config = {
     },
 };
 
-const priceConfig = {
-    files: ['price/src/**/*.js'],
+const sharedConfig = {
+    files: ['price/src/**/*.js', 'checkout/src/**/*.js'],
     languageOptions: {
         globals: {
             ...Object.fromEntries(
@@ -85,6 +85,8 @@ const priceConfig = {
                     .map((name) => [name, 'off']),
             ),
             console: 'readonly',
+            URL: 'readonly',
+            URLSearchParams: 'readonly',
         },
     },
     rules: {
@@ -105,4 +107,4 @@ const priceConfig = {
     },
 };
 
-export default [ignoresConfig, config, priceConfig];
+export default [ignoresConfig, config, sharedConfig];

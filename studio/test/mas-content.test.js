@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import '../src/swc.js';
 import { Fragment } from '../src/aem/fragment.js';
 import Store from '../src/store.js';
-import { CARD_MODEL_PATH } from '../src/constants.js';
+import { CARD_MODEL_PATH, PAGE_NAMES } from '../src/constants.js';
 import '../src/mas-content.js';
 
 describe('MasContent table + personalization grouping', () => {
@@ -97,6 +97,30 @@ describe('MasContent table + personalization grouping', () => {
         const text = el.textContent ?? '';
         expect(text).to.include('Personalization fragments (1)');
         expect(text).to.include('All other fragments (1)');
+    });
+
+    it('shows skeleton rows instead of unsorted rows while a Path/Title sort is loading', async () => {
+        const pageSnapshot = Store.page.get();
+        const sortSnapshot = Store.sort.get();
+        Store.page.set(PAGE_NAMES.CONTENT);
+        Store.renderMode.set('table');
+        Store.fragments.list.data.value = [makeStore(makeFragment({ id: 'a', path: '/content/dam/mas/acom/en_US/cards/a' }))];
+        Store.fragments.list.loading.set(true);
+        Store.sort.set({ sortBy: 'title', sortDirection: 'asc' });
+        try {
+            const el = await fixture(html`<mas-content></mas-content>`);
+            await el.updateComplete;
+            expect(el.querySelectorAll('mas-fragment').length).to.equal(0);
+            expect(el.querySelectorAll('.skeleton-row').length).to.equal(8);
+
+            Store.fragments.list.loading.set(false);
+            await el.updateComplete;
+            expect(el.querySelectorAll('.skeleton-row').length).to.equal(0);
+            expect(el.querySelectorAll('mas-fragment').length).to.equal(1);
+        } finally {
+            Store.page.set(pageSnapshot);
+            Store.sort.set(sortSnapshot);
+        }
     });
 
     it('uses requestAnimationFrame to re-observe sentinel after a page load completes', async () => {

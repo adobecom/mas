@@ -3776,7 +3776,7 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('eagerly loads pages for a Path sort, up to the cap, then leaves hasMore true', async () => {
+        it('loads every page for a Path sort, past the eager cap', async () => {
             const { repository, state, Store, cleanup } = await setupSortTest({
                 pageCount: MasRepository.MAX_EAGER_PAGES + 5,
                 sort: { sortBy: 'path', sortDirection: 'asc' },
@@ -3784,11 +3784,12 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 await settle();
-                expect(state.nextCalls).to.be.greaterThan(
-                    MasRepository.MIN_FILTERED_PAGE_RESULTS / MasRepository.MIN_PAGE_SIZE,
-                );
-                expect(Store.fragments.list.hasMore.value).to.be.true;
+                expect(state.nextCalls).to.be.greaterThan(MasRepository.MAX_EAGER_PAGES);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
                 expect(Store.fragments.list.loading.value).to.be.false;
+                expect(Store.fragments.list.data.value.length).to.equal(
+                    (MasRepository.MAX_EAGER_PAGES + 5) * MasRepository.MIN_PAGE_SIZE,
+                );
             } finally {
                 cleanup();
             }

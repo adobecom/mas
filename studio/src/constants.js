@@ -246,6 +246,9 @@ export const TAG_MODEL_ID_MAPPING = {
 export const EDITABLE_FRAGMENT_MODEL_IDS = Object.values(TAG_MODEL_ID_MAPPING);
 
 // The first value in the array should be the default value
+// Path and Title are sorted in the browser over the complete result set; Last Modified is sorted by the API.
+export const CLIENT_SORT_KEYS = ['path', 'title'];
+
 export const SORT_COLUMNS = {
     // null means no active sort: the API default order (modifiedOrCreated DESC)
     content: [null, 'path', 'title', 'modifiedOrCreated'],

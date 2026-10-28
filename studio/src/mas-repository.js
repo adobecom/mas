@@ -39,6 +39,7 @@ import {
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
+    CLIENT_SORT_KEYS,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
@@ -141,8 +142,6 @@ function ensureCompatVersionOnMerchCardFieldList(modelPath, fields) {
     return false;
 }
 
-const CLIENT_SORT_KEYS = new Set(['path', 'title']);
-
 export class MasRepository extends LitElement {
     static properties = {
         bucket: { type: String },
@@ -191,7 +190,7 @@ export class MasRepository extends LitElement {
 
     /** Path and Fragment Title are sorted on the client, which needs the complete result set. */
     #clientSortActive() {
-        return this.page.value === PAGE_NAMES.CONTENT && CLIENT_SORT_KEYS.has(Store.sort.get().sortBy);
+        return this.page.value === PAGE_NAMES.CONTENT && CLIENT_SORT_KEYS.includes(Store.sort.get().sortBy);
     }
 
     /** Last Modified is sorted by the API; every other sort keeps the default newest-first order. */
@@ -987,10 +986,10 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Loads the remaining cursor pages up to MAX_EAGER_PAGES, then leaves hasMore true for scroll loading.
+     * Loads the remaining cursor pages. Without trackLoading it stops at MAX_EAGER_PAGES and leaves hasMore true for scroll loading.
      * @param {object} cursorSnapshot
      * @param {AbortController} searchController
-     * @param {{ trackLoading?: boolean }} options - keep `loading` true until done (client-side sort needs the full set)
+     * @param {{ trackLoading?: boolean }} options - client-side sort: keep `loading` true and load every page, it needs the full set
      */
     async #eagerLoadRemainingPages(cursorSnapshot, searchController, { trackLoading = false } = {}) {
         if (this.#eagerLoadingCursor === cursorSnapshot) return;
@@ -1001,7 +1000,8 @@ export class MasRepository extends LitElement {
         if (trackLoading) Store.fragments.list.loading.set(true);
         try {
             while (this.#searchCursor === cursorSnapshot) {
-                if (pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
+                // A client-side sort over a partial set is wrong, so it loads every page (trackLoading).
+                if (!trackLoading && pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
                     Store.fragments.list.hasMore.set(true);
                     break;
                 }

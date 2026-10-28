@@ -18,6 +18,11 @@ describe('sortFragmentStores', () => {
         expect(titles(sorted).indexOf('item2')).to.be.lessThan(titles(sorted).indexOf('item10'));
     });
 
+    it('ignores leading whitespace in titles', () => {
+        const stores = [' Zed', 'Alpha'].map((title) => makeStore(title));
+        expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'asc' }))).to.deep.equal(['Alpha', ' Zed']);
+    });
+
     it('reverses the order for desc', () => {
         const stores = ['b', 'a', 'c'].map((title) => makeStore(title));
         expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'desc' }))).to.deep.equal(['c', 'b', 'a']);

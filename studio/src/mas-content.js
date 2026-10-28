@@ -7,7 +7,7 @@ import { isUUID } from './utils.js';
 import './mas-fragment.js';
 import { sortFragmentStores } from './mas-fragment-table.js';
 import Events from './events.js';
-import { CARD_MODEL_PATH } from './constants.js';
+import { CARD_MODEL_PATH, CLIENT_SORT_KEYS } from './constants.js';
 import {
     fragmentHasPersonalizationTag,
     getFragmentNonCountryPznTagIds,
@@ -324,16 +324,19 @@ class MasContent extends LitElement {
             </sp-table>`;
         }
         const loadedFragments = this.fragments.value.filter((fragmentStore) => fragmentStore.get() !== null);
-        // Client sorting is only correct on the full result set, so rows keep arrival order while pages load.
-        const visibleFragments = this.loading.value ? loadedFragments : sortFragmentStores(loadedFragments, this.sort.value);
+        // Client sorting is only correct on the full result set, so show skeleton rows until every page has loaded.
+        const sortPending = this.loading.value && CLIENT_SORT_KEYS.includes(this.sort.value.sortBy);
+        const visibleFragments = sortPending ? [] : sortFragmentStores(loadedFragments, this.sort.value);
         const personalizationOn = Store.filters.get().personalizationFilterEnabled === true;
-        const body = personalizationOn
-            ? this.#renderTableBodyGrouped(visibleFragments)
-            : repeat(
-                  visibleFragments,
-                  (fragmentStore) => fragmentStore.get().path,
-                  (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
-              );
+        const body = sortPending
+            ? Array.from({ length: 8 }, tableSkeletonRow)
+            : personalizationOn
+              ? this.#renderTableBodyGrouped(visibleFragments)
+              : repeat(
+                    visibleFragments,
+                    (fragmentStore) => fragmentStore.get().path,
+                    (fragmentStore) => html`<mas-fragment .fragmentStore=${fragmentStore} view="table"></mas-fragment>`,
+                );
 
         return html`<sp-table
                 emphasized
@@ -376,9 +379,9 @@ class MasContent extends LitElement {
                     <sp-table-head-cell class="actions">Actions</sp-table-head-cell>
                     <sp-table-head-cell class="preview">Preview</sp-table-head-cell>
                 </sp-table-head>
-                <sp-table-body> ${body} ${this.tableLoadingSkeletons} </sp-table-body>
+                <sp-table-body> ${body} ${sortPending ? nothing : this.tableLoadingSkeletons} </sp-table-body>
             </sp-table>
-            ${visibleFragments.length === 0 ? this.emptyState : nothing}`;
+            ${visibleFragments.length === 0 && !sortPending ? this.emptyState : nothing}`;
     }
 
     get tableLoadingSkeletons() {

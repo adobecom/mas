@@ -17,7 +17,7 @@ export const FRAGMENT_SORT_COLLATOR = new Intl.Collator(undefined, { sensitivity
 
 const FRAGMENT_SORT_KEYS = {
     path: (fragment) => getFragmentName(fragment) || fragment.path,
-    title: (fragment) => fragment.title || '',
+    title: (fragment) => (fragment.title || '').trim(),
 };
 
 /**

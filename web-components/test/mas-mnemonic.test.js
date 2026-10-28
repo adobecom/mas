@@ -83,6 +83,55 @@ describe('mas-mnemonic – smart-placement', () => {
         });
     });
 
+    describe('useSmartPlacement', () => {
+        const originalMatchMedia = window.matchMedia;
+        const stubMatchMedia = (matches) => {
+            window.matchMedia = (query) => ({ matches, media: query });
+        };
+
+        afterEach(() => {
+            window.matchMedia = originalMatchMedia;
+        });
+
+        it('mirrors an explicit smart-placement attribute', () => {
+            stubMatchMedia(false);
+            const el = makeMnemonic({ 'smart-placement': true });
+            document.body.append(el);
+            expect(el.useSmartPlacement).to.be.true;
+        });
+
+        it('is true for fries regardless of viewport', () => {
+            stubMatchMedia(false);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'fries');
+            expect(el.useSmartPlacement).to.be.true;
+        });
+
+        it('is false for a pro card when the mobile query does not match', () => {
+            stubMatchMedia(false);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'pro');
+            expect(el.useSmartPlacement).to.be.false;
+        });
+
+        it('is true for pro and bizpro cards on mobile', () => {
+            stubMatchMedia(true);
+            const pro = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(pro, 'pro');
+            const bizpro = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(bizpro, 'bizpro');
+            expect(pro.useSmartPlacement).to.be.true;
+            expect(bizpro.useSmartPlacement).to.be.true;
+        });
+
+        it('is false for other variants on mobile', () => {
+            stubMatchMedia(true);
+            const el = makeMnemonic({ 'tooltip-text': 'Foo' });
+            inCard(el, 'plans');
+            expect(el.useSmartPlacement).to.be.false;
+        });
+    });
+
     describe('render – wrapper class', () => {
         it('renders .css-tooltip.smart when smartPlacement is true', async () => {
             const el = await connected({

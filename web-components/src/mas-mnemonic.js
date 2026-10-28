@@ -1,6 +1,7 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
+import { MOBILE_LANDSCAPE } from './media.js';
 
 function hasSpectrumTooltip() {
     // Only use Spectrum if ALL required components are available
@@ -230,6 +231,18 @@ export default class MasMnemonic extends LitElement {
         this._computedPlacement = 'top';
     }
 
+    // Pro cards opt in to smart placement on mobile only, so the tooltip is
+    // not truncated there while desktop and tablet keep the CSS placement.
+    get useSmartPlacement() {
+        return (
+            this.smartPlacement ||
+            (!!this.closest(
+                'merch-card[variant="pro"], merch-card[variant="bizpro"]',
+            ) &&
+                window.matchMedia(MOBILE_LANDSCAPE).matches)
+        );
+    }
+
     connectedCallback() {
         super.connectedCallback();
         window.addEventListener('mousedown', this.handleClickOutside);
@@ -325,11 +338,11 @@ export default class MasMnemonic extends LitElement {
             MasMnemonic.activeTooltip.requestUpdate();
         }
         MasMnemonic.activeTooltip = this;
-        if (this.smartPlacement) {
+        if (this.useSmartPlacement) {
             this._computeTooltipPosition();
         }
         this.tooltipVisible = true;
-        if (this.smartPlacement) {
+        if (this.useSmartPlacement) {
             // Re-compute after first paint to use actual rendered dimensions
             this.updateComplete.then(() => this._computeTooltipPosition());
         }
@@ -431,7 +444,8 @@ export default class MasMnemonic extends LitElement {
         };
         const cp = this._computedPlacement;
         const isHorizontal = cp === 'top' || cp === 'bottom';
-        const bodyStyle = this.smartPlacement
+        const smart = this.useSmartPlacement;
+        const bodyStyle = smart
             ? `top:${this._tooltipTop}px;left:${this._tooltipLeft}px;`
             : undefined;
         const tipOffset = isHorizontal
@@ -440,7 +454,7 @@ export default class MasMnemonic extends LitElement {
 
         return html`
             <span
-                class="css-tooltip ${this.smartPlacement
+                class="css-tooltip ${smart
                     ? 'smart'
                     : placement} ${visibleClass}"
                 tabindex="0"
@@ -454,7 +468,7 @@ export default class MasMnemonic extends LitElement {
                 ${this.renderIcon()}
                 <span class="css-tooltip-body" style=${ifDefined(bodyStyle)}>
                     ${unsafeHTML(content)}
-                    ${this.smartPlacement
+                    ${smart
                         ? html`<span
                               aria-hidden="true"
                               role="presentation"

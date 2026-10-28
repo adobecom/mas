@@ -123,6 +123,25 @@ describe('MasContent table + personalization grouping', () => {
         }
     });
 
+    it('writes the sorted header cell key and direction to Store.sort', async () => {
+        const pageSnapshot = Store.page.get();
+        const sortSnapshot = Store.sort.get();
+        Store.page.set(PAGE_NAMES.CONTENT);
+        Store.renderMode.set('table');
+        try {
+            const el = await fixture(html`<mas-content></mas-content>`);
+            await el.updateComplete;
+            const cell = el.querySelector('sp-table-head-cell.title');
+            cell.click();
+            expect(Store.sort.get()).to.include({ sortBy: 'title', sortDirection: 'asc' });
+            cell.click();
+            expect(Store.sort.get()).to.include({ sortBy: 'title', sortDirection: 'desc' });
+        } finally {
+            Store.page.set(pageSnapshot);
+            Store.sort.set(sortSnapshot);
+        }
+    });
+
     it('uses requestAnimationFrame to re-observe sentinel after a page load completes', async () => {
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(true);

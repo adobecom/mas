@@ -31,10 +31,13 @@ export function sortFragmentStores(fragmentStores, { sortBy, sortDirection }) {
     const getKey = FRAGMENT_SORT_KEYS[sortBy];
     if (!getKey) return fragmentStores;
     const direction = sortDirection === 'desc' ? -1 : 1;
-    return fragmentStores
-        .map((fragmentStore) => [getKey(fragmentStore.get()), fragmentStore])
-        .sort(([a], [b]) => direction * FRAGMENT_SORT_COLLATOR.compare(a, b))
-        .map(([, fragmentStore]) => fragmentStore);
+    return (
+        fragmentStores
+            .map((fragmentStore) => [getKey(fragmentStore.get()), fragmentStore])
+            // Empty keys always sort last, so toggling the direction never pins untitled rows at the top.
+            .sort(([a], [b]) => (!a && b ? 1 : a && !b ? -1 : direction * FRAGMENT_SORT_COLLATOR.compare(a, b)))
+            .map(([, fragmentStore]) => fragmentStore)
+    );
 }
 
 class MasFragmentTable extends LitElement {

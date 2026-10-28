@@ -23,6 +23,12 @@ describe('sortFragmentStores', () => {
         expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'asc' }))).to.deep.equal(['Alpha', ' Zed']);
     });
 
+    it('keeps empty titles last in both directions', () => {
+        const stores = ['b', '', 'a'].map((title) => makeStore(title));
+        expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'asc' }))).to.deep.equal(['a', 'b', '']);
+        expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'desc' }))).to.deep.equal(['b', 'a', '']);
+    });
+
     it('reverses the order for desc', () => {
         const stores = ['b', 'a', 'c'].map((title) => makeStore(title));
         expect(titles(sortFragmentStores(stores, { sortBy: 'title', sortDirection: 'desc' }))).to.deep.equal(['c', 'b', 'a']);

@@ -296,12 +296,8 @@ class MasContent extends LitElement {
         return sortBy === sortKey ? sortDirection : nothing;
     }
 
-    handleSort(event) {
-        event.stopPropagation();
-        const sortKey = event.target.sortKey;
-        const { sortBy, sortDirection } = Store.sort.get();
-        const nextDirection = sortBy === sortKey && sortDirection === 'asc' ? 'desc' : 'asc';
-        Store.sort.set({ sortBy: sortKey, sortDirection: nextDirection });
+    handleSort({ detail: { sortKey, sortDirection } }) {
+        Store.sort.set({ sortBy: sortKey, sortDirection });
     }
 
     get tableView() {

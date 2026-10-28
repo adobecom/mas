@@ -481,6 +481,7 @@ export function processPrices(fields, merchCard, mapping) {
         fields.prices = processMnemonicElements(fields.prices);
     }
     appendSlot('prices', fields, merchCard, mapping);
+    merchCard.variantLayout?.preparePrices?.();
 }
 
 /**

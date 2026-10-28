@@ -44,6 +44,7 @@ import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compa
 import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
 import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
+import { InlinePrice } from '../src/inline-price.js';
 
 function getFooterElement(merchCard) {
     return merchCard.querySelector('div[slot="footer"]');
@@ -162,6 +163,90 @@ describe('processPrices', async () => {
         processPrices(fields, merchCard, mapping);
         await merchCard.querySelector('span[is="inline-price"]').onceSettled();
         expect(merchCard.textContent).to.equal('Starting at  US$22.19/mo');
+    });
+});
+
+describe('Pro price lifecycle', () => {
+    let card;
+    let renders;
+    const prices =
+        '<span is="inline-price" data-template="price" data-wcs-osi="abm" ' +
+        'data-display-tax="true" data-display-plan-type="true" data-display-per-unit="true"></span>';
+
+    beforeEach(() => {
+        renders = sinon.spy(InlinePrice.prototype, 'renderOffers');
+        card = document.createElement('merch-card');
+        card.variant = 'pro';
+        card.heightSync = false;
+        card.settings = { displayPlanType: true };
+    });
+
+    afterEach(() => {
+        card.remove();
+        renders.restore();
+    });
+
+    async function settlePrices() {
+        await card.updateComplete;
+        await Promise.all(card.prices.map((price) => price.onceSettled()));
+        await card.variantLayoutPromise;
+        await delay();
+        expect(card.prices).to.have.length(2);
+        for (const price of card.prices) {
+            expect(
+                renders.getCalls().filter((call) => call.thisValue === price),
+            ).to.have.length(1);
+        }
+        const [price, legal] = card.prices;
+        expect(price.options.displayTax).to.be.false;
+        expect(price.options.displayPlanType).to.be.false;
+        expect(price.options.displayPerUnit).to.be.true;
+        expect(legal.options.displayTax).to.be.true;
+        expect(legal.options.displayPlanType).to.be.true;
+        expect(legal.options.displayPerUnit).to.be.false;
+        expect(legal.querySelector('.price-plan-type').textContent).to.equal(
+            'Yearly, paid monthly',
+        );
+    }
+
+    it('renders static prices once and keeps them through card updates and layout recreation', async () => {
+        card.innerHTML =
+            `<p slot="heading-m">${prices}</p>` +
+            '<div slot="legal-text">Yearly, paid monthly</div>';
+        document.body.append(card);
+        await settlePrices();
+        const originalPrices = card.prices;
+        card.variantLayout.disconnectedCallbackHook();
+        card.firstUpdated();
+        card.requestUpdate();
+        await settlePrices();
+        expect(card.prices).to.deep.equal(originalPrices);
+    });
+
+    it('prepares refreshed fragment prices once and preserves real price updates', async () => {
+        document.body.append(card);
+        const fragment = {
+            settings: { displayPlanType: true },
+            fields: {
+                variant: 'pro',
+                prices,
+                shortDescription: 'Yearly, paid monthly',
+            },
+        };
+        await hydrate(fragment, card);
+        await settlePrices();
+        const originalPrices = card.prices;
+        await hydrate(fragment, card);
+        await settlePrices();
+        expect(card.prices[0]).not.to.equal(originalPrices[0]);
+        const [price, legal] = card.prices;
+        price.dataset.quantity = '2';
+        await price.onceSettled();
+        expect(price.options.quantity).to.deep.equal([2]);
+        expect(price.options.displayTax).to.be.false;
+        expect(price.options.displayPlanType).to.be.false;
+        expect(card.prices[1]).to.equal(legal);
+        expect(card.prices).to.have.length(2);
     });
 });
 

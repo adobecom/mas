@@ -94,7 +94,10 @@ export class Pro extends VariantLayout {
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => {
+        this.adjustShortDescription();
+        this.resyncOnReflow();
+    };
     lastSyncKey = null;
 
     constructor(card) {
@@ -116,44 +119,21 @@ export class Pro extends VariantLayout {
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
 
-    // Clones the main price into a legal-template sibling (as plans/plans-v2) so
-    // tax/plan-type render on the clone, off the main price.
-    async adjustLegal() {
-        if (this.legalAdjusted) return;
-        try {
-            this.legalAdjusted = true;
-            await this.card.updateComplete;
-            await customElements.whenDefined('inline-price');
-            const headingPrice = this.mainPrice;
-            if (!headingPrice) return;
-            const legal = headingPrice.cloneNode(true);
-            await headingPrice.onceSettled();
-            if (!headingPrice?.options) return;
-            // Per-unit stays on the pricing line (unlike plans); only tax and
-            // plan type move to the legal clone, which drops per-unit.
-            if (headingPrice.options.displayTax)
-                headingPrice.dataset.displayTax = 'false';
-            if (headingPrice.options.displayPlanType)
-                headingPrice.dataset.displayPlanType = 'false';
-            legal.setAttribute('data-template', 'legal');
-            legal.dataset.displayPerUnit = 'false';
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
-            await legal.onceSettled();
-            // Re-apply the override whenever the legal price re-resolves.
-            if (!this.legalResolvedHandler) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-            }
-            this.adjustShortDescription();
-        } catch {
-            // Proceed with the other post-update adjustments
-        }
+    preparePrices() {
+        const price = this.mainPrice;
+        if (
+            !price ||
+            price.parentNode.querySelector(
+                `${SELECTOR_MAS_INLINE_PRICE}[data-template="legal"]`,
+            )
+        )
+            return;
+        const legal = price.cloneNode(true);
+        legal.setAttribute('data-template', TEMPLATE_PRICE_LEGAL);
+        legal.dataset.displayPerUnit = 'false';
+        price.dataset.displayTax = 'false';
+        price.dataset.displayPlanType = 'false';
+        price.after(legal);
     }
 
     // Authored Short Description replaces the derived plan type wording. Read
@@ -262,9 +242,6 @@ export class Pro extends VariantLayout {
     async postCardUpdateHook() {
         this.adjustEduWhatsIncluded();
         await this.adjustAddon();
-        if (!this.legalAdjusted) {
-            await this.adjustLegal();
-        }
         this.adjustShortDescription();
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row (desktop only).
@@ -456,6 +433,7 @@ export class Pro extends VariantLayout {
 
     connectedCallbackHook() {
         if (!this.card) return;
+        this.preparePrices();
         this.card.addEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,

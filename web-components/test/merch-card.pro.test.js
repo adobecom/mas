@@ -806,125 +806,63 @@ describe('pro fragment link-block override', () => {
     });
 });
 
-describe('Pro.adjustLegal', () => {
-    function makeFixture(priceOverrides = {}) {
-        // The clone needs the listener: without it adjustLegal threw and its own
-        // catch swallowed it, so every assertion below ran against half a call.
-        const clone = {
-            setAttribute: sinon.spy(),
-            onceSettled: () => Promise.resolve(),
-            addEventListener: sinon.spy(),
-            dataset: {},
-        };
-        const insertBefore = sinon.spy();
-        const price = {
-            dataset: {},
-            options: {},
-            cloneNode: () => clone,
-            onceSettled: () => Promise.resolve(),
-            parentNode: { insertBefore },
-            nextSibling: 'next-sibling',
-            ...priceOverrides,
-        };
+describe('Pro.preparePrices', () => {
+    function makeFixture() {
+        const card = document.createElement('div');
+        card.innerHTML =
+            '<p slot="heading-m"><span is="inline-price" data-template="price" ' +
+            'data-wcs-osi="abm" data-display-tax="true" data-display-plan-type="true" ' +
+            'data-display-per-unit="true"></span></p>';
         const layout = Object.create(Pro.prototype);
-        layout.card = {
-            updateComplete: Promise.resolve(),
-            querySelector: (sel) =>
-                sel.includes('heading-m') && sel.includes('price')
-                    ? price
-                    : null,
-        };
-        return { layout, price, clone, insertBefore };
+        layout.card = card;
+        return { layout, card, price: layout.mainPrice };
     }
 
-    it('clones the main price into a legal-template sibling — no authoring needed', async () => {
-        const { layout, price, clone, insertBefore } = makeFixture({
-            options: { displayPerUnit: true, displayTax: true },
-        });
-        await layout.adjustLegal();
-        expect(clone.setAttribute.calledWith('data-template', 'legal')).to.be
-            .true;
-        expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
-        // tax moves off the main price onto the legal clone, but per-unit
-        // stays on the pricing line (Figma 3260:44659) and is disabled on
-        // the clone so it doesn't render twice.
+    it('prepares both templates before prices resolve, keeping per-unit on the main price', () => {
+        const { layout, price } = makeFixture();
+        layout.preparePrices();
+        const legal = price.nextElementSibling;
+        expect(legal.dataset.template).to.equal('legal');
+        expect(legal.dataset.wcsOsi).to.equal('abm');
+        expect(legal.dataset.displayTax).to.equal('true');
+        expect(legal.dataset.displayPlanType).to.equal('true');
+        expect(legal.dataset.displayPerUnit).to.equal('false');
         expect(price.dataset.displayTax).to.equal('false');
-        expect(price.dataset.displayPerUnit).to.be.undefined;
-        expect(clone.dataset.displayPerUnit).to.equal('false');
-    });
-
-    it('leaves disabled display options untouched on the main price', async () => {
-        const { layout, price } = makeFixture({ options: {} });
-        await layout.adjustLegal();
-        expect(price.dataset.displayPerUnit).to.be.undefined;
-        expect(price.dataset.displayTax).to.be.undefined;
-        expect(price.dataset.displayPlanType).to.be.undefined;
-    });
-
-    it('runs only once (legalAdjusted guard)', async () => {
-        const { layout, insertBefore } = makeFixture();
-        await layout.adjustLegal();
-        await layout.adjustLegal();
-        expect(insertBefore.callCount).to.equal(1);
-    });
-
-    it('does nothing without a main price', async () => {
-        const { layout, insertBefore } = makeFixture();
-        layout.card.querySelector = () => null;
-        await layout.adjustLegal(); // must not throw
-        expect(insertBefore.called).to.be.false;
-    });
-
-    it('bails out when the price settles without options', async () => {
-        // onceSettled can resolve on a price WCS never priced; reading
-        // .options off it would throw and lose the rest of the update.
-        const { layout, clone, insertBefore } = makeFixture({
-            options: undefined,
-        });
-        await layout.adjustLegal();
-        expect(insertBefore.called).to.be.false;
-        expect(clone.setAttribute.called).to.be.false;
-    });
-
-    it('moves the plan type onto the legal clone', async () => {
-        const { layout, price } = makeFixture({
-            options: { displayPlanType: true },
-        });
-        await layout.adjustLegal();
         expect(price.dataset.displayPlanType).to.equal('false');
+        expect(price.dataset.displayPerUnit).to.equal('true');
     });
 
-    it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
-        // The clone re-renders on every resolve and wipes the injected text, so
-        // the handler has to stay bound to it.
-        const { layout, clone } = makeFixture();
-        const reapply = sinon.stub(layout, 'adjustShortDescription');
-        await layout.adjustLegal();
-        expect(reapply.called, 'applies the override once in place').to.be.true;
-        expect(clone.addEventListener.calledOnce).to.be.true;
-        const [eventName, handler] = clone.addEventListener.firstCall.args;
-        expect(eventName).to.equal(EVENT_TYPE_RESOLVED);
-        // The registered handler is what re-applies on later resolutions.
-        reapply.resetHistory();
-        handler();
-        expect(reapply.calledOnce, 'a re-resolve re-applies it').to.be.true;
+    it('preserves locale defaults on the legal price when no display attributes are authored', () => {
+        const { layout, price } = makeFixture();
+        price.removeAttribute('data-display-tax');
+        price.removeAttribute('data-display-plan-type');
+        price.removeAttribute('data-display-per-unit');
+        layout.preparePrices();
+        expect(price.nextElementSibling.dataset.displayTax).to.be.undefined;
+        expect(price.nextElementSibling.dataset.displayPlanType).to.be
+            .undefined;
+        expect(price.dataset.displayPerUnit).to.be.undefined;
     });
 
-    it('keeps the handler it already registered', async () => {
-        const { layout, clone } = makeFixture();
-        layout.legalResolvedHandler = () => {};
-        await layout.adjustLegal();
-        expect(clone.addEventListener.called).to.be.false;
+    it('reuses the existing legal price across repeated preparation and layout recreation', () => {
+        const { layout, card, price } = makeFixture();
+        layout.preparePrices();
+        const legal = price.nextElementSibling;
+        layout.preparePrices();
+        const freshLayout = Object.create(Pro.prototype);
+        freshLayout.card = card;
+        freshLayout.preparePrices();
+        expect(price.nextElementSibling).to.equal(legal);
+        expect(card.querySelectorAll('[data-template="legal"]')).to.have.length(
+            1,
+        );
     });
 
-    it('swallows a price that never settles so the rest of the update runs', async () => {
-        // adjustLegal is one step of postCardUpdateHook; a rejected settle must
-        // not take the height sync and short description down with it.
-        const { layout, insertBefore } = makeFixture({
-            onceSettled: () => Promise.reject(new Error('never priced')),
-        });
-        await layout.adjustLegal(); // must not reject
-        expect(insertBefore.called).to.be.false;
+    it('does nothing for a literal free price', () => {
+        const { layout, card } = makeFixture();
+        card.innerHTML = '<p slot="heading-m">Free</p>';
+        layout.preparePrices();
+        expect(card.querySelector('[data-template="legal"]')).to.be.null;
     });
 });
 
@@ -1213,7 +1151,9 @@ describe('pro short description plan type override', () => {
         // A re-resolve regenerates the price markup (derived wording returns).
         card.querySelector('.price-plan-type').textContent =
             'Annual, billed monthly';
-        card.variantLayout.adjustShortDescription();
+        card.querySelector('[data-template="legal"]').dispatchEvent(
+            new CustomEvent(EVENT_TYPE_RESOLVED, { bubbles: true }),
+        );
         expect(card.querySelector('.price-plan-type').textContent).to.equal(
             'Yearly, paid monthly',
         );

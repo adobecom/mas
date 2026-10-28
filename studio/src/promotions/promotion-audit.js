@@ -42,7 +42,7 @@ export async function recordPromotionHistory(payload) {
 }
 
 function isProject(fragment) {
-    return (fragment.modelId ?? fragment.model?.id) === PROMOTION_MODEL_ID;
+    return (fragment.modelId ?? fragment.model?.id)?.replace(/={1,2}$/, '') === PROMOTION_MODEL_ID.replace(/={1,2}$/, '');
 }
 
 async function resolveProjectId(repository, fragment) {

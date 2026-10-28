@@ -71,6 +71,36 @@ describe('promotion write audit capture', () => {
         expect(completion).to.include({ phase: 'complete', projectId: 'project', intentId: 'intent' });
     });
 
+    for (const modelField of ['model', 'modelId']) {
+        it(`audits promo code saves with an unpadded ${modelField}`, async () => {
+            const modelId = PROMOTION_MODEL_ID.replace(/=+$/, '');
+            const target = {
+                ...project,
+                ...(modelField === 'model' ? { model: { id: modelId } } : { modelId }),
+                fields: [...project.fields, { name: 'promoCode', values: ['NEWCODE'] }],
+            };
+            const write = sandbox.stub().callsFake(async () => {
+                expect(fetchStub.callCount).to.equal(1);
+                expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({
+                    phase: 'prepare',
+                    action: 'save',
+                    projectId: project.id,
+                });
+                return target;
+            });
+
+            expect(await withPromotionAudit(repository, 'save', target, write)).to.equal(target);
+
+            expect(write.calledOnce).to.be.true;
+            expect(fetchStub.callCount).to.equal(2);
+            expect(JSON.parse(fetchStub.secondCall.args[1].body)).to.include({
+                phase: 'complete',
+                projectId: project.id,
+                intentId: 'intent',
+            });
+        });
+    }
+
     it('does not emit a completed entry when the mutation fails', async () => {
         try {
             await withPromotionAudit(repository, 'delete', project, sandbox.stub().rejects(new Error('Forbidden')));

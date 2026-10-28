@@ -37,7 +37,7 @@ describe('locales', function () {
             ['zh', 'TW', ['MO']],
         ];
 
-        for (const surface of ['acom', 'acom-cc', 'acom-dc']) {
+        for (const surface of ['acom', 'acom-cc', 'acom-dc', 'acom-edu']) {
             describe(surface, function () {
                 for (const [lang, defaultCountry, countries] of markets) {
                     const defaultLocale = `${lang}_${defaultCountry}`;

@@ -432,6 +432,7 @@ export const DEFAULT_LOCALES = {
     acom: ACOM,
     'acom-cc': ACOM,
     'acom-dc': ACOM,
+    'acom-edu': ACOM,
     nala: ACOM,
     sandbox: ACOM,
     ccd: CCD,

@@ -1119,7 +1119,7 @@ export async function processCTAs(
             let timeoutId;
             const timeout = new Promise((resolve) => {
                 timeoutId = setForegroundTimeout(
-                    () => resolve(false),
+                    () => resolve([]),
                     MERCH_CARD_LOAD_TIMEOUT,
                 );
             });

@@ -2257,6 +2257,11 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         const el = document.createElement('mas-field');
         el.setAttribute('field', `ctas[${index}]`);
         const fragment = document.createElement('aem-fragment');
+        fragment.data = {
+            priceLiterals: {
+                buyNow: 'Buy now',
+            },
+        };
         el.append(fragment);
         document.body.append(el);
         if (doLoad)
@@ -2403,7 +2408,6 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
     });
 
     it('hide free-trial CTA with stripTrialCtas when buy-now CTA is outside template', async () => {
-        // clock = sinon.useFakeTimers();
         const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
         const template = document.createElement('template');
         template.innerHTML = html;
@@ -2416,7 +2420,6 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         div.appendChild(el2);
         document.body.append(div);
 
-        // await clock.tickAsync(MERCH_CARD_LOAD_TIMEOUT);
         const resultHtml = await stripTrialCtas(template, true, el2);
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
         const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
@@ -2451,10 +2454,13 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(settled).to.be.true;
 
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        // after waiting for MERCH_CARD_LOAD_TIMEOUT nothing changed
         const masFields = doc.querySelectorAll('mas-field[field="ctas[77]"]');
         expect(masFields.length).to.equal(1);
-        const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
-        expect(ctas.length).to.equal(0);
+        const trialCta = doc.querySelector(
+            'mas-field[field="ctas[77]"] a[data-analytics-id="free-trial"]',
+        );
+        expect(trialCta).to.exist;
     });
 
     it('hide free-trial CTA with stripTrialCtas when buy-now CTA is next to it', async () => {
@@ -2516,40 +2522,54 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
     });
 
     it('replace free-trial CTA with buy-now CTA with stripTrialCtas when other mas-fields are next to it', async () => {
-        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field><mas-field field="ctas[22]"><span data-role="mas-field-content">EMPTY</span></mas-field></p></div>`;
         const template = document.createElement('template');
-        template.innerHTML = html;
+        template.innerHTML = CTA_TRIAL_HTML;
 
-        const el = template.content.querySelector(
-            'mas-field[field="ctas[77]"]',
+        const el = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="primary-outline" href="" data-analytics-id="free-trial" data-wcs-osi="osi2">Free trial</a>',
         );
-        const fragment = document.createElement('aem-fragment');
-        fragment.data = {
-            priceLiterals: {
-                buyNow: 'Buy now',
-            },
-        };
-        el.append(fragment);
-        fragment.dispatchEvent(
-            new CustomEvent('aem:load', {
-                bubbles: true,
-                detail: { fields: { ctas: CTA_TRIAL_HTML } },
-            }),
+        const elSelect = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="accent" href="" data-analytics-id="select" data-wcs-osi="osi2">Select</a>',
         );
+        elSelect.setAttribute('field', 'ctas[2]');
 
-        el.aemFragment = {
-            data: {
-                priceLiterals: {
-                    buyNow: 'Buy now',
-                },
-            },
-        };
+        const div = document.createElement('div');
+        div.appendChild(el);
+        div.appendChild(elSelect);
+        document.body.append(div);
 
         const resultHtml = await stripTrialCtas(template, true, el);
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
         const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
         expect(trialEl).to.exist;
         expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+    });
+
+    it('replace free-trial CTA with buy-now CTA with stripTrialCtas when mas-field with buy now is next to it', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML;
+
+        const el = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="primary-outline" href="" data-analytics-id="free-trial" data-wcs-osi="osi2">Free trial</a>',
+        );
+        const elBuy = makeIndexedField(
+            1,
+            '<a is="checkout-link" class="accent" href="" data-analytics-id="buy-now" data-wcs-osi="osi2">Buy now</a>',
+        );
+        elBuy.setAttribute('field', 'ctas[2]');
+
+        const div = document.createElement('div');
+        div.appendChild(el);
+        div.appendChild(elBuy);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.not.exist; // CTA removed, buy now is next to it
     });
 });
 

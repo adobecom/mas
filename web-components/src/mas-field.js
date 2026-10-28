@@ -85,23 +85,31 @@ export async function stripTrialCtas(template, indexed, self) {
                       'mas-field[field^="ctas"]',
                   );
         masFields.forEach((c) => {
-            if (c.getAttribute('field') !== thisField && c.checkReady) {
+            if (c.getAttribute('field') !== thisField) {
                 masFieldsReadyPromises.push(c.checkReady());
             }
         });
         const settleAll = Promise.all(masFieldsReadyPromises);
         let timeoutId;
         const timeout = new Promise((resolve) => {
-            timeoutId = setTimeout(resolve, MERCH_CARD_LOAD_TIMEOUT);
+            timeoutId = setTimeout(() => resolve([]), MERCH_CARD_LOAD_TIMEOUT);
         });
-        await Promise.race([settleAll, timeout]);
+        const fieldsReady = await Promise.race([settleAll, timeout]);
         clearTimeout(timeoutId);
 
-        masFields.forEach((c) => {
-            if (c.getAttribute('field') !== thisField) {
-                buyNowCta ??= c.querySelector('a[data-analytics-id="buy-now"]');
-            }
-        });
+        if (masFieldsReadyPromises.length && !fieldsReady.length) {
+            return template.innerHTML;
+        }
+
+        if (fieldsReady.some((c) => c === true)) {
+            masFields.forEach((c) => {
+                if (c.getAttribute('field') !== thisField) {
+                    buyNowCta ??= c.querySelector(
+                        'a[data-analytics-id="buy-now"]',
+                    );
+                }
+            });
+        }
     }
 
     let trialCtaSwapped = false;

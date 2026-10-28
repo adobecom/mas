@@ -1403,6 +1403,19 @@ describe('pro section grid (no collection)', () => {
         expect(cards[0].getBoundingClientRect().width).to.be.closeTo(394, 1);
     });
 
+    it('leaves a lone edu card at its own 1068px cap', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const { section, content, cards } = await renderSection(
+            'one-merch-card',
+            pro(1),
+        );
+        cards[0].setAttribute('size', 'edu');
+        expect(getComputedStyle(content).display).to.not.equal('contents');
+        expect(getComputedStyle(section).gridTemplateColumns).to.not.equal(
+            '394px',
+        );
+    });
+
     it('leaves collections and mixed sections to their own rules', async () => {
         await setViewport({ width: 1280, height: 1000 });
         const mixed = await renderSection('three-merch-cards', [

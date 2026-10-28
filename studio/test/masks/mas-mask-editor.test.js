@@ -317,6 +317,18 @@ describe('mas-mask-editor', () => {
             expect(el.fragment.hasChanges).to.equal(true);
         });
 
+        it('keeps only the mask identity tag when every product code is cleared', async () => {
+            const el = await mountWith([{ name: 'tags', type: 'tag', multiple: true, values: ['mas:product_code/phsp'] }]);
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+
+            picker.setAttribute('value', '');
+            picker.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal([]);
+            expect(el.fragment.newTags).to.deep.equal(['mas:masks/acom/p']);
+            expect(el.fragment.hasChanges).to.equal(true);
+        });
+
         it('renders an empty picker when the mask has no tags field', async () => {
             const el = await mountWith([]);
 

@@ -3,7 +3,7 @@ import { BULK_EDIT_PROJECTS_FOLDER, BULK_EDIT_PROJECT_MODEL_ID, ROOT_PATH } from
 import { normalizeKey } from '../utils.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from '../common/utils/project-list-utils.js';
 
-const PROJECT_TITLE_PATTERN = /^\S.*-MWPW-\d+$/;
+const PROJECT_TITLE_PATTERN = /^\S.*-(MWPW|DOTCOM)-\d+$/;
 
 export function isValidBulkEditProjectTitle(title) {
     return PROJECT_TITLE_PATTERN.test(title ?? '');

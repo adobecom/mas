@@ -49,6 +49,21 @@
                 describe('mas-create-dialog custom element', async () => {
                     let dialog;
                     let fetchStub;
+                    let repository;
+                    let loadFoldersStub;
+
+                    before(() => {
+                        repository = document.createElement('mas-repository');
+                        repository.bucket = 'test';
+                        repository.baseUrl = '/test/mocks';
+                        loadFoldersStub = stub(repository, 'loadFolders').resolves();
+                        document.querySelector('main').prepend(repository);
+                    });
+
+                    after(() => {
+                        repository.remove();
+                        loadFoldersStub.restore();
+                    });
 
                     beforeEach(async () => {
                         dialog = document.querySelector('mas-create-dialog');
@@ -871,7 +886,6 @@
             });
         </script>
         <main>
-            <mas-repository bucket="test" base-url="/test/mocks"></mas-repository>
             <sp-theme system="spectrum-two" color="light" scale="medium">
                 <mas-create-dialog open></mas-create-dialog>
             </sp-theme>

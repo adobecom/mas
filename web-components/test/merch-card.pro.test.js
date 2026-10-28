@@ -585,6 +585,137 @@ describe('pro edu size', () => {
     });
 });
 
+describe('pro edu heading semantics', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const PROMO = 'Students and teachers <strong>save 7%</strong>';
+    const SECTION =
+        '<div class="section"><h4>Apps</h4><ul><li>Desktop, web, and mobile</li></ul></div>';
+
+    async function renderEduCard(placeholders, size = 'edu') {
+        const rendered = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${PROMO}</p>${SECTION}</div>`,
+        );
+        rendered.setAttribute('size', size);
+        if (placeholders) rendered.placeholders = placeholders;
+        rendered.requestUpdate();
+        await rendered.updateComplete;
+        return rendered;
+    }
+
+    const headingsIn = (el) => el.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+    it('makes "What\'s included" the H4 under the card title, not the promo', async () => {
+        card = await renderEduCard({ whatsIncludedLabel: "What's included:" });
+        expect(card.querySelector('[slot="heading-xs"]').tagName).to.equal(
+            'H3',
+        );
+        const slot = card.querySelector('[slot="whats-included"]');
+        const headings = headingsIn(slot);
+        expect(headings.length).to.equal(1);
+        expect(headings[0].tagName).to.equal('H4');
+        expect(headings[0].className).to.equal('whats-included-label');
+        expect(headings[0].textContent).to.equal("What's included:");
+        const promo = slot.querySelector('.whats-included-title');
+        expect(promo.tagName).to.equal('P');
+        expect(promo.innerHTML).to.equal(PROMO);
+        expect(slot.querySelector('.section p').textContent).to.equal('Apps');
+    });
+
+    it('keeps the H4 when the page wraps the card in a section', async () => {
+        const page = document.createElement('div');
+        page.className = 'section';
+        document.body.append(page);
+        card = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${PROMO}</p>${SECTION}</div>`,
+        );
+        page.append(card);
+        card.setAttribute('size', 'edu');
+        card.placeholders = { whatsIncludedLabel: "What's included:" };
+        card.requestUpdate();
+        await card.updateComplete;
+        const slot = card.querySelector('[slot="whats-included"]');
+        const headings = headingsIn(slot);
+        page.remove();
+        expect(headings.length).to.equal(1);
+        expect(headings[0].tagName).to.equal('H4');
+        expect(headings[0].className).to.equal('whats-included-label');
+    });
+
+    for (const [what, placeholders, text] of [
+        ['missing', undefined, ''],
+        ['absent', {}, ''],
+        ['empty', { whatsIncludedLabel: '' }, ''],
+        ['blank', { whatsIncludedLabel: '   ' }, '   '],
+    ]) {
+        it(`adds no heading when the label is ${what}`, async () => {
+            card = await renderEduCard(placeholders);
+            const slot = card.querySelector('[slot="whats-included"]');
+            expect(headingsIn(slot).length).to.equal(0);
+            const label = slot.querySelector('.whats-included-label');
+            expect(label.tagName).to.equal('P');
+            expect(label.textContent).to.equal(text);
+            expect(
+                slot.querySelector('.whats-included-title').tagName,
+            ).to.equal('P');
+        });
+    }
+
+    it('applies once across re-renders', async () => {
+        card = await renderEduCard({
+            whatsIncludedLabel: "What's included:",
+            eduDisclaimer: 'Eligibility required.',
+        });
+        card.variantLayout.adjustEduWhatsIncluded();
+        card.requestUpdate();
+        await card.updateComplete;
+        const slot = card.querySelector('[slot="whats-included"]');
+        expect(slot.querySelectorAll('.whats-included-title').length).to.equal(
+            1,
+        );
+        expect(slot.querySelectorAll('.whats-included-label').length).to.equal(
+            1,
+        );
+        expect(
+            slot.querySelectorAll('.whats-included-disclaimer').length,
+        ).to.equal(1);
+    });
+
+    it('leaves non-edu cards alone', async () => {
+        card = await renderEduCard(
+            { whatsIncludedLabel: "What's included:" },
+            'wide',
+        );
+        const slot = card.querySelector('[slot="whats-included"]');
+        expect(slot.querySelector('.whats-included-title')).to.be.null;
+        expect(slot.querySelector('.whats-included-label').tagName).to.equal(
+            'P',
+        );
+        expect(slot.querySelector('.section h4')).to.exist;
+    });
+
+    it('keeps the promo and label typography', async () => {
+        card = await renderEduCard({ whatsIncludedLabel: "What's included:" });
+        const promo = getComputedStyle(
+            card.querySelector('.whats-included-title'),
+        );
+        expect(promo.fontWeight).to.equal('900');
+        expect(promo.marginTop).to.equal('0px');
+        expect(promo.marginBottom).to.equal('0px');
+        const label = getComputedStyle(
+            card.querySelector('.whats-included-label'),
+        );
+        expect(label.fontWeight).to.equal('700');
+        expect(label.fontSize).to.equal('16px');
+        expect(label.lineHeight).to.equal('20px');
+        expect(label.marginTop).to.equal('0px');
+        expect(label.marginBottom).to.equal('0px');
+    });
+});
+
 describe('pro edu disclaimer', () => {
     let card;
     afterEach(() => card?.remove());

@@ -47,6 +47,7 @@ import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
+import { BASELINE_STATUS, CardBaselinesController } from '../baselines/card-baselines-controller.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -167,6 +168,7 @@ class MerchCardEditor extends LitElement {
         this.backgroundsDimensionsInvalid = { desktop: false, tablet: false, mobile: false };
         this.localeSearch = '';
         this.reactiveController = new ReactiveController(this, []);
+        this.baselinesController = new CardBaselinesController(this);
         this.renderQuantitySelectSettingOverrideIndicator = this.renderQuantitySelectSettingOverrideIndicator.bind(this);
         this.resetQuantitySettingToDefault = this.resetQuantitySettingToDefault.bind(this);
         this.resetSettingToDefault = this.resetSettingToDefault.bind(this);
@@ -1638,8 +1640,10 @@ class MerchCardEditor extends LitElement {
                         <sp-switch
                             id="fragment-enable-baselines"
                             ?checked="${form.enableBaselines?.values[0]}"
+                            aria-describedby=${this.baselinesController.message ? 'fragment-baseline-status' : nothing}
                             @click="${this.#handleEnableBaselines}"
                         ></sp-switch>
+                        ${this.baselineStatusTemplate}
                     </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
@@ -2187,6 +2191,17 @@ class MerchCardEditor extends LitElement {
     #handleEnableBaselines() {
         const value = !this.fragment.getField('enableBaselines')?.values[0];
         this.fragmentStore.updateField('enableBaselines', [value]);
+    }
+
+    get baselineStatusTemplate() {
+        const { message, status } = this.baselinesController;
+        if (!message) return nothing;
+        return html`<sp-help-text
+            id="fragment-baseline-status"
+            size="s"
+            variant=${status === BASELINE_STATUS.ERROR ? 'negative' : 'neutral'}
+            >${message}</sp-help-text
+        >`;
     }
 
     #whatsIncludedRowIsEmpty(value) {

@@ -1940,6 +1940,34 @@
                             await editor.updateComplete;
                             expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([false]);
                         });
+
+                        it('renders the baseline status as help text', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            Object.assign(editor.baselinesController, {
+                                status: 'found',
+                                baselines: { fragmentBaseline: { title: 'Photoshop catalog' } },
+                            });
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            const status = container.querySelector('sp-help-text#fragment-baseline-status');
+                            expect(status.textContent.trim()).to.equal('Baseline found: Photoshop catalog');
+                            expect(status.getAttribute('variant')).to.equal('neutral');
+                        });
+
+                        it('renders a failed baseline lookup as negative help text', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            editor.baselinesController.status = 'error';
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            expect(container.querySelector('sp-help-text').getAttribute('variant')).to.equal('negative');
+                        });
+
+                        it('renders no baseline status without an offer and a template', () => {
+                            const editor = document.createElement('merch-card-editor');
+                            const container = document.createElement('div');
+                            render(editor.baselineStatusTemplate, container);
+                            expect(container.querySelector('sp-help-text')).to.be.null;
+                        });
                     });
 
                     describe('validationStatus banner', () => {

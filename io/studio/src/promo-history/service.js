@@ -1,7 +1,9 @@
 const crypto = require('node:crypto');
+const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken, isAllowed } = require('../../utils.js');
 
+const logger = Core.Logger('promo-history', { level: 'info' });
 const RETENTION = 95 * 86400;
 const MAX_ENTRIES = 2000;
 const MAX_BYTES = 750000;
@@ -88,8 +90,25 @@ async function aem(context, suffix, options = {}) {
         redirect: 'error',
         signal: AbortSignal.timeout(15000),
     });
-    if (!response.ok)
+    if (!response.ok) {
+        const url = new URL(`${context.endpoint}/adobe/sites/cf/fragments${suffix}`);
+        logger.error(
+            JSON.stringify({
+                event: 'promo-history-aem-request-failed',
+                operation: context.operation,
+                phase: context.phase,
+                projectId: context.projectId,
+                requestId: context.requestId,
+                method: options.method ?? 'GET',
+                endpoint: context.endpoint,
+                resource: url.pathname,
+                lookupPath: url.searchParams.get('path') ?? undefined,
+                status: response.status,
+                aemRequestId: response.headers.get('x-request-id'),
+            }),
+        );
         fail(response.status, response.status === 412 ? 'Fragment changed; reload before restoring' : 'AEM request failed');
+    }
     return response;
 }
 
@@ -694,6 +713,8 @@ async function execute(operation, params) {
     const identity = await authenticate(params, operation === 'restore');
     const context = {
         ...identity,
+        operation,
+        phase: params.phase,
         endpoint: endpoint(params),
         state: await init(),
         projectId: params.projectId,

@@ -39,6 +39,7 @@ describe('Promotion history', () => {
     let profile;
     let allowed;
     let originalFetch;
+    let logger;
     const params = (extra = {}) => ({
         __ow_method: 'post',
         __ow_headers: { authorization: 'Bearer test-token' },
@@ -73,6 +74,7 @@ describe('Promotion history', () => {
         roles = ['GRP-ODIN-MAS-ADMINS'];
         profile = { id: 'verified-user', email: 'verified@example.com', name: 'Verified User' };
         allowed = true;
+        logger = { error: sinon.spy() };
         state = {
             get: async (key) => (stored.has(key) ? { value: stored.get(key) } : null),
             put: sinon.spy(async (key, value) => stored.set(key, value)),
@@ -126,6 +128,7 @@ describe('Promotion history', () => {
         originalFetch = global.fetch;
         global.fetch = fetchStub;
         ({ execute } = proxyquire('../../src/promo-history/service.js', {
+            '@adobe/aio-sdk': { Core: { Logger: () => logger } },
             '@adobe/aio-lib-state': { init: async () => state },
             '../../utils.js': {
                 getBearerToken: (p) => p.__ow_headers?.authorization?.slice(7),
@@ -203,6 +206,35 @@ describe('Promotion history', () => {
         await expectError(call('backup'), 503);
         expect(state.put.called).to.equal(false);
     });
+
+    for (const method of ['GET', 'POST']) {
+        it(`logs safe request context when an AEM version ${method} fails during audit preparation`, async () => {
+            const resource = `/adobe/sites/cf/fragments/${PROJECT}/versions${method === 'GET' ? '/version-1' : ''}`;
+            fetchStub
+                .withArgs(
+                    sinon.match((url) => new URL(url).pathname === resource),
+                    sinon.match((options) => (options.method ?? 'GET') === method),
+                )
+                .resolves(response({ detail: 'private upstream response' }, 404, null, { 'x-request-id': 'aem-request' }));
+
+            await expectError(call('record', { phase: 'prepare', action: 'save', targetId: PROJECT }), 404);
+
+            expect(logger.error.calledOnce).to.equal(true);
+            expect(JSON.parse(logger.error.firstCall.args[0])).to.deep.equal({
+                event: 'promo-history-aem-request-failed',
+                operation: 'record',
+                phase: 'prepare',
+                projectId: PROJECT,
+                requestId: 'request-one',
+                method,
+                endpoint: 'https://author.example.com',
+                resource,
+                status: 404,
+                aemRequestId: 'aem-request',
+            });
+            expect(stored.size).to.equal(0);
+        });
+    }
 
     it('rejects a created AEM version without a Location header', async () => {
         fetchStub

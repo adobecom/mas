@@ -3427,7 +3427,7 @@ describe('MasPromotionsEditor', () => {
                 expect(plainText).to.include('query=variation-id');
                 expect(htmlText).to.include('<a href=');
                 expect(htmlText).to.include('query=variation-id');
-                expect(htmlText).to.include('merch-card: SANDBOX : Variation');
+                expect(htmlText).to.include('SANDBOX / merch-card : Variation');
             } finally {
                 clipboard.restore();
             }

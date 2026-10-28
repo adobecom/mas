@@ -72,6 +72,16 @@ export class Plans extends VariantLayout {
     }
 
     priceOptionsProvider(element, options) {
+        if (
+            element.dataset.template === 'price' &&
+            element.closest('[slot="heading-m"]')
+        ) {
+            // The main price renders in its final form; the legal clone carries these.
+            options.displayPerUnit = false;
+            options.displayTax = false;
+            options.displayPlanType = false;
+            return;
+        }
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
@@ -296,26 +306,26 @@ export class Plans extends VariantLayout {
             this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
-            const prices = [];
-            const headingPrice = this.card.querySelector(
-                `[slot="heading-m"] ${SELECTOR_MAS_INLINE_PRICE}[data-template="price"]`,
-            );
-            if (headingPrice) prices.push(headingPrice);
-            const legalPromises = prices.map(async (price) => {
-                const legal = price.cloneNode(true);
-                await price.onceSettled();
-                if (!price?.options) return;
-                if (price.options.displayPerUnit)
-                    price.dataset.displayPerUnit = 'false';
-                if (price.options.displayTax)
-                    price.dataset.displayTax = 'false';
-                if (price.options.displayPlanType)
-                    price.dataset.displayPlanType = 'false';
-                legal.setAttribute('data-template', 'legal');
-                price.parentNode.insertBefore(legal, price.nextSibling);
-                await legal.onceSettled();
-            });
-            await Promise.all(legalPromises);
+            const price = this.mainPrice;
+            if (!price) return;
+            let legal = price.nextElementSibling;
+            const isCurrent =
+                legal?.dataset.template === TEMPLATE_PRICE_LEGAL &&
+                legal.dataset.wcsOsi === price.dataset.wcsOsi &&
+                legal.dataset.promotionCode === price.dataset.promotionCode;
+            if (!isCurrent) {
+                if (legal?.dataset.template === TEMPLATE_PRICE_LEGAL)
+                    legal.remove();
+                legal = price.cloneNode(true);
+                legal.setAttribute('data-template', TEMPLATE_PRICE_LEGAL);
+                price.after(legal);
+                // Authored data-display-* attributes win over the options provider; drop them
+                // in the same tick so the main price resolves once, in its final form.
+                delete price.dataset.displayPerUnit;
+                delete price.dataset.displayTax;
+                delete price.dataset.displayPlanType;
+            }
+            await Promise.all([price.onceSettled?.(), legal.onceSettled?.()]);
         } catch {
             /* Proceed with adjusting edu lists */
         }

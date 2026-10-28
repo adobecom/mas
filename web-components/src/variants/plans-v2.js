@@ -63,6 +63,7 @@ export class PlansV2 extends VariantLayout {
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
                 this.card?.settings?.displayPlanType ?? false;
+            if (this.card?.settings?.displayAnnual) options.displayTax = false;
             return;
         }
 
@@ -73,6 +74,13 @@ export class PlansV2 extends VariantLayout {
             element.dataset.template === 'price'
         ) {
             options.displayPerUnit = false;
+            options.displayPlanType = false;
+        }
+        if (
+            element.dataset.template === 'price' &&
+            !this.card?.settings?.displayAnnual
+        ) {
+            options.displayTax = false;
         }
     }
 
@@ -250,31 +258,33 @@ export class PlansV2 extends VariantLayout {
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
 
-            const legal = headingPrice.cloneNode(true);
-            await headingPrice.onceSettled();
-
-            if (!headingPrice?.options) return;
-
-            if (headingPrice.options.displayPerUnit)
-                headingPrice.dataset.displayPerUnit = 'false';
-            if (headingPrice.options.displayPlanType)
-                headingPrice.dataset.displayPlanType = 'false';
-
-            if (
-                this.card.settings?.displayAnnual &&
-                headingPrice.options.displayTax
-            ) {
-                legal.dataset.displayTax = 'false';
-            } else if (headingPrice.options.displayTax) {
-                headingPrice.dataset.displayTax = 'false';
+            let legal = headingPrice.nextElementSibling;
+            const isCurrent =
+                legal?.dataset.template === TEMPLATE_PRICE_LEGAL &&
+                legal.dataset.wcsOsi === headingPrice.dataset.wcsOsi &&
+                legal.dataset.promotionCode ===
+                    headingPrice.dataset.promotionCode;
+            if (!isCurrent) {
+                if (legal?.dataset.template === TEMPLATE_PRICE_LEGAL)
+                    legal.remove();
+                legal = headingPrice.cloneNode(true);
+                legal.setAttribute('data-template', TEMPLATE_PRICE_LEGAL);
+                if (this.card.settings?.displayAnnual) {
+                    legal.dataset.displayTax = 'false';
+                }
+                headingPrice.after(legal);
+                // Authored data-display-* attributes win over the options provider; drop them
+                // in the same tick so the main price resolves once, in its final form.
+                delete headingPrice.dataset.displayPerUnit;
+                delete headingPrice.dataset.displayPlanType;
+                if (!this.card.settings?.displayAnnual) {
+                    delete headingPrice.dataset.displayTax;
+                }
             }
-
-            legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
-            await legal.onceSettled();
+            await Promise.all([
+                headingPrice.onceSettled?.(),
+                legal.onceSettled?.(),
+            ]);
         } catch {
             // Proceed with other adjustments
         }

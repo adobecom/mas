@@ -142,9 +142,9 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.not.include('en_US');
         });
 
-        it('returns zh_TW + zh_HK for acom (HK is a region of TW)', () => {
+        it('returns zh_TW + zh_HK + zh_MO for acom', () => {
             const result = action.getValidVariationsLocales('acom', 'zh_TW');
-            expect(result).to.deep.equal(['zh_TW', 'zh_HK']);
+            expect(result).to.deep.equal(['zh_TW', 'zh_HK', 'zh_MO']);
         });
 
         it('returns just [localeCode] for an unknown surface', () => {

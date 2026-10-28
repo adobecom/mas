@@ -2613,5 +2613,97 @@ describe('MasSearchAndFilters', () => {
             expect(el.isLoading).to.be.true;
             expect(el.isLoadingMore).to.be.false;
         });
+
+        it('adds and removes product arrangement codes from the picker checkboxes', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            el.openFilterPicker = FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE;
+            await el.updateComplete;
+            const checkbox = () => el.shadowRoot.querySelector('.filters sp-checkbox[value="PA-1"]');
+
+            checkbox().checked = true;
+            checkbox().dispatchEvent(new Event('change'));
+            await el.updateComplete;
+            expect(el.productArrangementCodeFilter).to.deep.equal(['PA-1']);
+
+            checkbox().checked = false;
+            checkbox().dispatchEvent(new Event('change'));
+            await el.updateComplete;
+            expect(el.productArrangementCodeFilter).to.deep.equal([]);
+        });
+
+        it('tracks the open searchable picker and clears its search on open and close', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            await el.updateComplete;
+            const paTrigger = el.shadowRoot.querySelectorAll('.filters > overlay-trigger')[1];
+
+            el.filterPickerSearch = 'illus';
+            paTrigger.dispatchEvent(new Event('sp-opened'));
+            expect(el.openFilterPicker).to.equal(FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE);
+            expect(el.filterPickerSearch).to.equal('');
+
+            el.filterPickerSearch = 'photo';
+            paTrigger.dispatchEvent(new Event('sp-closed'));
+            expect(el.openFilterPicker).to.equal('');
+            expect(el.filterPickerSearch).to.equal('');
+        });
+
+        it('keeps another open picker when a different picker closes', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            await el.updateComplete;
+            el.openFilterPicker = FILTER_TYPE.TEMPLATE;
+
+            el.shadowRoot.querySelectorAll('.filters > overlay-trigger')[1].dispatchEvent(new Event('sp-closed'));
+
+            expect(el.openFilterPicker).to.equal(FILTER_TYPE.TEMPLATE);
+        });
+
+        it('removes applied product arrangement code and created by tags', async () => {
+            const el = await renderBaselineFilters();
+            el.productArrangementCodeFilter = ['PA-1', 'PA-2'];
+            el.createdByFilter = ['jane@adobe.com'];
+            await el.updateComplete;
+            const deleteTag = (value) => {
+                const tag = el.shadowRoot.querySelector('sp-tag');
+                tag.value = value;
+                tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            };
+
+            deleteTag({ type: FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE, id: 'PA-1' });
+            deleteTag({ type: FILTER_TYPE.CREATED_BY, id: 'jane@adobe.com' });
+            await el.updateComplete;
+
+            expect(el.productArrangementCodeFilter).to.deep.equal(['PA-2']);
+            expect(el.createdByFilter).to.deep.equal([]);
+        });
+
+        describe('created by user picker sync', () => {
+            const users = [
+                { userPrincipalName: 'jane@adobe.com', displayName: 'Jane Doe' },
+                { userPrincipalName: 'john@adobe.com', displayName: 'John Roe' },
+            ];
+
+            beforeEach(() => Store.users.set(users));
+            afterEach(() => Store.users.set([]));
+
+            it('selects the filtered users in the user picker', async () => {
+                const el = await renderBaselineFilters();
+                el.createdByFilter = ['jane@adobe.com'];
+                await el.updateComplete;
+
+                expect(el.shadowRoot.querySelector('mas-user-picker').selectedUsers.get()).to.deep.equal([users[0]]);
+                expect(el.createdByFilter).to.deep.equal(['jane@adobe.com']);
+            });
+
+            it('updates the created by filter from the user picker selection', async () => {
+                const el = await renderBaselineFilters();
+                el.shadowRoot.querySelector('mas-user-picker').selectedUsers.set([users[1]]);
+                await el.updateComplete;
+
+                expect(el.createdByFilter).to.deep.equal(['john@adobe.com']);
+            });
+        });
     });
 });

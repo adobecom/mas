@@ -6,8 +6,9 @@ import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 import {
-    countdownDatesOfProvenance,
-    countdownDatesOfTag,
+    countdownPreviewOfProvenance,
+    countdownPreviewOfTag,
+    countdownProjectTargetsPath,
     hasCountdownSentinel,
     toCountdownProject,
 } from '../promotions/countdown-preview.js';
@@ -300,19 +301,14 @@ export class PreviewFragmentStore extends FragmentStore {
         return result;
     }
 
-    /**
-     * Countdown dates for the preview payload; keys are always present so stale dates get cleared.
-     * A promo variation takes its tagged project (drafts included). A default card takes the project
-     * the production pipeline selects for its saved version, even if the saved description has no
-     * sentinel. Unsaved authored content is never sent anywhere.
-     */
+    /** Resolves preview-only dates and diagnostics. Unsaved authored content never leaves the browser. */
     async getCountdownDates(fields) {
-        const none = { cdtStart: undefined, cdtEnd: undefined };
+        const none = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
         if (!hasCountdownSentinel(fields)) return none;
         try {
             const tag = getPromotionTagFromFragment(this.value);
-            if (tag) return { ...none, ...countdownDatesOfTag(await readCountdownProjects(), tag) };
-            if (!canProbePromoVariationsForFragment(this.value)) return none;
+            if (tag) return { ...none, ...countdownPreviewOfTag(await readCountdownProjects(), tag) };
+            if (!canProbePromoVariationsForFragment(this.value)) return { ...none, countdownStatus: 'no-project' };
             const instant = getService()?.settings?.instant;
             const key = `${this.value.id}|${this.previewLocale}|${instant ?? ''}`;
             // The saved version's project does not change while the author types.
@@ -322,12 +318,22 @@ export class PreviewFragmentStore extends FragmentStore {
                     country: this.previewLocale.split('_')[1],
                     ...(instant && { instant }),
                     fullContext: true,
-                }).then(countdownDatesOfProvenance),
+                }).then((context) => {
+                    if (context.status !== 200) throw new Error('Countdown preview lookup failed');
+                    const preview = countdownPreviewOfProvenance(context);
+                    if (preview.countdownStatus === 'lookup-failed') throw new Error('Selected promotion was not returned');
+                    return preview;
+                }),
             );
+            if (published.countdownStatus === 'no-project') {
+                const projects = await readCountdownProjects();
+                const linked = projects.some((project) => countdownProjectTargetsPath(project, this.value.path));
+                return { ...none, countdownStatus: linked ? 'no-match' : 'no-project' };
+            }
             return { ...none, ...published };
         } catch (error) {
             console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
-            return none;
+            return { ...none, countdownStatus: 'lookup-failed' };
         }
     }
 

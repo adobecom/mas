@@ -5,6 +5,21 @@ import {
     XL_DESKTOP_UP,
 } from '../media.js';
 
+// Milo section grids (.one-merch-card ... .four-merch-cards) holding only pro
+// cards. Collections are excluded: they have their own rules below.
+const PRO_ONLY =
+    ':not(merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card:not([variant="pro"]), merch-card-collection))';
+const grid = (classes, suffix = '') =>
+    classes.map((name) => `.${name}${PRO_ONLY}${suffix}`).join(',\n');
+const ONE_TO_FOUR = [
+    'one-merch-card',
+    'two-merch-cards',
+    'three-merch-cards',
+    'four-merch-cards',
+];
+const TWO_TO_FOUR = ONE_TO_FOUR.slice(1);
+const THREE_FOUR = ONE_TO_FOUR.slice(2);
+
 export const CSS = `
 :root {
     --consonant-merch-card-pro-font-family-regular: 'Adobe Clean', adobe-clean, sans-serif;
@@ -752,4 +767,65 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
     }
 }
 
+/* Section grid — the same C2 columns and caps as the collection grid above, for
+   pro cards placed straight in a Milo .one/.two/.three/.four-merch-cards
+   section instead of a merch-card-collection (MWPW-203250). The section's
+   .content wrapper turns transparent so the grid applies to the cards. */
+${grid(ONE_TO_FOUR, ' > .content')} {
+    display: contents;
+}
+
+${grid(ONE_TO_FOUR)} {
+    gap: 8px;
+    grid-template-columns: minmax(0, var(--consonant-merch-card-pro-max-width));
+    align-items: stretch;
+    margin-inline: auto;
+}
+
+@media screen and ${TABLET_UP} {
+    ${grid(TWO_TO_FOUR)} {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 720px;
+    }
+
+    ${grid(THREE_FOUR, ' merch-card[variant="pro"]:not([size="edu"])')} {
+        max-width: none;
+    }
+}
+
+@media screen and ${C2_DESKTOP_UP} {
+    ${grid(['two-merch-cards'])} {
+        gap: 12px;
+        max-width: calc(2 * var(--consonant-merch-card-pro-2up-max-width) + 12px);
+    }
+    ${grid(['two-merch-cards'], ' merch-card[variant="pro"]')} {
+        max-width: var(--consonant-merch-card-pro-2up-max-width);
+    }
+    ${grid(['three-merch-cards'])} {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        max-width: 1192px;
+    }
+    ${grid(['four-merch-cards'])} {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        max-width: 1600px;
+    }
+}
+
+@media screen and ${TABLET_UP} and (max-width: 1280px) {
+    ${grid(THREE_FOUR)} {
+        max-width: 1280px;
+    }
+}
+
+@media screen and ${XL_DESKTOP_UP} {
+    ${grid(THREE_FOUR)} {
+        max-width: 1920px;
+    }
+}
+
+@media screen and ${MOBILE_LANDSCAPE} {
+    ${grid(ONE_TO_FOUR)} {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
 `;

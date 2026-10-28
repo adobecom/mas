@@ -24,6 +24,7 @@ const SYNCED_HEIGHT_NAMES = [
     'heading-xs',
     'subtitle',
     'heading-m-price',
+    'quantity-select',
     'promo-text',
     'body-m',
     'body-xs',
@@ -36,6 +37,7 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     subtitle: { tag: 'p', slot: 'subtitle' },
     prices: { tag: 'p', slot: 'heading-m-price' },
     promoText: { tag: 'div', slot: 'promo-text' },
+    quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'body-m' },
     description: { tag: 'div', slot: 'body-xs' },
     mnemonics: { size: 'l' },
@@ -145,6 +147,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             'heading-xs',
             'subtitle',
             'heading-m-price',
+            'quantity-select',
             'promo-text',
             'body-m',
             'body-xs',
@@ -371,6 +374,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                     </div>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
+                    <slot name="quantity-select"></slot>
                 </div>
                 ${this.getMiniCompareFooter()}
             </div>
@@ -587,6 +591,12 @@ export class MiniCompareChartMweb extends VariantLayout {
             ::slotted([slot='promo-text']) {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-promo-text-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted([slot='quantity-select']) {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-quantity-select-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])

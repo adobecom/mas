@@ -5,6 +5,7 @@ on:
             - main
     pull_request:
         types: [opened, synchronize, reopened]
+# Web-components builds in web-components-pr.yaml; add future workspace builds explicitly.
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -25,5 +26,5 @@ jobs:
             - name: run npm clean install
               run: npm ci
 
-            - name: build
-              run: npm run build
+            - name: Build Studio
+              run: npm run build --workspace=studio

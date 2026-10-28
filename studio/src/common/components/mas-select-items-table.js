@@ -61,7 +61,14 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, pendingCards: null, abortController: null };
+        this.dataState = {
+            isProcessingCards: false,
+            pendingCards: null,
+            abortController: null,
+            onProcessingChange: () => {
+                if (this.itemsSelection.value === Store.promotions) this.requestUpdate();
+            },
+        };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -253,7 +260,12 @@ class MasSelectItemsTable extends LitElement {
     get isLoading() {
         if (this.effectiveType === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return !this.dataReady;
+            return (
+                !this.dataReady ||
+                (this.itemsSelection.value === Store.promotions &&
+                    this.itemsToDisplay.length === 0 &&
+                    (this.loading.value || this.hasMore.value || this.dataState.isProcessingCards))
+            );
         }
         if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
             if (this.viewOnly) return this.viewOnlyLoading;
@@ -338,17 +350,17 @@ class MasSelectItemsTable extends LitElement {
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Item type', key: 'itemType' },
                     { label: 'Status', key: 'status' },
                 ],
@@ -356,13 +368,13 @@ class MasSelectItemsTable extends LitElement {
             collections: {
                 selectable: [
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
             },
@@ -454,13 +466,13 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
+                            <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             <sp-table-cell>
                                 ${renderEditorLink(fragment, fragment.title || '-', {
                                     selectionOnly: !this.viewOnly,
                                     nativeKeyboard: this.viewOnly,
                                 })}
                             </sp-table-cell>
-                            <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,
                 )}`;

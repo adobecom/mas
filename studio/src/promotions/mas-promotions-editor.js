@@ -27,6 +27,7 @@ import {
     normalizeKey,
     showToast,
     extractSurfaceFromPath,
+    formatAuthorPath,
     generateLinkToUse,
     getFragmentPartsToUse,
     getCreateProjectErrorMessage,
@@ -79,6 +80,7 @@ import {
     GROUP_BY,
 } from './promotion-editor-utils.js';
 import { getPromotionTagFromFragment } from './promotion-model.js';
+import { COUNTDOWN_RANGE_MESSAGE, countdownDateError } from './countdown-preview.js';
 import './mas-promo-codes-manager.js';
 import { MANAGE_PROMO_CODES_AND_OFFERS_LABEL } from './mas-promo-codes-manager.js';
 import './mas-promotion-duplicate-dialog.js';
@@ -110,9 +112,10 @@ function getPromotionPickerFragmentLabel(data) {
     const pathSurface = extractSurfaceFromPath(fragmentPath);
     const searchSnapshot = Store.search.get();
     const { fragmentParts } = getFragmentPartsToUse(data, pathSurface ?? searchSnapshot.path);
-    return `${webComponentName}: ${fragmentParts}`;
+    return formatAuthorPath(webComponentName, fragmentParts);
 }
 
+const EMPTY_PRODUCT_FILTER = Object.freeze([]);
 const OFFER_FILTER_ALL = 'all';
 
 const PROMOTION_VIEW_TABS = [
@@ -185,6 +188,7 @@ class MasPromotionsEditor extends LitElement {
 
     #promotionItemsReactive;
     #promotionOfferFilterReactive;
+    #promotionOfferHydrationReactive;
 
     inEdit = Store.promotions.inEdit;
     promotionId = Store.promotions.promotionId;
@@ -268,7 +272,6 @@ class MasPromotionsEditor extends LitElement {
             Store.promotions.selectedCards,
             Store.promotions.selectedCollections,
             Store.promotions.selectedOffers,
-            Store.promotions.offerRecordsHydrated,
             Store.users,
         ]);
         this.#promotionOfferFilterReactive = new ReactiveController(
@@ -276,6 +279,11 @@ class MasPromotionsEditor extends LitElement {
             [Store.promotions.selectedOffers],
             this.#onPromotionOffersFilterChange,
         );
+        this.#promotionOfferHydrationReactive = new ReactiveController(this, [Store.promotions.offerRecordsHydrated], () => {
+            if (this.activeFilterOfferId && !this.#pickerProductFilterOverridden) {
+                this.#syncOfferProductTagsToFragmentSearch();
+            }
+        });
         this.#syncOfferProductTagsToFragmentSearch();
     }
 
@@ -1288,7 +1296,6 @@ class MasPromotionsEditor extends LitElement {
         Store.filters.set((prev) => ({ ...prev, tags: undefined }));
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
-        Store.promotions.cardsByPaths.set(new Map());
         if (Store.page.get() === PAGE_NAMES.PROMOTIONS_EDITOR) {
             this.repository?.searchFragments?.();
         }
@@ -1355,8 +1362,11 @@ class MasPromotionsEditor extends LitElement {
 
     get #activeOfferFilterIds() {
         const s = getItemsSelectionStore({ allowUnset: true });
-        const all = s?.selectedOffers.value ?? [];
-        return this.activeFilterOfferId ? [this.activeFilterOfferId] : all;
+        return this.activeFilterOfferId === OFFER_FILTER_ALL
+            ? (s?.selectedOffers.value ?? [])
+            : this.activeFilterOfferId
+              ? [this.activeFilterOfferId]
+              : [];
     }
 
     get #offerFilterOptions() {
@@ -1367,29 +1377,45 @@ class MasPromotionsEditor extends LitElement {
         }));
     }
 
-    get #offerProductTags() {
-        return collectPromotionOfferProductTags(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
-    }
+    /** Stable reference across renders so a chip the user deleted is not re-applied on every keystroke. */
+    #pickerProductFilter = [];
+    #pickerProductFilterOverridden = false;
 
     #onPromotionOffersFilterChange = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
-        if (this.activeFilterOfferId && !s?.selectedOffers.value.includes(this.activeFilterOfferId)) {
-            this.activeFilterOfferId = '';
+        if (
+            this.activeFilterOfferId &&
+            this.activeFilterOfferId !== OFFER_FILTER_ALL &&
+            !s?.selectedOffers.value.includes(this.activeFilterOfferId)
+        ) {
+            this.activeFilterOfferId = OFFER_FILTER_ALL;
         }
         this.#syncOfferProductTagsToFragmentSearch();
     };
 
     #handleOfferFilterChange = (e) => {
         e.stopPropagation();
-        const val = e.detail.value;
-        this.activeFilterOfferId = val === OFFER_FILTER_ALL ? '' : (val ?? '');
+        this.activeFilterOfferId = e.detail.value;
         this.#syncOfferProductTagsToFragmentSearch();
+    };
+
+    #handleProductFilterChange = (event) => {
+        event.stopPropagation();
+        this.#pickerProductFilterOverridden ||=
+            [...event.detail.value].sort().join(',') !== [...this.#pickerProductFilter].sort().join(',');
+        this.#pickerProductFilter = event.detail.value;
+        const tags = this.#pickerProductFilter.join(',') || undefined;
+        if (Store.filters.get().tags !== tags) {
+            Store.filters.set((prev) => ({ ...prev, tags }));
+        }
     };
 
     #syncOfferProductTagsToFragmentSearch = () => {
         const s = getItemsSelectionStore({ allowUnset: true });
         if (!s) return [];
         const tags = applyPromotionOfferProductTagsToSearch(Store.promotions.offerRecordsCache, this.#activeOfferFilterIds);
+        this.#pickerProductFilterOverridden = false;
+        this.#pickerProductFilter = tags;
         const picker = this.renderRoot.querySelector('.add-items-dialog mas-items-selector');
         picker?.searchFilterElements.forEach((el) => {
             if (el.type === TABLE_TYPE.CARDS) el.productFilter = tags;
@@ -1412,6 +1438,10 @@ class MasPromotionsEditor extends LitElement {
         Store.fragments.list.data.set([]);
         Store.fragments.list.hasMore.set(false);
         const s = Store.promotions;
+        const selectedVariations = s.selectedCards.value.map((path) => s.groupedVariationsData.value.get(path)).filter(Boolean);
+        s.cardsByPaths.set(
+            (cards) => new Map([...selectedVariations.map((variation) => [variation.path, variation]), ...cards]),
+        );
         s.allCards.set([]);
         s.displayCards.set([]);
         s.groupedVariationsByParent.set(new Map());
@@ -1419,8 +1449,8 @@ class MasPromotionsEditor extends LitElement {
         s.allCollections.set([]);
         s.allCollections.setMeta('loaded', false);
         s.displayCollections.set([]);
-        this.#syncOfferProductTagsToFragmentSearch();
-        this.repository?.loadAllCollections?.();
+        this.repository?.searchFragments?.();
+        this.repository?.loadAllCollections?.(s);
         this.repository?.loadPlaceholders?.();
     };
 
@@ -1433,10 +1463,12 @@ class MasPromotionsEditor extends LitElement {
 
     #syncPromotionSearchToRepository = (normalized) => {
         if (isUUID(normalized)) {
+            Store.fragments.list.loading.set(true);
             Store.search.set((prev) => ({ ...prev, query: normalized }));
             return;
         }
-        if (!normalized) {
+        if (!normalized || isUUID(Store.search.get().query)) {
+            if (isUUID(Store.search.get().query)) Store.fragments.list.loading.set(true);
             this.#clearPromotionSearchUuidMeta();
             Store.search.set((prev) => ({ ...prev, query: '' }));
         }
@@ -1469,11 +1501,13 @@ class MasPromotionsEditor extends LitElement {
                 .promotionSurfaceOptions=${promotionSurfaceOptions}
                 .promotionSurface=${surfacePickerValue ?? ''}
                 .externalProductFilter=${true}
-                .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#offerProductTags : []}
+                .productFilter=${tab.value === TABLE_TYPE.CARDS ? this.#pickerProductFilter : EMPTY_PRODUCT_FILTER}
+                .matchVariationsAndTags=${tab.value === TABLE_TYPE.CARDS}
                 .offerFilterOptions=${tab.value === TABLE_TYPE.CARDS ? this.#offerFilterOptions : []}
                 .offerFilterValue=${this.activeFilterOfferId}
                 @promotion-surface-change=${this.#onPromotionItemSurfaceChange}
                 @offer-filter-change=${this.#handleOfferFilterChange}
+                @product-filter-change=${this.#handleProductFilterChange}
             ></mas-search-and-filters>
         `;
     };
@@ -1580,7 +1614,9 @@ class MasPromotionsEditor extends LitElement {
         }
         Store.promotions.allCards.set([]);
         Store.promotions.displayCards.set([]);
+        this.#syncPromotionSearchToRepository('');
         selector?.resetFilters();
+        this.activeFilterOfferId = '';
         this.#syncOfferProductTagsToFragmentSearch();
         const cachedCollections = Store.promotions.allCollections.get();
         if (Store.promotions.allCollections.getMeta('loaded') && cachedCollections?.length) {
@@ -1840,7 +1876,17 @@ class MasPromotionsEditor extends LitElement {
         `;
     }
 
+    get countdownDateValidationMessage() {
+        const error = countdownDateError(this.fragment?.getFieldValue('cdtStart'), this.fragment?.getFieldValue('cdtEnd'));
+        return {
+            'missing-dates': 'Set both countdown timer start and end dates, or leave both empty.',
+            'invalid-dates': 'Set valid UTC dates for countdown timer start and end.',
+            'invalid-range': COUNTDOWN_RANGE_MESSAGE,
+        }[error];
+    }
+
     render() {
+        const countdownError = this.countdownDateValidationMessage;
         let form = nothing;
         if (this.fragment) {
             form = Object.fromEntries([...this.fragment.fields.map((f) => [f.name, f])]);
@@ -1872,7 +1918,7 @@ class MasPromotionsEditor extends LitElement {
                     this.duplicateDialogOpen = false;
                 }}
             ></mas-promotion-duplicate-dialog>
-            <div class="promotions-form-container">
+            <div class="page-container">
                 ${this.renderValidationBanner()}
                 <div class="promotions-form-header">
                     <h1>${this.isNewPromotion ? 'Create new promotion project' : 'Edit promotion project'}</h1>
@@ -1944,6 +1990,8 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtStart"
                                 value="${form.cdtStart?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtStart"
+                                aria-invalid=${countdownError ? 'true' : nothing}
+                                aria-describedby=${countdownError ? 'countdown-date-error' : nothing}
                                 ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
@@ -1953,9 +2001,16 @@ class MasPromotionsEditor extends LitElement {
                                 id="cdtEnd"
                                 value="${form.cdtEnd?.values[0]?.slice(0, 16) ?? ''}"
                                 data-field="cdtEnd"
+                                aria-invalid=${countdownError ? 'true' : nothing}
+                                aria-describedby=${countdownError ? 'countdown-date-error' : nothing}
                                 ?disabled=${!this.canConfigurePromotion}
                                 @change=${this.#handleDateUpdate}
                             />
+                            ${countdownError
+                                ? html`<sp-help-text id="countdown-date-error" variant="negative" role="status" icon
+                                      >Countdown timer: ${countdownError}</sp-help-text
+                                  >`
+                                : nothing}
                             <sp-field-label required>Promotion tag</sp-field-label>
                             <aem-tag-picker-field
                                 label="Promotion tag"
@@ -2048,7 +2103,6 @@ class MasPromotionsEditor extends LitElement {
                     </div>
                 </div>
                 ${this.countriesSelector}
-                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
                 <div class="promotions-form-items-outer">
                     ${this.showSelectedEmptyState
                         ? this.#renderPromotionItemsEmptyState()
@@ -2136,6 +2190,7 @@ class MasPromotionsEditor extends LitElement {
                         }}
                     ></mas-promo-codes-manager>
                 </div>
+                <overlay-trigger type="modal" id="add-promotion-items-overlay"> ${this.addItemsDialog} </overlay-trigger>
             </div>
             ${this.fragment && !this.duplicateDialogOpen && !this.confirmDialogConfig
                 ? html`<mas-quick-actions

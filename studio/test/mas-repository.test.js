@@ -3680,7 +3680,7 @@ describe('MasRepository dictionary helpers', () => {
     });
 
     describe('searchFragments sort', () => {
-        const setupSortTest = async ({ pageCount, sort }) => {
+        const setupSortTest = async ({ pageCount, sort, onNext }) => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
             repository.search = { value: { path: 'acom', query: '' } };
@@ -3698,6 +3698,7 @@ describe('MasRepository dictionary helpers', () => {
             const mockCursor = {
                 next: async () => {
                     state.nextCalls++;
+                    onNext?.(state.nextCalls);
                     const page = pages[state.nextCalls - 1];
                     if (!page) return { done: true };
                     return {
@@ -3799,11 +3800,8 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
-        it('loads a Path sort as parallel creation-date windows', async () => {
-            const { repository, searchStub, Store, cleanup } = await setupSortTest({
-                pageCount: 1,
-                sort: { sortBy: 'path', sortDirection: 'asc' },
-            });
+        /** Makes the search stub answer created-span probes and creation-date window searches over 120 fragments. */
+        const mockWindowedSearch = (searchStub, { failWindows = false } = {}) => {
             const first = Date.parse('2025-01-01T00:00:00.000Z');
             const last = Date.parse('2025-01-02T00:00:00.000Z');
             const total = 120;
@@ -3836,32 +3834,78 @@ describe('MasRepository dictionary helpers', () => {
                 const ordered = options.sort[0].order === 'ASC' ? all : [...all].reverse();
                 return { next: async () => ({ done: false, value: [ordered[0]] }) };
             };
+            const result = { total, windows: [], maxRunning: 0 };
             let running = 0;
-            let maxRunning = 0;
-            const windows = [];
             searchStub.callsFake(async (options, limit) => {
                 if (limit === 1) return probe(options);
                 if (!options.createdRange) return windowCursor({ after: '0', before: '9' });
-                windows.push(options.createdRange);
+                if (failWindows) throw new Error('window search failed');
+                result.windows.push(options.createdRange);
                 const cursor = windowCursor(options.createdRange);
                 return {
                     next: async () => {
                         running++;
-                        maxRunning = Math.max(maxRunning, running);
+                        result.maxRunning = Math.max(result.maxRunning, running);
                         await new Promise((resolve) => setTimeout(resolve, 5));
                         running--;
                         return cursor.next();
                     },
                 };
             });
+            return result;
+        };
+
+        it('loads a Path sort as parallel creation-date windows', async () => {
+            const { repository, searchStub, Store, cleanup } = await setupSortTest({
+                pageCount: 1,
+                sort: { sortBy: 'path', sortDirection: 'asc' },
+            });
+            const mock = mockWindowedSearch(searchStub);
             try {
                 await repository.searchFragments();
                 await new Promise((resolve) => setTimeout(resolve, 600));
                 const ids = Store.fragments.list.data.value.map((store) => store.value.id);
-                expect(ids.length).to.equal(total);
-                expect(new Set(ids).size).to.equal(total);
-                expect(windows.length).to.equal(MasRepository.SORT_LOAD_WINDOWS);
-                expect(maxRunning).to.be.within(2, MasRepository.SORT_LOAD_CONCURRENCY);
+                expect(ids.length).to.equal(mock.total);
+                expect(new Set(ids).size).to.equal(mock.total);
+                expect(mock.windows.length).to.equal(MasRepository.SORT_LOAD_WINDOWS);
+                expect(mock.maxRunning).to.be.within(2, MasRepository.SORT_LOAD_CONCURRENCY);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('publishes what it has and leaves hasMore true when a window search fails', async () => {
+            const { repository, searchStub, Store, cleanup } = await setupSortTest({
+                pageCount: 1,
+                sort: { sortBy: 'path', sortDirection: 'asc' },
+            });
+            mockWindowedSearch(searchStub, { failWindows: true });
+            try {
+                await repository.searchFragments();
+                await settle();
+                expect(Store.fragments.list.data.value.length).to.equal(MasRepository.MIN_PAGE_SIZE);
+                expect(Store.fragments.list.hasMore.value).to.be.true;
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('hands a refill in progress over to the full load when a Path sort becomes active', async () => {
+            const { repository, state, Store, cleanup } = await setupSortTest({
+                pageCount: 6,
+                sort: { sortBy: 'modifiedOrCreated', sortDirection: 'desc' },
+                onNext: (call) => {
+                    if (call === 2) Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
+                },
+            });
+            try {
+                await repository.searchFragments();
+                await settle();
+                expect(state.nextCalls).to.be.greaterThan(6);
+                expect(Store.fragments.list.data.value.length).to.equal(6 * MasRepository.MIN_PAGE_SIZE);
                 expect(Store.fragments.list.hasMore.value).to.be.false;
                 expect(Store.fragments.list.loading.value).to.be.false;
             } finally {

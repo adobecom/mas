@@ -12,13 +12,18 @@ import {
     TABLE_TYPE,
 } from '../../constants.js';
 import ReactiveController from '../../reactivity/reactive-controller.js';
+import { ReactiveStore } from '../../reactivity/reactive-store.js';
 import { AEM } from '../../aem/aem.js';
+import { Fragment } from '../../aem/fragment.js';
 import { ensureNamespaceTags, getNamespaceCache, getNamespaceInflight } from '../../aem/tag-cache.js';
 import { PZN_TAG_ID_PREFIX, tagRefToTagId } from '../utils/personalization-utils.js';
+import { loadProductArrangementCodes } from '../utils/product-arrangement-codes.js';
 import '../../aem/aem-tag-picker-field.js';
+import '../../fields/user-picker.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 const VARIANT_TAG_PREFIX = 'mas:variant/';
+const PRODUCT_ARRANGEMENT_CODE_TAG_PREFIX = 'mas:product_arrangement_code/';
 const EMPTY_TAGS_BY_TYPE = {
     offer_type: [],
     plan_type: [],
@@ -34,6 +39,19 @@ const EMPTY_TAGS_BY_TYPE = {
 };
 const SELECTOR_FILTER_TYPES = ['market_segments', 'customer_segment', 'product_code', 'variant'];
 const STRIPPED_FILTER_TYPES = [...SELECTOR_FILTER_TYPES, 'studio/content-type'];
+const DEFAULT_ENABLED_FILTERS = [
+    FILTER_TYPE.TEMPLATE,
+    FILTER_TYPE.OFFER_TYPE,
+    FILTER_TYPE.PLAN_TYPE,
+    FILTER_TYPE.WORKFLOW_STEP,
+    FILTER_TYPE.MARKET_SEGMENT,
+    FILTER_TYPE.CUSTOMER_SEGMENT,
+    FILTER_TYPE.PRODUCT,
+    FILTER_TYPE.TAG,
+    FILTER_TYPE.STATUS,
+    FILTER_TYPE.PZN,
+];
+const sameValues = (a, b) => a.length === b.length && a.every((value, index) => value === b[index]);
 
 class MasSearchAndFilters extends LitElement {
     static styles = styles;
@@ -44,6 +62,8 @@ class MasSearchAndFilters extends LitElement {
     #defaultTemplateFilterApplied = false;
     #tagCachePromise = null;
     #tagPathsBySelection = new WeakMap();
+    #createdByStore = new ReactiveStore([]);
+    #syncingCreatedByStore = false;
     // Search/filters come from the active items-selection store when it provides them
     // (e.g. the compare-chart picker), else the global stores. Resolved at connect.
     #searchStore = Store.search;
@@ -68,6 +88,10 @@ class MasSearchAndFilters extends LitElement {
         pznFilter: { type: Array, state: true },
         tagFilter: { type: Array, state: true },
         statusFilter: { type: Array, state: true },
+        productArrangementCodeFilter: { type: Array, state: true },
+        createdByFilter: { type: Array, state: true },
+        openFilterPicker: { type: String, state: true },
+        filterPickerSearch: { type: String, state: true },
         templateOptions: { type: Array },
         marketSegmentOptions: { type: Array },
         customerSegmentOptions: { type: Array },
@@ -78,6 +102,18 @@ class MasSearchAndFilters extends LitElement {
         pznOptions: { type: Array },
         tagOptions: { type: Array },
         statusOptions: { type: Array },
+        productArrangementCodeOptions: { type: Array },
+        /** FILTER_TYPE values to render, in display order. Defaults to every tag/status filter. */
+        enabledFilters: { type: Array, attribute: false },
+        /** When set, renders a "Reset Filters" button that clears the search query and every filter. */
+        showReset: { type: Boolean, attribute: 'show-reset' },
+        /** When set, the result count is not rendered (the host shows its own next to the search field). */
+        hideCount: { type: Boolean, attribute: 'hide-count' },
+        /**
+         * Optional `(fragment, filterType) => string[] | undefined` returning the values a fragment is matched on
+         * for market segment and product arrangement code filters; tags are used when it returns undefined.
+         */
+        filterValueResolver: { attribute: false },
         searchOnly: { type: Boolean, reflect: true },
         /** When set, preselects this template variant and prevents changing the Template filter. */
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
@@ -106,6 +142,10 @@ class MasSearchAndFilters extends LitElement {
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
+        this.productArrangementCodeFilter = [];
+        this.createdByFilter = [];
+        this.openFilterPicker = '';
+        this.filterPickerSearch = '';
         this.templateOptions = [];
         this.marketSegmentOptions = [];
         this.customerSegmentOptions = [];
@@ -116,6 +156,11 @@ class MasSearchAndFilters extends LitElement {
         this.pznOptions = [];
         this.tagOptions = [];
         this.statusOptions = [];
+        this.productArrangementCodeOptions = [];
+        this.enabledFilters = DEFAULT_ENABLED_FILTERS;
+        this.showReset = false;
+        this.hideCount = false;
+        this.filterValueResolver = null;
         this.dataSubscription = null;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
@@ -147,7 +192,7 @@ class MasSearchAndFilters extends LitElement {
 
     #tagsList(tags) {
         if (Array.isArray(tags)) return tags.filter(Boolean);
-        if (typeof tags === 'string') return tags.split(',').filter(Boolean);
+        if (typeof tags === 'string' || typeof tags === 'number') return String(tags).split(',').filter(Boolean);
         return [];
     }
 
@@ -178,14 +223,22 @@ class MasSearchAndFilters extends LitElement {
     }
 
     #setFilterIfChanged(property, values) {
-        const current = this[property] || [];
-        if (current.length === values.length && current.every((value, index) => value === values[index])) return;
+        if (sameValues(this[property] || [], values)) return;
         this[property] = values;
     }
 
+    get #syncsFiltersToStore() {
+        return this.type === TABLE_TYPE.CARDS || this.type === TABLE_TYPE.BASELINES;
+    }
+
+    #isFilterEnabled(filterType) {
+        return this.enabledFilters.includes(filterType);
+    }
+
     #syncFiltersFromStore() {
-        if (this.type !== TABLE_TYPE.CARDS) return;
-        const tagsByType = this.#tagsByType(this.#filtersStore.get()?.tags);
+        if (!this.#syncsFiltersToStore) return;
+        const filters = this.#filtersStore.get();
+        const tagsByType = this.#tagsByType(filters?.tags);
         if (!this.#isTemplateFilterLocked) {
             this.#setFilterIfChanged(
                 'templateFilter',
@@ -197,10 +250,42 @@ class MasSearchAndFilters extends LitElement {
         if (!this.externalProductFilter) {
             this.#setFilterIfChanged('productFilter', tagsByType.product_code);
         }
+        this.#setFilterIfChanged('productArrangementCodeFilter', this.#tagsList(filters?.paCodes));
+        this.#setFilterIfChanged('createdByFilter', this.#tagsList(filters?.createdBy));
+    }
+
+    #onFiltersStoreChange = () => {
+        this.#syncFiltersFromStore();
+    };
+
+    #onCreatedByStoreChange = (users) => {
+        if (this.#syncingCreatedByStore) return;
+        this.#setFilterIfChanged(
+            'createdByFilter',
+            users.map(({ userPrincipalName }) => userPrincipalName),
+        );
+    };
+
+    #syncCreatedByStore() {
+        const toNames = (users) => users.map(({ userPrincipalName }) => userPrincipalName);
+        const selectedUsers = (Store.users.get() ?? []).filter(({ userPrincipalName }) =>
+            this.createdByFilter.includes(userPrincipalName),
+        );
+        if (sameValues(toNames(this.#createdByStore.get()), toNames(selectedUsers))) return;
+        this.#syncingCreatedByStore = true;
+        this.#createdByStore.set(selectedUsers);
+        this.#syncingCreatedByStore = false;
+    }
+
+    #userDisplayName(userPrincipalName) {
+        return (
+            (Store.users.get() ?? []).find((user) => user.userPrincipalName === userPrincipalName)?.displayName ??
+            userPrincipalName
+        );
     }
 
     #syncRepositorySearch() {
-        if (this.type !== TABLE_TYPE.CARDS) return;
+        if (!this.#syncsFiltersToStore) return;
 
         const nextQuery = this.searchQuery?.trim() || undefined;
         const currentSearch = this.#searchStore.get() || {};
@@ -226,11 +311,22 @@ class MasSearchAndFilters extends LitElement {
             ...variantTags,
         ].join(',');
         const currentTags = this.#tagsList(currentFilters.tags).join(',');
-        if (currentTags !== nextTags) {
-            this.#filtersStore.set({
+        const nextPaCodes = this.productArrangementCodeFilter.join(',');
+        const nextCreatedBy = this.createdByFilter.join(',');
+        if (
+            currentTags !== nextTags ||
+            this.#tagsList(currentFilters.paCodes).join(',') !== nextPaCodes ||
+            this.#tagsList(currentFilters.createdBy).join(',') !== nextCreatedBy
+        ) {
+            const nextFilters = {
                 ...currentFilters,
                 tags: nextTags || undefined,
-            });
+                paCodes: nextPaCodes,
+                createdBy: nextCreatedBy,
+            };
+            if (!nextPaCodes) delete nextFilters.paCodes;
+            if (!nextCreatedBy) delete nextFilters.createdBy;
+            this.#filtersStore.set(nextFilters);
         }
 
         this.#forceRepositorySearchInFragmentEditor(nextQuery, nextTags);
@@ -279,7 +375,8 @@ class MasSearchAndFilters extends LitElement {
         const selectionStore = this.itemsSelection.value;
         this.#searchStore = selectionStore.search;
         this.#filtersStore = selectionStore.filters;
-        if (this.type === TABLE_TYPE.CARDS) {
+        if (this.#isFilterEnabled(FILTER_TYPE.CREATED_BY)) this.#createdByStore.subscribe(this.#onCreatedByStoreChange);
+        if (this.#syncsFiltersToStore) {
             this.#savedSearch = this.#searchStore.get();
             this.#savedFilters = this.#filtersStore.get();
             this.#syncFiltersFromStore();
@@ -290,11 +387,18 @@ class MasSearchAndFilters extends LitElement {
         } else {
             this.#syncLockedTemplateFilter();
         }
+        if (this.type === TABLE_TYPE.BASELINES) this.#filtersStore.subscribe(this.#onFiltersStoreChange);
+        if (!this.searchOnly && this.#isFilterEnabled(FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE)) {
+            loadProductArrangementCodes().then((options) => {
+                if (this.isConnected) this.productArrangementCodeOptions = options;
+            });
+        }
         this.commonDataController = new ReactiveController(this, [
             selectionStore[`all${this.typeUppercased}`],
             selectionStore[`display${this.typeUppercased}`],
-            Store[this.type === TABLE_TYPE.PLACEHOLDERS ? 'placeholders' : 'fragments'].list.loading,
-            ...(this.type !== TABLE_TYPE.PLACEHOLDERS ? [Store.fragments.list.firstPageLoaded] : []),
+            this.#listStore.loading,
+            ...(this.#listStore === Store.fragments.list ? [Store.fragments.list.firstPageLoaded] : []),
+            ...(this.#isFilterEnabled(FILTER_TYPE.CREATED_BY) ? [Store.users] : []),
         ]);
         const dataCallback = () => {
             if (!this.searchOnly) {
@@ -321,7 +425,9 @@ class MasSearchAndFilters extends LitElement {
             selectionStore[`display${this.typeUppercased}`].set(selectionStore[`all${this.typeUppercased}`].value);
         }
         this.dataSubscription?.unsubscribe();
-        if (this.type === TABLE_TYPE.CARDS) {
+        this.#filtersStore.unsubscribe(this.#onFiltersStoreChange);
+        this.#createdByStore.unsubscribe(this.#onCreatedByStoreChange);
+        if (this.#syncsFiltersToStore) {
             if (this.#savedSearch !== null) {
                 this.#searchStore.set(this.#savedSearch);
             }
@@ -335,13 +441,19 @@ class MasSearchAndFilters extends LitElement {
         return this.type.charAt(0).toUpperCase() + this.type.slice(1);
     }
 
+    get #listStore() {
+        if (this.type === TABLE_TYPE.PLACEHOLDERS) return Store.placeholders.list;
+        if (this.type === TABLE_TYPE.BASELINES) return Store.baselines.list;
+        return Store.fragments.list;
+    }
+
     get isLoading() {
-        if (this.type === TABLE_TYPE.PLACEHOLDERS) return Store.placeholders.list.loading.get();
+        if (this.#listStore !== Store.fragments.list) return this.#listStore.loading.get();
         return Store.fragments.list.firstPageLoaded.get() === false;
     }
 
     get isLoadingMore() {
-        if (this.type === TABLE_TYPE.PLACEHOLDERS) return false;
+        if (this.#listStore !== Store.fragments.list) return false;
         return Store.fragments.list.firstPageLoaded.get() === true && Store.fragments.list.loading.get();
     }
 
@@ -397,6 +509,12 @@ class MasSearchAndFilters extends LitElement {
         for (const id of this.statusFilter) {
             const option = statusMap.get(id);
             if (option) filters.push({ type: FILTER_TYPE.STATUS, id, label: option.title || option.label });
+        }
+        for (const id of this.productArrangementCodeFilter) {
+            filters.push({ type: FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE, id, label: id });
+        }
+        for (const id of this.createdByFilter) {
+            filters.push({ type: FILTER_TYPE.CREATED_BY, id, label: this.#userDisplayName(id) });
         }
         return filters;
     }
@@ -536,6 +654,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     willUpdate(changed) {
+        if (this.#isFilterEnabled(FILTER_TYPE.CREATED_BY)) this.#syncCreatedByStore();
         if (changed.has('lockedTemplateFilter') || (changed.has('templateFilter') && this.#isTemplateFilterLocked)) {
             this.#syncLockedTemplateFilter();
         }
@@ -567,6 +686,9 @@ class MasSearchAndFilters extends LitElement {
             changed.has('pznFilter') ||
             changed.has('tagFilter') ||
             changed.has('statusFilter') ||
+            changed.has('productArrangementCodeFilter') ||
+            changed.has('createdByFilter') ||
+            changed.has('filterValueResolver') ||
             changed.has('matchVariationsAndTags')
         ) {
             if (
@@ -575,7 +697,9 @@ class MasSearchAndFilters extends LitElement {
                 changed.has('lockedTemplateFilter') ||
                 changed.has('marketSegmentFilter') ||
                 changed.has('customerSegmentFilter') ||
-                changed.has('productFilter')
+                changed.has('productFilter') ||
+                changed.has('productArrangementCodeFilter') ||
+                changed.has('createdByFilter')
             ) {
                 this.#syncRepositorySearch();
             }
@@ -626,6 +750,9 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.STATUS:
                 currentValues = [...this.statusFilter];
                 break;
+            case FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE:
+                currentValues = [...this.productArrangementCodeFilter];
+                break;
             default:
                 currentValues = [];
         }
@@ -666,6 +793,9 @@ class MasSearchAndFilters extends LitElement {
                 break;
             case FILTER_TYPE.STATUS:
                 this.statusFilter = currentValues;
+                break;
+            case FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE:
+                this.productArrangementCodeFilter = currentValues;
                 break;
         }
     }
@@ -744,6 +874,12 @@ class MasSearchAndFilters extends LitElement {
             case FILTER_TYPE.STATUS:
                 this.statusFilter = this.statusFilter.filter((filterId) => filterId !== id);
                 break;
+            case FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE:
+                this.productArrangementCodeFilter = this.productArrangementCodeFilter.filter((filterId) => filterId !== id);
+                break;
+            case FILTER_TYPE.CREATED_BY:
+                this.createdByFilter = this.createdByFilter.filter((filterId) => filterId !== id);
+                break;
         }
     }
 
@@ -762,6 +898,8 @@ class MasSearchAndFilters extends LitElement {
         this.pznFilter = [];
         this.tagFilter = [];
         this.statusFilter = [];
+        this.productArrangementCodeFilter = [];
+        this.createdByFilter = [];
         if (this.offerFilterValue) {
             this.offerFilterValue = '';
             this.dispatchEvent(
@@ -799,45 +937,82 @@ class MasSearchAndFilters extends LitElement {
                         `,
                     )}
                 </sp-tags>
-                <sp-action-button
-                    quiet
-                    @click=${() => {
-                        this.#clearAllFilters();
-                        this.#notifyProductFilterChange();
-                    }}
-                    >Clear all</sp-action-button
-                >
+                ${this.showReset
+                    ? nothing
+                    : html`<sp-action-button
+                          quiet
+                          @click=${() => {
+                              this.#clearAllFilters();
+                              this.#notifyProductFilterChange();
+                          }}
+                          >Clear all</sp-action-button
+                      >`}
             </div>
         `;
     }
 
-    #renderFilterPicker(label, options, selectedValues, filterType, { locked = false } = {}) {
+    #filterPickerOptions(options, filterType, searchable) {
+        if (!searchable) return options;
+        if (this.openFilterPicker !== filterType) return [];
+        const query = this.filterPickerSearch.trim().toLowerCase();
+        if (!query) return options;
+        return options.filter((option) => (option.title || option.label).toLowerCase().includes(query));
+    }
+
+    #handleFilterPickerToggle(filterType, open) {
+        if (open) {
+            this.openFilterPicker = filterType;
+        } else if (this.openFilterPicker === filterType) {
+            this.openFilterPicker = '';
+        }
+        this.filterPickerSearch = '';
+    }
+
+    #renderFilterPicker(label, options, selectedValues, filterType, { locked = false, searchable = false } = {}) {
         if (!options.length) return nothing;
         const selectedCount = selectedValues.length;
         const displayLabel = selectedCount > 0 ? `${label} (${selectedCount})` : label;
 
         return html`
-            <overlay-trigger placement="bottom-start" ?disabled=${locked}>
+            <overlay-trigger
+                placement="bottom-start"
+                ?disabled=${locked}
+                @sp-opened=${searchable ? () => this.#handleFilterPickerToggle(filterType, true) : nothing}
+                @sp-closed=${searchable ? () => this.#handleFilterPickerToggle(filterType, false) : nothing}
+            >
                 <sp-action-button class="template-filter" dir="ltr" slot="trigger" .disabled=${this.isLoading || locked}>
                     ${displayLabel}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
                 <sp-popover slot="click-content" class="filter-popover">
+                    ${searchable
+                        ? html`<sp-search
+                              size="m"
+                              class="filter-search"
+                              placeholder="Search"
+                              .value=${this.filterPickerSearch}
+                              @input=${(e) => (this.filterPickerSearch = e.target.value)}
+                              @submit=${(e) => e.preventDefault()}
+                          ></sp-search>`
+                        : nothing}
                     <div class="checkbox-list">
-                        ${options.map((option) => {
-                            const optionId = option.id || option.value;
-                            const isChecked = selectedValues.includes(optionId);
-                            return html`
-                                <sp-checkbox
-                                    value=${optionId}
-                                    ?checked=${isChecked}
-                                    ?disabled=${locked}
-                                    @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
-                                >
-                                    ${option.title || option.label}
-                                </sp-checkbox>
-                            `;
-                        })}
+                        ${repeat(
+                            this.#filterPickerOptions(options, filterType, searchable),
+                            (option) => option.id || option.value,
+                            (option) => {
+                                const optionId = option.id || option.value;
+                                return html`
+                                    <sp-checkbox
+                                        value=${optionId}
+                                        ?checked=${selectedValues.includes(optionId)}
+                                        ?disabled=${locked}
+                                        @change=${(e) => this.#handleCheckboxChange(filterType, optionId, e)}
+                                    >
+                                        ${option.title || option.label}
+                                    </sp-checkbox>
+                                `;
+                            },
+                        )}
                     </div>
                 </sp-popover>
             </overlay-trigger>
@@ -930,6 +1105,13 @@ class MasSearchAndFilters extends LitElement {
         return fragment.tags?.some((tag) => selectedIds.some((sel) => tag.id === sel || tag.id?.startsWith(`${sel}/`)));
     }
 
+    #fragmentMatchesResolvedValues(fragment, filterType, selectedIds, toTagId = (id) => id) {
+        const values = this.filterValueResolver?.(fragment, filterType);
+        if (!values) return this.#fragmentMatchesAnyTag(fragment, selectedIds.map(toTagId));
+        const lowerValues = values.map((value) => value.toLowerCase());
+        return selectedIds.some((id) => lowerValues.includes(id.toLowerCase()));
+    }
+
     #personalizationTags(fragment) {
         return [
             ...(fragment.tags ?? []),
@@ -976,6 +1158,8 @@ class MasSearchAndFilters extends LitElement {
         const hasPzn = this.pznFilter?.length > 0;
         const hasTag = this.tagFilter?.length > 0;
         const hasStatus = this.statusFilter?.length > 0;
+        const hasProductArrangementCode = this.productArrangementCodeFilter.length > 0;
+        const hasCreatedBy = this.createdByFilter.length > 0;
 
         const result = source.filter((fragment) => {
             if (query) {
@@ -1012,7 +1196,21 @@ class MasSearchAndFilters extends LitElement {
                 if (!this.statusFilter.includes(fragment.status)) return false;
             }
             if (hasMarket) {
-                if (!this.#fragmentMatchesAnyTag(fragment, this.marketSegmentFilter)) return false;
+                if (!this.#fragmentMatchesResolvedValues(fragment, FILTER_TYPE.MARKET_SEGMENT, this.marketSegmentFilter)) {
+                    return false;
+                }
+            }
+            if (hasProductArrangementCode) {
+                const matches = this.#fragmentMatchesResolvedValues(
+                    fragment,
+                    FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE,
+                    this.productArrangementCodeFilter,
+                    (code) => `${PRODUCT_ARRANGEMENT_CODE_TAG_PREFIX}${code.toLowerCase()}`,
+                );
+                if (!matches) return false;
+            }
+            if (hasCreatedBy) {
+                if (!Fragment.isCreatedByAny(fragment, this.createdByFilter)) return false;
             }
             if (hasCustomer) {
                 if (!this.#fragmentMatchesAnyTag(fragment, this.customerSegmentFilter)) return false;
@@ -1045,6 +1243,7 @@ class MasSearchAndFilters extends LitElement {
     }
 
     renderCount() {
+        if (this.hideCount) return nothing;
         return html`<div class="result-count">
             ${this.isLoading
                 ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
@@ -1053,37 +1252,81 @@ class MasSearchAndFilters extends LitElement {
         </div>`;
     }
 
+    get #filterRenderers() {
+        return {
+            [FILTER_TYPE.TEMPLATE]: () =>
+                this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE, {
+                    locked: this.#isTemplateFilterLocked,
+                }),
+            [FILTER_TYPE.OFFER_TYPE]: () =>
+                this.#renderTagPicker('Offer Type', 'offer_type', this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE),
+            [FILTER_TYPE.PLAN_TYPE]: () =>
+                this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE),
+            [FILTER_TYPE.WORKFLOW_STEP]: () =>
+                this.#renderTagPicker('Workflow Step', 'workflow-step', this.workflowStepFilter, FILTER_TYPE.WORKFLOW_STEP),
+            [FILTER_TYPE.MARKET_SEGMENT]: () =>
+                this.#renderTagPicker(
+                    'Market Segment',
+                    'market_segments',
+                    this.marketSegmentFilter,
+                    FILTER_TYPE.MARKET_SEGMENT,
+                ),
+            [FILTER_TYPE.CUSTOMER_SEGMENT]: () =>
+                this.#renderTagPicker(
+                    'Customer Segment',
+                    'customer_segment',
+                    this.customerSegmentFilter,
+                    FILTER_TYPE.CUSTOMER_SEGMENT,
+                ),
+            [FILTER_TYPE.PRODUCT]: () =>
+                this.#renderTagPicker('Product Code', 'product_code', this.productFilter, FILTER_TYPE.PRODUCT),
+            [FILTER_TYPE.TAG]: () => this.#renderTagPicker('Tag', 'custom', this.tagFilter, FILTER_TYPE.TAG),
+            [FILTER_TYPE.STATUS]: () =>
+                this.#renderFilterPicker('Status', this.statusOptions, this.statusFilter, FILTER_TYPE.STATUS),
+            [FILTER_TYPE.PZN]: () => this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN),
+            [FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE]: () =>
+                this.#renderFilterPicker(
+                    'Product Arrangement Code',
+                    this.productArrangementCodeOptions,
+                    this.productArrangementCodeFilter,
+                    FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE,
+                    { searchable: true },
+                ),
+            [FILTER_TYPE.CREATED_BY]: () =>
+                html`<mas-user-picker
+                    .quiet=${false}
+                    label="Created by"
+                    .currentUser=${Store.profile}
+                    .selectedUsers=${this.#createdByStore}
+                    .users=${Store.users}
+                ></mas-user-picker>`,
+        };
+    }
+
+    #handleResetFilters() {
+        this.searchQuery = '';
+        this.#clearAllFilters();
+        this.#notifyProductFilterChange();
+    }
+
+    get #resetButton() {
+        if (!this.showReset) return nothing;
+        return html`<sp-action-button quiet class="reset-filters" title="Clear all filters" @click=${this.#handleResetFilters}>
+            Reset Filters
+            <sp-icon-refresh slot="icon"></sp-icon-refresh>
+        </sp-action-button>`;
+    }
+
     render() {
         const surfacePicker = this.#renderPromotionSurfacePicker();
         if (this.searchOnly) {
             return html`${this.renderCount()} ${surfacePicker}`;
         }
+        const filterRenderers = this.#filterRenderers;
         return html`
             <div class="filters">
-                ${this.renderCount()}
-                ${this.#renderFilterPicker('Template', this.templateOptions, this.templateFilter, FILTER_TYPE.TEMPLATE, {
-                    locked: this.#isTemplateFilterLocked,
-                })}
-                ${this.#renderTagPicker('Offer Type', 'offer_type', this.offerTypeFilter, FILTER_TYPE.OFFER_TYPE)}
-                ${this.#renderTagPicker('Plan Type', 'plan_type', this.planTypeFilter, FILTER_TYPE.PLAN_TYPE)}
-                ${this.#renderTagPicker('Workflow Step', 'workflow-step', this.workflowStepFilter, FILTER_TYPE.WORKFLOW_STEP)}
-                ${this.#renderTagPicker(
-                    'Market Segment',
-                    'market_segments',
-                    this.marketSegmentFilter,
-                    FILTER_TYPE.MARKET_SEGMENT,
-                )}
-                ${this.#renderTagPicker(
-                    'Customer Segment',
-                    'customer_segment',
-                    this.customerSegmentFilter,
-                    FILTER_TYPE.CUSTOMER_SEGMENT,
-                )}
-                ${this.#renderTagPicker('Product Code', 'product_code', this.productFilter, FILTER_TYPE.PRODUCT)}
-                ${this.#renderTagPicker('Tag', 'custom', this.tagFilter, FILTER_TYPE.TAG)}
-                ${this.#renderFilterPicker('Status', this.statusOptions, this.statusFilter, FILTER_TYPE.STATUS)}
-                ${this.#renderTagPicker('Personalization', 'pzn', this.pznFilter, FILTER_TYPE.PZN)} ${this.#renderOfferPicker()}
-                ${surfacePicker}
+                ${this.renderCount()} ${this.enabledFilters.map((filterType) => filterRenderers[filterType]())}
+                ${this.#renderOfferPicker()} ${surfacePicker} ${this.#resetButton}
             </div>
             ${this.#renderAppliedFilters()}
         `;

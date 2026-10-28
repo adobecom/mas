@@ -27,6 +27,7 @@ import {
     normalizeKey,
     showToast,
     extractSurfaceFromPath,
+    formatAuthorPath,
     generateLinkToUse,
     getFragmentPartsToUse,
     getCreateProjectErrorMessage,
@@ -115,7 +116,7 @@ function getPromotionPickerFragmentLabel(data) {
     const pathSurface = extractSurfaceFromPath(fragmentPath);
     const searchSnapshot = Store.search.get();
     const { fragmentParts } = getFragmentPartsToUse(data, pathSurface ?? searchSnapshot.path);
-    return `${webComponentName}: ${fragmentParts}`;
+    return formatAuthorPath(webComponentName, fragmentParts);
 }
 
 const EMPTY_PRODUCT_FILTER = Object.freeze([]);

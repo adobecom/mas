@@ -5,6 +5,7 @@ import '../../src/swc.js';
 import '../../src/editors/variant-picker.js';
 import {
     getVariantTreeData,
+    getSurfacesVariantNames,
     hasLegacyVariantAlias,
     isVariantMatch,
     LEGACY_VARIANTS,
@@ -73,6 +74,23 @@ describe('VariantPicker', () => {
         });
         const picker = el.shadowRoot.querySelector('sp-picker');
         expect(picker.value).to.equal('segment');
+    });
+
+    it('should list only the variants allowed on the given surface', async () => {
+        const el = await fixture(html`<variant-picker surface="ccd"></variant-picker>`, { parentNode: spTheme() });
+        const values = [...el.shadowRoot.querySelectorAll('sp-menu-item')].map((item) => item.getAttribute('value'));
+        expect(values).to.have.members(['ccd-slice', 'ccd-suggested', 'mini']);
+    });
+
+    describe('getSurfacesVariantNames', () => {
+        it('should return variants allowed on any of the surfaces', () => {
+            expect([...getSurfacesVariantNames(['adobe-home', 'brand-concierge'])]).to.have.members([
+                'ah-try-buy-widget',
+                'ah-promoted-plans',
+                'mini',
+                'brand-concierge-product',
+            ]);
+        });
     });
 
     describe('VARIANTS', () => {

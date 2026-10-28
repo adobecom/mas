@@ -197,8 +197,8 @@ export class MasCollapsibleTableRow extends LitElement {
     get cells() {
         if (this.cellsOverride?.length) return this.cellsOverride;
         return this.viewOnly
-            ? ['OfferName', 'Title', 'OfferId', 'StudioPath', 'ItemType', 'Status']
-            : ['OfferName', 'Title', 'OfferId', 'StudioPath', 'Status'];
+            ? ['OfferName', 'StudioPath', 'Title', 'OfferId', 'ItemType', 'Status']
+            : ['OfferName', 'StudioPath', 'Title', 'OfferId', 'Status'];
     }
 
     get variationCellNames() {
@@ -507,8 +507,8 @@ export class MasCollapsibleTableRow extends LitElement {
                         };
                         return html`<sp-table-row value=${variation.path}>
                             ${renderRowLinkOverlay(variation, linkOptions)} ${this.renderOfferName(variation)}
-                            ${this.renderTitle(variation, linkOptions)} ${this.renderOfferId(variation)}
-                            ${this.renderStudioPath(variation, linkOptions)} ${this.renderStatus(variation)}
+                            ${this.renderStudioPath(variation, linkOptions)} ${this.renderTitle(variation, linkOptions)}
+                            ${this.renderOfferId(variation)} ${this.renderStatus(variation)}
                         </sp-table-row>`;
                     },
                 )}

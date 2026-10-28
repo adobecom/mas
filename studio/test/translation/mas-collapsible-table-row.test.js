@@ -369,7 +369,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard}></mas-collapsible-table-row>`,
             );
-            expect(el.cells).to.deep.equal(['OfferName', 'Title', 'OfferId', 'StudioPath', 'Status']);
+            expect(el.cells).to.deep.equal(['OfferName', 'StudioPath', 'Title', 'OfferId', 'Status']);
         });
 
         it('should include ItemType when viewOnly is true', async () => {
@@ -377,7 +377,7 @@ describe('MasCollapsibleTableRow', () => {
             const el = await fixture(
                 html`<mas-collapsible-table-row .topLevelCard=${topLevelCard} .viewOnly=${true}></mas-collapsible-table-row>`,
             );
-            expect(el.cells).to.deep.equal(['OfferName', 'Title', 'OfferId', 'StudioPath', 'ItemType', 'Status']);
+            expect(el.cells).to.deep.equal(['OfferName', 'StudioPath', 'Title', 'OfferId', 'ItemType', 'Status']);
         });
     });
 
@@ -2894,7 +2894,7 @@ describe('MasCollapsibleTableRow cell overrides', () => {
         const el = await fixture(
             html`<mas-collapsible-table-row .topLevelCard=${createCard()} .viewOnly=${true}></mas-collapsible-table-row>`,
         );
-        expect(el.cells).to.deep.equal(['OfferName', 'Title', 'OfferId', 'StudioPath', 'ItemType', 'Status']);
+        expect(el.cells).to.deep.equal(['OfferName', 'StudioPath', 'Title', 'OfferId', 'ItemType', 'Status']);
     });
 
     it('uses cellsOverride when provided', async () => {

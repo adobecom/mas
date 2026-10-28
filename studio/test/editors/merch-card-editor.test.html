@@ -741,10 +741,10 @@
                             return {
                                 ...baseMockData,
                                 fields: settingsMockFields.map((field) => {
-                                    if (field.name === 'variant') return { ...field, values: ['plans'] };
                                     if (overrides[field.name] !== undefined) {
                                         return { ...field, values: overrides[field.name] };
                                     }
+                                    if (field.name === 'variant') return { ...field, values: ['plans'] };
                                     return { ...field, values: [] };
                                 }),
                             };
@@ -863,6 +863,43 @@
 
                             const indicators = editor.querySelectorAll(SETTINGS_OVERRIDE_INDICATORS_QUERY);
                             expect(indicators.length).to.equal(0);
+                        });
+
+                        it('shows and edits the Mweb quantity selector inherited from global settings', async () => {
+                            await setupSettingsTest({
+                                isVariation: false,
+                                testId: 'mweb-global-quantity',
+                                variationOverrides: { variant: ['mini-compare-chart-mweb'] },
+                                settingsRows: [
+                                    createSettingRow({
+                                        name: 'quantitySelect',
+                                        templateIds: ['mini-compare-chart-mweb'],
+                                        value: '<merch-quantity-select title="Number of licenses" min="1" default-value="3" max="10" step="2"></merch-quantity-select>',
+                                        valueType: 'optional-text',
+                                    }),
+                                ],
+                            });
+                            await editor.toggleFields();
+
+                            const group = editor.querySelector('sp-field-group#quantitySelect');
+                            expect(getComputedStyle(group).display).to.not.equal('none');
+                            expect(group.querySelector('sp-switch').checked).to.be.true;
+                            const field = group.querySelector('quantity-select-field');
+                            await field.updateComplete;
+                            for (const [id, value] of [
+                                ['title', 'Number of licenses'],
+                                ['start', '1'],
+                                ['default', '3'],
+                                ['step', '2'],
+                            ]) {
+                                expect(field.shadowRoot.querySelector(`#quantity-selector-${id}`).value).to.equal(value);
+                            }
+
+                            const title = field.shadowRoot.querySelector('#quantity-selector-title');
+                            title.value = 'Seats';
+                            title.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await editor.updateComplete;
+                            expect(editor.fragmentQuantityValue).to.include('title="Seats"');
                         });
 
                         it('shows quantity selector toggle in locale variation when no global quantitySelect row exists', async () => {

@@ -6,7 +6,7 @@ const values = {
     time: [{ d: Date.UTC(2025, 0, 1, 12) }, { d: Date.UTC(2025, 0, 1, 0, 15) }],
 };
 
-export function messageCases(golden) {
+export function messageCases(golden, parameters = values) {
     const cases = [];
     for (const [group, messages] of Object.entries(golden)) {
         for (const [message, locales] of Object.entries(messages)) {
@@ -16,7 +16,7 @@ export function messageCases(golden) {
                         id: `${group}/${locale}/${message}/${index}`,
                         message,
                         locale,
-                        parameters: values[group][index],
+                        parameters: parameters[group][index],
                         expected,
                     });
                 }

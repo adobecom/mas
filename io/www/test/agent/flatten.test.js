@@ -508,6 +508,57 @@ describe('flattenOffer', () => {
             expect(card).to.deep.include({ regularPrice: 'US$20.00', annualPrice: 'US$240.00', recurrenceText: '/mo' });
         });
 
+        it('hydrates annual ABM promotional prices without a document or explicit instant', async () => {
+            expect(globalThis).not.to.have.property('document');
+            sinon.useFakeTimers({ now: new Date('2025-01-15T12:00:00.000Z'), toFake: ['Date'] });
+            const fetchStub = blockWcs();
+            const onPriceError = sinon.spy();
+            const card = await extractMerchCard(
+                {
+                    fields: {
+                        prices: inlinePrice(
+                            'abm-promo',
+                            'data-template="price" data-display-annual="true" data-promotion-code="PROMO"',
+                        ),
+                    },
+                    wcs: {
+                        prod: {
+                            'abm-promo-us-mult-promo': [
+                                wcsOffer('abm-promo', 20, {
+                                    planType: 'ABM',
+                                    commitment: 'YEAR',
+                                    term: 'MONTHLY',
+                                    promotion: {
+                                        start: '2024-01-01T00:00:00.000Z',
+                                        end: '2026-01-01T00:00:00.000Z',
+                                        displaySummary: {
+                                            amount: 50,
+                                            duration: 'P3M',
+                                            outcomeType: 'PERCENTAGE_DISCOUNT',
+                                            minProductQuantity: 1,
+                                        },
+                                    },
+                                    priceDetails: {
+                                        priceWithoutDiscount: 40,
+                                        annualized: { annualizedPrice: 240, annualizedPriceWithoutDiscount: 480 },
+                                    },
+                                }),
+                            ],
+                        },
+                    },
+                },
+                { onPriceError },
+            );
+            expect(onPriceError.getCalls().map(({ args }) => args[0].message)).to.deep.equal([]);
+            expect(card).to.deep.include({
+                regularPrice: '$40.00',
+                promoPrice: '$20.00',
+                annualPrice: '$420.00',
+                priceErrors: undefined,
+            });
+            expect(fetchStub.called).to.be.false;
+        });
+
         it('hydrates promotional prices and reports missing ones', async () => {
             const onPriceError = sinon.spy();
             const card = await extractMerchCard(

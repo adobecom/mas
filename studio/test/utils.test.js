@@ -2,6 +2,8 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import {
     buildCardsDeepLink,
+    buildProjectDeepLink,
+    formatAuthorPath,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -73,7 +75,38 @@ describe('getFragmentEditorUrl', () => {
     });
 });
 
+describe('formatAuthorPath', () => {
+    it('inserts the content type right after the surface', () => {
+        expect(formatAuthorPath('merch-card', 'ACOM / Catalog / Teams')).to.equal('ACOM / merch-card / Catalog / Teams');
+    });
+
+    it('returns the parts unchanged without a content type', () => {
+        expect(formatAuthorPath('', 'ACOM / Catalog')).to.equal('ACOM / Catalog');
+    });
+
+    it('returns an empty string for empty parts', () => {
+        expect(formatAuthorPath('merch-card', '')).to.equal('');
+    });
+
+    it('keeps separators inside a title', () => {
+        expect(formatAuthorPath('merch-card-collection', 'ACOM / A / B')).to.equal('ACOM / merch-card-collection / A / B');
+    });
+});
+
 describe('generateLinkToUse', () => {
+    it('builds the path as surface / content type / parts', () => {
+        const { authorPath } = generateLinkToUse(mockFragmentForCode(CARD_MODEL_PATH), 'acom', 'content');
+        expect(authorPath).to.match(/^ACOM \/ merch-card \//);
+        expect(authorPath).to.not.match(/^merch-card:/);
+    });
+
+    it('puts the content type right after the surface for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        expect(generateLinkToUse(fragment, 'acom', 'content').authorPath).to.equal(
+            'ACOM / merch-card-collection / My Collection Title',
+        );
+    });
+
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
         const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
@@ -374,6 +407,24 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildProjectDeepLink', () => {
+    it('builds a Studio editor URL from page, id param and surface', () => {
+        const href = buildProjectDeepLink('bulkPublishEditor', 'bulkPublishProjectId', 'proj-123', 'acom');
+        expect(href).to.equal(
+            'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=proj-123&path=acom',
+        );
+    });
+
+    it('omits the surface when it is unknown', () => {
+        const href = buildProjectDeepLink('promotions-editor', 'promotionId', 'promo-1');
+        expect(href).to.equal('https://mas.adobe.com/studio.html#page=promotions-editor&promotionId=promo-1');
+    });
+
+    it('returns null when id is missing', () => {
+        expect(buildProjectDeepLink('translation-editor', 'translationProjectId', null, 'acom')).to.be.null;
     });
 });
 

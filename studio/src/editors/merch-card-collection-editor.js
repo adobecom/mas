@@ -1631,6 +1631,14 @@ class MerchCardCollectionEditor extends LitElement {
                         ${this.#renderTagsStatusIndicator()}
                     </div>
                     ${this.groupedVariationTagsTemplate}
+                    <div class="form-row">
+                        <sp-field-label for="collection-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="collection-enable-baselines"
+                            ?checked="${this.fragment.getField('enableBaselines')?.values[0]}"
+                            @click="${this.#handleEnableBaselines}"
+                        ></sp-switch>
+                    </div>
                 </div>
             </div>
         `;
@@ -1794,6 +1802,11 @@ class MerchCardCollectionEditor extends LitElement {
 
     #updateFragmentInternal({ target }) {
         this.fragmentStore.updateFieldInternal(target.dataset.field, target.value);
+    }
+
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
     }
 
     /** @returns {import('../mas-fragment-editor.js').default | null} */

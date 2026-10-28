@@ -11,13 +11,7 @@ const usdFormat = {
 
 const leaf = (integer, decimals, full) => ({ integer, decimals, full });
 
-const format = ({
-    currencySymbol,
-    isCurrencyFirst,
-    hasCurrencySpace,
-    decimalsDelimiter = '.',
-    usePrecision = true,
-}) => ({
+const format = ({ currencySymbol, isCurrencyFirst, hasCurrencySpace, decimalsDelimiter = '.', usePrecision = true }) => ({
     currencySymbol,
     decimalsDelimiter,
     usePrecision,
@@ -88,7 +82,7 @@ const bothStates = (withTax) => ({
     withoutDiscount: { withTax },
 });
 
-// Trees for the template matrix fixtures in test/price/data.json, keyed by the
+// Trees for the template matrix fixtures in test/browser/price/data.json, keyed by the
 // fixture prefix. Digits and format mirror what the numeric path renders, so
 // the matrix can run on both response formats against one set of snapshots.
 // `annualized` only where WCS would send it (YEAR commitment); the other

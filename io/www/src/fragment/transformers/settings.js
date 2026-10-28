@@ -367,8 +367,11 @@ const PLACEHOLDER_TEMPLATES = {
     },
     // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
     countdown: { countdownTimerText: '{{countdown-timer-text}}' },
+    whatsIncludedToggle: { whatsIncludedToggleLabel: '{{see-whats-included}}' },
     license: { licenseLabel: '{{license-label}}|{{licenses-label}}' },
 };
+
+const supportsWhatsIncludedToggle = (variant) => variant === 'pro';
 
 const supportsLicenseLabel = (variant) => ['pro', 'bizpro'].includes(variant);
 
@@ -412,6 +415,7 @@ function applyPriceLiterals(fragment) {
             strikethroughAriaLabel: '{{price-literal-strikethrough-aria-label}}',
             planTypeLabel: '{{price-literal-plan-type-label}}',
             priceUnavailableLabel: '{{price-literal-price-unavailable-label}}',
+            buyNow: '{{buy-now}}',
         };
     }
 }
@@ -437,6 +441,7 @@ async function settings(context) {
 
     applyEduPlaceholders(body);
     addPlaceholdersToCards(body, supportsCountdown, PLACEHOLDER_TEMPLATES.countdown);
+    addPlaceholdersToCards(body, supportsWhatsIncludedToggle, PLACEHOLDER_TEMPLATES.whatsIncludedToggle);
     addPlaceholdersToCards(body, supportsLicenseLabel, PLACEHOLDER_TEMPLATES.license);
 
     return context;

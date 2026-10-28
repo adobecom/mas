@@ -956,6 +956,124 @@ describe('pro license-zone gating', () => {
     });
 });
 
+describe('pro license dropdown accessible name', () => {
+    let cards = [];
+    afterEach(() => {
+        cards.forEach((card) => card.remove());
+        cards = [];
+    });
+
+    const qs = (title) =>
+        `<div slot="quantity-select"><merch-quantity-select${title === null ? '' : ` title="${title}"`} min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>`;
+
+    async function render(heading, title = 'License|Licenses', props) {
+        const card = await renderCard(`${heading}${qs(title)}`, props);
+        cards.push(card);
+        return card;
+    }
+
+    // Unit tests can't compute accname, so a "name" here is the text of the
+    // referenced elements joined with a space, as aria-labelledby builds it.
+    function nameOf(card, selector) {
+        const el = card.shadowRoot.querySelector(selector);
+        return el
+            .getAttribute('aria-labelledby')
+            .split(' ')
+            .map((id) => card.shadowRoot.getElementById(id).textContent.trim())
+            .join(' ');
+    }
+    const triggerName = (card) => nameOf(card, '.license-select-trigger');
+    const listboxName = (card) => nameOf(card, '#license-popover');
+
+    it('names each card dropdown after its product', async () => {
+        const photoshop = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const illustrator = await render(
+            '<h3 slot="heading-xs">Illustrator</h3>',
+        );
+        expect(triggerName(photoshop)).to.equal('Photoshop License');
+        expect(listboxName(photoshop)).to.equal('Photoshop License');
+        expect(triggerName(illustrator)).to.equal('Illustrator License');
+        expect(listboxName(illustrator)).to.equal('Illustrator License');
+    });
+
+    it('keeps the product copy hidden and out of the value', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const product = card.shadowRoot.getElementById(
+            'license-select-product',
+        );
+        expect(product.hidden).to.be.true;
+        expect(getComputedStyle(product).display).to.equal('none');
+        const trigger = card.shadowRoot.querySelector(
+            '.license-select-trigger',
+        );
+        expect(trigger.contains(product)).to.be.false;
+        expect(trigger.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+            '1 License',
+        );
+    });
+
+    it('follows the visible singular and plural label', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        card.variantLayout.selectLicenseQty('5');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop Licenses');
+        card.variantLayout.selectLicenseQty('1');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop License');
+    });
+
+    it('uses the authored label as is, in any language', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            'ライセンス',
+        );
+        expect(triggerName(card)).to.equal('Photoshop ライセンス');
+    });
+
+    it('uses the published license label when none is authored', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            null,
+            {
+                placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+            },
+        );
+        expect(
+            card.querySelector('merch-quantity-select').hasAttribute('title'),
+        ).to.be.false;
+        expect(triggerName(card)).to.equal('Photoshop Lizenz');
+    });
+
+    it('names the dropdown after the product when no label exists', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+        expect(triggerName(card).trim()).to.equal('Photoshop');
+        expect(listboxName(card).trim()).to.equal('Photoshop');
+    });
+
+    for (const [what, heading] of [
+        ['missing', ''],
+        ['empty', '<h3 slot="heading-xs"></h3>'],
+        ['blank', '<h3 slot="heading-xs">   </h3>'],
+    ]) {
+        it(`falls back to the label alone when the title is ${what}`, async () => {
+            const card = await render(heading);
+            expect(
+                card.shadowRoot
+                    .querySelector('.license-select-trigger')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(
+                card.shadowRoot
+                    .querySelector('#license-popover')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(card.shadowRoot.getElementById('license-select-product')).to
+                .be.null;
+            expect(triggerName(card)).to.equal('License');
+        });
+    }
+});
+
 describe('pro whats-included toggle label', () => {
     let card;
     afterEach(() => card?.remove());
@@ -963,12 +1081,44 @@ describe('pro whats-included toggle label', () => {
     const SECTION =
         '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
 
-    it('falls back to the English label when no label is authored', async () => {
+    it('renders an empty label when none is authored or localized', async () => {
         card = await renderCard(`<div slot="whats-included">${SECTION}</div>`);
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('uses the localized placeholder when no label is authored', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'Xem nội dung :' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('Xem nội dung :');
+    });
+
+    it('ignores the placeholder when the dictionary left it unresolved', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'see-whats-included' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('ignores the raw token when no dictionary was applied', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: {
+                whatsIncludedToggleLabel: '{{see-whats-included}}',
+            },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('uses the authored whats-included label in the toggle', async () => {
@@ -1159,6 +1309,126 @@ describe('pro whats-included toggle interaction', () => {
         await card.updateComplete;
         expect(zone.hasAttribute('hidden')).to.be.true;
         expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+    });
+});
+
+describe('pro section grid (no collection)', () => {
+    const fixtures = [];
+    const initialViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+    };
+
+    // Milo markup: <div class="section X-merch-cards"><div class="content">cards
+    async function renderSection(layout, cardVariants) {
+        const section = document.createElement('div');
+        section.className = `section ${layout}`;
+        section.style.cssText =
+            'width: calc(100vw - 48px); margin-inline: auto;';
+        const content = document.createElement('div');
+        content.className = 'content';
+        section.appendChild(content);
+        const cards = cardVariants.map((variant) => {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            card.innerHTML = '<h3 slot="heading-xs">Plan</h3>';
+            content.appendChild(card);
+            return card;
+        });
+        document.body.appendChild(section);
+        fixtures.push(section);
+        await Promise.all(cards.map((card) => card.updateComplete));
+        return { section, content, cards };
+    }
+
+    const tracks = (el) =>
+        getComputedStyle(el).gridTemplateColumns.split(' ').length;
+    const pro = (count) => Array(count).fill('pro');
+
+    afterEach(() => {
+        for (const fixture of fixtures) fixture.remove();
+        fixtures.length = 0;
+    });
+
+    after(() => setViewport(initialViewport));
+
+    // [layout, cards, columns at 375, 768, 1280]
+    for (const [layout, count, mobile, tablet, desktop] of [
+        ['one-merch-card', 1, 1, 1, 1],
+        ['two-merch-cards', 2, 1, 2, 2],
+        ['three-merch-cards', 3, 1, 2, 3],
+        ['four-merch-cards', 4, 1, 2, 4],
+    ]) {
+        it(`lays out pro cards in ${layout} at the collection breakpoints`, async () => {
+            for (const [width, columns] of [
+                [375, mobile],
+                [768, tablet],
+                [1280, desktop],
+            ]) {
+                await setViewport({ width, height: 1000 });
+                const { section, content, cards } = await renderSection(
+                    layout,
+                    pro(count),
+                );
+                expect(
+                    getComputedStyle(content).display,
+                    `${layout} @${width}: content`,
+                ).to.equal('contents');
+                expect(tracks(section), `${layout} @${width}: tracks`).to.equal(
+                    columns,
+                );
+                // Cards share one row, cap at the pro width and fill their track.
+                const [first] = cards;
+                const rows = new Set(
+                    cards.map((card) => card.getBoundingClientRect().top),
+                );
+                expect(rows.size).to.equal(Math.ceil(count / columns));
+                expect(first.getBoundingClientRect().width).to.be.at.most(
+                    count === 2 && width >= 1280 ? 596.5 : 1000,
+                );
+                if (width === 375) {
+                    expect(first.getBoundingClientRect().width).to.be.closeTo(
+                        section.getBoundingClientRect().width,
+                        1,
+                    );
+                }
+                section.remove();
+            }
+        });
+    }
+
+    it('caps a lone pro card at the pro max width', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const { cards } = await renderSection('one-merch-card', pro(1));
+        expect(cards[0].getBoundingClientRect().width).to.be.closeTo(394, 1);
+    });
+
+    it('leaves collections and mixed sections to their own rules', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const mixed = await renderSection('three-merch-cards', [
+            'pro',
+            'plans',
+            'plans',
+        ]);
+        expect(getComputedStyle(mixed.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(mixed.section).maxWidth).to.not.equal('1192px');
+
+        const wrapped = await renderSection('three-merch-cards', []);
+        const collection = document.createElement('merch-card-collection');
+        collection.className = 'plans three-merch-cards';
+        wrapped.content.appendChild(collection);
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'pro');
+        collection.appendChild(card);
+        await card.updateComplete;
+        expect(getComputedStyle(wrapped.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(wrapped.section).maxWidth).to.not.equal(
+            '1192px',
+        );
     });
 });
 
@@ -1600,6 +1870,119 @@ describe('pro license dropdown keyboard navigation', () => {
         );
         expect(header.getAttribute('aria-hidden')).to.equal('true');
     });
+});
+
+describe('pro license selected option contrast', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
+
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const option = (value) =>
+        [...card.shadowRoot.querySelectorAll('.license-select-option')].find(
+            (o) => o.textContent.trim() === value,
+        );
+    const styles = (value) => getComputedStyle(option(value));
+    const popoverBg = () =>
+        getComputedStyle(card.shadowRoot.querySelector('#license-popover'))
+            .backgroundColor;
+
+    function luminance(color) {
+        const [r, g, b] = color
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map((c) => {
+                const v = Number(c) / 255;
+                return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+            });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+    function contrast(a, b) {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    async function open(theme) {
+        card = await renderCard(QS);
+        if (theme) {
+            card.setAttribute('background-color', theme);
+            await card.updateComplete;
+        }
+        trigger().click();
+        await card.updateComplete;
+    }
+
+    async function arrowDown() {
+        trigger().dispatchEvent(
+            new KeyboardEvent('keydown', {
+                key: 'ArrowDown',
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        await card.updateComplete;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`sets the selected option apart at 3:1 (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            const selected = styles('3');
+            expect(option('3').getAttribute('aria-selected')).to.equal('true');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.color).to.equal('rgb(255, 255, 255)');
+            // unselected rows show the popover surface
+            expect(styles('1').backgroundColor).to.equal('rgba(0, 0, 0, 0)');
+            expect(
+                contrast(selected.backgroundColor, popoverBg()),
+            ).to.be.at.least(3);
+            expect(
+                contrast(selected.color, selected.backgroundColor),
+            ).to.be.at.least(4.5);
+        });
+    }
+
+    it('draws a white ring inside the selected row when it is highlighted', async () => {
+        await open();
+        const selected = styles('3');
+        expect(option('3').classList.contains('highlighted')).to.be.true;
+        expect(selected.outlineStyle).to.equal('solid');
+        expect(selected.outlineColor).to.equal('rgb(255, 255, 255)');
+        expect(selected.outlineOffset).to.equal('-4px');
+        expect(
+            contrast(selected.outlineColor, selected.backgroundColor),
+        ).to.be.at.least(3);
+    });
+
+    // Flatten a translucent background onto the popover it sits on.
+    function flatten(color) {
+        const [r, g, b, a = 1] = color.match(/[\d.]+/g).map(Number);
+        if (a === 1) return color;
+        const [br, bg, bb] = popoverBg()
+            .match(/[\d.]+/g)
+            .map(Number);
+        const mix = (c, base) => Math.round(c * a + base * (1 - a));
+        return `rgb(${mix(r, br)}, ${mix(g, bg)}, ${mix(b, bb)})`;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`keeps the selection blue while the highlight moves on (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            await arrowDown();
+            const next = styles('4');
+            expect(option('4').classList.contains('selected')).to.be.false;
+            expect(next.outlineColor).to.equal('rgb(20, 115, 230)');
+            expect(next.outlineOffset).to.equal('-2px');
+            expect(
+                contrast(next.outlineColor, flatten(next.backgroundColor)),
+            ).to.be.at.least(3);
+            const selected = styles('3');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.outlineStyle).to.equal('none');
+        });
+    }
 });
 
 describe('pro license label pluralization', () => {

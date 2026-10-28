@@ -3,7 +3,7 @@ import { previewFragment } from '../../libs/fragment-client.js';
 import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 import Store from '../store.js';
 import { Fragment } from '../aem/fragment.js';
-import { extractSurfaceFromPath, extractLocaleFromPath } from '../utils.js';
+import { extractSurfaceFromPath, extractLocaleFromPath, resolvePromoVariationDefaultCard } from '../utils.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import {
     getPromoNameFromPromoVariationPath,
@@ -167,10 +167,12 @@ export class EditorContextStore extends ReactiveStore {
                 continue;
             }
             if (data) {
-                this.localeDefaultFragment = data;
-                this.defaultLocaleId = data.id;
+                const defaultCard = await resolvePromoVariationDefaultCard(aem, data).catch(() => null);
+                if (!defaultCard) return null;
+                this.localeDefaultFragment = defaultCard;
+                this.defaultLocaleId = defaultCard.id;
                 this.notify();
-                return data;
+                return defaultCard;
             }
         }
         return null;

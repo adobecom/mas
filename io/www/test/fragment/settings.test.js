@@ -865,6 +865,19 @@ describe('settings', () => {
             expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
         });
 
+        it('publishes the whats-included toggle placeholder for pro cards only', async () => {
+            const run = async (variant) => {
+                const context = {
+                    locale: 'en_US',
+                    body: { fields: { variant, size: 'wide' } },
+                    promises: { settings: Promise.resolve({}) },
+                };
+                return (await settings.process(context)).body.placeholders?.whatsIncludedToggleLabel;
+            };
+            expect(await run('pro')).to.equal('{{see-whats-included}}');
+            expect(await run('mini')).to.be.undefined;
+        });
+
         it('handles missing body', async () => {
             const context = { locale: 'en_US', promises: { settings: Promise.resolve({}) } };
             const result = await settings.process(context);

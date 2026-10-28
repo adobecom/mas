@@ -369,11 +369,168 @@ runTests(async () => {
         });
     });
 
+    describe('merch-card-collection localized price labels', () => {
+        const { cache } = customElements.get('aem-fragment');
+
+        beforeEach(() => {
+            cache.clear();
+            document.location.hash = '';
+        });
+
+        afterEach(() => {
+            document.getElementById('content').innerHTML = '';
+            cache.clear();
+        });
+
+        for (const attributes of [['mask'], ['pzn'], ['mask', 'pzn']]) {
+            it(`inherits collection context with ${attributes.join(' and ')} without changing unmasked cards`, async () => {
+                [merchCards, render] = prepareTemplate(
+                    'plansTwoCardsColl',
+                    false,
+                );
+                const fragment = merchCards.querySelector('aem-fragment');
+                for (const attribute of attributes) {
+                    fragment.setAttribute(attribute, 'localized');
+                }
+                const suffix = `${attributes.includes('pzn') ? '-p_localized' : ''}${attributes.includes('mask') ? '-m_localized' : ''}`;
+                const cacheKey = `${fragment.getAttribute('fragment')}${suffix}`;
+                const labels = [
+                    'Abonnement annuel, facturation mensuelle',
+                    'Facturation mensuelle, engagement annuel',
+                ];
+                const cards = labels.map((label, index) => ({
+                    id: `localized-card-${index}`,
+                    fields: {
+                        variant: 'pro',
+                        cardTitle: `Photoshop ${index + 1}`,
+                        prices: '<span is="inline-price" data-template="legal" data-wcs-osi="abm-mult"></span>',
+                    },
+                    ...(index === 1
+                        ? {
+                              settings: { secureLabel: 'Paiement sécurisé' },
+                              placeholders: {
+                                  whatsIncludedToggleLabel: 'Autres avantages',
+                              },
+                              dictionary: { product: 'Photoshop personnalisé' },
+                              priceLiterals: {
+                                  planTypeLabel: `{planType, select, ABM {${label}} other {}}`,
+                              },
+                          }
+                        : {}),
+                }));
+                cache.set(cacheKey, {
+                    id: 'localized-collection',
+                    fields: { cards: cards.map(({ id }) => id) },
+                    settings: {
+                        displayPlanType: true,
+                        secureLabel: 'Transaction sécurisée',
+                    },
+                    placeholders: {
+                        whatsIncludedToggleLabel: 'Découvrir les avantages',
+                    },
+                    dictionary: { product: 'Photoshop' },
+                    priceLiterals: {
+                        planTypeLabel: `{planType, select, ABM {${labels[0]}} other {}}`,
+                    },
+                    references: Object.fromEntries(
+                        cards.map((card) => [
+                            card.id,
+                            { type: 'content-fragment', value: card },
+                        ]),
+                    ),
+                    referencesTree: cards.map(({ id }) => ({
+                        fieldName: 'cards',
+                        identifier: id,
+                        referencesTree: [],
+                    })),
+                });
+
+                render();
+                await merchCards.hydrationReady;
+                for (const card of cards) {
+                    expect(cache.has(`${card.id}${suffix}`)).to.be.true;
+                    expect(cache.has(card.id)).to.be.false;
+                }
+                await merchCards.checkReady();
+                const renderedCards = [
+                    ...merchCards.querySelectorAll('merch-card'),
+                ];
+                for (const [index, card] of renderedCards.entries()) {
+                    expect(card.settings.displayPlanType).to.be.true;
+                    expect(card.settings.secureLabel).to.equal(
+                        index === 0
+                            ? 'Transaction sécurisée'
+                            : 'Paiement sécurisé',
+                    );
+                    expect(card.placeholders.whatsIncludedToggleLabel).to.equal(
+                        index === 0
+                            ? 'Découvrir les avantages'
+                            : 'Autres avantages',
+                    );
+                    expect(card.aemFragment.data.dictionary.product).to.equal(
+                        index === 0 ? 'Photoshop' : 'Photoshop personnalisé',
+                    );
+                }
+                const prices = merchCards.querySelectorAll(
+                    '[is="inline-price"]',
+                );
+                await Promise.all(
+                    [...prices].map((price) => price.onceSettled()),
+                );
+                expect(
+                    [...merchCards.querySelectorAll('.price-plan-type')].map(
+                        (label) => label.textContent,
+                    ),
+                ).to.deep.equal(labels);
+
+                const unmasked = {
+                    id: cards[0].id,
+                    fields: { cardTitle: 'Unmasked Photoshop' },
+                    settings: { displayPlanType: false },
+                    priceLiterals: { planTypeLabel: 'Unmasked label' },
+                };
+                cache.add(unmasked);
+                const standalone = document.createElement('aem-fragment');
+                standalone.setAttribute('fragment', unmasked.id);
+                document.getElementById('content').append(standalone);
+                await standalone.updateComplete;
+                expect(standalone.data.fields.cardTitle).to.equal(
+                    'Unmasked Photoshop',
+                );
+                expect(standalone.data.settings.displayPlanType).to.be.false;
+                expect(standalone.data.priceLiterals.planTypeLabel).to.equal(
+                    'Unmasked label',
+                );
+                expect(
+                    cache.get(`${cards[0].id}${suffix}`).settings
+                        .displayPlanType,
+                ).to.be.true;
+            });
+        }
+    });
+
     describe('merch-card-collection override feature', () => {
         let collectionElement;
 
         beforeEach(async () => {
             document.location.hash = '';
+        });
+
+        it('preserves card overrides in masked collections', async () => {
+            [collectionElement, render] = prepareTemplate('override', false);
+            collectionElement
+                .querySelector('aem-fragment')
+                .setAttribute('mask', 'localized');
+            render();
+
+            await collectionElement.checkReady();
+            expect(
+                collectionElement.querySelector('merch-card[id="cafe-bebebe"]'),
+            ).to.exist;
+            expect(
+                collectionElement.querySelector('merch-card[id="bebe-cafe"]'),
+            ).to.exist;
+            customElements.get('aem-fragment').cache.clear();
         });
 
         it('should hydrate from child aem-fragment, with overriden ids', async () => {

@@ -27,7 +27,7 @@ describe('translation-utils', () => {
         originalSearchValue = Store.search.get();
         Store.search.set({ path: 'acom' });
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
     });
 
     afterEach(() => {
@@ -35,7 +35,7 @@ describe('translation-utils', () => {
         sandbox.restore();
         Store.search.set(originalSearchValue);
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
     });
 
     describe('canDuplicateTranslationProject', () => {
@@ -71,7 +71,7 @@ describe('translation-utils', () => {
                 tags: [],
             });
             const name = getFragmentName(fragment);
-            expect(name).to.match(/^merch-card: ACOM/);
+            expect(name).to.match(/^ACOM \/ merch-card \/ Catalog/);
             expect(name).to.include('Catalog');
         });
 
@@ -84,7 +84,7 @@ describe('translation-utils', () => {
                 tags: [],
             });
             const name = getFragmentName(fragment);
-            expect(name).to.equal('merch-card-collection: ACOM / My Collection');
+            expect(name).to.equal('ACOM / merch-card-collection / My Collection');
         });
 
         it('includes the promotion title when a promotion tag is present', () => {
@@ -104,7 +104,7 @@ describe('translation-utils', () => {
             expect(name).to.include('Holiday Sale');
         });
 
-        it('returns format with undefined web component name when model path is unknown', () => {
+        it('does not include undefined when model path is unknown', () => {
             const fragment = new Fragment({
                 path: '/content/dam/mas/acom/test',
                 model: { path: '/unknown/model/path' },
@@ -113,7 +113,7 @@ describe('translation-utils', () => {
                 tags: [],
             });
             const name = getFragmentName(fragment);
-            expect(name).to.include('undefined:');
+            expect(name).to.not.include('undefined');
         });
 
         it('handles null data gracefully', () => {

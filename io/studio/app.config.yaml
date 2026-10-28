@@ -40,6 +40,13 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
+                    bulk-publish-access:
+                        function: src/bulk-publish/access.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     bulk-edit-find:
                         function: src/bulk-edit/bulk-edit.js
                         web: 'yes'

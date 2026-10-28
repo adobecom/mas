@@ -120,7 +120,7 @@ describe('MasRelatedVariations', () => {
 
         expect(container.querySelector('mas-collapsible-table-row')).to.be.null;
         const headerCells = container.querySelectorAll('sp-table-head-cell');
-        expect(Array.from(headerCells).map((c) => c.textContent.trim())).to.deep.equal(['Variation name', 'Path', 'Region']);
+        expect(Array.from(headerCells).map((c) => c.textContent.trim())).to.deep.equal(['Path', 'Variation name', 'Region']);
         expect(container.querySelectorAll('sp-table-row')).to.have.lengthOf(1);
     });
 
@@ -636,8 +636,8 @@ describe('MasRelatedVariations', () => {
             expect(container.querySelector('mas-collapsible-table-row')).to.be.null;
             const headerCells = container.querySelectorAll('sp-table-head-cell');
             expect(Array.from(headerCells).map((c) => c.textContent.trim())).to.deep.equal([
-                'Variation name',
                 'Path',
+                'Variation name',
                 'Grouped tags',
             ]);
             const row = container.querySelector('sp-table-row');

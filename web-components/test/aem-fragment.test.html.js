@@ -360,6 +360,20 @@ runTests(async () => {
                 expect(aemFragment.classList.contains('error')).to.be.false;
             });
 
+            it('serves a same-key sibling from cache after a failed refresh', async () => {
+                const aemFragment = addFragment('fragment-cc-all-apps2');
+                await oneEvent(aemFragment, EVENT_AEM_LOAD);
+                await aemFragment.refresh();
+                const count = aemMock.count;
+
+                const sibling = addFragment('fragment-cc-all-apps2');
+                await sibling.updateComplete;
+
+                expect(aemMock.count).to.equal(count);
+                aemFragment.remove();
+                sibling.remove();
+            });
+
             it('ignores incomplete markup', async () => {
                 const [, , , cardWithMissingFragmentId] =
                     getTemplateContent('cards');

@@ -1,31 +1,4 @@
-export const Commitment = Object.freeze({
-    MONTH: 'MONTH',
-    YEAR: 'YEAR',
-    TWO_YEARS: 'TWO_YEARS',
-    THREE_YEARS: 'THREE_YEARS',
-    PERPETUAL: 'PERPETUAL',
-    TERM_LICENSE: 'TERM_LICENSE',
-    ACCESS_PASS: 'ACCESS_PASS',
-    THREE_MONTHS: 'THREE_MONTHS',
-    SIX_MONTHS: 'SIX_MONTHS',
-});
-
-export const Term = Object.freeze({
-    ANNUAL: 'ANNUAL',
-    MONTHLY: 'MONTHLY',
-    TWO_YEARS: 'TWO_YEARS',
-    THREE_YEARS: 'THREE_YEARS',
-    P1D: 'P1D',
-    P1Y: 'P1Y',
-    P3Y: 'P3Y',
-    P10Y: 'P10Y',
-    P15Y: 'P15Y',
-    P3D: 'P3D',
-    P7D: 'P7D',
-    P30D: 'P30D',
-    HALF_YEARLY: 'HALF_YEARLY',
-    QUARTERLY: 'QUARTERLY',
-});
+export { Commitment, Term } from '../../price/src/constants.js';
 
 /**
  * Common namespace prefix for CSS classes and DOM event types.
@@ -66,6 +39,13 @@ export const TRIAL_ANALYTICS_IDS = new Set([
     'fourteen-day-trial',
     'thirty-day-trial',
 ]);
+
+/** Templates whose persisted CTA variants hydrate as headless Consonant links. */
+export const HEADLESS_STYLE_CTA_VARIANTS = [
+    'headless',
+    'marquee',
+    'banner-blade',
+];
 
 /** Event to dispatch when a merch-offer is ready */
 export const EVENT_MERCH_OFFER_READY = 'merch-offer:ready';

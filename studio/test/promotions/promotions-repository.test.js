@@ -466,6 +466,50 @@ describe('promotions-repository', () => {
 
             expect(result.path).to.equal(parentPath);
         });
+
+        it('resolves a promo variation of a grouped variation to the default card', async () => {
+            const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/pac/pzn/edu';
+            const defaultCard = {
+                id: 'default-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+                fields: [{ name: 'variations', values: [groupedPath] }],
+                references: [],
+            };
+            const fragmentsByPath = {
+                [groupedPath]: { id: 'grouped-id', path: groupedPath, references: [] },
+                [defaultCard.path]: defaultCard,
+            };
+            const fragmentsById = {
+                'promo-var': { id: 'promo-var', path: promoPath, tags: [{ id: 'mas:promotion/black-friday' }] },
+                [defaultCard.id]: defaultCard,
+            };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? [groupedPath] : []),
+                    }),
+                },
+            ]);
+            Store.promotions.list.loading.set(false);
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().callsFake(async (id) => fragmentsById[id] ?? null),
+                            getByPath: sandbox.stub().callsFake(async (path) => fragmentsByPath[path] ?? null),
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: defaultCard.path }] }),
+                            search: makeSearchStub(),
+                        },
+                    },
+                },
+            };
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var', () => Promise.resolve());
+
+            expect(result.path).to.equal(defaultCard.path);
+        });
     });
 
     describe('getUnpublishedAttachedPromoVariations', () => {

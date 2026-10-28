@@ -72,6 +72,7 @@ export const EVENT_FRAGMENT_CHANGE = 'fragment:change';
 // Avoids event name collision with ost-app.js ('ost-select').
 export const EVENT_OST_SELECT = 'mas-ost-select';
 export const EVENT_OST_OFFER_SELECT = 'ost-offer-select';
+export const EVENT_OST_CLOSE = 'ost-close';
 export const EVENT_OST_MULTI_OFFER_SELECT = 'ost-multi-offer-select';
 
 export const OPERATIONS = {
@@ -139,10 +140,13 @@ export const PAGE_NAMES = {
     PRODUCT_DETAIL: 'product-detail',
     BULK_PUBLISH: 'bulkPublish',
     BULK_PUBLISH_EDITOR: 'bulkPublishEditor',
+    BULK_EDIT: 'bulkEdit',
+    BULK_EDIT_EDITOR: 'bulkEditEditor',
     ADVANCED_TOOLS: 'advanced-tools',
     MASKS: 'masks',
     MASKS_EDITOR: 'masks-editor',
     OFFER_MAPPING: 'offer-mapping',
+    BASELINES: 'baselines',
 };
 
 /**
@@ -173,7 +177,15 @@ export const TRANSLATION_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0
 export const CARD_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/card';
 export const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 export const DICTIONARY_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/dictionnary';
+// Plain model paths for the project types. The *_MODEL_ID constants above are the base64 of these
+// same paths (the form the fragment-model API uses), but the referencedBy endpoint returns
+// model.path as the plain path — so reference classification matches on these, like cards/collections.
+export const PROMOTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/promotion';
+export const BULK_PUBLISH_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/bulk-publish-project';
+export const TRANSLATION_PROJECT_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/translation-project';
 export const COMPARE_CHART_CREATE_TYPE = 'compare-chart';
+export const BASELINE_CREATE_TYPE = 'baseline';
+export const BASELINE_NAME = 'baseline';
 export const COMPARE_CHART_FIELD = 'compareChart';
 
 export const COLLECTION_GROUPED_VARIATION_PAC = 'merch-card-collection';
@@ -256,6 +268,9 @@ export const VARIATION_TYPES = {
 
 export const PZN_FOLDER = 'pzn';
 
+export const BASELINES_FOLDER = 'baselines';
+export const BASELINE_SOURCE_LOCALE = 'en_US';
+
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
 
 /** CQ tag path for the country root under pzn (exception: not “personalization-only” for filters). */
@@ -273,6 +288,10 @@ export const SURFACES = {
     ACOM_DC: {
         label: 'ACOM DC',
         name: 'acom-dc',
+    },
+    ACOM_EDU: {
+        label: 'ACOM EDU',
+        name: 'acom-edu',
     },
     ADOBE_HOME: {
         label: 'Adobe Home',
@@ -293,6 +312,10 @@ export const SURFACES = {
     EXPRESS: {
         label: 'Express',
         name: 'express',
+    },
+    GENUINE: {
+        label: 'Genuine',
+        name: 'genuine',
     },
     NALA: {
         label: 'Nala',
@@ -381,6 +404,21 @@ export const BULK_PUBLISH_STATUS = {
 };
 
 export const BULK_PUBLISH_PROJECTS_FOLDER = 'bulk-publish-projects';
+
+export const BULK_EDIT_PROJECTS_FOLDER = 'bulk-edit-projects';
+
+export const BULK_EDIT_PROJECT_MODEL_ID = 'L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2J1bGstZWRpdC1wcm9qZWN0';
+
+export const BULK_EDIT_STATUS = {
+    DRAFT: 'Draft',
+    APPLYING: 'Applying',
+    APPLIED: 'Applied',
+    PARTIALLY_APPLIED: 'Partially applied',
+    FAILED: 'Failed',
+    REVERTING: 'Reverting',
+    REVERTED: 'Reverted',
+    LOCKED: 'Locked',
+};
 
 /**
  * Compat version of the card.

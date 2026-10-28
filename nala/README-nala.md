@@ -290,8 +290,13 @@ The gate reports waiting progress every minute and prints updated per-check resu
 Fork PRs cannot launch Nala or cancel runs because authentication secrets are unavailable; nontrivial fork PRs receive
 an explicit gate error rather than a misleading cancellation failure.
 
-`Refresh Nala Gate` responds to completed Nala workflows and retries the latest failed gate job after an E2E attempt.
-It only retries a terminal gate, never an older preflight gate with downstream tests; gate-only retries do not trigger another refresh.
+`Refresh Nala Gate` reconciles completed Nala workflows with the latest Studio shard and Docs results for the current head.
+It refreshes the latest stale failed gate separately for `pull_request` and `pull_request_review`, so a newer push gate
+does not hide a review gate that reported tests still running. Missing or in-flight E2E results defer refresh.
+Only gates that started before the final E2E result are stale; gate-only retries evaluate after that result and do not loop.
+This uses execution timestamps, not per-job attempt numbers, which GitHub can change for carried-forward results.
+It only retries terminal gates, never an older preflight gate with downstream tests, and leaves queued/running workflow
+attempts untouched. Completion of a late-finishing review gate also reconciles results, covering completion-event ordering.
 Automatic refresh stops when the target workflow reaches attempt 3, independently of per-job attempt metadata.
 Further gate retries must be requested manually.
 Closed PRs and runs for an older head are ignored. The refresh workflow executes no PR-authored code.

@@ -33,6 +33,11 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
+// Both forms `replace` can leave behind: the bare key (key missing) or the raw token (no dictionary).
+const UNRESOLVED_TOGGLE_LABELS = [
+    'see-whats-included',
+    '{{see-whats-included}}',
+];
 
 // A hidden CTA has no box, so only visible ones count as wrapped.
 const hasWrappedCtas = (card) =>
@@ -184,12 +189,14 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">; English
-        // fallback covers fragments authored before the label existed.
+        const authored = this.card
+            .querySelector('[slot="whats-included"] .whats-included-label')
+            ?.textContent.trim();
+        const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
-            this.card
-                .querySelector('[slot="whats-included"] .whats-included-label')
-                ?.textContent.trim() || "See what's included:"
+            authored ||
+            (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
+            ''
         );
     }
 
@@ -512,7 +519,10 @@ export class Pro extends VariantLayout {
     // placeholders, resolved per locale). No "|" → unchanged for every quantity;
     // pluralization is never derived in code (appending "s" breaks most locales).
     licenseLabel(count) {
-        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const title =
+            this.quantitySelectEl?.getAttribute('title') ||
+            this.card.placeholders?.licenseLabel ||
+            '';
         const [singular, plural] = title.split('|').map((s) => s.trim());
         return Number(count) === 1 ? singular : plural || singular;
     }
@@ -698,15 +708,26 @@ export class Pro extends VariantLayout {
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
         const label = this.licenseLabel(Number(current));
+        // The card title tells each card's dropdown apart. The title lives in
+        // light DOM, so a hidden copy in this shadow root is what gets referenced.
+        const product = this.card.title;
+        const labelledBy = product
+            ? 'license-select-product license-select-label'
+            : 'license-select-label';
         return html`
             <div class="license-select" ?data-open=${open}>
+                ${product
+                    ? html`<span id="license-select-product" hidden
+                          >${product}</span
+                      >`
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -730,7 +751,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}
@@ -879,6 +900,10 @@ export class Pro extends VariantLayout {
                 --consonant-merch-card-pro-bg-subtle,
                 #f8f8f8
             );
+            /* selected license option: S2A blue-900 with white text, 4.8:1
+               against both the option and the text (3.9:1 on the dark popover) */
+            --consonant-merch-card-pro-control-selected-bg: #3b63fb;
+            --consonant-merch-card-pro-control-selected-text: #fff;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
@@ -1289,9 +1314,16 @@ export class Pro extends VariantLayout {
         }
 
         :host([variant='pro']) .license-select-option:hover,
-        :host([variant='pro']) .license-select-option.highlighted,
-        :host([variant='pro']) .license-select-option.selected {
+        :host([variant='pro']) .license-select-option.highlighted {
             background: var(--consonant-merch-card-pro-control-hover-bg);
+        }
+
+        /* The selected option has to stand out from the rest at 3:1, not just
+           from the white popover by a shade (WCAG 1.4.11). After :hover so a
+           hovered selected row stays blue. */
+        :host([variant='pro']) .license-select-option.selected {
+            background: var(--consonant-merch-card-pro-control-selected-bg);
+            color: var(--consonant-merch-card-pro-control-selected-text);
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own
@@ -1299,6 +1331,15 @@ export class Pro extends VariantLayout {
         :host([variant='pro']) .license-select-option.highlighted {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
+        }
+
+        /* The blue ring disappears on the blue selected row, so draw it white
+           and inset it to keep blue on both sides. */
+        :host([variant='pro']) .license-select-option.selected.highlighted {
+            outline-color: var(
+                --consonant-merch-card-pro-control-selected-text
+            );
+            outline-offset: -4px;
         }
 
         :host([variant='pro']) .callout {

@@ -529,6 +529,7 @@ class MasFilterPanel extends LitElement {
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="pzn"
+                    exclude-country-tags
                     label="Personalization"
                     multiple
                     selection="checkbox"

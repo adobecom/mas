@@ -14,6 +14,7 @@ import {
     UserFriendlyError,
     extractLocaleFromPath,
     extractSurfaceFromPath,
+    formatAuthorPath,
     isUUID,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
@@ -34,13 +35,21 @@ import {
     SURFACES,
     STAGED,
     BULK_PUBLISH_PROJECTS_FOLDER,
+    BULK_EDIT_PROJECTS_FOLDER,
     COMPARE_CHART_FIELD,
     TAG_COMPARE_CHART,
     TAG_MERCH_CARD_COLLECTION,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
+import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 import { fragmentIsPromoVariation } from './promotions/promotion-model.js';
+
+async function confirmReferenceDiagnosis(aem, roots) {
+    const { MasReferenceDiagnosisDialog } = await import('./publish/mas-reference-diagnosis-dialog.js');
+    return MasReferenceDiagnosisDialog.confirmFor(aem, roots);
+}
 import {
     clearDictionaryCache,
     fetchDictionary,
@@ -48,9 +57,9 @@ import {
     loadPlaceholders,
     loadPreviewPlaceholders,
 } from './placeholders/mas-placeholders-repository.js';
-import { fragmentHasPersonalizationTag, isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
+import { isPznCountryTagId, PZN_TAG_ID_PREFIX } from './common/utils/personalization-utils.js';
 import { findFragmentDataById, findFragmentStoreById } from './common/utils/fragment-selection-utils.js';
-import { getFragmentName, mergeTranslationProjectList } from './translation/translation-utils.js';
+import { getFragmentName } from './translation/translation-utils.js';
 import {
     processConcurrently,
     OFFER_DATA_CONCURRENCY_LIMIT,
@@ -65,8 +74,9 @@ import {
     resolvePromoVariationParentPath,
     VARIATION_SEARCH_TABS,
 } from './utils/variation-search.js';
-import { getFragmentByPathOrNull } from './promotions/promotion-model.js';
+import { getFragmentByPathOrNull } from './common/utils/fragment-api.js';
 import { Promotion } from './aem/promotion.js';
+import { canManagePromotions } from './groups.js';
 
 let fragmentCache;
 
@@ -77,7 +87,7 @@ export function getDamPath(path) {
 }
 
 export async function initFragmentCache() {
-    if (fragmentCache) return;
+    if (fragmentCache || !customElements.get('aem-fragment')) return;
     await customElements.whenDefined('aem-fragment').then(() => {
         fragmentCache = document.createElement('aem-fragment').cache;
     });
@@ -85,17 +95,18 @@ export async function initFragmentCache() {
 
 export async function getFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.get(fragmentId);
+    return fragmentCache?.get(fragmentId);
 }
 
 export async function removeFromFragmentCache(fragmentId) {
     await initFragmentCache();
-    return fragmentCache.remove(fragmentId);
+    return fragmentCache?.remove(fragmentId);
 }
 
 export async function prepopulateFragmentCache(fragmentId, previewFragment) {
     if (!previewFragment) return;
     await initFragmentCache();
+    if (!fragmentCache) return;
 
     fragmentCache.remove(fragmentId);
 
@@ -150,6 +161,7 @@ export class MasRepository extends LitElement {
             translations: null,
             collections: null,
             bulkPublish: null,
+            bulkEdit: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -168,6 +180,7 @@ export class MasRepository extends LitElement {
 
     /** @type {{ search: AbortController | null, recentlyUpdated: AbortController | null }} */
     #abortControllers;
+    #publishAttemptInProgress = false;
     #searchCursor = null;
     #addonPlaceholdersRequest = null;
 
@@ -218,6 +231,10 @@ export class MasRepository extends LitElement {
     #onSearchChange = () => {
         clearDictionaryCache();
         this.#searchCursor = null;
+        if (!this.#abortControllers.search) return;
+        this.#abortControllers.search.abort();
+        this.#abortControllers.search = null;
+        Store.fragments.list.loading.set(false);
     };
 
     /**
@@ -272,6 +289,12 @@ export class MasRepository extends LitElement {
             case PAGE_NAMES.BULK_PUBLISH:
                 this.loadBulkPublishProjects();
                 break;
+            case PAGE_NAMES.BULK_EDIT:
+            case PAGE_NAMES.BULK_EDIT_EDITOR:
+                this.#abortControllers.bulkEdit?.abort();
+                this.#abortControllers.bulkEdit = new AbortController();
+                loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
+                break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
             case PAGE_NAMES.PROMOTIONS_EDITOR:
@@ -283,7 +306,12 @@ export class MasRepository extends LitElement {
     async loadFolders() {
         try {
             const { children } = await this.aem.folders.list(ROOT_PATH);
-            const ignore = window.localStorage.getItem('ignore_folders') || ['images', 'promotions', 'bulk-publish-projects'];
+            const ignore = window.localStorage.getItem('ignore_folders') || [
+                'images',
+                'promotions',
+                BULK_PUBLISH_PROJECTS_FOLDER,
+                BULK_EDIT_PROJECTS_FOLDER,
+            ];
             const folders = children.map((folder) => folder.name).filter((child) => !ignore.includes(child));
 
             Store.folders.loaded.set(true);
@@ -327,7 +355,7 @@ export class MasRepository extends LitElement {
     }
 
     #skipVariant(variants, item) {
-        if (Fragment.isGroupedVariationPath(item.path)) return true;
+        if (Fragment.isHiddenFromSearch(item.path)) return true;
         const variant = item.fields.find((field) => field.name === 'variant')?.values?.[0];
         return variants.length && !isVariantMatch(variants, variant);
     }
@@ -405,13 +433,12 @@ export class MasRepository extends LitElement {
 
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
-        const personalizationOn = this.filters.value.personalizationFilterEnabled === true;
         const lowerQuery = query?.toLowerCase() || '';
         const createdByLc = createdBy.map((value) => value.toLowerCase());
-        return stores.filter((store) => {
+        return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
-            if (Fragment.isGroupedVariationPath(item.path)) return false;
+            if (Fragment.isHiddenFromSearch(item.path)) return false;
             if (this.#skipVariant(variants, item)) return false;
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
@@ -421,7 +448,6 @@ export class MasRepository extends LitElement {
                 if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
             }
             if (this.#skipQuery(lowerQuery, item)) return false;
-            if (!personalizationOn && fragmentHasPersonalizationTag(item)) return false;
             return true;
         });
     }
@@ -542,7 +568,7 @@ export class MasRepository extends LitElement {
         if (identicalFilters) {
             let filteredData = currentData.filter((fragmentStore) => {
                 const fragmentPath = fragmentStore?.get?.()?.path;
-                return !Fragment.isGroupedVariationPath(fragmentPath);
+                return !Fragment.isHiddenFromSearch(fragmentPath);
             });
             filteredData = this.#applyFragmentListFilters(filteredData);
             if (filteredData.length !== currentData.length) {
@@ -659,12 +685,11 @@ export class MasRepository extends LitElement {
 
         if (tracing) console.time('searchFragments:aem');
         let refilling = false;
+        this.#abortControllers.search?.abort();
+        this.#searchCursor = null;
+        const searchController = new AbortController();
+        this.#abortControllers.search = searchController;
         try {
-            if (this.#abortControllers.search) this.#abortControllers.search.abort();
-            this.#searchCursor = null;
-            this.#abortControllers.search = new AbortController();
-            const searchController = this.#abortControllers.search;
-
             if (isUUID(query)) {
                 const [currentFragment] = dataStore.get() ?? [];
                 const highlightedId = Store.fragments.highlightedVariationId.get();
@@ -680,16 +705,14 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.firstPageLoaded.set(true);
                     return;
                 }
-                const fragmentData = await this.aem.sites.cf.fragments.getById(query, this.#abortControllers.search);
+                const fragmentData = await this.aem.sites.cf.fragments.getById(query, searchController);
+                if (this.#abortControllers.search !== searchController) return;
                 let displayFragment = fragmentData;
                 const { isVariation, tab } = classifyVariationByPath(fragmentData?.path);
 
                 if (isVariation && fragmentData) {
                     const parentData = await this.#resolveParentForVariationSearch(fragmentData);
-                    if (this.#abortControllers.search !== searchController) {
-                        Store.fragments.list.loading.set(false);
-                        return;
-                    }
+                    if (this.#abortControllers.search !== searchController) return;
                     if (!parentData) {
                         Store.fragments.expandedId.set(null);
                         Store.fragments.highlightedVariationId.set(null);
@@ -726,7 +749,7 @@ export class MasRepository extends LitElement {
                     (canSyncSurface || matchesSurface) &&
                     (canSyncLocale || matchesLocale) &&
                     matchesContentTypeFilter(contentTypes, displayFragment) &&
-                    (isVariation || !Fragment.isGroupedVariationPath(fragmentData?.path))
+                    !Fragment.isHiddenFromSearch(displayFragment.path)
                 ) {
                     resolvedLocale = canSyncLocale ? fragmentLocale || locale : locale;
                     resolvedPath = canSyncSurface ? fragmentSurface || path : path;
@@ -736,11 +759,9 @@ export class MasRepository extends LitElement {
                         displayFragment,
                         () => this.loadPromotions(),
                     );
-                    if (this.#abortControllers.search !== searchController) {
-                        Store.fragments.list.loading.set(false);
-                        return;
-                    }
+                    if (this.#abortControllers.search !== searchController) return;
                     const fragment = await this.#addToCache(displayFragment);
+                    if (this.#abortControllers.search !== searchController) return;
                     const sourceStore = generateFragmentStore(fragment, null, { lazy: true });
                     dataStore.set(this.#applyFragmentListFilters([sourceStore]));
 
@@ -790,11 +811,7 @@ export class MasRepository extends LitElement {
                     // first try to find the card that matches the full query
                     const reducedQuery = localSearch.query;
                     localSearch.query = lowerClientQuery;
-                    const cursorExact = await this.aem.sites.cf.fragments.search(
-                        localSearch,
-                        null,
-                        this.#abortControllers.search,
-                    );
+                    const cursorExact = await this.aem.sites.cf.fragments.search(localSearch, null, searchController);
                     await this.#fillPage(
                         cursorExact,
                         variants,
@@ -804,13 +821,14 @@ export class MasRepository extends LitElement {
                         lowerClientQuery,
                         searchController.signal,
                     );
+                    if (this.#abortControllers.search !== searchController) return;
                     Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                     Store.fragments.list.firstPageLoaded.set(true);
                     // then load cards that contain the longest word and do the filtering
                     localSearch.query = reducedQuery;
                 }
 
-                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, this.#abortControllers.search);
+                const cursor = await this.aem.sites.cf.fragments.search(localSearch, null, searchController);
                 const done = await this.#fillPage(
                     cursor,
                     variants,
@@ -820,10 +838,7 @@ export class MasRepository extends LitElement {
                     lowerClientQuery,
                     searchController.signal,
                 );
-                if (this.#abortControllers.search !== searchController) {
-                    Store.fragments.list.loading.set(false);
-                    return;
-                }
+                if (this.#abortControllers.search !== searchController) return;
                 Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
                 const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
@@ -833,7 +848,6 @@ export class MasRepository extends LitElement {
                     Store.fragments.list.hasMore.set(false);
                     this.#eagerLoadAllPznPages(cursorState, searchController);
                 } else {
-                    this.#abortControllers.search = null;
                     if (cursorState) {
                         refilling = true;
                         this.#refillBelowThreshold(cursorState, searchController);
@@ -853,6 +867,7 @@ export class MasRepository extends LitElement {
             }
             dataStore.setMeta('lastLoad', Date.now());
         } catch (error) {
+            if (this.#abortControllers.search !== searchController) return;
             if (error.name !== 'AbortError') {
                 Store.fragments.list.loading.set(false);
             }
@@ -860,7 +875,7 @@ export class MasRepository extends LitElement {
             return;
         }
 
-        if (!refilling) Store.fragments.list.loading.set(false);
+        if (!refilling && this.#abortControllers.search === searchController) Store.fragments.list.loading.set(false);
         if (tracing) console.timeEnd('searchFragments:aem');
     }
 
@@ -1013,7 +1028,7 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.hasMore.set(true);
             }
         } finally {
-            if (this.#searchCursor === cursorSnapshot || this.#searchCursor === null) {
+            if (this.#abortControllers.search === searchController) {
                 Store.fragments.list.loading.set(false);
             }
         }
@@ -1023,6 +1038,7 @@ export class MasRepository extends LitElement {
         if (Store.fragments.list.loading.get()) return;
         const cursorSnapshot = this.#searchCursor;
         if (!cursorSnapshot) return;
+        const searchController = this.#abortControllers.search;
         Store.fragments.list.loading.set(true);
         const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
         try {
@@ -1033,7 +1049,7 @@ export class MasRepository extends LitElement {
                 surface,
                 fragmentStores,
                 lowerClientQuery,
-                this.#abortControllers.search?.signal,
+                searchController?.signal,
             );
             if (this.#searchCursor !== cursorSnapshot) return;
             Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
@@ -1042,11 +1058,12 @@ export class MasRepository extends LitElement {
                 Store.fragments.list.hasMore.set(false);
             }
         } catch (error) {
+            if (this.#searchCursor !== cursorSnapshot) return;
             this.processError(error, 'Could not load next page.');
             this.#searchCursor = null;
             Store.fragments.list.hasMore.set(false);
         } finally {
-            Store.fragments.list.loading.set(false);
+            if (this.#abortControllers.search === searchController) Store.fragments.list.loading.set(false);
         }
     }
 
@@ -1124,7 +1141,7 @@ export class MasRepository extends LitElement {
                 let studioPath;
                 if (this.page.value === PAGE_NAMES.PROMOTIONS_EDITOR) {
                     const surface = (extractSurfaceFromPath(fragment.path) ?? this.search.value.path)?.toUpperCase();
-                    studioPath = `merch-card-collection: ${surface} / ${fragment.title || ''}`;
+                    studioPath = formatAuthorPath('merch-card-collection', `${surface} / ${fragment.title || ''}`);
                 } else {
                     studioPath = getFragmentName(fragment);
                 }
@@ -1198,7 +1215,7 @@ export class MasRepository extends LitElement {
             Store.promotions.list.data.set(promotions);
             Store.promotions.list.data.setMeta('listFetched', true);
 
-            if (expiredPublished.length) {
+            if (expiredPublished.length && canManagePromotions()) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
             }
         } catch (error) {
@@ -1269,7 +1286,9 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.translations,
             );
             const translationProjects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.translationProjects.list.data.set(mergeTranslationProjectList(translationProjects, translationsPath));
+            Store.translationProjects.list.data.set(
+                mergePendingProjects(Store.translationProjects.list.data, translationProjects, translationsPath),
+            );
         } catch (error) {
             this.processError(error, 'Could not load translation projects.');
         } finally {
@@ -1282,29 +1301,18 @@ export class MasRepository extends LitElement {
     }
 
     getBulkPublishProjectsPath() {
-        const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase() ?? 'sandbox';
-        return this.getBulkPublishParentPath(surface);
+        return this.getBulkPublishParentPath(getSearchSurface(this.search.value.path));
     }
 
     async loadBulkPublishProjects() {
-        const path = this.getBulkPublishProjectsPath();
-        if (!path) return;
-        try {
-            if (this.#abortControllers.bulkPublish) this.#abortControllers.bulkPublish.abort();
-            this.#abortControllers.bulkPublish = new AbortController();
-            Store.bulkPublishProjects.list.loading.set(true);
-            const fragments = await this.searchFragmentList(
-                { path, sort: [{ on: 'modifiedOrCreated', order: 'DESC' }] },
-                50,
-                this.#abortControllers.bulkPublish,
-            );
-            const projects = fragments.map((fragment) => new FragmentStore(new Fragment(fragment)));
-            Store.bulkPublishProjects.list.data.set(projects);
-        } catch (error) {
-            this.processError(error, 'Could not load bulk publish projects.');
-        } finally {
-            Store.bulkPublishProjects.list.loading.set(false);
-        }
+        this.#abortControllers.bulkPublish?.abort();
+        this.#abortControllers.bulkPublish = new AbortController();
+        await loadProjectList(this, {
+            path: this.getBulkPublishProjectsPath(),
+            list: Store.bulkPublishProjects.list,
+            abortController: this.#abortControllers.bulkPublish,
+            errorMessage: 'Could not load bulk publish projects.',
+        });
     }
 
     getFragmentById(id) {
@@ -1379,7 +1387,9 @@ export class MasRepository extends LitElement {
                 latest = await this.aem.sites.cf.fragments.getById(result.id);
             }
             // Apply corrector transformer before caching
-            const surface = this.search.value.path?.split('/').filter(Boolean)[0]?.toLowerCase();
+            const surface = (
+                extractSurfaceFromPath(latest.path) ?? this.search.value.path?.split('/').filter(Boolean)[0]
+            )?.toLowerCase();
             applyCorrectorToFragment(latest, surface);
             const fragment = await this.#addToCache(latest);
 
@@ -1400,7 +1410,7 @@ export class MasRepository extends LitElement {
     async #addToCache(fragmentData) {
         await initFragmentCache();
         for (const reference of fragmentData.references || []) {
-            if (fragmentCache.has(reference.id)) continue;
+            if (fragmentCache?.has(reference.id)) continue;
             await this.#addToCache(reference);
         }
         // The aem-fragment cache is shared with anything that renders a card,
@@ -1409,13 +1419,13 @@ export class MasRepository extends LitElement {
         // repository cannot use. Only refresh an entry we put there ourselves;
         // otherwise build our own Fragment from the data we just fetched and
         // leave theirs alone, since it is what their rendered cards read.
-        const cached = fragmentCache.get(fragmentData.id);
+        const cached = fragmentCache?.get(fragmentData.id);
         if (cached instanceof Fragment) {
             cached.refreshFrom(fragmentData);
             return cached;
         }
         const fragment = new Fragment(fragmentData);
-        if (!cached) fragmentCache.add(fragment);
+        if (!cached) fragmentCache?.add(fragment);
         return fragment;
     }
 
@@ -1466,8 +1476,8 @@ export class MasRepository extends LitElement {
 
             fragmentStore.refreshFrom(savedFragment);
             await initFragmentCache();
-            fragmentCache.remove(savedFragment.id);
-            fragmentCache.add(new Fragment(savedFragment));
+            fragmentCache?.remove(savedFragment.id);
+            fragmentCache?.add(new Fragment(savedFragment));
             if (parentFragment) {
                 await this.refreshVariationParentInList(savedFragment, parentFragment);
             }
@@ -1581,8 +1591,15 @@ export class MasRepository extends LitElement {
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
-        const { selectedRefIds = null, allSelected = false } = options;
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
         try {
+            const roots = [
+                fragment,
+                ...(selectedRefIds ?? []).filter((id) => id !== fragment.id).map((id) => ({ id, path: '' })),
+            ];
+            if (!skipReferenceDiagnosis && !(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
@@ -1610,6 +1627,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 
@@ -1705,12 +1723,16 @@ export class MasRepository extends LitElement {
             if (withToast) showToast('No fragments selected to publish.', 'negative');
             return false;
         }
+        if (this.#publishAttemptInProgress) return false;
+        this.#publishAttemptInProgress = true;
 
         try {
+            const listStores = Store.fragments.list.data.get();
+            const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
+            if (!(await confirmReferenceDiagnosis(this.aem, roots))) return false;
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const listStores = Store.fragments.list.data.get();
             const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
@@ -1751,6 +1773,7 @@ export class MasRepository extends LitElement {
             return false;
         } finally {
             this.operation.set(null);
+            this.#publishAttemptInProgress = false;
         }
     }
 
@@ -1775,7 +1798,7 @@ export class MasRepository extends LitElement {
 
             if (fragment?.id) {
                 await initFragmentCache();
-                fragmentCache.remove(fragment.id);
+                fragmentCache?.remove(fragment.id);
             }
 
             // Keep expanded variation rows in sync when a variation is deleted from editor.

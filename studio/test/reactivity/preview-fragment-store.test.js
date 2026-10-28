@@ -7,6 +7,7 @@ import {
     serializePreviewFields,
 } from '../../src/reactivity/preview-fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
+import { Promotion } from '../../src/aem/promotion.js';
 import Store from '../../src/store.js';
 
 describe('serializePreviewFields', () => {
@@ -259,5 +260,239 @@ describe('PreviewFragmentStore', () => {
 
         expect(getResolvedSpy.calledOnce).to.be.true;
         store.dispose();
+    });
+
+    describe('countdown dates', () => {
+        const SENTINEL_FIELDS = [{ name: 'description', values: ['<p>Ends <a href="#">countdown-timer</a></p>'] }];
+        const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' };
+        const NONE = { cdtStart: undefined, cdtEnd: undefined };
+        let repository;
+        let service;
+        let originalList;
+        let originalListValue;
+
+        // Raw author JSON, as the AEM search yields it: no Fragment methods.
+        const rawProject = () => ({
+            id: 'p1',
+            path: '/content/dam/mas/promotions/p1',
+            tags: [{ id: 'mas:promotion/p1' }],
+            fields: [
+                { name: 'cdtStart', values: [DATES.cdtStart] },
+                { name: 'cdtEnd', values: [DATES.cdtEnd] },
+            ],
+        });
+
+        const createStore = (overrides) => {
+            const store = new PreviewFragmentStore(createFragment(overrides), null, { lazy: true });
+            sandbox.stub(store, 'previewPublishedFragment').resolves({
+                body: { promoProject: 'Black Friday' },
+                promoProjects: [{ label: 'Black Friday', project: DATES }],
+            });
+            return store;
+        };
+        const variation = () => ({
+            path: '/content/dam/mas/test/en_US/promotions/p1/fragment',
+            tags: [{ id: 'mas:promotion/p1' }],
+        });
+
+        beforeEach(() => {
+            originalList = Store.promotions.list.data;
+            originalListValue = originalList.get();
+            originalList.set([]);
+            originalList.removeMeta('listFetched');
+            repository = {
+                getPromotionsPath: () => '/content/dam/mas/promotions',
+                searchFragmentList: sandbox.stub().resolves([rawProject()]),
+                loadPromotions: sandbox.stub().resolves(),
+            };
+            service = { settings: { instant: '2026-02-05T00:00:00Z' } };
+            const query = sandbox.stub(document, 'querySelector').callThrough();
+            query.withArgs('mas-repository').returns(repository);
+            query.withArgs('mas-commerce-service').callsFake(() => service);
+        });
+
+        afterEach(() => {
+            originalList.set(originalListValue);
+            originalList.removeMeta('listFetched');
+        });
+
+        it('makes no read for a card without the sentinel', async () => {
+            const store = createStore();
+            expect(await store.getCountdownDates([{ name: 'description', values: ['<p>plain</p>'] }])).to.deep.equal(NONE);
+            expect(store.previewPublishedFragment.called).to.be.false;
+            expect(repository.searchFragmentList.called).to.be.false;
+            store.dispose();
+        });
+
+        it('resolves countdown dates and locale into the preview without changing the authored fragment', async () => {
+            sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+            const description = '<p>Offer <a href="#">countdown-timer</a></p>';
+            Store.placeholders.previewByLocale.value.ko_KR = { 'offer-description': JSON.stringify(description).slice(1, -1) };
+            const source = createFragment({
+                fields: [
+                    { name: 'variant', values: ['pro'] },
+                    { name: 'description', values: ['{{offer-description}}'] },
+                ],
+            });
+            const store = createStore(source);
+            store.previewLocaleOverride = 'ko_KR';
+
+            const result = await store.getResolvedFragment();
+
+            expect(result.fields.find((field) => field.name === 'description').values).to.deep.equal([description]);
+            expect(result).to.include({ ...DATES, previewLocale: 'ko_KR' });
+            expect(source.getFieldValue('description')).to.equal('{{offer-description}}');
+            expect(source.cdtStart).to.be.undefined;
+            expect(source.previewLocale).to.be.undefined;
+            expect(store.value.cdtStart).to.be.undefined;
+
+            store.replaceFrom(result);
+            store.value.updateField('description', ['<p>Offer without a timer</p>']);
+            const cleared = await store.getResolvedFragment();
+
+            expect(cleared.cdtStart).to.be.undefined;
+            expect(cleared.cdtEnd).to.be.undefined;
+            expect(cleared.previewLocale).to.equal('ko_KR');
+            expect(store.previewPublishedFragment.calledOnce).to.be.true;
+            expect(repository.searchFragmentList.called).to.be.false;
+            store.dispose();
+        });
+
+        it('takes a default card dates from the pipeline-selected project provenance', async () => {
+            const store = createStore({ id: 'card-id' });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(store.previewPublishedFragment.calledOnce).to.be.true;
+            // Only the saved fragment id and request settings leave: never the unsaved authored fields.
+            expect(store.previewPublishedFragment.firstCall.args).to.deep.equal([
+                'card-id',
+                { locale: 'en_US', country: 'US', instant: '2026-02-05T00:00:00Z', fullContext: true },
+            ]);
+            expect(repository.searchFragmentList.called).to.be.false;
+            store.dispose();
+        });
+
+        it('reuses the pipeline result across refreshes and re-asks when id, locale or instant change', async () => {
+            const store = createStore({ id: 'card-id' });
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(1);
+            store.previewLocaleOverride = 'ko_KR';
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            service.settings.instant = '2026-03-01T00:00:00Z';
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(3);
+            store.dispose();
+        });
+
+        it('asks again once the cached pipeline result is 30 seconds old', async () => {
+            const clock = sandbox.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+            const store = createStore({ id: 'card-id' });
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            clock.tick(29000);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(1);
+            clock.tick(1000);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
+        it('does not cache a failed pipeline read', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.onFirstCall().rejects(new Error('boom'));
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(store.previewPublishedFragment.callCount).to.equal(2);
+            store.dispose();
+        });
+
+        it('requests the pipeline with the preview locale country and omits an unset instant', async () => {
+            service.settings.instant = undefined;
+            const store = createStore();
+            store.previewLocaleOverride = 'ko_KR';
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(store.previewPublishedFragment.firstCall.args[1]).to.deep.equal({
+                locale: 'ko_KR',
+                country: 'KR',
+                fullContext: true,
+            });
+            store.dispose();
+        });
+
+        it('clears dates when the pipeline selects no project', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.resolves({ body: {}, promoProjects: [] });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            store.dispose();
+        });
+
+        it('skips the pipeline for a card that cannot be a MAS default card', async () => {
+            const store = createStore({ path: '/somewhere/else' });
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            expect(store.previewPublishedFragment.called).to.be.false;
+            store.dispose();
+        });
+
+        it('clears dates when the pipeline read fails', async () => {
+            const store = createStore();
+            store.previewPublishedFragment.rejects(new Error('boom'));
+            sandbox.stub(console, 'warn');
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            store.dispose();
+        });
+
+        it('takes a promo variation dates from its tagged project via a cold raw search, never loadPromotions', async () => {
+            const store = createStore(variation());
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            await store.getCountdownDates(SENTINEL_FIELDS);
+            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/promotions');
+            expect(repository.loadPromotions.called).to.be.false;
+            expect(store.previewPublishedFragment.called).to.be.false;
+            store.dispose();
+        });
+
+        it('uses the loaded promotions list for a promo variation instead of searching', async () => {
+            Store.promotions.list.data.set([{ get: () => new Promotion(rawProject()) }]);
+            const store = createStore(variation());
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(repository.searchFragmentList.called).to.be.false;
+            store.dispose();
+        });
+
+        it('clears dates when the promo variation project read fails', async () => {
+            repository.searchFragmentList.rejects(new Error('boom'));
+            sandbox.stub(console, 'warn');
+            const store = createStore(variation());
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(NONE);
+            store.dispose();
+        });
+
+        it('delegates the published read to the fragment client', async () => {
+            sandbox.stub(window, 'fetch').rejects(new Error('offline'));
+            const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+            const read = store.previewPublishedFragment('card-id', { locale: 'en_US' });
+            expect(read).to.be.instanceOf(Promise);
+            await read.catch(() => {});
+            store.dispose();
+        });
+
+        it('replaces then clears previous dates on the preview fragment only', () => {
+            const source = createFragment();
+            const store = new PreviewFragmentStore(new Fragment(structuredClone(source)), null, { lazy: true });
+            store.replaceFrom({ cdtStart: 'a', cdtEnd: 'b', previewLocale: 'ko_KR' });
+            expect(store.value.cdtStart).to.equal('a');
+            expect(store.value.previewLocale).to.equal('ko_KR');
+            store.replaceFrom({ cdtStart: undefined, cdtEnd: undefined, previewLocale: 'ko_KR' });
+            expect(store.value.cdtStart).to.be.undefined;
+            expect(store.value.cdtEnd).to.be.undefined;
+            expect(source.cdtStart).to.be.undefined;
+            expect(source.previewLocale).to.be.undefined;
+            expect(structuredClone(store.value).previewLocale).to.equal('ko_KR');
+            store.dispose();
+        });
     });
 });

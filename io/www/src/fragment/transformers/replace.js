@@ -2,6 +2,7 @@ import { odinReferences, odinUrl, REFERENCES } from '../utils/paths.js';
 import { fetch, getCountry, getFragmentId, getRegionalLocale, getRequestInfos } from '../utils/common.js';
 import { PLACEHOLDERS_BASELINE_SURFACE, getPlaceholdersRegionLocale } from '../locales.js';
 import { createSwrCache } from '../utils/swr-cache.js';
+import { COUNTDOWN_UNITS, countdownUnitPlaceholder } from '../utils/countdown.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
 const DICTIONARY_ID_PATH = 'dictionary/index';
@@ -12,6 +13,8 @@ const PH_REGEXP = /{{(\s*([\w\-\_]+)\s*)}}/gi;
 export const SYSTEM_PLACEHOLDERS = {
     'plan-type-text':
         '<span is=\\"inline-price\\" data-template=\\"legal\\" data-placeholder=\\"plan-type-text\\" data-display-plan-type=\\"true\\" data-display-per-unit=\\"false\\" data-display-tax=\\"false\\"></span>',
+    // Countdown units: authors fill the singular/plural entries, merch-countdown picks one by the live count.
+    ...Object.fromEntries(COUNTDOWN_UNITS.map((unit) => [`countdown-${unit}`, countdownUnitPlaceholder(unit)])),
 };
 
 const TRANSFORMER_NAME = 'replace';

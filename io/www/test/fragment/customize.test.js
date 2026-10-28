@@ -1211,6 +1211,137 @@ describe('customize collections', function () {
     });
 });
 
+describe('customize baselines', function () {
+    const baseline = (id, fields) => ({ id, path: `/content/dam/mas/sandbox/en_US/baselines/${id}`, fields });
+
+    it('lets an explicit empty of a higher baseline clear a lower baseline value', async function () {
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: {},
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'card',
+            locale: 'en_US',
+            body,
+            baselines: {
+                card: {
+                    fragmentBaseline: baseline('template', { backgrounds: ['base.png'], badge: 'Template badge' }),
+                    fragmentSegmentBaseline: baseline('segment', {
+                        backgrounds: [EXPLICIT_EMPTY_SENTINEL],
+                        badge: EXPLICIT_EMPTY_SENTINEL,
+                    }),
+                },
+            },
+        });
+        expect(result.body.fields.backgrounds).to.deep.equal([]);
+        expect(result.body.fields.badge).to.equal('');
+    });
+
+    it('concatenates compare-chart-column features of every baseline layer, then the fragment', async function () {
+        const features = (...values) => ({ value: values });
+        const body = {
+            id: 'column',
+            path: '/content/dam/mas/sandbox/en_US/column',
+            fields: { variant: 'compare-chart-column', features: features('own') },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'column',
+            locale: 'en_US',
+            body,
+            baselines: {
+                column: {
+                    offerBaseline: baseline('offer', { features: features('offer') }),
+                    fragmentBaseline: baseline('template', { features: features('template') }),
+                    fragmentSegmentBaseline: baseline('segment', { features: features('segment') }),
+                },
+            },
+        });
+        expect(result.body.id).to.equal('column');
+        expect(result.body.fields.features.value).to.deep.equal(['offer', 'template', 'segment', 'own']);
+    });
+
+    it('concatenates features of a partial layer inheriting the compare-chart-column variant', async function () {
+        const body = {
+            id: 'edu-segment',
+            path: '/content/dam/mas/sandbox/en_US/baselines/edu-segment',
+            fields: { features: { value: ['edu'] } },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'edu-segment',
+            locale: 'en_US',
+            body,
+            baselines: {
+                'edu-segment': {
+                    fragmentBaseline: baseline('template', { variant: 'compare-chart-column', features: { value: ['base'] } }),
+                },
+            },
+        });
+        expect(result.body.fields.variant).to.equal('compare-chart-column');
+        expect(result.body.fields.features.value).to.deep.equal(['base', 'edu']);
+    });
+
+    it('layers baselines once on a card referenced by nested collections', async function () {
+        const card = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: {
+                variant: 'compare-chart-column',
+                features: { value: ['own'] },
+                backgrounds: [EXPLICIT_EMPTY_SENTINEL],
+                variations: [],
+            },
+        };
+        const body = {
+            id: 'root',
+            path: '/content/dam/mas/sandbox/en_US/root',
+            fields: { cards: ['card'], collections: ['sub'], variations: [] },
+            references: {
+                card: { type: 'content-fragment', value: card },
+                sub: {
+                    type: 'content-fragment',
+                    value: {
+                        id: 'sub',
+                        path: '/content/dam/mas/sandbox/en_US/sub',
+                        fields: { cards: ['card'], collections: [], variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card', referencesTree: [] },
+                {
+                    fieldName: 'collections',
+                    identifier: 'sub',
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card', referencesTree: [] }],
+                },
+            ],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'root',
+            locale: 'en_US',
+            body,
+            baselines: {
+                card: {
+                    fragmentBaseline: baseline('template', { features: { value: ['base'] }, backgrounds: ['base.png'] }),
+                },
+            },
+        });
+        const { fields } = result.body.references.card.value;
+        expect(fields.features.value).to.deep.equal(['base', 'own']);
+        expect(fields.backgrounds).to.deep.equal([]);
+    });
+});
+
 async function process(context) {
     const phase1 = {
         status: 200,
@@ -4222,6 +4353,104 @@ describe('countdown timer dates', function () {
         expect(result.status).to.equal(200);
         expect(result.body.cdtStart).to.be.undefined;
         expect(result.body.cdtEnd).to.be.undefined;
+    });
+
+    it('stamps each timed card with its own promo project dates, nested collections included', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: ['sub'] },
+                    references: {
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                        'card-plain': makeCard('card-plain', { osi: 'OSI-P', description: '<p>no timer</p>' }),
+                        sub: makeCard('sub', { cards: ['card-3', 'card-4'] }),
+                        'card-3': makeCard('card-3', { osi: 'OSI-3', description: CDT_LINK }),
+                        'card-4': makeCard('card-4', { osi: 'OSI-4', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-plain', referencesTree: [] },
+                        {
+                            fieldName: 'collections',
+                            identifier: 'sub',
+                            referencesTree: [
+                                { fieldName: 'cards', identifier: 'card-3', referencesTree: [] },
+                                { fieldName: 'cards', identifier: 'card-4', referencesTree: [] },
+                            ],
+                        },
+                    ],
+                },
+            },
+            [
+                {
+                    project: makeProject({ id: 'proj-1', cdtStart: '2026-01-01T00:00:00Z', cdtEnd: '2026-01-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE1' },
+                    fragmentPaths: new Set(['card-1', 'card-plain']),
+                },
+                {
+                    project: makeProject({ id: 'proj-2', cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE2' },
+                    fragmentPaths: new Set(['card-2']),
+                },
+                {
+                    project: makeProject({ id: 'proj-3', cdtStart: '2026-03-01T00:00:00Z', cdtEnd: '2026-03-10T00:00:00Z' }),
+                    promoMap: { '*': 'CODE3' },
+                    fragmentPaths: new Set(['card-3']),
+                },
+                {
+                    // lone start: no usable dates
+                    project: makeProject({ id: 'proj-4', cdtEnd: null }),
+                    promoMap: { '*': 'CODE4' },
+                    fragmentPaths: new Set(['card-4']),
+                },
+            ],
+        );
+        const { body } = result;
+        expect(result.status).to.equal(200);
+        // root keeps the first timed card's dates
+        expect(body.cdtStart).to.equal('2026-01-01T00:00:00Z');
+        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        const dates = (id) => [body.references[id].value.cdtStart, body.references[id].value.cdtEnd];
+        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z']);
+        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00Z', '2026-02-10T00:00:00Z']);
+        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00Z', '2026-03-10T00:00:00Z']);
+        // no usable project dates, no sentinel, or a container without a sentinel: nothing stamped
+        expect(dates('card-4')).to.deep.equal([undefined, undefined]);
+        expect(dates('card-plain')).to.deep.equal([undefined, undefined]);
+        expect(dates('sub')).to.deep.equal([undefined, undefined]);
+    });
+
+    it('does not stamp the root dates onto cards without a promo project', async function () {
+        const result = await processCountdownTimer(
+            {
+                ...FAKE_CONTEXT,
+                fragmentPath: 'collection-cdt',
+                body: {
+                    id: 'collection-cdt',
+                    path: '/content/dam/mas/sandbox/en_US/collection-cdt',
+                    fields: { cards: ['card-1', 'card-2'], collections: [] },
+                    references: {
+                        'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
+                        'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),
+                    },
+                    referencesTree: [
+                        { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                        { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                    ],
+                },
+            },
+            [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-1']) }],
+        );
+        expect(result.body.cdtStart).to.equal(CDT_START);
+        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START);
+        expect(result.body.references['card-2'].value.cdtStart).to.be.undefined;
+        expect(result.body.references['card-2'].value.cdtEnd).to.be.undefined;
     });
 
     it('takes the main body over its references', async function () {

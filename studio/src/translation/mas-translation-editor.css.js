@@ -1,17 +1,16 @@
 import { css } from 'lit';
 import { ghostButtonStyles, selectItemsFormSectionStyles } from '../common/styles/table-styles.css.js';
+import { pageContainerStyles, editorFormFieldStyles, editorHeadingStyles } from '../common/styles/page-container-styles.css.js';
 import { loadingContainerCenteredStyles } from './translation-common-styles.css.js';
 
 export const styles = [
     ghostButtonStyles,
     loadingContainerCenteredStyles,
     selectItemsFormSectionStyles,
+    pageContainerStyles,
+    editorFormFieldStyles,
+    editorHeadingStyles,
     css`
-        .translation-editor-form {
-            padding: 32px;
-            position: relative;
-        }
-
         .duplicating-overlay {
             position: absolute;
             inset: 0;
@@ -34,19 +33,7 @@ export const styles = [
         }
 
         .form-field {
-            padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid var(--spectrum-gray-300, #dadada);
-            border-radius: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            box-shadow:
-                0 0 2px 0 var(--Alias-drop-shadow-elevated-key, rgba(0, 0, 0, 0.12)),
-                0 2px 6px 0 var(--Alias-drop-shadow-transition, rgba(0, 0, 0, 0.04)),
-                0 4px 12px 0 var(--Alias-drop-shadow-ambient, rgba(0, 0, 0, 0.08));
-
-            h2 {
-                margin: 0 0 20px 0;
-            }
         }
 
         .metadata-info {
@@ -97,16 +84,6 @@ export const styles = [
                     color: var(--spectrum-neutral-content-color-default);
                 }
             }
-        }
-
-        h1,
-        h2 {
-            color: var(--spectrum-neutral-content-color-default);
-        }
-
-        h2 sp-icon-asterisk100 {
-            width: 10px;
-            height: 10px;
         }
 
         .confirm-dialog-overlay {

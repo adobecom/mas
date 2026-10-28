@@ -71,6 +71,9 @@
                 "settings": {
                     "secureLabel": "Secure transaction",
                     "displayPlanType": true
+                },
+                "placeholders": {
+                    "countdownTimerText": "countdown-timer-text"
                 }
             }
         },
@@ -170,6 +173,9 @@
                 "settings": {
                     "secureLabel": "Secure transaction",
                     "displayPlanType": true
+                },
+                "placeholders": {
+                    "countdownTimerText": "countdown-timer-text"
                 }
             }
         },

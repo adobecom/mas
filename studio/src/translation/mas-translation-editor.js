@@ -24,6 +24,7 @@ import {
 } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 import './mas-translation-duplicate-dialog.js';
+import { untrackPendingProject } from '../common/utils/project-list-utils.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -466,7 +467,7 @@ class MasTranslationEditor extends LitElement {
                 startToast: false,
                 endToast: false,
             });
-            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(projectId);
+            untrackPendingProject(Store.translationProjects.list.data, projectId);
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             Store.translationProjects.showSelected.set(false);
@@ -738,7 +739,7 @@ class MasTranslationEditor extends LitElement {
         return html`
             ${this.renderConfirmDialog()}
 
-            <div class="translation-editor-form">
+            <div class="page-container">
                 ${this.isProjectReadonly
                     ? html`<div class="metadata-info">
                           <sp-icon-alert></sp-icon-alert>

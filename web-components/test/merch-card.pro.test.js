@@ -24,8 +24,9 @@ before(async () => {
     ({ Pro } = await import('../src/variants/pro.js'));
 });
 
-async function renderCard(innerHTML) {
+async function renderCard(innerHTML, props) {
     const card = document.createElement('merch-card');
+    Object.assign(card, props);
     card.setAttribute('variant', 'pro');
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
@@ -824,6 +825,124 @@ describe('pro license-zone gating', () => {
     });
 });
 
+describe('pro license dropdown accessible name', () => {
+    let cards = [];
+    afterEach(() => {
+        cards.forEach((card) => card.remove());
+        cards = [];
+    });
+
+    const qs = (title) =>
+        `<div slot="quantity-select"><merch-quantity-select${title === null ? '' : ` title="${title}"`} min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>`;
+
+    async function render(heading, title = 'License|Licenses', props) {
+        const card = await renderCard(`${heading}${qs(title)}`, props);
+        cards.push(card);
+        return card;
+    }
+
+    // Unit tests can't compute accname, so a "name" here is the text of the
+    // referenced elements joined with a space, as aria-labelledby builds it.
+    function nameOf(card, selector) {
+        const el = card.shadowRoot.querySelector(selector);
+        return el
+            .getAttribute('aria-labelledby')
+            .split(' ')
+            .map((id) => card.shadowRoot.getElementById(id).textContent.trim())
+            .join(' ');
+    }
+    const triggerName = (card) => nameOf(card, '.license-select-trigger');
+    const listboxName = (card) => nameOf(card, '#license-popover');
+
+    it('names each card dropdown after its product', async () => {
+        const photoshop = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const illustrator = await render(
+            '<h3 slot="heading-xs">Illustrator</h3>',
+        );
+        expect(triggerName(photoshop)).to.equal('Photoshop License');
+        expect(listboxName(photoshop)).to.equal('Photoshop License');
+        expect(triggerName(illustrator)).to.equal('Illustrator License');
+        expect(listboxName(illustrator)).to.equal('Illustrator License');
+    });
+
+    it('keeps the product copy hidden and out of the value', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        const product = card.shadowRoot.getElementById(
+            'license-select-product',
+        );
+        expect(product.hidden).to.be.true;
+        expect(getComputedStyle(product).display).to.equal('none');
+        const trigger = card.shadowRoot.querySelector(
+            '.license-select-trigger',
+        );
+        expect(trigger.contains(product)).to.be.false;
+        expect(trigger.textContent.replace(/\s+/g, ' ').trim()).to.equal(
+            '1 License',
+        );
+    });
+
+    it('follows the visible singular and plural label', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
+        card.variantLayout.selectLicenseQty('5');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop Licenses');
+        card.variantLayout.selectLicenseQty('1');
+        await card.updateComplete;
+        expect(triggerName(card)).to.equal('Photoshop License');
+    });
+
+    it('uses the authored label as is, in any language', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            'ライセンス',
+        );
+        expect(triggerName(card)).to.equal('Photoshop ライセンス');
+    });
+
+    it('uses the published license label when none is authored', async () => {
+        const card = await render(
+            '<h3 slot="heading-xs">Photoshop</h3>',
+            null,
+            {
+                placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+            },
+        );
+        expect(
+            card.querySelector('merch-quantity-select').hasAttribute('title'),
+        ).to.be.false;
+        expect(triggerName(card)).to.equal('Photoshop Lizenz');
+    });
+
+    it('names the dropdown after the product when no label exists', async () => {
+        const card = await render('<h3 slot="heading-xs">Photoshop</h3>', null);
+        expect(triggerName(card).trim()).to.equal('Photoshop');
+        expect(listboxName(card).trim()).to.equal('Photoshop');
+    });
+
+    for (const [what, heading] of [
+        ['missing', ''],
+        ['empty', '<h3 slot="heading-xs"></h3>'],
+        ['blank', '<h3 slot="heading-xs">   </h3>'],
+    ]) {
+        it(`falls back to the label alone when the title is ${what}`, async () => {
+            const card = await render(heading);
+            expect(
+                card.shadowRoot
+                    .querySelector('.license-select-trigger')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(
+                card.shadowRoot
+                    .querySelector('#license-popover')
+                    .getAttribute('aria-labelledby'),
+            ).to.equal('license-select-label');
+            expect(card.shadowRoot.getElementById('license-select-product')).to
+                .be.null;
+            expect(triggerName(card)).to.equal('License');
+        });
+    }
+});
+
 describe('pro whats-included toggle label', () => {
     let card;
     afterEach(() => card?.remove());
@@ -831,12 +950,44 @@ describe('pro whats-included toggle label', () => {
     const SECTION =
         '<div class="section"><h4>PDF tools</h4><ul><li>row</li></ul></div>';
 
-    it('falls back to the English label when no label is authored', async () => {
+    it('renders an empty label when none is authored or localized', async () => {
         card = await renderCard(`<div slot="whats-included">${SECTION}</div>`);
         const label = card.shadowRoot.querySelector(
             '.whats-included-toggle-label',
         );
-        expect(label.textContent.trim()).to.equal("See what's included:");
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('uses the localized placeholder when no label is authored', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'Xem nội dung :' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('Xem nội dung :');
+    });
+
+    it('ignores the placeholder when the dictionary left it unresolved', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: { whatsIncludedToggleLabel: 'see-whats-included' },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
+    });
+
+    it('ignores the raw token when no dictionary was applied', async () => {
+        card = await renderCard(`<div slot="whats-included">${SECTION}</div>`, {
+            placeholders: {
+                whatsIncludedToggleLabel: '{{see-whats-included}}',
+            },
+        });
+        const label = card.shadowRoot.querySelector(
+            '.whats-included-toggle-label',
+        );
+        expect(label.textContent.trim()).to.equal('');
     });
 
     it('uses the authored whats-included label in the toggle', async () => {
@@ -1470,6 +1621,119 @@ describe('pro license dropdown keyboard navigation', () => {
     });
 });
 
+describe('pro license selected option contrast', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const QS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="3"></merch-quantity-select></div>';
+
+    const trigger = () =>
+        card.shadowRoot.querySelector('.license-select-trigger');
+    const option = (value) =>
+        [...card.shadowRoot.querySelectorAll('.license-select-option')].find(
+            (o) => o.textContent.trim() === value,
+        );
+    const styles = (value) => getComputedStyle(option(value));
+    const popoverBg = () =>
+        getComputedStyle(card.shadowRoot.querySelector('#license-popover'))
+            .backgroundColor;
+
+    function luminance(color) {
+        const [r, g, b] = color
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map((c) => {
+                const v = Number(c) / 255;
+                return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+            });
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    }
+    function contrast(a, b) {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    }
+
+    async function open(theme) {
+        card = await renderCard(QS);
+        if (theme) {
+            card.setAttribute('background-color', theme);
+            await card.updateComplete;
+        }
+        trigger().click();
+        await card.updateComplete;
+    }
+
+    async function arrowDown() {
+        trigger().dispatchEvent(
+            new KeyboardEvent('keydown', {
+                key: 'ArrowDown',
+                bubbles: true,
+                cancelable: true,
+            }),
+        );
+        await card.updateComplete;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`sets the selected option apart at 3:1 (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            const selected = styles('3');
+            expect(option('3').getAttribute('aria-selected')).to.equal('true');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.color).to.equal('rgb(255, 255, 255)');
+            // unselected rows show the popover surface
+            expect(styles('1').backgroundColor).to.equal('rgba(0, 0, 0, 0)');
+            expect(
+                contrast(selected.backgroundColor, popoverBg()),
+            ).to.be.at.least(3);
+            expect(
+                contrast(selected.color, selected.backgroundColor),
+            ).to.be.at.least(4.5);
+        });
+    }
+
+    it('draws a white ring inside the selected row when it is highlighted', async () => {
+        await open();
+        const selected = styles('3');
+        expect(option('3').classList.contains('highlighted')).to.be.true;
+        expect(selected.outlineStyle).to.equal('solid');
+        expect(selected.outlineColor).to.equal('rgb(255, 255, 255)');
+        expect(selected.outlineOffset).to.equal('-4px');
+        expect(
+            contrast(selected.outlineColor, selected.backgroundColor),
+        ).to.be.at.least(3);
+    });
+
+    // Flatten a translucent background onto the popover it sits on.
+    function flatten(color) {
+        const [r, g, b, a = 1] = color.match(/[\d.]+/g).map(Number);
+        if (a === 1) return color;
+        const [br, bg, bb] = popoverBg()
+            .match(/[\d.]+/g)
+            .map(Number);
+        const mix = (c, base) => Math.round(c * a + base * (1 - a));
+        return `rgb(${mix(r, br)}, ${mix(g, bg)}, ${mix(b, bb)})`;
+    }
+
+    for (const theme of [null, 'dark']) {
+        it(`keeps the selection blue while the highlight moves on (${theme ?? 'light'})`, async () => {
+            await open(theme);
+            await arrowDown();
+            const next = styles('4');
+            expect(option('4').classList.contains('selected')).to.be.false;
+            expect(next.outlineColor).to.equal('rgb(20, 115, 230)');
+            expect(next.outlineOffset).to.equal('-2px');
+            expect(
+                contrast(next.outlineColor, flatten(next.backgroundColor)),
+            ).to.be.at.least(3);
+            const selected = styles('3');
+            expect(selected.backgroundColor).to.equal('rgb(59, 99, 251)');
+            expect(selected.outlineStyle).to.equal('none');
+        });
+    }
+});
+
 describe('pro license label pluralization', () => {
     let card;
     afterEach(() => card?.remove());
@@ -1503,6 +1767,22 @@ describe('pro license label pluralization', () => {
         expect(labelText()).to.equal('Licenses');
         // the "|" form never leaks into the UI
         expect(card.shadowRoot.textContent).to.not.contain('|');
+    });
+
+    it('uses the published license label when the title is empty', async () => {
+        card = await renderCard(QS('', '2'), {
+            placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+        });
+        expect(labelText()).to.equal('Lizenzen');
+        await selectQty('1');
+        expect(labelText()).to.equal('Lizenz');
+    });
+
+    it('prefers an authored title over the published license label', async () => {
+        card = await renderCard(QS('Seat|Seats', '2'), {
+            placeholders: { licenseLabel: 'Lizenz|Lizenzen' },
+        });
+        expect(labelText()).to.equal('Seats');
     });
 
     it('never derives plurals for plain-text titles (CJK-safe)', async () => {

@@ -4,6 +4,7 @@ on:
         types: [closed]
         paths:
             - 'io/www/**'
+            - 'price/**'
             - '.github/workflows/io-merge.yaml'
 
 jobs:

@@ -3,10 +3,20 @@ import sinon from 'sinon';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
 import { MasRepository } from '../src/mas-repository.js';
-import { ROOT_PATH, SURFACES, PAGE_NAMES, EDITABLE_FRAGMENT_MODEL_IDS, COLLECTION_MODEL_PATH } from '../src/constants.js';
+import { MasReferenceDiagnosisDialog } from '../src/publish/mas-reference-diagnosis-dialog.js';
+import {
+    ROOT_PATH,
+    SURFACES,
+    PAGE_NAMES,
+    EDITABLE_FRAGMENT_MODEL_IDS,
+    CARD_MODEL_PATH,
+    COLLECTION_MODEL_PATH,
+    BASELINE_NAME,
+} from '../src/constants.js';
 import Events from '../src/events.js';
 import Store from '../src/store.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 
 const mockFragmentCache = {
     get: () => null,
@@ -410,53 +420,72 @@ describe('MasRepository dictionary helpers', () => {
             expect([...(await repository.getCollectionPathsForSurfaces(['acom']))]).to.deep.equal([]);
         });
 
-        it('loadPromotions auto-unpublishes expired published promotions and refreshes the row', async () => {
-            const repository = createFullRepository();
-            const { default: Store } = await import('../src/store.js');
-            const expiredPublished = {
-                id: 'promo-exp',
-                etag: 'e',
-                model: { id: 'promotion-model' },
-                path: '/content/dam/mas/promotions/promo-exp',
-                title: 'Expired Pub',
-                description: '',
-                status: 'PUBLISHED',
-                created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
-                modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
-                fields: [
-                    { name: 'title', type: 'text', values: ['Expired Pub'] },
-                    { name: 'promoCode', type: 'text', values: ['X'] },
-                    { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
-                    { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
-                    { name: 'tags', type: 'tag', values: ['mas:status/published'] },
-                    { name: 'surfaces', type: 'text', values: [] },
-                ],
-                tags: [],
-            };
-            const refreshed = {
-                ...expiredPublished,
-                status: 'DRAFT',
-                fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
-            };
-            let refreshComplete;
-            const refreshCompletePromise = new Promise((resolve) => {
-                refreshComplete = resolve;
+        for (const { role, groups, canUnpublish } of [
+            { role: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], canUnpublish: true },
+            { role: 'promo poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], canUnpublish: true },
+            { role: 'promo editor', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'], canUnpublish: false },
+            { role: 'viewer', groups: [], canUnpublish: false },
+            { role: 'user with membership not yet loaded', groups: null, canUnpublish: false },
+        ]) {
+            it(`loadPromotions ${canUnpublish ? 'auto-unpublishes' : 'does not auto-unpublish'} expired published promotions for a ${role}`, async () => {
+                sandbox.stub(Store.profile, 'get').returns({ email: 'author@adobe.com' });
+                sandbox
+                    .stub(Store.users, 'get')
+                    .returns(groups === null ? [] : [{ userPrincipalName: 'author@adobe.com', groups }]);
+                const repository = createFullRepository();
+                const expiredPublished = {
+                    id: 'promo-exp',
+                    etag: 'e',
+                    model: { id: 'promotion-model' },
+                    path: '/content/dam/mas/promotions/promo-exp',
+                    title: 'Expired Pub',
+                    description: '',
+                    status: 'PUBLISHED',
+                    created: { by: 'u', fullName: 'U', at: '2020-01-01T00:00:00.000Z' },
+                    modified: { by: 'u', fullName: 'U', at: '2020-01-02T00:00:00.000Z' },
+                    fields: [
+                        { name: 'title', type: 'text', values: ['Expired Pub'] },
+                        { name: 'promoCode', type: 'text', values: ['X'] },
+                        { name: 'startDate', type: 'date-time', values: ['2020-01-01T00:00:00.000Z'] },
+                        { name: 'endDate', type: 'date-time', values: ['2020-02-01T00:00:00.000Z'] },
+                        { name: 'tags', type: 'tag', values: ['mas:status/published'] },
+                        { name: 'surfaces', type: 'text', values: [] },
+                    ],
+                    tags: [],
+                };
+                const refreshed = {
+                    ...expiredPublished,
+                    status: 'DRAFT',
+                    fields: expiredPublished.fields.map((f) => (f.name === 'tags' ? { ...f, values: [] } : f)),
+                };
+                let refreshComplete;
+                const refreshCompletePromise = new Promise((resolve) => {
+                    refreshComplete = resolve;
+                });
+                repository.aem = createAemMock();
+                repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
+                const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+                repository.aem.sites.cf.fragments.getById.callsFake(async () => {
+                    refreshComplete();
+                    return refreshed;
+                });
+                Store.promotions.list.data.set([]);
+                await repository.loadPromotions();
+                if (!canUnpublish) {
+                    expect(unpublishStub.called).to.be.false;
+                    expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
+                    expect(Store.promotions.list.data.get()[0].get().isPromotionPublished).to.be.true;
+                    expect(Store.promotions.list.loading.get()).to.be.false;
+                    expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.true;
+                    return;
+                }
+                await refreshCompletePromise;
+                expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
+                expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
+                const row = Store.promotions.list.data.get()[0].get();
+                expect(row.isPromotionPublished).to.be.false;
             });
-            repository.aem = createAemMock();
-            repository.searchFragmentList = sandbox.stub().resolves([expiredPublished]);
-            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
-            repository.aem.sites.cf.fragments.getById.callsFake(async () => {
-                refreshComplete();
-                return refreshed;
-            });
-            Store.promotions.list.data.set([]);
-            await repository.loadPromotions();
-            await refreshCompletePromise;
-            expect(unpublishStub.calledOnceWithExactly(sinon.match.has('id', 'promo-exp'), false)).to.be.true;
-            expect(repository.aem.sites.cf.fragments.getById.calledWith('promo-exp')).to.be.true;
-            const row = Store.promotions.list.data.get()[0].get();
-            expect(row.isPromotionPublished).to.be.false;
-        });
+        }
 
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();
@@ -543,17 +572,32 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads bulk edit projects on BULK_EDIT_EDITOR page so duplicate-title check works on direct links', async () => {
+            const repository = createFullRepository();
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            repository.page = { value: PAGE_NAMES.BULK_EDIT_EDITOR };
+            repository.searchFragmentList = sandbox.stub().resolves([]);
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                expect(repository.searchFragmentList.firstCall.args[0].path).to.include('/bulk-edit-projects/');
+            } finally {
+                Store.profile.set(originalProfile);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {
         beforeEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         afterEach(() => {
             Store.translationProjects.list.data.value = [];
-            Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+            Store.translationProjects.list.data.removeMeta('pendingProjects');
         });
 
         it('keeps a newly duplicated project first when search has not indexed it yet', async () => {
@@ -563,7 +607,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([original]);
 
             await repository.loadTranslationProjects();
@@ -579,7 +623,7 @@ describe('MasRepository dictionary helpers', () => {
             repository.search = { value: { path: 'acom' } };
             const duplicate = createFragment({ id: 'duplicate', path: `${ROOT_PATH}/acom/translations/duplicate` });
             Store.translationProjects.list.data.setMeta(
-                'pendingDuplicates',
+                'pendingProjects',
                 new Map([['duplicate', new FragmentStore(new Fragment(duplicate))]]),
             );
             const searchStub = sandbox.stub();
@@ -592,7 +636,7 @@ describe('MasRepository dictionary helpers', () => {
             await repository.loadTranslationProjects();
 
             expect(Store.translationProjects.list.data.get()).to.deep.equal([]);
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').size).to.equal(0);
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').size).to.equal(0);
         });
 
         it('does not mix pending duplicates from different surfaces', async () => {
@@ -601,7 +645,7 @@ describe('MasRepository dictionary helpers', () => {
             const duplicate = new FragmentStore(
                 new Fragment(createFragment({ id: 'duplicate', path: `${ROOT_PATH}/sandbox/translations/duplicate` })),
             );
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['duplicate', duplicate]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['duplicate', duplicate]]));
             repository.searchFragmentList = sandbox.stub().resolves([]);
 
             await repository.loadTranslationProjects();
@@ -870,6 +914,46 @@ describe('MasRepository dictionary helpers', () => {
             try {
                 await repository.searchFragments();
                 expect(searchStub.called).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('drops baseline fragments from cached data when search params are unchanged', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const searchStub = sandbox.stub();
+            repository.aem = createAemMock({ fragments: { search: searchStub } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            Store.profile.set({ name: 'test-user' });
+            const toStore = (id, path) => ({ value: { id, path }, get: () => ({ id, path }) });
+            const mockDataStore = {
+                get: sandbox
+                    .stub()
+                    .returns([
+                        toStore('card', `${ROOT_PATH}/acom/en_US/card`),
+                        toStore(BASELINE_NAME, `${ROOT_PATH}/acom/en_US/baselines/plans/PA-1/baseline`),
+                    ]),
+                getMeta: sandbox.stub().callsFake((key) => {
+                    if (key === 'path') return 'acom';
+                    if (key === 'locale') return 'en_US';
+                    if (key === 'personalizationFilterEnabled') return false;
+                    return '';
+                }),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(searchStub.called).to.be.false;
+                expect(mockDataStore.set.calledOnce).to.be.true;
+                expect(mockDataStore.set.firstCall.args[0].map((store) => store.value.id)).to.deep.equal(['card']);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -1148,6 +1232,45 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
                 Store.folders.data.set(originalFolders);
+            }
+        });
+
+        it('does not display a baseline fragment found by UUID', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            const uuid = '12345678-1234-1234-1234-123456789012';
+            repository.search = { value: { path: 'acom', query: uuid } };
+            repository.filters = { value: { locale: 'en_US', tags: '' } };
+            const mockFragment = createFragment({
+                id: uuid,
+                path: `${ROOT_PATH}/acom/en_US/baselines/plans/PA-1/baseline`,
+                fields: [],
+            });
+            const getByIdStub = sandbox.stub().resolves(mockFragment);
+            repository.aem = createAemMock({ fragments: { getById: getByIdStub, search: sandbox.stub() } });
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalExpandedId = Store.fragments.expandedId.get();
+            Store.profile.set({ name: 'test-user' });
+            let dataValue = [];
+            const mockDataStore = {
+                get: sandbox.stub().callsFake(() => dataValue),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub().callsFake((v) => {
+                    dataValue = v;
+                }),
+                setMeta: sandbox.stub(),
+            };
+            const originalData = Store.fragments.list.data;
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                expect(getByIdStub.calledOnce).to.be.true;
+                expect(mockDataStore.set.getCalls().every((call) => call.args[0].length === 0)).to.be.true;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.expandedId.set(originalExpandedId);
+                Store.fragments.list.data = originalData;
             }
         });
 
@@ -1465,6 +1588,124 @@ describe('MasRepository dictionary helpers', () => {
                 };
             };
 
+            for (const { stage, errorName } of [
+                'UUID lookup',
+                'variation parent resolution',
+                'promo reference merge',
+                'regular search',
+            ].flatMap((stage) => [null, 'AbortError', 'Error'].map((errorName) => ({ stage, errorName })))) {
+                it(`keeps a newer UUID search loading when an older ${stage} ${errorName ? `rejects with ${errorName}` : 'completes'}`, async () => {
+                    const repository = createFullRepository();
+                    repository.page = { value: PAGE_NAMES.CONTENT };
+                    repository.search = { value: { path: 'acom', query: stage === 'regular search' ? 'old' : variationUuid } };
+                    repository.filters = { value: { locale: 'en_US', tags: '' } };
+                    const oldFragment = createFragment({
+                        id: variationUuid,
+                        path: `${ROOT_PATH}/acom/en_US/old${stage === 'variation parent resolution' ? '/pzn/smb' : ''}`,
+                    });
+                    let resolveOld;
+                    let rejectOld;
+                    let resolveNew;
+                    const oldPending = new Promise((resolve, reject) => {
+                        resolveOld = resolve;
+                        rejectOld = reject;
+                    });
+                    const newPending = new Promise((resolve) => {
+                        resolveNew = resolve;
+                    });
+                    const getById = sandbox.stub();
+                    const oldLookup = getById.withArgs(variationUuid);
+                    oldLookup.returns(stage === 'UUID lookup' ? oldPending : Promise.resolve(oldFragment));
+                    getById.withArgs(parentUuid).returns(newPending);
+                    const resolveParent = sandbox.stub(repository, 'resolveHydratedParentFragment').returns(oldPending);
+                    repository.loadPromotions = sandbox.stub().resolves();
+                    repository.loadPromotions.onFirstCall().returns(oldPending);
+                    const search = sandbox.stub().returns(oldPending);
+                    repository.aem = createAemMock({ fragments: { getById, search } });
+                    sandbox.stub(repository, 'processError');
+                    const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                    const previousPromotions = Store.promotions.list.data.get();
+                    const previousFetched = Store.promotions.list.data.getMeta('listFetched');
+                    Store.promotions.list.data.set([]);
+                    if (stage === 'promo reference merge') Store.promotions.list.data.removeMeta('listFetched');
+                    else Store.promotions.list.data.setMeta('listFetched', true);
+                    let oldSearch;
+                    let newSearch;
+                    try {
+                        oldSearch = repository.searchFragments();
+                        const stageStarted =
+                            stage === 'UUID lookup'
+                                ? oldLookup
+                                : stage === 'variation parent resolution'
+                                  ? resolveParent
+                                  : stage === 'promo reference merge'
+                                    ? repository.loadPromotions
+                                    : search;
+                        await waitUntil(() => stageStarted.called);
+                        repository.search = { value: { path: 'acom', query: parentUuid } };
+                        newSearch = repository.searchFragments();
+                        expect(getById.calledWith(parentUuid)).to.be.true;
+
+                        if (errorName) {
+                            const error = new Error('Superseded search failed');
+                            error.name = errorName;
+                            rejectOld(error);
+                        } else {
+                            resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        }
+                        await oldSearch;
+
+                        expect(Store.fragments.list.loading.get(), 'new UUID request is still pending').to.be.true;
+                        expect(mockDataStore.get()).to.deep.equal([]);
+                        expect(repository.processError.called).to.be.false;
+                        resolveNew(createFragment({ id: parentUuid, path: `${ROOT_PATH}/acom/en_US/new` }));
+                        await newSearch;
+                        expect(Store.fragments.list.loading.get()).to.be.false;
+                        expect(mockDataStore.get()[0].get().id).to.equal(parentUuid);
+                    } finally {
+                        resolveOld(stage === 'regular search' ? createMockCursor([[]]) : oldFragment);
+                        resolveNew(createFragment({ id: parentUuid, path: `${ROOT_PATH}/acom/en_US/new` }));
+                        await Promise.allSettled([oldSearch, newSearch]);
+                        Store.promotions.list.data.set(previousPromotions);
+                        if (previousFetched === null) Store.promotions.list.data.removeMeta('listFetched');
+                        else Store.promotions.list.data.setMeta('listFetched', previousFetched);
+                        restore();
+                    }
+                });
+            }
+
+            it('invalidates an old UUID request and clears loading when no replacement search starts', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                sandbox.stub(repository, 'loadFolders').resolves();
+                sandbox.stub(repository, 'handleSearch');
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                let resolveOld;
+                const pending = new Promise((resolve) => {
+                    resolveOld = resolve;
+                });
+                repository.connectedCallback();
+                repository.aem = createAemMock({ fragments: { getById: sandbox.stub().returns(pending) } });
+                let oldSearch;
+                try {
+                    oldSearch = repository.searchFragments();
+                    expect(Store.fragments.list.loading.get()).to.be.true;
+                    Store.search.set((previous) => ({ ...previous, query: parentUuid }));
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                    resolveOld(createFragment({ id: variationUuid, path: `${ROOT_PATH}/acom/en_US/old` }));
+                    await oldSearch;
+                    expect(mockDataStore.get()).to.deep.equal([]);
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                } finally {
+                    resolveOld(null);
+                    await oldSearch;
+                    repository.disconnectedCallback();
+                    restore();
+                }
+            });
+
             it('resolves parent and sets expand/highlight stores for grouped variation UUID', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };
@@ -1492,6 +1733,38 @@ describe('MasRepository dictionary helpers', () => {
                     expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
                     expect(Store.fragments.variationSearchTab.get()).to.equal('grouped');
                 } finally {
+                    restore();
+                }
+            });
+
+            it('finishes loading a grouped variation UUID in the promotions picker', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+                const variationPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: `${ROOT_PATH}/acom/en_US/my-card`,
+                    fields: [{ name: 'variations', values: [variationPath] }],
+                });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                repository.aem = createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().resolves(createFragment({ id: variationUuid, path: variationPath })),
+                        search: makeSearchStub(sandbox),
+                    },
+                });
+                sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                const originalSurface = Store.promotions.itemPickerSurface.get();
+                try {
+                    Store.promotions.itemPickerSurface.set('acom');
+                    await repository.searchFragments();
+                    expect(mockDataStore.get().map((store) => store.get().id)).to.deep.equal([parentUuid]);
+                    expect(Store.fragments.list.firstPageLoaded.get()).to.be.true;
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                } finally {
+                    Store.promotions.itemPickerSurface.set(originalSurface);
                     restore();
                 }
             });
@@ -1732,6 +2005,7 @@ describe('MasRepository dictionary helpers', () => {
 
                     try {
                         const staleSearch = repository.searchFragments();
+                        await waitUntil(() => repository.loadPromotions.called);
 
                         repository.search = { value: { path: 'acom', query: 'photoshop' } };
                         const freshSearch = repository.searchFragments();
@@ -2042,6 +2316,44 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('keeps personalization-tagged candidates in the Promotions picker when the Content toggle is off', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.PROMOTIONS_EDITOR };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = { value: { locale: 'en_US', tags: '', personalizationFilterEnabled: false } };
+            const pznFragment = createFragment({
+                id: 'edu-parent',
+                path: `${ROOT_PATH}/acom/en_US/cards/edu`,
+                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
+            });
+            const search = sandbox.stub().resolves(createMockCursor([[pznFragment]]));
+            repository.aem = createAemMock({ fragments: { search } });
+            const originalProfile = Store.profile.get();
+            const originalPickerSurface = Store.promotions.itemPickerSurface.get();
+            const originalData = Store.fragments.list.data;
+            const originalCreatedBy = Store.createdByUsers.get();
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            Store.profile.set({ name: 'test-user' });
+            Store.createdByUsers.set([]);
+            Store.promotions.itemPickerSurface.set('acom');
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+                await waitUntil(() => !Store.fragments.list.loading.get());
+                expect(mockDataStore.set.lastCall.args[0].map((store) => store.get().id)).to.deep.equal(['edu-parent']);
+            } finally {
+                Store.fragments.list.data = originalData;
+                Store.profile.set(originalProfile);
+                Store.createdByUsers.set(originalCreatedBy);
+                Store.promotions.itemPickerSurface.set(originalPickerSurface);
+            }
+        });
+
         it('excludes merch-card-collection with PZN on fragment tags when personalization filter is off', async () => {
             const repository = createFullRepository();
             repository.page = { value: PAGE_NAMES.CONTENT };
@@ -2220,6 +2532,27 @@ describe('MasRepository dictionary helpers', () => {
             };
             return { get: () => item, value: item };
         };
+
+        for (const page of [PAGE_NAMES.CONTENT, PAGE_NAMES.TRANSLATION_EDITOR, PAGE_NAMES.PROMOTIONS_EDITOR]) {
+            it(`uses the correct personalization visibility for cached candidates on ${page}`, () => {
+                const repository = createFullRepository();
+                repository.page = { value: page };
+                repository.filters = { value: { personalizationFilterEnabled: false } };
+                const stores = [
+                    makeFragmentStore({ id: 'edu-parent', tags: [{ id: 'mas:pzn/edu' }] }),
+                    makeFragmentStore({ id: 'plain' }),
+                ];
+                const result = repository.testOnlyApplyInMemoryFilter(stores, {
+                    tags: [],
+                    variants: [],
+                    contentTypes: [],
+                    createdBy: [],
+                });
+                expect(result.map((store) => store.get().id)).to.deep.equal(
+                    page === PAGE_NAMES.PROMOTIONS_EDITOR ? ['edu-parent', 'plain'] : ['plain'],
+                );
+            });
+        }
 
         const setupNarrowingFixture = ({
             stores,
@@ -2653,6 +2986,70 @@ describe('MasRepository dictionary helpers', () => {
             };
         };
 
+        for (const { phase, errorName } of ['background refill', 'next page'].flatMap((phase) =>
+            [null, 'AbortError', 'Error'].map((errorName) => ({ phase, errorName })),
+        )) {
+            it(`does not stop a newer UUID search when an older ${phase} ${errorName ? `rejects with ${errorName}` : 'finishes'}`, async () => {
+                let resolveOldPage;
+                let rejectOldPage;
+                let resolveUuid;
+                const pendingPage = new Promise((resolve, reject) => {
+                    resolveOldPage = resolve;
+                    rejectOldPage = reject;
+                });
+                const pendingUuid = new Promise((resolve) => {
+                    resolveUuid = resolve;
+                });
+                const count = phase === 'background refill' ? 1 : MasRepository.MIN_FILTERED_PAGE_RESULTS;
+                const fragments = Array.from({ length: count }, (_, i) =>
+                    createFragment({ id: `old-${i}`, path: `${ROOT_PATH}/acom/en_US/old-${i}` }),
+                );
+                const next = sandbox.stub();
+                next.onFirstCall().resolves({
+                    done: false,
+                    value: {
+                        [Symbol.asyncIterator]: async function* () {
+                            yield* fragments;
+                        },
+                    },
+                });
+                next.onSecondCall().returns(pendingPage);
+                const { repository, cleanup } = await setupSearchTest({ next });
+                sandbox.stub(repository, 'processError');
+                let oldPage;
+                let uuidSearch;
+                try {
+                    await repository.searchFragments();
+                    if (phase === 'next page') oldPage = repository.loadNextPage();
+                    await waitUntil(() => next.calledTwice);
+                    repository.aem.sites.cf.fragments.getById.returns(pendingUuid);
+                    repository.search = { value: { path: 'acom', query: '09f5c8af-4a7d-497b-a579-70d2f3794a2c' } };
+                    uuidSearch = repository.searchFragments();
+
+                    if (errorName) {
+                        const error = new Error('Superseded page failed');
+                        error.name = errorName;
+                        rejectOldPage(error);
+                    } else {
+                        resolveOldPage({ done: true });
+                    }
+                    if (oldPage) await oldPage;
+                    else await new Promise((resolve) => setTimeout(resolve, 0));
+
+                    expect(Store.fragments.list.loading.get()).to.be.true;
+                    expect(repository.processError.called).to.be.false;
+                    resolveUuid(null);
+                    await uuidSearch;
+                    expect(Store.fragments.list.loading.get()).to.be.false;
+                } finally {
+                    resolveOldPage({ done: true });
+                    resolveUuid(null);
+                    await Promise.allSettled([oldPage, uuidSearch]);
+                    cleanup();
+                }
+            });
+        }
+
         it('fetches multiple pages to fill minimum results when variant filtering reduces items', async () => {
             const makeFragment = (id, variant) =>
                 createFragment({
@@ -2670,6 +3067,26 @@ describe('MasRepository dictionary helpers', () => {
                 const setCalls = Store.fragments.list.data.set.getCalls();
                 const lastCall = setCalls[setCalls.length - 1];
                 expect(lastCall.args[0].length).to.equal(11);
+            } finally {
+                cleanup();
+            }
+        });
+
+        it('excludes baseline fragments from search results', async () => {
+            const fragments = [
+                createFragment({ id: 'card', path: `${ROOT_PATH}/acom/en_US/card`, fields: [] }),
+                createFragment({
+                    id: BASELINE_NAME,
+                    path: `${ROOT_PATH}/acom/en_US/baselines/plans/PA-123/baseline`,
+                    fields: [],
+                }),
+            ];
+            const mockCursor = createMockCursorFromPages([fragments]);
+            const { repository, mockDataStore, cleanup } = await setupSearchTest(mockCursor);
+            try {
+                await repository.searchFragments();
+                const populatedCalls = mockDataStore.set.getCalls().filter((call) => call.args[0]?.length);
+                expect(populatedCalls.at(-1).args[0].map((store) => store.value.id)).to.deep.equal(['card']);
             } finally {
                 cleanup();
             }
@@ -4834,9 +5251,11 @@ describe('MasRepository dictionary helpers', () => {
 
 describe('MasRepository publishFragment', () => {
     let sandbox;
+    let diagnosis;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
 
     afterEach(() => {
@@ -4864,6 +5283,33 @@ describe('MasRepository publishFragment', () => {
     };
 
     const fragment = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card' };
+
+    it('does not activate the fragment when diagnosis is closed', async () => {
+        const repo = makeRepo();
+        diagnosis.resolves(false);
+
+        const result = await repo.publishFragment(fragment);
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+    });
+
+    it('waits for an explicit diagnosis decision before activation', async () => {
+        const repo = makeRepo();
+        let decide;
+        diagnosis.returns(
+            new Promise((resolve) => {
+                decide = resolve;
+            }),
+        );
+
+        const publishing = repo.publishFragment(fragment);
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        decide(true);
+        await publishing;
+
+        expect(repo.aem.sites.cf.fragments.publish.calledOnce).to.be.true;
+    });
 
     it('publishes with empty filterReferencesByStatus when no options given', async () => {
         const repo = makeRepo();
@@ -4937,6 +5383,7 @@ describe('MasRepository #publishRefIds (via publishFragment selectedRefIds)', ()
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
     });
     afterEach(() => sandbox.restore());
 
@@ -5009,12 +5456,14 @@ describe('MasRepository bulkPublishFragments', () => {
     let sandbox;
     let repo;
     let originalStoreData;
+    let diagnosis;
 
     const frag1 = { id: 'frag-1', path: '/content/dam/mas/sandbox/en_US/card-1', etag: 'etag-1' };
     const frag2 = { id: 'frag-2', path: '/content/dam/mas/sandbox/en_US/card-2', etag: 'etag-2' };
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        diagnosis = sandbox.stub(MasReferenceDiagnosisDialog, 'confirmFor').resolves(true);
         repo = new MasRepository();
         repo.operation = { set: sandbox.stub() };
         repo.aem = {
@@ -5045,6 +5494,15 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls publishFragments with default statuses when no options given', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.aem.sites.cf.fragments.publishFragments.calledWith([frag1, frag2], ['DRAFT', 'UNPUBLISHED'])).to.be.true;
+    });
+
+    it('does not activate any selected root when diagnosis is closed', async () => {
+        diagnosis.resolves(false);
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
     });
 
     it('calls publishFragments with custom publishReferencesWithStatus when provided', async () => {
@@ -5094,6 +5552,22 @@ describe('status filter narrowing', () => {
         expect(narrowed).to.equal(true);
     });
 
+    it('excludes baseline fragments when filtering in memory', () => {
+        const repository = createRepository();
+        const stores = [
+            { value: { id: 'a', path: '/content/dam/mas/acom/en_US/a', tags: [], fields: [] } },
+            { value: { id: 'b', path: '/content/dam/mas/acom/en_US/baselines/plans/PA-1/b', tags: [], fields: [] } },
+        ];
+        const result = repository.testOnlyApplyInMemoryFilter(stores, {
+            query: '',
+            tags: [],
+            variants: [],
+            contentTypes: [],
+            createdBy: [],
+        });
+        expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
+    });
+
     it('filters in memory on item.status, not tags', () => {
         const repository = createRepository();
         const stores = [
@@ -5109,5 +5583,66 @@ describe('status filter narrowing', () => {
             status: ['DRAFT'],
         });
         expect(result.map((store) => store.value.id)).to.deep.equal(['a']);
+    });
+});
+
+describe('MasRepository createFragment', () => {
+    let sandbox;
+
+    beforeEach(() => {
+        sandbox = sinon.createSandbox();
+        sandbox.stub(Events.toast, 'emit');
+    });
+
+    afterEach(() => {
+        sandbox.restore();
+    });
+
+    const ctasWithExtraOptions = '<a data-extra-options="{\\"a\\":1}">Buy</a>';
+    const correctedCtas = '<a data-extra-options="{&quot;a&quot;:1}">Buy</a>';
+
+    const createWithPaths = async ({ searchPath, createdPath }) => {
+        const repository = new MasRepository();
+        repository.search = { value: { path: searchPath } };
+        repository.aem = {
+            sites: {
+                cf: {
+                    fragments: {
+                        create: sandbox.stub().resolves({ id: 'created-id' }),
+                        getById: sandbox.stub().resolves({
+                            id: 'created-id',
+                            path: createdPath,
+                            model: { path: CARD_MODEL_PATH },
+                            fields: [{ name: 'ctas', values: [ctasWithExtraOptions] }],
+                        }),
+                    },
+                },
+            },
+        };
+        const fragment = await repository.createFragment({
+            modelId: 'card-model',
+            title: 'Card',
+            name: 'card',
+            parentPath: `${ROOT_PATH}/${searchPath}/en_US`,
+        });
+        return fragment.fields.find(({ name }) => name === 'ctas').values[0];
+    };
+
+    it('applies the corrector for the surface the fragment is created in', async () => {
+        const ctas = await createWithPaths({
+            searchPath: 'acom',
+            createdPath: `${ROOT_PATH}/sandbox/en_US/baselines/catalog/pa/baseline`,
+        });
+        expect(ctas).to.equal(correctedCtas);
+    });
+
+    it('falls back to the search surface when the created path has no surface', async () => {
+        const ctas = await createWithPaths({ searchPath: 'sandbox', createdPath: '/var/tmp/card' });
+        expect(ctas).to.equal(correctedCtas);
+    });
+
+    it('skips the corrector when neither the created path nor the search path is a corrected surface', async () => {
+        const ctas = await createWithPaths({ searchPath: 'acom', createdPath: '/var/tmp/card' });
+        expect(ctas).to.equal(ctasWithExtraOptions);
     });
 });

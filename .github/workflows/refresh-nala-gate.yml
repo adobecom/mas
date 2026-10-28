@@ -19,13 +19,11 @@ jobs:
               with:
                   script: |
                       const run = context.payload.workflow_run;
-                      const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-                          ...context.repo, run_id: run.id, filter: 'all', per_page: 100,
+                      const { data: sourceRun } = await github.rest.actions.getWorkflowRun({
+                          ...context.repo, run_id: run.id,
                       });
-                      // A gate-only retry must not trigger another gate-only retry.
-                      if (!jobs.some((job) => job.run_attempt === run.run_attempt &&
-                          job.name.startsWith('Running Nala ') && job.conclusion !== 'skipped')) {
-                          core.info('No E2E jobs executed in this attempt; no gate refresh needed.');
+                      if (sourceRun.status !== 'completed' || sourceRun.run_attempt !== run.run_attempt) {
+                          core.info('The completed attempt has been superseded or is being retried; leaving it untouched.');
                           return;
                       }
                       let references = run.pull_requests ?? [];
@@ -46,33 +44,72 @@ jobs:
                           }
                           const checks = await github.paginate(github.rest.checks.listForRef, {
                               ...context.repo, ref: pr.head.sha,
-                              check_name: 'Nala Gate', filter: 'all', per_page: 100,
+                              filter: 'all', per_page: 100,
                           });
-                          const gate = checks.sort((a, b) => b.id - a.id)[0];
-                          if (!gate || gate.status !== 'completed' || gate.conclusion === 'success') {
-                              core.info(`PR ${pr.number}: gate is already passing, running, or not yet created.`);
+                          const names = [
+                              'Running Nala Docs E2E UI Tests',
+                              ...['mixed-1', 'mixed-2', 'mixed-3'].map(
+                                  (shard) => `Running Nala Studio [${shard}] E2E UI Tests`,
+                              ),
+                          ];
+                          const latest = (name) => checks
+                              .filter((check) => check.name.startsWith(name) && check.conclusion !== 'skipped')
+                              .sort((a, b) => b.id - a.id)[0];
+                          const results = names.map(latest);
+                          if (!results.every((check) => check?.status === 'completed' && check.completed_at)) {
+                              core.info(`PR ${pr.number}: E2E results are incomplete or still running; no refresh yet.`);
                               continue;
                           }
-                          const match = new URL(gate.details_url).pathname.match(/\/job\/(\d+)$/);
-                          if (!match) throw new Error(`Cannot identify Nala Gate job from ${gate.details_url}`);
-                          const jobId = Number(match[1]);
-                          const { data: gateJob } = await github.rest.actions.getJobForWorkflowRun({
-                              ...context.repo, job_id: jobId,
-                          });
-                          // Older preflight gates have downstream E2E jobs; retrying them would rerun tests.
-                          if (!gateJob.steps.some((step) => step.name === 'Resolve live PR and Nala state')) {
-                              core.warning(`PR ${pr.number}: legacy preflight gate cannot be refreshed without rerunning tests.`);
-                              continue;
+                          const resultsFinishedAt = Math.max(...results.map((check) => Date.parse(check.completed_at)));
+                          const gatesByRun = new Map();
+                          for (const gate of checks.filter((check) => check.name === 'Nala Gate').sort((a, b) => b.id - a.id)) {
+                              const match = gate.details_url?.match(/\/actions\/runs\/(\d+)\/job\/(\d+)$/);
+                              if (!match) throw new Error(`Cannot identify Nala Gate job from ${gate.details_url}`);
+                              if (!gatesByRun.has(match[1])) {
+                                  gatesByRun.set(match[1], { gate, jobId: Number(match[2]) });
+                              }
                           }
-                          const { data: gateRun } = await github.rest.actions.getWorkflowRun({
-                              ...context.repo, run_id: gateJob.run_id,
-                          });
-                          if (gateRun.run_attempt >= 3) {
-                              core.warning(`PR ${pr.number}: automatic gate refresh limit reached; retry the gate manually.`);
-                              continue;
+                          const latestByEvent = new Map();
+                          for (const [runId, candidate] of gatesByRun) {
+                              const { data: gateRun } = await github.rest.actions.getWorkflowRun({
+                                  ...context.repo, run_id: Number(runId),
+                              });
+                              if (gateRun.workflow_id !== run.workflow_id || gateRun.head_sha !== pr.head.sha) continue;
+                              if (!['pull_request', 'pull_request_review'].includes(gateRun.event)) continue;
+                              const previous = latestByEvent.get(gateRun.event);
+                              if (!previous || gateRun.id > previous.gateRun.id) {
+                                  latestByEvent.set(gateRun.event, { ...candidate, gateRun });
+                              }
                           }
-                          await github.rest.actions.reRunJobForWorkflowRun({
-                              ...context.repo, job_id: jobId,
-                          });
-                          core.info(`Requested gate-only refresh for PR ${pr.number}; E2E tests are not retriggered.`);
+                          for (const { gate, jobId, gateRun } of latestByEvent.values()) {
+                              if (gateRun.status !== 'completed' || gate.status !== 'completed' || gate.conclusion === 'success') {
+                                  continue;
+                              }
+                              // Carried-forward jobs can acquire a new attempt number without executing.
+                              // Only a gate that began before the final E2E result can have a stale verdict.
+                              if (!gate.started_at || Date.parse(gate.started_at) > resultsFinishedAt) continue;
+                              if (gateRun.run_attempt >= 3) {
+                                  core.warning(`PR ${pr.number}: automatic gate refresh limit reached for run ${gateRun.id}.`);
+                                  continue;
+                              }
+                              const { data: gateJob } = await github.rest.actions.getJobForWorkflowRun({
+                                  ...context.repo, job_id: jobId,
+                              });
+                              // Older preflight gates have downstream E2E jobs; retrying them would rerun tests.
+                              if (!gateJob.steps.some((step) => step.name === 'Resolve live PR and Nala state')) {
+                                  core.warning(`PR ${pr.number}: legacy preflight gate cannot be refreshed without rerunning tests.`);
+                                  continue;
+                              }
+                              const { data: current } = await github.rest.actions.getWorkflowRun({
+                                  ...context.repo, run_id: gateRun.id,
+                              });
+                              if (current.status !== 'completed' || current.run_attempt !== gateRun.run_attempt) {
+                                  core.info(`PR ${pr.number}: run ${gateRun.id} is already being retried; leaving it untouched.`);
+                                  continue;
+                              }
+                              await github.rest.actions.reRunJobForWorkflowRun({
+                                  ...context.repo, job_id: jobId,
+                              });
+                              core.info(`Requested gate-only refresh for PR ${pr.number}, ${gateRun.event} run ${gateRun.id}.`);
+                          }
                       }

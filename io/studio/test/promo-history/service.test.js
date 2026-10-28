@@ -36,6 +36,7 @@ describe('Promotion history', () => {
     let fragments;
     let versions;
     let roles;
+    let cachedMembers;
     let profile;
     let allowed;
     let originalFetch;
@@ -73,12 +74,24 @@ describe('Promotion history', () => {
         ]);
         versions = new Map();
         roles = ['GRP-ODIN-MAS-ADMINS'];
+        cachedMembers = undefined;
         profile = { id: 'verified-user', email: 'verified@example.com', name: 'Verified User' };
         allowed = true;
         logger = { error: sinon.spy() };
         delay = sinon.stub().resolves();
         state = {
-            get: async (key) => (stored.has(key) ? { value: stored.get(key) } : null),
+            get: async (key) => {
+                if (key === 'mas-users') {
+                    return cachedMembers === null
+                        ? null
+                        : {
+                              value:
+                                  cachedMembers ??
+                                  JSON.stringify([{ userPrincipalName: 'VERIFIED@EXAMPLE.COM', groups: roles }]),
+                          };
+                }
+                return stored.has(key) ? { value: stored.get(key) } : null;
+            },
             put: sinon.spy(async (key, value) => stored.set(key, value)),
             list: ({ match }) =>
                 (async function* () {
@@ -87,13 +100,6 @@ describe('Promotion history', () => {
         };
         fetchStub = sinon.stub().callsFake(async (url, options = {}) => {
             if (url.includes('/ims/profile/')) return response(profile);
-            if (url.includes('/ims/organizations/'))
-                return response([
-                    {
-                        orgRef: { authSrc: 'AdobeOrg', ident: '3B962FB55F5F922E0A495C88' },
-                        groups: roles.map((groupName) => ({ groupName })),
-                    },
-                ]);
             const parsed = new URL(url);
             const versionPath = /\/fragments\/([^/]+)\/versions(?:\/([^/]+))?$/.exec(parsed.pathname);
             if (versionPath) {
@@ -175,6 +181,85 @@ describe('Promotion history', () => {
         roles = ['GRP-ODIN-MAS-ACOM-CURATORS'];
         await expectError(call('restore', { eventId: event.id, expected: [] }), 403);
         expect(fetchStub.getCalls().some(({ args }) => args[1]?.method === 'PUT')).to.equal(false);
+    });
+
+    it('restores for an LDAP admin even when IMS organizations does not contain MAS groups', async () => {
+        const event = await backup();
+        fetchStub.withArgs(sinon.match((url) => url.includes('/ims/organizations/'))).resolves(response([]));
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
+
+        const result = await call('restore', {
+            eventId: event.id,
+            selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+        });
+
+        expect(result.restored).to.deep.equal([VARIATION]);
+        expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['Old']);
+    });
+
+    it('does not use caller-supplied identity or IMS organization roles to bypass LDAP membership', async () => {
+        const event = await backup();
+        fetchStub.withArgs(sinon.match((url) => url.includes('/ims/organizations/'))).resolves(
+            response([
+                {
+                    orgRef: { authSrc: 'AdobeOrg', ident: '000000000000000000000000' },
+                    groups: [{ groupName: 'GRP-ODIN-MAS-ADMINS' }],
+                },
+            ]),
+        );
+        cachedMembers = JSON.stringify([
+            { userPrincipalName: 'other@example.com', groups: ['GRP-ODIN-MAS-ADMINS'] },
+            { userPrincipalName: 'verified@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] },
+        ]);
+
+        await expectError(
+            call('restore', {
+                eventId: event.id,
+                expected: [],
+                user: { email: 'other@example.com', groups: ['GRP-ODIN-MAS-ADMINS'] },
+                email: 'other@example.com',
+                groups: ['GRP-ODIN-MAS-ADMINS'],
+            }),
+            403,
+        );
+
+        expect(
+            fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/') && args[1]?.method === 'PUT'),
+        ).to.equal(false);
+    });
+
+    it('denies restore for a verified identity absent from the membership cache', async () => {
+        cachedMembers = '[]';
+
+        await expectError(call('restore', { eventId: PROJECT, expected: [] }), 403);
+
+        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/'))).to.equal(false);
+    });
+
+    for (const [condition, value] of [
+        ['missing', null],
+        ['invalid JSON', '{'],
+        ['invalid schema', '{}'],
+        ['invalid groups', JSON.stringify([{ userPrincipalName: 'verified@example.com', groups: 'GRP-ODIN-MAS-ADMINS' }])],
+        ['invalid group names', JSON.stringify([{ userPrincipalName: 'verified@example.com', groups: [42] }])],
+    ]) {
+        it(`rejects restore before AEM access when the membership cache is ${condition}`, async () => {
+            cachedMembers = value;
+
+            await expectError(call('restore', { eventId: PROJECT, expected: [] }), 503);
+
+            expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/'))).to.equal(false);
+            expect(state.put.called).to.equal(false);
+        });
+    }
+
+    it('reports a membership storage outage without granting restore access', async () => {
+        sinon.stub(state, 'get').withArgs('mas-users').rejects(new Error('State unavailable'));
+
+        await expectError(call('restore', { eventId: PROJECT, expected: [] }), 503);
+
+        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/'))).to.equal(false);
     });
 
     it('persists immutable backups with at least ninety days retention and request idempotency', async () => {
@@ -569,9 +654,9 @@ describe('Promotion history', () => {
         expect(state.put.called).to.equal(false);
     });
 
-    it('permits promotion power users to restore through server verified org membership', async () => {
+    it('permits promotion power users to restore through the server-side LDAP cache', async () => {
         const event = await backup();
-        roles = ['GRP-ODIN-MAS-PROMO-POWERUSERS'];
+        roles = ['grp-odin-mas-promo-powerusers'];
         const result = await call('restore', {
             eventId: event.id,
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],

@@ -11,7 +11,6 @@ const MAX_ENTRIES = 2000;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
-const ORG = '3B962FB55F5F922E0A495C88';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
 const ACTIONS = new Set(['create', 'save', 'delete', 'duplicate', 'publish', 'unpublish', 'restore', 'backup']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -52,7 +51,7 @@ async function imsRequest(path, token) {
     return response.json();
 }
 
-async function authenticate(params, restore) {
+async function authenticate(params) {
     const token = getBearerToken(params);
     if (!token) fail(401, 'Authorization required');
     let valid;
@@ -65,16 +64,27 @@ async function authenticate(params, restore) {
     const profile = await imsRequest('/ims/profile/v1', token);
     const id = profile.id ?? profile.userId;
     if (!id || !profile.email) fail(401, 'Verified IMS identity required');
-    if (restore) {
-        const organizations = await imsRequest('/ims/organizations/v5', token);
-        const organization = organizations.find(
-            ({ orgRef }) => orgRef?.authSrc === 'AdobeOrg' && [ORG, `${ORG}@AdobeOrg`].includes(orgRef.ident),
-        );
-        if (!organization?.groups?.some(({ groupName }) => RESTORE_GROUPS.has(groupName?.toUpperCase()))) {
-            fail(403, 'Restore requires MAS admin or promotion power-user membership');
-        }
-    }
     return { token, user: { id, email: profile.email, ...(profile.name ? { name: profile.name } : {}) } };
+}
+
+async function authorizeRestore(state, email) {
+    let users;
+    try {
+        const cached = await state.get('mas-users');
+        users = JSON.parse(cached?.value ?? 'null');
+    } catch {
+        logger.error('Promotion history membership cache could not be read');
+        fail(503, 'Promotion permissions are temporarily unavailable');
+    }
+    if (!Array.isArray(users)) fail(503, 'Promotion permissions are temporarily unavailable');
+    const user = users.find((entry) => entry.userPrincipalName?.toLowerCase() === email.toLowerCase());
+    const groups = user?.groups ?? [];
+    if (!Array.isArray(groups) || groups.some((group) => typeof group !== 'string')) {
+        fail(503, 'Promotion permissions are temporarily unavailable');
+    }
+    if (!groups.some((group) => RESTORE_GROUPS.has(group.toUpperCase()))) {
+        fail(403, 'Restore requires MAS admin or promotion power-user membership');
+    }
 }
 
 function endpoint(params) {
@@ -768,13 +778,15 @@ async function restore(context, params, events) {
 async function execute(operation, params) {
     if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
     identifier(params.projectId);
-    const identity = await authenticate(params, operation === 'restore');
+    const identity = await authenticate(params);
+    const state = await init();
+    if (operation === 'restore') await authorizeRestore(state, identity.user.email);
     const context = {
         ...identity,
         operation,
         phase: params.phase,
         endpoint: endpoint(params),
-        state: await init(),
+        state,
         projectId: params.projectId,
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         targetId: params.targetId,

@@ -448,9 +448,13 @@ export class MasPromotionHistory extends LitElement {
             if (projectId !== this.projectId) return;
             const status = error.status ?? error.statusCode ?? error.response?.status;
             this.operationError =
-                status === 409 || status === 412
+                {
+                    401: 'Sign in again before restoring this promotion.',
+                    403: 'You do not have permission to restore this promotion. Check your MAS role and AEM permissions.',
+                }[status] ??
+                (status === 409 || status === 412
                     ? 'The project changed since you viewed this version. Reload the version and review before restoring.'
-                    : 'Could not restore this version. Reload the version and retry. Deleted fragments are not recreated.';
+                    : 'Could not restore this version. Reload the version and retry. Deleted fragments are not recreated.');
             return;
         } finally {
             this.operating = false;

@@ -726,6 +726,30 @@ describe('Promotion version history', () => {
         expect(root.querySelector('#retry-version')).to.exist;
     });
 
+    it('shows an explicit permission message when the server refuses restore', async () => {
+        client.restorePromotionHistory.rejects(Object.assign(new Error('Forbidden'), { status: 403 }));
+        const root = await mount();
+        element.requestRestore('full');
+
+        await element.confirmRestore();
+        await element.updateComplete;
+
+        expect(root.querySelector('[role="alert"]').textContent).to.include('permission');
+        expect(root.querySelector('[role="alert"]').textContent).not.to.include('Deleted fragments');
+        expect(element.selectedEvent.id).to.equal(version.id);
+    });
+
+    it('requests sign-in instead of a version reload when the restore session is invalid', async () => {
+        client.restorePromotionHistory.rejects(Object.assign(new Error('Unauthorized'), { status: 401 }));
+        const root = await mount();
+        element.requestRestore('full');
+
+        await element.confirmRestore();
+        await element.updateComplete;
+
+        expect(root.querySelector('[role="alert"]').textContent).to.include('Sign in');
+    });
+
     it('renders untrusted historical content as text', async () => {
         getVersion.resolves({ ...fragment, title: '<img src=x onerror=alert(1)>' });
         client.listPromotionHistory.resolves({

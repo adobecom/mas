@@ -3710,7 +3710,9 @@ describe('MasRepository dictionary helpers', () => {
                     };
                 },
             };
-            const searchStub = sandbox.stub().resolves(mockCursor);
+            // limit 1 is the created-span probe of the windowed load; no creation date makes it fall back to the single cursor
+            const emptyCursor = { next: async () => ({ done: true }) };
+            const searchStub = sandbox.stub().callsFake(async (options, limit) => (limit === 1 ? emptyCursor : mockCursor));
             repository.aem = createAemMock({ fragments: { search: searchStub } });
             const { default: Store } = await import('../src/store.js');
             const originalProfile = Store.profile.value;
@@ -3736,6 +3738,8 @@ describe('MasRepository dictionary helpers', () => {
             };
         };
         const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+        // limit 1 calls are the created-span probes of a windowed load, not searches
+        const searches = (searchStub) => searchStub.getCalls().filter((call) => call.args[1] !== 1).length;
 
         it('sends the Last Modified sort to the API and refetches when it changes', async () => {
             const { repository, searchStub, Store, cleanup } = await setupSortTest({
@@ -3767,7 +3771,7 @@ describe('MasRepository dictionary helpers', () => {
                 Store.sort.set({ sortBy: 'path', sortDirection: 'desc' });
                 await repository.searchFragments();
                 await settle();
-                expect(searchStub.callCount).to.equal(1);
+                expect(searches(searchStub)).to.equal(1);
                 expect(Store.fragments.list.data.getMeta('tags')).to.be.null;
                 expect(Store.fragments.list.loading.value).to.be.false;
                 expect(Store.fragments.list.data.value.length).to.be.greaterThan(0);
@@ -3795,6 +3799,76 @@ describe('MasRepository dictionary helpers', () => {
             }
         });
 
+        it('loads a Path sort as parallel creation-date windows', async () => {
+            const { repository, searchStub, Store, cleanup } = await setupSortTest({
+                pageCount: 1,
+                sort: { sortBy: 'path', sortDirection: 'asc' },
+            });
+            const first = Date.parse('2025-01-01T00:00:00.000Z');
+            const last = Date.parse('2025-01-02T00:00:00.000Z');
+            const total = 120;
+            const all = Array.from({ length: total }, (_, i) =>
+                createFragment({
+                    id: `win-${i}`,
+                    path: `${ROOT_PATH}/acom/en_US/win-${i}`,
+                    fields: [{ name: 'variant', values: ['plans'] }],
+                    created: { at: new Date(first + Math.round((i / (total - 1)) * (last - first))).toISOString() },
+                }),
+            );
+            const asPage = (items) => ({
+                done: false,
+                value: {
+                    [Symbol.asyncIterator]: async function* () {
+                        for (const item of items) yield item;
+                    },
+                },
+            });
+            const windowCursor = (createdRange) => {
+                const inWindow = all.filter(
+                    (item) => item.created.at >= createdRange.after && item.created.at <= createdRange.before,
+                );
+                const pages = [];
+                for (let i = 0; i < inWindow.length; i += 10) pages.push(inWindow.slice(i, i + 10));
+                let n = 0;
+                return { next: async () => (pages[n] ? asPage(pages[n++]) : { done: true }) };
+            };
+            const probe = (options) => {
+                const ordered = options.sort[0].order === 'ASC' ? all : [...all].reverse();
+                return { next: async () => ({ done: false, value: [ordered[0]] }) };
+            };
+            let running = 0;
+            let maxRunning = 0;
+            const windows = [];
+            searchStub.callsFake(async (options, limit) => {
+                if (limit === 1) return probe(options);
+                if (!options.createdRange) return windowCursor({ after: '0', before: '9' });
+                windows.push(options.createdRange);
+                const cursor = windowCursor(options.createdRange);
+                return {
+                    next: async () => {
+                        running++;
+                        maxRunning = Math.max(maxRunning, running);
+                        await new Promise((resolve) => setTimeout(resolve, 5));
+                        running--;
+                        return cursor.next();
+                    },
+                };
+            });
+            try {
+                await repository.searchFragments();
+                await new Promise((resolve) => setTimeout(resolve, 600));
+                const ids = Store.fragments.list.data.value.map((store) => store.value.id);
+                expect(ids.length).to.equal(total);
+                expect(new Set(ids).size).to.equal(total);
+                expect(windows.length).to.equal(MasRepository.SORT_LOAD_WINDOWS);
+                expect(maxRunning).to.be.within(2, MasRepository.SORT_LOAD_CONCURRENCY);
+                expect(Store.fragments.list.hasMore.value).to.be.false;
+                expect(Store.fragments.list.loading.value).to.be.false;
+            } finally {
+                cleanup();
+            }
+        });
+
         it('continues on the existing cursor when a Path header is clicked while hasMore is true', async () => {
             const { repository, searchStub, state, Store, cleanup } = await setupSortTest({
                 pageCount: 3,
@@ -3806,7 +3880,7 @@ describe('MasRepository dictionary helpers', () => {
                 Store.sort.set({ sortBy: 'path', sortDirection: 'asc' });
                 await repository.searchFragments();
                 await settle();
-                expect(searchStub.callCount).to.equal(1);
+                expect(searches(searchStub)).to.equal(1);
                 expect(state.nextCalls).to.be.greaterThan(2);
                 expect(Store.fragments.list.hasMore.value).to.be.false;
             } finally {

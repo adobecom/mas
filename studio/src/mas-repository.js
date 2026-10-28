@@ -42,6 +42,7 @@ import {
     CLIENT_SORT_KEYS,
 } from './constants.js';
 import { applyFragmentListFilters } from './fragments/fragment-list-filters.js';
+import { createdWindows } from './fragments/created-windows.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
@@ -873,7 +874,17 @@ export class MasRepository extends LitElement {
                 if (this.#abortControllers.search !== searchController) return;
                 Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
                 Store.fragments.list.firstPageLoaded.set(true);
-                const cursorState = done ? null : { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery };
+                const cursorState = done
+                    ? null
+                    : {
+                          cursor,
+                          variants,
+                          contentTypes,
+                          surface,
+                          fragmentStores,
+                          lowerClientQuery,
+                          localSearch: { ...localSearch },
+                      };
                 this.#searchCursor = cursorState;
                 Store.fragments.list.hasMore.set(!done);
                 if (cursorState && (personalizationOn || clientSort)) {
@@ -919,6 +930,9 @@ export class MasRepository extends LitElement {
      * lost — it simply stops being eager-prefetched after this many pages.
      */
     static MAX_EAGER_PAGES = 20;
+    /** Client-side sorts load the whole result set as this many creation-date windows, SORT_LOAD_CONCURRENCY at a time. */
+    static SORT_LOAD_WINDOWS = 12;
+    static SORT_LOAD_CONCURRENCY = 6;
     /**
      * Visible-row threshold for the post-filter refill loop in #refillBelowThreshold.
      * When a cursor page, after #applyFragmentListFilters has been
@@ -985,20 +999,80 @@ export class MasRepository extends LitElement {
         return false;
     }
 
+    /** Creation-date span [first, last] in epoch ms of the matching fragments, or null when it cannot be told. */
+    async #createdSpan(localSearch, searchController) {
+        const probe = async (order) => {
+            const cursor = await this.aem.sites.cf.fragments.search(
+                { ...localSearch, sort: [{ on: 'created', order }] },
+                1,
+                searchController,
+            );
+            const { value } = await cursor.next();
+            return Date.parse(value?.[0]?.created?.at);
+        };
+        const [first, last] = await Promise.all([probe('ASC'), probe('DESC')]);
+        return Number.isNaN(first) || Number.isNaN(last) ? null : [first, last];
+    }
+
+    /**
+     * Loads every matching fragment as parallel creation-date windows (the API caps a page at 50 and a cursor is
+     * sequential, so one cursor over thousands of fragments takes minutes).
+     * @returns {Promise<boolean>} false when the span is unknown, so the caller falls back to the single cursor
+     */
+    async #loadInWindows(cursorSnapshot, searchController) {
+        const { variants, contentTypes, surface, fragmentStores, lowerClientQuery, localSearch } = cursorSnapshot;
+        const span = await this.#createdSpan(localSearch, searchController);
+        if (!span) return false;
+        const queue = createdWindows(...span, MasRepository.SORT_LOAD_WINDOWS);
+        const drain = async () => {
+            for (let createdRange = queue.shift(); createdRange; createdRange = queue.shift()) {
+                const cursor = await this.aem.sites.cf.fragments.search(
+                    { ...localSearch, createdRange },
+                    null,
+                    searchController,
+                );
+                while (this.#searchCursor === cursorSnapshot) {
+                    const done = await this.#fillPage(
+                        cursor,
+                        variants,
+                        contentTypes,
+                        surface,
+                        fragmentStores,
+                        lowerClientQuery,
+                        searchController.signal,
+                    );
+                    if (done) break;
+                }
+            }
+        };
+        const workers = Array.from({ length: Math.min(MasRepository.SORT_LOAD_CONCURRENCY, queue.length) }, drain);
+        const failed = (await Promise.allSettled(workers)).find((result) => result.status === 'rejected');
+        if (failed) throw failed.reason;
+        return true;
+    }
+
     /**
      * Loads the remaining cursor pages. Without trackLoading it stops at MAX_EAGER_PAGES and leaves hasMore true for scroll loading.
      * @param {object} cursorSnapshot
      * @param {AbortController} searchController
-     * @param {{ trackLoading?: boolean }} options - client-side sort: keep `loading` true and load every page, it needs the full set
+     * @param {{ trackLoading?: boolean }} options - client-side sort: keep `loading` true, load every page
+     * (in parallel windows when possible) and publish the list once at the end, it needs the full set
      */
     async #eagerLoadRemainingPages(cursorSnapshot, searchController, { trackLoading = false } = {}) {
         if (this.#eagerLoadingCursor === cursorSnapshot) return;
         this.#eagerLoadingCursor = cursorSnapshot;
         const { cursor, variants, contentTypes, surface, fragmentStores, lowerClientQuery } = cursorSnapshot;
+        const publish = () => Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
         let pagesLoaded = 0;
         Store.fragments.list.hasMore.set(false);
         if (trackLoading) Store.fragments.list.loading.set(true);
         try {
+            if (trackLoading && (await this.#loadInWindows(cursorSnapshot, searchController))) {
+                if (this.#searchCursor !== cursorSnapshot) return;
+                publish();
+                this.#searchCursor = null;
+                return;
+            }
             while (this.#searchCursor === cursorSnapshot) {
                 // A client-side sort over a partial set is wrong, so it loads every page (trackLoading).
                 if (!trackLoading && pagesLoaded >= MasRepository.MAX_EAGER_PAGES) {
@@ -1016,7 +1090,7 @@ export class MasRepository extends LitElement {
                 );
                 pagesLoaded++;
                 if (this.#searchCursor !== cursorSnapshot) return;
-                Store.fragments.list.data.set([...this.#applyFragmentListFilters(fragmentStores)]);
+                if (done || !trackLoading) publish();
                 if (done) {
                     this.#searchCursor = null;
                     return;
@@ -1025,6 +1099,7 @@ export class MasRepository extends LitElement {
         } catch (error) {
             if (error.name === 'AbortError') return;
             if (this.#searchCursor === cursorSnapshot) {
+                publish();
                 Store.fragments.list.hasMore.set(true);
             }
         } finally {

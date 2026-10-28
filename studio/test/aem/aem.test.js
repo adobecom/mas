@@ -121,6 +121,14 @@ describe('aem.js', () => {
             expect(captured.query.filter).to.not.have.property('status');
         });
 
+        it('adds the created window next to the created-by filter', async () => {
+            const captured = captureQuery();
+            const createdRange = { after: '2025-01-01T00:00:00.000Z', before: '2025-02-01T00:00:00.000Z' };
+            const cursor = aem.sites.cf.fragments.search({ path: '/x', createdBy: ['a'], createdRange });
+            await cursor.next();
+            expect(captured.query.filter.created).to.deep.equal({ by: ['a', 'A'], ...createdRange });
+        });
+
         it('omits the status key when status is undefined', async () => {
             const captured = captureQuery();
             const cursor = aem.sites.cf.fragments.search({ path: '/x' });

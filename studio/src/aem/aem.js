@@ -115,7 +115,11 @@ class AEM {
      * @param {AbortController} abortController used for cancellation
      * @returns A generator function that fetches all the matching data using a cursor that is returned by the search API
      */
-    async *searchFragment({ path, query = '', tags = [], modelIds = [], sort, status, createdBy }, limit, abortController) {
+    async *searchFragment(
+        { path, query = '', tags = [], modelIds = [], sort, status, createdBy, createdRange },
+        limit,
+        abortController,
+    ) {
         const filter = {
             path,
         };
@@ -146,6 +150,9 @@ class AEM {
                 acc.push(curr, curr.toUpperCase());
                 return acc;
             }, []);
+        }
+        if (createdRange) {
+            filter.created = { ...filter.created, ...createdRange };
         }
         const params = {
             query: JSON.stringify(searchQuery),

@@ -26,6 +26,7 @@ import {
     generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
+    getService,
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
@@ -45,6 +46,7 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
+import { countdownNotice, hasCountdownSentinel, nextCountdownBoundary } from './promotions/countdown-preview.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
 import './mas-related-variations.js';
@@ -665,6 +667,7 @@ export default class MasFragmentEditor extends LitElement {
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
     #pendingPromoRefresh = null;
+    #countdownNoticeTimer;
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
     #itemsSelectionStoreToken = null;
@@ -719,6 +722,7 @@ export default class MasFragmentEditor extends LitElement {
         super.disconnectedCallback();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
+        clearTimeout(this.#countdownNoticeTimer);
     }
 
     willUpdate(changedProperties) {
@@ -791,6 +795,18 @@ export default class MasFragmentEditor extends LitElement {
     updated(changedProperties) {
         super.updated?.(changedProperties);
         this.#preloadEditorModule();
+        this.#scheduleCountdownNotice();
+    }
+
+    #scheduleCountdownNotice() {
+        clearTimeout(this.#countdownNoticeTimer);
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.isConnected || getService()?.settings?.instant || !hasCountdownSentinel(preview?.fields)) return;
+        const now = Date.now();
+        const next = nextCountdownBoundary(preview, now);
+        if (next) {
+            this.#countdownNoticeTimer = setTimeout(() => this.requestUpdate(), Math.min(next - now + 1, 2147483647));
+        }
     }
 
     #preloadEditorModule() {
@@ -2383,6 +2399,26 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    get countdownPreviewNotice() {
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.previewResolved || !hasCountdownSentinel(preview?.fields)) return nothing;
+        const instant = getService()?.settings?.instant;
+        const now = instant ? Date.parse(instant) : Date.now();
+        const notice = countdownNotice(preview, now, preview.previewLocale || Store.localeOrRegion());
+        if (!notice) return nothing;
+        return html`<sp-help-text id="countdown-preview-notice" role="status" icon
+                >Countdown timer: ${notice.text}</sp-help-text
+            >
+            ${notice.state === 'lookup-failed'
+                ? html`<sp-button
+                      size="s"
+                      variant="secondary"
+                      @click=${() => this.fragmentStore.previewStore.resolveFragment(true)}
+                      >Retry countdown preview</sp-button
+                  >`
+                : nothing}`;
+    }
+
     get previewColumn() {
         if (!this.fragment) return nothing;
         if (this.fragment.model.path === COLLECTION_MODEL_PATH) {
@@ -2431,7 +2467,7 @@ export default class MasFragmentEditor extends LitElement {
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>
                         </sp-theme>
-                        ${this.previewErrorMessages}
+                        ${this.countdownPreviewNotice} ${this.previewErrorMessages}
                     </div>
                 </div>
                 ${this.relatedVariationsSection} ${this.relatedArtifactsSection}

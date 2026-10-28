@@ -5,6 +5,9 @@ import Store from '../src/store.js';
 import router from '../src/router.js';
 import { Fragment } from '../src/aem/fragment.js';
 import { FragmentStore } from '../src/reactivity/fragment-store.js';
+import { FILTER_TYPE, MAS_OFFERS_URL, TABLE_TYPE } from '../src/constants.js';
+import { resetProductArrangementCodes } from '../src/common/utils/product-arrangement-codes.js';
+import { asTagQueryResponse, emptyTagQuery } from './helpers/aem-tag-fetch.js';
 import '../src/baselines/mas-baselines.js';
 import '../src/mas-confirm-dialog.js';
 
@@ -12,7 +15,15 @@ const FOLDER = '/content/dam/mas/sandbox/en_US/baselines';
 
 const createBaseline = (
     id,
-    { template = 'catalog', paCode, segment, productCode, status = 'PUBLISHED', modifiedBy = 'Jane' },
+    {
+        template = 'catalog',
+        paCode,
+        segment,
+        productCode,
+        status = 'PUBLISHED',
+        modifiedBy = 'Jane',
+        createdBy = 'jane@adobe.com',
+    },
 ) =>
     new FragmentStore(
         new Fragment({
@@ -22,16 +33,32 @@ const createBaseline = (
             path: [FOLDER, template, paCode, segment, 'baseline'].filter(Boolean).join('/'),
             tags: productCode ? [{ id: `mas:product_code/${productCode}` }] : [],
             modified: { fullName: modifiedBy },
+            created: { by: createdBy },
             fields: [{ name: 'variant', values: [template] }],
         }),
     );
 
+const filtersOf = (el) => el.shadowRoot.querySelector('mas-search-and-filters');
+
+async function settle(el) {
+    await el.updateComplete;
+    await filtersOf(el)?.updateComplete;
+    await el.updateComplete;
+}
+
 async function renderBaselines() {
     const el = document.createElement('mas-baselines');
     document.body.append(el);
-    await el.updateComplete;
+    await settle(el);
     return el;
 }
+
+const resetSlice = () => {
+    Store.baselines.search.set({});
+    Store.baselines.filters.set({});
+    Store.baselines.allBaselines.set([]);
+    Store.baselines.displayBaselines.set([]);
+};
 
 const rowTexts = (el) =>
     [...el.shadowRoot.querySelectorAll('sp-table-body sp-table-row')].map((row) =>
@@ -45,6 +72,12 @@ describe('MasBaselines', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        resetProductArrangementCodes();
+        sandbox.stub(window, 'fetch').callsFake(async (url) => {
+            if (url === MAS_OFFERS_URL) return new Response(JSON.stringify({ 'PA-1': { fields: { name: 'Photoshop' } } }));
+            return asTagQueryResponse(emptyTagQuery);
+        });
+        resetSlice();
         Store.baselines.list.data.set([]);
         Store.baselines.list.loading.set(false);
     });
@@ -56,6 +89,8 @@ describe('MasBaselines', () => {
         }
         Store.baselines.list.data.set([]);
         Store.baselines.list.loading.set(true);
+        resetSlice();
+        resetProductArrangementCodes();
         Store.confirmDialogOptions.set(null);
     });
 
@@ -113,7 +148,8 @@ describe('MasBaselines', () => {
         const el = await renderBaselines();
 
         expect(rowTexts(el)).to.deep.equal([['a', 'CCSN', 'ccsn_direct_individual', 'EDU', 'catalog', 'Published', 'Jane']]);
-        expect(el.shadowRoot.textContent).to.include('1 result(s)');
+        expect(el.shadowRoot.querySelector('.baselines-toolbar .result-count').textContent).to.equal('1 result(s)');
+        expect(filtersOf(el).shadowRoot.querySelector('.result-count')).to.not.exist;
     });
 
     it('renders skeleton rows while the first load is in progress', async () => {
@@ -137,9 +173,112 @@ describe('MasBaselines', () => {
         const el = await renderBaselines();
 
         el.searchQuery = 'PHSP';
-        await el.updateComplete;
+        await settle(el);
 
         expect(rowTexts(el).map(([, , paCode]) => paCode)).to.deep.equal(['phsp_direct_individual']);
+        expect(Store.baselines.search.get().query).to.equal('PHSP');
+    });
+
+    it('keeps trailing spaces in the search field while typing', async () => {
+        const el = await renderBaselines();
+
+        el.searchQuery = 'phsp ';
+        await settle(el);
+
+        expect(el.shadowRoot.querySelector('sp-search').value).to.equal('phsp ');
+    });
+
+    it('applies a deep-linked search query', async () => {
+        Store.baselines.list.data.set([
+            createBaseline('a', { paCode: 'ccsn_direct_individual' }),
+            createBaseline('b', { paCode: 'phsp_direct_individual' }),
+        ]);
+        Store.baselines.search.set({ query: 'phsp' });
+        const el = await renderBaselines();
+
+        expect(el.shadowRoot.querySelector('sp-search').value).to.equal('phsp');
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['b']);
+    });
+
+    it('renders the baselines filters with a reset button', async () => {
+        const el = await renderBaselines();
+        const filters = filtersOf(el);
+
+        expect(filters.type).to.equal(TABLE_TYPE.BASELINES);
+        expect(filters.enabledFilters).to.deep.equal([
+            FILTER_TYPE.MARKET_SEGMENT,
+            FILTER_TYPE.TEMPLATE,
+            FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE,
+            FILTER_TYPE.CREATED_BY,
+        ]);
+        expect(filters.showReset).to.be.true;
+    });
+
+    it('filters by the market segment of the folder path, even without tags', async () => {
+        Store.baselines.list.data.set([
+            createBaseline('com', { paCode: 'pa' }),
+            createBaseline('edu', { paCode: 'pa', segment: 'edu' }),
+        ]);
+        Store.baselines.filters.set({ tags: 'mas:market_segments/edu' });
+        const el = await renderBaselines();
+
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['edu']);
+    });
+
+    it('filters by the product arrangement code of the folder path', async () => {
+        Store.baselines.list.data.set([createBaseline('a', { paCode: 'PA-1' }), createBaseline('b', { paCode: 'PA-2' })]);
+        Store.baselines.filters.set({ paCodes: 'PA-2' });
+        const el = await renderBaselines();
+
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['b']);
+    });
+
+    it('filters by template and created by', async () => {
+        Store.baselines.list.data.set([
+            createBaseline('a', { paCode: 'pa1', template: 'plans' }),
+            createBaseline('b', { paCode: 'pa2', template: 'catalog', createdBy: 'john@adobe.com' }),
+            createBaseline('c', { paCode: 'pa3', template: 'catalog' }),
+        ]);
+        Store.baselines.filters.set({ tags: 'mas:variant/catalog', createdBy: 'john@adobe.com' });
+        const el = await renderBaselines();
+
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['b']);
+    });
+
+    it('shows every baseline again after Reset Filters', async () => {
+        Store.baselines.list.data.set([createBaseline('a', { paCode: 'PA-1' }), createBaseline('b', { paCode: 'PA-2' })]);
+        Store.baselines.filters.set({ paCodes: 'PA-2' });
+        Store.baselines.search.set({ query: 'b' });
+        const el = await renderBaselines();
+
+        filtersOf(el).shadowRoot.querySelector('.reset-filters').click();
+        await settle(el);
+
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['a', 'b']);
+        expect(el.shadowRoot.querySelector('sp-search').value).to.equal('');
+        expect(Store.baselines.filters.get().paCodes).to.be.undefined;
+    });
+
+    it('restores the entry-time search and filters when the page unmounts', async () => {
+        Store.baselines.filters.set({ paCodes: 'PA-1' });
+        const el = await renderBaselines();
+        filtersOf(el).productArrangementCodeFilter = ['PA-2'];
+        await settle(el);
+        expect(Store.baselines.filters.get().paCodes).to.equal('PA-2');
+
+        el.remove();
+
+        expect(Store.baselines.filters.get()).to.deep.equal({ paCodes: 'PA-1' });
+    });
+
+    it('updates the rows when a baseline is added', async () => {
+        Store.baselines.list.data.set([createBaseline('a', { paCode: 'pa1' })]);
+        const el = await renderBaselines();
+
+        Store.baselines.list.data.set((list) => [createBaseline('b', { paCode: 'pa2' }), ...list]);
+        await settle(el);
+
+        expect(rowTexts(el).map(([title]) => title)).to.deep.equal(['a', 'b']);
     });
 
     it('makes only the title column sortable', async () => {

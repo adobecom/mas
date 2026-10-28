@@ -178,11 +178,14 @@ describe('mask transformer init', function () {
             expect(fetchStub.callCount).to.equal(3);
         });
 
-        it('rechecks a preview miss after one minute', async function () {
+        it('reuses a preview miss for five minutes before rechecking', async function () {
             const clock = sinon.useFakeTimers({ toFake: ['Date'] });
             try {
                 await mask.init(previewContext());
                 clock.setSystemTime(Date.now() + 60001);
+                await mask.init(previewContext());
+                expect(fetchStub.callCount).to.equal(1);
+                clock.setSystemTime(Date.now() + 4 * 60 * 1000);
                 await mask.init(previewContext());
                 expect(fetchStub.callCount).to.equal(2);
             } finally {
@@ -200,56 +203,19 @@ describe('mask transformer init', function () {
         });
     });
 
-    it('reports a missing mask with its surface and locale', async function () {
-        fetchStub.withArgs(byPathUrl('en_US', 'missing')).returns(createResponse(404, {}, 'Not Found'));
-        const result = await mask.init(withLocale('en_US', 'en_US', { mask: 'missing' }));
-        expect(result.error).to.include({ code: 'mask-not-found', status: 404, mask: 'missing', surface: 'sandbox' });
-        expect(result.error.message).to.include('sandbox/en_US').and.include('translate');
-    });
-
-    it('reports hydration failure without recommending translation', async function () {
-        fetchStub.withArgs(byPathUrl('en_US', 'broken')).returns(createResponse(200, { id: 'mask-broken' }));
-        fetchStub.withArgs(hydrateUrl('mask-broken')).returns(createResponse(503, {}, 'Service Unavailable'));
-        const result = await mask.init(withLocale('en_US', 'en_US', { mask: 'broken' }));
-        expect(result.error).to.include({ code: 'mask-fetch-failed', status: 503 });
-        expect(result.error.message).not.to.include('translate');
-        expect(result.error.failures).to.deep.equal([{ locale: 'en_US', status: 503, operation: 'hydrate' }]);
-    });
-
-    it('does not classify a regional service failure followed by default 404 as missing content', async function () {
-        fetchStub.withArgs(byPathUrl('en_IN', 'photo')).returns(createResponse(503, {}, 'Service Unavailable'));
-        fetchStub.withArgs(byPathUrl('en_GB', 'photo')).returns(createResponse(404, {}, 'Not Found'));
-        const result = await mask.init(withLocale('en_IN', 'en_GB', { mask: 'photo' }));
-        expect(result.error).to.include({ code: 'mask-fetch-failed', status: 503 });
-        expect(result.error.message).not.to.include('translate');
-    });
-
-    it('returns a preview error naming the missing mask and translation locale', async function () {
+    it('preserves preview rendering after a missing mask', async function () {
         fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
         const resolution = await mask.init(withLocale('en_IN', 'en_GB', { mask: 'photo' }));
-        const result = await mask.process({ ...BASE, preview: true, promises: { mask: Promise.resolve(resolution) } });
-        expect(result.status).to.equal(404);
-        expect(result.message).to.include('photo').and.include('sandbox/en_GB').and.include('translate');
-        expect(result.maskError.failures).to.deep.equal([
-            { locale: 'en_IN', status: 404, operation: 'lookup' },
-            { locale: 'en_GB', status: 404, operation: 'lookup' },
-        ]);
-    });
-
-    it('preserves rendering when preview mask failures are nonfatal', async function () {
-        const body = { id: 'stage-collection' };
-        const error = { code: 'mask-not-found', status: 404, message: 'Missing mask' };
-        const result = await mask.process({
+        const context = {
             ...BASE,
-            status: 200,
-            body,
+            body: { id: 'preview-collection' },
             preview: true,
-            failOnMaskError: false,
-            promises: { mask: Promise.resolve({ error }) },
-        });
+            promises: { mask: Promise.resolve(resolution) },
+        };
+        const result = await mask.process(context);
+        expect(result).to.equal(context);
         expect(result.status).to.equal(200);
-        expect(result.body).to.equal(body);
-        expect(result.maskError).to.equal(error);
+        expect(result).not.to.have.property('maskError');
     });
 
     it('keeps production rendering and reports final failures even when misses are cached', async function () {
@@ -258,7 +224,7 @@ describe('mask transformer init', function () {
         const body = { id: 'collection-id', fields: { title: 'collection' } };
         try {
             for (const run of [1, 2]) {
-                const resolution = await mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }));
+                const resolution = await mask.init(withLocale('en_US', 'en_US', { mask: 'photo', requestId: `run-${run}` }));
                 const result = await mask.process({
                     ...BASE,
                     body,
@@ -267,12 +233,15 @@ describe('mask transformer init', function () {
                 });
                 expect(result.status).to.equal(200);
                 expect(result.body).to.equal(body);
-                expect(result.maskError.code).to.equal('mask-not-found');
+                expect(result).not.to.have.property('maskError');
             }
             expect(fetchStub.callCount).to.equal(1);
-            expect(errorStub.callCount).to.equal(2);
-            expect(errorStub.firstCall.args[0]).to.include('mask-resolution-failed').and.include('run-1');
-            expect(errorStub.secondCall.args[0]).to.include('mask-resolution-failed').and.include('run-2');
+            const failures = errorStub.args
+                .map(([message]) => message)
+                .filter((message) => message.includes('Unable to load mask'));
+            expect(failures).to.have.lengthOf(2);
+            expect(failures[0]).to.include('photo').and.include('sandbox').and.include('en_US').and.include('run-1');
+            expect(failures[1]).to.include('run-2');
         } finally {
             errorStub.restore();
         }

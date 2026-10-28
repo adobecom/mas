@@ -93,6 +93,10 @@
         "fieldLabel": "Compare Chart",
         "type": "long-text"
     },
+    "enableBaselines": {
+        "fieldLabel": "Enable baselines",
+        "type": "boolean"
+    },
     "locReady": {
         "fieldLabel": "Loc Ready",
         "type": "boolean"

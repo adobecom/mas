@@ -92,17 +92,6 @@ function measureTiming(context, label, startLabel = label) {
  * other errors code from the server
  */
 async function fetchAttempt(path, context, timeout, marker) {
-    const controller = new AbortController();
-    let timeoutId;
-    let failure;
-    const timeoutPromise = new Promise((resolve, reject) => {
-        timeoutId = setTimeout(() => {
-            const error = new Error(`Request timed out after ${timeout}ms`);
-            error.isTimeout = true;
-            reject(error);
-            controller.abort();
-        }, timeout);
-    });
     try {
         mark(context, marker);
         const headers = { ...context.DEFAULT_HEADERS };
@@ -111,10 +100,10 @@ async function fetchAttempt(path, context, timeout, marker) {
         if (!context.preview) {
             headers['X-Request-ID'] = globalThis.crypto.randomUUID();
         }
-        const responsePromise = fetch(path, { headers, signal: controller.signal });
+        const responsePromise = fetch(path, { headers });
 
         // Race the fetch promise with a timeout
-        const response = await Promise.race([responsePromise, timeoutPromise]);
+        const response = await Promise.race([responsePromise, createTimeoutPromise(timeout)]);
         const measure = measureTiming(context, marker);
         const success = response.status === 200;
         response.message = success ? 'ok' : response.message || (await getErrorMessage(response));
@@ -128,26 +117,30 @@ async function fetchAttempt(path, context, timeout, marker) {
             return {
                 status: 200,
                 message: 'ok',
-                body: await Promise.race([computeBody(response, context), timeoutPromise]),
+                body: await Promise.race([computeBody(response, context), createTimeoutPromise(timeout)]),
             };
         }
         return response;
     } catch (e) {
         const errorMeasure = measureTiming(context, `fetch-error-${marker}`, marker);
+        // Check if this is a timeout error
         if (e.isTimeout) {
             logError(`[fetch] ${path} timed out after ${errorMeasure.duration}ms`, context);
-        } else {
-            logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration}ms`, context);
+            return {
+                ...context,
+                status: 504, // Request Timeout
+                message: 'fetch timeout',
+            };
         }
-        failure = {
+
+        // This is a fetch error (network, DNS, etc.)
+        logError(`[fetch] ${path} fetch error: ${e.message} after ${errorMeasure.duration}ms`, context);
+        return {
             ...context,
-            status: e.isTimeout ? 504 : 503,
-            message: e.isTimeout ? 'fetch timeout' : 'fetch error',
+            status: 503,
+            message: 'fetch error',
         };
-    } finally {
-        clearTimeout(timeoutId);
     }
-    return failure;
 }
 
 const networkPolicy = ({ networkConfig }) => {

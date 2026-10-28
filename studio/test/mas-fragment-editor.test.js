@@ -41,7 +41,9 @@ describe('MasFragmentEditor', () => {
         const editor = new MasFragmentEditor();
         const repository = {
             resolveHydratedParentFragment: resolveHydratedParentFragment || sandbox.stub().resolves(null),
-            aem: aem || { sites: { cf: { fragments: {} } } },
+            aem: aem || {
+                sites: { cf: { fragments: { getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }) } } },
+            },
             loadPromotions: sandbox.stub().resolves(),
         };
 
@@ -83,6 +85,7 @@ describe('MasFragmentEditor', () => {
                                     tags: [{ id: 'mas:promotion/back-to-school' }],
                                 }),
                                 getByPath: sandbox.stub().withArgs(parentPath).resolves(parentData),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -357,6 +360,7 @@ describe('MasFragmentEditor', () => {
                             fragments: {
                                 getById: sandbox.stub(),
                                 getTranslations: sandbox.stub().resolves({ languageCopies: [] }),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -2272,6 +2276,7 @@ describe('MasFragmentEditor', () => {
                 ],
             });
             const mockRepo = {
+                loadPromotions: sandbox.stub().resolves(),
                 aem: {
                     sites: {
                         cf: {
@@ -2281,6 +2286,7 @@ describe('MasFragmentEditor', () => {
                                     fields: [{ name: 'geos', values: ['mas:locale/de_AT', 'mas:locale/en_NG'] }],
                                 }),
                                 search,
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
                             },
                         },
                     },
@@ -2324,7 +2330,16 @@ describe('MasFragmentEditor', () => {
             const originalFragmentId = Store.fragmentEditor.fragmentId.value;
             Store.fragmentEditor.fragmentId.value = fragment.id;
             sandbox.stub(el, 'repository').get(() => ({
-                aem: { sites: { cf: { fragments: { search: makeSearchStub(sandbox, {}) } } } },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                search: makeSearchStub(sandbox, {}),
+                                getReferencedByFragmentId: sandbox.stub().resolves({ items: [] }),
+                            },
+                        },
+                    },
+                },
                 loadPromotions: sandbox.stub().resolves(),
             }));
 
@@ -2713,7 +2728,8 @@ describe('MasFragmentEditor', () => {
             };
             const ap = el.authorPath;
             expect(ap).to.not.equal(nothing);
-            expect(ap.values[1]).to.include('Parent collection title');
+            expect(ap.values[0]).to.include('Parent collection title');
+            expect(ap.values[0]).to.match(/ \/ merch-card-collection \/ Parent collection title$/);
         });
 
         it('renders non-grouped collection author path from fragment parts helper', () => {
@@ -2732,8 +2748,7 @@ describe('MasFragmentEditor', () => {
             const ap = el.authorPath;
 
             expect(ap).to.not.equal(nothing);
-            expect(ap.values[1]).to.be.a('string');
-            expect(ap.values[1].length).to.be.greaterThan(0);
+            expect(ap.values[0]).to.equal('SANDBOX / merch-card-collection / Root collection');
         });
     });
 
@@ -2849,6 +2864,67 @@ describe('MasFragmentEditor', () => {
             });
             expect(syncGroupedPreviewLocale(fragment, 'fr_FR')).to.be.null;
             expect(Store.search.get().region).to.be.undefined;
+        });
+    });
+
+    describe('Related studio artifacts section', () => {
+        const renderSection = (editor) => {
+            const host = document.createElement('div');
+            render(editor.relatedArtifactsSection, host);
+            return host.querySelector('mas-related-artifacts');
+        };
+        const withModel = (modelPath) => {
+            const { editor } = createEditor();
+            sandbox
+                .stub(editor, 'fragment')
+                .get(() => ({ id: 'f1', path: '/content/dam/mas/acom/en_US/f1', model: { path: modelPath } }));
+            return editor;
+        };
+
+        it('renders related artifacts for a card', () => {
+            expect(renderSection(withModel(CARD_MODEL_PATH))).to.not.equal(null);
+        });
+
+        it('renders related artifacts for a collection', () => {
+            expect(renderSection(withModel(COLLECTION_MODEL_PATH))).to.not.equal(null);
+        });
+
+        it('does not render related artifacts for other models', () => {
+            expect(renderSection(withModel('/conf/mas/settings/dam/cfm/models/dictionnary'))).to.equal(null);
+        });
+
+        describe('after a save', () => {
+            const collection = {
+                id: 'connected-collection',
+                path: '/content/dam/mas/acom/en_US/connected-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+            };
+            let editor;
+            let repository;
+
+            beforeEach(async () => {
+                ({ editor, repository } = createEditor());
+                sandbox.stub(editor, 'fragmentId').get(() => null);
+                sandbox.stub(editor, 'fragment').get(() => collection);
+                sandbox.stub(editor, 'render').callsFake(() => editor.relatedArtifactsSection);
+                await fixture(editor);
+            });
+
+            afterEach(() => editor.remove());
+
+            it('passes an incremented save count to related artifacts', async () => {
+                repository.saveFragment = async () => collection;
+                await editor.saveFragment();
+                await editor.updateComplete;
+                expect(editor.querySelector('mas-related-artifacts').saveCount).to.equal(1);
+            });
+
+            it('keeps the save count when the save does not complete', async () => {
+                repository.saveFragment = async () => null;
+                await editor.saveFragment();
+                await editor.updateComplete;
+                expect(editor.querySelector('mas-related-artifacts').saveCount).to.equal(0);
+            });
         });
     });
 });

@@ -1427,12 +1427,6 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
-                .fragment-title-fields {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 20px;
-                }
-
                 .tags-spacing {
                     margin: 0;
                 }
@@ -1642,7 +1636,7 @@ class MerchCardEditor extends LitElement {
                     <sp-field-group id="fragment-title-group">
                         <sp-field-label>Fragment title</sp-field-label>
                         <sp-divider size="s"></sp-divider>
-                        <div class="fragment-title-fields">
+                        <div class="two-column-grid">
                             <div>
                                 <sp-field-label for="fragment-title-org" required>Org</sp-field-label>
                                 <sp-picker
@@ -1650,9 +1644,9 @@ class MerchCardEditor extends LitElement {
                                     label="Select org"
                                     .value="${this.#titleParts.org}"
                                     ?invalid="${this.#titleOrgTouched && !this.#titleParts.org}"
-                                    @change=${this.#handleFragmentTitleOrgChange}
-                                    @focusout=${this.#handleFragmentTitleOrgTouched}
-                                    @sp-closed=${this.#handleFragmentTitleOrgTouched}
+                                    @change="${this.#handleFragmentTitleOrgChange}"
+                                    @focusout="${this.#handleFragmentTitleOrgTouched}"
+                                    @sp-closed="${this.#handleFragmentTitleOrgTouched}"
                                 >
                                     ${FRAGMENT_TITLE_ORGS.map(
                                         (org) => html`<sp-menu-item value="${org}">${org}</sp-menu-item>`,
@@ -1665,7 +1659,7 @@ class MerchCardEditor extends LitElement {
                                     id="fragment-title-state"
                                     placeholder="i.e. default, bf-26-variation"
                                     .value="${this.#titleParts.state}"
-                                    @input=${this.#handleFragmentTitleStateInput}
+                                    @input="${this.#handleFragmentTitleStateInput}"
                                 ></sp-textfield>
                             </div>
                         </div>
@@ -2224,7 +2218,6 @@ class MerchCardEditor extends LitElement {
     }
 
     #handleFragmentTitleOrgChange(e) {
-        this.#titleOrgTouched = true;
         this.#titleParts = { ...this.#titleParts, org: e.target.value };
         this.#saveComposedFragmentTitle();
     }

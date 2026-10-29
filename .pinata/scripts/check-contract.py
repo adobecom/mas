@@ -66,11 +66,21 @@ else:
         if not owner_path.is_relative_to(repo_root) or not owner_path.is_file():
             errors.append(f"manifest.yaml: owners_from does not reference a file inside the repository: {owner_source}")
 
+WORK_ITEM = "{work_item_file}"
+
 gates = _load("gates.yaml")
 if gates is not None:
     for gate_id, defn in (gates.get("gates") or {}).items():
         if not isinstance(defn, dict) or not defn.get("template"):
             errors.append(f"gates.yaml: gate '{gate_id}' needs a template")
+            continue
+        # Mirrors the harness, which refuses the whole file (every run) otherwise.
+        code = defn.get("violation_exit_code")
+        if code is not None:
+            if defn["template"] != "command" or WORK_ITEM not in str(defn.get("cmd") or ""):
+                errors.append(f"gates.yaml: gate '{gate_id}' declares violation_exit_code but its cmd does not read {WORK_ITEM}")
+            if type(code) is not int or not 2 <= code <= 125 or code == 124:
+                errors.append(f"gates.yaml: gate '{gate_id}' violation_exit_code must be an integer 2-125 other than 124")
 
 
 def _regeneration_max(document: dict | None, label: str) -> int | None:

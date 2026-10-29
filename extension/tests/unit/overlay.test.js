@@ -14,6 +14,7 @@ function createFixture() {
     const opened = [];
     const parent = { id: PARENT_ID, path: '/content/dam/mas/acom/en_US/parent', fields: [] };
     const window = {
+        MASEscape: require('../../utils/escape.js'),
         MASCardDetector: { getServiceConfig: () => ({ apiKey: 'test-api-key' }) },
         MASStudioLinker: {
             openParentInStudio: (variation, id) => opened.push({ variation, id }),
@@ -87,4 +88,98 @@ test('different overlays for the same source fragment share the parent response'
     overlay.openParentFragment('price-1', variationInfo);
 
     assert.equal(requests.length, 1);
+});
+
+const CARD_NAME = 'Create at the highest level.';
+
+test('a field panel title names its card and its field', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.panelTitle({ cardName: CARD_NAME, elementType: 'field', variant: 'subtitle' }),
+        `${CARD_NAME} · subtitle`,
+    );
+});
+
+test('a price panel title names its card and its role', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: CARD_NAME, elementType: 'price', variant: 'plans' }), `${CARD_NAME} · price`);
+});
+
+test('a card panel title is the card name alone', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: CARD_NAME, elementType: 'card', variant: 'plans' }), CARD_NAME);
+});
+
+test('a collection panel title keeps its prefix', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: 'Plans', elementType: 'collection' }), 'Collection: Plans');
+});
+
+test('a field still named after itself does not repeat its name', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.panelTitle({ cardName: 'subtitle', elementType: 'field', variant: 'subtitle' }), 'subtitle');
+});
+
+test('a card name arriving later keeps the field in an open panel title', () => {
+    const { overlay } = createFixture();
+    const header = { textContent: '' };
+    const cardData = { cardName: 'Come back', elementType: 'field', variant: 'subtitle' };
+    overlay.overlays.set('field-9', { cardData, panel: { querySelector: () => header } });
+    overlay.updateCardNameInPanel('field-9', CARD_NAME);
+    assert.equal(header.textContent, `${CARD_NAME} · subtitle`);
+});
+
+test('a wheel over the panel scrolls the panel instead of reaching the page', () => {
+    const { overlay } = createFixture();
+    const listeners = [];
+    overlay.keepWheelInside({ addEventListener: (type, listener, options) => listeners.push({ type, listener, options }) });
+    let stopped = false;
+    listeners[0].listener({ stopPropagation: () => (stopped = true) });
+    assert.deepEqual([listeners[0].type, listeners[0].options.passive, stopped], ['wheel', true, true]);
+});
+
+const NOT_FOUND = { success: false, error: 'fetch_failed', miss: { kind: 'not-found' } };
+
+test('a fragment missing from published IO on a preview page reads as not published', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.formatFragmentError(NOT_FOUND, true),
+        'Not published — this page shows preview content (mas.preview). The extension reads published IO.',
+    );
+});
+
+test('a fragment missing from IO outside preview reads as not found', () => {
+    const { overlay } = createFixture();
+    assert.equal(overlay.formatFragmentError(NOT_FOUND, false), 'Not found — the fragment does not exist or is not published.');
+});
+
+test('a fragment with no copy in the page language says which language', () => {
+    const { overlay } = createFixture();
+    const response = { success: false, error: 'fetch_failed', miss: { kind: 'missing-locale', locale: 'fr_FR' } };
+    assert.equal(overlay.formatFragmentError(response, true), 'No fr_FR copy of this fragment.');
+});
+
+test('other fetch errors keep their message', () => {
+    const { overlay } = createFixture();
+    assert.equal(
+        overlay.formatFragmentError({ success: false, error: 'fetch_failed' }, false),
+        'Could not fetch fragment data.',
+    );
+});
+
+test('a failed fetch shows its reason in the basic info, not only in the collapsed details', () => {
+    const { overlay } = createFixture();
+    const inserted = [];
+    const nodes = {
+        '.mas-ext-path-value': { textContent: 'Loading…' },
+        '.mas-ext-section-basic': { insertAdjacentHTML: (position, html) => inserted.push([position, html]) },
+        '.mas-ext-variation-content': { innerHTML: 'Loading variation data…' },
+        '[data-section="details"] .mas-ext-section-content': { innerHTML: '' },
+    };
+    overlay.overlays.set('card-9', { cardData: {}, panel: { querySelector: (selector) => nodes[selector] || null } });
+    overlay.renderFragmentError('card-9', 'Not published — reason');
+    assert.deepEqual(
+        [nodes['.mas-ext-path-value'].textContent, inserted, nodes['.mas-ext-variation-content'].innerHTML],
+        ['N/A', [['beforeend', '<div class="mas-ext-notice">Not published — reason</div>']], ''],
+    );
 });

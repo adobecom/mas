@@ -1,4 +1,4 @@
-importScripts('utils/validators.js', 'utils/studio-url.js', 'api/aem-client.js');
+importScripts('utils/validators.js', 'utils/studio-url.js', 'api/aem-client.js', 'api/promotion-lookup.js');
 
 function isExtensionSender(sender) {
     return sender && sender.id === chrome.runtime.id;
@@ -41,12 +41,14 @@ async function handleFetchFragmentData(message, sendResponse) {
         const data = await client.fetchFragmentData(fragmentId, locale, country);
         sendResponse({ success: true, data });
     } catch (error) {
-        sendResponse({ success: false, error: 'fetch_failed' });
+        sendResponse({ success: false, error: 'fetch_failed', miss: error.miss ?? null });
     }
 }
 
-function handleOpenStudioLink(message, sendResponse) {
-    const url = MASStudioUrl.buildStudioUrl(message);
+async function handleOpenStudioLink(message, sendResponse) {
+    // The page names a promotion only by folder and title; its Studio link needs the project id.
+    const request = message.view === 'promotion' ? await MASPromotionLookup.linkRequest(message) : message;
+    const url = MASStudioUrl.buildStudioUrl(request);
     if (!url || !MASValidators.isAllowedOpenUrl(url)) {
         sendResponse({ success: false, error: 'invalid_request' });
         return;

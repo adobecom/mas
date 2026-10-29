@@ -1,0 +1,77 @@
+const { expect } = require('chai');
+const sinon = require('sinon');
+const proxyquire = require('proxyquire').noCallThru();
+
+describe('Promotion history web actions', () => {
+    let execute;
+    let handle;
+    beforeEach(() => {
+        execute = sinon.stub().resolves({ events: [] });
+        ({ handle } = proxyquire('../../src/promo-history/action.js', { './service.js': { execute } }));
+    });
+
+    it('decodes JSON POST bodies without trusting caller authorization or endpoint overrides', async () => {
+        const result = await handle('list', {
+            __ow_method: 'post',
+            odinEndpoint: 'https://configured.example.com',
+            __ow_headers: { authorization: 'Bearer original' },
+            __ow_body: Buffer.from(
+                JSON.stringify({
+                    projectId: 'project',
+                    odinEndpoint: 'https://attacker.example.com',
+                    __ow_headers: { authorization: 'Bearer forged' },
+                }),
+            ).toString('base64'),
+        });
+        expect(result.statusCode).to.equal(200);
+        expect(execute.firstCall.args[1].odinEndpoint).to.equal('https://configured.example.com');
+        expect(execute.firstCall.args[1].__ow_headers.authorization).to.equal('Bearer original');
+        expect(execute.firstCall.args[1].projectId).to.equal('project');
+    });
+
+    it('returns safe actionable service errors', async () => {
+        execute.rejects(Object.assign(new Error('Conflict'), { statusCode: 409 }));
+        const result = await handle('restore', {});
+        expect(result).to.include({ statusCode: 409 });
+        expect(result.body).to.deep.equal({ error: 'Conflict' });
+    });
+
+    it('passes native before versions but strips removed audit protocol inputs', async () => {
+        await handle('record', { beforeVersionId: 'native-before', phase: 'prepare', intentId: 'old', sourceProjectId: 'old' });
+        expect(execute.firstCall.args[1].beforeVersionId).to.equal('native-before');
+        expect(execute.firstCall.args[1]).not.to.have.any.keys('phase', 'intentId', 'sourceProjectId');
+    });
+
+    it('allows an optional completion ETag through the request whitelist', async () => {
+        await handle('record', { completionEtag: '"saved-result"' });
+        expect(execute.firstCall.args[1].completionEtag).to.equal('"saved-result"');
+    });
+
+    it('exposes post-write versionPending and partial restore results at the HTTP body top level', async () => {
+        const partial = {
+            restored: ['confirmed-fragment'],
+            failures: [{ fragmentId: 'partial-fragment', statusCode: 412, error: 'Draft restore failed', partial: true }],
+            versionPending: true,
+        };
+        const message = 'Draft writes finished but version capture failed; do not retry blindly';
+        execute.rejects(Object.assign(new Error(message), { statusCode: 503, result: partial }));
+
+        const result = await handle('restore', {});
+
+        expect(result.statusCode).to.equal(503);
+        expect(result.body).to.deep.equal({ error: message, ...partial });
+    });
+
+    it('does not expose unexpected exception details', async () => {
+        execute.rejects(new Error('private server details'));
+        const result = await handle('list', {});
+        expect(result.statusCode).to.equal(500);
+        expect(result.body.error).not.to.include('private');
+    });
+
+    it('rejects malformed raw bodies', async () => {
+        const result = await handle('record', { __ow_body: 'invalid' });
+        expect(result.statusCode).to.equal(400);
+        expect(execute.called).to.equal(false);
+    });
+});

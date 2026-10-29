@@ -4,6 +4,7 @@ import { MasRepository } from '../mas-repository.js';
 import '../aem/aem-tag-picker-field.js';
 import { fromAttribute, toAttribute } from '../aem/tag-path-utils.js';
 import Store from '../store.js';
+import router from '../router.js';
 import StoreController from '../reactivity/store-controller.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
@@ -144,11 +145,13 @@ const PROMOTION_QUICK_ACTIONS = [
     QUICK_ACTION.COPY,
     QUICK_ACTION.LINK,
     QUICK_ACTION.LOCK,
+    QUICK_ACTION.HISTORY,
     QUICK_ACTION.DELETE,
 ];
 
 const PROMOTION_QUICK_ACTION_ICON_OVERRIDES = {
     [QUICK_ACTION.SAVE]: { icon: SAVE_SVG, title: 'Save' },
+    [QUICK_ACTION.HISTORY]: { icon: 'sp-icon-history', title: 'Version history' },
     [QUICK_ACTION.DUPLICATE]: { icon: CLONE_SVG, title: 'Duplicate' },
 
     [QUICK_ACTION.PUBLISH]: { icon: PUBLISH_SVG, title: 'Publish' },
@@ -1228,7 +1231,9 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.UNPUBLISH);
         }
         if (!this.canEdit) {
-            PROMOTION_QUICK_ACTIONS.forEach((action) => disabled.add(action));
+            for (const action of PROMOTION_QUICK_ACTIONS) {
+                if (action !== QUICK_ACTION.HISTORY || this.loadingPromotion || !this.fragment?.id) disabled.add(action);
+            }
             return disabled;
         }
         const publishOptions = this.#promotionPublishOptions;
@@ -1237,6 +1242,7 @@ class MasPromotionsEditor extends LitElement {
             return disabled;
         }
         if (this.isNewPromotion) {
+            disabled.add(QUICK_ACTION.HISTORY);
             if (this.isCreated) disabled.add(QUICK_ACTION.SAVE);
             disabled.add(QUICK_ACTION.DUPLICATE);
             disabled.add(QUICK_ACTION.PUBLISH);
@@ -1250,6 +1256,7 @@ class MasPromotionsEditor extends LitElement {
             disabled.add(QUICK_ACTION.SAVE);
         }
         if (!this.fragment?.id) {
+            disabled.add(QUICK_ACTION.HISTORY);
             disabled.add(QUICK_ACTION.COPY);
             disabled.add(QUICK_ACTION.LINK);
             disabled.add(QUICK_ACTION.DELETE);
@@ -2205,6 +2212,7 @@ class MasPromotionsEditor extends LitElement {
                       @copy=${this.#handleCopyPromotionLink}
                       @link=${this.#handleCopyVariationsList}
                       @lock=${this.#handleLockPromotion}
+                      @history=${router.navigateToPage(PAGE_NAMES.PROMOTIONS_HISTORY)}
                       @delete=${this.#handleDeletePromotion}
                   ></mas-quick-actions>`
                 : nothing}

@@ -241,7 +241,7 @@ export class Router extends EventTarget {
     }
 
     #clearsPromotionContextOnNavigateTo(targetPage) {
-        return targetPage !== PAGE_NAMES.PROMOTIONS_EDITOR && targetPage !== PAGE_NAMES.FRAGMENT_EDITOR;
+        return ![PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY, PAGE_NAMES.FRAGMENT_EDITOR].includes(targetPage);
     }
 
     /**

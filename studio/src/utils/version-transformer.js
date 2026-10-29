@@ -1,3 +1,5 @@
+import { compareVersionValues } from '../common/utils/fragment-version.js';
+
 /**
  * Utilities for transforming version data between AEM format and internal format.
  * Handles field normalization, denormalization, and comparison.
@@ -107,9 +109,8 @@ export function denormalizeFields(fieldsObject, currentFragment) {
 export function calculateDifferences(currentData, selectedData) {
     if (!currentData || !selectedData) return [];
 
-    const differences = [];
-    const fields = normalizeFields(currentData);
-    const selectedFields = normalizeFields(selectedData);
+    const fields = { ...normalizeFields(currentData) };
+    const selectedFields = { ...normalizeFields(selectedData) };
     const allKeys = new Set([...Object.keys(fields), ...Object.keys(selectedFields)]);
 
     allKeys.forEach((key) => {
@@ -134,19 +135,13 @@ export function calculateDifferences(currentData, selectedData) {
             }
         }
 
-        const currentStr = JSON.stringify(currentValue);
-        const selectedStr = JSON.stringify(selectedValue);
-
-        if (currentStr !== selectedStr) {
-            differences.push({
-                field: key,
-                currentValue,
-                selectedValue,
-            });
-        }
+        fields[key] = currentValue;
+        selectedFields[key] = selectedValue;
     });
 
-    return differences;
+    return compareVersionValues(new Map(Object.entries(fields)), new Map(Object.entries(selectedFields))).map(
+        ({ field, before, after }) => ({ field, currentValue: before, selectedValue: after }),
+    );
 }
 
 /**

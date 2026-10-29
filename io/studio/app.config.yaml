@@ -13,6 +13,33 @@ application:
                     translationJobPayloadTtl: $TRANSLATION_JOB_PAYLOAD_TTL
                     translationProjectSummaryTtl: $TRANSLATION_PROJECT_SUMMARY_TTL
                 actions:
+                    promo-history-record:
+                        function: src/promo-history/record.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    promo-history-list:
+                        function: src/promo-history/list.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    promo-history-restore:
+                        function: src/promo-history/restore.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            odinEndpoint: $ODIN_ENDPOINT
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     ost-products-write:
                         function: src/ost-products/write.js
                         web: 'yes'

@@ -1431,6 +1431,7 @@ class MerchCardEditor extends LitElement {
                     display: flex;
                     align-items: center;
                     gap: 12px;
+                    margin-bottom: 12px;
                     font-size: 12px;
                     font-weight: 700;
                     color: var(--spectrum-gray-900);

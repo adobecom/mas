@@ -47,9 +47,8 @@ const filterByTags = (tags) => (item) => {
 
 class AEM {
     #author;
-    constructor(bucket, baseUrlOverride, onMutation = (action, target, write) => write()) {
+    constructor(bucket, baseUrlOverride) {
         this.#author = Boolean(bucket);
-        this.onMutation = onMutation;
         const baseUrl = baseUrlOverride || `https://${bucket}.adobeaemcloud.com`;
         this.baseUrl = baseUrl;
         const sitesUrl = `${baseUrl}/adobe/sites`;
@@ -302,22 +301,14 @@ class AEM {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
         }
 
-        try {
-            await this.saveTags(fragment, { trackMutation: false });
-            return await this.pollUpdatedFragment(fragment);
-        } catch (error) {
-            error.mutationCommitted = true;
-            if (!fragment.newTags) error.mutationEtag = response.headers.get('etag');
-            throw error;
-        }
+        await this.saveTags(fragment);
+
+        return this.pollUpdatedFragment(fragment);
     }
 
-    async saveTags(fragment, { trackMutation = true } = {}) {
+    async saveTags(fragment) {
         const { newTags } = fragment;
         if (!newTags) return;
-        if (trackMutation) {
-            return this.onMutation('save', fragment, () => this.saveTags(fragment, { trackMutation: false }));
-        }
         // we need this to get the Etag
         const fragmentTags = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
             method: 'GET',
@@ -732,12 +723,6 @@ class AEM {
      * @returns {Promise<Object>} The newly created fragment
      */
     async createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
-        return this.onMutation('create', { ...fullFragment, id: undefined, path: `${targetPath}/${name}` }, () =>
-            this.#createFragmentCopy(fullFragment, targetPath, name, csrfToken),
-        );
-    }
-
-    async #createFragmentCopy(fullFragment, targetPath, name, csrfToken) {
         const fieldsWithoutVariations = fullFragment.fields.filter((field) => field.name !== 'variations');
 
         const copyData = {
@@ -1469,38 +1454,35 @@ class AEM {
                 /**
                  * @see AEM#saveFragment
                  */
-                save: (fragment, ...options) =>
-                    this.onMutation('save', fragment, () => this.saveFragment(fragment, ...options)),
+                save: this.saveFragment.bind(this),
                 /**
                  * @see AEM#copyFragmentClassic
                  */
-                copy: (fragment) => this.onMutation('duplicate', fragment, () => this.copyFragmentClassic(fragment)),
+                copy: this.copyFragmentClassic.bind(this),
                 /**
                  * @see AEM#createFragment
                  */
-                create: (fragment) => this.onMutation('create', fragment, () => this.createFragment(fragment)),
+                create: this.createFragment.bind(this),
                 /**
                  * @see AEM#publishFragment
                  */
-                publish: (fragment, ...options) =>
-                    this.onMutation('publish', fragment, () => this.publishFragment(fragment, ...options)),
+                publish: this.publishFragment.bind(this),
                 /**
                  * @see AEM#publishFragments
                  */
-                publishFragments: (fragments, ...options) =>
-                    this.onMutation('publish', fragments, () => this.publishFragments(fragments, ...options)),
+                publishFragments: this.publishFragments.bind(this),
                 /**
                  * @see AEM#unpublishFragment
                  */
-                unpublish: (fragment) => this.onMutation('unpublish', fragment, () => this.unpublishFragment(fragment)),
+                unpublish: this.unpublishFragment.bind(this),
                 /**
                  * @see AEM#deleteFragment
                  */
-                delete: (fragment) => this.onMutation('delete', fragment, () => this.deleteFragment(fragment)),
+                delete: this.deleteFragment.bind(this),
                 /**
                  * @see AEM#forceDeleteFragment
                  */
-                forceDelete: (fragment) => this.onMutation('delete', fragment, () => this.forceDeleteFragment(fragment)),
+                forceDelete: this.forceDeleteFragment.bind(this),
                 /**
                  * @see AEM#getFragmentVersions
                  */

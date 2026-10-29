@@ -7,6 +7,7 @@ import { Fragment } from '../aem/fragment.js';
 import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
+import { savePromotionVersion } from './promotion-version.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
 
@@ -199,6 +200,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         geoTags,
         attachedFragmentPaths,
     );
+    await savePromotionVersion({ loadPromotions }, createdFragment);
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }
@@ -282,12 +284,13 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
  * Runs sequentially since createPromoVariation resolves sibling-index/geo collisions against current AEM state per source fragment.
  * Failed variations are skipped, not thrown.
  * The project already exists in AEM by this point and throwing would block retry (title already taken).
- * @param {import('../aem/aem.js').AEM} aem
+ * @param {{ aem: import('../aem/aem.js').AEM, loadPromotions: Function }} repository
  * @param {Object} sourcePromotion
  * @param {string} newPromoTagId
  * @returns {Promise<Array<{ path: string, error: Error }>>}
  */
-async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTagId) {
+async function duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId) {
+    const { aem } = repository;
     const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
     const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
     const failedVariations = [];
@@ -303,7 +306,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
             if (!sourceFragment) {
                 throw new Error(`Could not resolve the default fragment for promo variation ${variation.path}`);
             }
-            await promotionVariations.createPromoVariation(
+            const created = await promotionVariations.createPromoVariation(
                 aem,
                 sourceFragment.id,
                 newPromoTagId,
@@ -311,6 +314,7 @@ async function duplicateAttachedPromoVariations(aem, sourcePromotion, newPromoTa
                 attachedFragmentPaths,
                 sourceFragment,
             );
+            await savePromotionVersion(repository, created);
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });
@@ -336,8 +340,6 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
 
     const payload = {
         ...buildPromotionDuplicatePayload(sourcePromotion, title, tag?.slug),
-        auditAction: 'duplicate',
-        sourceProjectId: sourcePromotion.id,
         parentPath: repository.getPromotionsPath(),
         modelId: PROMOTION_MODEL_ID,
     };
@@ -353,7 +355,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     let failedVariations = [];
     if (duplicateVariations && newPromoTagId) {
         try {
-            failedVariations = await duplicateAttachedPromoVariations(repository.aem, sourcePromotion, newPromoTagId);
+            failedVariations = await duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId);
         } catch (error) {
             console.error('Error cloning attached promo variations:', error);
             failedVariations = [{ path: 'attached promo variations', error }];

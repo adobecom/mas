@@ -36,23 +36,24 @@ describe('Promotion history web actions', () => {
         expect(result.body).to.deep.equal({ error: 'Conflict' });
     });
 
-    it('allows optional source project provenance through the request whitelist', async () => {
-        await handle('record', { action: 'duplicate', sourceProjectId: 'source-project' });
-        expect(execute.firstCall.args[1].sourceProjectId).to.equal('source-project');
+    it('passes native before versions but strips removed audit protocol inputs', async () => {
+        await handle('record', { beforeVersionId: 'native-before', phase: 'prepare', intentId: 'old', sourceProjectId: 'old' });
+        expect(execute.firstCall.args[1].beforeVersionId).to.equal('native-before');
+        expect(execute.firstCall.args[1]).not.to.have.any.keys('phase', 'intentId', 'sourceProjectId');
     });
 
     it('allows an optional completion ETag through the request whitelist', async () => {
-        await handle('record', { phase: 'complete', completionEtag: '"saved-result"' });
+        await handle('record', { completionEtag: '"saved-result"' });
         expect(execute.firstCall.args[1].completionEtag).to.equal('"saved-result"');
     });
 
-    it('exposes post-write auditPending and partial restore results at the HTTP body top level', async () => {
+    it('exposes post-write versionPending and partial restore results at the HTTP body top level', async () => {
         const partial = {
             restored: ['confirmed-fragment'],
             failures: [{ fragmentId: 'partial-fragment', statusCode: 412, error: 'Draft restore failed', partial: true }],
-            auditPending: true,
+            versionPending: true,
         };
-        const message = 'Draft writes finished but audit completion failed; do not retry blindly';
+        const message = 'Draft writes finished but version capture failed; do not retry blindly';
         execute.rejects(Object.assign(new Error(message), { statusCode: 503, result: partial }));
 
         const result = await handle('restore', {});

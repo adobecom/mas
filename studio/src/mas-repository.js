@@ -86,7 +86,7 @@ import {
 import { getFragmentByPathOrNull } from './common/utils/fragment-api.js';
 import { Promotion } from './aem/promotion.js';
 import { canManagePromotions } from './groups.js';
-import { withPromotionAudit } from './promotions/promotion-audit.js';
+import { withPromotionVersion } from './promotions/promotion-version.js';
 
 let fragmentCache;
 
@@ -249,9 +249,7 @@ export class MasRepository extends LitElement {
     connectedCallback() {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
-        this.aem = new AEM(this.bucket, this.baseUrl, (action, target, write) =>
-            withPromotionAudit(this, action, target, write),
-        );
+        this.aem = new AEM(this.bucket, this.baseUrl);
 
         Store.filters.subscribe(this.#onFiltersChange);
         Store.search.subscribe(this.#onSearchChange);
@@ -1449,19 +1447,22 @@ export class MasRepository extends LitElement {
 
             const fields = this.createFieldsFromData(data, fragmentData.fields || []);
 
-            const result = await this.aem.sites.cf.fragments.create({
-                ...fragmentData,
-                description: fragmentData.description || '',
-                fields,
-                parentPath: fragmentData.parentPath || this.parentPath,
+            const latest = await withPromotionVersion(this, fragmentData, async () => {
+                const result = await this.aem.sites.cf.fragments.create({
+                    ...fragmentData,
+                    description: fragmentData.description || '',
+                    fields,
+                    parentPath: fragmentData.parentPath || this.parentPath,
+                });
+                let created = await this.aem.sites.cf.fragments.getById(result.id);
+                const tags = tagsToSave ?? fragmentData.data?.tags;
+                if (tags?.length) {
+                    created.newTags = tags;
+                    await this.aem.saveTags(created);
+                    created = await this.aem.sites.cf.fragments.getById(result.id);
+                }
+                return created;
             });
-            let latest = await this.aem.sites.cf.fragments.getById(result.id);
-            const tags = tagsToSave ?? fragmentData.data?.tags;
-            if (tags?.length) {
-                latest.newTags = tags;
-                await this.aem.saveTags(latest);
-                latest = await this.aem.sites.cf.fragments.getById(result.id);
-            }
             // Apply corrector transformer before caching
             const surface = (
                 extractSurfaceFromPath(latest.path) ?? this.search.value.path?.split('/').filter(Boolean)[0]
@@ -1547,7 +1548,9 @@ export class MasRepository extends LitElement {
                     () => this.loadPromotions(),
                 );
             }
-            const savedFragment = await this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag });
+            const savedFragment = await withPromotionVersion(this, fragmentToSave, () =>
+                this.aem.sites.cf.fragments.save(fragmentToSave, { refetchEtag }),
+            );
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);

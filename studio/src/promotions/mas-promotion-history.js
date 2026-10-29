@@ -6,18 +6,12 @@ import Events from '../events.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { canManagePromotions } from '../groups.js';
 import { PAGE_NAMES } from '../constants.js';
-import { extractLocaleFromPath, extractSurfaceFromPath, resolvePromoVariationDefaultCard } from '../utils.js';
+import { extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { getCachedTagTitle } from '../aem/tag-cache.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { compareVersionValues, versionFieldValues } from '../common/utils/fragment-version.js';
 import { VARIANTS } from '../editors/variant-picker.js';
-import {
-    getPromoNameFromPromoVariationPath,
-    isPromoVariationPath,
-    resolveDefaultPathFromPromoVariation,
-} from './promotion-model.js';
-import * as historyClient from './promotion-audit.js';
+import * as historyClient from './promotion-version.js';
 import { promotionHistoryStyles } from './mas-promotion-history.css.js';
 
 const categories = ['General info', 'Countries', 'Offers', 'Fragments'];
@@ -87,10 +81,7 @@ export class MasPromotionHistory extends LitElement {
         selectedEvent: { state: true },
         historicalFragments: { state: true },
         currentEventId: { state: true },
-        currentEvent: { state: true },
         rows: { state: true },
-        restoreRows: { state: true },
-        comparingCurrent: { state: true },
         groups: { state: true },
         selectedFields: { state: true },
         expected: { state: true },
@@ -100,7 +91,6 @@ export class MasPromotionHistory extends LitElement {
         operating: { state: true },
         error: { state: true },
         operationError: { state: true },
-        auditWarning: { state: true },
         cursor: { state: true },
         filters: { state: true },
         confirmation: { state: true },
@@ -116,10 +106,7 @@ export class MasPromotionHistory extends LitElement {
         this.selectedEvent = null;
         this.historicalFragments = [];
         this.currentEventId = '';
-        this.currentEvent = null;
         this.rows = [];
-        this.restoreRows = [];
-        this.comparingCurrent = false;
         this.groups = [];
         this.selectedFields = new Set();
         this.expected = [];
@@ -129,39 +116,29 @@ export class MasPromotionHistory extends LitElement {
         this.operating = false;
         this.error = '';
         this.operationError = '';
-        this.auditWarning = '';
         this.cursor = null;
         this.filters = {};
         this.confirmation = '';
         this.collapsedGroups = new Set();
         this.listRequest = 0;
         this.versionRequest = 0;
-        this.auditRetry = null;
-        this.parentRequests = new Map();
         this.tagTitles = new Map();
-        this.publicationTimer = null;
-        this.currentSnapshot = null;
         this.reactivity = new ReactiveController(this, [Store.profile, Store.users]);
     }
 
     willUpdate(changed) {
         if (changed.has('projectId')) {
             this.currentEventId = '';
-            this.currentEvent = null;
-            this.currentSnapshot = null;
-            this.auditWarning = '';
-            this.auditRetry = null;
             this.filters = {};
             this.loadHistory();
         }
-        if (changed.has('rows') || changed.has('restoreRows') || changed.has('comparingCurrent')) {
+        if (changed.has('rows')) {
             this.groups = categories.map((label) => this.buildGroup(label)).filter((group) => group.rows.length);
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        clearTimeout(this.publicationTimer);
         this.listRequest += 1;
         this.versionRequest += 1;
     }
@@ -177,28 +154,11 @@ export class MasPromotionHistory extends LitElement {
     }
 
     get restoreSnapshot() {
-        if (this.selectedEvent?.isCurrent) return undefined;
-        return this.selectedEvent?.restoreMode === 'state'
-            ? (this.selectedEvent.afterSnapshot ?? this.selectedEvent.snapshot)
-            : (this.selectedEvent?.beforeSnapshot ?? this.selectedEvent?.snapshot);
+        return this.selectedEvent?.beforeSnapshot;
     }
 
     get eligibleRows() {
-        return this.displayRows.filter((row) => row.restorable && !this.unavailable.includes(row.fragmentId));
-    }
-
-    get displayRows() {
-        return this.comparingCurrent ? this.restoreRows : this.rows;
-    }
-
-    get orderedEvents() {
-        return this.currentEvent ? [this.currentEvent, ...this.events] : this.events;
-    }
-
-    toggleComparison() {
-        this.comparingCurrent = !this.comparingCurrent;
-        this.selectedFields = new Set();
-        this.confirmation = '';
+        return this.rows.filter((row) => row.restorable && !this.unavailable.includes(row.fragmentId));
     }
 
     get selections() {
@@ -211,17 +171,7 @@ export class MasPromotionHistory extends LitElement {
         return [...fragments].map(([fragmentId, fields]) => ({ fragmentId, fields: [...fields] }));
     }
 
-    get restoreImpactRows() {
-        const selected = new Set(
-            this.selections.flatMap(({ fragmentId, fields }) => fields.map((field) => JSON.stringify([fragmentId, field]))),
-        );
-        return this.restoreRows.filter((row) =>
-            row.fields.some((field) => selected.has(JSON.stringify([row.fragmentId, field]))),
-        );
-    }
-
-    async loadHistory(append = false, selectCurrent = this.selectedEvent?.isCurrent) {
-        clearTimeout(this.publicationTimer);
+    async loadHistory(append = false, selectedId) {
         const projectId = this.projectId;
         const request = ++this.listRequest;
         this.error = '';
@@ -232,8 +182,6 @@ export class MasPromotionHistory extends LitElement {
             this.selectedEvent = null;
             this.historicalFragments = [];
             this.rows = [];
-            this.restoreRows = [];
-            this.comparingCurrent = false;
             this.selectedFields = new Set();
             this.expected = [];
             this.unavailable = [];
@@ -242,30 +190,21 @@ export class MasPromotionHistory extends LitElement {
             this.confirmation = '';
             this.collapsedGroups = new Set();
             this.cursor = null;
-            this.parentRequests.clear();
             this.tagTitles.clear();
         }
         if (!projectId) return;
-        this.auditRetry ??= this.retryPendingAudits();
-        await this.auditRetry;
-        if (request !== this.listRequest) return;
         let page;
         try {
             page = await this.client.listPromotionHistory(projectId, {
                 ...this.filters,
                 ...(append ? { cursor: this.cursor } : {}),
             });
-            page.events = await Promise.all(
-                page.events
-                    .filter((event) => event.action !== 'restore' && !event.isAudit)
-                    .map((event) => this.preparePresentation(event)),
-            );
+            page.events = await Promise.all(page.events.map((event) => this.preparePresentation(event)));
         } catch {
             if (request === this.listRequest) {
                 this.error = 'Could not load version history. Please retry.';
                 this.loading = false;
             }
-            this.schedulePublicationRefresh();
             return;
         }
         if (request !== this.listRequest) return;
@@ -273,123 +212,12 @@ export class MasPromotionHistory extends LitElement {
         for (const event of page.events) events.set(event.id, event);
         this.events = [...events.values()];
         this.cursor = page.cursor;
-        if (page.currentSnapshot) {
-            this.currentSnapshot = page.currentSnapshot;
-        } else if (Object.values(this.filters).every((value) => !value)) {
-            const snapshots = new Map();
-            for (const event of this.events.filter((item) => ['create', 'save', 'duplicate'].includes(item.action))) {
-                for (const entry of (event.afterSnapshot ?? event.snapshot)?.fragments ?? []) {
-                    if (!snapshots.has(entry.id)) snapshots.set(entry.id, entry);
-                }
-            }
-            this.currentSnapshot = { fragments: [...snapshots.values()] };
+        this.currentEventId = page.currentEventId;
+        if (!append && this.events.length) {
+            await this.selectVersion(this.events.find((event) => event.id === selectedId) ?? this.events[0]);
         }
-        if (!append && this.events.length && !selectCurrent) await this.selectVersion(this.events[0]);
-        await this.refreshCurrent(request);
         if (request !== this.listRequest) return;
-        if (this.currentEvent && (selectCurrent || !this.selectedEvent)) await this.selectVersion(this.currentEvent);
         this.loading = false;
-        this.schedulePublicationRefresh();
-    }
-
-    async refreshCurrent(request) {
-        const entries = this.currentSnapshot?.fragments ?? [];
-        const results = await Promise.allSettled(
-            entries.map(async (entry) => {
-                const [saved, current] = await Promise.all([
-                    this.repository.aem.sites.cf.fragments.getVersion(entry.id, entry.versionId),
-                    this.repository.aem.sites.cf.fragments.getWithEtag(entry.id),
-                ]);
-                return { saved, current: { ...current, id: entry.id, path: entry.path } };
-            }),
-        );
-        if (request !== this.listRequest) return;
-        const fragments = results.filter((result) => result.status === 'fulfilled').map((result) => result.value);
-        let project = fragments.find(({ current }) => current.id === this.projectId)?.current;
-        try {
-            project ??= await this.repository.aem.sites.cf.fragments.getWithEtag(this.projectId);
-        } catch {
-            if (request === this.listRequest) {
-                this.error = 'Could not load the current draft. Reload history to retry.';
-                this.currentEvent = null;
-            }
-            return;
-        }
-        if (request !== this.listRequest) return;
-        this.currentEventId = 'current';
-        this.currentEvent = {
-            id: 'current',
-            isCurrent: true,
-            action: 'current',
-            comparisonAvailable: entries.length > 0 && fragments.length === entries.length,
-            projectId: this.projectId,
-            createdAt: project.modified?.at ?? project.modified ?? this.events[0]?.createdAt ?? new Date().toISOString(),
-            user: {
-                name: project.modified?.fullName ?? project.modified?.by ?? this.events[0]?.user.name ?? 'Unknown author',
-            },
-            fragments: fragments.map(({ current }) => current),
-            changes: fragments.flatMap(({ saved, current }) =>
-                compareVersionValues(versionFieldValues(saved), versionFieldValues(current), null).map((change) => ({
-                    ...change,
-                    fragmentId: current.id,
-                    path: current.path,
-                    category: this.snapshotCategory(current.id, change.field),
-                })),
-            ),
-            comparisonWarning: results.some((result) => result.status === 'rejected')
-                ? 'Some saved versions or current fragments could not be read. The current comparison is incomplete.'
-                : '',
-        };
-        this.currentEvent.displayChanges = this.currentEvent.changes;
-    }
-
-    schedulePublicationRefresh() {
-        clearTimeout(this.publicationTimer);
-        if (!this.isConnected || !this.events.some((event) => event.publicationOutcome === 'pending')) return;
-        this.publicationTimer = setTimeout(() => {
-            if (this.busy || this.confirmation) this.schedulePublicationRefresh();
-            else this.refreshPublications();
-        }, 3000);
-    }
-
-    async refreshPublications() {
-        const projectId = this.projectId;
-        const request = this.listRequest;
-        const pending = this.events.filter((event) => event.publicationOutcome === 'pending').map((event) => event.id);
-        try {
-            for (let offset = 0; offset < pending.length; offset += 100) {
-                const page = await this.client.listPromotionHistory(projectId, {
-                    eventIds: pending.slice(offset, offset + 100),
-                    limit: 100,
-                });
-                if (!this.isConnected || request !== this.listRequest) return;
-                const updates = new Map(page.events.map((event) => [event.id, event]));
-                this.events = this.events.map((event) => {
-                    const update = updates.get(event.id);
-                    return update ? { ...event, ...update, publicationCheckError: update.publicationCheckError } : event;
-                });
-                this.selectedEvent = this.orderedEvents.find((event) => event.id === this.selectedEvent?.id) ?? null;
-                this.error = '';
-            }
-        } catch {
-            if (request === this.listRequest) this.error = 'Could not refresh publication status. Reload history to retry.';
-        } finally {
-            if (request === this.listRequest) this.schedulePublicationRefresh();
-        }
-    }
-
-    async retryPendingAudits() {
-        try {
-            const status = await this.client.retryPendingPromotionAudits(this.projectId);
-            this.auditWarning = status?.pending
-                ? 'Some saved changes have an unresolved history record. Review the current draft before making further changes.'
-                : '';
-        } catch {
-            Events.toast.emit({
-                variant: 'warning',
-                message: 'Some saved changes could not be added to history. Version history will still be loaded.',
-            });
-        }
     }
 
     async readInheritance(manifest) {
@@ -403,30 +231,8 @@ export class MasPromotionHistory extends LitElement {
         );
     }
 
-    async readLegacyParent(path) {
-        if (!this.parentRequests.has(path)) {
-            this.parentRequests.set(path, this.resolveLegacyParent(path));
-        }
-        return this.parentRequests.get(path);
-    }
-
-    async resolveLegacyParent(path) {
-        const name = getPromoNameFromPromoVariationPath(path);
-        for (const candidate of resolveDefaultPathFromPromoVariation(path, name)) {
-            let parent;
-            try {
-                parent = await this.repository.aem.sites.cf.fragments.getByPath(candidate);
-            } catch (error) {
-                if ((error.status ?? error.statusCode) !== 404) throw error;
-                continue;
-            }
-            if (parent) return resolvePromoVariationDefaultCard(this.repository.aem, parent);
-        }
-        throw new Error('Promotion variation parent is unavailable');
-    }
-
     async preparePresentation(event) {
-        const beforeManifest = event.restoreMode === 'state' ? event.beforeContext : (event.beforeSnapshot ?? event.snapshot);
+        const beforeManifest = event.beforeSnapshot;
         const unavailableParents = new Set(
             [...(beforeManifest?.inheritanceUnavailable ?? []), ...(event.afterSnapshot?.inheritanceUnavailable ?? [])].map(
                 (entry) => entry.fragmentId,
@@ -434,7 +240,7 @@ export class MasPromotionHistory extends LitElement {
         );
         let beforeParents;
         let afterParents;
-        let comparisonWarning = unavailableParents.size
+        const comparisonWarning = unavailableParents.size
             ? 'Historical inheritance is unavailable for some variations. Raw stored differences are shown for those variations.'
             : '';
         try {
@@ -442,17 +248,6 @@ export class MasPromotionHistory extends LitElement {
                 this.readInheritance(beforeManifest),
                 this.readInheritance(event.afterSnapshot),
             ]);
-            if (!beforeManifest?.inheritance && !event.afterSnapshot?.inheritance && !unavailableParents.size) {
-                const paths = new Map(event.changes.map((change) => [change.fragmentId, change.path ?? event.targetPath]));
-                for (const [id, path] of paths) {
-                    if (!isPromoVariationPath(path)) continue;
-                    const parent = await this.readLegacyParent(path);
-                    beforeParents.set(id, parent);
-                    afterParents.set(id, parent);
-                    comparisonWarning =
-                        'This older entry has no saved parent snapshot. Inherited values use the current parent.';
-                }
-            }
         } catch {
             return {
                 ...event,
@@ -497,19 +292,11 @@ export class MasPromotionHistory extends LitElement {
         this.operationError = '';
         this.confirmation = '';
         this.rows = [];
-        this.restoreRows = [];
-        this.comparingCurrent = false;
-        if (event.isCurrent) {
-            this.historicalFragments = event.fragments;
-            this.rows = this.buildRows(event, new Map());
-            this.baselineLoading = false;
-            return;
-        }
         this.baselineLoading = true;
         if (!event.displayChanges) event = await this.preparePresentation(event);
         if (request !== this.versionRequest) return;
         this.selectedEvent = event;
-        const entries = (this.restoreSnapshot ?? event.afterSnapshot)?.fragments ?? [];
+        const entries = (this.restoreSnapshot?.fragments.length ? this.restoreSnapshot : event.afterSnapshot)?.fragments ?? [];
         this.baselineLoading = entries.length > 0;
         const results = await Promise.allSettled(
             entries.map(async (entry) => {
@@ -539,11 +326,7 @@ export class MasPromotionHistory extends LitElement {
                 if (tag.title) this.tagTitles.set(normalizeTagId(tag), tag.title);
             }
         }
-        this.restoreRows = this.buildSnapshotRows(current);
-        this.rows =
-            !event.restoreMode && !event.changes.length && this.restoreSnapshot
-                ? this.restoreRows
-                : this.buildRows(event, current);
+        this.rows = this.buildRows(event, current);
         this.baselineLoading = false;
         if (this.unavailable.length) {
             this.operationError =
@@ -559,7 +342,6 @@ export class MasPromotionHistory extends LitElement {
             const fragment = snapshot.get(change.fragmentId);
             const key = JSON.stringify([change.fragmentId, change.field]);
             const conflicted =
-                event.restoreMode === 'undo' &&
                 current.has(change.fragmentId) &&
                 JSON.stringify(this.fieldValue(current.get(change.fragmentId), change.field)) !==
                     JSON.stringify(Object.hasOwn(change, 'rawAfter') ? change.rawAfter : change.after);
@@ -568,55 +350,21 @@ export class MasPromotionHistory extends LitElement {
                 key,
                 category: categoryLabels.get(change.category?.toLowerCase()) ?? 'Fragments',
                 restorable: Boolean(
-                    this.restoreSnapshot &&
+                    this.restoreSnapshot?.fragments.length &&
                         fragment &&
                         !conflicted &&
-                        (event.restoreMode !== 'state' ||
-                            JSON.stringify(this.fieldValue(current.get(change.fragmentId), change.field)) !==
-                                JSON.stringify(this.fieldValue(fragment, change.field))) &&
+                        JSON.stringify(this.fieldValue(current.get(change.fragmentId), change.field)) !==
+                            JSON.stringify(this.fieldValue(fragment, change.field)) &&
                         (change.field.startsWith('@')
                             ? Object.hasOwn(fragment, change.field.slice(1))
-                            : fragment.fields.some((field) => field.name === change.field)),
+                            : current.get(change.fragmentId).fields.some((field) => field.name === change.field)),
                 ),
                 conflicted,
                 before: change.before,
-                after:
-                    fragment && this.restoreSnapshot && !event.restoreMode
-                        ? this.effectiveValue(
-                              this.fieldValue(fragment, change.field),
-                              change.field,
-                              event.afterParents?.get(change.fragmentId),
-                          )
-                        : change.after,
+                after: change.after,
             });
         }
         return this.prepareRows([...rows.values()]);
-    }
-
-    buildSnapshotRows(current) {
-        const rows = [];
-        for (const fragment of this.restoreSnapshot ? this.historicalFragments : []) {
-            const fields = [
-                ...['title', 'description', 'tags']
-                    .filter((field) => Object.hasOwn(fragment, field))
-                    .map((field) => `@${field}`),
-                ...fragment.fields.map((field) => field.name),
-            ];
-            for (const field of fields) {
-                const key = JSON.stringify([fragment.id, field]);
-                rows.push({
-                    key,
-                    fragmentId: fragment.id,
-                    path: fragment.path,
-                    field,
-                    category: this.snapshotCategory(fragment.id, field),
-                    restorable: true,
-                    before: this.fieldValue(current.get(fragment.id), field),
-                    after: this.fieldValue(fragment, field),
-                });
-            }
-        }
-        return this.prepareRows(rows);
     }
 
     prepareRows(rows) {
@@ -665,7 +413,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     buildGroup(label) {
-        const rows = this.displayRows.filter((row) => row.category === label);
+        const rows = this.rows.filter((row) => row.category === label);
         const counts = new Map();
         const items = new Map();
         for (const row of rows) {
@@ -688,13 +436,6 @@ export class MasPromotionHistory extends LitElement {
             items.get(row.fragmentId).rows.push(row);
         }
         return { label, rows, counts: [...counts], items: [...items.values()] };
-    }
-
-    snapshotCategory(fragmentId, field) {
-        if (fragmentId !== this.projectId || field === 'fragments') return 'Fragments';
-        if (['geos', 'countries'].includes(field)) return 'Countries';
-        if (field.toLowerCase().includes('offer') || field === 'promoCodeExceptions') return 'Offers';
-        return 'General info';
     }
 
     fieldValue(fragment, field) {
@@ -743,45 +484,14 @@ export class MasPromotionHistory extends LitElement {
     }
 
     versionLabel(event) {
-        if (event.isCurrent) return 'Current';
         return `Version ${event.version}`;
     }
 
     eventLabel(event) {
-        if (event.isCurrent) {
-            if (!event.comparisonAvailable) return 'Current draft — comparison unavailable';
-            return event.changes.length ? 'Draft changed' : 'Draft matches the last saved state';
-        }
         const project = (event.targetId ?? event.projectId) === event.projectId;
         const subject = project ? 'Project' : 'Promo variation';
         if (event.action === 'create') return `${subject} created`;
-        if (event.action === 'duplicate') return `${subject} duplicated`;
-        if (['publish', 'unpublish'].includes(event.action) && event.publicationCheckError) {
-            return `${subject} ${event.action === 'publish' ? 'publication' : 'unpublication'} status unavailable`;
-        }
-        if (event.action === 'publish') {
-            if (event.publicationOutcome === 'failed') return `${subject} publication failed`;
-            if (event.publicationOperation?.status === 'SCHEDULED') return `${subject} publication scheduled`;
-            if (
-                !event.publicationOperation &&
-                event.publicationOutcome !== 'pending' &&
-                event.publicationStatus === 'PUBLISHED'
-            ) {
-                return `${subject} published`;
-            }
-            return `${subject} publication pending`;
-        }
-        if (event.action === 'unpublish') {
-            if (event.publicationOutcome === 'failed') return `${subject} unpublication failed`;
-            if (event.publicationOperation?.status === 'SCHEDULED') return `${subject} unpublication scheduled`;
-            return `${subject} ${
-                !event.publicationOperation &&
-                event.publicationOutcome !== 'pending' &&
-                event.publicationStatus === 'UNPUBLISHED'
-                    ? 'unpublished'
-                    : 'unpublication pending'
-            }`;
-        }
+        if (event.action === 'restore') return 'Selected changes restored';
         return 'Changes saved';
     }
 
@@ -849,10 +559,10 @@ export class MasPromotionHistory extends LitElement {
             result = await this.client.restorePromotionHistory(projectId, eventId, options);
         } catch (error) {
             if (projectId !== this.projectId) return;
-            if (error.details?.auditPending) {
+            if (error.details?.versionPending) {
                 this.expected = [];
                 this.operationError =
-                    'Some changes have already been restored, but history could not be completed. Do not retry the restore; reload and review the current content first.';
+                    'Some changes have already been restored, but the new version could not be recorded. Do not retry the restore; reload and review the current content first.';
                 return;
             }
             const status = error.status ?? error.statusCode ?? error.response?.status;
@@ -872,16 +582,15 @@ export class MasPromotionHistory extends LitElement {
         const failed = result.failures?.length ?? 0;
         Events.toast.emit({
             variant: result.unchanged ? 'info' : failed ? 'warning' : 'positive',
-            message: result.unchanged
+            content: result.unchanged
                 ? 'Selected fields already match this version.'
                 : !failed
                   ? 'Selected changes have been successfully restored.'
-                  : `Restored ${result.restored.length} fragment(s) as a draft. Audit event ${result.event.id}. Nothing published.${
-                        failed ? ` ${failed} fragment(s) could not be restored.` : ''
-                    }`,
+                  : `Restored ${result.restored.length} fragment(s) as a draft. ${failed} fragment(s) could not be restored. Nothing published.`,
         });
         this.dispatchEvent(new CustomEvent('history-restored', { bubbles: true, composed: true, detail: result }));
-        await this.loadHistory(false, true);
+        this.filters = {};
+        await this.loadHistory(false, result.event?.id);
     }
 
     get sidebarHeaderTemplate() {
@@ -1084,44 +793,13 @@ export class MasPromotionHistory extends LitElement {
                     </p>
                     <h2>${this.versionLabel(this.selectedEvent)}</h2>
                     <p class="version-meta">${this.eventLabel(this.selectedEvent)}</p>
-                    ${this.selectedEvent.restoreMode === 'state'
-                        ? html`<p class="version-meta">Restore uses the saved state of this version.</p>`
-                        : this.selectedEvent.restoreMode === 'undo'
-                          ? html`<p class="version-meta">Legacy entry: Restore undoes the selected changes.</p>`
-                          : nothing}
-                    ${this.selectedEvent.sourceProjectId
-                        ? html`<a
-                              class="fragment-link"
-                              href=${`#${new URLSearchParams({
-                                  page: PAGE_NAMES.PROMOTIONS_EDITOR,
-                                  promotionId: this.selectedEvent.sourceProjectId,
-                              })}`}
-                              >Open source project</a
-                          >`
-                        : nothing}
                 </div>
-                ${this.selectedEvent.isCurrent
-                    ? html`<p class="muted">Current draft compared with the last recorded saved state.</p>`
-                    : this.displayRows.length
-                      ? this.selectionToolbarTemplate
-                      : html`<p class="muted">No content changes. ${this.eventLabel(this.selectedEvent)}</p>`}
+                ${this.rows.length
+                    ? this.selectionToolbarTemplate
+                    : html`<p class="muted">No content changes. ${this.eventLabel(this.selectedEvent)}</p>`}
             </div>
-            ${this.selectedEvent.restoreMode === 'state' && this.historicalFragments.length
-                ? html`<sp-action-button id="compare-current" ?disabled=${this.busy} @click=${this.toggleComparison}
-                          >${this.comparingCurrent ? 'Show recorded changes' : 'Compare with current'}</sp-action-button
-                      >
-                      ${this.comparingCurrent
-                          ? html`<p class="version-meta">
-                                Current draft compared with this saved snapshot. These are restore effects, not historical
-                                changes.
-                            </p>`
-                          : nothing}`
-                : nothing}
             ${this.selectedEvent.comparisonWarning
                 ? html`<p class="row-warning">${this.selectedEvent.comparisonWarning}</p>`
-                : nothing}
-            ${this.selectedEvent.publicationCheckError
-                ? html`<p class="row-warning">${this.selectedEvent.publicationCheckError}</p>`
                 : nothing}
             ${this.baselineLoading
                 ? html`<div class="loading">
@@ -1176,25 +854,7 @@ export class MasPromotionHistory extends LitElement {
                     this.confirmation = '';
                 }}
             >
-                <p>
-                    ${this.selectedEvent.restoreMode === 'state'
-                        ? `Restore selected fields to the saved state of ${this.versionLabel(this.selectedEvent)}? Only the draft will be updated.`
-                        : 'Do you want to continue to restore selected changes?'}
-                </p>
-                ${this.selectedEvent.restoreMode === 'state'
-                    ? html`<p>Current draft &#8594; saved state. Nothing will be published.</p>
-                          ${repeat(
-                              this.restoreImpactRows,
-                              (row) => row.key,
-                              (row) =>
-                                  html`<div class="change-line">
-                                      <span class="field-label">${row.label}:</span>
-                                      <span class="before">${this.formatValue(row.before, row.field)}</span>
-                                      <span class="change-arrow" aria-label="changed to">&#8594;</span>
-                                      <span class="after">${this.formatValue(row.after, row.field)}</span>
-                                  </div>`,
-                          )}`
-                    : nothing}
+                <p>Do you want to continue to restore selected changes? Only the draft will be updated.</p>
             </sp-dialog-wrapper>
         `;
     }
@@ -1222,7 +882,7 @@ export class MasPromotionHistory extends LitElement {
                         : nothing}
                     <div class="history-cards">
                         ${repeat(
-                            this.orderedEvents,
+                            this.events,
                             (event) => event.id,
                             (event) => this.historyCardTemplate(event),
                         )}
@@ -1245,7 +905,6 @@ export class MasPromotionHistory extends LitElement {
                         : nothing}
                 </aside>
                 <main aria-label="Version comparison">
-                    ${this.auditWarning ? html`<p class="row-warning" role="status">${this.auditWarning}</p>` : nothing}
                     ${this.operationError
                         ? html`<div class="error" role="alert">
                               ${this.operationError}

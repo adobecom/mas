@@ -683,7 +683,6 @@ describe('promotions-repository', () => {
             expect(repository.createFragment.calledOnce).to.be.true;
             const [payload, addToStoreList] = repository.createFragment.firstCall.args;
             expect(payload.parentPath).to.equal('/content/dam/mas/promotions');
-            expect(payload.sourceProjectId).to.equal('source-project');
             expect(payload.fields.find((f) => f.name === 'title').values).to.deep.equal(['Black Friday copy']);
             expect(payload.fields.find((f) => f.name === 'tags').values).to.deep.equal(['mas:promotion/black-friday-copy']);
             expect(addToStoreList).to.be.false;

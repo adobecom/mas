@@ -224,6 +224,12 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    baselines: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+    },
     bulkEditProjects: {
         list: {
             data: new ReactiveStore([]),

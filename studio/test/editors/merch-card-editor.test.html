@@ -1975,6 +1975,21 @@
                             );
                         });
 
+                        it('flags an empty Org only after it was touched', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'title-touched',
+                            );
+                            await setTitle(editor, fragmentStore, 'Photoshop card');
+                            const org = editor.querySelector('#fragment-title-org');
+                            expect(org.invalid).to.equal(false);
+                            org.dispatchEvent(new Event('sp-closed'));
+                            await editor.updateComplete;
+                            expect(org.invalid).to.equal(true);
+                            await chooseOrg(editor, 'MERCH');
+                            expect(org.invalid).to.equal(false);
+                        });
+
                         it('does not re-parse while typing in State', async () => {
                             const { editor, fragmentStore } = await setupTestEnvironment(
                                 { isVariation: false },

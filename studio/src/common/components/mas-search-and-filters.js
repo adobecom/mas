@@ -111,9 +111,12 @@ class MasSearchAndFilters extends LitElement {
         hideCount: { type: Boolean, attribute: 'hide-count' },
         /**
          * Optional `(fragment, filterType) => string[] | undefined` returning the values a fragment is matched on
-         * for market segment and product arrangement code filters; tags are used when it returns undefined.
+         * for market segment, product arrangement code and template filters; tags and the variant field are used
+         * when it returns undefined.
          */
         filterValueResolver: { attribute: false },
+        /** Optional `(fragment) => string[]` returning extra values the search query is matched against. */
+        searchValuesResolver: { attribute: false },
         searchOnly: { type: Boolean, reflect: true },
         /** When set, preselects this template variant and prevents changing the Template filter. */
         lockedTemplateFilter: { type: String, attribute: 'locked-template-filter' },
@@ -161,6 +164,7 @@ class MasSearchAndFilters extends LitElement {
         this.showReset = false;
         this.hideCount = false;
         this.filterValueResolver = null;
+        this.searchValuesResolver = null;
         this.dataSubscription = null;
         this.lockedTemplateFilter = '';
         this.defaultTemplateFilter = '';
@@ -689,6 +693,7 @@ class MasSearchAndFilters extends LitElement {
             changed.has('productArrangementCodeFilter') ||
             changed.has('createdByFilter') ||
             changed.has('filterValueResolver') ||
+            changed.has('searchValuesResolver') ||
             changed.has('matchVariationsAndTags')
         ) {
             if (
@@ -1147,7 +1152,7 @@ class MasSearchAndFilters extends LitElement {
 
     #applyFilters() {
         const source = this.itemsSelection.value[`all${this.typeUppercased}`].value || [];
-        const query = this.searchQuery?.toLowerCase();
+        const query = this.searchQuery?.trim().toLowerCase();
         const hasTemplate = this.templateFilter?.length > 0;
         const hasMarket = this.marketSegmentFilter?.length > 0;
         const hasCustomer = this.customerSegmentFilter?.length > 0;
@@ -1172,15 +1177,20 @@ class MasSearchAndFilters extends LitElement {
                     const studioPath = (fragment.studioPath || '').toLowerCase();
                     const path = (fragment.path || '').toLowerCase();
                     const fragmentId = (fragment.id || '').toLowerCase();
-                    const productTag = fragment.tags?.find(({ id }) => id?.startsWith('mas:product_code/'))?.title || '';
+                    const productTag = fragment.tags?.find((tag) => tagRefToTagId(tag)?.startsWith('mas:product_code/'));
+                    const productTagTitle = (productTag?.title || '').toLowerCase();
+                    const productCode = tagRefToTagId(productTag)?.split('/').pop().toLowerCase() || '';
                     const offerId = fragment.offerData?.offerId || '';
+                    const searchValues = this.searchValuesResolver?.(fragment) ?? [];
                     if (
                         !title.includes(query) &&
                         !studioPath.includes(query) &&
                         !path.includes(query) &&
                         !(fragmentId && fragmentId === query) &&
-                        !productTag.toLowerCase().includes(query) &&
+                        !productTagTitle.includes(query) &&
+                        !productCode.includes(query) &&
                         !offerId.toLowerCase().includes(query) &&
+                        !searchValues.some((value) => value.toLowerCase().includes(query)) &&
                         !(this.matchVariationsAndTags && this.#fragmentMatchesVariationOrTag(fragment, query))
                     ) {
                         return false;
@@ -1188,9 +1198,11 @@ class MasSearchAndFilters extends LitElement {
                 }
             }
             if (hasTemplate) {
-                const variantField = fragment.fields?.find((field) => field.name === 'variant');
-                if (!variantField?.values?.length) return false;
-                if (!variantField.values.some((value) => isVariantMatch(this.templateFilter, value))) return false;
+                const templates =
+                    this.filterValueResolver?.(fragment, FILTER_TYPE.TEMPLATE) ??
+                    fragment.fields?.find((field) => field.name === 'variant')?.values ??
+                    [];
+                if (!templates.some((value) => isVariantMatch(this.templateFilter, value))) return false;
             }
             if (hasStatus) {
                 if (!this.statusFilter.includes(fragment.status)) return false;

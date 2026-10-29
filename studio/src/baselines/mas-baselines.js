@@ -37,16 +37,27 @@ const ENABLED_FILTERS = [
 ];
 
 /**
- * Matches baselines on the market segment and PA code of their folder path, since their tags are optional.
+ * Matches baselines on the market segment, PA code and template of their folder path, since their tags and variant are optional.
  * @param {Fragment} fragment
  * @param {string} filterType
  * @returns {string[] | undefined}
  */
 const resolveBaselineFilterValues = (fragment, filterType) => {
-    const { marketSegment, productArrangementCode } = getBaselineInfo(fragment);
+    const { marketSegment, productArrangementCode, template } = getBaselineInfo(fragment);
     if (filterType === FILTER_TYPE.MARKET_SEGMENT) return [`mas:market_segments/${marketSegment.toLowerCase()}`];
     if (filterType === FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE) return [productArrangementCode];
+    if (filterType === FILTER_TYPE.TEMPLATE) return [template];
     return undefined;
+};
+
+/**
+ * Matches the search query on the derived columns, including the default COM segment that has no folder.
+ * @param {Fragment} fragment
+ * @returns {string[]}
+ */
+const resolveBaselineSearchValues = (fragment) => {
+    const { productArrangementCode, marketSegment, template } = getBaselineInfo(fragment);
+    return [productArrangementCode, marketSegment, template];
 };
 
 const PREVIEW_POSITION = { left: '50%', transform: 'translate(-50%, -50%)' };
@@ -248,6 +259,7 @@ class MasBaselines extends LitElement {
                 .searchQuery=${this.searchQuery}
                 .enabledFilters=${ENABLED_FILTERS}
                 .filterValueResolver=${resolveBaselineFilterValues}
+                .searchValuesResolver=${resolveBaselineSearchValues}
                 show-reset
                 hide-count
             ></mas-search-and-filters>

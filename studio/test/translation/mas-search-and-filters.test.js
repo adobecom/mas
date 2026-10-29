@@ -2525,6 +2525,63 @@ describe('MasSearchAndFilters', () => {
             expect(displayedIds()).to.deep.equal(['b']);
         });
 
+        it('filters by template using the resolved values when the variant field is missing', async () => {
+            const el = await renderBaselineFilters({
+                resolver: (fragment, filterType) =>
+                    filterType === FILTER_TYPE.TEMPLATE ? [fragment.id === 'a' ? 'catalog' : 'plans'] : undefined,
+            });
+            el.templateFilter = ['catalog'];
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('matches the search query against the product code tag', async () => {
+            Store.baselines.allBaselines.set([
+                baseline('a', 'PA-1', 'jane@adobe.com', ['mas:product_code/phsp']),
+                baseline('b', 'PA-2', 'john@adobe.com'),
+            ]);
+            const el = await renderBaselineFilters();
+            el.searchQuery = 'PHSP';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('matches the search query against the resolved search values', async () => {
+            Store.baselines.allBaselines.set([
+                createMockFragment({ id: 'a', title: 'a', path: '/content/dam/mas/ccd/en_US/baselines/plans/PA-1/x' }),
+                createMockFragment({ id: 'b', title: 'b', path: '/content/dam/mas/ccd/en_US/baselines/plans/PA-2/edu/x' }),
+            ]);
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .searchValuesResolver=${({ id }) => [id === 'a' ? 'COM' : 'EDU']}
+                ></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'com';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('ignores surrounding whitespace in the search query', async () => {
+            const el = await renderBaselineFilters();
+            el.searchQuery = '  pa-1  ';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('treats a whitespace-only search query as empty', async () => {
+            const el = await renderBaselineFilters();
+            el.searchQuery = '   ';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a', 'b']);
+        });
+
         it('filters by created by, case-insensitively', async () => {
             const el = await renderBaselineFilters();
             el.createdByFilter = ['JANE@adobe.com'];

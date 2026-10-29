@@ -36,6 +36,24 @@ describe('MasChat offer resolution dead ends', () => {
         expect(el.resolveReleaseProductByArrangementCode.calledOnceWith('phsp_direct_individual')).to.equal(true);
     });
 
+    it('ends an unavailable offer with the not-available reply, not the recovery buttons', async () => {
+        sinon.stub(sessionStorage, 'getItem').returns('test-token');
+        sinon.stub(window, 'fetch').resolves({
+            ok: true,
+            status: 200,
+            json: async () => ({ offer: { offerId: 'e', customer_segment: 'ENTERPRISE' } }),
+        });
+        await el.executeRegularOperation(
+            { type: 'studio_operation', operationName: 'get_offer_by_id', operationParams: {} },
+            'get_offer_by_id',
+            'release',
+        );
+
+        expect(el.resolveReleaseProductByArrangementCode.called).to.equal(false);
+        expect(JSON.stringify(el.messages)).to.include("isn't available");
+        expect(lastMessage().buttonGroup).to.equal(undefined);
+    });
+
     it('does not strand the user when no arrangement code could be derived', async () => {
         await el.continueFromResolvedOffer({ success: true }, undefined);
 

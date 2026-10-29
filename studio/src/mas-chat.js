@@ -43,6 +43,7 @@ import { cardOfferResolves } from './utils/verify-card-offer.js';
 import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
+import { OFFER_NOT_AVAILABLE_MESSAGE, excludeEnterprise } from './utils/enterprise-offers.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
 
 /**
@@ -1842,11 +1843,11 @@ export class MasChat extends LitElement {
         // MCS product cache via get_product_by_arrangement_code. The LLM is
         // not re-involved here — it has hallucinated a different arrangement
         // code in the past, producing the wrong product.
-        if (operationType === 'get_offer_by_id' && operationResult?.success) {
+        if (operationType === 'get_offer_by_id' && operationResult?.success && !operationResult.unavailable) {
             await this.continueFromResolvedOffer(operationResult, operationResult.rawResult?.offer?.product_arrangement_code);
             if (!this.isCurrentWork(work)) return;
         }
-        if (operationType === 'resolve_offer_selector' && operationResult?.success) {
+        if (operationType === 'resolve_offer_selector' && operationResult?.success && !operationResult.unavailable) {
             await this.continueFromResolvedOffer(
                 operationResult,
                 operationResult.rawResult?.selector?.product_arrangement_code ||
@@ -2050,7 +2051,7 @@ export class MasChat extends LitElement {
         const rawProducts = result?.products || [];
 
         if (!rawProducts.length) {
-            const empty = 'No products found in the catalog.';
+            const empty = result?.unavailable ? OFFER_NOT_AVAILABLE_MESSAGE : 'No products found in the catalog.';
             this.messages = [...this.messages, { role: 'assistant', content: empty, timestamp: Date.now(), fresh: true }];
             this.appendLocalTurns(`[0 products retrieved]`, empty);
             return;
@@ -2373,7 +2374,9 @@ export class MasChat extends LitElement {
         const label = searchText || 'your search';
         const rawProducts = result?.products || [];
         if (!rawProducts.length) {
-            const message = `No products found matching "${label}". Please try a different name or check the spelling.`;
+            const message = result?.unavailable
+                ? OFFER_NOT_AVAILABLE_MESSAGE
+                : `No products found matching "${label}". Please try a different name or check the spelling.`;
             this.messages = [...this.messages, { role: 'assistant', content: message, timestamp: Date.now(), fresh: true }];
             this.appendLocalGuidedTurns(`[0 products retrieved for "${label}"]`, message);
             return;
@@ -2448,14 +2451,21 @@ export class MasChat extends LitElement {
      * Consumed on use so remembered products never leak into later steps.
      */
     async enrichGuidedStepWithRecentProducts(response) {
-        if (response.productCards?.length || response.buttonGroup) return response;
+        if (response.productCards?.length) return { ...response, productCards: excludeEnterprise(response.productCards) };
+        if (response.buttonGroup) {
+            // The guided offer-search prompt lists a customer-segment "Enterprise" choice.
+            const options = response.buttonGroup.options?.filter(
+                (option) => String(option.value).toUpperCase() !== 'ENTERPRISE',
+            );
+            return options ? { ...response, buttonGroup: { ...response.buttonGroup, options } } : response;
+        }
         if (!this.recentProducts?.length) return response;
         if (!/product/i.test(response.message || '')) return response;
         const products = this.recentProducts;
         this.recentProducts = null;
         return {
             ...response,
-            productCards: products.map((p) => this.mapProductToChatCard(p)),
+            productCards: excludeEnterprise(products).map((p) => this.mapProductToChatCard(p)),
         };
     }
 
@@ -2464,7 +2474,8 @@ export class MasChat extends LitElement {
         try {
             const result = await fetchProducts({ searchText }).catch(() => ({ products: [] }));
             if (!this.isCurrentWork(work)) return;
-            const products = (result.products || []).map((p) => this.mapProductToChatCard(p));
+            const matches = result.products || [];
+            const products = excludeEnterprise(matches).map((p) => this.mapProductToChatCard(p));
             if (products.length) {
                 this.messages = [
                     ...this.messages,
@@ -2485,7 +2496,9 @@ export class MasChat extends LitElement {
                     ...this.messages,
                     {
                         role: 'assistant',
-                        content: `No products found matching "${searchText}". Please try a different name or check the spelling.`,
+                        content: matches.length
+                            ? OFFER_NOT_AVAILABLE_MESSAGE
+                            : `No products found matching "${searchText}". Please try a different name or check the spelling.`,
                         timestamp: Date.now(),
                         fresh: true,
                     },

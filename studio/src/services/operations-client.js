@@ -6,6 +6,7 @@
  */
 
 import { OPERATIONS_SERVICE_URL } from '../mas-chat/config.js';
+import { OFFER_NOT_AVAILABLE_MESSAGE, excludeEnterprise, isEnterpriseOffer } from '../utils/enterprise-offers.js';
 
 /**
  * Execute an operation on the operations service
@@ -138,16 +139,22 @@ export async function executeStudioOperation(operationName, operationParams) {
                 message: result.message,
             };
 
-        case 'resolve_offer_selector':
+        case 'resolve_offer_selector': {
+            const offers = excludeEnterprise(result.offers);
+            const unavailable = offers.length === 0 && result.offers?.length > 0;
+            const rawResult = { ...result, offers };
+            if (unavailable) delete rawResult.selector;
             return {
                 success: true,
                 operation: 'resolve_offer_selector',
                 offerSelectorId: result.offerSelectorId,
-                offers: result.offers || [],
+                offers,
                 checkoutUrl: result.checkoutUrl,
                 studioLinks: result.studioLinks,
-                rawResult: result,
+                ...(unavailable && { unavailable, message: OFFER_NOT_AVAILABLE_MESSAGE }),
+                rawResult,
             };
+        }
 
         case 'get_product_by_arrangement_code': {
             const product = result.product || null;
@@ -175,7 +182,10 @@ export async function executeStudioOperation(operationName, operationParams) {
         }
 
         case 'search_offers': {
-            const offers = Array.isArray(result.offers) ? result.offers : [];
+            const offers = excludeEnterprise(result.offers);
+            const unavailable =
+                (offers.length === 0 && result.offers?.length > 0) ||
+                operationParams.customerSegment?.toUpperCase() === 'ENTERPRISE';
             const filterParts = [];
             if (operationParams.productArrangementCode) filterParts.push(`product ${operationParams.productArrangementCode}`);
             if (operationParams.customerSegment) filterParts.push(operationParams.customerSegment);
@@ -194,36 +204,43 @@ export async function executeStudioOperation(operationName, operationParams) {
                 offers,
                 count: offers.length,
                 studioLinks: result.studioLinks,
-                message: result.message || fallbackMessage,
-                rawResult: result,
+                ...(unavailable && { unavailable }),
+                message: unavailable ? OFFER_NOT_AVAILABLE_MESSAGE : result.message || fallbackMessage,
+                rawResult: { ...result, offers },
             };
         }
 
         case 'get_offer_by_id': {
-            const offer = result.offer || null;
+            const unavailable = isEnterpriseOffer(result.offer);
+            const offer = unavailable ? null : result.offer || null;
             return {
                 success: true,
                 operation: 'get_offer_by_id',
                 offer,
                 studioLinks: result.studioLinks,
-                message:
-                    result.message || (offer ? `Found offer ${offer.offerId || operationParams.offerId}` : 'Offer not found'),
-                rawResult: result,
+                ...(unavailable && { unavailable }),
+                message: unavailable
+                    ? OFFER_NOT_AVAILABLE_MESSAGE
+                    : result.message || (offer ? `Found offer ${offer.offerId || operationParams.offerId}` : 'Offer not found'),
+                rawResult: unavailable ? { ...result, offer: null } : result,
             };
         }
 
         case 'list_products':
         case 'search_products': {
-            const products = Array.isArray(result.products) ? result.products : [];
+            const products = excludeEnterprise(result.products);
+            const unavailable = products.length === 0 && result.products?.length > 0;
             return {
                 success: true,
                 operation: operationName,
                 products,
                 count: products.length,
-                message:
-                    result.message ||
-                    `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
-                rawResult: result,
+                ...(unavailable && { unavailable }),
+                message: unavailable
+                    ? OFFER_NOT_AVAILABLE_MESSAGE
+                    : result.message ||
+                      `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
+                rawResult: { ...result, products },
             };
         }
 

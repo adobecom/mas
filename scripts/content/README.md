@@ -12,7 +12,7 @@ export MAS_API_KEY="your-api-key"
 
 # gen-locales.mjs
 
-Creates locale folder tree for a given surface in Odin. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.
+Creates locale folder tree for a given surface in Odin, plus its `translations` and `bulk-publish-projects` folders. Locales are sourced from `locales.js` for the given surface. Existing folders are skipped; missing ones are created in batches of 5.
 
 ```sh
 node gen-locales.mjs author-*-* acom-cc --dry-run

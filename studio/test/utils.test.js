@@ -4,6 +4,9 @@ import {
     buildCardsDeepLink,
     buildProjectDeepLink,
     formatAuthorPath,
+    FRAGMENT_TITLE_ORGS,
+    parseFragmentTitle,
+    composeFragmentTitle,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -90,6 +93,41 @@ describe('formatAuthorPath', () => {
 
     it('keeps separators inside a title', () => {
         expect(formatAuthorPath('merch-card-collection', 'ACOM / A / B')).to.equal('ACOM / merch-card-collection / A / B');
+    });
+});
+
+describe('fragment title helpers', () => {
+    it('lists the orgs', () => {
+        expect([...FRAGMENT_TITLE_ORGS]).to.deep.equal(['MERCH', 'OPT', 'PZN', 'DC', 'HOMEPAGE', 'EDU HUB']);
+    });
+
+    it('parses a conventional title', () => {
+        expect(parseFragmentTitle('MERCH: Catalog: Animate: Individual: default')).to.deep.equal({
+            org: 'MERCH',
+            middle: 'Catalog: Animate: Individual',
+            state: 'default',
+        });
+    });
+
+    it('round-trips conventional titles', () => {
+        for (const title of [
+            'MERCH: Catalog: Animate: Individual: default',
+            'EDU HUB: X: Y: Z: bf-26-variation',
+            'OPT: Plans: default',
+        ]) {
+            expect(composeFragmentTitle(parseFragmentTitle(title))).to.equal(title);
+        }
+    });
+
+    it('keeps legacy titles whole', () => {
+        for (const title of ['Photoshop card', 'MERCH: default', 'merch: a: b']) {
+            expect(parseFragmentTitle(title)).to.deep.equal({ org: '', middle: title, state: '' });
+        }
+        expect(parseFragmentTitle(undefined)).to.deep.equal({ org: '', middle: '', state: '' });
+    });
+
+    it('skips empty parts when composing', () => {
+        expect(composeFragmentTitle({ org: 'MERCH', middle: '', state: 'default' })).to.equal('MERCH: default');
     });
 });
 

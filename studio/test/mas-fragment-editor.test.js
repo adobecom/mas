@@ -2337,6 +2337,61 @@ describe('MasFragmentEditor', () => {
             expect(header).to.not.equal(nothing);
         });
 
+        describe('baseline header', () => {
+            const showBaseline = (path) => {
+                const fragment = new Fragment({
+                    id: 'baseline-id',
+                    path,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            };
+            const details = (template) => {
+                const container = document.createElement('div');
+                render(template, container);
+                const banner = container.querySelector('.baseline-banner');
+                return {
+                    badge: banner.querySelector('sp-badge[variant="positive"]').textContent.trim(),
+                    details: Object.fromEntries(
+                        [...banner.querySelectorAll('.baseline-banner-details > div')].map((row) => [
+                            row.querySelector('dt').textContent.trim(),
+                            row.querySelector('dd').textContent.trim(),
+                        ]),
+                    ),
+                };
+            };
+
+            it('marks a baseline with its template and PA code above the form and the preview', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/baseline');
+
+                for (const header of [el.localeVariationHeader, el.previewVariationHeader]) {
+                    expect(details(header)).to.deep.equal({
+                        badge: 'Baseline',
+                        details: { Template: 'Plans', 'PA code': 'ccsn_direct_individual', 'Market segment': 'COM' },
+                    });
+                }
+            });
+
+            it('marks the market segment of a segment baseline', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/edu/baseline');
+
+                expect(details(el.previewVariationHeader).details).to.deep.equal({
+                    Template: 'Plans',
+                    'PA code': 'ccsn_direct_individual',
+                    'Market segment': 'EDU',
+                });
+            });
+
+            it('shows an unknown template as is', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/custom-template/PA-1/baseline');
+
+                expect(details(el.previewVariationHeader).details.Template).to.equal('custom-template');
+            });
+        });
+
         it('renders promo variation header in preview for promo paths', () => {
             const promoPath = '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card';
             const fragment = new Fragment({

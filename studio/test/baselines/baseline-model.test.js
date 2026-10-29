@@ -5,6 +5,7 @@ import {
     buildBaselineParent,
     createBaseline,
     findCardBaselines,
+    parseBaselinePath,
     prepareBaselineFolder,
     resolveBaselineOffer,
 } from '../../src/baselines/baseline-model.js';
@@ -42,6 +43,23 @@ describe('baseline-model', () => {
 
     it('puts segment overrides in a lower-cased segment folder under the PA code', () => {
         expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'EDU' })).to.equal(`${FOLDER}/edu`);
+    });
+
+    it('parses the template and PA code of a baseline path', () => {
+        expect(parseBaselinePath(`${FOLDER}/${BASELINE_NAME}`)).to.deep.equal({
+            template: 'catalog',
+            productArrangementCode: 'ccsn_direct_individual',
+            marketSegment: undefined,
+        });
+    });
+
+    it('parses the market segment of a segment baseline path', () => {
+        expect(parseBaselinePath(`${FOLDER}/edu/${BASELINE_NAME}`)).to.deep.include({ marketSegment: 'edu' });
+    });
+
+    it('parses nothing out of a card path', () => {
+        expect(parseBaselinePath('/content/dam/mas/sandbox/fr_FR/my-card')).to.be.null;
+        expect(parseBaselinePath(undefined)).to.be.null;
     });
 
     it('ensures the baseline folder exists', async () => {
@@ -229,6 +247,14 @@ describe('baseline-model', () => {
             const baselines = await findCardBaselines(createFragmentsApi(sinon.stub().rejects(notFoundError())), card);
 
             expect(baselines).to.deep.include({ fragmentBaseline: null, fragmentSegmentBaseline: null });
+        });
+
+        it('returns the PA code and market segment the baselines were looked up for', async () => {
+            resolvePa('EDU');
+
+            const baselines = await findCardBaselines(createFragmentsApi(sinon.stub().resolves(null)), card);
+
+            expect(baselines).to.deep.include({ productArrangementCode: 'PA-1', marketSegment: 'EDU' });
         });
 
         it('maps the offer baseline to card fields in the authoring format', async () => {

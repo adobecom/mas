@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing } from 'lit';
 import { Fragment } from './aem/fragment.js';
+import { DEFAULT_MARKET_SEGMENT, parseBaselinePath } from './baselines/baseline-model.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
@@ -516,6 +517,56 @@ export default class MasFragmentEditor extends LitElement {
         .locale-variation-header strong {
             font-weight: 700;
             color: var(--spectrum-global-color-gray-900);
+        }
+
+        .baseline-banner {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 16px;
+            border: 1px solid var(--spectrum-green-400, #6bc9a2);
+            border-left: 4px solid var(--spectrum-green-700, #188153);
+            border-radius: 8px;
+            background-color: var(--spectrum-green-100, #e9f8f1);
+            color: var(--spectrum-green-900, #0a5c3a);
+            font-size: 14px;
+            line-height: 20px;
+        }
+
+        .baseline-banner-header {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .baseline-banner-hint {
+            color: var(--spectrum-green-800, #10704a);
+        }
+
+        .baseline-banner-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 24px;
+            margin: 0;
+        }
+
+        .baseline-banner-details div {
+            display: flex;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .baseline-banner-details dt {
+            color: var(--spectrum-green-800, #10704a);
+        }
+
+        .baseline-banner-details dd {
+            margin: 0;
+            font-weight: 700;
+            overflow-wrap: anywhere;
         }
 
         #author-path {
@@ -2115,8 +2166,38 @@ export default class MasFragmentEditor extends LitElement {
         </div>`;
     }
 
+    displayBaselineInfo(clazz) {
+        const { template, productArrangementCode, marketSegment } = parseBaselinePath(this.fragment.path) ?? {};
+        const templateLabel = VARIANTS.find(({ value }) => value === template)?.label ?? template;
+        return html`<div class="${clazz}">
+            <section class="baseline-banner" aria-label="Baseline">
+                <div class="baseline-banner-header">
+                    <sp-badge size="s" variant="positive">Baseline</sp-badge>
+                    <span class="baseline-banner-hint">Cards with this offer and template inherit its values (if enabled)</span>
+                </div>
+                <dl class="baseline-banner-details">
+                    <div>
+                        <dt>Template</dt>
+                        <dd>${templateLabel}</dd>
+                    </div>
+                    <div>
+                        <dt>PA code</dt>
+                        <dd>${productArrangementCode}</dd>
+                    </div>
+                    <div>
+                        <dt>Market segment</dt>
+                        <dd>${(marketSegment ?? DEFAULT_MARKET_SEGMENT).toUpperCase()}</dd>
+                    </div>
+                </dl>
+            </section>
+        </div>`;
+    }
+
     variationTypeHeader(clazz) {
         if (!this.fragment) return nothing;
+        if (Fragment.isBaselinePath(this.fragment.path)) {
+            return this.displayBaselineInfo(clazz);
+        }
         if (this.isPromoVariationFragment()) {
             return this.displayPromoVariationInfo(clazz);
         }
@@ -2128,6 +2209,7 @@ export default class MasFragmentEditor extends LitElement {
 
     showsPreviewVariationTypeHeader() {
         if (!this.fragment) return false;
+        if (Fragment.isBaselinePath(this.fragment.path)) return true;
         if (this.isPromoVariationFragment()) return true;
         return this.editorContextStore.isVariation(this.fragment.id);
     }
@@ -2142,6 +2224,9 @@ export default class MasFragmentEditor extends LitElement {
     get localeVariationHeader() {
         if (!this.fragment) {
             return nothing;
+        }
+        if (Fragment.isBaselinePath(this.fragment.path)) {
+            return this.displayBaselineInfo('locale-variation-header');
         }
         if (this.isPromoVariationFragment()) {
             return this.promoVariationGeosTemplate;

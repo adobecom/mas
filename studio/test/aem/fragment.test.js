@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
-import { Fragment } from '../../src/aem/fragment.js';
+import { Fragment, isTemplateRequiredField } from '../../src/aem/fragment.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 
@@ -301,7 +301,7 @@ describe('Fragment', () => {
                 desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] — never leaks the raw sentinel to callers',
             },
             {
-                name: 'description',
+                name: 'promoCode',
                 values: [EXPLICIT_EMPTY_SENTINEL],
                 multiple: false,
                 expected: [EXPLICIT_EMPTY_SENTINEL],
@@ -352,9 +352,9 @@ describe('Fragment', () => {
 
         it('does not treat EXPLICIT_EMPTY_SENTINEL as explicit-empty on non-allowed fields', () => {
             const variation = new Fragment(
-                createFragmentConfig({ fields: [{ name: 'description', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+                createFragmentConfig({ fields: [{ name: 'promoCode', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
             );
-            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal(EXPLICIT_EMPTY_SENTINEL);
+            expect(variation.getEffectiveFieldValue('promoCode', parent, true, 0)).to.equal(EXPLICIT_EMPTY_SENTINEL);
         });
 
         it('still inherits from parent when own value is absent', () => {
@@ -478,18 +478,89 @@ describe('Fragment', () => {
                 expect(prepared.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
             });
 
-            it('does not mark changes for a non-badge single-value field going from [] to [""] when parent has content', () => {
+            it('does not mark changes for a non-clearable single-value field going from [] to [""] when parent has content', () => {
                 const parent = new Fragment(
                     createFragmentConfig({
-                        fields: [{ name: 'description', values: ['Parent description'], multiple: false }],
+                        fields: [{ name: 'promoCode', values: ['PARENT-CODE'], multiple: false }],
                     }),
                 );
                 const variation = new Fragment(
-                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                    createFragmentConfig({ fields: [{ name: 'promoCode', values: [], multiple: false }] }),
                 );
-                expect(variation.updateField('description', [''], parent)).to.be.false;
-                expect(variation.getFieldValues('description')).to.deep.equal([]);
+                expect(variation.updateField('promoCode', [''], parent)).to.be.false;
+                expect(variation.getFieldValues('promoCode')).to.deep.equal([]);
                 expect(variation.hasChanges).to.be.false;
+            });
+
+            it('persists explicit_empty when clearing an optional text field whose parent has content', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Parent subtitle'] }] }),
+                );
+                const card = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Own subtitle'] }] }));
+
+                expect(card.updateField('subtitle', [''], parent)).to.be.true;
+                expect(card.getFieldValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+            });
+
+            it('inherits again when clearing a field the card template requires', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: ['<p>Parent description</p>'] }] }),
+                );
+                const card = new Fragment(
+                    createFragmentConfig({
+                        fields: [
+                            { name: 'variant', values: ['catalog'] },
+                            { name: 'description', values: ['<p>Own description</p>'] },
+                        ],
+                    }),
+                );
+
+                card.updateField('description', [''], parent);
+
+                expect(card.getFieldValues('description')).to.deep.equal(['']);
+            });
+
+            it('persists explicit_empty on a field required only by other templates', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'description', values: ['<p>Parent description</p>'] }] }),
+                );
+                const card = new Fragment(
+                    createFragmentConfig({
+                        fields: [
+                            { name: 'variant', values: ['plans'] },
+                            { name: 'description', values: ['<p>Own description</p>'] },
+                        ],
+                    }),
+                );
+
+                card.updateField('description', [''], parent);
+
+                expect(card.getFieldValues('description')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+            });
+
+            it('does not reset a field to a parent that does not have it', () => {
+                const parent = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Parent'] }] }));
+                const card = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'features', values: ['a'], multiple: true }] }),
+                );
+
+                expect(card.updateField('features', [], parent)).to.be.true;
+                expect(card.getFieldValues('features')).to.deep.equal([]);
+            });
+        });
+
+        describe('isTemplateRequiredField', () => {
+            it('reads the fields a template requires, the card title as title', () => {
+                expect(isTemplateRequiredField('catalog', 'cardTitle')).to.be.true;
+                expect(isTemplateRequiredField('catalog', 'description')).to.be.true;
+                expect(isTemplateRequiredField('plans', 'prices')).to.be.true;
+            });
+
+            it('does not require optional fields nor fields of unknown templates', () => {
+                expect(isTemplateRequiredField('catalog', 'subtitle')).to.be.false;
+                expect(isTemplateRequiredField('plans', 'description')).to.be.false;
+                expect(isTemplateRequiredField('unknown-template', 'cardTitle')).to.be.false;
+                expect(isTemplateRequiredField(undefined, 'cardTitle')).to.be.false;
             });
         });
 

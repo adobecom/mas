@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { mergeParentFields } from '../../src/aem/variation-utils.js';
+import { buildInheritanceParent, cachedInheritanceParent, mergeParentFields } from '../../src/aem/variation-utils.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 const CARD_MODEL = { path: '/conf/mas/settings/dam/cfm/models/card' };
@@ -100,5 +100,79 @@ describe('SourceFragmentStore.setBaselineParent', () => {
         store.setBaselineParent(baselineParent);
 
         expect(store.previewStore.resolveFragment.calledOnce).to.be.true;
+    });
+});
+
+describe('buildInheritanceParent', () => {
+    const baselineParent = new Fragment({
+        fields: [
+            { name: 'subtitle', values: ['Baseline subtitle'] },
+            { name: 'promoText', values: ['Baseline promo'] },
+        ],
+    });
+
+    it('is the locale default fragment or the baselines alone', () => {
+        const localeDefault = createCard([]);
+
+        expect(buildInheritanceParent(localeDefault, null)).to.equal(localeDefault);
+        expect(buildInheritanceParent(null, baselineParent)).to.equal(baselineParent);
+        expect(buildInheritanceParent(null, null)).to.be.null;
+    });
+
+    it('fills the empty locale default fields with the baselines', () => {
+        const localeDefault = createCard([
+            { name: 'subtitle', values: ['Default subtitle'] },
+            { name: 'promoText', values: [''] },
+        ]);
+
+        const parent = buildInheritanceParent(localeDefault, baselineParent);
+
+        expect(parent.getFieldValues('subtitle')).to.deep.equal(['Default subtitle']);
+        expect(parent.getFieldValues('promoText')).to.deep.equal(['Baseline promo']);
+        expect(localeDefault.getFieldValues('promoText')).to.deep.equal(['']);
+    });
+
+    it('is rebuilt only when the parent or the baselines change', () => {
+        const inheritanceParent = cachedInheritanceParent();
+        const localeDefault = createCard([]);
+
+        const first = inheritanceParent(localeDefault, baselineParent);
+
+        expect(inheritanceParent(localeDefault, baselineParent)).to.equal(first);
+        expect(inheritanceParent(localeDefault, null)).to.equal(localeDefault);
+    });
+});
+
+describe('SourceFragmentStore.updateField with baselines', () => {
+    const baselineParent = new Fragment({ fields: [{ name: 'subtitle', values: ['Baseline subtitle'] }] });
+    let store;
+
+    beforeEach(() => {
+        store = generateFragmentStore(createCard([{ name: 'subtitle', values: ['Own subtitle'] }]), null, { lazy: true });
+        sinon.stub(store.previewStore, 'resolveFragment');
+        store.setBaselineParent(baselineParent);
+    });
+
+    afterEach(() => {
+        store.previewStore.dispose();
+        sinon.restore();
+    });
+
+    it('inherits from the baselines', () => {
+        expect(store.inheritanceParent).to.equal(baselineParent);
+    });
+
+    it('keeps a cleared optional field empty, in the source and the preview', () => {
+        store.updateField('subtitle', ['']);
+
+        expect(store.get().getFieldValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+        expect(store.previewStore.value.getFieldValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+    });
+
+    it('inherits again when the field is set to the baseline value', () => {
+        expect(store.updateField('subtitle', ['Baseline subtitle'])).to.equal('reset');
+
+        expect(store.get().getField('subtitle')).to.be.undefined;
+        expect(store.previewStore.value.getFieldValues('subtitle')).to.deep.equal(['Baseline subtitle']);
     });
 });

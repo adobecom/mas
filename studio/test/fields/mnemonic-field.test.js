@@ -6,6 +6,24 @@ import '../../src/fields/mnemonic-field.js';
 import { spTheme } from '../utils.js';
 
 describe('Mnemonic field', () => {
+    it('shows that a visual comes from the baseline', async () => {
+        const el = await fixture(
+            html`<mas-mnemonic-field icon="baseline.svg" data-field-state="baseline"></mas-mnemonic-field>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        const note = el.shadowRoot.querySelector('.field-status-indicator--baseline');
+        expect(note.textContent.trim()).to.equal('From baseline');
+    });
+
+    it('does not show a baseline note for other visuals', async () => {
+        const el = await fixture(html`<mas-mnemonic-field icon="own.svg" data-field-state="overridden"></mas-mnemonic-field>`, {
+            parentNode: spTheme(),
+        });
+        expect(el.shadowRoot.querySelector('.field-status-indicator--baseline')).to.be.null;
+    });
+
     it('should render without default properties', async () => {
         const el = await fixture(html`<mas-mnemonic-field></mas-mnemonic-field>`, { parentNode: spTheme() });
         expect(el.icon).to.equal('');

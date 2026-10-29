@@ -386,6 +386,18 @@ export const promotionHistoryStyles = css`
         color: var(--spectrum-gray-700, #6e6e6e);
     }
 
+    #history-sentinel {
+        height: 1px;
+    }
+
+    .loading-more {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+    }
+
     .error {
         display: flex;
         align-items: flex-start;

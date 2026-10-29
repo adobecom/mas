@@ -179,7 +179,7 @@ export class MasPromotionHistory extends LitElement {
 
     updated() {
         this.scrollObserver.disconnect();
-        const sentinel = this.renderRoot.querySelector('#load-more');
+        const sentinel = this.renderRoot.querySelector('#history-sentinel');
         if (sentinel && !this.busy && !this.refreshing && !this.error) this.scrollObserver.observe(sentinel);
     }
 
@@ -1172,7 +1172,7 @@ export class MasPromotionHistory extends LitElement {
                           </div>`
                         : nothing}
                     ${this.refreshing ? html`<p role="status">Refreshing history...</p>` : nothing}
-                    ${this.loading
+                    ${this.loading && !this.events.length
                         ? html`<div class="loading">
                               <sp-progress-circle indeterminate aria-label="Loading history"></sp-progress-circle>
                           </div>`
@@ -1191,14 +1191,12 @@ export class MasPromotionHistory extends LitElement {
                                   : 'Select a saved promotion project to view history.'}
                           </p>`
                         : nothing}
-                    ${this.cursor
-                        ? html`<sp-button
-                              id="load-more"
-                              variant="secondary"
-                              ?disabled=${this.busy || this.refreshing}
-                              @click=${() => this.loadHistory(true)}
-                              >Load more</sp-button
-                          >`
+                    ${this.cursor ? html`<div id="history-sentinel" aria-hidden="true"></div>` : nothing}
+                    ${this.loading && this.events.length
+                        ? html`<div class="loading-more" role="status">
+                              <sp-progress-circle size="s" indeterminate aria-hidden="true"></sp-progress-circle>
+                              <span>Loading more...</span>
+                          </div>`
                         : nothing}
                 </aside>
                 <main aria-label="Version comparison">

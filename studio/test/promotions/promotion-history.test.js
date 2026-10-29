@@ -716,7 +716,9 @@ describe('Promotion version history', () => {
     it('loads one next page automatically near the bottom and disconnects its observer', async () => {
         client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
         await mount();
-        const observer = observers.find((item) => item.observe.calledWith(element.shadowRoot.querySelector('#load-more')));
+        const observer = observers.find((item) =>
+            item.observe.calledWith(element.shadowRoot.querySelector('#history-sentinel')),
+        );
         expect(observer).not.to.be.undefined;
         let complete;
         client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
@@ -733,6 +735,51 @@ describe('Promotion version history', () => {
         observer.disconnect.resetHistory();
         element.remove();
         expect(observer.disconnect.calledOnce).to.be.true;
+    });
+
+    it('shows a loading-more indicator only while the next page is loading, without a load-more button', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        const root = await mount();
+        expect(root.querySelector('#load-more')).to.be.null;
+        expect(root.querySelector('.loading-more')).to.be.null;
+        let complete;
+        client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+
+        const pending = element.loadHistory(true);
+        await element.updateComplete;
+
+        const indicator = root.querySelector('.loading-more');
+        expect(indicator.getAttribute('role')).to.equal('status');
+        expect(indicator.textContent).to.include('Loading more...');
+        expect(indicator.querySelector('sp-progress-circle').size).to.equal('s');
+        expect(indicator.querySelector('sp-progress-circle').indeterminate).to.be.true;
+        expect(root.querySelector('aside > .loading')).to.be.null;
+
+        complete({ events: [{ ...version, id: 'version-1', version: 1 }], currentEventId: version.id });
+        await pending;
+        await element.updateComplete;
+
+        expect(root.querySelector('.loading-more')).to.be.null;
+        expect(root.querySelector('#history-sentinel')).to.be.null;
+    });
+
+    it('keeps retry available after an automatic next-page load fails', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        const root = await mount();
+        client.listPromotionHistory.onSecondCall().rejects(new Error('Unavailable'));
+
+        await element.loadHistory(true);
+        await element.updateComplete;
+
+        expect(root.querySelector('.loading-more')).to.be.null;
+        const retry = root.querySelector('#retry-history');
+        expect(retry).not.to.be.null;
+        const earlier = { ...version, id: 'version-1', version: 1 };
+        client.listPromotionHistory.onThirdCall().resolves({ events: [earlier], currentEventId: version.id });
+        retry.click();
+        await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.loading);
+
+        expect(element.events.map((event) => event.id)).to.deep.equal([version.id, earlier.id]);
     });
 
     it('loads the next page without duplicating versions or changing the current marker', async () => {

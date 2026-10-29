@@ -2098,6 +2098,7 @@
                                 const editor = makeBaselineCard([{ name: 'subtitle', values: [''] }]);
                                 expect(editor.getFormWithInheritance().subtitle.values).to.deep.equal(['Baseline subtitle']);
                                 expect(editor.getFieldState('subtitle')).to.equal('inherited');
+                                expect(editor.isFieldOverridden('subtitle')).to.be.false;
                                 expect(indicatorText(editor, 'subtitle')).to.equal('From baseline');
                             });
 
@@ -2108,6 +2109,8 @@
                                 ]);
                                 expect(editor.getFieldState('subtitle')).to.equal('overridden');
                                 expect(editor.getFieldState('promoText')).to.equal('overridden');
+                                expect(editor.isFieldOverridden('subtitle')).to.be.true;
+                                expect(editor.isFieldOverridden('promoText')).to.be.true;
                                 expect(editor.getFormWithInheritance().promoText.values).to.deep.equal(['']);
                                 expect(indicatorText(editor, 'subtitle')).to.include('Click to restore');
                             });

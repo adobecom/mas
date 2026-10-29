@@ -11,6 +11,7 @@ import { buildCheckoutUrl } from './buildCheckoutUrl.js';
 import { Defaults } from './defaults.js';
 import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
 import { MODAL_TYPE_3_IN_1 } from './constants.js';
+import { resolveCheckoutData } from '../../checkout/src/checkout.js';
 
 /**
  * generate Checkout configuration
@@ -104,73 +105,18 @@ export function Checkout({ settings, providers }) {
             return '';
         }
         const { env, landscape } = settings;
-        const {
-            checkoutClientId: clientId,
-            checkoutMarketSegment,
-            checkoutWorkflowStep: workflowStep,
-            country,
-            promotionCode: checkoutPromoCode,
-            quantity: optionsQuantity,
-            preselectPlan,
-            ms,
-            cs,
-            ...rest
-        } = collectCheckoutOptions(options);
+        const resolvedOptions = collectCheckoutOptions(options);
         const masFF3in1 = document.querySelector('meta[name=mas-ff-3in1]');
         const is3in1 =
             Object.values(MODAL_TYPE_3_IN_1).includes(options.modal) &&
             (!masFF3in1 || masFF3in1.content !== 'off');
         const context = window.frameElement || is3in1 ? 'if' : 'fp';
-        // even if CTA has multiple offers, they should have same ms, cs, ot values
-        const [
-            {
-                productArrangementCode,
-                marketSegments: [offerMarketSegment],
-                customerSegment: offerCustomerSegment,
-                offerType,
-            },
-        ] = offers;
-        // cleanup checkoutMarketSegment  - not needed
-        let marketSegment = ms ?? offerMarketSegment ?? checkoutMarketSegment;
-        let customerSegment = cs ?? offerCustomerSegment;
-        //used on catalog page by MEP to preselect plan
-        if (preselectPlan?.toLowerCase() === 'edu') {
-            marketSegment = 'EDU';
-        } else if (preselectPlan?.toLowerCase() === 'team') {
-            customerSegment = 'TEAM';
-        }
-        const data = {
-            is3in1,
-            checkoutPromoCode,
-            clientId,
-            context,
-            country,
+        const data = resolveCheckoutData(offers, resolvedOptions, {
             env,
-            items: [],
-            marketSegment,
-            customerSegment,
-            offerType,
-            productArrangementCode,
-            workflowStep,
             landscape,
-            ...rest,
-        };
-        // even if there are multiple offers, only first main offer is used for quantity
-        const quantity =
-            optionsQuantity[0] > 1 ? optionsQuantity[0] : undefined;
-        if (offers.length === 1) {
-            const { offerId } = offers[0];
-            data.items.push({ id: offerId, quantity });
-        } else {
-            /* c8 ignore next 7 */
-            data.items.push(
-                ...offers.map(({ offerId, productArrangementCode }) => ({
-                    id: offerId,
-                    quantity,
-                    ...(is3in1 ? { productArrangementCode } : {}),
-                })),
-            );
-        }
+            is3in1,
+            context,
+        });
         return buildCheckoutUrl(data);
     }
 

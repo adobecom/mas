@@ -1,4 +1,5 @@
 import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
 import { Checkout } from '../src/checkout.js';
 import { CheckoutWorkflowStep } from '../src/constants.js';
 
@@ -189,6 +190,26 @@ describe('Checkout', () => {
         it('should handle 3-in-1 modal context', () => {
             const url = checkout.buildCheckoutURL(mockOffers, { modal: 'twp' });
             expect(url).to.include('ctx=if');
+        });
+
+        it('keeps 3-in-1 disabled when the page flag is off', () => {
+            const meta = document.createElement('meta');
+            meta.name = 'mas-ff-3in1';
+            meta.content = 'off';
+            document.head.append(meta);
+            const url = checkout.buildCheckoutURL(mockOffers, { modal: 'twp' });
+            meta.remove();
+            const params = new URL(url).searchParams;
+            expect(params.get('ctx')).to.equal('fp');
+            expect(params.has('rtc')).to.be.false;
+            expect(params.get('cli')).to.equal('creative');
+        });
+
+        it('collects iframe context outside the shared resolver', () => {
+            const frameStub = sinon.stub(window, 'frameElement').value({});
+            const url = checkout.buildCheckoutURL(mockOffers, {});
+            frameStub.restore();
+            expect(new URL(url).searchParams.get('ctx')).to.equal('if');
         });
     });
 

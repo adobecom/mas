@@ -233,6 +233,184 @@ describe('Promotion version history', () => {
         expect(root.querySelector('#restore-selected').disabled).to.be.true;
     });
 
+    describe('saved-state versions', () => {
+        beforeEach(() => {
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...version,
+                        restoreMode: 'state',
+                        snapshot: undefined,
+                        afterSnapshot: { fragments: [{ id: fragment.id, path: fragment.path, versionId: 'saved-version' }] },
+                        changes: [version.changes[0]],
+                    },
+                ],
+            });
+            getVersion.withArgs(fragment.id, 'saved-version').resolves({ ...fragment, title: 'Saved state' });
+            getWithEtag.resolves({ ...fragment, title: 'Later edit', etag: '"fresh-etag"' });
+        });
+
+        it('restores saved after-state values despite later edits while retaining the current ETag', async () => {
+            const root = await mount();
+            expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Saved state');
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
+            await openSelectedRestore(root);
+            expect(root.querySelector('#restore-confirmation').textContent).to.include('saved state of Version 2');
+            await element.confirmRestore();
+            expect(client.restorePromotionHistory.firstCall.args[2]).to.deep.equal({
+                selections: [{ fragmentId: fragment.id, fields: ['@title'] }],
+                expected: [{ fragmentId: fragment.id, etag: '"fresh-etag"' }],
+            });
+        });
+
+        it('uses the saved after snapshot rather than a legacy before reference', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            client.listPromotionHistory.resolves({ events: [{ ...event, beforeSnapshot: version.snapshot }] });
+            const root = await mount();
+            expect(getVersion.calledWith(fragment.id, 'saved-version')).to.be.true;
+            expect(getVersion.calledWith(fragment.id, 'version-1')).to.be.false;
+            expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Saved state');
+        });
+
+        it('allows selecting the saved initial project state without offering structural deletion', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            client.listPromotionHistory.resolves({ events: [{ ...event, action: 'create' }] });
+            const root = await mount();
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
+            expect(root.querySelector('.card-summary').textContent.trim()).to.equal('Project created');
+            expect(root.querySelector('main').textContent).to.include('saved state');
+        });
+
+        it('provides saved content for publication events even when no fields changed', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            client.listPromotionHistory.resolves({
+                events: [{ ...event, action: 'publish', publicationStatus: 'PUBLISHED', changes: [] }],
+            });
+            const root = await mount();
+            expect(root.querySelector('.card-summary').textContent).to.include('Project published');
+            expect(root.querySelector('.card-summary').textContent).not.to.include('0 changes');
+            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
+            expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Saved state');
+        });
+    });
+
+    for (const [action, publicationStatus, label] of [
+        ['publish', 'PUBLISHED', 'Project published'],
+        ['publish', 'MODIFIED', 'Project publication pending'],
+        ['unpublish', 'UNPUBLISHED', 'Project unpublished'],
+        ['unpublish', 'DRAFT', 'Project unpublication pending'],
+        ['unpublish', 'PUBLISHED', 'Project unpublication pending'],
+        ['duplicate', undefined, 'Project duplicated'],
+        ['restore', undefined, 'Selected fields restored'],
+    ]) {
+        it(`clearly labels ${action} with observed status ${publicationStatus ?? 'not applicable'}`, async () => {
+            client.listPromotionHistory.resolves({
+                events: [{ ...version, action, publicationStatus, snapshot: undefined, changes: [] }],
+            });
+            const root = await mount();
+            expect(root.querySelector('.card-summary').textContent).to.include(label);
+            expect(root.querySelector('main').textContent).to.include(label);
+            expect(root.querySelector('.card-summary').textContent).not.to.include('0 changes');
+        });
+    }
+
+    for (const [action, status, label] of [
+        ['publish', 'MODIFIED', 'Project publication scheduled'],
+        ['unpublish', 'PUBLISHED', 'Project unpublication scheduled'],
+    ]) {
+        it(`uses the replication operation rather than lifecycle status for scheduled ${action}`, async () => {
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...version,
+                        action,
+                        publicationStatus: status,
+                        publicationOutcome: 'pending',
+                        publicationOperation: { action: action.toUpperCase(), status: 'SCHEDULED' },
+                        changes: [],
+                    },
+                ],
+            });
+            const root = await mount();
+            expect(root.querySelector('.card-summary').textContent).to.include(label);
+        });
+    }
+
+    it('does not present a pending publication request as confirmed because of an earlier published state', async () => {
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    action: 'publish',
+                    publicationStatus: 'PUBLISHED',
+                    publicationOutcome: 'pending',
+                    changes: [],
+                },
+            ],
+        });
+        const root = await mount();
+        expect(root.querySelector('.card-summary').textContent).to.include('Project publication pending');
+        expect(root.querySelector('.card-summary').textContent).not.to.include('Project published');
+    });
+
+    it('links duplicated history to its source project without displaying technical paths', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, action: 'duplicate', sourceProjectId: 'original-project' }],
+        });
+        const root = await mount();
+        const link = [...root.querySelectorAll('main a')].find((item) => item.textContent.includes('Open source project'));
+        const params = new URLSearchParams(link.hash.slice(1));
+        expect(params.get('page')).to.equal(PAGE_NAMES.PROMOTIONS_EDITOR);
+        expect(params.get('promotionId')).to.equal('original-project');
+        expect(root.querySelector('.card-summary').textContent).not.to.include('/content/dam/');
+    });
+
+    for (const action of ['publish', 'unpublish']) {
+        it(`clearly shows a failed ${action} instead of leaving it pending`, async () => {
+            client.listPromotionHistory.resolves({
+                events: [{ ...version, action, publicationOutcome: 'failed', changes: [] }],
+            });
+            const root = await mount();
+            expect(root.querySelector('.card-summary').textContent).to.include(
+                action === 'publish' ? 'Project publication failed' : 'Project unpublication failed',
+            );
+        });
+    }
+
+    it('refreshes pending publication status without losing selected restore fields', async () => {
+        const pending = { ...version, action: 'publish', publicationOutcome: 'pending', publicationStatus: 'MODIFIED' };
+        client.listPromotionHistory.onFirstCall().resolves({ events: [pending] });
+        client.listPromotionHistory.onSecondCall().resolves({
+            events: [{ ...pending, publicationOutcome: 'confirmed', publicationStatus: 'PUBLISHED' }],
+        });
+        const root = await mount();
+        element.toggleRows([element.eligibleRows[0]], true);
+        const selected = [...element.selectedFields];
+        await waitUntil(
+            () => root.querySelector('.card-summary').textContent.includes('Project published'),
+            'Publication history should refresh after AEM completes',
+            { timeout: 4500 },
+        );
+        expect([...element.selectedFields]).to.deep.equal(selected);
+        expect(root.querySelector('main').textContent).to.include('Project published');
+        expect(client.listPromotionHistory.secondCall.args[1].eventIds).to.deep.equal([pending.id]);
+    });
+
+    it('shows an explicit warning when the workflow result could not be verified', async () => {
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    action: 'publish',
+                    publicationOutcome: 'pending',
+                    publicationCheckError: 'Publication status could not be verified. Reload to retry.',
+                },
+            ],
+        });
+        const root = await mount();
+        expect(root.querySelector('main').textContent).to.include('Publication status could not be verified');
+    });
+
     describe('inherited variation changes', () => {
         const variationPath = '/content/dam/mas/sandbox/en_US/promotions/promo/card';
         const parent = {
@@ -356,6 +534,54 @@ describe('Promotion version history', () => {
             expect(getByPath.called).to.be.false;
         });
 
+        it('keeps state audit before context distinct from the saved after snapshot and restores inherited values', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            const saved = {
+                id: 'variation-1',
+                path: variationPath,
+                title: 'Variation',
+                fields: [{ name: 'cardTitle', values: [] }],
+            };
+            const afterInheritance = [{ ...inheritance[0], versionId: 'after-parent' }];
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...event,
+                        restoreMode: 'state',
+                        changes: [
+                            {
+                                fragmentId: saved.id,
+                                path: saved.path,
+                                field: 'cardTitle',
+                                before: [],
+                                after: [],
+                            },
+                        ],
+                        beforeContext: { inheritance },
+                        snapshot: {
+                            fragments: [{ id: saved.id, path: saved.path, versionId: 'saved' }],
+                            inheritance: afterInheritance,
+                        },
+                        afterSnapshot: {
+                            fragments: [{ id: saved.id, path: saved.path, versionId: 'saved' }],
+                            inheritance: afterInheritance,
+                        },
+                    },
+                ],
+            });
+            getVersion.withArgs(parent.id, 'after-parent').resolves({
+                ...parent,
+                fields: [{ name: 'cardTitle', values: ['Saved inherited title'] }],
+            });
+            getVersion.withArgs(saved.id, 'saved').resolves(saved);
+            const root = await mount();
+            const row = root.querySelector('[data-field="cardTitle"]');
+            expect(row.querySelector('.before').textContent).to.equal('Inherited title');
+            expect(row.querySelector('.after').textContent).to.equal('Saved inherited title');
+            expect(row.querySelector('sp-checkbox').disabled).to.be.false;
+            expect(getByPath.called).to.be.false;
+        });
+
         it('resolves legacy history through the existing promo source path candidates', async () => {
             await mount();
             const event = {
@@ -441,9 +667,29 @@ describe('Promotion version history', () => {
             ],
         });
         const root = await mount();
-        expect(root.querySelector('[data-field="geos"]').textContent).to.include('Arabic (Qatar)');
+        expect(root.querySelector('[data-field="geos"]').textContent).to.include('ar_QA');
         expect(root.querySelector('[data-field="startDate"]').textContent).to.include('October 1, 2026');
         expect(root.querySelector('[data-field="prices"] .after').textContent).to.equal('Price (annual)');
+    });
+
+    it('uses editor-style locale codes even when a historical tag has a localized title', async () => {
+        const tag = {
+            id: 'mas:locale/BG/bg_BG',
+            name: 'bg_BG',
+            title: 'Bulgarian (Bulgaria)',
+        };
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    snapshot: undefined,
+                    changes: [{ fragmentId: fragment.id, field: 'pznTags', before: [], after: [tag] }],
+                },
+            ],
+        });
+        const root = await mount();
+        expect(root.querySelector('[data-field="pznTags"] .after').textContent).to.equal('bg_BG');
+        expect(root.querySelector('main').textContent).not.to.include('Bulgarian');
     });
 
     it('warns explicitly when a historical parent snapshot cannot be read', async () => {
@@ -868,6 +1114,7 @@ describe('Promotion version history', () => {
             expect(root.querySelector('[data-field="@title"] .after').textContent).to.include('Wrong');
             expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
             expect(root.querySelector('[data-event-id="event-1"]').textContent).not.to.include('Read-only event');
+            expect(root.querySelector('main').textContent).to.include('Legacy entry');
             expect(root.querySelector('#restore-full')).to.be.null;
             element.requestRestore('full');
             expect(element.confirmation).to.equal('');

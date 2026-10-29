@@ -10,7 +10,6 @@ import { extractLocaleFromPath, extractSurfaceFromPath, resolvePromoVariationDef
 import { Fragment } from '../aem/fragment.js';
 import { getCachedTagTitle } from '../aem/tag-cache.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
-import { getCountryName, getLanguageName, parseLocaleCode } from '../locales.js';
 import { VARIANTS } from '../editors/variant-picker.js';
 import {
     getPromoNameFromPromoVariationPath,
@@ -18,7 +17,6 @@ import {
     resolveDefaultPathFromPromoVariation,
 } from './promotion-model.js';
 import * as historyClient from './promotion-audit.js';
-import { getSelectedCountries } from './promotion-countries.js';
 import { promotionHistoryStyles } from './mas-promotion-history.css.js';
 
 const categories = ['General info', 'Countries', 'Offers', 'Fragments'];
@@ -132,6 +130,7 @@ export class MasPromotionHistory extends LitElement {
         this.auditRetry = null;
         this.parentRequests = new Map();
         this.tagTitles = new Map();
+        this.publicationTimer = null;
         this.reactivity = new ReactiveController(this, [Store.profile, Store.users]);
     }
 
@@ -148,6 +147,7 @@ export class MasPromotionHistory extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        clearTimeout(this.publicationTimer);
         this.listRequest += 1;
         this.versionRequest += 1;
     }
@@ -163,7 +163,9 @@ export class MasPromotionHistory extends LitElement {
     }
 
     get restoreSnapshot() {
-        return this.selectedEvent?.beforeSnapshot ?? this.selectedEvent?.snapshot;
+        return this.selectedEvent?.restoreMode === 'state'
+            ? (this.selectedEvent.afterSnapshot ?? this.selectedEvent.snapshot)
+            : (this.selectedEvent?.beforeSnapshot ?? this.selectedEvent?.snapshot);
     }
 
     get eligibleRows() {
@@ -181,6 +183,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async loadHistory(append = false) {
+        clearTimeout(this.publicationTimer);
         const projectId = this.projectId;
         const request = ++this.listRequest;
         this.error = '';
@@ -215,6 +218,7 @@ export class MasPromotionHistory extends LitElement {
             page.events = await Promise.all(page.events.map((event) => this.preparePresentation(event)));
         } catch {
             if (request === this.listRequest) this.error = 'Could not load version history. Please retry.';
+            this.schedulePublicationRefresh();
             return;
         } finally {
             if (request === this.listRequest) this.loading = false;
@@ -230,6 +234,42 @@ export class MasPromotionHistory extends LitElement {
                     ?.id ?? '';
         }
         if (!append && this.events.length) await this.selectVersion(this.events[0]);
+        this.schedulePublicationRefresh();
+    }
+
+    schedulePublicationRefresh() {
+        clearTimeout(this.publicationTimer);
+        if (!this.isConnected || !this.events.some((event) => event.publicationOutcome === 'pending')) return;
+        this.publicationTimer = setTimeout(() => {
+            if (this.busy || this.confirmation) this.schedulePublicationRefresh();
+            else this.refreshPublications();
+        }, 3000);
+    }
+
+    async refreshPublications() {
+        const projectId = this.projectId;
+        const request = this.listRequest;
+        const pending = this.events.filter((event) => event.publicationOutcome === 'pending').map((event) => event.id);
+        try {
+            for (let offset = 0; offset < pending.length; offset += 100) {
+                const page = await this.client.listPromotionHistory(projectId, {
+                    eventIds: pending.slice(offset, offset + 100),
+                    limit: 100,
+                });
+                if (!this.isConnected || request !== this.listRequest) return;
+                const updates = new Map(page.events.map((event) => [event.id, event]));
+                this.events = this.events.map((event) => {
+                    const update = updates.get(event.id);
+                    return update ? { ...event, ...update, publicationCheckError: update.publicationCheckError } : event;
+                });
+                this.selectedEvent = this.events.find((event) => event.id === this.selectedEvent?.id) ?? null;
+                this.error = '';
+            }
+        } catch {
+            if (request === this.listRequest) this.error = 'Could not refresh publication status. Reload history to retry.';
+        } finally {
+            if (request === this.listRequest) this.schedulePublicationRefresh();
+        }
     }
 
     async retryPendingAudits() {
@@ -277,7 +317,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async preparePresentation(event) {
-        const beforeManifest = event.beforeSnapshot ?? event.snapshot;
+        const beforeManifest = event.restoreMode === 'state' ? event.beforeContext : (event.beforeSnapshot ?? event.snapshot);
         const unavailableParents = new Set(
             [...(beforeManifest?.inheritanceUnavailable ?? []), ...(event.afterSnapshot?.inheritanceUnavailable ?? [])].map(
                 (entry) => entry.fragmentId,
@@ -352,7 +392,7 @@ export class MasPromotionHistory extends LitElement {
         if (!event.displayChanges) event = await this.preparePresentation(event);
         if (request !== this.versionRequest) return;
         this.selectedEvent = event;
-        const entries = (event.beforeSnapshot ?? event.snapshot ?? event.afterSnapshot)?.fragments ?? [];
+        const entries = (this.restoreSnapshot ?? event.afterSnapshot)?.fragments ?? [];
         this.baselineLoading = entries.length > 0;
         const results = await Promise.allSettled(
             entries.map(async (entry) => {
@@ -407,7 +447,7 @@ export class MasPromotionHistory extends LitElement {
                 key,
                 category: categoryLabels.get(change.category?.toLowerCase()) ?? 'Fragments',
                 restorable: Boolean(
-                    (event.beforeSnapshot ?? event.snapshot) &&
+                    this.restoreSnapshot &&
                         fragment &&
                         !conflicted &&
                         (change.field.startsWith('@')
@@ -418,7 +458,11 @@ export class MasPromotionHistory extends LitElement {
                 before: change.before,
                 after:
                     fragment && this.restoreSnapshot && event.restoreMode !== 'undo'
-                        ? this.fieldValue(fragment, change.field)
+                        ? this.effectiveValue(
+                              this.fieldValue(fragment, change.field),
+                              change.field,
+                              event.afterParents?.get(change.fragmentId),
+                          )
                         : change.after,
             });
         }
@@ -440,7 +484,7 @@ export class MasPromotionHistory extends LitElement {
                     category: this.snapshotCategory(fragment.id, field),
                     restorable: true,
                     before: this.fieldValue(current.get(fragment.id), field),
-                    after: this.fieldValue(fragment, field),
+                    after: this.effectiveValue(this.fieldValue(fragment, field), field, event.afterParents?.get(fragment.id)),
                 });
             }
         }
@@ -519,17 +563,15 @@ export class MasPromotionHistory extends LitElement {
     formatValue(value, field = '') {
         if (Array.isArray(value)) return value.length ? value.map((item) => this.formatValue(item, field)).join('\n') : 'Empty';
         if (value === null || value === undefined || value === '') return 'Empty';
-        if (Object(value) === value) return value.title || value.label || value.name || 'Label unavailable';
         const id = normalizeTagId(value);
+        if (id.startsWith('mas:locale/') || ['geos', 'countries', 'pznTags'].includes(field)) {
+            return value.name || id.split('/').at(-1) || value.title || 'Label unavailable';
+        }
+        if (Object(value) === value) return value.title || value.label || value.name || 'Label unavailable';
         if (id.startsWith('mas:')) {
             const title = this.tagTitles.get(id) ?? getCachedTagTitle(id);
             if (title) return title;
-            if (id.startsWith('mas:locale/')) {
-                const [language, country] = parseLocaleCode(id.split('/').at(-1));
-                return `${getLanguageName(language)} (${getCountryName(country)})`;
-            }
-            const country = getSelectedCountries([id])[0];
-            return country ? getCountryName(country) : id.split('/').at(-1).replaceAll('-', ' ');
+            return id.split('/').at(-1).replaceAll('-', ' ');
         }
         if (String(value).startsWith('/content/dam/')) {
             return this.historicalFragments.find((fragment) => fragment.path === value)?.title ?? value.split('/').at(-1);
@@ -560,6 +602,38 @@ export class MasPromotionHistory extends LitElement {
 
     versionLabel(event) {
         return `Version ${event.version}`;
+    }
+
+    eventLabel(event) {
+        const project = (event.targetId ?? event.projectId) === event.projectId;
+        const subject = project ? 'Project' : 'Promo variation';
+        if (event.action === 'create') return `${subject} created`;
+        if (event.action === 'duplicate') return `${subject} duplicated`;
+        if (event.action === 'restore') return 'Selected fields restored';
+        if (event.action === 'publish') {
+            if (event.publicationOutcome === 'failed') return `${subject} publication failed`;
+            if (event.publicationOperation?.status === 'SCHEDULED') return `${subject} publication scheduled`;
+            if (
+                !event.publicationOperation &&
+                event.publicationOutcome !== 'pending' &&
+                event.publicationStatus === 'PUBLISHED'
+            ) {
+                return `${subject} published`;
+            }
+            return `${subject} publication pending`;
+        }
+        if (event.action === 'unpublish') {
+            if (event.publicationOutcome === 'failed') return `${subject} unpublication failed`;
+            if (event.publicationOperation?.status === 'SCHEDULED') return `${subject} unpublication scheduled`;
+            return `${subject} ${
+                !event.publicationOperation &&
+                event.publicationOutcome !== 'pending' &&
+                event.publicationStatus === 'UNPUBLISHED'
+                    ? 'unpublished'
+                    : 'unpublication pending'
+            }`;
+        }
+        return 'Changes saved';
     }
 
     toggleGroup(label) {
@@ -704,18 +778,19 @@ export class MasPromotionHistory extends LitElement {
                     by ${event.user.name || event.user.email || event.user.id}
                 </strong>
                 <span class="card-summary">
-                    ${event.action === 'create'
-                        ? (event.targetId ?? event.projectId) === event.projectId
-                            ? 'Project created'
-                            : 'Promo variation created'
-                        : html`
+                    ${event.action !== 'save' ? html`<span>${this.eventLabel(event)}</span>` : nothing}
+                    ${event.action !== 'create' && changes.length
+                        ? html`
                               <span>${changes.length} change${changes.length === 1 ? '' : 's'}</span>
                               ${repeat(
                                   labels,
                                   (label) => label,
                                   (label) => html`<span class="category-tag">${label}</span>`,
                               )}
-                          `}
+                          `
+                        : event.action === 'save'
+                          ? this.eventLabel(event)
+                          : nothing}
                 </span>
             </button>
         `;
@@ -773,7 +848,7 @@ export class MasPromotionHistory extends LitElement {
                 ${unavailable ? html`<small class="row-warning">Unavailable — cannot restore</small>` : nothing}
                 ${row.conflicted
                     ? html`<small class="row-warning">This field has changed since this event. Review newer changes.</small>`
-                    : !row.restorable && !unavailable && this.selectedEvent.snapshot
+                    : !row.restorable && !unavailable && this.restoreSnapshot
                       ? html`<small class="row-warning">Field is not present in this saved snapshot</small>`
                       : nothing}
             </div>
@@ -859,6 +934,22 @@ export class MasPromotionHistory extends LitElement {
                         by ${this.selectedEvent.user.name || this.selectedEvent.user.email || this.selectedEvent.user.id}
                     </p>
                     <h2>${this.versionLabel(this.selectedEvent)}</h2>
+                    <p class="version-meta">${this.eventLabel(this.selectedEvent)}</p>
+                    ${this.selectedEvent.restoreMode === 'state'
+                        ? html`<p class="version-meta">Restore uses the saved state of this version.</p>`
+                        : this.selectedEvent.restoreMode === 'undo'
+                          ? html`<p class="version-meta">Legacy entry: Restore undoes the selected changes.</p>`
+                          : nothing}
+                    ${this.selectedEvent.sourceProjectId
+                        ? html`<a
+                              class="fragment-link"
+                              href=${`#${new URLSearchParams({
+                                  page: PAGE_NAMES.PROMOTIONS_EDITOR,
+                                  promotionId: this.selectedEvent.sourceProjectId,
+                              })}`}
+                              >Open source project</a
+                          >`
+                        : nothing}
                 </div>
                 <div class="selection-toolbar">
                     <sp-checkbox
@@ -880,6 +971,9 @@ export class MasPromotionHistory extends LitElement {
             </div>
             ${this.selectedEvent.comparisonWarning
                 ? html`<p class="row-warning">${this.selectedEvent.comparisonWarning}</p>`
+                : nothing}
+            ${this.selectedEvent.publicationCheckError
+                ? html`<p class="row-warning">${this.selectedEvent.publicationCheckError}</p>`
                 : nothing}
             ${this.baselineLoading
                 ? html`<div class="loading">
@@ -914,7 +1008,11 @@ export class MasPromotionHistory extends LitElement {
                     this.confirmation = '';
                 }}
             >
-                <p>Do you want to continue to restore selected changes?</p>
+                <p>
+                    ${this.selectedEvent.restoreMode === 'state'
+                        ? `Restore selected fields to the saved state of ${this.versionLabel(this.selectedEvent)}? Only the draft will be updated.`
+                        : 'Do you want to continue to restore selected changes?'}
+                </p>
             </sp-dialog-wrapper>
         `;
     }

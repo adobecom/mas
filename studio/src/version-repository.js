@@ -1,4 +1,5 @@
 import Events from './events.js';
+import { restoreVersionFields } from './common/utils/fragment-version.js';
 
 /**
  * Repository for version-related data operations.
@@ -96,13 +97,12 @@ export class VersionRepository {
             let fieldsArray = denormalizeFields(normalizedFields, currentFragment);
 
             // Preserve the current fragment's variations field so restored versions don't wipe locale variation.
-            const currentVariationsField = currentFragment.fields?.find((f) => f.name === 'variations');
-            if (currentVariationsField) {
-                const withoutVariations = fieldsArray.filter((f) => f.name !== 'variations');
-                fieldsArray = [
-                    ...withoutVariations,
-                    { ...currentVariationsField, values: currentVariationsField.values || [] },
-                ];
+            if (currentFragment.fields?.some((field) => field.name === 'variations')) {
+                fieldsArray = restoreVersionFields(
+                    fieldsArray.filter((field) => field.name !== 'variations'),
+                    currentFragment.fields,
+                    ['variations'],
+                );
             }
 
             // Extract fragment title and description from normalized fields

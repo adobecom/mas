@@ -36,6 +36,16 @@ describe('Promotion history web actions', () => {
         expect(result.body).to.deep.equal({ error: 'Conflict' });
     });
 
+    it('allows optional source project provenance through the request whitelist', async () => {
+        await handle('record', { action: 'duplicate', sourceProjectId: 'source-project' });
+        expect(execute.firstCall.args[1].sourceProjectId).to.equal('source-project');
+    });
+
+    it('allows an optional completion ETag through the request whitelist', async () => {
+        await handle('record', { phase: 'complete', completionEtag: '"saved-result"' });
+        expect(execute.firstCall.args[1].completionEtag).to.equal('"saved-result"');
+    });
+
     it('exposes post-write auditPending and partial restore results at the HTTP body top level', async () => {
         const partial = {
             restored: ['confirmed-fragment'],

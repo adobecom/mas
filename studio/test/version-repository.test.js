@@ -2,6 +2,75 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { VersionRepository } from '../src/version-repository.js';
 import Events from '../src/events.js';
+import { compareVersionValues, restoreVersionFields, versionFieldValues } from '../src/common/utils/fragment-version.js';
+import { calculateDifferences } from '../src/utils/version-transformer.js';
+
+describe('shared fragment version operations', () => {
+    it('preserves ordinary fragment comparison inputs and its tag-label comparison', () => {
+        const current = { fields: { tags: ['mas:first/shared'], title: 'Current' } };
+        const historical = { fields: { tags: ['mas:second/shared'] } };
+        expect(calculateDifferences(current, historical)).to.deep.equal([
+            { field: 'title', currentValue: 'Current', selectedValue: undefined },
+        ]);
+        expect(current.fields.tags).to.deep.equal(['mas:first/shared']);
+        expect(historical.fields).to.deep.equal({ tags: ['mas:second/shared'] });
+    });
+
+    it('compares raw inheritance markers without shortening tag IDs', () => {
+        const before = versionFieldValues({
+            fields: [
+                { name: 'cardTitle', values: [] },
+                { name: 'badge', values: ['<explicit_empty/>'] },
+                { name: 'tags', values: ['mas:first/shared'] },
+            ],
+        });
+        const after = versionFieldValues({
+            fields: [
+                { name: 'cardTitle', values: ['Override'] },
+                { name: 'badge', values: ['<explicit_empty/>'] },
+                { name: 'tags', values: ['mas:second/shared'] },
+            ],
+        });
+        expect(compareVersionValues(before, after)).to.deep.equal([
+            { field: 'cardTitle', before: [], after: ['Override'] },
+            { field: 'tags', before: ['mas:first/shared'], after: ['mas:second/shared'] },
+        ]);
+    });
+
+    it('supports an explicit absent-field representation for audit differences', () => {
+        expect(compareVersionValues(new Map(), new Map([['title', ['Created']]]), null)).to.deep.equal([
+            { field: 'title', before: null, after: ['Created'] },
+        ]);
+    });
+
+    it('restores selected raw values without changing other fields or the source snapshot', () => {
+        const current = [
+            { name: 'cardTitle', type: 'text', values: ['Override'] },
+            { name: 'badge', type: 'text', values: ['Current badge'] },
+            { name: 'variations', values: ['/current-variation'] },
+        ];
+        const historical = [
+            { name: 'cardTitle', type: 'text', values: [] },
+            { name: 'badge', type: 'text', values: ['<explicit_empty/>'] },
+            { name: 'variations', values: ['/old-variation'] },
+        ];
+        const result = restoreVersionFields(current, historical, ['cardTitle', 'badge']);
+        expect(result).to.deep.equal([
+            { name: 'cardTitle', type: 'text', values: [] },
+            { name: 'badge', type: 'text', values: ['<explicit_empty/>'] },
+            { name: 'variations', values: ['/current-variation'] },
+        ]);
+        result[0].values.push('New edit');
+        expect(historical[0].values).to.deep.equal([]);
+        expect(current[0].values).to.deep.equal(['Override']);
+    });
+
+    it('restores a historical field absent from the current fragment', () => {
+        expect(
+            restoreVersionFields([], [{ name: 'removedField', type: 'text', multiple: true, values: [''] }], ['removedField']),
+        ).to.deep.equal([{ name: 'removedField', type: 'text', multiple: true, values: [''] }]);
+    });
+});
 
 describe('VersionRepository', () => {
     let sandbox;

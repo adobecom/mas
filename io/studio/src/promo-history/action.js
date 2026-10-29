@@ -5,6 +5,9 @@ const REQUEST_FIELDS = [
     'action',
     'targetId',
     'targetPath',
+    'sourceProjectId',
+    'completionEtag',
+    'workflowInstanceId',
     'requestId',
     'phase',
     'intentId',
@@ -17,6 +20,7 @@ const REQUEST_FIELDS = [
     'limit',
     'label',
     'eventId',
+    'eventIds',
     'selections',
     'expected',
 ];

@@ -4,6 +4,11 @@ const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken, isAllowed } = require('../../utils.js');
 const { DEFAULT_LOCALES } = require('../locales.js');
+const {
+    versionFieldValues,
+    compareVersionValues,
+    restoreVersionFields,
+} = require('../../../../studio/src/common/utils/fragment-version.js');
 
 const logger = Core.Logger('promo-history', { level: 'info' });
 const RETENTION = 95 * 86400;
@@ -15,6 +20,7 @@ const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
 const ACTIONS = new Set(['create', 'save', 'delete', 'duplicate', 'publish', 'unpublish']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+const VARIATION_PATH = /^\/content\/dam\/mas\/[\w-]+\/[\w-]+\/promotions\//;
 
 function fail(statusCode, message) {
     throw Object.assign(new Error(message), { statusCode });
@@ -96,15 +102,15 @@ function endpoint(params) {
     return url.origin;
 }
 
-async function aem(context, suffix, options = {}) {
-    const response = await fetch(`${context.endpoint}/adobe/sites/cf/fragments${suffix}`, {
+async function aem(context, suffix, options = {}, resource = 'fragments') {
+    const response = await fetch(`${context.endpoint}/adobe/sites/cf/${resource}${suffix}`, {
         ...options,
         headers: { Authorization: `Bearer ${context.token}`, Accept: 'application/json', ...options.headers },
         redirect: 'error',
         signal: AbortSignal.timeout(15000),
     });
     if (!response.ok) {
-        const url = new URL(`${context.endpoint}/adobe/sites/cf/fragments${suffix}`);
+        const url = new URL(`${context.endpoint}/adobe/sites/cf/${resource}${suffix}`);
         logger.error(
             JSON.stringify({
                 event: 'promo-history-aem-request-failed',
@@ -162,8 +168,7 @@ function promotionNames(project) {
 function ownVariation(project, fragment) {
     return promotionNames(project).some((name) => {
         return (
-            /^\/content\/dam\/mas\/[\w-]+\/[\w-]+\/promotions\//.test(fragment.path) &&
-            fragment.path.split('/').slice(6).join('/').startsWith(`promotions/${name}/`)
+            VARIATION_PATH.test(fragment.path) && fragment.path.split('/').slice(6).join('/').startsWith(`promotions/${name}/`)
         );
     });
 }
@@ -209,26 +214,48 @@ async function readSnapshot(context, manifest) {
 async function versionSnapshot(context, current) {
     const fragments = [];
     for (const fragment of current.fragments) {
-        const response = await aem(context, `/${identifier(fragment.id)}/versions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ comment: `Promotion history: ${context.requestId}` }),
-        });
-        const location = response.headers.get('location');
-        if (!location) fail(502, 'AEM did not return the created version');
-        const versionUrl = new URL(location, context.endpoint);
-        const prefix = `/adobe/sites/cf/fragments/${fragment.id}/versions/`;
-        if (versionUrl.origin !== context.endpoint || !versionUrl.pathname.startsWith(prefix)) {
-            fail(502, 'AEM returned an invalid version location');
+        let entry = context.capture?.versions.find((entry) => entry.id === fragment.id);
+        if (!entry) {
+            if (context.capture?.creating) fail(503, 'AEM version creation could not be verified; review the pending audit');
+            if (context.capture) {
+                context.capture.creating = fragment.id;
+                await saveCapture(context);
+            }
+            let response;
+            try {
+                response = await aem(context, `/${identifier(fragment.id)}/versions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ comment: `Promotion history: ${context.requestId}` }),
+                });
+            } catch (error) {
+                if (context.capture && error.statusCode) {
+                    delete context.capture.creating;
+                    await saveCapture(context);
+                }
+                throw error;
+            }
+            const location = response.headers.get('location');
+            if (!location) fail(502, 'AEM did not return the created version');
+            const versionUrl = new URL(location, context.endpoint);
+            const prefix = `/adobe/sites/cf/fragments/${fragment.id}/versions/`;
+            if (versionUrl.origin !== context.endpoint || !versionUrl.pathname.startsWith(prefix)) {
+                fail(502, 'AEM returned an invalid version location');
+            }
+            const versionId = decodeURIComponent(versionUrl.pathname.slice(prefix.length));
+            if (!versionId || versionId.includes('/')) fail(502, 'AEM returned an invalid version ID');
+            entry = {
+                id: fragment.id,
+                path: fragment.path,
+                versionId,
+                ...(fragment.status ? { status: fragment.status } : {}),
+            };
+            if (context.capture) {
+                context.capture.versions.push(entry);
+                delete context.capture.creating;
+                await saveCapture(context);
+            }
         }
-        const versionId = decodeURIComponent(versionUrl.pathname.slice(prefix.length));
-        if (!versionId || versionId.includes('/')) fail(502, 'AEM returned an invalid version ID');
-        const entry = {
-            id: fragment.id,
-            path: fragment.path,
-            versionId,
-            ...(fragment.status ? { status: fragment.status } : {}),
-        };
         const historical = await readVersion(context, entry, [250, 500, 1000]);
         if (diff({ fragments: [fragment] }, { fragments: [historical] }).length) {
             fail(409, 'Fragment changed while creating its AEM version; reload and retry');
@@ -237,7 +264,16 @@ async function versionSnapshot(context, current) {
     }
     const confirmed = { fragments: [] };
     for (const fragment of current.fragments) confirmed.fragments.push((await readFragment(context, fragment.id)).fragment);
-    if (diff(current, confirmed).length) fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+    if (
+        diff(current, confirmed).length ||
+        current.fragments.some((fragment, index) => {
+            const live = confirmed.fragments[index];
+            return (
+                live.path !== fragment.path || (live.status !== fragment.status && fragment.id !== context.publicationTarget)
+            );
+        })
+    )
+        fail(409, 'Fragment changed while creating its AEM version; reload and retry');
     return { fragments };
 }
 
@@ -281,6 +317,10 @@ async function groupedInheritanceParent(context, sourcePath) {
 
 async function historySnapshot(context, current) {
     const snapshot = await versionSnapshot(context, current);
+    return { ...snapshot, ...(await inheritanceContext(context, current)) };
+}
+
+async function inheritanceContext(context, current) {
     const sources = new Map();
     for (const path of references(context.project)) {
         const match = /^(\/content\/dam\/mas\/[\w-]+\/[\w-]+)\/(.+)$/.exec(pathValue(path));
@@ -309,7 +349,6 @@ async function historySnapshot(context, current) {
         inheritance.push({ fragmentId: fragment.id, ...manifest.fragments[0] });
     }
     return {
-        ...snapshot,
         ...(inheritance.length ? { inheritance } : {}),
         ...(inheritanceUnavailable.length ? { inheritanceUnavailable } : {}),
     };
@@ -337,11 +376,7 @@ async function auditTarget(context, params) {
     const project = context.project;
     if (params.targetPath) {
         pathValue(params.targetPath);
-        if (
-            params.targetPath !== project.path &&
-            !ownVariation(project, { path: params.targetPath }) &&
-            !references(project).includes(params.targetPath)
-        )
+        if (params.targetPath !== project.path && !ownVariation(project, { path: params.targetPath }))
             fail(403, 'Target path is outside this promotion project');
     }
     let target = project;
@@ -356,7 +391,7 @@ async function auditTarget(context, params) {
         target = ['create', 'duplicate'].includes(params.action) ? null : await readPath(context, params.targetPath);
     }
     if (target) {
-        if (target.id !== project.id && !ownVariation(project, target) && !references(project).includes(target.path)) {
+        if (target.id !== project.id && !ownVariation(project, target)) {
             fail(403, 'Target is outside this promotion project');
         }
         if (params.targetPath && params.targetPath !== target.path) fail(403, 'Target path does not match the fragment');
@@ -374,13 +409,20 @@ function namespace(projectId, kind) {
     return `promo-history.${projectId}.${kind}.`;
 }
 
-async function readEntries(state, projectId, kind = 'event') {
+async function readEntries(state, projectId, kind = 'event', storageKeys) {
     const result = [];
     for await (const { keys } of state.list({ match: `${namespace(projectId, kind)}*` })) {
         for (const key of keys) {
             if (result.length >= MAX_ENTRIES * 2) fail(507, 'Project history capacity reached');
             const entry = await state.get(key);
-            if (entry?.value) result.push(JSON.parse(entry.value));
+            if (entry?.value) {
+                const value = JSON.parse(entry.value);
+                result.push(value);
+                if (storageKeys) {
+                    if (!storageKeys.has(value.id)) storageKeys.set(value.id, []);
+                    storageKeys.get(value.id).push(key);
+                }
+            }
         }
     }
     result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -401,13 +443,7 @@ function stableId(context, kind) {
 }
 
 function changeValues(fragment) {
-    if (!fragment) return new Map();
-    return new Map([
-        ['@title', fragment.title ?? ''],
-        ['@description', fragment.description ?? ''],
-        ['@tags', fragment.tags ?? []],
-        ...(fragment.fields ?? []).map((field) => [field.name, field.values]),
-    ]);
+    return versionFieldValues(fragment);
 }
 
 function diff(before, after) {
@@ -417,10 +453,7 @@ function diff(before, after) {
     for (const id of new Set([...old.keys(), ...current.keys()])) {
         const previous = changeValues(old.get(id));
         const next = changeValues(current.get(id));
-        for (const field of new Set([...previous.keys(), ...next.keys()])) {
-            const beforeValue = previous.get(field) ?? null;
-            const afterValue = next.get(field) ?? null;
-            if (JSON.stringify(beforeValue) === JSON.stringify(afterValue)) continue;
+        for (const { field, before: beforeValue, after: afterValue } of compareVersionValues(previous, next, null)) {
             changes.push({
                 id: `${id}:${field}`,
                 fragmentId: id,
@@ -472,6 +505,93 @@ async function writeEvent(context, action, before, after, extra = {}) {
     return { event };
 }
 
+async function saveCapture(context) {
+    await context.state.put(
+        `${namespace(context.projectId, 'completion')}${stableId(context, 'completion')}`,
+        bounded(context.capture),
+        { ttl: INTENT_RETENTION },
+    );
+}
+
+async function stateEvent(context, action, before, target, extra = {}) {
+    const publication = ['publish', 'unpublish'].includes(action);
+    context.publicationTarget = publication ? target.id : undefined;
+    const key = `${namespace(context.projectId, 'completion')}${stableId(context, 'completion')}`;
+    const pending = await context.state.get(key);
+    const { fragment, etag } = await readFragment(context, target.id);
+    if (context.completionEtag !== undefined && context.completionEtag !== etag) {
+        throw Object.assign(new Error('Completed fragment changed; the original operation result cannot be captured'), {
+            statusCode: 409,
+            result: { auditPending: true },
+        });
+    }
+    const after = auditSnapshot(fragment);
+    if (
+        fragment.path !== target.path ||
+        (publication
+            ? diff(auditSnapshot(target), after).length
+            : JSON.stringify(after) !== JSON.stringify(auditSnapshot(target)))
+    ) {
+        fail(409, 'Audit target changed before capture; reload before continuing');
+    }
+    if (!etag) fail(409, 'AEM did not provide a completion concurrency token');
+    if (pending?.value) {
+        context.capture = JSON.parse(pending.value);
+        if (
+            context.capture.action !== action ||
+            context.capture.intentId !== extra.intentId ||
+            context.capture.sourceProjectId !== extra.sourceProjectId ||
+            context.capture.workflowInstanceId !== extra.workflowInstanceId ||
+            (publication
+                ? diff(context.capture.after, after).length
+                : context.capture.etag !== etag || JSON.stringify(context.capture.after) !== JSON.stringify(after))
+        )
+            throw Object.assign(new Error('Pending audit target changed; the original completion cannot be verified'), {
+                statusCode: 409,
+                result: { auditPending: true },
+            });
+        before = context.capture.before;
+    } else {
+        context.capture = {
+            action,
+            intentId: extra.intentId,
+            sourceProjectId: extra.sourceProjectId,
+            workflowInstanceId: extra.workflowInstanceId,
+            before,
+            after,
+            etag,
+            versions: [],
+        };
+    }
+    try {
+        await saveCapture(context);
+        if (!context.capture.snapshot) {
+            context.capture.snapshot = await historySnapshot(context, { fragments: [fragment] });
+            await saveCapture(context);
+        }
+        return await writeEvent(context, action, before, after, {
+            beforeContext: {},
+            ...extra,
+            restoreMode: 'state',
+            afterSnapshot: context.capture.snapshot,
+            snapshot: context.capture.snapshot,
+        });
+    } catch {
+        throw Object.assign(new Error('Content operation finished but history capture failed; audit completion is pending'), {
+            statusCode: 503,
+            result: { auditPending: true },
+        });
+    }
+}
+
+async function duplicateSource(context, params) {
+    if (params.sourceProjectId === undefined) return {};
+    if (params.action !== 'duplicate') fail(400, 'Source project is only valid for duplication');
+    const { fragment } = await readFragment(context, identifier(params.sourceProjectId));
+    assertProject(fragment);
+    return { sourceProjectId: fragment.id };
+}
+
 async function record(context, params) {
     if (params.phase === 'complete') {
         identifier(params.intentId);
@@ -503,6 +623,8 @@ async function record(context, params) {
             if (error.statusCode !== 404 || intent.action !== 'delete') throw error;
         }
         if (target && target.path !== intent.targetPath) fail(409, 'Audit target moved; reload before continuing');
+        if (target && target.id !== context.projectId && !ownVariation(project, target))
+            fail(403, 'Target is outside this promotion project');
         if (target) context.targetId = target.id;
         if (params.targetId && params.targetId !== context.targetId) fail(403, 'Completed target does not match intent');
         const after = auditSnapshot(target);
@@ -517,21 +639,30 @@ async function record(context, params) {
         if (['save', 'create', 'duplicate', 'delete'].includes(intent.action) && !changes.length) {
             fail(409, 'No server-observed content change');
         }
-        if (['publish', 'unpublish'].includes(intent.action)) {
-            const oldTarget = before.fragments.find((fragment) => fragment.id === context.targetId);
-            const newTarget = after.fragments.find((fragment) => fragment.id === context.targetId);
-            if (!newTarget || oldTarget?.status === newTarget.status) fail(409, 'No server-observed publication change');
-        }
-        return writeEvent(context, intent.action, before, after, {
+        const extra = {
             intentId: intent.id,
             changes: changes.filter((change) => change.fragmentId === context.targetId),
-            ...(intent.snapshot ? { snapshot: intent.snapshot, beforeSnapshot: intent.snapshot, restoreMode: 'undo' } : {}),
-            ...(['save', 'create', 'duplicate'].includes(intent.action) &&
-            target &&
-            (target.id === context.projectId || ownVariation(project, target))
-                ? { afterSnapshot: await historySnapshot(context, { fragments: [target] }) }
-                : {}),
-        });
+            ...(intent.sourceProjectId ? { sourceProjectId: intent.sourceProjectId } : {}),
+            ...(intent.beforeContext ? { beforeContext: intent.beforeContext } : {}),
+        };
+        if (['publish', 'unpublish'].includes(intent.action)) {
+            if (params.workflowInstanceId !== undefined) extra.workflowInstanceId = params.workflowInstanceId;
+            const oldTarget = before.fragments.find((fragment) => fragment.id === context.targetId);
+            const operation = target.operations?.replication;
+            const terminal = operation == null && target.status === (intent.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED');
+            if (target.status !== undefined) extra.publicationStatus = target.status;
+            if (operation != null) extra.publicationOperation = operation;
+            extra.publicationOutcome =
+                !params.workflowInstanceId && terminal && oldTarget?.status !== target.status ? 'confirmed' : 'pending';
+        }
+        if (params.sourceProjectId !== undefined) {
+            if (intent.sourceProjectId && params.sourceProjectId !== intent.sourceProjectId)
+                fail(409, 'Source project does not match intent');
+            Object.assign(extra, await duplicateSource(context, { ...params, action: intent.action }));
+        }
+        return target
+            ? stateEvent(context, intent.action, before, target, extra)
+            : writeEvent(context, intent.action, before, after, extra);
     }
     if (!ACTIONS.has(params.action)) fail(400, 'Invalid audit action');
     if (!params.phase) {
@@ -540,11 +671,7 @@ async function record(context, params) {
         if (!target) fail(404, 'Created fragment is not available');
         context.targetId = target.id;
         context.targetPath = target.path;
-        return writeEvent(context, params.action, { fragments: [] }, auditSnapshot(target), {
-            ...(target.id === context.projectId || ownVariation(context.project, target)
-                ? { afterSnapshot: await historySnapshot(context, { fragments: [target] }) }
-                : {}),
-        });
+        return stateEvent(context, params.action, { fragments: [] }, target, await duplicateSource(context, params));
     }
     if (params.phase !== 'prepare') fail(400, 'Invalid record phase');
     const intents = await readEntries(context.state, context.projectId, 'intent');
@@ -552,6 +679,7 @@ async function record(context, params) {
     if (existing) {
         if (
             existing.action !== params.action ||
+            existing.sourceProjectId !== params.sourceProjectId ||
             (params.targetId && existing.targetId !== params.targetId) ||
             (params.targetPath && existing.targetPath !== params.targetPath)
         )
@@ -562,9 +690,10 @@ async function record(context, params) {
     const target = await auditTarget(context, params);
     const current = auditSnapshot(target);
     const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
-    const manifest =
-        params.action === 'save' && target && (target.id === context.projectId || ownVariation(context.project, target))
-            ? await historySnapshot(context, { fragments: [target] })
+    const provenance = await duplicateSource(context, params);
+    const beforeContext =
+        target && ['save', 'publish', 'unpublish'].includes(params.action)
+            ? await inheritanceContext(context, { fragments: [target] })
             : null;
     const intent = {
         id: stableId(context, 'intent'),
@@ -576,7 +705,8 @@ async function record(context, params) {
         targetId: target?.id ?? null,
         targetPath: params.targetPath ?? target?.path,
         before,
-        ...(manifest ? { snapshot: manifest } : {}),
+        ...provenance,
+        ...(beforeContext ? { beforeContext } : {}),
         ...(params.action === 'delete'
             ? {
                   changes: diff(current, { fragments: [] }).filter(
@@ -593,6 +723,11 @@ async function record(context, params) {
 function list(events, params) {
     const limit = params.limit ?? 30;
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid history limit');
+    if (params.eventIds !== undefined) {
+        if (!Array.isArray(params.eventIds) || !params.eventIds.length || params.eventIds.length > 100)
+            fail(400, 'Invalid history event IDs');
+        for (const id of params.eventIds) identifier(id);
+    }
     for (const name of ['from', 'to']) {
         if (params[name] && !Number.isFinite(Date.parse(params[name]))) fail(400, `Invalid ${name} date`);
     }
@@ -602,6 +737,7 @@ function list(events, params) {
         .map((event, index) => ({ ...event, version: index + 1 }))
         .filter(
             (event) =>
+                (!params.eventIds || params.eventIds.includes(event.id)) &&
                 (!params.user || [event.user.id, event.user.email].includes(params.user)) &&
                 (!params.action || event.action === params.action) &&
                 (!params.fragmentId ||
@@ -623,6 +759,65 @@ function list(events, params) {
     return { events: page, ...(filtered.length > limit ? { cursor: `${last.createdAt}|${last.id}` } : {}) };
 }
 
+function promotionEvents(context, events) {
+    return events
+        .filter(
+            (event) => (event.targetId ?? event.projectId) === context.projectId || VARIATION_PATH.test(event.targetPath ?? ''),
+        )
+        .map((event) => ({
+            ...event,
+            changes: event.changes.filter(
+                (change) =>
+                    change.fragmentId === context.projectId ||
+                    VARIATION_PATH.test(change.path ?? (change.fragmentId === event.targetId ? event.targetPath : '')),
+            ),
+        }));
+}
+
+function publicationResult(event, workflow, fragment) {
+    if (
+        workflow?.invalidFragments?.some((item) => item.fragmentPath === event.targetPath) ||
+        (workflow?.end && workflow.state !== 'COMPLETED')
+    ) {
+        return { publicationOutcome: 'failed', publicationOperation: null };
+    }
+    const operation = fragment.operations?.replication ?? null;
+    const confirmed =
+        !operation &&
+        fragment.status === (event.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED') &&
+        (workflow ? workflow.state === 'COMPLETED' : fragment.status !== event.publicationStatus);
+    return {
+        publicationOutcome: confirmed ? 'confirmed' : 'pending',
+        publicationStatus: fragment.status,
+        publicationOperation: operation,
+    };
+}
+
+async function refreshPublication(context, event) {
+    if (!['publish', 'unpublish'].includes(event.action) || event.publicationOutcome !== 'pending') return event;
+    try {
+        const workflow = event.workflowInstanceId
+            ? await (await aem(context, `/${encodeURIComponent(event.workflowInstanceId)}`, {}, 'workflows')).json()
+            : null;
+        if (workflow && workflow.type !== `${event.action}-fragments`) fail(409, 'Publication workflow type does not match');
+        const { fragment } = await readFragment(context, event.targetId ?? event.projectId);
+        if (fragment.path !== event.targetPath) fail(409, 'Publication target moved');
+        const updated = { ...event, ...publicationResult(event, workflow, fragment) };
+        if (updated.publicationOutcome !== 'pending') {
+            for (const key of context.eventKeys.get(event.id)) {
+                await context.state.put(key, bounded(updated), {
+                    ttl: Math.max(1, Math.ceil((Date.parse(event.createdAt) + RETENTION * 1000 - Date.now()) / 1000)),
+                });
+            }
+        }
+        return updated;
+    } catch (error) {
+        if ([401, 403].includes(error.statusCode)) throw error;
+        logger.error('Promotion publication status could not be refreshed');
+        return { ...event, publicationCheckError: 'Publication status could not be verified. Reload to retry.' };
+    }
+}
+
 function restorePayload(current, historical, fields) {
     const chosen = new Set(fields ?? [...changeValues(historical).keys()]);
     const known = changeValues(historical);
@@ -631,14 +826,8 @@ function restorePayload(current, historical, fields) {
         title: chosen.has('@title') ? (historical.title ?? '') : (current.title ?? ''),
         description: chosen.has('@description') ? (historical.description ?? '') : (current.description ?? ''),
         tags: chosen.has('@tags') ? (historical.tags ?? []) : (current.tags ?? []),
-        fields: current.fields.map((field) =>
-            chosen.has(field.name) ? { ...field, values: structuredClone(known.get(field.name)) } : field,
-        ),
+        fields: restoreVersionFields(current.fields, historical.fields, chosen),
     };
-    for (const field of historical.fields) {
-        if (chosen.has(field.name) && !payload.fields.some((f) => f.name === field.name))
-            payload.fields.push(structuredClone(field));
-    }
     if (fields === undefined) payload.fields = structuredClone(historical.fields);
     return payload;
 }
@@ -699,18 +888,27 @@ async function writeDraft(context, item) {
 
 async function restore(context, params, events) {
     const source = events.find((event) => event.id === params.eventId);
-    if (!source?.snapshot?.fragments?.length) fail(404, 'Historical snapshot missing');
+    const snapshot = source?.restoreMode === 'state' ? source.afterSnapshot : source?.snapshot;
+    if (!snapshot?.fragments?.length) fail(404, 'Historical snapshot missing');
+    const restoreKey = `${namespace(context.projectId, 'restore-intent')}${stableId(context, 'restore-intent')}`;
+    const pending = (await readEntries(context.state, context.projectId, 'restore-intent')).find(
+        (entry) => entry.requestId === context.requestId && entry.user.id === context.user.id,
+    );
+    if (pending) {
+        throw Object.assign(new Error('Restore was already attempted; review its pending audit before retrying'), {
+            statusCode: 409,
+            result: { auditPending: true },
+        });
+    }
     if (!Array.isArray(params.expected) || params.expected.length > MAX_FRAGMENTS) fail(400, 'Expected ETags required');
-    const selections = params.selections ?? source.snapshot.fragments.map(({ id }) => ({ fragmentId: id }));
+    const selections = params.selections ?? snapshot.fragments.map(({ id }) => ({ fragmentId: id }));
     if (!Array.isArray(selections) || !selections.length || selections.length > MAX_FRAGMENTS)
         fail(400, 'Invalid restore selections');
     const selectedIds = selections.map(({ fragmentId }) => identifier(fragmentId));
     if (new Set(selectedIds).size !== selectedIds.length) fail(400, 'Duplicate restore target');
     const historicalSnapshot = await readSnapshot(context, {
-        ...source.snapshot,
-        fragments: source.snapshot.fragments.filter(
-            (entry) => entry.id === context.projectId || selectedIds.includes(entry.id),
-        ),
+        ...snapshot,
+        fragments: snapshot.fragments.filter((entry) => entry.id === context.projectId || selectedIds.includes(entry.id)),
     });
     const historicalProject =
         historicalSnapshot.fragments.find((fragment) => fragment.id === context.projectId) ?? context.project;
@@ -727,12 +925,19 @@ async function restore(context, params, events) {
             fail(400, 'Invalid selected fields');
         }
         const changes = source.changes.filter((change) => change.fragmentId === selection.fragmentId);
-        const fields = selection.fields ?? (source.restoreMode === 'undo' ? changes.map((change) => change.field) : undefined);
+        const fields =
+            selection.fields ??
+            (source.restoreMode === 'undo'
+                ? changes.map((change) => change.field)
+                : source.restoreMode === 'state'
+                  ? [...changeValues(historical).keys()]
+                  : undefined);
         if (source.restoreMode === 'undo' && fields.some((field) => !changes.some((change) => change.field === field))) {
             fail(400, 'Only fields changed by this event can be restored');
         }
         const { fragment, etag } = await readFragment(context, historical.id);
         if (fragment.path !== historical.path) fail(409, 'Historical fragment moved');
+        if (fragment.id !== context.projectId && !ownVariation(context.project, fragment)) fail(403, 'Unsafe restore target');
         if (etag !== expected) fail(409, 'Fragment changed; reload before restoring');
         if (source.restoreMode === 'undo') {
             const currentValues = changeValues(fragment);
@@ -768,22 +973,20 @@ async function restore(context, params, events) {
         changes: diff(before, { fragments: plan.map((item) => ({ ...item.before, ...item.payload })) }),
         reserved: ' '.repeat(20000),
     });
-    const changed = plan.filter(
-        (item) => diff({ fragments: [item.before] }, { fragments: [{ ...item.before, ...item.payload }] }).length,
-    );
-    const manifest = changed.length ? await historySnapshot(context, { fragments: changed.map((item) => item.before) }) : null;
-    await persist(
-        context,
-        'restore-intent',
-        {
+    const beforeContext = await inheritanceContext(context, before);
+    await context.state.put(
+        restoreKey,
+        bounded({
             id: crypto.randomUUID(),
             requestId: context.requestId,
             user: context.user,
             createdAt: new Date().toISOString(),
             eventId: source.id,
             targets: plan.map(({ id, expected }) => ({ fragmentId: id, etag: expected })),
-        },
-        INTENT_RETENTION,
+            before,
+            beforeContext,
+        }),
+        { ttl: INTENT_RETENTION },
     );
     const restored = [];
     const failures = [];
@@ -810,26 +1013,16 @@ async function restore(context, params, events) {
     }
     let result;
     try {
-        const changes = diff(before, { fragments: after });
-        const undoFragments = manifest?.fragments.filter((entry) => changes.some((change) => change.fragmentId === entry.id));
-        const undoSnapshot = undoFragments?.length
-            ? {
-                  ...manifest,
-                  fragments: undoFragments,
-                  ...Object.fromEntries(
-                      ['inheritance', 'inheritanceUnavailable']
-                          .filter((key) => manifest[key])
-                          .map((key) => [
-                              key,
-                              manifest[key].filter((entry) => undoFragments.some(({ id }) => id === entry.fragmentId)),
-                          ]),
-                  ),
-              }
-            : null;
         const confirmed = { fragments: [] };
         for (const item of plan) {
             if (restored.includes(item.id) || failures.some((failure) => failure.fragmentId === item.id && failure.partial)) {
-                confirmed.fragments.push((await readFragment(context, item.id)).fragment);
+                const { fragment } = await readFragment(context, item.id);
+                const observed = auditSnapshot(fragment);
+                const wanted = auditSnapshot(after.find((entry) => entry.id === item.id));
+                if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
+                    fail(409, 'Restored content changed before history capture');
+                }
+                confirmed.fragments.push(fragment);
             }
         }
         const afterSnapshot = confirmed.fragments.length ? await historySnapshot(context, confirmed) : null;
@@ -839,12 +1032,12 @@ async function restore(context, params, events) {
             before,
             { fragments: after },
             {
-                changes,
+                changes: diff(before, { fragments: after }),
+                beforeContext,
                 restored,
                 ...(failures.length ? { failures } : {}),
                 sourceEventId: source.id,
-                ...(undoSnapshot ? { snapshot: undoSnapshot, beforeSnapshot: undoSnapshot, restoreMode: 'undo' } : {}),
-                ...(afterSnapshot ? { afterSnapshot } : {}),
+                ...(afterSnapshot ? { afterSnapshot, snapshot: afterSnapshot, restoreMode: 'state' } : {}),
             },
         );
     } catch {
@@ -860,6 +1053,14 @@ async function execute(operation, params) {
     if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
     if (!['record', 'list', 'restore'].includes(operation)) fail(400, 'Unknown history operation');
     identifier(params.projectId);
+    if (params.completionEtag !== undefined) {
+        text(params.completionEtag, 'completion ETag', 200);
+        if (params.completionEtag === '*') fail(400, 'Wildcard completion ETags are not permitted');
+    }
+    if (params.workflowInstanceId !== undefined) {
+        text(params.workflowInstanceId, 'workflow instance ID', 1000);
+        if (['.', '..'].includes(params.workflowInstanceId)) fail(400, 'Invalid workflow instance ID');
+    }
     const identity = await authenticate(params);
     const state = await init();
     if (operation === 'restore') await authorizeRestore(state, identity.user.email);
@@ -873,20 +1074,28 @@ async function execute(operation, params) {
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         targetId: params.targetId,
         targetPath: params.targetPath,
+        completionEtag: params.completionEtag,
         fingerprint: fingerprint(operation, params),
+        eventKeys: new Map(),
     };
     const completing = operation === 'record' && params.phase === 'complete';
     if (!completing) {
         context.project = (await readFragment(context, context.projectId)).fragment;
         assertProject(context.project);
     }
-    const events = await readEntries(context.state, context.projectId);
+    const events = await readEntries(context.state, context.projectId, 'event', context.eventKeys);
     if (operation !== 'list') {
         const previous = events.find((event) => event.requestId === context.requestId && event.user.id === context.user.id);
         if (previous) {
             if (operation !== 'record' && previous.fingerprint !== context.fingerprint) fail(409, 'Request ID already used');
             if (operation === 'record' && params.action && previous.action !== params.action)
                 fail(409, 'Request ID already used');
+            if (
+                operation === 'record' &&
+                params.sourceProjectId !== undefined &&
+                previous.sourceProjectId !== params.sourceProjectId
+            )
+                fail(409, 'Request ID belongs to a different source project');
             if (operation === 'record' && params.phase === 'complete' && previous.intentId !== params.intentId) {
                 fail(409, 'Request ID belongs to a different intent');
             }
@@ -906,7 +1115,16 @@ async function execute(operation, params) {
         }
         if (events.length >= MAX_ENTRIES) fail(507, 'Project history capacity reached; no retained events were removed');
     }
-    if (operation === 'list') return list(events, params);
+    if (operation === 'list') {
+        const page = list(promotionEvents(context, events), params);
+        for (let offset = 0; offset < page.events.length; offset += 10) {
+            const refreshed = await Promise.all(
+                page.events.slice(offset, offset + 10).map((event) => refreshPublication(context, event)),
+            );
+            page.events.splice(offset, refreshed.length, ...refreshed);
+        }
+        return page;
+    }
     if (operation === 'record') return record(context, params);
     return restore(context, params, events);
 }

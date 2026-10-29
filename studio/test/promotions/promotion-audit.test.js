@@ -63,7 +63,7 @@ describe('promotion write audit capture', () => {
         expect(fetchStub.called).to.be.false;
     });
 
-    it('finds shared-fragment projects without triggering promotion loading side effects', async () => {
+    it('does not audit default-fragment content or load promotion projects for it', async () => {
         const shared = { id: 'shared', path: '/content/dam/mas/acom/en_US/shared' };
         Store.promotions.list.data.set([]);
         repository.searchFragmentList.resolves([
@@ -74,7 +74,8 @@ describe('promotion write audit capture', () => {
         await withPromotionAudit(repository, 'save', shared, write);
 
         expect(repository.loadPromotions.called).to.be.false;
-        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({ projectId: project.id, targetId: shared.id });
+        expect(fetchStub.called).to.be.false;
+        expect(repository.searchFragmentList.called).to.be.false;
         expect(write.calledOnce).to.be.true;
     });
 
@@ -140,6 +141,21 @@ describe('promotion write audit capture', () => {
         expect(fetchStub.callCount).to.equal(1);
     });
 
+    it('associates save completion with the exact returned fragment ETag', async () => {
+        const saved = { ...project, etag: '"saved-etag"' };
+        await withPromotionAudit(repository, 'save', project, sandbox.stub().resolves(saved));
+        expect(JSON.parse(fetchStub.secondCall.args[1].body).completionEtag).to.equal(saved.etag);
+    });
+
+    it('retains the created fragment ETag in a pending audit without storing content', async () => {
+        const created = { ...project, etag: '"created-etag"' };
+        fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
+        await withPromotionAudit(repository, 'create', { modelId: PROMOTION_MODEL_ID }, sandbox.stub().resolves(created));
+        const [pending] = JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'));
+        expect(pending.completionEtag).to.equal(created.etag);
+        expect(pending).not.to.have.property('fields');
+    });
+
     it('records creation against the new project id', async () => {
         await withPromotionAudit(repository, 'create', { modelId: PROMOTION_MODEL_ID }, sandbox.stub().resolves(project));
         expect(JSON.parse(fetchStub.firstCall.args[1].body).projectId).to.equal('project');
@@ -154,7 +170,61 @@ describe('promotion write audit capture', () => {
         expect(fetchStub.callCount).to.equal(2);
     });
 
-    it('audits a shared fragment for each project that directly references it', async () => {
+    it('forwards the native workflow reference so the same publication event can be reconciled', async () => {
+        await withPromotionAudit(
+            repository,
+            'publish',
+            project,
+            sandbox.stub().resolves({
+                workflowInstanceId: 'native-workflow',
+            }),
+        );
+        expect(JSON.parse(fetchStub.secondCall.args[1].body).workflowInstanceId).to.equal('native-workflow');
+    });
+
+    it('records only accepted targets and reports partial publication workflow failures', async () => {
+        const second = { ...project, id: 'second', path: '/content/dam/mas/promotions/second' };
+        const write = sandbox.stub().resolves({
+            workflowInstanceId: 'workflow',
+            items: [
+                { id: project.id, path: project.path, status: 'SUCCESS_TRIGGERED' },
+                { id: second.id, path: second.path, status: 'ERROR_REFERENCED' },
+            ],
+        });
+        let failure;
+        try {
+            await withPromotionAudit(repository, 'publish', [project, second], write);
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.message).to.include('1 fragment');
+        const completed = fetchStub
+            .getCalls()
+            .map((call) => JSON.parse(call.args[1].body))
+            .filter((payload) => payload.phase === 'complete');
+        expect(completed.map((payload) => payload.targetId)).to.deep.equal([project.id]);
+    });
+
+    it('does not complete history when AEM rejects an unpublication workflow item', async () => {
+        let failure;
+        try {
+            await withPromotionAudit(
+                repository,
+                'unpublish',
+                project,
+                sandbox.stub().resolves({
+                    workflowInstanceId: 'workflow',
+                    items: [{ id: project.id, path: project.path, status: 'ERROR_REFERENCED' }],
+                }),
+            );
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.message).to.include('1 fragment');
+        expect(fetchStub.callCount).to.equal(1);
+    });
+
+    it('leaves default-fragment content outside every project that references it', async () => {
         const shared = { id: 'shared', path: '/content/dam/mas/acom/en_US/shared' };
         Store.promotions.list.data.set(
             ['first', 'second'].map(
@@ -177,8 +247,8 @@ describe('promotion write audit capture', () => {
             .getCalls()
             .map((call) => JSON.parse(call.args[1].body))
             .filter((payload) => payload.phase === 'prepare');
-        expect(prepares.map(({ projectId }) => projectId)).to.deep.equal(['first', 'second']);
-        expect(fetchStub.callCount).to.equal(4);
+        expect(prepares).to.deep.equal([]);
+        expect(fetchStub.called).to.be.false;
     });
 
     it('queues a failed project creation audit for retry without creating versions', async () => {
@@ -248,7 +318,23 @@ describe('promotion write audit capture', () => {
             projectId: 'copy',
             targetId: 'copy',
             targetPath: copy.path,
+            sourceProjectId: project.id,
         });
+    });
+
+    it('preserves project duplication provenance from its creation payload', async () => {
+        const copy = { ...project, id: 'copy', path: '/content/dam/mas/promotions/copy' };
+        await withPromotionAudit(
+            repository,
+            'create',
+            {
+                modelId: PROMOTION_MODEL_ID,
+                auditAction: 'duplicate',
+                sourceProjectId: project.id,
+            },
+            sandbox.stub().resolves(copy),
+        );
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).sourceProjectId).to.equal(project.id);
     });
 });
 

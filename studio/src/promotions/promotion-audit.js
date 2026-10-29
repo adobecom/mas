@@ -43,7 +43,7 @@ function isProject(fragment) {
 
 async function resolveProjectIds(repository, fragment) {
     if (isProject(fragment)) return [fragment.id];
-    if (!fragment.path) return [];
+    if (!fragment.path || !isPromoVariationPath(fragment.path)) return [];
     const tag = getPromotionTagFromFragment(fragment);
     let projects = Store.promotions.list.data.get().map((store) => store.get());
     if (!projects.length) {
@@ -53,8 +53,6 @@ async function resolveProjectIds(repository, fragment) {
         );
     }
     const matches = projects.filter((item) => {
-        if (item.fields?.some((field) => field.name === 'fragments' && field.values.includes(fragment.path))) return true;
-        if (!isPromoVariationPath(fragment.path)) return false;
         const projectTag = getPromotionTagFromFragment(item);
         if (tag) return projectTag === tag;
         const promoName = getPromoNameFromTag(projectTag ?? '');
@@ -114,6 +112,10 @@ export async function withPromotionAudit(repository, action, target, write) {
                 targetId: created.id,
                 targetPath: created.path,
                 requestId: crypto.randomUUID(),
+                ...(created.etag ? { completionEtag: created.etag } : {}),
+                ...(actualAction === 'duplicate' && (target.sourceProjectId ?? (isProject(target) ? target.id : undefined))
+                    ? { sourceProjectId: target.sourceProjectId ?? target.id }
+                    : {}),
             });
         }
         return created;
@@ -125,8 +127,29 @@ export async function withPromotionAudit(repository, action, target, write) {
         }
     }
     const result = await write();
+    const failures =
+        intents.length && ['publish', 'unpublish'].includes(actualAction)
+            ? (result?.items ?? []).filter((item) => item.status !== 'SUCCESS_TRIGGERED')
+            : [];
     for (const intent of intents) {
-        await completeAudit({ ...intent, targetId: intent.targetId ?? result?.id });
+        if (
+            failures.some((item) => item.id === intent.targetId || (item.path !== undefined && item.path === intent.targetPath))
+        )
+            continue;
+        const targetId = intent.targetId ?? result?.id;
+        await completeAudit({
+            ...intent,
+            targetId,
+            ...(result?.id === targetId && result?.etag ? { completionEtag: result.etag } : {}),
+            ...(['publish', 'unpublish'].includes(actualAction) && result?.workflowInstanceId
+                ? { workflowInstanceId: result.workflowInstanceId }
+                : {}),
+        });
+    }
+    if (failures.length) {
+        throw new Error(
+            `${actualAction === 'publish' ? 'Publication' : 'Unpublication'} could not be triggered for ${failures.length} fragment(s). Review the affected fragments before retrying.`,
+        );
     }
     return result;
 }

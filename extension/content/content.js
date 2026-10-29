@@ -102,6 +102,12 @@ function initialize() {
         }
     });
 
+    window.MASCardDetector.onCardUpdated(() => {
+        requestAnimationFrame(() => {
+            window.MASCardOverlay.updatePositions();
+        });
+    });
+
     chrome.storage.local.get(['masExtensionEnabled'], (result) => {
         extensionEnabled = result.masExtensionEnabled !== false;
 

@@ -28,16 +28,25 @@ After changing code, click the refresh icon on the extension card in `chrome://e
 
 ```bash
 npm test        # unit tests (node:test, no dependencies)
-npm run package # build mas-studio-extension.zip for distribution
+npm run package # build mas-studio-extension.zip with runtime files only
 ```
 
 Try it against a page with merch cards, e.g. `https://www.adobe.com/creativecloud/plans.html`.
+
+## Releasing
+
+1. Bump `version` in both `manifest.json` and `package.json`, and merge to `main`.
+2. Tag the merge commit and push the tag: `git tag mas-extension-v1.2.0 && git push origin mas-extension-v1.2.0`.
+3. The **Extension Release** workflow checks that the tag matches both versions, runs the tests, and attaches `mas-extension-v1.2.0.zip` to a GitHub release.
+4. Upload that zip in the Chrome Web Store developer dashboard.
+
+The zip contains only what Chrome loads: `manifest.json`, `background.js`, `api/`, `content/`, `popup/`, `utils/`, `vendor/`, and the three icons. If you add a runtime file outside those paths, add it to the `package` script too.
 
 ## Authentication
 
 There is none, by design. Fragment data comes from the public M@S IO endpoint using the public `wcms-commerce-ims-ro-user-milo-extension` API key, so the extension reads only what is already published. It requests no Adobe credentials and holds no tokens.
 
-Consequently it needs just two permissions — `storage` (remembers the on/off toggle) and `tabs` (opens Studio deep links) — plus host access to `mas.adobe.com` and `www.adobe.com`.
+Consequently it needs just two permissions: `storage` (remembers the on/off toggle) and `activeTab` (reads the current tab's URL when the popup opens, to check it is an Adobe page). Host access is limited to `www.adobe.com` and `www.stage.adobe.com`, where the fragment API lives. Studio deep links open as new tabs and need no host access.
 
 If fragment fetching ever needs a user token, that would mean adding back the `identity` permission and an IMS OAuth flow. Treat it as a deliberate design change, not a small patch.
 
@@ -49,7 +58,7 @@ No build system, no bundler, no npm dependencies. Everything must be browser-com
 - Files load via `<script>` tags or `importScripts()` in the service worker
 - MV3 CSP forbids inline scripts and `eval()`
 
-**Service worker** (`background.js`) — owns all cross-origin calls and Studio deep-link generation. Content scripts can't make cross-origin requests, so every call to `mas.adobe.com` goes through here via `chrome.runtime.sendMessage`.
+**Service worker** (`background.js`) — owns all cross-origin calls and Studio deep-link generation. Content scripts can't make cross-origin requests, so every fragment fetch goes through here via `chrome.runtime.sendMessage`.
 
 **Content scripts** — `utils/card-detector.js` (finds cards), `content/overlay.js` (badges and panels), `content/content.js` (coordination), `utils/fragment-parser.js`, `utils/studio-linker.js`.
 

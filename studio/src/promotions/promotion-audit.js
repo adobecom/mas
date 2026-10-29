@@ -72,26 +72,49 @@ function readPending() {
     return JSON.parse(sessionStorage.getItem(PENDING_KEY) ?? '[]');
 }
 
-async function completeAudit(payload) {
+function updatePending(payload) {
     const pending = readPending().filter((item) => item.requestId !== payload.requestId);
     sessionStorage.setItem(PENDING_KEY, JSON.stringify([...pending, payload]));
+}
+
+async function completeAudit(payload) {
+    const { attempts = 0, notified = false, blocked, nextRetryAt, ...request } = payload;
+    updatePending(payload);
     try {
-        await recordPromotionHistory(payload);
+        await recordPromotionHistory(request);
         sessionStorage.setItem(
             PENDING_KEY,
             JSON.stringify(readPending().filter((item) => item.requestId !== payload.requestId)),
         );
     } catch (error) {
-        console.error('Promotion audit completion failed:', error);
-        showToast('Your change was saved, but history could not be updated. Open Version history to retry.', 'warning');
+        const permanent = error.status >= 400 && error.status < 500 && ![408, 429].includes(error.status);
+        updatePending({
+            ...request,
+            attempts: attempts + 1,
+            notified: true,
+            blocked: permanent || attempts >= 2,
+            nextRetryAt: Date.now() + 30000 * 2 ** attempts,
+        });
+        if (!notified) {
+            console.error('Promotion audit completion failed:', error);
+            showToast('Your change was saved, but its history could not be completed. Review Version history.', 'warning');
+        }
     }
 }
 
 /** Retries durable audit completions without storing tokens or content in browser storage. */
 export async function retryPendingPromotionAudits(projectId) {
     for (const pending of readPending()) {
-        if (!projectId || pending.projectId === projectId) await completeAudit(pending);
+        if (
+            (!projectId || pending.projectId === projectId) &&
+            !pending.blocked &&
+            (!pending.nextRetryAt || pending.nextRetryAt <= Date.now())
+        ) {
+            await completeAudit(pending);
+        }
     }
+    const pending = readPending().filter((item) => !projectId || item.projectId === projectId);
+    return { pending: pending.length, blocked: pending.filter((item) => item.blocked).length };
 }
 
 async function prepareAudit(projectId, action, fragment) {
@@ -131,7 +154,20 @@ export async function withPromotionAudit(repository, action, target, write) {
             intents.push(await prepareAudit(projectId, actualAction, fragment));
         }
     }
-    const result = await write();
+    let result;
+    try {
+        result = await write();
+    } catch (error) {
+        if (error.mutationCommitted) {
+            for (const intent of intents) {
+                await completeAudit({
+                    ...intent,
+                    ...(error.mutationEtag ? { completionEtag: error.mutationEtag } : {}),
+                });
+            }
+        }
+        throw error;
+    }
     const failures = publication ? (result?.items ?? []).filter((item) => item.status !== 'SUCCESS_TRIGGERED') : [];
     for (const intent of intents) {
         if (

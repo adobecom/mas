@@ -122,6 +122,96 @@ describe('Promotion version history', () => {
         expect(getVersion.calledWith('project-1', 'version-1')).to.be.true;
     });
 
+    it('pins a separate live Current without marking a saved version current', async () => {
+        const root = await mount();
+
+        expect(root.querySelector('.history-card').dataset.eventId).to.equal('current');
+        expect(root.querySelector('[data-event-id="current"] .version-label').textContent).to.equal('Current');
+        expect(root.querySelector('[data-event-id="event-1"]').classList.contains('current')).to.be.false;
+    });
+
+    it('shows live draft changes against the last saved state on Current', async () => {
+        const root = await mount();
+        await element.selectVersion(element.currentEvent);
+        await element.updateComplete;
+
+        expect(root.querySelector('main h2').textContent).to.equal('Current');
+        expect(root.querySelector('[data-field="@title"] .before').textContent).to.equal('Historical project');
+        expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Live project');
+        expect(root.querySelector('[data-field="@title"] .change-badge').textContent).to.equal('Changed');
+        expect(root.querySelector('#restore-selected')).to.be.null;
+    });
+
+    it('uses the unfiltered saved baseline supplied by history for Current', async () => {
+        client.listPromotionHistory.resolves({
+            events: [version],
+            currentSnapshot: {
+                fragments: [{ id: fragment.id, path: fragment.path, versionId: 'latest-saved-version' }],
+            },
+        });
+        getVersion.withArgs(fragment.id, 'latest-saved-version').resolves({ ...fragment, title: 'Latest saved state' });
+        const root = await mount();
+
+        await element.selectVersion(element.currentEvent);
+        await element.updateComplete;
+
+        expect(root.querySelector('[data-field="@title"] .before').textContent).to.equal('Latest saved state');
+        expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Live project');
+    });
+
+    it('does not claim the draft matches a saved state when the baseline is unavailable', async () => {
+        client.listPromotionHistory.resolves({ events: [{ ...version, snapshot: undefined }] });
+        const root = await mount();
+
+        expect(root.querySelector('[data-event-id="current"]').textContent).not.to.include('matches');
+    });
+
+    it('refreshes Current after a filtered restore without displaying its technical audit as a version', async () => {
+        const root = await mount();
+        element.filters = { query: 'saved' };
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, action: 'restore', id: 'restore-audit', changes: [] }, version],
+        });
+        await openSelectedRestore(root);
+        getWithEtag.resolves({ ...fragment, title: 'Historical project', etag: '"restored-etag"' });
+
+        await element.confirmRestore();
+        await element.updateComplete;
+
+        expect(element.currentEventId).to.equal('current');
+        expect(element.selectedEvent.id).to.equal('current');
+        expect(root.querySelector('[data-event-id="restore-audit"]')).to.be.null;
+        expect(root.querySelector('.history-card').dataset.eventId).to.equal('current');
+        expect(root.textContent).not.to.include('Selected fields restored');
+    });
+
+    it('does not offer restoring a saved-state field that already matches the live draft', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, restoreMode: 'state', afterSnapshot: version.snapshot }],
+        });
+        getWithEtag.resolves({ ...fragment, etag: '"unchanged"' });
+        const root = await mount();
+        element.toggleRows(element.eligibleRows, true);
+
+        expect(element.selections).to.deep.equal([]);
+        expect(root.querySelector('#restore-selected').disabled).to.be.true;
+        expect(root.textContent).not.to.include('Field is not present');
+    });
+
+    it('handles a server-confirmed unchanged restore without requiring an audit event', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        const root = await mount();
+        await openSelectedRestore(root);
+        client.restorePromotionHistory.resolves({ unchanged: true, restored: [] });
+
+        await element.confirmRestore();
+        await element.updateComplete;
+
+        expect(toast.calledWithMatch({ variant: 'info', message: 'Selected fields already match this version.' })).to.be.true;
+        expect(element.currentEventId).to.equal('current');
+        expect(element.selectedEvent.id).to.equal('current');
+    });
+
     it('does not offer restore when the historical AEM version cannot be loaded', async () => {
         getVersion.rejects(new Error('Version no longer available'));
         const root = await mount();
@@ -179,7 +269,7 @@ describe('Promotion version history', () => {
 
     it('shows numbered versions and change counts without action badges or paths', async () => {
         const root = await mount();
-        const card = root.querySelector('.history-card');
+        const card = root.querySelector('[data-event-id="event-1"]');
         expect(card.querySelector('.version-label').textContent).to.equal('Version 2');
         expect(card.querySelector('.card-summary').textContent).to.include('4 changes');
         expect(card.querySelector('.card-summary').textContent).not.to.include('save');
@@ -193,7 +283,7 @@ describe('Promotion version history', () => {
             cursor: null,
         });
         const root = await mount();
-        const card = root.querySelector('.history-card');
+        const card = root.querySelector('[data-event-id="event-1"]');
         expect(card.querySelector('.version-label').textContent).to.equal('Version 1');
         expect(card.querySelector('.card-summary').textContent.trim()).to.equal('Project created');
         expect(card.querySelector('.category-tag')).to.be.null;
@@ -205,7 +295,9 @@ describe('Promotion version history', () => {
             events: [{ ...version, action: 'create', targetId: 'variation-1', snapshot: undefined }],
         });
         const root = await mount();
-        expect(root.querySelector('.card-summary').textContent.trim()).to.equal('Promo variation created');
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent.trim()).to.equal(
+            'Promo variation created',
+        );
     });
 
     it('does not expose full restore or the removed informational messages', async () => {
@@ -277,7 +369,9 @@ describe('Promotion version history', () => {
             client.listPromotionHistory.resolves({ events: [{ ...event, action: 'create' }] });
             const root = await mount();
             expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
-            expect(root.querySelector('.card-summary').textContent.trim()).to.equal('Project created');
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent.trim()).to.equal(
+                'Project created',
+            );
             expect(root.querySelector('main').textContent).to.include('saved state');
         });
 
@@ -293,8 +387,8 @@ describe('Promotion version history', () => {
                 etag: '"fresh-etag"',
             });
             const root = await mount();
-            expect(root.querySelector('.card-summary').textContent).to.include('Project published');
-            expect(root.querySelector('.card-summary').textContent).not.to.include('0 changes');
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include('Project published');
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).not.to.include('0 changes');
             expect(root.querySelectorAll('.change-group')).to.have.length(0);
             expect(root.querySelector('main').textContent).to.include('No content changes.');
             expect(root.querySelector('#select-all')).to.be.null;
@@ -395,16 +489,15 @@ describe('Promotion version history', () => {
         ['unpublish', 'DRAFT', 'Project unpublication pending'],
         ['unpublish', 'PUBLISHED', 'Project unpublication pending'],
         ['duplicate', undefined, 'Project duplicated'],
-        ['restore', undefined, 'Selected fields restored'],
     ]) {
         it(`clearly labels ${action} with observed status ${publicationStatus ?? 'not applicable'}`, async () => {
             client.listPromotionHistory.resolves({
                 events: [{ ...version, action, publicationStatus, snapshot: undefined, changes: [] }],
             });
             const root = await mount();
-            expect(root.querySelector('.card-summary').textContent).to.include(label);
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include(label);
             expect(root.querySelector('main').textContent).to.include(label);
-            expect(root.querySelector('.card-summary').textContent).not.to.include('0 changes');
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).not.to.include('0 changes');
         });
     }
 
@@ -426,7 +519,7 @@ describe('Promotion version history', () => {
                 ],
             });
             const root = await mount();
-            expect(root.querySelector('.card-summary').textContent).to.include(label);
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include(label);
         });
     }
 
@@ -443,8 +536,10 @@ describe('Promotion version history', () => {
             ],
         });
         const root = await mount();
-        expect(root.querySelector('.card-summary').textContent).to.include('Project publication pending');
-        expect(root.querySelector('.card-summary').textContent).not.to.include('Project published');
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include(
+            'Project publication pending',
+        );
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).not.to.include('Project published');
     });
 
     it('links duplicated history to its source project without displaying technical paths', async () => {
@@ -456,7 +551,7 @@ describe('Promotion version history', () => {
         const params = new URLSearchParams(link.hash.slice(1));
         expect(params.get('page')).to.equal(PAGE_NAMES.PROMOTIONS_EDITOR);
         expect(params.get('promotionId')).to.equal('original-project');
-        expect(root.querySelector('.card-summary').textContent).not.to.include('/content/dam/');
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).not.to.include('/content/dam/');
     });
 
     for (const action of ['publish', 'unpublish']) {
@@ -465,7 +560,7 @@ describe('Promotion version history', () => {
                 events: [{ ...version, action, publicationOutcome: 'failed', changes: [] }],
             });
             const root = await mount();
-            expect(root.querySelector('.card-summary').textContent).to.include(
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include(
                 action === 'publish' ? 'Project publication failed' : 'Project unpublication failed',
             );
         });
@@ -481,7 +576,7 @@ describe('Promotion version history', () => {
         element.toggleRows([element.eligibleRows[0]], true);
         const selected = [...element.selectedFields];
         await waitUntil(
-            () => root.querySelector('.card-summary').textContent.includes('Project published'),
+            () => root.querySelector('[data-event-id="event-1"] .card-summary').textContent.includes('Project published'),
             'Publication history should refresh after AEM completes',
             { timeout: 4500 },
         );
@@ -503,8 +598,8 @@ describe('Promotion version history', () => {
         });
         const root = await mount();
         expect(root.querySelector('main').textContent).to.include('Publication status could not be verified');
-        expect(root.querySelector('.card-summary').textContent).to.include('status unavailable');
-        expect(root.querySelector('.card-summary').textContent).not.to.include('pending');
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include('status unavailable');
+        expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).not.to.include('pending');
     });
 
     describe('inherited variation changes', () => {
@@ -577,7 +672,7 @@ describe('Promotion version history', () => {
             const root = await mount();
             expect(Boolean(root.querySelector('[data-field="variant"]'))).to.be.false;
             expect(Boolean(root.querySelector('[data-field="cardTitle"]'))).to.be.false;
-            expect(root.querySelector('.card-summary').textContent).to.include('1 change');
+            expect(root.querySelector('[data-event-id="event-1"] .card-summary').textContent).to.include('1 change');
         });
 
         it('shows an inherited value being overridden as changed rather than added', async () => {
@@ -674,7 +769,7 @@ describe('Promotion version history', () => {
             const row = root.querySelector('[data-field="cardTitle"]');
             expect(row.querySelector('.before').textContent).to.equal('Inherited title');
             expect(row.querySelector('.after').textContent).to.equal('Saved inherited title');
-            expect(row.querySelector('sp-checkbox').disabled).to.be.false;
+            expect(row.querySelector('sp-checkbox').disabled).to.be.true;
             expect(getByPath.called).to.be.false;
         });
 
@@ -863,7 +958,7 @@ describe('Promotion version history', () => {
         const root = await mount();
         await element.selectVersion(element.events[1]);
         await element.updateComplete;
-        expect(root.querySelector('[data-event-id="event-1"]').classList.contains('current')).to.be.true;
+        expect(root.querySelector('[data-event-id="current"]').classList.contains('current')).to.be.true;
         expect(root.querySelector('[data-event-id="older"]').classList.contains('selected')).to.be.true;
         expect(root.querySelector('.current-label').textContent).to.include('Current version');
     });
@@ -1105,7 +1200,7 @@ describe('Promotion version history', () => {
         expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
     });
 
-    it('marks the latest content snapshot current rather than a newer backup or publish event', async () => {
+    it('keeps live Current separate from saved content, backups and publication events', async () => {
         client.listPromotionHistory.resolves({
             events: [
                 { ...version, id: 'latest-backup', action: 'backup', isBackup: true, changes: [] },
@@ -1115,20 +1210,21 @@ describe('Promotion version history', () => {
             cursor: null,
         });
         const root = await mount();
-        expect(element.currentEventId).to.equal(version.id);
-        expect(root.querySelector('.history-card').dataset.eventId).to.equal(version.id);
-        expect(root.querySelector(`.history-card[data-event-id="${version.id}"]`).classList.contains('current')).to.be.true;
+        expect(element.currentEventId).to.equal('current');
+        expect(root.querySelector('.history-card').dataset.eventId).to.equal('current');
+        expect(root.querySelector(`.history-card[data-event-id="${version.id}"]`).classList.contains('current')).to.be.false;
         expect(root.querySelector('.history-card[data-event-id="latest-backup"]').textContent).not.to.include('Current');
     });
 
-    it('updates the current marker when an unfiltered refresh returns a newer content snapshot', async () => {
+    it('refreshes the saved baseline without replacing the live Current identity', async () => {
         await mount();
         client.listPromotionHistory.resolves({
             events: [{ ...version, id: 'latest-save' }, version],
             cursor: null,
         });
         await element.loadHistory();
-        expect(element.currentEventId).to.equal('latest-save');
+        expect(element.currentEventId).to.equal('current');
+        expect(element.currentSnapshot.fragments[0].versionId).to.equal(fragment.versionId);
     });
 
     it('does not relabel a filtered historical snapshot as current', async () => {
@@ -1139,10 +1235,10 @@ describe('Promotion version history', () => {
             cursor: null,
         });
         await element.loadHistory();
-        expect(element.currentEventId).to.equal(version.id);
+        expect(element.currentEventId).to.equal('current');
         await element.updateComplete;
-        expect(element.shadowRoot.querySelector('.history-card').dataset.eventId).to.equal(version.id);
-        expect(element.shadowRoot.querySelectorAll(`[data-event-id="${version.id}"]`)).to.have.length(1);
+        expect(element.shadowRoot.querySelector('.history-card').dataset.eventId).to.equal('current');
+        expect(element.shadowRoot.querySelectorAll('[data-event-id="current"]')).to.have.length(1);
     });
 
     it('keeps a pinned current selection when publication status refreshes filtered results', async () => {
@@ -1158,21 +1254,22 @@ describe('Promotion version history', () => {
 
         await element.refreshPublications();
 
-        expect(element.selectedEvent.id).to.equal(version.id);
-        expect(element.currentEventId).to.equal(version.id);
+        expect(element.selectedEvent.id).to.equal('current');
+        expect(element.currentEventId).to.equal('current');
     });
 
-    it('finds the latest content snapshot on later pages without marking backups current', async () => {
+    it('loads a saved baseline from later pages while keeping Current pinned', async () => {
         client.listPromotionHistory.onFirstCall().resolves({
             events: [{ ...version, id: 'latest-backup', action: 'backup', isBackup: true, changes: [] }],
             cursor: 'older-content',
         });
         client.listPromotionHistory.onSecondCall().resolves({ events: [version], cursor: null });
         const root = await mount();
-        expect(element.currentEventId).to.equal('');
+        expect(element.currentEventId).to.equal('current');
         root.querySelector('#load-more').click();
-        await waitUntil(() => element.events.length === 2);
-        expect(element.currentEventId).to.equal(version.id);
+        await waitUntil(() => element.events.length === 2 && !element.loading);
+        expect(element.currentEventId).to.equal('current');
+        expect(element.currentSnapshot.fragments[0].id).to.equal(fragment.id);
     });
 
     it('selects every eligible row from the select-all checkbox', async () => {
@@ -1206,7 +1303,7 @@ describe('Promotion version history', () => {
         const root = await mount();
         expect(root.textContent).not.to.include('Read-only event');
         expect(root.querySelector('#restore-selected').disabled).to.be.true;
-        expect(getWithEtag.called).to.be.false;
+        expect(getWithEtag.calledOnceWithExactly(fragment.id)).to.be.true;
     });
 
     it('shows recorded field differences for audit entries without loading any AEM versions', async () => {
@@ -1221,7 +1318,7 @@ describe('Promotion version history', () => {
         expect(root.querySelector('[data-field="@title"] .after').textContent).to.include('Wrong');
         expect(root.querySelector('#restore-selected').disabled).to.be.true;
         expect(getVersion.called).to.be.false;
-        expect(getWithEtag.called).to.be.false;
+        expect(getWithEtag.calledOnceWithExactly(fragment.id)).to.be.true;
     });
 
     describe('automatic content undo', () => {
@@ -1316,7 +1413,7 @@ describe('Promotion version history', () => {
         expect(root.querySelector('main').textContent).not.to.include('Read-only event');
     });
 
-    it('marks the latest content audit entry current without requiring an automatic snapshot', async () => {
+    it('keeps Current separate from a content audit entry without an automatic snapshot', async () => {
         client.listPromotionHistory.resolves({
             events: [{ ...version, id: 'latest-audit', snapshot: undefined }, version],
             cursor: null,
@@ -1324,8 +1421,8 @@ describe('Promotion version history', () => {
 
         const root = await mount();
 
-        expect(element.currentEventId).to.equal('latest-audit');
-        expect(root.querySelector('[data-event-id="latest-audit"]').classList.contains('current')).to.be.true;
+        expect(element.currentEventId).to.equal('current');
+        expect(root.querySelector('[data-event-id="latest-audit"]').classList.contains('current')).to.be.false;
     });
 
     it('does not allow deleted targets to be selected', async () => {
@@ -1345,7 +1442,7 @@ describe('Promotion version history', () => {
         root.querySelector('#load-more').click();
         await waitUntil(() => element.events.length === 2);
         expect(client.listPromotionHistory.secondCall.args[1].cursor).to.equal('page-two');
-        expect(element.currentEventId).to.equal('event-1');
+        expect(element.currentEventId).to.equal('current');
     });
 
     it('submits version history search to the server', async () => {
@@ -1403,8 +1500,8 @@ describe('Promotion version history', () => {
         await openSelectedRestore(root);
         root.querySelector('sp-dialog-wrapper').dispatchEvent(new Event('confirm'));
         await waitUntil(() => !element.busy);
-        expect(element.selectedEvent?.id).to.equal('new-version');
-        expect(root.querySelectorAll('.change-row')).to.have.length(4);
+        expect(element.selectedEvent?.id).to.equal('current');
+        expect(root.querySelectorAll('.change-row')).to.have.length(1);
     });
 
     it('keeps selective restoration disabled when a snapshot target is unavailable', async () => {
@@ -1472,13 +1569,13 @@ describe('Promotion version history', () => {
         await pending;
     });
 
-    it('shows an empty result without restoring the previous selection', async () => {
+    it('keeps live Current available when no historical events match', async () => {
         await mount();
         client.listPromotionHistory.resolves({ events: [], cursor: null });
         await element.loadHistory();
         await element.updateComplete;
         expect(element.shadowRoot.textContent).to.include('No history matches');
-        expect(element.selectedEvent).to.be.null;
+        expect(element.selectedEvent.id).to.equal('current');
     });
 
     it('recovers a failed list request through retry', async () => {

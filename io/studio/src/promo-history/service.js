@@ -438,10 +438,7 @@ function canonicalEntry(entries) {
 
 async function readEntries(state, projectId, kind = 'event', storageKeys, entryId = '') {
     const result = [];
-    let scanned = 0;
     for await (const { keys } of state.list({ match: `${namespace(projectId, kind)}${entryId ? `${entryId}.` : ''}*` })) {
-        scanned += keys.length;
-        if (scanned > MAX_ENTRIES * 2) fail(507, 'Project history capacity reached');
         for (let offset = 0; offset < keys.length; offset += 10) {
             const batch = keys.slice(offset, offset + 10);
             const entries = await Promise.all(batch.map((key) => state.get(key)));
@@ -552,6 +549,15 @@ async function saveCapture(context) {
 }
 
 async function stateEvent(context, action, before, target, extra = {}) {
+    if (['create', 'duplicate'].includes(action)) {
+        const existing = context.events.find(
+            (event) => ['create', 'duplicate'].includes(event.action) && event.targetId === target.id,
+        );
+        if (existing) {
+            await authorizeEvent(context, existing);
+            return { event: existing, unchanged: true };
+        }
+    }
     const publication = ['publish', 'unpublish'].includes(action);
     context.publicationTarget = publication ? target.id : undefined;
     const key = `${namespace(context.projectId, 'completion')}${stableId(context, 'completion')}`;
@@ -630,7 +636,7 @@ async function duplicateSource(context, params) {
     return { sourceProjectId: fragment.id };
 }
 
-async function record(context, params, events) {
+async function record(context, params) {
     if (params.phase === 'complete') {
         identifier(params.intentId);
         const intent = (await readEntries(context.state, context.projectId, 'intent')).find(
@@ -728,11 +734,6 @@ async function record(context, params, events) {
             fail(409, 'Request ID already used');
         return { intentId: existing.id };
     }
-    const completed = new Set(events.map((event) => event.intentId));
-    const pending = intents.filter((intent) => !completed.has(intent.id));
-    if (pending.filter((intent) => intent.user.id === context.user.id).length >= MAX_PENDING_INTENTS)
-        fail(429, 'Too many pending history intents for this author; complete existing operations before retrying');
-    if (pending.length >= MAX_ENTRIES) fail(507, 'Project history intent capacity reached');
     const current = auditSnapshot(target);
     const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
     const provenance = await duplicateSource(context, params);
@@ -777,8 +778,29 @@ function list(events, params) {
         if (params[name] && !Number.isFinite(Date.parse(params[name]))) fail(400, `Invalid ${name} date`);
     }
     if (params.query) text(params.query, 'query', 200);
-    let filtered = events
-        .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+    const current = new Map();
+    const inheritance = new Map();
+    const inheritanceUnavailable = new Map();
+    const ordered = events
+        .filter((event) => event.action !== 'restore' && !event.isAudit)
+        .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    for (const event of ordered) {
+        if (event.action === 'delete') {
+            current.delete(event.targetId);
+            inheritance.delete(event.targetId);
+            inheritanceUnavailable.delete(event.targetId);
+            continue;
+        }
+        const snapshot = event.afterSnapshot ?? (event.restoreMode !== 'undo' ? event.snapshot : null);
+        for (const entry of snapshot?.fragments ?? []) {
+            current.set(entry.id, entry);
+            inheritance.delete(entry.id);
+            inheritanceUnavailable.delete(entry.id);
+        }
+        for (const entry of snapshot?.inheritance ?? []) inheritance.set(entry.fragmentId, entry);
+        for (const entry of snapshot?.inheritanceUnavailable ?? []) inheritanceUnavailable.set(entry.fragmentId, entry);
+    }
+    let filtered = ordered
         .map((event, index) => ({ ...event, version: index + 1 }))
         .filter(
             (event) =>
@@ -801,7 +823,41 @@ function list(events, params) {
     }
     const page = filtered.slice(0, limit);
     const last = page.at(-1);
-    return { events: page, ...(filtered.length > limit ? { cursor: `${last.createdAt}|${last.id}` } : {}) };
+    return {
+        events: page,
+        currentSnapshot: {
+            fragments: [...current.values()],
+            ...(inheritance.size ? { inheritance: [...inheritance.values()] } : {}),
+            ...(inheritanceUnavailable.size ? { inheritanceUnavailable: [...inheritanceUnavailable.values()] } : {}),
+        },
+        ...(filtered.length > limit ? { cursor: `${last.createdAt}|${last.id}` } : {}),
+    };
+}
+
+async function authorizeEvent(context, event) {
+    const targets = [];
+    for (const snapshot of [event.snapshot, event.afterSnapshot, event.beforeSnapshot, event.beforeContext]) {
+        targets.push(...(snapshot?.fragments ?? []), ...(snapshot?.inheritance ?? []));
+    }
+    if (event.targetId) targets.push({ id: event.targetId, path: event.targetPath });
+    for (const change of event.changes) targets.push({ id: change.fragmentId, path: change.path });
+    for (const entry of targets) {
+        if (!entry.id) fail(403, 'Historical target access could not be verified');
+        const key = JSON.stringify([entry.id, entry.path, entry.versionId]);
+        if (!context.access.has(key)) {
+            context.access.set(
+                key,
+                (async () => {
+                    const { fragment } = await readFragment(context, entry.id);
+                    if (entry.path && fragment.path !== entry.path) fail(409, 'Historical fragment moved');
+                    if (entry.versionId) await readVersion(context, entry);
+                })(),
+            );
+        }
+        await context.access.get(key);
+    }
+    for (const attempt of event.concurrentAttempts ?? []) await authorizeEvent(context, attempt);
+    return event;
 }
 
 function promotionEvents(context, events) {
@@ -825,25 +881,26 @@ function promotionEvents(context, events) {
 
 function publicationResult(event, workflow, fragment) {
     const operation = fragment.operations?.replication ?? null;
+    const correlated = event.workflowInstanceId && operation?.workflowInstanceId === event.workflowInstanceId;
     const state = (typeof operation === 'string' ? operation : (operation?.status ?? operation?.state))?.toUpperCase();
     if (
         workflow?.invalidFragments?.some((item) => item.fragmentPath === event.targetPath) ||
         (workflow?.end && workflow.state !== 'COMPLETED') ||
         ['FAILED', 'ABORTED', 'CANCELLED', 'ERROR'].includes(workflow?.state) ||
-        ['FAILED', 'ABORTED', 'CANCELLED', 'ERROR'].includes(state)
+        (correlated && ['FAILED', 'ABORTED', 'CANCELLED', 'ERROR'].includes(state))
     ) {
         return { publicationOutcome: 'failed', publicationStatus: fragment.status, publicationOperation: operation };
     }
     const active = ['PENDING', 'SCHEDULED', 'QUEUED', 'ACCEPTED', 'RUNNING', 'PROCESSING', 'STARTED'].includes(state);
     const settled = !operation || ['COMPLETED', 'SUCCEEDED', 'SUCCESS', 'FINISHED'].includes(state);
     const confirmed =
-        !active &&
-        (workflow?.state === 'COMPLETED' ||
-            (!event.workflowInstanceId &&
-                settled &&
-                fragment.status === (event.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED') &&
-                fragment.status !==
-                    (event.publicationBeforeStatus !== undefined ? event.publicationBeforeStatus : event.publicationStatus)));
+        workflow?.state === 'COMPLETED' ||
+        (!active &&
+            !event.workflowInstanceId &&
+            settled &&
+            fragment.status === (event.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED') &&
+            fragment.status !==
+                (event.publicationBeforeStatus !== undefined ? event.publicationBeforeStatus : event.publicationStatus));
     return {
         publicationOutcome: confirmed ? 'confirmed' : 'pending',
         publicationStatus: fragment.status,
@@ -956,6 +1013,7 @@ async function writeDraft(context, item) {
 
 async function restore(context, params, events) {
     const source = events.find((event) => event.id === params.eventId);
+    if (source?.action === 'restore' || source?.isAudit) fail(404, 'Technical audit events are not restorable versions');
     const snapshot = source?.restoreMode === 'state' ? source.afterSnapshot : source?.snapshot;
     if (!snapshot?.fragments?.length) fail(404, 'Historical snapshot missing');
     const restoreKey = `${namespace(context.projectId, 'restore-intent')}${stableId(context, 'restore-intent')}`;
@@ -972,6 +1030,20 @@ async function restore(context, params, events) {
         fail(400, 'Invalid restore selections');
     const selectedIds = selections.map(({ fragmentId }) => identifier(fragmentId));
     if (new Set(selectedIds).size !== selectedIds.length) fail(400, 'Duplicate restore target');
+    const selectedSource = {
+        ...source,
+        changes: source.changes.filter((change) => selectedIds.includes(change.fragmentId)),
+        concurrentAttempts: [],
+    };
+    for (const name of ['snapshot', 'afterSnapshot', 'beforeSnapshot', 'beforeContext']) {
+        if (source[name])
+            selectedSource[name] = {
+                ...source[name],
+                fragments: source[name].fragments?.filter((entry) => selectedIds.includes(entry.id)),
+                inheritance: source[name].inheritance?.filter((entry) => selectedIds.includes(entry.fragmentId)),
+            };
+    }
+    await authorizeEvent(context, selectedSource);
     const historicalSnapshot = await readSnapshot(context, {
         ...snapshot,
         fragments: snapshot.fragments.filter((entry) => entry.id === context.projectId || selectedIds.includes(entry.id)),
@@ -1005,6 +1077,8 @@ async function restore(context, params, events) {
         if (fragment.path !== historical.path) fail(409, 'Historical fragment moved');
         if (fragment.id !== context.projectId && !ownVariation(context.project, fragment)) fail(403, 'Unsafe restore target');
         if (etag !== expected) fail(409, 'Fragment changed; reload before restoring');
+        const payload = restorePayload(fragment, historical, fields);
+        if (!diff(auditSnapshot(fragment), auditSnapshot({ ...fragment, ...payload })).length) continue;
         if (source.restoreMode === 'undo') {
             const currentValues = changeValues(fragment);
             if (
@@ -1017,7 +1091,6 @@ async function restore(context, params, events) {
                 fail(409, 'Selected fields changed since this event; review the newer changes before restoring');
             }
         }
-        const payload = restorePayload(fragment, historical, fields);
         for (const path of references(payload)) await readPath(context, path);
         const tagsChanged = JSON.stringify(tagIds(payload.tags)) !== JSON.stringify(tagIds(fragment.tags ?? []));
         const tags = tagsChanged ? await readTags(context, fragment.id) : null;
@@ -1032,6 +1105,7 @@ async function restore(context, params, events) {
             contentSelected: fields === undefined || fields.some((field) => field !== '@tags'),
         });
     }
+    if (!plan.length) return { unchanged: true, restored: [] };
     const before = { fragments: plan.map((item) => item.before) };
     bounded({
         before,
@@ -1039,7 +1113,6 @@ async function restore(context, params, events) {
         changes: diff(before, { fragments: plan.map((item) => ({ ...item.before, ...item.payload })) }),
         reserved: ' '.repeat(20000),
     });
-    const beforeContext = await inheritanceContext(context, before);
     await context.state.put(
         restoreKey,
         bounded({
@@ -1050,7 +1123,6 @@ async function restore(context, params, events) {
             eventId: source.id,
             targets: plan.map(({ id, expected }) => ({ fragmentId: id, etag: expected })),
             before,
-            beforeContext,
         }),
         { ttl: INTENT_RETENTION },
     );
@@ -1079,7 +1151,6 @@ async function restore(context, params, events) {
     }
     let result;
     try {
-        const confirmed = { fragments: [] };
         for (const item of plan) {
             if (restored.includes(item.id) || failures.some((failure) => failure.fragmentId === item.id && failure.partial)) {
                 const { fragment } = await readFragment(context, item.id);
@@ -1088,10 +1159,8 @@ async function restore(context, params, events) {
                 if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
                     fail(409, 'Restored content changed before history capture');
                 }
-                confirmed.fragments.push(fragment);
             }
         }
-        const afterSnapshot = confirmed.fragments.length ? await historySnapshot(context, confirmed) : null;
         result = await writeEvent(
             context,
             'restore',
@@ -1099,11 +1168,10 @@ async function restore(context, params, events) {
             { fragments: after },
             {
                 changes: diff(before, { fragments: after }),
-                beforeContext,
+                isAudit: true,
                 restored,
                 ...(failures.length ? { failures } : {}),
                 sourceEventId: source.id,
-                ...(afterSnapshot ? { afterSnapshot, snapshot: afterSnapshot, restoreMode: 'state' } : {}),
             },
         );
     } catch {
@@ -1147,6 +1215,7 @@ async function execute(operation, params) {
         completionEtag: params.completionEtag,
         fingerprint: fingerprint(operation, params),
         eventKeys: new Map(),
+        access: new Map(),
     };
     const completing = operation === 'record' && params.phase === 'complete';
     if (!completing) {
@@ -1154,9 +1223,11 @@ async function execute(operation, params) {
         assertProject(context.project);
     }
     const events = await readEntries(context.state, context.projectId, 'event', context.eventKeys);
+    context.events = events;
     if (operation !== 'list') {
         const previous = events.find((event) => event.requestId === context.requestId && event.user.id === context.user.id);
         if (previous) {
+            await authorizeEvent(context, previous);
             if (operation !== 'record' && previous.fingerprint !== context.fingerprint) fail(409, 'Request ID already used');
             if (operation === 'record' && params.action && previous.action !== params.action)
                 fail(409, 'Request ID already used');
@@ -1183,10 +1254,31 @@ async function execute(operation, params) {
                   }
                 : { event: previous };
         }
-        if (events.length >= MAX_ENTRIES) fail(507, 'Project history capacity reached; no retained events were removed');
+        if (events.filter((event) => event.user.id === context.user.id).length >= MAX_ENTRIES)
+            fail(429, 'History capacity reached for this author; no retained events were removed');
+        const intents = [
+            ...(await readEntries(state, context.projectId, 'intent')),
+            ...(await readEntries(state, context.projectId, 'restore-intent')),
+        ].filter((intent) => intent.user.id === context.user.id);
+        const completed = new Set(events.filter((event) => event.user.id === context.user.id).map((event) => event.requestId));
+        const completedIds = new Set(events.map((event) => event.intentId));
+        if (
+            !intents.some((intent) => intent.requestId === context.requestId) &&
+            intents.filter((intent) => !completedIds.has(intent.id) && (!intent.requestId || !completed.has(intent.requestId)))
+                .length >= MAX_PENDING_INTENTS
+        )
+            fail(429, 'Too many pending history intents for this author; complete existing operations before retrying');
     }
     if (operation === 'list') {
-        const page = list(promotionEvents(context, events), params);
+        const authorized = [];
+        for (const event of promotionEvents(context, events)) {
+            try {
+                authorized.push(await authorizeEvent(context, event));
+            } catch (error) {
+                if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
+            }
+        }
+        const page = list(authorized, params);
         for (let offset = 0; offset < page.events.length; offset += 10) {
             const refreshed = await Promise.all(
                 page.events.slice(offset, offset + 10).map((event) => refreshPublication(context, event)),
@@ -1195,7 +1287,7 @@ async function execute(operation, params) {
         }
         return page;
     }
-    if (operation === 'record') return record(context, params, events);
+    if (operation === 'record') return record(context, params);
     return restore(context, params, events);
 }
 

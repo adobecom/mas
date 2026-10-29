@@ -217,6 +217,28 @@ describe('aem.js', () => {
     });
 
     describe('method: saveFragment', () => {
+        it('preserves the successful write receipt when the post-save read fails', async () => {
+            const originalFetch = window.fetch;
+            const client = new AEM('test');
+            window.fetch = async (_url, options) => {
+                if (options?.method === 'PUT') {
+                    return new Response(null, { status: 204, headers: { ETag: '"committed-etag"' } });
+                }
+                throw new Error('Post-save read unavailable');
+            };
+            try {
+                const error = await client
+                    .saveFragment({ id: 'saved', etag: '"before"', fields: [] }, { refetchEtag: false })
+                    .catch((failure) => failure);
+
+                expect(error.mutationCommitted).to.be.true;
+                expect(error.mutationEtag).to.equal('"committed-etag"');
+                expect(error.message).to.include('Post-save read unavailable');
+            } finally {
+                window.fetch = originalFetch;
+            }
+        });
+
         it('uses stored etag without fresh GET when refetchEtag is false', async () => {
             const fetchCalls = [];
             let putHeaders;

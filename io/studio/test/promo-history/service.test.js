@@ -181,6 +181,241 @@ describe('Promotion history', () => {
         sinon.restore();
     });
 
+    it('does not disclose stored child changes or snapshots after access is revoked', async () => {
+        const { event } = await completeSave({ targetId: VARIATION });
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${VARIATION}`))).resolves(response({}, 403));
+
+        const result = await call('list', { query: 'Saved', eventIds: [event.id] });
+
+        expect(result.events).to.deep.equal([]);
+        expect(result.currentSnapshot?.fragments ?? []).to.deep.equal([]);
+        await expectError(
+            call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['@title'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            }),
+            403,
+        );
+    });
+
+    it('does not expose a stored version when only current fragment access remains', async () => {
+        await completeSave({ targetId: VARIATION });
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${VARIATION}/versions/`))).resolves(response({}, 403));
+        expect((await call('list')).events).to.deep.equal([]);
+    });
+
+    it('does not let one author exhaust another author retained-event capacity', async () => {
+        const { event } = await completeSave();
+        for (let index = 0; index < 1999; index++) {
+            stored.set(
+                `promo-history.${PROJECT}.event.author-${index}`,
+                JSON.stringify({
+                    ...event,
+                    id: `author-${index}`,
+                    requestId: `author-${index}`,
+                }),
+            );
+        }
+        await expectError(prepareSave({ requestId: 'over-capacity' }), 429);
+
+        profile = { id: 'another-author', email: 'verified@example.com' };
+        const { intentId } = await prepareSave({ requestId: 'other-author-save' });
+        fragments.get(PROJECT).title = 'Other author saved';
+        const result = await call('record', { phase: 'complete', intentId, requestId: 'other-author-save' });
+        expect(result.event.user.id).to.equal('another-author');
+    });
+
+    it('does not expose inheritance snapshots when parent access is revoked', async () => {
+        const parentId = '33333333-3333-4333-8333-333333333333';
+        const parentPath = '/content/dam/mas/acom/en_US/card';
+        fragments.set(parentId, { ...makeVariation(), id: parentId, path: parentPath });
+        fragments.get(PROJECT).fields[0].values = [parentPath];
+        const { event } = await completeSave({ targetId: VARIATION });
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${parentId}`))).resolves(response({}, 403));
+
+        const result = await call('list', { fragmentId: VARIATION, eventIds: [event.id] });
+
+        expect(result.events).to.deep.equal([]);
+        expect(result.currentSnapshot.fragments).to.deep.equal([]);
+        await expectError(
+            call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['@title'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            }),
+            403,
+        );
+    });
+
+    it('checks nested concurrent evidence before returning a request replay', async () => {
+        const { event } = await completeSave();
+        event.concurrentAttempts = [
+            {
+                ...event,
+                changes: [{ fragmentId: VARIATION, path: variationPath, field: 'headline', before: ['Secret'], after: [] }],
+            },
+        ];
+        stored.set(`promo-history.${PROJECT}.event.${event.id}`, JSON.stringify(event));
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${VARIATION}`))).resolves(response({}, 403));
+
+        expect((await call('list', { query: 'Secret' })).events).to.deep.equal([]);
+        await expectError(call('record', { phase: 'complete', intentId: event.intentId }), 403);
+    });
+
+    it('returns the latest saved baseline per target before history search and pagination', async () => {
+        const card = await completeSave({ targetId: VARIATION, requestId: 'save-card' });
+        const project = await completeSave({ requestId: 'save-project' });
+        const result = await call('list', { eventIds: [project.event.id], limit: 1 });
+
+        expect(result.events.map(({ id }) => id)).to.deep.equal([project.event.id]);
+        expect(result.currentSnapshot.fragments).to.have.deep.members([
+            ...card.event.afterSnapshot.fragments,
+            ...project.event.afterSnapshot.fragments,
+        ]);
+        fragments.get(VARIATION).title = 'Later draft';
+        await call('restore', {
+            eventId: card.event.id,
+            selections: [{ fragmentId: VARIATION, fields: ['@title'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+        });
+        expect((await call('list', { query: 'no matches' })).currentSnapshot).to.deep.equal(result.currentSnapshot);
+    });
+
+    for (const operation of ['create', 'duplicate', 'restore']) {
+        it(`applies the existing pending-intent quota to ${operation} without blocking another author`, async () => {
+            const event = await legacyBackup([VARIATION]);
+            fragments.get(VARIATION).fields[0].values = ['Later draft'];
+            for (let index = 0; index < 50; index++) await prepareSave({ requestId: `pending-${index}` });
+            const payload =
+                operation === 'restore'
+                    ? {
+                          requestId: 'new-admission',
+                          eventId: event.id,
+                          selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                          expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                      }
+                    : { action: operation, targetId: VARIATION, requestId: 'new-admission' };
+            const route = operation === 'restore' ? 'restore' : 'record';
+            await expectError(call(route, payload), 429);
+
+            profile = { id: 'other-author', email: 'verified@example.com' };
+            const result = await call(route, payload);
+            expect(result.event.action).to.equal(operation);
+        });
+    }
+
+    for (const action of ['create', 'duplicate']) {
+        it(`deduplicates phase-less ${action} flood against the same target across authors and actions`, async () => {
+            const first = await call('record', { action, targetId: VARIATION });
+            for (let index = 0; index < 55; index++) {
+                const result = await call('record', {
+                    action: index % 2 ? 'duplicate' : 'create',
+                    targetId: VARIATION,
+                    requestId: `creation-${index}`,
+                });
+                expect(result.event.id).to.equal(first.event.id);
+                expect(result.unchanged).to.equal(true);
+            }
+            profile = { id: 'another-author', email: 'verified@example.com' };
+            const result = await call('record', { action, targetId: VARIATION, requestId: 'other-creation' });
+            expect(result.event.id).to.equal(first.event.id);
+            expect(versions.size).to.equal(1);
+            expect((await call('list')).events).to.have.length(1);
+            expect((await completeSave({ requestId: 'other-save' })).event.action).to.equal('save');
+        });
+
+        it(`deduplicates prepared ${action} completion against a recorded creation`, async () => {
+            const first = await call('record', { action, targetId: VARIATION });
+            const { intentId } = await call('record', {
+                phase: 'prepare',
+                action,
+                targetId: VARIATION,
+                requestId: 'prepared-again',
+            });
+            const result = await call('record', { phase: 'complete', intentId, requestId: 'prepared-again' });
+            expect(result.event.id).to.equal(first.event.id);
+            expect(versions.size).to.equal(1);
+        });
+    }
+
+    it('keeps an event workflow success despite a later unrelated replication failure', async () => {
+        const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+        const { event } = await call('record', { phase: 'complete', intentId, workflowInstanceId: 'original-publish' });
+        workflows.set('original-publish', { type: 'publish-fragments', state: 'COMPLETED', end: true });
+        fragments.get(PROJECT).operations = {
+            replication: { status: 'FAILED', workflowInstanceId: 'later-unpublish', type: 'unpublish-fragments' },
+        };
+        expect((await call('list', { eventIds: [event.id] })).events[0].publicationOutcome).to.equal('confirmed');
+    });
+
+    it('does not assign a later uncorrelated replication failure to a pending legacy publication', async () => {
+        const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+        const { event } = await call('record', { phase: 'complete', intentId });
+        fragments.get(PROJECT).operations = {
+            replication: { status: 'FAILED', type: 'unpublish-fragments', workflowInstanceId: 'unrelated' },
+        };
+        expect((await call('list', { eventIds: [event.id] })).events[0].publicationOutcome).to.equal('pending');
+    });
+
+    it('skips unchanged targets in a partial restore plan without native snapshots', async () => {
+        const event = await legacyBackup();
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
+        const versionCount = versions.size;
+
+        const result = await call('restore', {
+            eventId: event.id,
+            expected: [
+                { fragmentId: PROJECT, etag: '"one"' },
+                { fragmentId: VARIATION, etag: '"one"' },
+            ],
+        });
+
+        expect(result.restored).to.deep.equal([VARIATION]);
+        expect(versions.size).to.equal(versionCount);
+        expect(fetchStub.getCalls().some(({ args }) => args[0].endsWith(`/${PROJECT}`) && args[1]?.method === 'PUT')).to.equal(
+            false,
+        );
+    });
+
+    it('does not write or audit a restore whose selected fields already match the current draft', async () => {
+        const event = await legacyBackup([VARIATION]);
+        const count = stored.size;
+        fetchStub.resetHistory();
+
+        const result = await call('restore', {
+            eventId: event.id,
+            selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+        });
+
+        expect(result).to.include({ unchanged: true });
+        expect(result.restored).to.deep.equal([]);
+        expect(stored.size).to.equal(count);
+        expect(fetchStub.getCalls().some(({ args }) => ['POST', 'PUT', 'DELETE'].includes(args[1]?.method))).to.equal(false);
+    });
+
+    it('keeps restore audit internal without native versions or changing visible numbering', async () => {
+        const event = await legacyBackup([VARIATION]);
+        fragments.get(VARIATION).fields[0].values = ['New draft'];
+        const versionCount = versions.size;
+
+        const result = await call('restore', {
+            eventId: event.id,
+            selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+        });
+
+        expect(result.event.isAudit).to.equal(true);
+        expect(result.event.sourceEventId).to.equal(event.id);
+        expect(result.event).not.to.have.property('afterSnapshot');
+        expect(result.event).not.to.have.property('snapshot');
+        expect(versions.size).to.equal(versionCount);
+        expect((await call('list')).events.map(({ id, version }) => ({ id, version }))).to.deep.equal([
+            { id: event.id, version: 1 },
+        ]);
+    });
+
     it('prepares saves without native versions and captures one restorable saved state after completion', async () => {
         const { intentId } = await prepareSave({ targetId: VARIATION });
         expect(versions.size).to.equal(0);
@@ -456,8 +691,9 @@ describe('Promotion history', () => {
 
             expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(raw);
             expect(fragments.get(parentId).fields[0].values).to.deep.equal(['Current inherited display']);
-            expect(result.event.beforeContext.inheritance[0].id).to.equal(parentId);
-            expect(result.event.afterSnapshot.inheritance[0].id).to.equal(parentId);
+            expect(result.event.isAudit).to.equal(true);
+            expect(result.event).not.to.have.property('afterSnapshot');
+            expect(result.event.changes[0].after).to.deep.equal(raw);
         });
     }
 
@@ -833,12 +1069,12 @@ describe('Promotion history', () => {
         expect(fetchStub.getCalls().some(({ args }) => args[1]?.method === 'PUT')).to.equal(false);
     });
 
-    it('keeps history listable when AEM version content is no longer available', async () => {
-        const event = await legacyBackup();
+    it('hides stored history when historical version access cannot be verified', async () => {
+        await legacyBackup();
         versions.clear();
         fetchStub.resetHistory();
-        expect((await call('list')).events[0].id).to.equal(event.id);
-        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/versions/'))).to.equal(false);
+        expect((await call('list')).events).to.deep.equal([]);
+        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/versions/'))).to.equal(true);
     });
 
     it('restores a selected fragment even when an unrelated historical version is unavailable', async () => {
@@ -848,6 +1084,7 @@ describe('Promotion history', () => {
         const event = await legacyBackup([PROJECT, VARIATION, otherId]);
         const entry = event.snapshot.fragments.find((fragment) => fragment.id === otherId);
         versions.delete(`${entry.id}:${entry.versionId}`);
+        fragments.get(VARIATION).fields[0].values = ['Later'];
         const { restored } = await call('restore', {
             eventId: event.id,
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
@@ -1062,10 +1299,11 @@ describe('Promotion history', () => {
             expect([...versions.keys()].some((key) => key.startsWith(parentId))).to.equal(false);
         });
 
-        it('captures restore parent versions without restoring parent content', async () => {
+        it('restores raw content without snapshotting or restoring parent content', async () => {
             const { intentId } = await prepareSave({ targetId: VARIATION });
             fragments.get(VARIATION).fields[0].values = ['Saved'];
             const { event } = await call('record', { phase: 'complete', intentId });
+            fragments.get(VARIATION).fields[0].values = ['Later draft'];
             fragments.get(parentId).fields[0].values = ['Current parent'];
             fetchStub.resetHistory();
 
@@ -1076,7 +1314,7 @@ describe('Promotion history', () => {
 
             expect(result.restored).to.deep.equal([VARIATION]);
             expect(result.event).not.to.have.property('beforeSnapshot');
-            expect(result.event.afterSnapshot.inheritance[0].id).to.equal(parentId);
+            expect(result.event).not.to.have.property('afterSnapshot');
             expect(fragments.get(parentId).fields[0].values).to.deep.equal(['Current parent']);
             expect(fetchStub.getCalls().some(({ args }) => args[0].endsWith(parentId) && args[1]?.method === 'PUT')).to.equal(
                 false,
@@ -1231,8 +1469,8 @@ describe('Promotion history', () => {
                 });
 
                 expect(result.restored).to.deep.equal([PROJECT]);
-                expect(result.event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
-                expect(result.event.afterSnapshot.inheritanceUnavailable ?? []).to.deep.equal([]);
+                expect(result.event.changes.map(({ fragmentId }) => fragmentId)).to.deep.equal([PROJECT]);
+                expect(result.event).not.to.have.property('afterSnapshot');
             });
         });
     });
@@ -1268,8 +1506,8 @@ describe('Promotion history', () => {
             expect(result.event.changes[0]).to.include({ field: 'headline' });
             expect(result.event.changes[0].before).to.deep.equal(['New']);
             expect(result.event.changes[0].after).to.deep.equal(['Old']);
-            expect(result.event.restoreMode).to.equal('state');
-            expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+            expect(result.event.isAudit).to.equal(true);
+            expect(result.event).not.to.have.property('snapshot');
         });
 
         it('refuses to overwrite a newer value even with a current ETag', async () => {
@@ -1310,29 +1548,46 @@ describe('Promotion history', () => {
             expect(fragments.get(VARIATION).fields.map(({ values }) => values[0])).to.deep.equal(['Old', 'Keep later edit']);
         });
 
-        it('restores a legacy undo result as a saved state rather than undoing the restoration', async () => {
+        it('returns unchanged when a legacy undo already matches the current selected payload', async () => {
+            fragments.get(VARIATION).fields[0].values = ['Old'];
+            const count = stored.size;
+
+            const result = await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            expect(result).to.deep.equal({ unchanged: true, restored: [] });
+            expect(stored.size).to.equal(count);
+        });
+
+        it('does not expose a technical legacy undo audit as another saved version', async () => {
             const first = await call('restore', {
                 eventId: event.id,
                 selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
                 expected: [{ fragmentId: VARIATION, etag: '"one"' }],
             });
 
-            await call('restore', {
-                requestId: 'undo-restore',
-                eventId: first.event.id,
-                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
-                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
-            });
+            await expectError(
+                call('restore', {
+                    requestId: 'undo-restore',
+                    eventId: first.event.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                }),
+                404,
+            );
 
             expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['Old']);
         });
 
-        it('refuses blindly retrying an undo after its writes succeeded but after snapshot capture failed', async () => {
-            const posts = fetchStub.withArgs(
-                sinon.match((url) => url.endsWith(`/${VARIATION}/versions`)),
-                sinon.match({ method: 'POST' }),
-            );
-            posts.onCall(posts.callCount).resolves(response({}, 503));
+        it('refuses blindly retrying an undo after its writes succeeded but audit persistence failed', async () => {
+            const put = state.put;
+            state.put = async (key, value, options) => {
+                if (key.includes('.event.')) throw new Error('Audit storage unavailable');
+                return put(key, value, options);
+            };
             const payload = {
                 eventId: event.id,
                 selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
@@ -1384,18 +1639,15 @@ describe('Promotion history', () => {
 
                 expect(fragments.get(VARIATION).fields.find(({ name }) => name === field).values).to.deep.equal(before);
                 expect(result.event.changes.find((change) => change.field === field).after).to.deep.equal(before);
-                const entry = result.event.afterSnapshot.fragments[0];
-                expect(
-                    versions.get(`${entry.id}:${entry.versionId}`).fields.find(({ name }) => name === field).values,
-                ).to.deep.equal(before);
+                expect(result.event).not.to.have.property('afterSnapshot');
                 expect(fragments.get(parentId).fields[0].values).to.deep.equal(['Parent display text']);
             });
         }
 
-        it('keeps audit listable but refuses undo when the native before version is missing', async () => {
+        it('hides stored history and refuses undo when the native before version is unavailable', async () => {
             versions.clear();
 
-            expect((await call('list')).events[0].id).to.equal(event.id);
+            expect((await call('list')).events).to.deep.equal([]);
             await expectError(
                 call('restore', {
                     eventId: event.id,
@@ -1696,20 +1948,20 @@ describe('Promotion history', () => {
     });
 
     for (const state of ['SCHEDULED', 'ACCEPTED', 'RUNNING']) {
-        it(`does not confirm ${state} operations even with completed workflow metadata`, async () => {
+        it(`trusts the completed event workflow despite unrelated ${state} replication metadata`, async () => {
             fragments.get(PROJECT).status = 'PUBLISHED';
             const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
             await call('record', { phase: 'complete', intentId, workflowInstanceId: 'workflow-one' });
             workflows.set('workflow-one', { type: 'publish-fragments', state: 'COMPLETED' });
             fragments.get(PROJECT).operations = { replication: { status: state } };
-            expect((await call('list')).events[0].publicationOutcome).to.equal('pending');
+            expect((await call('list')).events[0].publicationOutcome).to.equal('confirmed');
         });
     }
 
-    it('preserves explicit replication failure rather than leaving it pending indefinitely', async () => {
+    it('preserves a replication failure correlated to the event workflow', async () => {
         const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
-        fragments.get(PROJECT).operations = { replication: { status: 'FAILED' } };
-        const { event } = await call('record', { phase: 'complete', intentId });
+        fragments.get(PROJECT).operations = { replication: { status: 'FAILED', workflowInstanceId: 'workflow-one' } };
+        const { event } = await call('record', { phase: 'complete', intentId, workflowInstanceId: 'workflow-one' });
         expect(event.publicationOutcome).to.equal('failed');
     });
 
@@ -1732,6 +1984,7 @@ describe('Promotion history', () => {
         expect(event.changes.find(({ field }) => field === 'headline').before).to.deep.equal(['Old']);
         expect(event).not.to.have.property('afterSnapshot');
         expect(versions.size).to.equal(0);
+        expect((await call('list')).events).to.deep.equal([]);
     });
 
     it('rejects save completion if the target changes before its native version is captured', async () => {
@@ -1821,7 +2074,7 @@ describe('Promotion history', () => {
         const writes = fetchStub.getCalls().filter(({ args }) => args[1]?.method === 'PUT');
         expect(writes[0].args[1].headers['If-Match']).to.equal('"one"');
         expect(fetchStub.getCalls().some(({ args }) => /publish|versions\/restore/.test(args[0]))).to.equal(false);
-        expect((await call('list', { action: 'restore' })).events).to.have.length(1);
+        expect((await call('list', { action: 'restore' })).events).to.have.length(0);
     });
 
     it('rejects missing historical fragments before any write and never recreates them', async () => {
@@ -1895,6 +2148,7 @@ describe('Promotion history', () => {
 
     it('permits promotion power users to restore through the server-side LDAP cache', async () => {
         const event = await legacyBackup();
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
         roles = ['grp-odin-mas-promo-powerusers'];
         const result = await call('restore', {
             eventId: event.id,
@@ -1907,6 +2161,7 @@ describe('Promotion history', () => {
     it('preflights missing historical references before all writes', async () => {
         const event = await legacyBackup();
         fragments.delete(VARIATION);
+        fragments.get(PROJECT).fields[0].values = [];
         await expectError(
             call('restore', {
                 eventId: event.id,
@@ -1944,8 +2199,9 @@ describe('Promotion history', () => {
             },
         ]);
         expect(result.event.restored).to.deep.equal([PROJECT]);
-        expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
-        expect(result.event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
+        expect(result.event.isAudit).to.equal(true);
+        expect(result.event).not.to.have.property('snapshot');
+        expect(result.event).not.to.have.property('afterSnapshot');
         expect(result.event.changes.some((change) => change.fragmentId === VARIATION)).to.equal(false);
     });
 
@@ -1962,11 +2218,11 @@ describe('Promotion history', () => {
                     )
                     .resolves(response({}, 412));
             }
-            const posts = fetchStub.withArgs(
-                sinon.match((url) => url.endsWith(`/${PROJECT}/versions`)),
-                sinon.match({ method: 'POST' }),
-            );
-            posts.onFirstCall().resolves(response({}, 503));
+            const put = state.put;
+            state.put = async (key, value, options) => {
+                if (key.includes('.event.')) throw new Error('Audit storage unavailable');
+                return put(key, value, options);
+            };
             let failure;
             try {
                 await call('restore', {
@@ -1989,7 +2245,7 @@ describe('Promotion history', () => {
         });
     }
 
-    it('captures native actual content after a partially failed tags restore', async () => {
+    it('audits actual content after a partially failed tags restore without native versions', async () => {
         fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
         const event = await legacyBackup();
         fragments.get(VARIATION).fields[0].values = ['New headline'];
@@ -2009,10 +2265,9 @@ describe('Promotion history', () => {
 
         expect(result.restored).to.deep.equal([]);
         expect(result.failures[0]).to.include({ fragmentId: VARIATION, partial: true });
-        const entry = result.event.afterSnapshot.fragments[0];
-        const actual = versions.get(`${entry.id}:${entry.versionId}`);
-        expect(actual.fields[0].values).to.deep.equal(['Old']);
-        expect(actual.tags).to.deep.equal([{ id: 'mas:new' }]);
+        expect(result.event.changes.find(({ field }) => field === 'headline').after).to.deep.equal(['Old']);
+        expect(result.event.changes.some(({ field }) => field === '@tags')).to.equal(false);
+        expect(result.event.isAudit).to.equal(true);
         expect(result.event).not.to.have.property('beforeSnapshot');
     });
 
@@ -2026,7 +2281,7 @@ describe('Promotion history', () => {
                 sinon.match((url) => url.endsWith(`/${VARIATION}${resource === 'tags' ? '/tags' : ''}`)),
                 sinon.match((options) => options.method === undefined),
             );
-            reads.onCall(1).resolves(response({}, 503));
+            reads.onCall(resource === 'content' ? 2 : 1).resolves(response({}, 503));
             const result = await call('restore', {
                 eventId: event.id,
                 selections: [{ fragmentId: VARIATION, fields: ['headline', '@tags'] }],
@@ -2034,12 +2289,13 @@ describe('Promotion history', () => {
             });
             expect(result.failures[0]).to.include({ fragmentId: VARIATION, partial: true });
             expect(result.event.changes.find(({ field }) => field === 'headline').after).to.deep.equal(['Old']);
-            expect(result.event.afterSnapshot.fragments[0].id).to.equal(VARIATION);
+            expect(result.event).not.to.have.property('afterSnapshot');
         });
     }
 
     it('reports auditPending when committed content cannot be read back at all', async () => {
         const event = await legacyBackup();
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
         const puts = fetchStub.withArgs(
             sinon.match((url) => url.endsWith(`/${VARIATION}`)),
             sinon.match({ method: 'PUT' }),
@@ -2066,7 +2322,7 @@ describe('Promotion history', () => {
         }
         expect(failure?.result.auditPending).to.equal(true);
         expect(failure.result.failures[0].partial).to.equal(true);
-        expect((await call('list', { action: 'restore' })).events).to.have.length(0);
+        await expectError(call('list', { action: 'restore' }), 503);
     });
 
     it('does not audit an unacknowledged committed tags-only write as an unchanged failure', async () => {
@@ -2112,7 +2368,7 @@ describe('Promotion history', () => {
 
         expect(retry).to.deep.equal(JSON.parse(JSON.stringify(completed)));
         expect(fetchStub.getCalls().some(({ args }) => ['POST', 'PUT', 'DELETE'].includes(args[1]?.method))).to.equal(false);
-        expect((await call('list', { action: 'restore' })).events).to.have.length(1);
+        expect((await call('list', { action: 'restore' })).events).to.have.length(0);
     });
 
     it('restores metadata while preserving unrelated metadata and field values', async () => {
@@ -2155,6 +2411,7 @@ describe('Promotion history', () => {
 
     it('checks the selected restore targets before retrying a request ID', async () => {
         const event = await legacyBackup();
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
         const payload = {
             eventId: event.id,
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
@@ -2173,6 +2430,7 @@ describe('Promotion history', () => {
     it('refuses events that exceed bounded storage before any restore write', async () => {
         const event = await legacyBackup();
         fragments.get(VARIATION).fields[1].values = ['x'.repeat(800000)];
+        fragments.get(VARIATION).fields[0].values = ['Changed'];
         await expectError(
             call('restore', {
                 eventId: event.id,
@@ -2234,7 +2492,7 @@ describe('Promotion history', () => {
         expect(JSON.parse(write.args[1].body)).to.deep.equal({ tags: ['mas:old'] });
     });
 
-    it('versions only the restored target once after the restore', async () => {
+    it('preserves historical native versions after restoring the current draft', async () => {
         const event = await legacyBackup();
         fragments.get(VARIATION).fields[0].values = ['Changed'];
         const versionCount = versions.size;
@@ -2243,13 +2501,13 @@ describe('Promotion history', () => {
             selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
             expected: [{ fragmentId: VARIATION, etag: '"one"' }],
         });
-        expect(result.event.restoreMode).to.equal('state');
-        expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+        expect(result.event.isAudit).to.equal(true);
+        expect(result.event).not.to.have.property('snapshot');
         expect(result.event).not.to.have.property('beforeSnapshot');
-        expect(result.event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
-        const after = result.event.afterSnapshot.fragments[0];
+        expect(result.event).not.to.have.property('afterSnapshot');
+        const after = event.snapshot.fragments.find(({ id }) => id === VARIATION);
         expect(versions.get(`${after.id}:${after.versionId}`).fields[0].values).to.deep.equal(['Old']);
-        expect(versions.size).to.equal(versionCount + 1);
+        expect(versions.size).to.equal(versionCount);
     });
 
     it('full fragment restore replaces the historical field set instead of retaining later additions', async () => {
@@ -2273,9 +2531,12 @@ describe('Promotion history', () => {
     });
 
     it('retains independent simultaneous writes as separate events', async () => {
+        const first = await prepareSave({ requestId: 'one' });
+        const second = await prepareSave({ requestId: 'two' });
+        fragments.get(PROJECT).title = 'Saved';
         await Promise.all([
-            call('record', { action: 'create', targetId: PROJECT, requestId: 'one' }),
-            call('record', { action: 'create', targetId: PROJECT, requestId: 'two' }),
+            call('record', { phase: 'complete', intentId: first.intentId, requestId: 'one' }),
+            call('record', { phase: 'complete', intentId: second.intentId, requestId: 'two' }),
         ]);
         expect((await call('list')).events).to.have.length(2);
     });
@@ -2309,33 +2570,30 @@ describe('Promotion history', () => {
     });
 
     it('prefers a successful concurrent restore over an older failed duplicate and retains attempt evidence', async () => {
-        const base = {
-            id: '55555555-5555-4555-8555-555555555555',
-            action: 'restore',
-            projectId: PROJECT,
-            requestId: 'restore-request',
-            user: profile,
-            changes: [],
+        const source = await legacyBackup([VARIATION]);
+        fragments.get(VARIATION).fields[0].values = ['New'];
+        const payload = {
+            eventId: source.id,
+            selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
         };
+        const { event } = await call('restore', payload);
         stored.set(
             `promo-history.${PROJECT}.event.first`,
             JSON.stringify({
-                ...base,
+                ...event,
                 createdAt: '2026-01-01T00:00:00.000Z',
                 restored: [],
-                failures: [{ fragmentId: PROJECT, statusCode: 412 }],
+                changes: [],
+                failures: [{ fragmentId: VARIATION, statusCode: 412 }],
             }),
         );
-        stored.set(
-            `promo-history.${PROJECT}.event.second`,
-            JSON.stringify({ ...base, createdAt: '2026-01-01T00:00:01.000Z', restored: [PROJECT] }),
-        );
-        const { events } = await call('list');
-        expect(events).to.have.length(1);
-        expect(events[0].restored).to.deep.equal([PROJECT]);
-        expect(events[0].concurrentAttempts).to.have.length(1);
-        expect(events[0].concurrentAttempts[0].failures[0].statusCode).to.equal(412);
-        expect([...stored.keys()].filter((key) => key.includes('.event.'))).to.have.length(2);
+        const retry = await call('restore', payload);
+        expect(retry.event.restored).to.deep.equal([VARIATION]);
+        expect(retry.event.concurrentAttempts).to.have.length(1);
+        expect(retry.event.concurrentAttempts[0].failures[0].statusCode).to.equal(412);
+        expect((await call('list', { action: 'restore' })).events).to.deep.equal([]);
+        expect([...stored.keys()].filter((key) => key.includes('.event.'))).to.have.length(3);
     });
 
     it('retains the successful ETag-protected result when identical restores race across invocations', async () => {
@@ -2375,11 +2633,10 @@ describe('Promotion history', () => {
             expect(result).not.to.have.property('failures');
         }
         const listed = (await call('list', { action: 'restore' })).events;
-        expect(listed).to.have.length(1);
-        expect(listed[0].restored).to.deep.equal([VARIATION]);
-        expect(listed[0].concurrentAttempts[0].failures[0].statusCode).to.equal(412);
+        expect(listed).to.have.length(0);
         const retry = await call('restore', payload);
         expect(retry.restored).to.deep.equal([VARIATION]);
+        expect(retry.event.concurrentAttempts[0].failures[0].statusCode).to.equal(412);
         expect(writes).to.equal(1);
     });
 });

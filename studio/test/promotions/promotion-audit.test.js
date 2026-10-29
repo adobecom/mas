@@ -11,6 +11,7 @@ import {
 } from '../../src/promotions/promotion-audit.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
+import Events from '../../src/events.js';
 
 describe('promotion write audit capture', () => {
     let sandbox;
@@ -147,6 +148,79 @@ describe('promotion write audit capture', () => {
         expect(JSON.parse(fetchStub.secondCall.args[1].body).completionEtag).to.equal(saved.etag);
     });
 
+    it('does not automatically retry a permanent completion conflict or repeat its warning', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        fetchStub
+            .onSecondCall()
+            .resolves(new Response(JSON.stringify({ error: 'No server-observed content change' }), { status: 409 }));
+        await withPromotionAudit(repository, 'save', project, sandbox.stub().resolves(project));
+
+        const status = await retryPendingPromotionAudits(project.id);
+        await retryPendingPromotionAudits(project.id);
+
+        expect(fetchStub.callCount).to.equal(2);
+        expect(toast.calledOnce).to.be.true;
+        expect(status.blocked).to.equal(1);
+        expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))[0].blocked).to.be.true;
+    });
+
+    it('backs off transient audit failures without repeating notifications', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['Date'] });
+        const toast = sandbox.spy(Events.toast, 'emit');
+        fetchStub.onSecondCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
+        await withPromotionAudit(repository, 'save', project, sandbox.stub().resolves(project));
+
+        await retryPendingPromotionAudits(project.id);
+        expect(fetchStub.callCount).to.equal(2);
+        clock.tick(60000);
+        await retryPendingPromotionAudits(project.id);
+
+        expect(fetchStub.callCount).to.equal(3);
+        expect(toast.calledOnce).to.be.true;
+        expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))).to.deep.equal([]);
+    });
+
+    it('bounds automatic completion retries while retaining unresolved metadata', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['Date'] });
+        fetchStub.callsFake(async (_url, options) => {
+            const payload = JSON.parse(options.body);
+            return new Response(
+                JSON.stringify(payload.phase === 'prepare' ? { intentId: 'intent' } : { error: 'Unavailable' }),
+                { status: payload.phase === 'prepare' ? 200 : 503 },
+            );
+        });
+        await withPromotionAudit(repository, 'save', project, sandbox.stub().resolves(project));
+
+        for (let attempt = 0; attempt < 4; attempt++) {
+            clock.tick(120000);
+            await retryPendingPromotionAudits(project.id);
+        }
+
+        expect(fetchStub.callCount).to.equal(4);
+        expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))[0]).to.include({
+            attempts: 3,
+            blocked: true,
+        });
+    });
+
+    it('completes audit after a committed save read failure without repeating the mutation', async () => {
+        const error = Object.assign(new Error('Saved fragment could not be retrieved'), {
+            mutationCommitted: true,
+            mutationEtag: '"committed-etag"',
+        });
+        const write = sandbox.stub().rejects(error);
+
+        const failure = await withPromotionAudit(repository, 'save', project, write).catch((caught) => caught);
+
+        expect(failure).to.equal(error);
+        expect(write.calledOnce).to.be.true;
+        expect(fetchStub.callCount).to.equal(2);
+        expect(JSON.parse(fetchStub.secondCall.args[1].body)).to.include({
+            phase: 'complete',
+            completionEtag: '"committed-etag"',
+        });
+    });
+
     it('retains the created fragment ETag in a pending audit without storing content', async () => {
         const created = { ...project, etag: '"created-etag"' };
         fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
@@ -252,6 +326,7 @@ describe('promotion write audit capture', () => {
     });
 
     it('queues a failed project creation audit for retry without creating versions', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['Date'] });
         fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
 
         await withPromotionAudit(repository, 'create', { modelId: PROMOTION_MODEL_ID }, sandbox.stub().resolves(project));
@@ -259,6 +334,7 @@ describe('promotion write audit capture', () => {
         const [pending] = JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'));
         expect(pending).to.include({ projectId: project.id, targetId: project.id, action: 'create' });
         expect(pending).not.to.have.property('fields');
+        clock.tick(60000);
         await retryPendingPromotionAudits();
         expect(JSON.parse(fetchStub.secondCall.args[1].body).requestId).to.equal(pending.requestId);
         expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))).to.deep.equal([]);
@@ -353,12 +429,14 @@ describe('promotion write audit capture', () => {
     });
 
     it('retries failed completions with the same request id without retaining content', async () => {
+        const clock = sandbox.useFakeTimers({ toFake: ['Date'] });
         fetchStub.onSecondCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
         await withPromotionAudit(repository, 'save', project, sandbox.stub().resolves(project));
         const [pending] = JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'));
         expect(pending.intentId).to.equal('intent');
         expect(pending).not.to.have.property('fields');
         expect(pending).not.to.have.property('token');
+        clock.tick(60000);
         await retryPendingPromotionAudits();
         expect(JSON.parse(fetchStub.thirdCall.args[1].body).requestId).to.equal(pending.requestId);
         expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))).to.deep.equal([]);

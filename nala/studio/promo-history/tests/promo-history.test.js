@@ -114,7 +114,7 @@ test.describe('M@S Studio - Promo project history', () => {
             expect(restoreResponse.ok()).toBeTruthy();
             const { event } = await restoreResponse.json();
             expect(event.action).toBe('restore');
-            expect(event.restoreMode).toBe('state');
+            expect(event.afterSnapshot).toBeUndefined();
             expect(event.sourceEventId).toBe(initialEvent.id);
             await expect(studio.toastPositive).toBeVisible();
             const restored = await page.evaluate(async (id) => {
@@ -123,7 +123,12 @@ test.describe('M@S Studio - Promo project history', () => {
             }, fragment.id);
             expect(restored.code).toBe(data.originalCode);
             expect(restored.status).toBe('DRAFT');
-            await expect(promoHistory.cards.filter({ hasText: 'Selected fields restored' }).first()).toBeVisible();
+            await expect(promoHistory.panel.locator('[data-event-id="current"]')).toBeVisible();
+            await expect(promoHistory.panel.locator(`[data-event-id="${event.id}"]`)).toHaveCount(0);
+            const restoredCode = promoHistory.panel.locator('[data-field="promoCode"]');
+            await expect(restoredCode.locator('.before')).toHaveText(data.updatedCode);
+            await expect(restoredCode.locator('.after')).toHaveText(data.originalCode);
+            await expect(restoredCode.locator('.change-badge')).toHaveText('Changed');
         });
     });
 });

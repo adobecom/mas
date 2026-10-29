@@ -302,9 +302,14 @@ class AEM {
             throw new Error(`Failed to save fragment: ${response.status} ${response.statusText}`);
         }
 
-        await this.saveTags(fragment, { trackMutation: false });
-
-        return this.pollUpdatedFragment(fragment);
+        try {
+            await this.saveTags(fragment, { trackMutation: false });
+            return await this.pollUpdatedFragment(fragment);
+        } catch (error) {
+            error.mutationCommitted = true;
+            if (!fragment.newTags) error.mutationEtag = response.headers.get('etag');
+            throw error;
+        }
     }
 
     async saveTags(fragment, { trackMutation = true } = {}) {

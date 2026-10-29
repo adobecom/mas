@@ -2065,6 +2065,7 @@ class MerchCardEditor extends LitElement {
                         data-field-state="${this.getFieldState('customFields')}"
                         .value="${this.customFieldValues}"
                         .osi="${this.getEffectiveFieldValue('osi', 0) || ''}"
+                        .addAllowed="${!this.isPromoVariation && !this.isGroupedVariation}"
                         @change="${this.#updateCustomFields}"
                         @input="${this.#updateCustomFields}"
                     >

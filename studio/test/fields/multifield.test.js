@@ -96,6 +96,26 @@ describe('Multifield', () => {
         expect(field.getAttribute('variant')).to.equal('pro');
     });
 
+    it('hides the add button when addAllowed is false', async () => {
+        const el = await fixture(
+            html`
+                <mas-multifield .value="${[{ value: 'a' }]}" .addAllowed="${false}">
+                    <template>
+                        <sp-textfield class="field"></sp-textfield>
+                    </template>
+                </mas-multifield>
+                ${styles}
+            `,
+            { parentNode: spTheme() },
+        );
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.be.null;
+
+        el.addAllowed = true;
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.add-button-wrapper')).to.exist;
+    });
+
     it('should support mas-mnemonic-field', async () => {
         const value = [
             {

@@ -29,9 +29,9 @@ import {
     processTrialBadge,
     processBadge,
     processFeatures,
-    normalizeVariant,
     splitParagraphListItems,
 } from '../src/hydrate.js';
+import { normalizeVariant } from '../src/utils.js';
 import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
 
 import { mockFetch } from './mocks/fetch.js';
@@ -1205,6 +1205,30 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('names the pro add-on after the hydrated card title', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = (cardTitle) => ({
+            id: 'pro-addon-name',
+            fields: {
+                variant: 'pro',
+                cardTitle,
+                addon: '<p><strong>Acrobat AI Assistant</strong></p>',
+            },
+        });
+        const product = async () => {
+            await litCard.addon.updateComplete;
+            return litCard.addon.shadowRoot.getElementById('addon-product')
+                ?.textContent;
+        };
+        await hydrate(fragment('Acrobat Pro'), litCard);
+        expect(await product()).to.equal('Acrobat Pro');
+        await hydrate(fragment('Creative Cloud Pro'), litCard);
+        expect(await product()).to.equal('Creative Cloud Pro');
         litCard.remove();
     });
 

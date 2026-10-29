@@ -529,6 +529,13 @@ function applyBaselines(fragment, { baselines }) {
     return merged;
 }
 
+function applyMask(fragment, maskFragment) {
+    const merged = { ...deepMerge(fragment, maskFragment), maskId: maskFragment.id };
+    const tags = [...new Set([...(maskFragment.fields?.tags ?? []), ...(fragment.fields?.tags ?? [])])];
+    if (tags.length > 0) merged.fields.tags = tags;
+    return merged;
+}
+
 /**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
@@ -543,14 +550,18 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
     const {
         references: variationReferences,
         referencesTree: variationReferencesTree,
-        ...customizedRoot
+        ...mergedRoot
     } = mergeVariations(root, customizeContext, selectedPromoProject);
+    let customizedRoot = mergedRoot;
     if (variationReferences) {
         // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
         // win, since they may already hold customized values.
         customizeContext.references = { ...variationReferences, ...customizeContext.references };
     }
     customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
+    if (customizeContext.maskFragment && customizedRoot.model?.id === CARD_MODEL_ID) {
+        customizedRoot = applyMask(customizedRoot, customizeContext.maskFragment);
+    }
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
@@ -624,7 +635,7 @@ async function customize(context) {
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promoProjects = context.promoProjects ?? [];
-    const { maskFragment, pzn } = context;
+    const { pzn } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -657,15 +668,10 @@ async function customize(context) {
     }
 
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
-    let { fragment: customizedFragment } = customizedTree;
+    const { fragment: customizedFragment } = customizedTree;
     if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
-    if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
-        logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
-        customizedFragment = deepMerge(customizedFragment, maskFragment);
-        customizedFragment.maskId = maskFragment.id;
-    }
     customizedFragment.references = customizedReferences;
     customizedFragment.referencesTree = customizedReferenceTree;
     return {

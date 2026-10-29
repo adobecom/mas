@@ -139,6 +139,7 @@ class MasAddItemsDialog extends LitElement {
                                   <mas-search-and-filters
                                       .type=${TABLE_TYPE.CARDS}
                                       .searchQuery=${this.searchQuery}
+                                      hide-count
                                   ></mas-search-and-filters>
                               </div>
                           `

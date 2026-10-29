@@ -937,6 +937,10 @@ sp-underlay + sp-dialog {
     transform: translateY(-50%);
 }
 
+.preview-popover.white-background {
+    background-color: #ffffff;
+}
+
 .preview-popover.position-left {
     left: var(--popover-position);
 }

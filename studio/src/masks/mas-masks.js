@@ -60,12 +60,6 @@ class MasMasks extends LitElement {
                 }
             }
 
-            .action-cell {
-                display: flex;
-                justify-content: center;
-                --system-action-button-background-color-default: transparent;
-            }
-
             .empty,
             .no-access {
                 padding: 40px;

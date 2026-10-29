@@ -10,6 +10,7 @@ import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
 import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
+import { VARIATION_FILTER, VARIATION_FILTER_OPTIONS } from './fragments/variation-filter.js';
 
 let editorContextInstance = null;
 
@@ -223,6 +224,16 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    baselines: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({}),
+        allBaselines: new ReactiveStore([]),
+        displayBaselines: new ReactiveStore([]),
+    },
     bulkEditProjects: {
         list: {
             data: new ReactiveStore([]),
@@ -343,6 +354,13 @@ function filtersValidator(value) {
         const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
         value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
     }
+
+    const variations = value.variation?.split(',') ?? [];
+    value.variation = variations.includes(VARIATION_FILTER.NONE)
+        ? VARIATION_FILTER.NONE
+        : VARIATION_FILTER_OPTIONS.filter((option) => variations.includes(option.id))
+              .map((option) => option.id)
+              .join(',') || undefined;
     return value;
 }
 

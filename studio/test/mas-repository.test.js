@@ -587,6 +587,34 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads baselines of the surface and locale on BASELINES page, aborting the previous load', async () => {
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({ ...originalSearch, path: 'sandbox' });
+            Store.filters.set({ ...originalFilters, locale: 'fr_FR' });
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.BASELINES };
+            repository.searchFragmentList = sandbox.stub().returns(new Promise(() => {}));
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                MasRepository.prototype.handleSearch.call(repository);
+                const [firstQuery, , firstController] = repository.searchFragmentList.firstCall.args;
+                expect(firstQuery.path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+                expect(firstController.signal.aborted).to.be.true;
+                expect(repository.searchFragmentList.secondCall.args[2].signal.aborted).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                Store.baselines.list.data.removeMeta('loadedPath');
+                Store.baselines.list.data.set([]);
+                Store.baselines.list.loading.set(false);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {
@@ -1644,7 +1672,7 @@ describe('MasRepository dictionary helpers', () => {
                         await waitUntil(() => stageStarted.called);
                         repository.search = { value: { path: 'acom', query: parentUuid } };
                         newSearch = repository.searchFragments();
-                        expect(getById.calledWith(parentUuid)).to.be.true;
+                        await waitUntil(() => getById.calledWith(parentUuid));
 
                         if (errorName) {
                             const error = new Error('Superseded search failed');
@@ -1691,6 +1719,7 @@ describe('MasRepository dictionary helpers', () => {
                 let oldSearch;
                 try {
                     oldSearch = repository.searchFragments();
+                    await waitUntil(() => repository.aem.sites.cf.fragments.getById.called);
                     expect(Store.fragments.list.loading.get()).to.be.true;
                     Store.search.set((previous) => ({ ...previous, query: parentUuid }));
                     expect(Store.fragments.list.loading.get()).to.be.false;
@@ -2456,6 +2485,65 @@ describe('MasRepository dictionary helpers', () => {
                 const passedStores = mockDataStore.set.lastCall.args[0];
                 expect(passedStores).to.have.lengthOf(1);
                 expect(passedStores[0].get().id).to.equal('plain-2');
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.fragments.list.data = originalData;
+            }
+        });
+
+        it('loads promo parents and matches either type for the combined variation filter', async () => {
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.CONTENT };
+            repository.search = { value: { path: 'acom', query: '' } };
+            repository.filters = {
+                value: { locale: 'en_US', tags: '', variation: 'promo,grouped', personalizationFilterEnabled: false },
+            };
+            const makeCard = (id, grouped) =>
+                createFragment({
+                    id,
+                    path: `${ROOT_PATH}/acom/en_US/cards/${id}`,
+                    tags: [],
+                    fields: [
+                        {
+                            name: 'variations',
+                            values: grouped ? [`${ROOT_PATH}/acom/en_US/pzn/mobile/${id}`] : [],
+                        },
+                    ],
+                });
+            const cards = [makeCard('both', true), makeCard('promo-only', false), makeCard('grouped-only', true)];
+            const promoParents = sandbox.stub(repository, 'searchFragmentList').resolves(
+                ['both', 'promo-only'].map((id) =>
+                    createFragment({
+                        id: `promo-${id}`,
+                        path: `${ROOT_PATH}/acom/en_US/promotions/sale/cards/${id}`,
+                        tags: [{ id: 'mas:promotion/sale' }],
+                        fields: [],
+                    }),
+                ),
+            );
+            repository.aem = createAemMock({
+                fragments: { search: sandbox.stub().resolves(createMockCursor([cards])) },
+            });
+            const originalProfile = Store.profile.get();
+            const originalData = Store.fragments.list.data;
+            const mockDataStore = {
+                get: sandbox.stub().returns([]),
+                getMeta: sandbox.stub().returns(null),
+                set: sandbox.stub(),
+                setMeta: sandbox.stub(),
+            };
+            Store.profile.set({ name: 'test-user' });
+            Store.fragments.list.data = mockDataStore;
+            try {
+                await repository.searchFragments();
+
+                expect(promoParents.calledOnce).to.be.true;
+                expect(promoParents.firstCall.args[0].path).to.equal(`${ROOT_PATH}/acom/en_US/promotions`);
+                expect(mockDataStore.set.lastCall.args[0].map((store) => store.get().id)).to.deep.equal([
+                    'both',
+                    'promo-only',
+                    'grouped-only',
+                ]);
             } finally {
                 Store.profile.set(originalProfile);
                 Store.fragments.list.data = originalData;
@@ -5550,6 +5638,35 @@ describe('status filter narrowing', () => {
             { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: ['DRAFT'] },
         );
         expect(narrowed).to.equal(true);
+    });
+
+    it('treats selecting a variation as narrowing and switching types or clearing as widening', () => {
+        const repository = createRepository();
+        const base = { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] };
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: '' }, { ...base, variation: 'grouped' })).to.equal(true);
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: 'promo' }, { ...base, variation: 'grouped' })).to.equal(
+            false,
+        );
+        expect(repository.testOnlyIsNarrowing({ ...base, variation: 'grouped' }, { ...base, variation: '' })).to.equal(false);
+    });
+
+    it('treats adding another variation type as widening and removing either as narrowing', () => {
+        const repository = createRepository();
+        const base = { query: '', tags: [], variants: [], contentTypes: [], createdBy: [], status: [] };
+        for (const variation of ['promo', 'grouped']) {
+            expect(repository.testOnlyIsNarrowing({ ...base, variation }, { ...base, variation: 'promo,grouped' })).to.equal(
+                false,
+            );
+            expect(repository.testOnlyIsNarrowing({ ...base, variation: 'promo,grouped' }, { ...base, variation })).to.equal(
+                true,
+            );
+        }
+        expect(
+            repository.testOnlyIsNarrowing({ ...base, variation: 'promo,grouped' }, { ...base, variation: 'none' }),
+        ).to.equal(false);
+        expect(
+            repository.testOnlyIsNarrowing({ ...base, variation: 'none' }, { ...base, variation: 'promo,grouped' }),
+        ).to.equal(false);
     });
 
     it('excludes baseline fragments when filtering in memory', () => {

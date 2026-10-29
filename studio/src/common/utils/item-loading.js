@@ -1,5 +1,7 @@
 import { Fragment } from '../../aem/fragment.js';
-import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH } from '../../constants.js';
+import { CARD_MODEL_PATH, COLLECTION_MODEL_PATH, PATH_TOKENS } from '../../constants.js';
+import { isVariationPathInParentLocaleFamily } from '../../../../io/www/src/fragment/locales.js';
+import { fragmentHasPersonalizationTag } from './personalization-utils.js';
 
 export const OFFER_DATA_CONCURRENCY_LIMIT = 5;
 export const VARIATIONS_CONCURRENCY_LIMIT = 5;
@@ -153,8 +155,14 @@ export async function loadItemsByPath(selectedPaths, { getByPath, getDisplayName
     return fragments.filter(Boolean);
 }
 
+export function hasGroupedVariationTags(variation, includePersonalizationVariations = false) {
+    return Boolean(
+        variation?.fieldTags?.length || (includePersonalizationVariations && fragmentHasPersonalizationTag(variation)),
+    );
+}
+
 /**
- * Loads grouped variations for a card fragment.
+ * Loads grouped variations with fieldTags or personalization tags from metadata and content fields.
  * @param {Object} card
  * @param {Object} options
  * @param {Function} options.getByPath
@@ -162,35 +170,51 @@ export async function loadItemsByPath(selectedPaths, { getByPath, getDisplayName
  * @param {AbortSignal} [options.signal]
  * @param {Map} [options.offerDataCache]
  * @param {Function} [options.getDisplayName]
+ * @param {boolean} [options.includePersonalizationVariations=false]
  * @returns {Promise<Array<Object>>}
  */
 export async function loadGroupedVariations(
     card,
-    { getByPath, getOfferData, signal, offerDataCache = new Map(), getDisplayName } = {},
+    {
+        getByPath,
+        getOfferData,
+        signal,
+        offerDataCache = new Map(),
+        getDisplayName,
+        includePersonalizationVariations = false,
+    } = {},
 ) {
     if (!getByPath) return [];
 
     const fragment = new Fragment(card);
-    const groupedRefs = fragment.listGroupedVariations();
-    if (!groupedRefs?.length) return [];
+    const { surface, parsedLocale } = fragment.path.match(PATH_TOKENS)?.groups ?? {};
+    const groupedPaths = includePersonalizationVariations
+        ? fragment
+              .getVariations()
+              .filter(
+                  (path) =>
+                      Fragment.isGroupedVariationPath(path) && isVariationPathInParentLocaleFamily(surface, parsedLocale, path),
+              )
+        : fragment.listGroupedVariations().map(({ path }) => path);
+    if (!groupedPaths.length) return [];
 
     const variations = await processConcurrently(
-        groupedRefs,
-        async (ref) => {
+        groupedPaths,
+        async (path) => {
             if (signal?.aborted) return null;
 
             try {
-                return await getByPath(ref.path);
+                return await getByPath(path);
             } catch (error) {
-                console.warn(`Failed to fetch grouped variation at ${ref.path}:`, error.message);
+                console.warn(`Failed to fetch grouped variation at ${path}:`, error.message);
                 return null;
             }
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
-    const validVariations = variations.filter(
-        (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
+    const validVariations = variations.filter((variation) =>
+        hasGroupedVariationTags(variation, includePersonalizationVariations),
     );
 
     const parentWcsOsi = fragment.getFieldValue('osi');
@@ -221,6 +245,7 @@ export async function loadGroupedVariations(
  * @param {Function} [options.getDisplayName]
  * @param {Map<string, Object>} [options.existingOfferDataByPath]
  * @param {Map<string, Array<Object>>} [options.existingGroupedVariationsByPath]
+ * @param {boolean} [options.includePersonalizationVariations=false]
  * @returns {Promise<Array<Object>>}
  */
 export async function enrichCards(
@@ -233,26 +258,25 @@ export async function enrichCards(
         getDisplayName,
         existingOfferDataByPath = new Map(),
         existingGroupedVariationsByPath = new Map(),
+        includePersonalizationVariations = false,
     } = {},
 ) {
+    if (signal?.aborted) return [];
     const offerDataByPath = new Map(existingOfferDataByPath);
     const groupedVariationsByPath = new Map(existingGroupedVariationsByPath);
 
     const cardsNeedingOfferData = getOfferData ? cards.filter((card) => !offerDataByPath.has(card.path)) : [];
-
     if (cardsNeedingOfferData.length > 0) {
         const offerDataResults = await processConcurrently(
             cardsNeedingOfferData,
             (card) => getOfferData(card, { cache: offerDataCache, signal }),
             OFFER_DATA_CONCURRENCY_LIMIT,
         );
-
         if (signal?.aborted) return [];
         await yieldToMain();
-
-        cardsNeedingOfferData.forEach((card, index) => {
+        for (const [index, card] of cardsNeedingOfferData.entries()) {
             offerDataByPath.set(card.path, offerDataResults[index]);
-        });
+        }
     }
 
     const cardsNeedingGroupedVariations = getByPath ? cards.filter((card) => !groupedVariationsByPath.has(card.path)) : [];
@@ -267,8 +291,9 @@ export async function enrichCards(
                     signal,
                     offerDataCache,
                     getDisplayName,
+                    includePersonalizationVariations,
                 }),
-            OFFER_DATA_CONCURRENCY_LIMIT,
+            includePersonalizationVariations ? 3 : OFFER_DATA_CONCURRENCY_LIMIT,
         );
 
         if (signal?.aborted) return [];
@@ -315,7 +340,7 @@ export async function fetchVariationDataByPath(
 
     try {
         const variation = await getByPath(variationPath);
-        if (!variation || !Array.isArray(variation.fieldTags) || variation.fieldTags.length === 0) return null;
+        if (!hasGroupedVariationTags(variation)) return null;
 
         const offerData = getOfferData ? await getOfferData(variation, { cache: offerDataCache }) : null;
 
@@ -362,9 +387,7 @@ export async function loadCardVariationsByPath(
         VARIATIONS_CONCURRENCY_LIMIT,
     );
 
-    const validVariations = variations.filter(
-        (variation) => variation && Array.isArray(variation.fieldTags) && variation.fieldTags.length > 0,
-    );
+    const validVariations = variations.filter((variation) => hasGroupedVariationTags(variation));
 
     const offerDataResults = getOfferData
         ? await processConcurrently(

@@ -1,10 +1,11 @@
-import { html, css, LitElement, nothing } from 'lit';
+import { html, css, LitElement } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import Store from '../store.js';
 import { isPznCountryTagPath } from '../common/utils/personalization-utils.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import router from '../router.js';
 import { FRAGMENT_STATUS_OPTIONS } from '../constants.js';
+import { VARIATION_FILTER, VARIATION_FILTER_LABEL, VARIATION_FILTER_OPTIONS } from '../fragments/variation-filter.js';
 
 function pathToTagId(path) {
     return `mas:${path.replace('/content/cq:tags/mas/', '')}`;
@@ -32,6 +33,7 @@ class MasFilterPanel extends LitElement {
         tagsByType: { type: Object, state: true },
         selectedStatuses: { type: Array, state: true },
         pendingStatuses: { type: Array, state: true },
+        pendingVariations: { type: Array, state: true },
     };
 
     static styles = css`
@@ -63,24 +65,24 @@ class MasFilterPanel extends LitElement {
             stroke-width: 3px;
         }
 
-        .status-filter-trigger {
+        .filter-trigger {
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 40px;
         }
 
-        .status-filter-trigger sp-action-button {
+        .filter-trigger sp-action-button {
             display: flex;
             flex-direction: row-reverse;
         }
 
-        .status-filter-popover {
+        .filter-popover {
             min-width: 248px;
             border-radius: 10px;
         }
 
-        .status-filter-content {
+        .filter-content {
             padding: 8px;
         }
 
@@ -98,7 +100,7 @@ class MasFilterPanel extends LitElement {
             align-items: center;
         }
 
-        .status-filter-footer {
+        .filter-footer {
             display: flex;
             align-items: center;
             justify-content: end;
@@ -107,7 +109,7 @@ class MasFilterPanel extends LitElement {
             padding: 8px;
         }
 
-        .status-filter-footer span {
+        .filter-footer span {
             flex: 1;
         }
     `;
@@ -116,6 +118,7 @@ class MasFilterPanel extends LitElement {
 
     /** @type {() => void} */
     #onRouterChange = () => this.#initializeTagFilters();
+    #appliedVariation;
 
     constructor() {
         super();
@@ -124,6 +127,15 @@ class MasFilterPanel extends LitElement {
         };
         this.selectedStatuses = [];
         this.pendingStatuses = [];
+        this.pendingVariations = [];
+    }
+
+    willUpdate() {
+        const variation = Store.filters.get().variation;
+        if (variation !== this.#appliedVariation) {
+            this.#appliedVariation = variation;
+            this.pendingVariations = this.#selectedVariations;
+        }
     }
 
     firstUpdated() {
@@ -325,6 +337,7 @@ class MasFilterPanel extends LitElement {
 
     #resetPendingStatuses() {
         this.pendingStatuses = [];
+        this.pendingVariations = [];
     }
 
     #discardPendingStatuses() {
@@ -345,6 +358,7 @@ class MasFilterPanel extends LitElement {
             ...prev,
             tags: '',
             status: undefined,
+            variation: undefined,
             personalizationFilterEnabled: false,
         }));
 
@@ -385,6 +399,100 @@ class MasFilterPanel extends LitElement {
         );
     }
 
+    get #selectedVariations() {
+        return Store.filters.get().variation?.split(',') ?? [];
+    }
+
+    #setVariations(variations) {
+        this.pendingVariations = variations;
+        Store.filters.set((prev) => ({ ...prev, variation: variations.join(',') || undefined }));
+    }
+
+    #handleVariationChange(optionId, e) {
+        const selected = this.pendingVariations;
+        if (!e.target.checked) {
+            this.pendingVariations = selected.filter((id) => id !== optionId);
+        } else if (optionId === VARIATION_FILTER.NONE) {
+            this.pendingVariations = [VARIATION_FILTER.NONE];
+        } else {
+            this.pendingVariations = [...selected.filter((id) => id !== VARIATION_FILTER.NONE), optionId];
+        }
+    }
+
+    #applyVariations() {
+        this.#setVariations(this.pendingVariations);
+        this.shadowRoot.querySelector('overlay-trigger[data-filter-type="variation"]').open = false;
+    }
+
+    #resetPendingVariations() {
+        this.pendingVariations = [];
+    }
+
+    #discardPendingVariations() {
+        this.pendingVariations = this.#selectedVariations;
+    }
+
+    #handleVariationDelete(e) {
+        this.#setVariations(this.#selectedVariations.filter((id) => id !== e.target.value));
+    }
+
+    get variationPickerTemplate() {
+        return html`
+            <overlay-trigger
+                class="filter-trigger"
+                placement="bottom"
+                data-filter-type="variation"
+                @sp-closed=${this.#discardPendingVariations}
+            >
+                <sp-action-button slot="trigger" quiet aria-label=${VARIATION_FILTER_LABEL}>
+                    ${VARIATION_FILTER_LABEL}
+                    <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
+                </sp-action-button>
+                <sp-popover slot="click-content" class="filter-popover">
+                    <div class="filter-content">
+                        <div class="checkbox-list">
+                            ${VARIATION_FILTER_OPTIONS.map(
+                                (option) => html`
+                                    <sp-checkbox
+                                        value=${option.id}
+                                        .checked=${this.pendingVariations.includes(option.id)}
+                                        @change=${(e) => this.#handleVariationChange(option.id, e)}
+                                    >
+                                        ${option.title}
+                                    </sp-checkbox>
+                                `,
+                            )}
+                        </div>
+                        <div class="filter-footer">
+                            <span>${this.pendingVariations.length} selected</span>
+                            <sp-button size="s" variant="secondary" treatment="outline" @click=${this.#resetPendingVariations}>
+                                Reset
+                            </sp-button>
+                            <sp-button size="s" @click=${this.#applyVariations}>Apply</sp-button>
+                        </div>
+                    </div>
+                </sp-popover>
+            </overlay-trigger>
+        `;
+    }
+
+    get variationTag() {
+        return repeat(
+            VARIATION_FILTER_OPTIONS.filter((option) => this.#selectedVariations.includes(option.id)),
+            (option) => option.id,
+            (option) => html`
+                <sp-tag
+                    size="s"
+                    deletable
+                    data-filter-type="variation"
+                    .value=${option.id}
+                    @delete=${this.#handleVariationDelete}
+                    >${option.title}</sp-tag
+                >
+            `,
+        );
+    }
+
     #renderStatusPicker() {
         const selectedCount = this.selectedStatuses.length;
         const displayLabel = selectedCount > 0 ? `Status (${selectedCount})` : 'Status';
@@ -392,7 +500,7 @@ class MasFilterPanel extends LitElement {
 
         return html`
             <overlay-trigger
-                class="status-filter-trigger"
+                class="filter-trigger"
                 placement="bottom"
                 data-filter-type="status"
                 @sp-closed=${this.#discardPendingStatuses}
@@ -401,8 +509,8 @@ class MasFilterPanel extends LitElement {
                     ${displayLabel}
                     <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
-                <sp-popover slot="click-content" class="status-filter-popover">
-                    <div class="status-filter-content">
+                <sp-popover slot="click-content" class="filter-popover">
+                    <div class="filter-content">
                         <div class="checkbox-list">
                             ${FRAGMENT_STATUS_OPTIONS.map(
                                 (option) => html`
@@ -416,7 +524,7 @@ class MasFilterPanel extends LitElement {
                                 `,
                             )}
                         </div>
-                        <div class="status-filter-footer">
+                        <div class="filter-footer">
                             <span>${pendingCount} ${pendingCount === 1 ? 'status' : 'statuses'} selected</span>
                             <sp-button size="s" variant="secondary" treatment="outline" @click=${this.#resetPendingStatuses}>
                                 Reset
@@ -504,7 +612,7 @@ class MasFilterPanel extends LitElement {
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
-                ${this.#renderStatusPicker()}
+                ${this.#renderStatusPicker()} ${this.variationPickerTemplate}
 
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
@@ -529,6 +637,7 @@ class MasFilterPanel extends LitElement {
                 <aem-tag-picker-field
                     namespace="/content/cq:tags/mas"
                     top="pzn"
+                    exclude-country-tags
                     label="Personalization"
                     multiple
                     selection="checkbox"
@@ -572,7 +681,7 @@ class MasFilterPanel extends LitElement {
                         >
                     `,
                 )}
-                ${this.createdByUsersTags}
+                ${this.variationTag} ${this.createdByUsersTags}
             </sp-tags>
         `;
     }

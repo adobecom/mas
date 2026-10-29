@@ -187,7 +187,7 @@ class MerchCardCollectionEditor extends LitElement {
         if (run !== this.#referencesMapRun || !this.isConnected) return;
         this.#fragmentReferencesMap = referencesMap;
         this.#referencesMapAppliedRun = run;
-        const stores = [this.fragmentStore, ...previewStores];
+        const stores = [this.fragmentStore, ...previewStores, Store.profile, Store.users];
         if (this.reactiveController) this.reactiveController.updateStores(stores);
         else this.reactiveController = new ReactiveController(this, stores);
 
@@ -1631,6 +1631,14 @@ class MerchCardCollectionEditor extends LitElement {
                         ${this.#renderTagsStatusIndicator()}
                     </div>
                     ${this.groupedVariationTagsTemplate}
+                    <div class="form-row">
+                        <sp-field-label for="collection-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="collection-enable-baselines"
+                            ?checked="${this.fragment.getField('enableBaselines')?.values[0]}"
+                            @click="${this.#handleEnableBaselines}"
+                        ></sp-switch>
+                    </div>
                 </div>
             </div>
         `;
@@ -1796,6 +1804,11 @@ class MerchCardCollectionEditor extends LitElement {
         this.fragmentStore.updateFieldInternal(target.dataset.field, target.value);
     }
 
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
+    }
+
     /** @returns {import('../mas-fragment-editor.js').default | null} */
     get #hostFragmentEditor() {
         return document.querySelector('mas-fragment-editor');
@@ -1856,6 +1869,9 @@ class MerchCardCollectionEditor extends LitElement {
             disabled.add(QUICK_ACTION.SAVE);
             disabled.add(QUICK_ACTION.DISCARD);
         }
+        if (this.#hostFragmentEditor?.canDeleteFragment === false) disabled.add(QUICK_ACTION.DELETE);
+        if (this.#hostFragmentEditor?.canPublishFragment === false) disabled.add(QUICK_ACTION.PUBLISH);
+        if (this.#hostFragmentEditor?.canDuplicateFragment === false) disabled.add(QUICK_ACTION.DUPLICATE);
         return disabled;
     }
 

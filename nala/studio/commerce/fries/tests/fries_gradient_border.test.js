@@ -24,7 +24,7 @@ test.describe('M@S Studio Commerce Fries gradient border test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -36,11 +36,7 @@ test.describe('M@S Studio Commerce Fries gradient border test suite', () => {
         });
 
         await test.step(`step-3: Border color picker exposes the "${data.color.updated}" option`, async () => {
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            const option = page.getByRole('option', { name: data.color.updated, exact: true });
-            await expect(option).toBeVisible();
-            await option.click();
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-4: Validate fries card receives gradient-border attributes', async () => {
@@ -74,7 +70,7 @@ test.describe('M@S Studio Commerce Fries gradient border test suite', () => {
         const friesCard = await studio.getCard(data.cardid);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -86,11 +82,7 @@ test.describe('M@S Studio Commerce Fries gradient border test suite', () => {
         });
 
         await test.step(`step-3: Border color picker exposes the "${data.color.updated}" option`, async () => {
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            const option = page.getByRole('option', { name: data.color.updated, exact: true });
-            await expect(option).toBeVisible();
-            await option.click();
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-4: Validate fries card receives gradient-border attributes', async () => {

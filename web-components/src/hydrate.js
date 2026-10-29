@@ -1,11 +1,24 @@
-import { SELECTOR_MAS_INLINE_PRICE, TRIAL_ANALYTICS_IDS } from './constants.js';
+import {
+    SELECTOR_MAS_INLINE_PRICE,
+    TRIAL_ANALYTICS_IDS,
+    HEADLESS_STYLE_CTA_VARIANTS,
+    MERCH_CARD_LOAD_TIMEOUT,
+} from './constants.js';
 import { UptLink } from './upt-link.js';
-import { createTag } from './utils.js';
+import {
+    createTag,
+    getService,
+    getHeadlessCtaVariant,
+    hydrateHeadlessCta,
+} from './utils.js';
+import { COUNTDOWN_COLOR_CLASSES } from './merch-countdown.js';
+import { isCountdownLinkText } from './countdown.js';
 import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
 } from './image-markup.js';
 import { getFragmentMapping } from './variants/variants.js';
+import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -17,13 +30,6 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-/** Variants whose CTAs are authored via the 3-option headless picker (see merch-card-editor.js's HEADLESS_STYLE_CTA_VARIANTS). */
-const HEADLESS_STYLE_CTA_VARIANTS = new Set([
-    'headless',
-    'marquee',
-    'banner-blade',
-]);
-const HEADLESS_CTA_VARIANT_LABELS = { STRONG: 'Primary', EM: 'Secondary' };
 
 /**
  * Normalizes variant names for consistency.
@@ -531,28 +537,6 @@ export function processFeatures(fields, merchCard, mapping) {
     processFeaturesLinks(merchCard, mapping);
 }
 
-/**
- * Upgrades a headless CTA anchor into a real checkout-link (resolving its commitment
- * step/modal options) without adding a button-style class, mirroring mas-field.js's
- * #buildCtaButton. Needed because the "-link" style bypass below normally just reuses the
- * raw, un-upgraded anchor - fine for a plain link, but a headless Primary/Secondary CTA is
- * still a real checkout CTA and must resolve through CheckoutLink to get its options.
- */
-function createHeadlessCheckoutElement(linkElement) {
-    const CheckoutLink = customElements.get('checkout-link');
-    const button =
-        CheckoutLink?.createCheckoutLink(
-            linkElement.dataset,
-            linkElement.innerHTML,
-        ) ?? linkElement;
-    if (button === linkElement) return button;
-    for (const attr of linkElement.attributes) {
-        if (['class', 'is', 'href'].includes(attr.name)) continue;
-        button.setAttribute(attr.name, attr.value);
-    }
-    return button;
-}
-
 function transformLinkToButton(
     linkElement,
     merchCard,
@@ -563,25 +547,32 @@ function transformLinkToButton(
         linkElement.hasAttribute('data-wcs-osi') &&
         Boolean(linkElement.getAttribute('data-wcs-osi'));
     const originalClassName = linkElement.className || '';
-    const parentTag = linkElement.parentElement?.tagName;
-    // Headless CTAs authored via the 3-option picker never carry a button-style class, and
-    // MAS must not add one either (see rte-field.js's #marksForHeadlessVariant) - only the
-    // real <strong>/<em> wrapper is preserved, unstyled, below. Scoped to the ctas field on a
-    // headless-family card so other fields/variants (which may legitimately have no class and
-    // rely on the accent default) are unaffected.
     const isHeadlessCta =
-        isCtaField &&
-        !originalClassName &&
-        HEADLESS_STYLE_CTA_VARIANTS.has(merchCard.variant);
+        isCtaField && HEADLESS_STYLE_CTA_VARIANTS.includes(merchCard.variant);
+    if (isHeadlessCta) {
+        const variant = getHeadlessCtaVariant(linkElement);
+        const button = hydrateHeadlessCta(linkElement);
+        const label = createTag('span', {
+            class: 'headless-cta-variant-label',
+        });
+        label.textContent = variant.endsWith('-link')
+            ? 'Link'
+            : variant.startsWith('accent') || variant.startsWith('primary')
+              ? 'Primary'
+              : 'Secondary';
+        const item = createTag('span', { class: 'headless-cta-item' });
+        item.append(button, label);
+        item.source = button;
+        return item;
+    }
     const checkoutLinkStyle = originalClassName
         ? (CHECKOUT_STYLE_PATTERN.exec(originalClassName)?.[0] ?? 'accent')
         : 'accent';
-    const isAccent = !isHeadlessCta && checkoutLinkStyle.includes('accent');
-    const isPrimary = !isHeadlessCta && checkoutLinkStyle.includes('primary');
-    const isSecondary =
-        !isHeadlessCta && checkoutLinkStyle.includes('secondary');
-    const isOutline = !isHeadlessCta && checkoutLinkStyle.includes('-outline');
-    const isLinkStyle = isHeadlessCta || checkoutLinkStyle.includes('-link');
+    const isAccent = checkoutLinkStyle.includes('accent');
+    const isPrimary = checkoutLinkStyle.includes('primary');
+    const isSecondary = checkoutLinkStyle.includes('secondary');
+    const isOutline = checkoutLinkStyle.includes('-outline');
+    const isLinkStyle = checkoutLinkStyle.includes('-link');
 
     linkElement.classList.remove('accent', 'primary', 'secondary');
 
@@ -598,10 +589,7 @@ function transformLinkToButton(
             aemFragmentMapping?.ctas?.size,
         );
     } else if (isLinkStyle) {
-        newButtonElement =
-            isHeadlessCta && isCheckoutLink
-                ? createHeadlessCheckoutElement(linkElement)
-                : linkElement;
+        newButtonElement = linkElement;
     } else {
         let variant;
         if (isAccent) {
@@ -630,21 +618,6 @@ function transformLinkToButton(
                   );
     }
 
-    if (isHeadlessCta) {
-        let ctaElement = newButtonElement;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
-            const wrapper = document.createElement(parentTag.toLowerCase());
-            wrapper.append(newButtonElement);
-            ctaElement = wrapper;
-        }
-        const label = document.createElement('span');
-        label.className = 'headless-cta-variant-label';
-        label.textContent = HEADLESS_CTA_VARIANT_LABELS[parentTag] ?? 'Link';
-        const item = document.createElement('span');
-        item.className = 'headless-cta-item';
-        item.append(ctaElement, label);
-        return item;
-    }
     return newButtonElement;
 }
 
@@ -704,6 +677,26 @@ export function processDescription(fields, merchCard, mapping, settings) {
     splitParagraphListItems(
         appendSlot('whatsIncluded', fields, merchCard, mapping),
     );
+}
+
+function processCountdown(merchCard, mapping, fragment) {
+    const description = merchCard.querySelector(
+        `[slot="${mapping.description?.slot}"]`,
+    );
+    const settings = getService()?.settings;
+    for (const anchor of description?.querySelectorAll('a') ?? []) {
+        if (!isCountdownLinkText(anchor.textContent)) continue;
+        const timer = document.createElement('merch-countdown');
+        timer.className = [...anchor.classList]
+            .filter((name) => COUNTDOWN_COLOR_CLASSES.includes(name))
+            .join(' ');
+        timer.start = fragment.cdtStart;
+        timer.end = fragment.cdtEnd;
+        timer.locale = fragment.previewLocale ?? settings?.locale ?? 'en_US';
+        timer.instant = settings?.instant;
+        timer.template = fragment.placeholders?.countdownTimerText;
+        anchor.replaceWith(timer);
+    }
 }
 
 function processQuantitySelect(fields, merchCard, mapping, settings = {}) {
@@ -1005,8 +998,9 @@ function createConsonantButton(
 const isFilled = (cta) => cta.classList.contains('blue');
 const filledFirst = (ctas) =>
     [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+const getCtaSource = (cta) => cta.source ?? cta;
 
-export function processCTAs(
+export async function processCTAs(
     fields,
     merchCard,
     aemFragmentMapping,
@@ -1021,12 +1015,15 @@ export function processCTAs(
         const allCtaLinks = [...footer.querySelectorAll('a')];
         const filteredLinks = settings?.hideTrialCTAs
             ? allCtaLinks.filter(
-                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+                  (cta) =>
+                      !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId) ||
+                      cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const ctas = (
-            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
-        ).map((cta) =>
+        const buyNowExists = filteredLinks.some(
+            (c) => c.dataset.analyticsId === 'buy-now',
+        );
+        const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
@@ -1039,14 +1036,24 @@ export function processCTAs(
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            const trialCtaSwappedPromises = [];
             ctas.forEach((cta) => {
+                let trialCtaSwapped;
+                const promise = new Promise((resolve) => {
+                    trialCtaSwapped = resolve;
+                });
+                trialCtaSwappedPromises.push(promise);
                 const checkout = cta.source ?? cta;
-                if (!checkout.onceSettled) return;
+                if (!checkout.onceSettled) {
+                    trialCtaSwapped(false);
+                    return;
+                }
                 cta.hidden = true;
                 checkout
                     .onceSettled()
                     .then(() => {
-                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                        const offerType = checkout.value?.[0]?.offerType;
+                        if (offerType === 'TRIAL') {
                             const othersVisible = ctas.some(
                                 (c) => c !== cta && !c.hidden,
                             );
@@ -1055,14 +1062,93 @@ export function processCTAs(
                             } else {
                                 cta.hidden = false;
                             }
+                            trialCtaSwapped(false);
+                        } else if (
+                            offerType === 'BASE' &&
+                            TRIAL_ANALYTICS_IDS.has(
+                                checkout.dataset.analyticsId,
+                            ) &&
+                            checkout.hasAttribute('data-replaced-osi')
+                        ) {
+                            if (buyNowExists) {
+                                checkout.classList.remove('blue');
+                                checkout.removeAttribute('data-analytics-id');
+                                cta.remove();
+                                trialCtaSwapped(true);
+                            } else if (
+                                merchCard.priceLiterals?.buyNow &&
+                                merchCard.priceLiterals.buyNow !== 'buy-now'
+                            ) {
+                                checkout.setAttribute(
+                                    'data-analytics-id',
+                                    'buy-now',
+                                );
+                                if (checkout.hasAttribute('aria-label'))
+                                    checkout.removeAttribute('aria-label');
+                                if (checkout.hasAttribute('data-modal'))
+                                    checkout.setAttribute('data-modal', 'crm');
+                                const daall = checkout.getAttribute('daa-ll');
+                                if (daall) {
+                                    checkout.setAttribute(
+                                        'daa-ll',
+                                        daall.replaceAll(
+                                            'free-trial',
+                                            'buy-now',
+                                        ),
+                                    );
+                                }
+                                checkout.textContent =
+                                    merchCard.priceLiterals.buyNow;
+                                cta.hidden = false;
+                                trialCtaSwapped(true);
+                            } else {
+                                cta.remove();
+                                trialCtaSwapped(false);
+                            }
                         } else {
                             cta.hidden = false;
+                            trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
                         cta.hidden = false;
+                        trialCtaSwapped(false);
                     });
             });
+            const settleAll = Promise.all(trialCtaSwappedPromises);
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setForegroundTimeout(
+                    () => resolve([]),
+                    MERCH_CARD_LOAD_TIMEOUT,
+                );
+            });
+            const trialCtaSwappedResults = await Promise.race([
+                settleAll,
+                timeout,
+            ]);
+            clearForegroundTimeout(timeoutId);
+
+            if (trialCtaSwappedResults.some((c) => c === true)) {
+                const hasBlueCta = ctas.some((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        footer.contains(c) &&
+                        checkout.classList.contains('blue')
+                    );
+                });
+                const buyNowCta = ctas.find((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    );
+                });
+                if (!hasBlueCta && buyNowCta) {
+                    const checkout = getCtaSource(buyNowCta);
+                    checkout.classList.remove('primary');
+                    checkout.classList.add('blue');
+                }
+            }
         }
     }
 }
@@ -1213,6 +1299,7 @@ export async function hydrate(fragment, merchCard) {
     );
     processBorderColor(fields, merchCard, mapping);
     processDescription(fields, merchCard, mapping, settings);
+    processCountdown(merchCard, mapping, fragment);
     processFeatures(fields, merchCard, mapping);
     processWhatsIncludedDividerColor(fields, merchCard, mapping);
     processAddon(fields, merchCard, mapping, settings);
@@ -1225,7 +1312,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant, settings);
+    await processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

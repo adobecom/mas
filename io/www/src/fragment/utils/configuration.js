@@ -6,6 +6,8 @@ const HARDCODED_API_KEYS = [
     /^CreativeCloud_v\d+_\d+$/,
     'AdobeExpressWeb',
     'unified_checkout_client_v3',
+    'concierge-conversation-service',
+    'acom-bc-service',
 ];
 
 const HARDCODED_WCS_CONFIGURATION = [{ wcsURL: 'https://www.adobe.com/web_commerce_artifact', env: 'prod' }];
@@ -84,6 +86,16 @@ export function validateApiKey(context) {
         return { statusCode: 401, message: 'unauthorized api_key' };
     }
     return { statusCode: 200 };
+}
+
+/**
+ * Surface bound to the request api key by the `apiKeySurfaces` configuration (`{ [apiKey or /regex/]: surface }`),
+ * most api keys serving a single surface (ADR CONT-0001).
+ * @returns {string|undefined}
+ */
+export function getApiKeySurface({ api_key, apiKeySurfaces }) {
+    const entry = Object.entries(apiKeySurfaces ?? {}).find(([key]) => isApiKeyAccepted(api_key, parseStateApiKeys([key])));
+    return entry?.[1];
 }
 
 export function resetCache() {

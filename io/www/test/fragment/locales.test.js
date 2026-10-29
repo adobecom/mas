@@ -16,6 +16,7 @@ import {
     geoCacheKey,
     resolveTerritoryCountries,
     restrictCountryToLocaleMarket,
+    resolveCommerceCountries,
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
@@ -500,6 +501,40 @@ describe('locales', function () {
         });
         it('does not throw on undefined locale', () => {
             expect(restrictCountryToLocaleMarket('acom', undefined, 'US')).to.equal('US');
+        });
+    });
+
+    describe('resolveCommerceCountries', () => {
+        // The pipeline splits territories at ingress (resolveTerritoryCountries in pipeline.js) before
+        // fetchFragment calls this, so an es_PR request already reaches it as PR; re-applying the split
+        // here is idempotent and lets the agent, which has no ingress step, share the same chain.
+        for (const [label, locale, country, expected] of [
+            ['es_PR without a country', 'es_PR', undefined, { country: 'PR', wcsCountry: 'US' }],
+            ['es_PR with US', 'es_PR', 'US', { country: 'PR', wcsCountry: 'US' }],
+            ['es_PR after the pipeline ingress split', 'es_PR', 'PR', { country: 'PR', wcsCountry: 'US' }],
+            ['en_GB with a country outside its market', 'en_GB', 'FR', { country: 'GB', wcsCountry: 'GB' }],
+            ['en_GB with a registered region', 'en_GB', 'AU', { country: 'AU', wcsCountry: 'AU' }],
+            ['a non-territory locale with its own country', 'fr_FR', 'FR', { country: 'FR', wcsCountry: 'FR' }],
+            ['a non-territory locale without a country', 'fr_FR', undefined, { country: undefined, wcsCountry: undefined }],
+        ]) {
+            it(`resolves ${label}`, () => {
+                expect(resolveCommerceCountries('acom', locale, country)).to.deep.equal(expected);
+            });
+        }
+
+        it('matches the pipeline ingress split followed by the previous fetchFragment chain', () => {
+            for (const [locale, country] of [
+                ['es_PR', undefined],
+                ['es_PR', 'US'],
+                ['en_GB', 'FR'],
+                ['fr_FR', 'DE'],
+                ['en_US', 'FR'],
+            ]) {
+                const ingress = resolveTerritoryCountries(locale, country).country;
+                const fixedCountry = restrictCountryToLocaleMarket('acom', locale, ingress);
+                const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+                expect(resolveCommerceCountries('acom', locale, ingress)).to.deep.equal({ country: fixedCountry, wcsCountry });
+            }
         });
     });
 });

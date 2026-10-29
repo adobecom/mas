@@ -27,6 +27,13 @@
  *   - Awaits `defaultLanguage` to resolve `defaultLocale` / `regionLocale`.
  *   - Hydrates ALL matched projects in parallel (for fragment OSI/promoCode data) and
  *     folder-searches their promo variations for `defaultLocale` and `regionLocale`.
+ *     Hydrated projects are cached by id; variations by surface/project/locale.
+ *     Published reads use SWR with single-flight refills.
+ *     Project listings and hydration have independent jittered TTLs: a published edit can
+ *     temporarily combine refreshed dates/tags with older promoCode/offers for up to two TTLs.
+ *     Preview uses a ~1-minute in-memory TTL, cleared on promotion saves.
+ *     Incomplete variation loads back off for 10 seconds, retaining existing published data.
+ *     Failed listing or project hydration loads do not overwrite cached data.
  *   - Returns `{ activeProjects }` — array sorted most-recent-`startDate`-first, then stably
  *     re-sorted so seasonal (time-boxed, has an `endDate`) projects float above open-ended
  *     ones; that final order is the tie-break order. Each project carries its own
@@ -55,23 +62,26 @@ import { COLLECTION_MODEL_ID, fetch, getRequestInfos, matchesGeo, isGroupedVaria
 import { createSwrCache } from '../utils/swr-cache.js';
 import { log, logDebug, logError } from '../utils/log.js';
 
-const CONFIG_CACHE_TTL = 5 * 60 * 1000;
 const PROMOTIONS_PATH = `${MAS_ROOT}/promotions`;
+const PREVIEW_CACHE_TTL = 60 * 1000;
 
-// Projects are cached per surface with jittered TTL, single-flight refills, and
-// stale-while-revalidate so surfaces expire independently and never herd a synchronized refetch
-// onto Odin (see createSwrCache). Published reads keep entries in memory; preview reads persist
-// them in localStorage (`promotions-<surface>`) so studio reloads don't refetch.
-const projectsCache = createSwrCache({ name: 'promotions' });
-let promoVariationsCache = {};
+const projectsCache = createSwrCache({ name: 'promotions', previewTtl: PREVIEW_CACHE_TTL, previewMemory: true });
+const hydratedProjectsCache = createSwrCache({
+    name: 'promotions-hydrated',
+    previewTtl: PREVIEW_CACHE_TTL,
+    previewMemory: true,
+});
+const promoVariationsCache = createSwrCache({
+    name: 'promo-variations',
+    previewTtl: PREVIEW_CACHE_TTL,
+    previewMemory: true,
+    shouldCache: ({ complete }) => (complete ? true : { ttl: 10 * 1000 }),
+});
 
 export function clearPromoCache(preview = false) {
     projectsCache.clear(preview);
-    if (preview) {
-        localStorage.removeItem('promo-variations');
-    } else {
-        promoVariationsCache = {};
-    }
+    hydratedProjectsCache.clear(preview);
+    promoVariationsCache.clear(preview);
 }
 
 /**
@@ -293,28 +303,6 @@ function parseGroupedVariationReferences(hydratedProject) {
     return map;
 }
 
-function getCachedVariations(preview, key) {
-    const store = preview ? JSON.parse(localStorage.getItem('promo-variations') ?? '{}') : promoVariationsCache;
-    const entry = store[key];
-    if (entry) {
-        entry.isExpired = Math.abs(Date.now() - entry.timestamp) > CONFIG_CACHE_TTL;
-        return entry;
-    }
-    return null;
-}
-
-function cacheVariations(preview, key, variations) {
-    const entry = { variations, timestamp: Date.now() };
-    if (preview) {
-        const store = JSON.parse(localStorage.getItem('promo-variations') ?? '{}');
-        store[key] = entry;
-        localStorage.setItem('promo-variations', JSON.stringify(store));
-    } else {
-        promoVariationsCache[key] = entry;
-    }
-    return variations;
-}
-
 /**
  * The folder listing only returns the variation's fields (references are plain ids). A collection
  * variation may add cards/collections the default collection does not reference, so its
@@ -323,7 +311,7 @@ function cacheVariations(preview, key, variations) {
  */
 async function hydrateCollectionVariations(variations, context) {
     const collectionPaths = Object.keys(variations).filter((path) => variations[path].model?.id === COLLECTION_MODEL_ID);
-    await Promise.all(
+    const results = await Promise.all(
         collectionPaths.map(async (path) => {
             const item = variations[path];
             const response = await fetch(
@@ -333,65 +321,84 @@ async function hydrateCollectionVariations(variations, context) {
             );
             if (response.status !== 200) {
                 logError(`Failed to hydrate collection promo variation ${item.id}: ${response.message}`, context);
-                return;
+                return false;
             }
             const { references, referencesTree } = response.body;
             variations[path] = { ...item, references, referencesTree };
+            return true;
         }),
     );
-    return variations;
+    return results.every(Boolean);
 }
 
 /**
  * Fetches all promo variation fragments from a locale-specific promotions folder.
- * Results are cached by surface/projectName/locale with the same TTL as projects.
+ * Published reads use SWR by surface/projectName/locale; preview awaits a refill after ~10 seconds.
+ * Partial results are shared by cold reads for 10 seconds before retrying; existing published
+ * data survives incomplete refills with the same backoff.
  * Returns a map of fragmentPath → fragment item.
  */
 async function fetchPromoVariations(baseUrl, surface, locale, projectName, context) {
     const cacheKey = `${surface}/${projectName}/${locale}`;
-    const cached = getCachedVariations(context.preview, cacheKey);
-    if (cached && !cached.isExpired) {
-        logDebug(() => `Using cached promo variations for ${cacheKey}`, context);
-        return cached.variations;
-    }
-
-    const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
-    const variations = {};
-    const prefix = `promotions/${projectName}/`;
-    let cursor;
-    let fetchedAnyPage = false;
-    do {
-        const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
-        const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
-        if (response.status !== 200) {
-            // First-page failure (commonly: no variations folder) is expected → cache empty silently.
-            // A later-page failure means a transient error mid-pagination; keep the pages already
-            // collected rather than discarding them, and log how many we had.
-            if (fetchedAnyPage) {
+    const result = await promoVariationsCache.get(context, cacheKey, async () => {
+        const variations = {};
+        const path = `${MAS_ROOT}/${surface}/${locale}/promotions/${projectName}`;
+        const prefix = `promotions/${projectName}/`;
+        let cursor;
+        let fetchedAnyPage = false;
+        do {
+            const url = `${baseUrl}/?path=${path}&limit=50${cursor ? `&cursor=${cursor}` : ''}`;
+            const response = await fetch(url, context, `promo-variations-${projectName}-${locale}`);
+            if (response.status !== 200) {
+                if (!fetchedAnyPage && response.status === 404) return { variations, complete: true };
                 logError(
-                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}) after collecting ${Object.keys(variations).length}; returning partial results`,
+                    `Promo variations for ${cacheKey}: page fetch failed (status ${response.status}); retrying after 10 seconds`,
                     context,
                 );
                 await hydrateCollectionVariations(variations, context);
-                return cacheVariations(context.preview, cacheKey, variations);
+                return { variations, complete: false };
             }
-            return cacheVariations(context.preview, cacheKey, {});
-        }
-        fetchedAnyPage = true;
-        const items = response.body?.items ?? [];
-        for (const item of items) {
-            const match = PATH_TOKENS.exec(item.path);
-            if (match) {
-                const fullFragPath = match.groups.fragmentPath;
-                if (fullFragPath.startsWith(prefix)) {
-                    variations[fullFragPath.slice(prefix.length)] = item;
+            fetchedAnyPage = true;
+            const items = response.body?.items ?? [];
+            for (const item of items) {
+                const match = PATH_TOKENS.exec(item.path);
+                if (match) {
+                    const fullFragPath = match.groups.fragmentPath;
+                    if (fullFragPath.startsWith(prefix)) {
+                        variations[fullFragPath.slice(prefix.length)] = item;
+                    }
                 }
             }
-        }
-        cursor = response.body?.cursor;
-    } while (cursor);
-    await hydrateCollectionVariations(variations, context);
-    return cacheVariations(context.preview, cacheKey, variations);
+            cursor = response.body?.cursor;
+        } while (cursor);
+        return { variations, complete: await hydrateCollectionVariations(variations, context) };
+    });
+    return result.variations;
+}
+
+async function fetchHydratedProject(projectId, context) {
+    const response = await fetch(
+        odinReferences(projectId, context.preview, REFERENCES.ALL),
+        context,
+        `promotions-hydrate-${projectId}`,
+    );
+    if (response.status !== 200) {
+        logError(`Failed to hydrate promotion project ${projectId}: ${response.message}`, context);
+        return null;
+    }
+    const hydratedProject = response.body;
+    const fragmentPaths = parseFragmentPaths(hydratedProject);
+    const offerLines = hydratedProject.fields?.offers ?? [];
+    return {
+        fragmentPaths,
+        groupedVariationPaths: fragmentPaths.filter(isGroupedVariationFragmentPath),
+        groupedVariationReferences: parseGroupedVariationReferences(hydratedProject),
+        offerOverrides: parseOfferOverrides(offerLines),
+        offerSubstitutions: parseOfferSubstitutions(offerLines),
+        ignoreVariations: parseIgnoreVariations(offerLines),
+        promoCode: hydratedProject.fields?.promoCode ?? null,
+        title: hydratedProject.fields?.title ?? null,
+    };
 }
 
 /**
@@ -403,29 +410,16 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     const promoTag = project.tags.find((tag) => tag.startsWith(PROMO_TAG_PREFIX));
     const promoName = promoTag.slice(PROMO_TAG_PREFIX.length);
 
-    const [hydrateResponse, defaultVariations, regionVariations] = await Promise.all([
-        fetch(odinReferences(project.id, context.preview, REFERENCES.ALL), context, `promotions-hydrate-${project.id}`),
+    const [hydratedProject, defaultVariations, regionVariations] = await Promise.all([
+        hydratedProjectsCache.get(context, project.id, () => fetchHydratedProject(project.id, context)),
         fetchPromoVariations(baseUrl, surface, defaultLocale, promoName, context),
         resolvedRegionLocale && resolvedRegionLocale !== defaultLocale
             ? fetchPromoVariations(baseUrl, surface, resolvedRegionLocale, promoName, context)
             : {},
     ]);
 
-    if (hydrateResponse.status !== 200) {
-        logError(`Failed to hydrate promotion project ${project.id}: ${hydrateResponse.message}`, context);
-        return null;
-    }
-
-    const hydratedProject = hydrateResponse.body;
-    const fragmentPaths = parseFragmentPaths(hydratedProject);
-    const groupedVariationPaths = fragmentPaths.filter(isGroupedVariationFragmentPath);
-    const groupedVariationReferences = parseGroupedVariationReferences(hydratedProject);
-    const offerLines = hydratedProject.fields?.offers ?? [];
-    const offerOverrides = parseOfferOverrides(offerLines);
-    const offerSubstitutions = parseOfferSubstitutions(offerLines);
-    const ignoreVariations = parseIgnoreVariations(offerLines);
-    const promoCode = hydratedProject.fields?.promoCode ?? null;
-    const title = hydratedProject.fields?.title ?? null;
+    if (!hydratedProject) return null;
+    const { fragmentPaths, offerOverrides, offerSubstitutions, promoCode } = hydratedProject;
     const seasonal = isSeasonal(project);
     if (!fragmentPaths.length && !offerOverrides.length && !offerSubstitutions.length) {
         logDebug(() => `Promotion project ${project.id} has no fragments or offer overrides, skipping`, context);
@@ -440,19 +434,12 @@ async function hydrateProject(project, { baseUrl, surface, defaultLocale, resolv
     return {
         id: project.id,
         path: project.path,
-        title,
+        ...hydratedProject,
         startDate: project.startDate,
         endDate: project.endDate,
         cdtStart: project.cdtStart,
         cdtEnd: project.cdtEnd,
         seasonal,
-        promoCode,
-        fragmentPaths,
-        groupedVariationPaths,
-        groupedVariationReferences,
-        offerOverrides,
-        offerSubstitutions,
-        ignoreVariations,
         defaultVariations,
         regionVariations,
     };

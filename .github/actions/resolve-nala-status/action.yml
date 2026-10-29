@@ -1,10 +1,8 @@
 name: Resolve Nala status
 description: >
-    Resolves, from live API state rather than the event payload, whether a PR is
-    allowed to run Nala and what Nala already concluded for its head commit. The
-    job that starts the E2E jobs and the required gate both call this, so they
-    can never disagree, and so re-running the gate alone re-derives the verdict
-    instead of replaying a stale one.
+    Resolves live PR labels, write-access approvals and the latest Studio/Docs
+    results for the head commit. Approval checks return without waiting for
+    tests; the required gate can wait and re-derives its verdict on a retry.
 
 inputs:
     pr-number:
@@ -20,9 +18,14 @@ inputs:
         required: true
     wait-for-in-flight:
         description: >
-            'true' to block until older workflow runs and any in-progress Nala
-            run on this commit finish, 'false' to report it as 'running'.
+            'true' to wait for in-progress Nala checks, 'false' to return immediately.
         required: true
+    ignore-current-run:
+        description: Exclude this workflow's own checks when deciding whether to start tests.
+        default: 'false'
+    superseded-runs:
+        description: JSON workflow identities whose cancellation was requested by this commit.
+        default: '[]'
     github-token:
         description: Token used for the API calls.
         required: true
@@ -32,11 +35,23 @@ outputs:
         description: "'true' if the 'run nala' label is currently on the PR"
         value: ${{ steps.resolve.outputs.has-label }}
     can-run:
-        description: "'true' if the label and the required approvals are both present"
+        description: "'true' if this workflow matches the live PR head and has the label and required approvals"
         value: ${{ steps.resolve.outputs.can-run }}
+    is-current-head:
+        description: "'true' if this workflow belongs to the live PR head"
+        value: ${{ steps.resolve.outputs.is-current-head }}
     head-sha:
         description: The PR's live head SHA
         value: ${{ steps.resolve.outputs.head-sha }}
+    head-branch:
+        description: The live PR head branch, never a PR number or merge ref.
+        value: ${{ steps.resolve.outputs.head-branch }}
+    head-owner:
+        description: The live PR head repository owner.
+        value: ${{ steps.resolve.outputs.head-owner }}
+    head-repo:
+        description: The live PR head repository name.
+        value: ${{ steps.resolve.outputs.head-repo }}
     nala-conclusion:
         description: >
             '' when prior runs were not consulted, otherwise 'success',
@@ -54,6 +69,8 @@ runs:
               REQUIRED_APPROVALS: ${{ inputs.required-approvals }}
               CONSULT_PRIOR_RUNS: ${{ inputs.consult-prior-runs }}
               WAIT_FOR_IN_FLIGHT: ${{ inputs.wait-for-in-flight }}
+              IGNORE_CURRENT_RUN: ${{ inputs.ignore-current-run }}
+              SUPERSEDED_RUNS: ${{ inputs.superseded-runs }}
           with:
               github-token: ${{ inputs.github-token }}
               script: |
@@ -70,6 +87,8 @@ runs:
                       pull_number: Number(process.env.PR_NUMBER),
                   });
                   const hasLabel = pr.labels.some((label) => label.name === 'run nala');
+                  const isFork = pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`;
+                  if (isFork) core.info('Fork PRs cannot run Nala: required authentication secrets are unavailable.');
 
                   const reviews = await github.paginate(github.rest.pulls.listReviews, {
                       owner: context.repo.owner,
@@ -82,7 +101,7 @@ runs:
                   // reviewer counts; COMMENTED reviews never supersede an approval.
                   const latestByReviewer = new Map();
                   for (const review of reviews) {
-                      if (review.state === 'COMMENTED' || !review.user) continue;
+                      if (!['APPROVED', 'CHANGES_REQUESTED', 'DISMISSED'].includes(review.state) || !review.user) continue;
                       latestByReviewer.set(review.user.id, {
                           login: review.user.login,
                           state: review.state,
@@ -115,84 +134,74 @@ runs:
                           );
                       }
                   };
-                  const permissions = await Promise.all(
+                  const permissions = isFork ? [] : await Promise.all(
                       approvers.map((review) => canWrite(review.login)),
                   );
                   const approvals = permissions.filter(Boolean).length;
 
-                  const canRun = hasLabel && approvals >= required;
+                  const isCurrentHead = pr.head.sha === context.payload.pull_request.head.sha;
+                  if (!isCurrentHead) core.warning('This workflow belongs to an older PR commit; use the current commit run.');
+                  const canRun = !isFork && isCurrentHead && hasLabel && approvals >= required;
 
-                  // Keep in sync with the `name:` of the two E2E jobs in run-nala.yml.
-                  const nalaTestNames = [
-                      'Running Nala Studio E2E UI Tests',
-                      'Running Nala Docs E2E UI Tests',
-                  ];
-                  // A skipped or cancelled run means Nala did not execute, so it must
-                  // not count as a prior result — otherwise a PR that was labelled
-                  // before it had approvals would never run Nala at all.
-                  const ignoredConclusions = ['skipped', 'cancelled'];
+                  // Keep in sync with the E2E job names in run-nala.yml.
+                  const studioShards = ['mixed-1', 'mixed-2', 'mixed-3'];
+                  const docsName = 'Running Nala Docs E2E UI Tests';
+                  const studioName = 'Running Nala Studio E2E UI Tests';
+                  const shardNames = studioShards.map((shard) => `Running Nala Studio [${shard}] E2E UI Tests`);
+                  // Skipped jobs and cancellations before startup did not execute.
+                  // A cancelled test that started requires an explicit retry.
                   const latestRun = (runs, name) =>
                       runs
                           .filter(
                               (run) =>
                                   run.name.startsWith(name) &&
-                                  (run.status !== 'completed' ||
-                                      !ignoredConclusions.includes(run.conclusion)),
+                                  run.conclusion !== 'skipped' &&
+                                  !(run.conclusion === 'cancelled' && !run.started_at),
                           )
-                          // A queued run has no started_at; treat it as newest so a
-                          // stale completed run cannot win over an in-flight one.
-                          .sort(
-                              (a, b) =>
-                                  new Date(b.started_at ?? Date.now()) -
-                                  new Date(a.started_at ?? Date.now()),
-                          )[0];
+                          // Start times can invert when an older job waits for a runner.
+                          .sort((a, b) => b.id - a.id)[0];
 
                   let nalaConclusion = '';
-                  // Known race: two qualifying triggers landing before either's check-run is visible can both start.
                   if (canRun && process.env.CONSULT_PRIOR_RUNS === 'true') {
                       const wait = process.env.WAIT_FOR_IN_FLIGHT === 'true';
+                      const supersededRuns = JSON.parse(process.env.SUPERSEDED_RUNS);
+                      const belongsToRun = (check, run) => {
+                          const workflowId = check.details_url?.match(/\/actions\/runs\/(\d+)\//)?.[1];
+                          if (workflowId) return workflowId === String(run.id);
+                          return run.check_suite_id != null && check.check_suite?.id === run.check_suite_id;
+                      };
                       const deadline = Date.now() + 50 * 60 * 1000;
+                      let lastCheckSummary = '';
                       const { data: currentRun } = await github.rest.actions.getWorkflowRun({
                           owner: context.repo.owner,
                           repo: context.repo.repo,
                           run_id: context.runId,
                       });
-                      // Only older runs, so two waiting runs can never wait on each other.
-                      const olderRunInFlight = async () => {
-                          const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                      while (!nalaConclusion) {
+                          const checks = await github.paginate(github.rest.checks.listForRef, {
                               owner: context.repo.owner,
                               repo: context.repo.repo,
-                              workflow_id: currentRun.workflow_id,
-                              head_sha: pr.head.sha,
+                              ref: pr.head.sha,
+                              filter: 'all',
                               per_page: 100,
                           });
-                          return runs.some((run) => run.id < context.runId && run.status !== 'completed');
-                      };
-                      while (!nalaConclusion) {
-                          // An older run may be about to start Nala without a visible check run yet.
-                          if (wait && (await olderRunInFlight())) {
-                              if (Date.now() > deadline) {
-                                  nalaConclusion = 'timed-out';
-                              } else {
-                                  await new Promise((resolve) => setTimeout(resolve, 60000));
-                              }
-                              continue;
+                          const eligible = checks.filter((check) => {
+                              if (supersededRuns.some((run) => belongsToRun(check, run))) return false;
+                              return process.env.IGNORE_CURRENT_RUN !== 'true' || !belongsToRun(check, currentRun);
+                          });
+                          const hasShards = eligible.some((check) => shardNames.some((name) => check.name.startsWith(name)));
+                          const names = [docsName, ...(hasShards ? shardNames : [studioName])];
+                          const priorRuns = names.map((name) => latestRun(eligible, name));
+                          const checkSummary = names.map((name, index) => {
+                              const run = priorRuns[index];
+                              if (!run) return `${name}: no executed check found`;
+                              const result = run.status === 'completed' ? run.conclusion : run.status;
+                              return `${run.name}: ${result} | ${run.details_url || run.html_url}`;
+                          }).join('\n');
+                          if (checkSummary !== lastCheckSummary) {
+                              core.info(`Nala checks for ${pr.head.sha}:\n${checkSummary}`);
+                              lastCheckSummary = checkSummary;
                           }
-                        // Filter server-side by name so unrelated checks on this SHA
-                        // can never push a Nala run out of the page.
-                        const priorRuns = await Promise.all(
-                            nalaTestNames.map(async (name) => {
-                                const checkRuns = await github.paginate(github.rest.checks.listForRef, {
-                                    owner: context.repo.owner,
-                                    repo: context.repo.repo,
-                                    ref: pr.head.sha,
-                                    check_name: name,
-                                    filter: 'all',
-                                    per_page: 100,
-                                });
-                                return latestRun(checkRuns, name);
-                            }),
-                        );
                           const inFlight = priorRuns.some((run) => run && run.status !== 'completed');
                           const failed = priorRuns.some(
                               (run) =>
@@ -202,18 +211,24 @@ runs:
                               (run) =>
                                   run && run.status === 'completed' && run.conclusion === 'success',
                           );
-                          if (failed) {
+                          if (inFlight && !wait) {
+                              core.info('Other Nala checks are queued or running for this commit; this workflow will not start duplicate E2E jobs.');
+                              nalaConclusion = 'running';
+                          } else if (inFlight && Date.now() <= deadline) {
+                              const pendingNames = names.filter((name, index) =>
+                                  priorRuns[index] && priorRuns[index].status !== 'completed',
+                              );
+                              const minutesRemaining = Math.max(0, Math.ceil((deadline - Date.now()) / 60000));
+                              core.info(`Waiting for ${pendingNames.join(', ')}; checking again in 60s (${minutesRemaining}m remaining).`);
+                              await new Promise((resolve) => setTimeout(resolve, 60000));
+                          } else if (inFlight) {
+                              nalaConclusion = 'timed-out';
+                          } else if (failed) {
                               nalaConclusion = 'failure';
                           } else if (allPassed) {
                               nalaConclusion = 'success';
                           } else if (!inFlight) {
                               nalaConclusion = 'none';
-                          } else if (!wait) {
-                              nalaConclusion = 'running';
-                          } else if (Date.now() > deadline) {
-                              nalaConclusion = 'timed-out';
-                          } else {
-                              await new Promise((resolve) => setTimeout(resolve, 60000));
                           }
                       }
                   }
@@ -225,5 +240,9 @@ runs:
 
                   core.setOutput('has-label', String(hasLabel));
                   core.setOutput('can-run', String(canRun));
+                  core.setOutput('is-current-head', String(isCurrentHead));
                   core.setOutput('head-sha', pr.head.sha);
+                  core.setOutput('head-branch', pr.head.ref);
+                  core.setOutput('head-owner', pr.head.repo.owner.login);
+                  core.setOutput('head-repo', pr.head.repo.name);
                   core.setOutput('nala-conclusion', nalaConclusion);

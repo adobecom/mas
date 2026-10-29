@@ -35,7 +35,7 @@ describe('MasTranslation', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.list.loading.value = false;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -45,7 +45,7 @@ describe('MasTranslation', () => {
         fixtureCleanup();
         sandbox.restore();
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.list.loading.value = true;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -777,7 +777,7 @@ describe('MasTranslation', () => {
         it('should successfully delete translation project', async () => {
             const mockProject = createMockTranslationProject('del-123', 'Project to Delete');
             Store.translationProjects.list.data.value = [mockProject];
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['del-123', mockProject]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['del-123', mockProject]]));
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
             const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
@@ -790,7 +790,7 @@ describe('MasTranslation', () => {
             await new Promise((resolve) => setTimeout(resolve, 10));
             expect(deleteFragmentStub.calledOnce).to.be.true;
             expect(deleteFragmentStub.firstCall.args[1]).to.deep.equal({ startToast: false, endToast: false });
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('del-123')).to.be.false;
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').has('del-123')).to.be.false;
         });
 
         it('should handle delete error gracefully', async () => {

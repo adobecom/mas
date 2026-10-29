@@ -1,15 +1,5 @@
 import { COLLECTION_MODEL_PATH, DICTIONARY_MODEL_PATH } from '../constants.js';
 
-export function getProjectField(project, name, fallback) {
-    const data = project.value ?? project;
-    return data.getFieldValue?.(name) ?? data[name] ?? fallback;
-}
-
-export function getProjectFieldList(project, name) {
-    const data = project.value ?? project;
-    return data.getFieldValues?.(name) ?? data[name] ?? [];
-}
-
 export function itemTypeFromPath(path) {
     return path?.includes('/dictionary/') ? 'placeholder' : 'fragment';
 }

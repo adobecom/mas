@@ -332,9 +332,7 @@ test.describe('M@S Studio feature test suite', () => {
             await studio.waitForCardsLoaded();
             await studio.switchToTableView();
             await expect(studio.tableViewFragmentTable(data.cardid)).toBeVisible();
-            expect(await (await studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).textContent()).toMatch(
-                data.price,
-            );
+            await expect(studio.tableViewPriceCell(studio.tableViewRowByFragmentId(data.cardid))).toHaveText(data.price);
         });
 
         await test.step('step-3: Expand row and verify variation exists and price visible', async () => {
@@ -412,10 +410,9 @@ test.describe('M@S Studio feature test suite', () => {
             await page.goto(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const rootRow = studio.tableViewFragmentTable(data.usCardId);
             await expect(rootRow).toBeVisible({ timeout: 15000 });
-            await rootRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.usCardId);
             await expect(studio.regionalVariationsTable(data.usCardId)).toHaveCount(1, { timeout: 15000 });
             await expect(studio.tableViewFragmentTable(data.localeVariationEnQaId)).toBeVisible({ timeout: 15000 });
             await studio.groupedVariationsTab(data.usCardId).click();
@@ -429,10 +426,9 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.localePicker).toHaveAttribute('value', data.localeEnglishGb.value);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const fragmentRow = studio.tableViewRowByFragmentId(data.gbCardId);
             await expect(fragmentRow).toBeVisible();
-            await fragmentRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.gbCardId);
             await expect(studio.localeVariationsTabPanel(data.gbCardId).getByText('No locale variations found')).toBeVisible({
                 timeout: 15000,
             });
@@ -447,10 +443,9 @@ test.describe('M@S Studio feature test suite', () => {
             await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
             await page.waitForLoadState('domcontentloaded');
             await studio.switchToTableView();
-            await page.waitForTimeout(2000);
             const fragmentRow = studio.tableViewRowByFragmentId(data.deCardId);
             await expect(fragmentRow).toBeVisible();
-            await fragmentRow.locator('button.expand-button').click();
+            await studio.expandRowIfCollapsed(data.deCardId);
             await expect(studio.localePicker).toHaveAttribute('value', data.localeGermanDe.value);
             await expect(studio.localeVariationsTabPanel(data.deCardId).getByText('No locale variations found')).toBeVisible({
                 timeout: 15000,

@@ -11,7 +11,7 @@ import {
     priceOpticalAlternative,
     legal,
 } from './price/index.js';
-import { discount } from './discount/index.js';
+import { discount, discountAmount } from './discount/index.js';
 
 /**
  * Renders already-resolved WCS offers and options, without collecting browser
@@ -23,6 +23,9 @@ export function buildPriceHTML(offers, options, { logger = console } = {}) {
     switch (options.template) {
         case 'discount':
             method = discount;
+            break;
+        case 'discount-amount':
+            method = discountAmount;
             break;
         case 'strikethrough':
             method = priceStrikethrough;

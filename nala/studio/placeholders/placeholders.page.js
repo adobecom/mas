@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 export default class PlaceholdersPage {
     constructor(page) {
         this.page = page;
@@ -81,9 +83,7 @@ export default class PlaceholdersPage {
     }
 
     async waitForTableToLoad() {
-        // For test environment with path=nala, we expect placeholders to exist
-        // Wait specifically for placeholder rows to appear
-        await this.placeholderRows.first().waitFor({ timeout: 10000 });
+        await expect(this.placeholderRows.first().locator('sp-table-cell.key')).toBeVisible({ timeout: 10000 });
     }
 
     async waitForPlaceholderRows() {
@@ -142,22 +142,30 @@ export default class PlaceholdersPage {
     }
 
     async getPlaceholderRowData(rowIndex = 0) {
-        // Get data from a specific placeholder row
-        const rows = await this.placeholderRows.all();
-        if (rowIndex >= rows.length) {
-            throw new Error(`Row index ${rowIndex} out of bounds (${rows.length} rows available)`);
-        }
+        const row = this.placeholderRows.nth(rowIndex);
+        const cells = row.locator('sp-table-cell');
+        await expect(this.tableHeaders.key).toBeVisible();
+        await expect(cells).toHaveCount(await this.placeholdersTable.locator('sp-table-head-cell').count());
+        await expect(row.locator('mas-fragment-status')).toHaveAttribute('variant', /.+/);
 
-        const row = rows[rowIndex];
-        const cells = await row.locator('sp-table-cell').all();
+        const readCell = async (column) => {
+            const header = this.tableHeaders[column];
+            await expect(header).toBeVisible();
+            const index = await header.evaluate((element) =>
+                Array.from(element.parentElement.querySelectorAll('sp-table-head-cell')).indexOf(element),
+            );
+            const cell = cells.nth(index);
+            await expect(cell).toBeVisible();
+            return cell.textContent();
+        };
 
         return {
-            key: await cells[0].textContent(),
-            value: await cells[1].textContent(),
+            key: await readCell('key'),
+            value: await readCell('value'),
             status: await row.locator('mas-fragment-status').getAttribute('variant'),
-            locale: await cells[3].textContent(),
-            updatedBy: await cells[4].textContent(),
-            updatedAt: await cells[5].textContent(),
+            locale: await readCell('locale'),
+            updatedBy: await readCell('updatedBy'),
+            updatedAt: await readCell('updatedAt'),
         };
     }
 

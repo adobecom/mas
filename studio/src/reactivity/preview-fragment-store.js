@@ -1,9 +1,38 @@
 import Store from '../store.js';
 import { FragmentStore } from './fragment-store.js';
-import { previewStudioFragment } from '../../libs/fragment-client.js';
+import { previewFragment, previewStudioFragment } from '../../libs/fragment-client.js';
 import { Fragment } from '../aem/fragment.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../constants.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { canProbePromoVariationsForFragment, getPromotionTagFromFragment } from '../promotions/promotion-model.js';
+import {
+    countdownPreviewOfProvenance,
+    countdownPreviewOfTag,
+    countdownProjectTargetsPath,
+    hasCountdownSentinel,
+    toCountdownProject,
+} from '../promotions/countdown-preview.js';
+import { getService } from '../utils.js';
+import { createTtlCache } from '../utils/ttl-cache.js';
+
+const COUNTDOWN_CACHE_TTL = 30000;
+const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
+
+/**
+ * Reads the promotion projects without side effects: the loaded list when available, otherwise
+ * a (briefly cached) search. Never repository.loadPromotions(): it unpublishes expired projects.
+ */
+async function readCountdownProjects() {
+    const list = Store.promotions.list.data;
+    if (list.get()?.length || list.hasMeta('listFetched'))
+        return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
+    const repository = document.querySelector('mas-repository');
+    return cachedCountdownProjects(repository, () =>
+        repository
+            .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
+            .then((fragments) => fragments.map(toCountdownProject)),
+    );
+}
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);
 
@@ -69,6 +98,7 @@ export class PreviewFragmentStore extends FragmentStore {
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
+    #publishedDates = createTtlCache(COUNTDOWN_CACHE_TTL);
 
     /**
      * @param {Fragment} initialValue
@@ -264,7 +294,52 @@ export class PreviewFragmentStore extends FragmentStore {
             }
         }
 
+        // Preview payload only: the source fragment never carries these.
+        result.previewLocale = this.previewLocale;
+        Object.assign(result, await this.getCountdownDates(result.fields));
+
         return result;
+    }
+
+    /** Resolves preview-only dates and diagnostics. Unsaved authored content never leaves the browser. */
+    async getCountdownDates(fields) {
+        const none = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
+        if (!hasCountdownSentinel(fields)) return none;
+        try {
+            const tag = getPromotionTagFromFragment(this.value);
+            if (tag) return { ...none, ...countdownPreviewOfTag(await readCountdownProjects(), tag) };
+            if (!canProbePromoVariationsForFragment(this.value)) return { ...none, countdownStatus: 'no-project' };
+            const instant = getService()?.settings?.instant;
+            const key = `${this.value.id}|${this.previewLocale}|${instant ?? ''}`;
+            // The saved version's project does not change while the author types.
+            const published = await this.#publishedDates(key, () =>
+                this.previewPublishedFragment(this.value.id, {
+                    locale: this.previewLocale,
+                    country: this.previewLocale.split('_')[1],
+                    ...(instant && { instant }),
+                    fullContext: true,
+                }).then((context) => {
+                    if (context.status !== 200) throw new Error('Countdown preview lookup failed');
+                    const preview = countdownPreviewOfProvenance(context);
+                    if (preview.countdownStatus === 'lookup-failed') throw new Error('Selected promotion was not returned');
+                    return preview;
+                }),
+            );
+            if (published.countdownStatus === 'no-project') {
+                const projects = await readCountdownProjects();
+                const linked = projects.some((project) => countdownProjectTargetsPath(project, this.value.path));
+                return { ...none, countdownStatus: linked ? 'no-match' : 'no-project' };
+            }
+            return { ...none, ...published };
+        } catch (error) {
+            console.warn('[PreviewFragmentStore] Could not resolve countdown dates:', error);
+            return { ...none, countdownStatus: 'lookup-failed' };
+        }
+    }
+
+    /** Runs the production pipeline over the saved fragment (read-only, shares its caches). */
+    previewPublishedFragment(id, options) {
+        return previewFragment(id, options);
     }
 
     replaceFrom(value) {

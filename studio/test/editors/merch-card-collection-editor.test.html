@@ -110,6 +110,24 @@
                         );
                         expect(statusEl.getAttribute('variant')).to.equal('draft');
                     });
+                    it('toggles enableBaselines from the General info switch', async () => {
+                        const editor = document.createElement('merch-card-collection-editor');
+                        editor.updateFragment = () => {};
+                        const collectionFragment = await fetch('/test/mocks/adobe/sites/cf/fragments/collection.json').then(
+                            (res) => res.json(),
+                        );
+                        collectionFragment.fields.push({ name: 'enableBaselines', type: 'boolean', values: [] });
+                        editor.fragmentStore = new FragmentStore(new Fragment(collectionFragment));
+                        document.querySelector('main sp-theme').appendChild(editor);
+                        await editor.updateComplete;
+                        const sw = editor.shadowRoot.querySelector('sp-switch#collection-enable-baselines');
+                        expect(sw.hasAttribute('checked')).to.be.false;
+                        sw.click();
+                        await editor.updateComplete;
+                        expect(editor.fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([true]);
+                        expect(sw.hasAttribute('checked')).to.be.true;
+                        editor.remove();
+                    });
                 });
 
                 describe('grouped variation tags', () => {
@@ -418,7 +436,7 @@
                         expect(editor.shadowRoot.textContent).to.not.include('Fragment details');
                         expect(editor.shadowRoot.textContent).to.not.include('Send to translation');
                         const switches = [...editor.shadowRoot.querySelectorAll('sp-switch')].map((el) => el.id);
-                        expect(switches).to.deep.equal(['markStaged']);
+                        expect(switches).to.deep.equal(['markStaged', 'collection-enable-baselines']);
                     });
 
                     it('calls fragmentStore.updateFieldInternal with field name and new value on title input', async () => {
@@ -700,6 +718,24 @@
                         expect(disabled.has(QUICK_ACTION.SAVE)).to.be.true;
                         expect(disabled.has(QUICK_ACTION.DISCARD)).to.be.true;
                         expect(disabled.has(QUICK_ACTION.HISTORY)).to.be.false;
+                    });
+
+                    it('disables Delete when the host denies promo variation deletion', async () => {
+                        hostEditor.canDeleteFragment = false;
+                        const editor = await mountEditor({ isVariation: true });
+                        expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.DELETE)).to.be.true;
+                    });
+
+                    it('disables Publish when the host denies promo variation publishing', async () => {
+                        hostEditor.canPublishFragment = false;
+                        const editor = await mountEditor({ isVariation: true });
+                        expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.PUBLISH)).to.be.true;
+                    });
+
+                    it('disables Duplicate when the host denies duplication', async () => {
+                        hostEditor.canDuplicateFragment = false;
+                        const editor = await mountEditor();
+                        expect(quickActionsOf(editor).disabled.has(QUICK_ACTION.DUPLICATE)).to.be.true;
                     });
 
                     it('delegates Discard and Create Variation to the fragment editor', async () => {

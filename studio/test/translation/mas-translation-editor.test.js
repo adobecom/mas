@@ -94,7 +94,7 @@ describe('MasTranslationEditor', () => {
 
     const resetStores = () => {
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
         Store.translationProjects.selectedCards.value = [];
@@ -803,7 +803,7 @@ describe('MasTranslationEditor', () => {
             const mockFragment = new Fragment(createMockFragment({ id: 'delete-id' }));
             const fragmentStore = new FragmentStore(mockFragment);
             Store.translationProjects.inEdit.set(fragmentStore);
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['delete-id', fragmentStore]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['delete-id', fragmentStore]]));
             Store.translationProjects.translationProjectId.set('delete-id');
             const mockRepository = createMockRepository();
             mockRepository.aem.sites.cf.fragments.getById.resolves(mockFragment);
@@ -826,7 +826,7 @@ describe('MasTranslationEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(mockRepository.deleteFragment.calledOnce).to.be.true;
             expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('delete-id')).to.be.false;
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').has('delete-id')).to.be.false;
         });
 
         it('should navigate to translations page after successful delete', async () => {
@@ -1566,6 +1566,9 @@ describe('MasTranslationEditor', () => {
             await selector.updateComplete;
             selector.shadowRoot.querySelector('.add-button').click();
             expect(openSpy.calledOnce).to.be.true;
+            selector.shadowRoot
+                .querySelector('.selector-dialog')
+                .dispatchEvent(new Event('close', { bubbles: true, composed: true }));
         });
 
         it('should enable save and discard when language selection is confirmed', async () => {
@@ -1597,10 +1600,9 @@ describe('MasTranslationEditor', () => {
             Store.search.set({ path: 'acom' });
             Store.translationProjects.targetLocales.set([]);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-            const langPicker = getLangSelector(el).querySelector('mas-translation-languages');
-            expect(langPicker).to.exist;
-            expect(langPicker.hasAttribute('include-regional')).to.equal(false);
-            const codes = langPicker.localesArray.map((item) => item.locale);
+            const langPicker = getLangSelector(el).querySelector('mas-region-picker');
+            expect(langPicker.store).to.equal(Store.translationProjects.targetLocales);
+            const codes = langPicker.items.map(({ value }) => value);
             expect(codes).to.include('fr_FR');
             expect(codes).to.include('de_DE');
             expect(codes).to.not.include('fr_CA');

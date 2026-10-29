@@ -17,6 +17,8 @@ import AHTryBuyWidgetSpec from '../specs/try_buy_widget_save.spec.js';
 
 const { features } = AHTryBuyWidgetSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
     // @studio-try-buy-widget-save-bg-color-and-image - Edit bg-color and image, save at end, validate in parallel
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -26,7 +28,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -42,11 +44,7 @@ test.describe('M@S Studio AHome Try Buy Widget card test suite', () => {
         await test.step('step-3: Edit background color', async () => {
             await expect(await editor.backgroundColor).toBeVisible();
             await expect(await editor.backgroundColor).toHaveAttribute('value', data.color.original);
-            await editor.backgroundColor.scrollIntoViewIfNeeded();
-            await editor.backgroundColor.click();
-            await expect(await editor.backgroundColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.backgroundColor, data.color.updated);
         });
 
         await test.step('step-4: Edit background image', async () => {

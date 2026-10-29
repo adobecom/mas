@@ -13,6 +13,8 @@ import ACOMProSpec from '../specs/pro_save.spec.js';
 
 const { features } = ACOMProSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Pro card test suite', () => {
     // @studio-pro-save-edited-fields - Validate edits and save for pro card in mas studio
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -22,7 +24,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -38,7 +40,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
+            await editor.fillRteField(editor.title, data.title);
         });
 
         await test.step('step-4: Edit whats included label field', async () => {
@@ -56,7 +58,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
             await expect(lightOption).toBeVisible();
             await expect(darkOption).toBeVisible();
             await expect(page.getByRole('option', { name: 'Transparent', exact: true })).not.toBeVisible();
-            await darkOption.click();
+            await editor.selectPickerOption(editor.backgroundColor, data.theme);
             await expect(editor.backgroundColor).toHaveAttribute('value', data.theme);
 
             await expect(editor.size).toBeVisible();
@@ -66,7 +68,7 @@ test.describe('M@S Studio ACOM Pro card test suite', () => {
             const eduOption = page.getByRole('option', { name: data.size, exact: true });
             await expect(wideOption).toBeVisible();
             await expect(eduOption).toBeVisible();
-            await eduOption.click();
+            await editor.selectPickerOption(editor.size, data.size);
             await expect(editor.size).toHaveAttribute('value', data.size.toLowerCase());
         });
 

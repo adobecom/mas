@@ -125,6 +125,9 @@ class MasToolbar extends LitElement {
         sp-search {
             flex-grow: 1;
             max-width: 400px;
+            --mod-search-border-radius: 100px;
+            --mod-search-border-color-default: var(--spectrum-gray-300);
+            --mod-search-background-color: var(--spectrum-gray-75);
         }
 
         #search-results-label {
@@ -170,10 +173,6 @@ class MasToolbar extends LitElement {
         if (this.filtersSubscription) {
             this.filtersSubscription.unsubscribe();
         }
-    }
-
-    update() {
-        super.update();
     }
 
     updateFilterCount() {

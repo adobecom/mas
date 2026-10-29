@@ -26,10 +26,9 @@ const expectGroupedVariationPrice = async (data, variationId) => {
 };
 
 const cloneFragment = async (cardId) => {
-    await studio.cloneCard(cardId);
-    const clonedCard = await studio.getCard(cardId, 'cloned');
+    const clonedFragmentId = await studio.cloneCard(cardId);
+    const clonedCard = await studio.getCard(clonedFragmentId);
     await expect(clonedCard).toBeVisible();
-    const clonedFragmentId = await clonedCard.locator('aem-fragment').getAttribute('fragment');
     expect(clonedFragmentId).toBeTruthy();
     return clonedFragmentId;
 };
@@ -38,7 +37,7 @@ const openContentTableView = async (page) => {
     await expect(studio.fragmentsTable).toBeVisible();
     await studio.fragmentsTable.scrollIntoViewIfNeeded();
     await studio.fragmentsTable.click();
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL((url) => new URLSearchParams(url.hash.slice(1)).get('page') === 'content');
     await studio.switchToTableView();
     await expect(await studio.tableView).toBeVisible();
 };
@@ -53,7 +52,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         let variationId;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -66,7 +65,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             await studio.openVariationDialog();
             await expect(studio.variationDialogTypePicker).toBeVisible();
             await expect(studio.variationDialogTypePicker).toHaveAttribute('disabled', '');
-            await expect(studio.variationDialogTypePicker).toHaveAttribute('value', 'grouped');
+            await expect(studio.variationDialogTypePicker).toHaveJSProperty('value', 'grouped');
             await expect(studio.variationDialogTypePicker.locator('sp-menu-item')).toHaveCount(1);
             await expect(studio.variationDialogTagPicker).toBeVisible();
             await expect(studio.variationDialogUnavailableMessage).not.toBeVisible();
@@ -108,7 +107,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         let variationId;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -142,7 +141,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         let variationId;
 
         await test.step('step-1: Go to MAS Studio content page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await studio.renderView).toBeVisible();
         });
@@ -178,7 +177,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         let variationId;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -226,7 +225,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         };
 
         await test.step('step-1: Go to MAS Studio fragment editor and clone', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             clonedFragmentId = await cloneFragment(data.cardid);
@@ -246,12 +245,11 @@ test.describe('M@S Studio - Variations Page test suite', () => {
 
         await test.step('step-4: Return to editor, edit title, save', async () => {
             const editorPage = `${baseURL}${features[4].path}${miloLibs}${features[4].browserParams}${variationId}`;
-            await page.goto(editorPage);
+            await studio.openPage(editorPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible({ timeout: 15000 });
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.editedTitle);
-            await page.waitForTimeout(400);
+            await editor.fillRteField(editor.title, data.editedTitle);
             await studio.saveCard();
         });
 
@@ -269,7 +267,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
         });
@@ -292,7 +290,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
         const { original } = data;
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(editor.derivedFromContainer).toBeVisible();
@@ -307,7 +305,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             () =>
                 test.step('field: title — edit, verify preview, click restore, verify original', async () => {
                     await expect(await editor.title).toBeVisible();
-                    await editor.title.fill(data.title);
+                    await editor.fillRteField(editor.title, data.title);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardTitle)).toHaveText(data.title);
@@ -319,7 +317,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             () =>
                 test.step('field: badge — edit, verify preview, click restore, verify original', async () => {
                     // add check that other badge fields are not marked as override when MWPW-188853 is fixed
-                    await editor.badge.fill(data.badge);
+                    await editor.fillRteField(editor.badge, data.badge);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardBadge)).toHaveText(data.badge);
@@ -330,7 +328,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 }),
             () =>
                 test.step('field: description — edit, verify preview, click restore, verify original', async () => {
-                    await editor.description.fill(data.description);
+                    await editor.fillRteField(editor.description, data.description);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardDescription)).toHaveText(data.description);
@@ -364,7 +362,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 }),
             () =>
                 test.step('field: callout — edit, verify preview, click restore, verify original', async () => {
-                    await editor.calloutRTE.fill(data.callout);
+                    await editor.fillRteField(editor.calloutRTE, data.callout);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardCallout)).toHaveText(data.callout);
@@ -375,7 +373,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 }),
             () =>
                 test.step('field: promo text — edit, verify preview, click restore, verify original', async () => {
-                    await editor.promoText.fill(data.promoText);
+                    await editor.fillRteField(editor.promoText, data.promoText);
                     await page.waitForTimeout(400);
                     const card = await studio.getCard(data.cardid);
                     await expect(await card.locator(plans.cardPromoText)).toHaveText(data.promoText);
@@ -398,10 +396,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             () =>
                 test.step('field: badge color — edit, verify preview, click restore, verify original', async () => {
                     // add check that other badge fields are not marked as override when MWPW-188853 is fixed
-                    await editor.badgeColor.scrollIntoViewIfNeeded();
-                    await editor.badgeColor.click();
-                    await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
-                    await page.waitForTimeout(400);
+                    await editor.selectPickerOption(editor.badgeColor, data.badgeColor.name);
                     const card = await studio.getCard(data.cardid);
                     expect(
                         await webUtil.verifyCSS(card.locator(plans.cardBadge), {
@@ -415,10 +410,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
             () =>
                 test.step('field: badge border color — edit, verify preview, click restore, verify original', async () => {
                     // add check that other badge fields are not marked as override when MWPW-188853 is fixed
-                    await editor.badgeBorderColor.scrollIntoViewIfNeeded();
-                    await editor.badgeBorderColor.click();
-                    await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
-                    await page.waitForTimeout(400);
+                    await editor.selectPickerOption(editor.badgeBorderColor, data.badgeBorderColor.name);
                     const card = await studio.getCard(data.cardid);
                     expect(
                         await webUtil.verifyCSS(card.locator(plans.cardBadge), {
@@ -433,10 +425,7 @@ test.describe('M@S Studio - Variations Page test suite', () => {
                 }),
             () =>
                 test.step('field: card border color — edit, verify preview, click restore, verify original', async () => {
-                    await editor.borderColor.scrollIntoViewIfNeeded();
-                    await editor.borderColor.click();
-                    await page.getByRole('option', { name: data.borderColor.name, exact: true }).click();
-                    await page.waitForTimeout(400);
+                    await editor.selectPickerOption(editor.borderColor, data.borderColor.name);
                     const card = await studio.getCard(data.cardid);
                     expect(await webUtil.verifyCSS(card, { 'background-color': data.borderColor.css })).toBeTruthy();
                     await editor.overrideRestoreIn(editor.borderColorFieldGroup).first().click();

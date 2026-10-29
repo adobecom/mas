@@ -201,7 +201,9 @@ function createCardItem(card) {
     const iconBg = variantColor(card);
     const iconSvg = window.MASIcons ? window.MASIcons.get(variantIcon(card), 'M') : '';
 
-    const isBareElement = card.elementType === 'price' || card.elementType === 'cta';
+    // Only an element traced back to a real fragment can be opened in Studio; a
+    // standalone price has just an OSI, and every non-card id here is synthetic.
+    const canEdit = !!card.sourceFragmentId;
     const cardName = card.cardName || card.fragmentId;
     const hint = [card.variant, card.osi, card.size, promotionHint(card.promotion)].filter(Boolean).join(' · ');
 
@@ -212,7 +214,7 @@ function createCardItem(card) {
       <div class="card-row-hint">${escapeHtml(hint)}</div>
     </div>
     ${
-        isBareElement
+        !canEdit
             ? ''
             : `
     <button class="card-row-edit" aria-label="Edit in Studio" title="Edit in Studio">
@@ -222,8 +224,8 @@ function createCardItem(card) {
   `;
 
     item.addEventListener('click', (e) => {
-        if (!isBareElement && e.target.closest('.card-row-edit')) {
-            openInStudio(card.fragmentId, card.variant, card.locale);
+        if (canEdit && e.target.closest('.card-row-edit')) {
+            openInStudio(card.sourceFragmentId, card.variant, card.locale, card.elementType);
             return;
         }
         highlightCardInPage(card.fragmentId);
@@ -260,7 +262,18 @@ function updateVariantFilter() {
     }
 }
 
-function openInStudio(fragmentId, variant, locale) {
+function openInStudio(fragmentId, variant, locale, elementType) {
+    // Cards and collections map their variant to a surface; a field or an unwrapped
+    // price/CTA has none, so open its source fragment by UUID to avoid defaulting to acom.
+    if (elementType !== 'card' && elementType !== 'collection') {
+        chrome.runtime.sendMessage({
+            type: 'OPEN_STUDIO_LINK',
+            view: 'fragment-editor',
+            fragmentId,
+            locale,
+        });
+        return;
+    }
     chrome.runtime.sendMessage({
         type: 'OPEN_STUDIO_LINK',
         view: 'content',

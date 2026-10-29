@@ -4,7 +4,7 @@ A Chrome extension (Manifest V3) that detects merch cards rendered by `mas.js` o
 
 ## Features
 
-- **Auto-detection** of `<merch-card>` and `<merch-card-collection>` elements
+- **Auto-detection** of `<merch-card>` and `<merch-card-collection>` elements, of `<mas-field>` content fields rendered outside a card, and of standalone prices and CTAs
 - **Visual badges** on detected cards showing variant information
 - **Quick edit**: one-click deep link into M@S Studio
 - **Fragment data**: view fragment metadata in an expandable panel

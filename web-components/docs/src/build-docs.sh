@@ -7,6 +7,7 @@ node ./docs/src/build-docs.mjs upt-link.md ./docs/upt-link.html
 node ./docs/src/build-docs.mjs mas.md ./docs/mas.html
 node ./docs/src/build-docs.mjs step-by-step.md ./docs/step-by-step.html
 node ./docs/src/build-docs.mjs mas.js.md ./docs/mas.js.html
+node ./docs/src/build-docs.mjs agent.md ./docs/agent.html
 node ./docs/src/build-docs.mjs feature-flags.md ./docs/feature-flags.html
 node ./docs/src/build-docs.mjs aem-fragment.md ./docs/aem-fragment.html
 node ./docs/src/build-docs.mjs masks.md ./docs/masks.html
@@ -17,6 +18,7 @@ node ./docs/src/build-docs.mjs catalog.md ./docs/catalog.html
 node ./docs/src/build-docs.mjs minicompare.md ./docs/minicompare.html
 node ./docs/src/build-docs.mjs minicomparemweb.md ./docs/minicomparemweb.html
 node ./docs/src/build-docs.mjs product.md ./docs/product.html
+node ./docs/src/build-docs.mjs productc2.md ./docs/productc2.html
 node ./docs/src/build-docs.mjs brand-concierge.md ./docs/brand-concierge.html
 node ./docs/src/build-docs.mjs segment.md ./docs/segment.html
 node ./docs/src/build-docs.mjs specialoffer.md ./docs/specialoffer.html

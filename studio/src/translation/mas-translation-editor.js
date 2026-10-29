@@ -9,7 +9,8 @@ import { styles } from './mas-translation-editor.css.js';
 import '../common/components/mas-items-selector.js';
 import '../common/components/mas-grouped-selector.js';
 import '../mas-quick-actions.js';
-import './mas-translation-languages.js';
+import '../common/components/mas-region-picker.js';
+import { getLocalePickerItems } from '../locales.js';
 import router from '../router.js';
 import { normalizeKey, showToast, getCreateProjectErrorMessage, UserFriendlyError } from '../utils.js';
 import { PAGE_NAMES, TRANSLATION_PROJECT_MODEL_ID, QUICK_ACTION, TABLE_TYPE, VARIATION_TAB_NAME } from '../constants.js';
@@ -23,6 +24,7 @@ import {
 } from './translation-utils.js';
 import './mas-collapsible-table-row.js';
 import './mas-translation-duplicate-dialog.js';
+import { untrackPendingProject } from '../common/utils/project-list-utils.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -465,7 +467,7 @@ class MasTranslationEditor extends LitElement {
                 startToast: false,
                 endToast: false,
             });
-            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(projectId);
+            untrackPendingProject(Store.translationProjects.list.data, projectId);
             Store.translationProjects.inEdit.set(null);
             Store.translationProjects.translationProjectId.set('');
             Store.translationProjects.showSelected.set(false);
@@ -737,7 +739,7 @@ class MasTranslationEditor extends LitElement {
         return html`
             ${this.renderConfirmDialog()}
 
-            <div class="translation-editor-form">
+            <div class="page-container">
                 ${this.isProjectReadonly
                     ? html`<div class="metadata-info">
                           <sp-icon-alert></sp-icon-alert>
@@ -809,7 +811,12 @@ class MasTranslationEditor extends LitElement {
                     @confirm=${this.#confirmLangSelection}
                     @cancel=${this.#cancelLangSelection}
                 >
-                    <mas-translation-languages></mas-translation-languages>
+                    <mas-region-picker
+                        .store=${Store.translationProjects.targetLocales}
+                        .items=${getLocalePickerItems(Store.search.value.path)}
+                        noun="language"
+                        search-placeholder="Search locale"
+                    ></mas-region-picker>
                 </mas-grouped-selector>
                 ${
                     this.showSelectedEmptyState

@@ -12,6 +12,7 @@ import '../rte/rte-field.js';
 import { SPECTRUM_COLORS } from '../utils/spectrum-colors.js';
 import '../rte/osi-field.js';
 import { CARD_MODEL_PATH, COMPAT_VERSION, STAGED } from '../constants.js';
+import { HEADLESS_STYLE_CTA_VARIANTS } from '../../../web-components/src/constants.js';
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
@@ -36,6 +37,7 @@ import { createQuantitySelectValue, parseQuantitySelectValue, QUANTITY_SELECT_TA
 import Store from '../store.js';
 import Events from '../events.js';
 import { normalizeVariantName, VARIANT_NAMES } from './variant-picker.js';
+import { supportsCountdown } from '../../../io/www/src/fragment/utils/countdown.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { getItemFieldStateByIndex } from '../utils/field-state.js';
 import { Fragment } from '../aem/fragment.js';
@@ -92,6 +94,9 @@ function checkoutOptionsProvider(element, options) {
     options.promotionCode = promoCode;
 }
 
+const CTA_MODIFICATION_WARNING =
+    'Changing these CTAs may affect the user experience on pages using this fragment. Removing or reordering CTAs may affect existing page references. Review the impact before publishing.';
+
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
         description: {
@@ -102,16 +107,6 @@ const VARIANT_RTE_MARKS = {
 
 /** Basic format buttons allowed on FAQ's 3 answer fields (bold, italic, underline only). */
 const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
-
-/** Marquee/FAQ/Banner-Blade templates don't offer a "Send to translation?" toggle. */
-const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
-    VARIANT_NAMES.MARQUEE,
-    VARIANT_NAMES.FAQ,
-    VARIANT_NAMES.BANNER_BLADE,
-]);
-
-/** Headless and headless-family templates use the 3-option CTA variant picker (Primary button / Secondary button / Link). */
-const HEADLESS_STYLE_CTA_VARIANTS = new Set([VARIANT_NAMES.HEADLESS, VARIANT_NAMES.MARQUEE, VARIANT_NAMES.BANNER_BLADE]);
 
 class MerchCardEditor extends LitElement {
     static properties = {
@@ -465,6 +460,22 @@ class MerchCardEditor extends LitElement {
                 <sp-link href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}
                     >Fix references</sp-link
                 >
+            </div>
+        `;
+    }
+
+    /** Warns that consuming pages reference these CTAs by position or key. Compares against the as-loaded
+     *  snapshot rather than the rte-field output, so add/edit/remove/reorder are all covered and the
+     *  editor's first-open normalization cannot trigger it. */
+    renderCtaModificationWarning() {
+        if (!HEADLESS_STYLE_CTA_VARIANTS.includes(this.getEffectiveFieldValue('variant'))) return nothing;
+        const initial = this.fragment?.initialValue?.fields?.find((field) => field.name === 'ctas')?.values?.[0] ?? '';
+        const current = this.fragment?.getFieldValue('ctas', 0) ?? '';
+        if (initial === current) return nothing;
+        return html`
+            <div class="field-status-indicator cta-modification-warning" role="status">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">${CTA_MODIFICATION_WARNING}</span>
             </div>
         `;
     }
@@ -1622,18 +1633,14 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
                     </sp-field-group>
-                    ${HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY.has(variantValue)
-                        ? nothing
-                        : html`
-                              <sp-field-group id="fragment-locready-group">
-                                  <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
-                                  <sp-switch
-                                      id="fragment-locready"
-                                      ?checked="${form.locReady?.values[0]}"
-                                      @click="${this.#handleLocReady}"
-                                  ></sp-switch>
-                              </sp-field-group>
-                          `}
+                    <sp-field-group id="fragment-enable-baselines-group">
+                        <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="fragment-enable-baselines"
+                            ?checked="${form.enableBaselines?.values[0]}"
+                            @click="${this.#handleEnableBaselines}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
@@ -1990,6 +1997,7 @@ class MerchCardEditor extends LitElement {
                     <rte-field
                         id="description"
                         ?styling=${variantValue !== VARIANT_NAMES.FAQ}
+                        ?countdown=${supportsCountdown(normalizeVariantName(variantValue))}
                         link
                         upt-link
                         list
@@ -2072,17 +2080,21 @@ class MerchCardEditor extends LitElement {
                         id="ctas"
                         link
                         divider="${this.fragment.variant === 'product' ? '' : nothing}"
+                        .formatMarks=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue) ? [] : undefined}
                         data-field="ctas"
                         data-field-state="${this.getFieldState('ctas')}"
                         .osi=${form.osi.values[0]}
                         .value=${form.ctas.values[0] || ''}
                         ?is-variation=${this.effectiveIsVariation}
                         .parentCtas=${this.parentCtas}
-                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue)}
-                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.has(variantValue) ? 'primary' : 'primary-outline'}"
+                        ?is-headless-cta=${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)}
+                        default-link-style="${HEADLESS_STYLE_CTA_VARIANTS.includes(variantValue)
+                            ? 'secondary-link'
+                            : 'primary-outline'}"
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
+                    ${this.renderCtaModificationWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>
@@ -2131,6 +2143,7 @@ class MerchCardEditor extends LitElement {
                             id="quantity-select-settings-field"
                             label="Show quantity selector"
                             data-field="quantitySelect"
+                            .splitTitle=${normalizeVariantName(this.fragment.variant) === VARIANT_NAMES.PRO}
                             data-field-state="${this.isQuantitySelectVariationOverridden() ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.effectiveIsVariation
                                 ? this.renderQuantitySelectOverrideIndicator()
@@ -2171,9 +2184,9 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
-    #handleLocReady() {
-        const value = !this.fragment.getField('locReady')?.values[0];
-        this.fragmentStore.updateField('locReady', [value]);
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
     }
 
     #whatsIncludedRowIsEmpty(value) {
@@ -3280,7 +3293,7 @@ class MerchCardEditor extends LitElement {
                                             : colorName === 'Transparent'
                                               ? html`<span>Transparent</span>`
                                               : html`
-                                                    <div class="color-swatch" style="--swatch-bg: ${colorValue}"></div>
+                                                    <div class="color-swatch" style="--swatch-bg: var(${colorValue})"></div>
                                                     <span class="color-name-text" title="${colorName}"> ${colorName} </span>
                                                 `}
                                     </div>

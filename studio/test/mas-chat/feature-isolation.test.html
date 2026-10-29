@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Studio feature isolation</title>
+        <meta name="mas-assistant-enabled" content="false" />
+        <meta name="mas-offers-enabled" content="false" />
+        <link rel="stylesheet" href="../../src/styles/chat.css" />
+    </head>
+    <body>
+        <h1>Existing Studio and optional feature boundaries</h1>
+        <h2>Existing empty state: no assistant padding</h2>
+        <div id="existing" class="empty-state">Existing Studio content</div>
+        <h2>Assistant empty state: feature styling only</h2>
+        <div class="mas-feature"><div id="feature" class="empty-state">Assistant content</div></div>
+        <h2>Lazy route and drawer fixtures</h2>
+        <div id="fixture"></div>
+        <script type="module">
+            import { runTests } from '@web/test-runner-mocha';
+            import { expect } from '@esm-bundle/chai';
+            import { render } from 'lit';
+            import { PAGE_NAMES } from '../../src/constants.js';
+            import { renderChatPages, renderChatOverlay, handleChatDrawerToggle } from '../../src/mas-chat/chat-router.js';
+
+            const fixture = document.querySelector('#fixture');
+            const assistantFlag = document.querySelector('meta[name="mas-assistant-enabled"]');
+            const offersFlag = document.querySelector('meta[name="mas-offers-enabled"]');
+
+            runTests(() => {
+                afterEach(() => {
+                    render(null, fixture);
+                    assistantFlag.content = 'false';
+                    offersFlag.content = 'false';
+                });
+
+                it('does not load disabled pages or the launcher', () => {
+                    const imports = [];
+                    const load = (name) => imports.push(name);
+                    render(renderChatPages(PAGE_NAMES.AI_ASSISTANT, load), fixture);
+                    render(renderChatPages(PAGE_NAMES.PRODUCT_CATALOG, load), fixture);
+                    render(
+                        renderChatOverlay(() => {}, load, false),
+                        fixture,
+                    );
+                    expect(imports).to.deep.equal([]);
+                    expect(fixture.querySelector('link')).to.equal(null);
+                });
+
+                it('loads only the launcher before opening the enabled assistant', () => {
+                    assistantFlag.content = 'true';
+                    const imports = [];
+                    const load = (name) => {
+                        imports.push(name);
+                        return true;
+                    };
+                    render(
+                        renderChatOverlay(() => {}, load, false),
+                        fixture,
+                    );
+                    expect(imports).to.deep.equal(['mas-chat-fab']);
+                    expect(fixture.querySelector('mas-chat-drawer')).to.equal(null);
+                });
+
+                it('loads the drawer only after an explicit open', () => {
+                    assistantFlag.content = 'true';
+                    const imports = [];
+                    const load = (name) => {
+                        imports.push(name);
+                        return true;
+                    };
+                    render(
+                        renderChatOverlay(() => {}, load, true),
+                        fixture,
+                    );
+                    expect(imports).to.deep.equal(['mas-chat-fab', 'mas-chat-drawer']);
+                    expect(fixture.querySelector('mas-chat-drawer').hasAttribute('open')).to.equal(true);
+                });
+
+                it('contains an unavailable feature import without rendering its page', () => {
+                    offersFlag.content = 'true';
+                    render(
+                        renderChatPages(PAGE_NAMES.PRODUCT_CATALOG, () => false),
+                        fixture,
+                    );
+                    expect(fixture.querySelector('mas-product-catalog')).to.equal(null);
+                });
+
+                it('toggles only the host drawer state', () => {
+                    const host = { chatDrawerOpen: false, landscape: 'PUBLISHED' };
+                    handleChatDrawerToggle({ detail: { open: true } }, host);
+                    expect(host.chatDrawerOpen).to.equal(true);
+                    handleChatDrawerToggle({ detail: { open: false } }, host);
+                    expect(host.landscape).to.equal('PUBLISHED');
+                });
+
+                it('does not apply feature empty-state styling to existing content', () => {
+                    expect(getComputedStyle(document.querySelector('#existing')).paddingTop).to.equal('0px');
+                    expect(getComputedStyle(document.querySelector('#feature')).paddingTop).to.equal('32px');
+                });
+            });
+        </script>
+    </body>
+</html>

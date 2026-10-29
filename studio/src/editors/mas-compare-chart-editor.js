@@ -1907,6 +1907,11 @@ class MasCompareChartEditor extends LitElement {
         this.fragmentStore?.updateFieldInternal('description', e.target.value);
     }
 
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
+    }
+
     get #generalInfo() {
         return html`
             <div class="compchart-general-info">
@@ -1932,6 +1937,14 @@ class MasCompareChartEditor extends LitElement {
                             value=${this.fragment?.description || ''}
                             @input=${this.#handleFragmentDescriptionUpdate}
                         ></sp-textfield>
+                    </sp-field-group>
+                    <sp-field-group>
+                        <sp-field-label for="compchart-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="compchart-enable-baselines"
+                            ?checked=${this.fragment?.getField('enableBaselines')?.values[0]}
+                            @click=${this.#handleEnableBaselines}
+                        ></sp-switch>
                     </sp-field-group>
                 </div>
             </div>
@@ -2429,9 +2442,9 @@ class MasCompareChartEditor extends LitElement {
                                   <div class="compchart-cards-table-head" aria-hidden="true">
                                       <span aria-hidden="true"></span>
                                       <span>Offer</span>
+                                      <span>Path</span>
                                       <span>Fragment title</span>
                                       <span>Offer ID</span>
-                                      <span>Path</span>
                                       <span>Status</span>
                                   </div>
                                   ${repeat(
@@ -2476,14 +2489,14 @@ class MasCompareChartEditor extends LitElement {
                                                       </sp-action-button>
                                                   </div>
                                                   <div class="compchart-card-cell">${this.#renderCardOffer(fragment)}</div>
-                                                  <div class="compchart-card-cell compchart-card-title compchart-truncate">
+                                                  <div class="compchart-card-cell compchart-card-path">
+                                                      ${this.#authorPath(fragment)}
+                                                  </div>
+                                                  <div class="compchart-card-cell compchart-card-title">
                                                       ${this.#fragmentTitle(fragment)}
                                                   </div>
                                                   <div class="compchart-card-cell compchart-card-offer-id">
                                                       ${this.#renderCardOfferId(fragment)}
-                                                  </div>
-                                                  <div class="compchart-card-cell compchart-card-path compchart-truncate">
-                                                      ${this.#authorPath(fragment)}
                                                   </div>
                                                   <div class="compchart-card-cell">${this.#renderCardStatus(fragment)}</div>
                                               </div>

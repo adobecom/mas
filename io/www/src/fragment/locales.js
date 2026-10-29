@@ -617,6 +617,23 @@ export function restrictCountryToLocaleMarket(surface, locale, country) {
     return localeCountry;
 }
 
+/**
+ * Resolves a request's content country and WCS pricing country on `surface`: splits off territories
+ * (resolveTerritoryCountries), restricts the country to the locale's market family
+ * (restrictCountryToLocaleMarket), then maps the result to its commerce country. Shared by the
+ * fragment pipeline and the agent action so both price against the same WCS cache key.
+ * @param {string} surface - request surface (e.g. 'acom')
+ * @param {string} locale - request locale (e.g. 'es_PR')
+ * @param {string|undefined} country - incoming request country
+ * @returns {{ country: string|undefined, wcsCountry: string|undefined }}
+ */
+export function resolveCommerceCountries(surface, locale, country) {
+    const territory = resolveTerritoryCountries(locale, country);
+    const fixedCountry = restrictCountryToLocaleMarket(surface, locale, territory.country);
+    const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+    return { country: fixedCountry, wcsCountry };
+}
+
 export const parseLocaleCode = (localeCode) => localeCode?.split('_') ?? [];
 
 /**

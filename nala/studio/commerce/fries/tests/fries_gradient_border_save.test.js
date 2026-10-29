@@ -3,6 +3,8 @@ import COMFriesGradientBorderSaveSpec from '../specs/fries_gradient_border_save.
 
 const { features } = COMFriesGradientBorderSaveSpec;
 
+test.use({ reuseEditor: true });
+
 const verifyGradientApplied = async (card, stops) => {
     const background = await card.evaluate((el) => window.getComputedStyle(el).backgroundImage);
     expect(background).toContain('linear-gradient');
@@ -24,7 +26,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -38,11 +40,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
 
         await test.step(`step-3: Select "${data.color.updated}" border color option`, async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-4: Save card with gradient border applied', async () => {
@@ -70,7 +68,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -84,11 +82,7 @@ test.describe('M@S Studio Commerce Fries gradient border save test suite', () =>
 
         await test.step(`step-3: Select "${data.color.updated}" border color option`, async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.color.updated, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.color.updated);
         });
 
         await test.step('step-4: Save card with gradient border applied', async () => {

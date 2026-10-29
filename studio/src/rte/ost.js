@@ -3,6 +3,7 @@ import {
     CHECKOUT_CTA_TEXTS,
     EVENT_OST_SELECT,
     EVENT_OST_OFFER_SELECT,
+    EVENT_OST_CLOSE,
     EVENT_OST_MULTI_OFFER_SELECT,
     WCS_LANDSCAPE_PUBLISHED,
     PLACEHOLDER_CTA_SURFACES,
@@ -442,4 +443,5 @@ export function closeOfferSelectorTool() {
     closeFunction();
     closeFunction = null;
     restoreAuthoringCommerceServiceLocale();
+    ostRoot.dispatchEvent(new CustomEvent(EVENT_OST_CLOSE, { bubbles: true }));
 }

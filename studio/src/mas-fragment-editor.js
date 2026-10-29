@@ -3,6 +3,7 @@ import { Fragment } from './aem/fragment.js';
 import generateFragmentStore, { createPreviewDataWithParent } from './reactivity/source-fragment-store.js';
 import { prepopulateFragmentCache } from './mas-repository.js';
 import Store from './store.js';
+import { canEditPromotions, canManagePromotions } from './groups.js';
 import ReactiveController from './reactivity/reactive-controller.js';
 import StoreController from './reactivity/store-controller.js';
 import {
@@ -11,17 +12,21 @@ import {
     MAS_PRODUCT_CODE_PREFIX,
     ODIN_PREVIEW_ORIGIN,
     PAGE_NAMES,
+    PROMOTION_MODEL_ID,
     TAG_PROMOTION_PREFIX,
 } from './constants.js';
 import router from './router.js';
+import './references/mas-related-artifacts.js';
 import { migrateLegacyVariant, normalizeVariantName, VARIANTS } from './editors/variant-picker.js';
 import { isGeoTag, getPromoVariationPersonalizationTagLabels } from './editors/variation-utils.js';
 import {
     extractLocaleFromPath,
     extractSurfaceFromPath,
+    formatAuthorPath,
     generateLinkToUse,
     getFragmentMapping,
     getFragmentPartsToUse,
+    getService,
     hasNonEmptyCompareChart,
     replaceLocaleInPath,
     showToast,
@@ -41,6 +46,7 @@ import { splitPromotionTagsFieldValues } from './promotions/promotion-editor-uti
 import { applySearchSurfaceFromPath } from './common/utils/render-utils.js';
 import * as promotionsRepository from './promotions/promotions-repository.js';
 import { normalizeTagId } from './aem/tag-id-utils.js';
+import { countdownNotice, hasCountdownSentinel, nextCountdownBoundary } from './promotions/countdown-preview.js';
 import { pushItemsSelectionStore, popItemsSelectionStore } from './common/items-selection-store.js';
 import './mas-variation-dialog.js';
 import './mas-related-variations.js';
@@ -622,6 +628,7 @@ export default class MasFragmentEditor extends LitElement {
         groupedVariationOrphanMessage: { type: String, state: true },
         promotionGeoOptions: { type: Array, state: true },
         disabledPromoGeoOptions: { type: Array, state: true },
+        fragmentSaveCount: { type: Number, state: true },
     };
 
     page = new StoreController(this, Store.page);
@@ -636,6 +643,8 @@ export default class MasFragmentEditor extends LitElement {
         Store.promotions.inEdit,
         Store.search,
         Store.filters,
+        Store.profile,
+        Store.users,
     ]);
     editorContextStore = Store.fragmentEditor.editorContext;
 
@@ -658,6 +667,7 @@ export default class MasFragmentEditor extends LitElement {
     #translatedLocalesRequest = null;
     #pendingVariationParents = new Map();
     #pendingPromoRefresh = null;
+    #countdownNoticeTimer;
     #promotionGeoOptionsLoader = createKeyedAsyncLoader();
     #disabledPromoGeoOptionsLoader = createKeyedAsyncLoader();
     #itemsSelectionStoreToken = null;
@@ -680,6 +690,7 @@ export default class MasFragmentEditor extends LitElement {
         this.groupedVariationOrphanMessage = null;
         this.promotionGeoOptions = [];
         this.disabledPromoGeoOptions = [];
+        this.fragmentSaveCount = 0;
 
         this.updateFragment = this.updateFragment.bind(this);
         this.deleteFragment = this.deleteFragment.bind(this);
@@ -711,6 +722,7 @@ export default class MasFragmentEditor extends LitElement {
         super.disconnectedCallback();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
+        clearTimeout(this.#countdownNoticeTimer);
     }
 
     willUpdate(changedProperties) {
@@ -783,6 +795,18 @@ export default class MasFragmentEditor extends LitElement {
     updated(changedProperties) {
         super.updated?.(changedProperties);
         this.#preloadEditorModule();
+        this.#scheduleCountdownNotice();
+    }
+
+    #scheduleCountdownNotice() {
+        clearTimeout(this.#countdownNoticeTimer);
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.isConnected || getService()?.settings?.instant || !hasCountdownSentinel(preview?.fields)) return;
+        const now = Date.now();
+        const next = nextCountdownBoundary(preview, now);
+        if (next) {
+            this.#countdownNoticeTimer = setTimeout(() => this.requestUpdate(), Math.min(next - now + 1, 2147483647));
+        }
     }
 
     #preloadEditorModule() {
@@ -1059,6 +1083,8 @@ export default class MasFragmentEditor extends LitElement {
             this.operation,
             Store.search,
             Store.filters,
+            Store.profile,
+            Store.users,
         ]);
     }
 
@@ -1316,6 +1342,7 @@ export default class MasFragmentEditor extends LitElement {
     async initFragment() {
         const fragmentId = this.fragmentId;
         this.#pendingPromoRefresh = null;
+        this.variationsToDelete = [];
 
         if (!fragmentId) {
             console.error('No fragment ID in store');
@@ -1576,7 +1603,16 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canDeleteFragment() {
+        return canManagePromotions() || !this.isPromoVariationFragment();
+    }
+
     async deleteFragment() {
+        this.variationsToDelete = [];
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         const isVariation = this.editorContextStore.isVariation(this.fragment.id);
         if (!isVariation || Fragment.isGroupedVariationPath(this.fragment.path)) {
             if (this.#pendingPromoRefresh?.fragmentId === this.fragment.id) {
@@ -1594,10 +1630,18 @@ export default class MasFragmentEditor extends LitElement {
         } else {
             this.variationsToDelete = [];
         }
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.showDeleteDialog = true;
     }
 
     async confirmDelete() {
+        if (!this.canDeleteFragment) {
+            showToast('You do not have permission to delete promo variations.', 'negative');
+            return;
+        }
         this.deleteInProgress = true;
         showToast('Deleting fragment...');
         const wasPromoVariation = this.isPromoVariationFragment();
@@ -1642,12 +1686,25 @@ export default class MasFragmentEditor extends LitElement {
     cancelDelete() {
         if (this.deleteInProgress) return;
         this.showDeleteDialog = false;
+        this.variationsToDelete = [];
+    }
+
+    get isPromotionProject() {
+        return this.fragment?.model?.id === PROMOTION_MODEL_ID || this.fragment?.model?.path === atob(PROMOTION_MODEL_ID);
+    }
+
+    get canDuplicateFragment() {
+        return !this.isPromotionProject || canManagePromotions();
     }
 
     async showClone() {
-        if (Store.editor.hasChanges) {
+        if (this.canDuplicateFragment && Store.editor.hasChanges) {
             const confirmed = await this.promptDiscardChanges();
             if (!confirmed) return;
+        }
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
         }
         this.showCloneDialog = true;
         Store.showCloneDialog.set(true);
@@ -1662,6 +1719,10 @@ export default class MasFragmentEditor extends LitElement {
     }
 
     async confirmClone() {
+        if (!this.canDuplicateFragment) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         const osi = this.fragment.getFieldValue('osi', 0);
         if (this.fragment.model.path === CARD_MODEL_PATH && !this.osiClone && !osi) {
             showToast('Please select an offer', 'negative');
@@ -1698,9 +1759,6 @@ export default class MasFragmentEditor extends LitElement {
 
     async saveFragment() {
         try {
-            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
-                migrateLegacyVariant(this.fragmentStore);
-            }
             const compareChartEditor = this.querySelector('mas-compare-chart-editor');
             let dirtyCardFragmentStores = [];
             if (compareChartEditor) {
@@ -1708,6 +1766,17 @@ export default class MasFragmentEditor extends LitElement {
                 dirtyCardFragmentStores = compareChartEditor.dirtyCardFragmentStores.filter(
                     (store) => store.get?.().hasChanges,
                 );
+            }
+            if (
+                (this.isPromoVariationFragment() ||
+                    dirtyCardFragmentStores.some((store) => isPromoVariationPath(store.get().path))) &&
+                !canEditPromotions()
+            ) {
+                showToast('You do not have permission to update promo variations.', 'negative');
+                return;
+            }
+            if (this.fragment?.model?.path === CARD_MODEL_PATH) {
+                migrateLegacyVariant(this.fragmentStore);
             }
             if (dirtyCardFragmentStores.length) showToast('Saving fragment...');
             for (const cardFragmentStore of dirtyCardFragmentStores) {
@@ -1722,6 +1791,7 @@ export default class MasFragmentEditor extends LitElement {
                 withToast: !dirtyCardFragmentStores.length,
                 refetchEtag: false,
             });
+            if (savedFragment) this.fragmentSaveCount += 1;
             if (dirtyCardFragmentStores.length && savedFragment) {
                 showToast('Fragment successfully saved.', 'positive');
             }
@@ -1732,9 +1802,21 @@ export default class MasFragmentEditor extends LitElement {
         }
     }
 
+    get canPublishFragment() {
+        if (this.isPromotionProject) {
+            return canManagePromotions();
+        }
+        return canEditPromotions() || !this.isPromoVariationFragment();
+    }
+
     async publishFragment() {
+        if (!this.canPublishFragment) {
+            showToast('You do not have permission to publish this content.', 'negative');
+            return;
+        }
         const refs = this.fragment?.getPublishableReferences?.() ?? { variations: [], cards: [] };
         try {
+            let publishOptions;
             if (refs.variations.length || refs.cards.length) {
                 const { MasPublishDialog } = await import('./publish/mas-publish-dialog.js');
                 const result = await MasPublishDialog.show(refs);
@@ -1753,19 +1835,21 @@ export default class MasFragmentEditor extends LitElement {
                     if (!resultStaged.confirmed) return;
                 }
 
-                await this.repository.publishFragment(this.fragment, {
+                publishOptions = {
                     selectedRefIds: result.selectedIds,
                     allSelected: result.allSelected,
-                });
-            } else {
-                if (this.fragment.isStaged) {
-                    const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
-                    const resultStaged = await MasPublishStagedDialog.show();
-                    if (!resultStaged.confirmed) return;
-                }
-
-                await this.repository.publishFragment(this.fragment);
+                };
+            } else if (this.fragment.isStaged) {
+                const { MasPublishStagedDialog } = await import('./publish/mas-publish-staged-dialog.js');
+                const resultStaged = await MasPublishStagedDialog.show();
+                if (!resultStaged.confirmed) return;
             }
+
+            if (!this.canPublishFragment) {
+                showToast('You do not have permission to publish this content.', 'negative');
+                return;
+            }
+            await this.repository.publishFragment(this.fragment, publishOptions);
         } catch (error) {
             console.error('Failed to publish fragment:', error);
             showToast(`Failed to publish fragment: ${error.message}`, 'negative');
@@ -1887,7 +1971,12 @@ export default class MasFragmentEditor extends LitElement {
                       `
                     : nothing}
                 <sp-button slot="button" variant="secondary" @click="${this.cancelClone}"> Cancel </sp-button>
-                <sp-button slot="button" variant="accent" ?disabled=${this.cloneInProgress} @click="${this.confirmClone}">
+                <sp-button
+                    slot="button"
+                    variant="accent"
+                    ?disabled=${this.cloneInProgress || !this.canDuplicateFragment}
+                    @click="${this.confirmClone}"
+                >
                     ${this.cloneInProgress
                         ? html`<sp-progress-circle indeterminate size="s"></sp-progress-circle>`
                         : html`Clone`}
@@ -1947,6 +2036,10 @@ export default class MasFragmentEditor extends LitElement {
         return html`<div class="${clazz}">
             <span>Grouped variation: <strong>${localeCodes.join(', ')}</strong></span>
         </div>`;
+    }
+
+    get isPromoReadOnly() {
+        return this.isPromoVariationFragment() && !canEditPromotions();
     }
 
     isPromoVariationFragment() {
@@ -2201,7 +2294,7 @@ export default class MasFragmentEditor extends LitElement {
                 fragmentParts = getFragmentPartsToUse(this.fragment, Store.search.value.path).fragmentParts || '';
             }
             if (!fragmentParts) return nothing;
-            return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+            return html`<p id="author-path">${formatAuthorPath(modelName, fragmentParts)}</p>`;
         }
 
         const pathParts = this.fragment.path?.split('/') || [];
@@ -2221,7 +2314,18 @@ export default class MasFragmentEditor extends LitElement {
         const buildPart = (part) => (part ? ` / ${part}` : '');
         const fragmentParts = `${surface}${buildPart(variantLabel)}${buildPart(customerSegment)}${buildPart(marketSegment)}${buildPart(productCode)}${buildPart(promotion)}`;
 
-        return html`<p id="author-path">${modelName}: ${fragmentParts}</p>`;
+        return html`<p id="author-path">${formatAuthorPath(modelName, fragmentParts)}</p>`;
+    }
+
+    // Collections and projects that reference the open card or collection; other models have none.
+    get relatedArtifactsSection() {
+        const modelPath = this.fragment?.model?.path;
+        if (modelPath !== CARD_MODEL_PATH && modelPath !== COLLECTION_MODEL_PATH) return nothing;
+        return html`<mas-related-artifacts
+            .fragment=${this.fragment}
+            .repository=${this.repository}
+            .saveCount=${this.fragmentSaveCount}
+        ></mas-related-artifacts>`;
     }
 
     get fragmentEditor() {
@@ -2266,7 +2370,10 @@ export default class MasFragmentEditor extends LitElement {
 
         return html`
             ${this.derivedFromContainer} ${this.localeVariationDeprecationNotice}
-            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`}>
+            ${this.isPromoReadOnly
+                ? html`<p role="status">Read-only: you do not have permission to edit promo variations.</p>`
+                : nothing}
+            <div class=${`section${this.isCompareChart ? ' compare-chart-section' : ''}`} ?inert=${this.isPromoReadOnly}>
                 ${this.isCompareChart ? nothing : this.authorPath} ${this.localeVariationHeader} ${editorContent}
             </div>
         `;
@@ -2290,6 +2397,26 @@ export default class MasFragmentEditor extends LitElement {
             <sp-icon-alert class="price-error-icon"></sp-icon-alert>
             <span>${this.previewError}</span>
         </div>`;
+    }
+
+    get countdownPreviewNotice() {
+        const preview = this.fragmentStore?.previewStore?.value;
+        if (!this.previewResolved || !hasCountdownSentinel(preview?.fields)) return nothing;
+        const instant = getService()?.settings?.instant;
+        const now = instant ? Date.parse(instant) : Date.now();
+        const notice = countdownNotice(preview, now, preview.previewLocale || Store.localeOrRegion());
+        if (!notice) return nothing;
+        return html`<sp-help-text id="countdown-preview-notice" role="status" icon
+                >Countdown timer: ${notice.text}</sp-help-text
+            >
+            ${notice.state === 'lookup-failed'
+                ? html`<sp-button
+                      size="s"
+                      variant="secondary"
+                      @click=${() => this.fragmentStore.previewStore.resolveFragment(true)}
+                      >Retry countdown preview</sp-button
+                  >`
+                : nothing}`;
     }
 
     get previewColumn() {
@@ -2340,10 +2467,10 @@ export default class MasFragmentEditor extends LitElement {
                                 <aem-fragment ?author=${true} loading="cache" fragment="${this.fragment.id}"></aem-fragment>
                             </merch-card>
                         </sp-theme>
-                        ${this.previewErrorMessages}
+                        ${this.countdownPreviewNotice} ${this.previewErrorMessages}
                     </div>
                 </div>
-                ${this.relatedVariationsSection}
+                ${this.relatedVariationsSection} ${this.relatedArtifactsSection}
             </div>
         `;
     }

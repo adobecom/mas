@@ -765,24 +765,37 @@ describe('product-pricing collection footer', () => {
         }
     });
 
-    it('styles "Show more" like the outlined CTAs', async () => {
+    it('renders "Show more" as a native button styled like the outlined CTAs', async () => {
         const collection = document.createElement('merch-card-collection');
         collection.classList.add('product-pricing');
         collection.hasMore = true;
         document.body.appendChild(collection);
         await collection.updateComplete;
         try {
-            const button = collection.shadowRoot.querySelector('sp-button');
+            expect(collection.shadowRoot.querySelector('sp-button')).to.be.null;
+            const button =
+                collection.shadowRoot.querySelector('button.show-more');
             const style = getComputedStyle(button);
-            expect(style.getPropertyValue('--mod-button-height')).to.equal(
-                '40px',
-            );
-            expect(
-                style.getPropertyValue('--mod-button-border-width'),
-            ).to.equal('2px');
-            expect(
-                style.getPropertyValue('--mod-button-border-color-default'),
-            ).to.equal('#000');
+            expect(style.minHeight).to.equal('40px');
+            expect(style.borderTopWidth).to.equal('2px');
+            expect(style.borderTopColor).to.equal('rgb(0, 0, 0)');
+            expect(style.backgroundColor).to.equal('rgba(0, 0, 0, 0)');
+        } finally {
+            collection.remove();
+        }
+    });
+
+    it('"Show more" loads the next page when clicked', async () => {
+        const collection = document.createElement('merch-card-collection');
+        collection.classList.add('product-pricing');
+        collection.hasMore = true;
+        document.body.appendChild(collection);
+        await collection.updateComplete;
+        try {
+            const page = collection.page;
+            collection.shadowRoot.querySelector('button.show-more').click();
+            await collection.updateComplete;
+            expect(collection.page).to.equal(page + 1);
         } finally {
             collection.remove();
         }

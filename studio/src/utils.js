@@ -18,6 +18,7 @@ import Events from './events.js';
 import { MAS_ROOT, PATH_TOKENS } from '../../io/www/src/fragment/utils/paths.js';
 import { getDefaultLocaleCode, isVariationPathInParentLocaleFamily } from '../../io/www/src/fragment/locales.js';
 import { isPromoVariationPath } from './promotions/promotion-model.js';
+import { Fragment } from './aem/fragment.js';
 import { stripRenditionParams } from '../../web-components/src/image-markup.js';
 
 /**
@@ -269,6 +270,23 @@ export function getFragmentPartsToUse(fragment, path) {
     return { fragmentParts, title };
 }
 
+/**
+ * Builds the M@S author path with the content type right after the surface
+ * (e.g. "ACOM / merch-card / Catalog / Teams").
+ * @param {string} contentType - Web component name, e.g. "merch-card"
+ * @param {string} fragmentParts - Parts string starting with the surface, joined by " / "
+ * @returns {string}
+ */
+export function formatAuthorPath(contentType, fragmentParts) {
+    if (!fragmentParts) return '';
+    if (!contentType) return fragmentParts;
+    const separatorIndex = fragmentParts.indexOf(' / ');
+    if (separatorIndex === -1) return `${fragmentParts} / ${contentType}`;
+    const surface = fragmentParts.slice(0, separatorIndex);
+    const rest = fragmentParts.slice(separatorIndex + 3);
+    return `${surface} / ${contentType} / ${rest}`;
+}
+
 export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);
@@ -282,7 +300,7 @@ export function generateLinkToUse(fragment, path, page, failMessage) {
     }
 
     const code = `<${webComponentName}><aem-fragment fragment="${fragment?.id}" title="${title}"></aem-fragment></${webComponentName}>`;
-    const authorPath = `${webComponentName}: ${fragmentParts}`;
+    const authorPath = formatAuthorPath(webComponentName, fragmentParts);
     const href = buildStudioFragmentHref({
         webComponentName,
         fragmentId: fragment?.id,
@@ -294,13 +312,26 @@ export function generateLinkToUse(fragment, path, page, failMessage) {
     return { authorPath, code, richText, href };
 }
 
-function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
+export function buildStudioFragmentHref({ webComponentName, fragmentId, page, path, fieldName }) {
     const params = new URLSearchParams();
     params.set('content-type', webComponentName);
     if (page) params.set('page', page);
     if (path) params.set('path', path);
     if (fragmentId) params.set('query', fragmentId);
     if (fieldName) params.set('field', fieldName);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
+}
+
+/**
+ * Build a "browse this surface folder" link for use in chat search results.
+ * Mirrors the backend StudioURLBuilder.createFolderLink contract.
+ */
+export function buildStudioFolderHref({ surface, query, locale }) {
+    const params = new URLSearchParams();
+    params.set('page', 'content');
+    if (surface) params.set('path', `/content/dam/mas/${surface}`);
+    if (query) params.set('query', query);
+    if (locale && locale !== 'en_US') params.set('locale', locale);
     return `https://mas.adobe.com/studio.html#${params.toString()}`;
 }
 
@@ -315,6 +346,13 @@ export function buildCardsDeepLink(fragment, path, page = 'content') {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[fragment?.model?.path];
     if (!webComponentName || !fragment?.id) return null;
     return buildStudioFragmentHref({ webComponentName, fragmentId: fragment.id, page, path });
+}
+
+export function buildProjectDeepLink(page, param, id, surface) {
+    if (!id) return null;
+    const params = new URLSearchParams({ page, [param]: id });
+    if (surface) params.set('path', surface);
+    return `https://mas.adobe.com/studio.html#${params.toString()}`;
 }
 
 /**
@@ -532,6 +570,19 @@ export async function resolveHydratedParentFragment(aem, fragmentPath) {
     return null;
 }
 
+/**
+ * Resolves the fragment a promo variation inherits from. IO merges a promo variation onto the
+ * default card, also when it was forked from a grouped variation, so a grouped source resolves
+ * to its default card.
+ * @param {import('./aem/aem.js').AEM} aem
+ * @param {Object|null} sourceFragment - the fragment the promo variation was created from
+ * @returns {Promise<Object|null>}
+ */
+export async function resolvePromoVariationDefaultCard(aem, sourceFragment) {
+    if (!Fragment.isGroupedVariationPath(sourceFragment?.path)) return sourceFragment;
+    return resolveHydratedParentFragment(aem, sourceFragment.path);
+}
+
 export function previewFragmentOnPage(fragment) {
     if (!fragment?.id) return;
 
@@ -562,6 +613,52 @@ export function replaceLocaleInPath(fragmentPath, newLocale) {
 
 export function deepEquals(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export function normalizeFragmentForCache(fragmentData) {
+    if (!fragmentData) return fragmentData;
+    const { fields, ...rest } = fragmentData;
+    if (Array.isArray(fields)) return fragmentData;
+    const normalizedFields = Object.entries(fields || {}).map(([name, value]) => ({
+        name,
+        multiple: Array.isArray(value),
+        values: Array.isArray(value) ? value : [value],
+    }));
+    return { ...rest, fields: normalizedFields };
+}
+
+/**
+ * Scrub URL-like substrings from a string so we don't leak tokens, bearer
+ * credentials in query strings, or arbitrary internal hostnames via error
+ * logs. Every http(s)://... URL is collapsed to the bare origin.
+ */
+export function scrubUrls(input) {
+    if (typeof input !== 'string') return input;
+    return input.replace(/https?:\/\/[^\s"']+/g, (match) => {
+        try {
+            return new URL(match).origin;
+        } catch {
+            return '[url-scrubbed]';
+        }
+    });
+}
+
+/**
+ * Log an error with URL-scrubbing applied to both message and stack. Keeps
+ * the developer-useful function names and line numbers while stripping
+ * query strings, bearer-token-bearing URLs, and arbitrary interpolated
+ * hostnames. The raw error object is NOT passed to console.error — only
+ * its scrubbed text representation.
+ *
+ * @param {string} label - Call-site label (e.g. 'Create card error')
+ * @param {unknown} error - Error / unknown thrown value
+ */
+export function logError(label, error) {
+    const name = error?.name || 'Error';
+    const message = scrubUrls(error?.message ?? String(error ?? ''));
+    const stack = scrubUrls(error?.stack ?? '');
+    console.error(`${label}: ${name}: ${message}`);
+    if (stack && stack !== message) console.error(stack);
 }
 
 export function hasNonEmptyCompareChart(item) {

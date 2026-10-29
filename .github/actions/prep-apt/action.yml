@@ -1,41 +1,46 @@
 name: Install Playwright system dependencies
 description: >
-    Stops background apt services, waits for dpkg/apt locks to clear, then
-    installs Playwright system dependencies with retry logic. Intended for
-    self-hosted Linux runners where unattended-upgrades can cause intermittent
-    apt lock contention or mirror-sync failures.
+    Waits for dpkg/apt locks without interrupting runner updates, then installs
+    Playwright system dependencies with bounded retries.
+
+inputs:
+    browser:
+        description: Optional Playwright browser whose system dependencies need repair.
+        default: ''
 
 runs:
     using: composite
     steps:
-        - name: Stop background apt services
+        - name: Wait for apt locks
           shell: bash
           run: |
-              sudo systemctl stop unattended-upgrades apt-daily.service apt-daily-upgrade.service 2>/dev/null || true
+              sudo -n true
               echo "Waiting for apt locks to clear..."
-              timeout 120 bash -c '
-                while sudo fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
+              timeout 90 bash -c '
+                while sudo -n fuser /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
                                  /var/lib/apt/lists/lock /var/cache/apt/archives/lock \
                                  2>/dev/null; do
                   echo "  apt lock held, retrying in 5s..."
                   sleep 5
                 done
               ' || {
-                echo "Lock wait timed out — force-killing lock holders"
-                sudo fuser -k /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
-                              /var/lib/apt/lists/lock /var/cache/apt/archives/lock 2>/dev/null || true
-                sudo dpkg --configure -a 2>/dev/null || true
+                echo "::error::Runner package manager is still busy after 90 seconds; its update was not interrupted."
+                exit 1
               }
 
         - name: Install Playwright system dependencies (with retry)
           shell: bash
+          env:
+              PLAYWRIGHT_BROWSER: ${{ inputs.browser }}
           run: |
-              for attempt in 1 2 3; do
+              browsers=()
+              if [ -n "$PLAYWRIGHT_BROWSER" ]; then browsers+=("$PLAYWRIGHT_BROWSER"); fi
+              for attempt in 1 2; do
                 echo "Attempt $attempt: npx playwright install-deps"
-                npx playwright install-deps && break
-                if [ $attempt -lt 3 ]; then
-                  echo "Failed, retrying in 15s..."
-                  sleep 15
+                timeout 120 npx --no-install playwright install-deps "${browsers[@]}" && break
+                if [ $attempt -lt 2 ]; then
+                  echo "::warning::Dependency repair failed; retrying once in 10s."
+                  sleep 10
                 else
                   echo "All attempts failed"
                   exit 1

@@ -1,23 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-locales.css.js';
-import { REGION_GROUPS, getLocaleByCode, getLanguageName, getCountryName } from '../locales.js';
+import { groupByRegion, getLocaleByCode, getLanguageName, getCountryName } from '../locales.js';
 
 function localeLabel(code) {
     const locale = getLocaleByCode(code);
     if (!locale) return code;
     return `${getLanguageName(locale.lang)} (${getCountryName(locale.country)})`;
-}
-
-function groupLocalesByRegion(locales) {
-    const groups = [];
-    for (const region of REGION_GROUPS) {
-        const inRegion = locales.filter((locale) => region.countries.includes(locale.split('_').at(-1)));
-        if (inRegion.length) groups.push({ name: region.name, locales: inRegion });
-    }
-    const grouped = new Set(groups.flatMap((group) => group.locales));
-    const other = locales.filter((locale) => !grouped.has(locale));
-    if (other.length) groups.push({ name: 'Other', locales: other });
-    return groups;
 }
 
 class MasBulkPublishLocales extends LitElement {
@@ -80,11 +68,11 @@ class MasBulkPublishLocales extends LitElement {
                 : html`
                       ${n > 0
                           ? html`<div class="locales-summary" data-testid="summary">
-                                ${groupLocalesByRegion(this.locales).map(
+                                ${groupByRegion(this.locales, (locale) => locale.split('_').at(-1)).map(
                                     (group) => html`
                                         <div class="region-row" data-testid="locale-row">
                                             <span class="region-label">${group.name}:</span>
-                                            <span class="region-locales">${group.locales.map(localeLabel).join(', ')}</span>
+                                            <span class="region-locales">${group.items.map(localeLabel).join(', ')}</span>
                                         </div>
                                     `,
                                 )}

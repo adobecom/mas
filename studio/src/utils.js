@@ -287,15 +287,9 @@ export function formatAuthorPath(contentType, fragmentParts) {
     return `${surface} / ${contentType} / ${rest}`;
 }
 
-/** Orgs allowed as the first part of a fragment title. */
 export const FRAGMENT_TITLE_ORGS = Object.freeze(['MERCH', 'OPT', 'PZN', 'DC', 'HOMEPAGE', 'EDU HUB']);
 
-/**
- * Splits a fragment title following `ORG: [Template]: [Product]: [Segment]: STATE` into its parts.
- * Titles that do not follow the convention are kept whole as `middle`.
- * @param {string} title
- * @returns {{ org: string, middle: string, state: string }}
- */
+/** Splits `ORG: [Template]: [Product]: [Segment]: STATE`. Titles off the convention stay whole as `middle`. */
 export function parseFragmentTitle(title) {
     const text = typeof title === 'string' ? title : '';
     const parts = text.split(':').map((part) => part.trim());
@@ -305,11 +299,6 @@ export function parseFragmentTitle(title) {
     return { org: '', middle: text, state: '' };
 }
 
-/**
- * Joins the non-empty title parts with ": ".
- * @param {{ org: string, middle: string, state: string }} parts
- * @returns {string}
- */
 export function composeFragmentTitle({ org, middle, state }) {
     return [org, middle, state].filter((part) => part).join(': ');
 }

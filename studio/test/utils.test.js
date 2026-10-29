@@ -4,7 +4,6 @@ import {
     buildCardsDeepLink,
     buildProjectDeepLink,
     formatAuthorPath,
-    FRAGMENT_TITLE_ORGS,
     parseFragmentTitle,
     composeFragmentTitle,
     generateLinkToUse,
@@ -97,10 +96,6 @@ describe('formatAuthorPath', () => {
 });
 
 describe('fragment title helpers', () => {
-    it('lists the orgs', () => {
-        expect([...FRAGMENT_TITLE_ORGS]).to.deep.equal(['MERCH', 'OPT', 'PZN', 'DC', 'HOMEPAGE', 'EDU HUB']);
-    });
-
     it('parses a conventional title', () => {
         expect(parseFragmentTitle('MERCH: Catalog: Animate: Individual: default')).to.deep.equal({
             org: 'MERCH',

@@ -1938,11 +1938,8 @@
 
                         it('renders the Org picker and State textfield side by side', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'title-layout');
-                            await editor.updateComplete;
-                            // the form stays display:none until fieldsReady, so measure only once it is shown
-                            for (let i = 0; i < 50 && !editor.fieldsReady; i++) {
-                                await new Promise((resolve) => setTimeout(resolve, 100));
-                            }
+                            // the form stays display:none until fieldsReady
+                            await waitFor(() => editor.fieldsReady, 5000);
                             await editor.updateComplete;
                             const org = editor.querySelector('#fragment-title-org');
                             const state = editor.querySelector('#fragment-title-state');

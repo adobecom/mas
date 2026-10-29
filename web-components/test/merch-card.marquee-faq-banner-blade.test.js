@@ -58,6 +58,18 @@ describe('marquee variant', () => {
         }
     });
 
+    it('does not render a callout row', async () => {
+        card = await renderCard(
+            'marquee',
+            '<h3 slot="heading-xs">Title</h3><div slot="callout-content">Callout</div>',
+        );
+        expect(headlessRow(card, 'callout-content')).to.be.undefined;
+        const labels = [
+            ...card.shadowRoot.querySelectorAll('.headless-label'),
+        ].map((el) => el.textContent);
+        expect(labels).to.not.include('Callout text');
+    });
+
     it('omits the secure label row when secure-label is not set', async () => {
         card = await renderCard('marquee', '<h3 slot="heading-xs">Title</h3>');
         const labels = [

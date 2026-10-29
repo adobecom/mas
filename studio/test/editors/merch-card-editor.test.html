@@ -401,6 +401,43 @@
                         });
                     }
 
+                    for (const variant of ['marquee', 'headless']) {
+                        it(`shows the Callout text field below Short Description for ${variant}`, async () => {
+                            await setupTestEnvironment(
+                                { isVariation: false, variant: [variant], callout: ['<p>Callout value</p>'] },
+                                `${variant}-callout`,
+                            );
+                            await editor.toggleFields();
+
+                            const group = editor.querySelector('sp-field-group#callout');
+                            expect(getComputedStyle(group).display).to.not.equal('none');
+                            expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Callout text');
+                            const field = group.querySelector('rte-field#callout');
+                            expect(field.getAttribute('data-field')).to.equal('callout');
+                            expect(field.value).to.include('Callout value');
+                            const shortDescription = editor.querySelector('sp-field-group#shortDescription');
+                            expect(
+                                shortDescription.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING,
+                            ).to.not.equal(0);
+                        });
+                    }
+
+                    it('saves marquee callout changes to the callout field', async () => {
+                        await setupTestEnvironment(
+                            { isVariation: false, variant: ['marquee'], callout: ['<p>Marquee callout</p>'] },
+                            'marquee-callout-save',
+                        );
+                        await editor.toggleFields();
+
+                        const field = editor.querySelector('rte-field#callout');
+                        field.value = '<p>Updated callout</p>';
+                        field.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+                        await editor.updateComplete;
+
+                        expect(fragmentStore.get().getFieldValue('callout')).to.equal('<p>Updated callout</p>');
+                        expect(Store.editor.hasChanges).to.be.true;
+                    });
+
                     for (const variant of ['plans', 'product']) {
                         it(`keeps formatting options in the ${variant} footer toolbar`, async () => {
                             await setupTestEnvironment({ isVariation: false, variant: [variant] }, `${variant}-footer`);

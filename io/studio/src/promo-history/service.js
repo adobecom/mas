@@ -14,6 +14,8 @@ const logger = Core.Logger('promo-versions', { level: 'info' });
 const RETENTION = 95 * 86400;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
+const HISTORY_PAGE_SIZE = 10;
+const HISTORY_CONCURRENCY = 4;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
 const RECORD_GROUPS = new Set([...RESTORE_GROUPS, 'GRP-ODIN-MAS-PROMO-EDITORS']);
@@ -127,11 +129,17 @@ async function aem(context, suffix, options = {}) {
 }
 
 async function readFragment(context, id) {
-    const response = await aem(context, `/${identifier(id)}`);
-    const fragment = await response.json();
-    if (fragment.id !== id) fail(502, 'AEM returned a different fragment');
-    pathValue(fragment.path);
-    return { fragment, etag: response.headers.get('etag') };
+    identifier(id);
+    if (context.operation === 'list' && context.fragments.has(id)) return context.fragments.get(id);
+    const pending = (async () => {
+        const response = await aem(context, `/${id}`);
+        const fragment = await response.json();
+        if (fragment.id !== id) fail(502, 'AEM returned a different fragment');
+        pathValue(fragment.path);
+        return { fragment, etag: response.headers.get('etag') };
+    })();
+    if (context.operation === 'list') context.fragments.set(id, pending);
+    return pending;
 }
 
 async function readPath(context, path) {
@@ -447,27 +455,48 @@ async function record(context, params) {
     return { event: await writeEntry(context, params.action, before, after, beforeSnapshot, afterSnapshot) };
 }
 
-function list(events, params) {
-    const limit = params.limit ?? 30;
+async function list(context, events, params) {
+    const limit = params.limit ?? HISTORY_PAGE_SIZE;
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid version limit');
     if (params.query !== undefined) text(params.query, 'query', 200);
     if (params.cursor !== undefined) text(params.cursor, 'cursor', 150);
     const numbered = [...events].reverse();
-    let filtered = numbered.filter(
-        (event) => !params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase()),
-    );
-    if (params.cursor) {
-        const index = filtered.findIndex((event) => `${event.createdAt}|${event.id}` === params.cursor);
-        if (index === -1) fail(400, 'Invalid version cursor');
-        filtered = filtered.slice(index + 1);
+    const cursorIndex = params.cursor ? numbered.findIndex((event) => `${event.createdAt}|${event.id}` === params.cursor) : -1;
+    if (params.cursor && cursorIndex === -1) fail(400, 'Invalid version cursor');
+    const page = [];
+    let currentEventId = null;
+    for (let offset = 0; offset < numbered.length; ) {
+        const batch = [];
+        while (offset < numbered.length && batch.length < Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length)) {
+            const index = offset++;
+            const event = numbered[index];
+            const matches =
+                index > cursorIndex &&
+                (!params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase()));
+            if (!currentEventId || matches) batch.push({ event, matches });
+        }
+        const authorized = await Promise.all(
+            batch.map(async ({ event, matches }) => {
+                try {
+                    return { event: await authorizeEvent(context, event), matches };
+                } catch (error) {
+                    if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
+                    return null;
+                }
+            }),
+        );
+        for (const result of authorized) {
+            if (!result) continue;
+            currentEventId ??= result.event.id;
+            if (result.matches) page.push(result.event);
+        }
+        if (page.length > limit) {
+            page.pop();
+            const last = page.at(-1);
+            return { events: page, currentEventId, cursor: `${last.createdAt}|${last.id}` };
+        }
     }
-    const page = filtered.slice(0, limit);
-    const last = page.at(-1);
-    return {
-        events: page,
-        currentEventId: numbered[0]?.id ?? null,
-        ...(filtered.length > limit ? { cursor: `${last.createdAt}|${last.id}` } : {}),
-    };
+    return { events: page, currentEventId };
 }
 
 function restorePayload(current, historical, fields) {
@@ -734,6 +763,7 @@ async function execute(operation, params) {
         projectId: params.projectId,
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         access: new Map(),
+        fragments: new Map(),
     };
     context.project = (await readFragment(context, context.projectId)).fragment;
     assertProject(context.project);
@@ -773,15 +803,7 @@ async function execute(operation, params) {
     if (operation === 'record') return record(context, params);
     const events = (await readEntries(context)).map((event, index) => ({ ...event, version: index + 1 }));
     if (operation === 'restore') return restore(context, params, events);
-    const authorized = [];
-    for (const event of events) {
-        try {
-            authorized.push(await authorizeEvent(context, event));
-        } catch (error) {
-            if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
-        }
-    }
-    return list(authorized, params);
+    return list(context, events, params);
 }
 
 module.exports = { execute };

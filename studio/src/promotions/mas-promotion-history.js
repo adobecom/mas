@@ -16,7 +16,7 @@ import { Fragment } from '../aem/fragment.js';
 import { getCachedTagTitle } from '../aem/tag-cache.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
-import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
+import { processConcurrently } from '../common/utils/item-loading.js';
 import { getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
 import { getPromotionTagFromFragment, isPromoVariationPath } from './promotion-model.js';
 import { resolveDefaultFragmentForPromoVariation } from './promotion-variations.js';
@@ -24,6 +24,8 @@ import * as historyClient from './promotion-version.js';
 import { promotionHistoryStyles } from './mas-promotion-history.css.js';
 
 const categories = ['General info', 'Countries', 'Offers', 'Fragments'];
+const HISTORY_PAGE_SIZE = 10;
+const HISTORY_CONCURRENCY = 4;
 const categoryLabels = new Map([
     ['general', 'General info'],
     ['general-info', 'General info'],
@@ -98,6 +100,7 @@ export class MasPromotionHistory extends LitElement {
         expected: { state: true },
         unavailable: { state: true },
         loading: { state: true },
+        refreshing: { state: true },
         baselineLoading: { state: true },
         operating: { state: true },
         restoring: { state: true },
@@ -125,6 +128,7 @@ export class MasPromotionHistory extends LitElement {
         this.expected = [];
         this.unavailable = [];
         this.loading = false;
+        this.refreshing = false;
         this.baselineLoading = false;
         this.operating = false;
         this.restoring = false;
@@ -137,7 +141,22 @@ export class MasPromotionHistory extends LitElement {
         this.listRequest = 0;
         this.versionRequest = 0;
         this.tagTitles = new Map();
+        this.fragmentReads = new Map();
+        this.readQueue = [];
+        this.activeReads = 0;
         this.reactivity = new ReactiveController(this, [Store.profile, Store.users]);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.scrollObserver = new IntersectionObserver(
+            (entries) => {
+                if (entries.some((entry) => entry.isIntersecting) && !this.busy && !this.refreshing && !this.error) {
+                    this.loadHistory(true);
+                }
+            },
+            { root: this.closest('.main-container'), rootMargin: '200px' },
+        );
     }
 
     willUpdate(changed) {
@@ -155,6 +174,13 @@ export class MasPromotionHistory extends LitElement {
         super.disconnectedCallback();
         this.listRequest += 1;
         this.versionRequest += 1;
+        this.scrollObserver.disconnect();
+    }
+
+    updated() {
+        this.scrollObserver.disconnect();
+        const sentinel = this.renderRoot.querySelector('#load-more');
+        if (sentinel && !this.busy && !this.refreshing && !this.error) this.scrollObserver.observe(sentinel);
     }
 
     get busy() {
@@ -163,7 +189,12 @@ export class MasPromotionHistory extends LitElement {
 
     get canRestore() {
         return (
-            canManagePromotions() && Boolean(this.restoreSnapshot?.fragments.length) && this.expected.length > 0 && !this.busy
+            canManagePromotions() &&
+            Boolean(this.restoreSnapshot?.fragments.length) &&
+            this.expected.length > 0 &&
+            !this.busy &&
+            !this.refreshing &&
+            !this.error
         );
     }
 
@@ -186,10 +217,12 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async loadHistory(append = false, selectedId) {
+        if (append && (this.busy || this.refreshing || !this.cursor)) return;
         const projectId = this.projectId;
         const request = ++this.listRequest;
         this.error = '';
         this.loading = Boolean(projectId);
+        this.refreshing = false;
         if (!append) {
             this.versionRequest += 1;
             this.events = [];
@@ -206,33 +239,120 @@ export class MasPromotionHistory extends LitElement {
             this.collapsedGroups = new Set();
             this.cursor = null;
             this.tagTitles.clear();
+            this.fragmentReads = new Map();
         }
         if (!projectId) return;
-        let page;
+        const filters = { limit: HISTORY_PAGE_SIZE, ...this.filters, ...(append ? { cursor: this.cursor } : {}) };
+        const cached = !append && this.client.getCachedPromotionHistory(projectId, filters);
         try {
-            page = await this.client.listPromotionHistory(projectId, {
-                ...this.filters,
-                ...(append ? { cursor: this.cursor } : {}),
-            });
-            page.events = await Promise.all(page.events.map((event) => this.preparePresentation(event)));
-        } catch {
-            if (request === this.listRequest) {
-                this.error = 'Could not load version history. Please retry.';
+            let baseline;
+            if (cached) {
+                this.events = cached.events;
+                this.cursor = cached.cursor;
+                this.currentEventId = cached.currentEventId;
                 this.loading = false;
+                this.refreshing = true;
+                if (cached.events.length) {
+                    baseline = this.selectVersion(cached.events.find((event) => event.id === selectedId) ?? cached.events[0]);
+                }
             }
-            return;
+            const [page] = await Promise.all([
+                this.client.listPromotionHistory(projectId, filters, { refresh: Boolean(cached) }),
+                baseline,
+            ]);
+            if (request !== this.listRequest) return;
+            page.events = await Promise.all(page.events.map((event) => this.preparePresentation(event)));
+            if (request !== this.listRequest) return;
+            const events = new Map((append ? this.events : []).map((event) => [event.id, event]));
+            for (const event of page.events) events.set(event.id, event);
+            this.events = [...events.values()];
+            this.cursor = page.cursor;
+            this.currentEventId = page.currentEventId;
+            if (!append) {
+                const selected = this.events.find((event) => event.id === (this.selectedEvent?.id ?? selectedId));
+                if (!selected || !this.selectedEvent) {
+                    if (this.events.length) {
+                        await this.selectVersion(selected ?? this.events[0]);
+                    } else {
+                        this.versionRequest += 1;
+                        this.selectedEvent = null;
+                        this.rows = [];
+                        this.expected = [];
+                        this.baselineLoading = false;
+                    }
+                }
+            }
+        } catch (error) {
+            if (request !== this.listRequest) return;
+            if ([401, 403].includes(error.status)) {
+                this.versionRequest += 1;
+                this.events = [];
+                this.selectedEvent = null;
+                this.historicalFragments = [];
+                this.fragmentDetails = new Map();
+                this.rows = [];
+                this.expected = [];
+                this.cursor = null;
+                this.baselineLoading = false;
+                this.fragmentReads.clear();
+            }
+            this.failedAppend = append;
+            this.error = cached
+                ? 'Could not refresh version history. Please retry before restoring.'
+                : 'Could not load version history. Please retry.';
+        } finally {
+            if (request === this.listRequest) {
+                this.loading = false;
+                this.refreshing = false;
+            }
         }
-        if (request !== this.listRequest) return;
-        const events = new Map((append ? this.events : []).map((event) => [event.id, event]));
-        for (const event of page.events) events.set(event.id, event);
-        this.events = [...events.values()];
-        this.cursor = page.cursor;
-        this.currentEventId = page.currentEventId;
-        if (!append && this.events.length) {
-            await this.selectVersion(this.events.find((event) => event.id === selectedId) ?? this.events[0]);
+    }
+
+    get historyAem() {
+        return {
+            sites: {
+                cf: {
+                    fragments: Object.fromEntries(
+                        ['getVersion', 'getWithEtag', 'getByPath', 'getById', 'getReferencedBy'].map((method) => [
+                            method,
+                            (...args) => this.readAem(method, ...args),
+                        ]),
+                    ),
+                },
+            },
+        };
+    }
+
+    async readAem(method, ...args) {
+        const reads = this.fragmentReads;
+        const key = JSON.stringify([method, ...args]);
+        if (!reads.has(key)) {
+            reads.set(
+                key,
+                (async () => {
+                    await new Promise((resolve) => {
+                        if (this.activeReads < HISTORY_CONCURRENCY) {
+                            this.activeReads += 1;
+                            resolve();
+                        } else {
+                            this.readQueue.push(resolve);
+                        }
+                    });
+                    try {
+                        return await this.repository.aem.sites.cf.fragments[method](...args);
+                    } catch (error) {
+                        reads.delete(key);
+                        throw error;
+                    } finally {
+                        if (method !== 'getVersion') reads.delete(key);
+                        const next = this.readQueue.shift();
+                        if (next) next();
+                        else this.activeReads -= 1;
+                    }
+                })(),
+            );
         }
-        if (request !== this.listRequest) return;
-        this.loading = false;
+        return reads.get(key);
     }
 
     async readInheritance(manifest) {
@@ -240,7 +360,7 @@ export class MasPromotionHistory extends LitElement {
             await Promise.all(
                 (manifest?.inheritance ?? []).map(async (entry) => [
                     entry.fragmentId,
-                    await this.repository.aem.sites.cf.fragments.getVersion(entry.id, entry.versionId),
+                    await this.readAem('getVersion', entry.id, entry.versionId),
                 ]),
             ),
         );
@@ -337,8 +457,8 @@ export class MasPromotionHistory extends LitElement {
         const results = await Promise.allSettled(
             entries.map(async (entry) => {
                 const [historical, current] = await Promise.all([
-                    this.repository.aem.sites.cf.fragments.getVersion(entry.id, entry.versionId),
-                    this.repository.aem.sites.cf.fragments.getWithEtag(entry.id),
+                    this.readAem('getVersion', entry.id, entry.versionId),
+                    this.readAem('getWithEtag', entry.id),
                 ]);
                 return { historical: { ...historical, id: entry.id, path: entry.path }, current };
             }),
@@ -374,6 +494,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async readFragmentDetails(event, fragments) {
+        const aem = this.historyAem;
         const referenceChanges = event.changes.filter((change) => change.field === 'fragments');
         const attachedPaths = referenceChanges.flatMap((change) => [...(change.before ?? []), ...(change.after ?? [])]);
         const paths = [
@@ -390,20 +511,20 @@ export class MasPromotionHistory extends LitElement {
                 paths,
                 async (path) => {
                     try {
-                        const fragment = historical.get(path) ?? (await this.repository.aem.sites.cf.fragments.getByPath(path));
+                        const fragment = historical.get(path) ?? (await aem.sites.cf.fragments.getByPath(path));
                         if (!fragment) return [path, { unavailable: true }];
                         let parent = event.afterParents?.get(fragment.id) ?? event.beforeParents?.get(fragment.id);
                         if (!parent && isPromoVariationPath(path)) {
                             parent = await resolveDefaultFragmentForPromoVariation(
-                                this.repository.aem,
+                                aem,
                                 path,
                                 fragment.id,
                                 attachedPaths,
                                 getPromotionTagFromFragment(new Fragment(fragment)),
                             );
-                            parent = await resolvePromoVariationDefaultCard(this.repository.aem, parent);
+                            parent = await resolvePromoVariationDefaultCard(aem, parent);
                         } else if (!parent && Fragment.isGroupedVariationPath(path)) {
-                            parent = await resolveHydratedParentFragment(this.repository.aem, path);
+                            parent = await resolveHydratedParentFragment(aem, path);
                         }
                         return [
                             path,
@@ -417,7 +538,7 @@ export class MasPromotionHistory extends LitElement {
                         return [path, { fragment: historical.get(path), unavailable: true }];
                     }
                 },
-                VARIATIONS_CONCURRENCY_LIMIT,
+                HISTORY_CONCURRENCY,
             ),
         );
     }
@@ -1045,11 +1166,12 @@ export class MasPromotionHistory extends LitElement {
                               <sp-action-button
                                   id="retry-history"
                                   ?disabled=${this.busy}
-                                  @click=${() => this.loadHistory(this.events.length > 0)}
+                                  @click=${() => this.loadHistory(this.failedAppend)}
                                   >Retry</sp-action-button
                               >
                           </div>`
                         : nothing}
+                    ${this.refreshing ? html`<p role="status">Refreshing history...</p>` : nothing}
                     ${this.loading
                         ? html`<div class="loading">
                               <sp-progress-circle indeterminate aria-label="Loading history"></sp-progress-circle>
@@ -1073,7 +1195,7 @@ export class MasPromotionHistory extends LitElement {
                         ? html`<sp-button
                               id="load-more"
                               variant="secondary"
-                              ?disabled=${this.busy}
+                              ?disabled=${this.busy || this.refreshing}
                               @click=${() => this.loadHistory(true)}
                               >Load more</sp-button
                           >`

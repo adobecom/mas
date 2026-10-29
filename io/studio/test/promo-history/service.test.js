@@ -301,6 +301,85 @@ describe('Promotion project versions', () => {
         expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2]);
     });
 
+    async function recordHistory(count) {
+        for (let index = 0; index < count; index += 1) {
+            const { event } = await save(PROJECT, (fragment) => (fragment.title = `Saved ${index}`), {
+                requestId: `save-${index}`,
+            });
+            const key = [...stored.keys()].find((key) => JSON.parse(stored.get(key)).id === event.id);
+            stored.set(key, JSON.stringify({ ...event, createdAt: new Date(Date.now() + index * 1000).toISOString() }));
+        }
+        fetchStub.resetHistory();
+    }
+
+    it('defaults to ten authorized versions and continues without gaps or duplicates', async () => {
+        await recordHistory(25);
+
+        const first = await call('list');
+        const second = await call('list', { cursor: first.cursor });
+        const third = await call('list', { cursor: second.cursor });
+
+        expect(first.events.map((event) => event.version)).to.deep.equal([25, 24, 23, 22, 21, 20, 19, 18, 17, 16]);
+        expect(second.events.map((event) => event.version)).to.deep.equal([15, 14, 13, 12, 11, 10, 9, 8, 7, 6]);
+        expect(third.events.map((event) => event.version)).to.deep.equal([5, 4, 3, 2, 1]);
+        expect(third).not.to.have.property('cursor');
+        expect(second.currentEventId).to.equal(first.currentEventId);
+    });
+
+    it('fills pages across denied versions and continues when access to the cursor version is revoked', async () => {
+        await recordHistory(25);
+        const events = [...stored.values()]
+            .map((value) => JSON.parse(value))
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const deny = (event) =>
+            fetchStub
+                .withArgs(sinon.match((url) => url.endsWith(`/versions/${event.beforeSnapshot.fragments[0].versionId}`)))
+                .resolves(response({}, 403));
+        for (const event of events.slice(0, 6)) deny(event);
+
+        const first = await call('list');
+        deny(first.events.at(-1));
+        const second = await call('list', { cursor: first.cursor });
+
+        expect(first.events.map((event) => event.version)).to.deep.equal([19, 18, 17, 16, 15, 14, 13, 12, 11, 10]);
+        expect(first.currentEventId).to.equal(events[6].id);
+        expect(second.events.map((event) => event.version)).to.deep.equal([9, 8, 7, 6, 5, 4, 3, 2, 1]);
+        expect(second.currentEventId).to.equal(first.currentEventId);
+        expect(second).not.to.have.property('cursor');
+    });
+
+    it('authorizes only the requested page and its lookahead while reading each live fragment once', async () => {
+        await recordHistory(25);
+
+        await call('list', { limit: 1 });
+
+        const reads = fetchStub.getCalls().filter(({ args: [url] }) => url.includes('/adobe/sites/cf/fragments/'));
+        expect(reads.filter(({ args: [url] }) => url.endsWith(`/${PROJECT}`))).to.have.length(1);
+        expect(reads.filter(({ args: [url] }) => url.includes('/versions/')).length).to.be.at.most(4);
+    });
+
+    it('performs independent AEM reads concurrently without exceeding four requests', async () => {
+        await recordHistory(12);
+        let active = 0;
+        let maximum = 0;
+        global.fetch = async (...args) => {
+            if (!args[0].includes('/adobe/sites/cf/fragments/')) return fetchStub(...args);
+            active += 1;
+            maximum = Math.max(maximum, active);
+            try {
+                await Promise.resolve();
+                return await fetchStub(...args);
+            } finally {
+                active -= 1;
+            }
+        };
+
+        await call('list');
+
+        expect(maximum).to.be.greaterThan(1);
+        expect(maximum).to.be.at.most(4);
+    });
+
     it('ignores expired catalogs and old development audit namespaces', async () => {
         const { event } = await save();
         const [key] = [...stored.keys()];

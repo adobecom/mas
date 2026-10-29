@@ -72,6 +72,7 @@ describe('Promotion version history', () => {
     let getReferencedBy;
     let previousProfile;
     let previousUsers;
+    let observers;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -80,6 +81,7 @@ describe('Promotion version history', () => {
         Store.profile.set({ email: 'admin@adobe.com' });
         Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
         client = {
+            getCachedPromotionHistory: sandbox.stub(),
             listPromotionHistory: sandbox.stub().resolves({ events: [version], currentEventId: version.id }),
             restorePromotionHistory: sandbox.stub().resolves({
                 event: { ...version, id: 'version-3', action: 'restore', version: 3 },
@@ -93,6 +95,13 @@ describe('Promotion version history', () => {
         getByPath = sandbox.stub().rejects(new Error('Fragment unavailable'));
         getById = sandbox.stub();
         getReferencedBy = sandbox.stub().resolves({ parentReferences: [] });
+        observers = [];
+        sandbox.stub(window, 'IntersectionObserver').callsFake(function (callback) {
+            this.observe = sandbox.spy();
+            this.disconnect = sandbox.spy();
+            this.trigger = () => callback([{ isIntersecting: true }]);
+            observers.push(this);
+        });
     });
 
     afterEach(() => {
@@ -631,7 +640,99 @@ describe('Promotion version history', () => {
         root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
         await waitUntil(() => client.listPromotionHistory.callCount === 2);
 
-        expect(client.listPromotionHistory.lastCall.args).to.deep.equal([before.id, { query: 'Author' }]);
+        expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([
+            before.id,
+            { limit: 10, query: 'Author' },
+        ]);
+    });
+
+    it('shows cached versions immediately while refreshing them in the background', async () => {
+        let complete;
+        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
+        client.listPromotionHistory.callsFake(() => new Promise((resolve) => (complete = resolve)));
+
+        const root = await mount();
+
+        expect(root.querySelector(`[data-event-id="${version.id}"]`)).not.to.be.null;
+        expect(element.canRestore).to.be.false;
+        expect(client.listPromotionHistory.firstCall.args).to.deep.equal([before.id, { limit: 10 }, { refresh: true }]);
+
+        const latest = { ...version, id: 'version-3', version: 3 };
+        complete({ events: [latest, version], currentEventId: latest.id });
+        await waitUntil(() => element.currentEventId === latest.id && !element.refreshing);
+
+        expect(element.selectedEvent.id).to.equal(version.id);
+        expect(element.canRestore).to.be.true;
+    });
+
+    it('reports background refresh failures without discarding the cached list or enabling restore', async () => {
+        let fail;
+        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
+        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+        const root = await mount();
+
+        fail(new Error('Unavailable'));
+        await waitUntil(() => Boolean(element.error));
+        await element.updateComplete;
+
+        expect(root.querySelector(`[data-event-id="${version.id}"]`)).not.to.be.null;
+        expect(root.querySelector('[role="alert"]').textContent).to.include('refresh');
+        expect(element.canRestore).to.be.false;
+    });
+
+    it('removes cached versions and comparison data when revalidation denies access', async () => {
+        let fail;
+        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
+        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+        const root = await mount();
+
+        fail(Object.assign(new Error('Forbidden'), { status: 403 }));
+        await waitUntil(() => Boolean(element.error));
+        await element.updateComplete;
+
+        expect(root.querySelector('.history-card')).to.be.null;
+        expect(element.selectedEvent).to.be.null;
+        expect(element.expected).to.deep.equal([]);
+        expect(element.canRestore).to.be.false;
+    });
+
+    it('ignores a cached project refresh that completes after switching projects', async () => {
+        let complete;
+        client.getCachedPromotionHistory.onFirstCall().returns({ events: [version], currentEventId: version.id });
+        client.listPromotionHistory.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        await mount();
+        const other = { ...version, id: 'other-version', projectId: 'other-project' };
+        client.listPromotionHistory.onSecondCall().resolves({ events: [other], currentEventId: other.id });
+
+        element.projectId = 'other-project';
+        await waitUntil(() => element.currentEventId === other.id && !element.loading);
+        complete({ events: [version], currentEventId: version.id });
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(element.events.map((event) => event.id)).to.deep.equal([other.id]);
+        expect(element.selectedEvent.id).to.equal(other.id);
+    });
+
+    it('loads one next page automatically near the bottom and disconnects its observer', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        await mount();
+        const observer = observers.find((item) => item.observe.calledWith(element.shadowRoot.querySelector('#load-more')));
+        expect(observer).not.to.be.undefined;
+        let complete;
+        client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+
+        observer.trigger();
+        observer.trigger();
+        expect(client.listPromotionHistory.callCount).to.equal(2);
+        expect(client.listPromotionHistory.lastCall.args[1]).to.deep.equal({ limit: 10, cursor: 'next' });
+        const earlier = { ...version, id: 'version-1', version: 1 };
+        complete({ events: [earlier, version], currentEventId: version.id });
+        await waitUntil(() => !element.loading);
+
+        expect(element.events.map((event) => event.id)).to.deep.equal([version.id, earlier.id]);
+        observer.disconnect.resetHistory();
+        element.remove();
+        expect(observer.disconnect.calledOnce).to.be.true;
     });
 
     it('loads the next page without duplicating versions or changing the current marker', async () => {
@@ -639,11 +740,61 @@ describe('Promotion version history', () => {
         await mount();
         const earlier = { ...version, id: 'version-1', version: 1 };
         client.listPromotionHistory.onSecondCall().resolves({ events: [earlier], currentEventId: version.id });
+        const selected = element.selectedEvent;
+        const field = element.eligibleRows.find((row) => row.field === 'promoCode');
+        element.toggleRows([field], true);
 
         await element.loadHistory(true);
 
         expect(element.events.map((item) => item.id)).to.deep.equal([version.id, earlier.id]);
         expect(element.currentEventId).to.equal(version.id);
+        expect(element.selectedEvent).to.equal(selected);
+        expect(element.selectedFields.has(field.key)).to.be.true;
+    });
+
+    it('limits concurrent AEM reads to four and reuses shared native snapshots', async () => {
+        let active = 0;
+        let maximum = 0;
+        const read = async (id, current = false) => {
+            maximum = Math.max(maximum, ++active);
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            active -= 1;
+            return { ...before, id, ...(current ? { etag: '"fresh"' } : {}) };
+        };
+        getVersion.callsFake((id) => read(id));
+        getWithEtag.callsFake((id) => read(id, true));
+        const fragments = Array.from({ length: 10 }, (_, index) => ({
+            id: `fragment-${index}`,
+            path: `${path}-${index}`,
+            versionId: `native-${index}`,
+        }));
+        const inheritance = fragments.map((entry) => ({ ...entry, fragmentId: entry.id }));
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    beforeSnapshot: { fragments, inheritance },
+                    afterSnapshot: { fragments, inheritance },
+                },
+            ],
+            currentEventId: version.id,
+        });
+
+        await mount();
+
+        expect(maximum).to.be.greaterThan(1).and.at.most(4);
+        expect(getVersion.withArgs(fragments[0].id, fragments[0].versionId).calledOnce).to.be.true;
+    });
+
+    it('reads fresh live content when reselecting a version while reusing its immutable snapshot', async () => {
+        await mount();
+        getWithEtag.resolves({ ...after, etag: '"new-live-etag"' });
+
+        await element.selectVersion(element.selectedEvent);
+
+        expect(element.expected).to.deep.equal([{ fragmentId: before.id, etag: '"new-live-etag"' }]);
+        expect(getWithEtag.callCount).to.equal(2);
+        expect(getVersion.withArgs(before.id, 'native-before').calledOnce).to.be.true;
     });
 
     it('blocks blind retry when content changed but version capture failed', async () => {

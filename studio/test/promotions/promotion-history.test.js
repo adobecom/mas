@@ -4,7 +4,7 @@ import { waitUntil } from '@open-wc/testing-helpers/pure';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import router from '../../src/router.js';
-import { PAGE_NAMES } from '../../src/constants.js';
+import { PAGE_NAMES, CARD_MODEL_PATH } from '../../src/constants.js';
 import '../../src/swc.js';
 import '../../src/promotions/mas-promotion-history.js';
 
@@ -67,6 +67,9 @@ describe('Promotion version history', () => {
     let client;
     let getWithEtag;
     let getVersion;
+    let getByPath;
+    let getById;
+    let getReferencedBy;
     let previousProfile;
     let previousUsers;
 
@@ -87,6 +90,9 @@ describe('Promotion version history', () => {
         getVersion = sandbox
             .stub()
             .callsFake(async (id, versionId) => structuredClone(versionId === 'native-before' ? before : after));
+        getByPath = sandbox.stub().rejects(new Error('Fragment unavailable'));
+        getById = sandbox.stub();
+        getReferencedBy = sandbox.stub().resolves({ parentReferences: [] });
     });
 
     afterEach(() => {
@@ -99,7 +105,9 @@ describe('Promotion version history', () => {
     async function mount() {
         element = document.createElement('mas-promotion-history');
         element.client = client;
-        element.repository = { aem: { sites: { cf: { fragments: { getWithEtag, getVersion } } } } };
+        element.repository = {
+            aem: { sites: { cf: { fragments: { getWithEtag, getVersion, getByPath, getById, getReferencedBy } } } },
+        };
         element.projectId = before.id;
         (document.querySelector('#history-fixtures') ?? document.body).append(element);
         await waitUntil(() => !element.loading && !element.baselineLoading && element.selectedEvent);
@@ -250,6 +258,55 @@ describe('Promotion version history', () => {
         expect(client.restorePromotionHistory.called).to.be.false;
     });
 
+    it('blocks the history and shows restore progress until the refreshed version has loaded', async () => {
+        const root = await mount();
+        await selectCode(root);
+        let finishRestore;
+        let finishHistory;
+        const restore = new Promise((resolve) => {
+            finishRestore = resolve;
+        });
+        const history = new Promise((resolve) => {
+            finishHistory = resolve;
+        });
+        client.restorePromotionHistory.returns(restore);
+        client.listPromotionHistory.returns(history);
+
+        const pending = element.confirmRestore();
+        await element.updateComplete;
+
+        expect(root.querySelector('.restore-overlay sp-progress-circle')).not.to.be.null;
+        expect(root.querySelector('.history-layout').inert).to.be.true;
+        const bounds = root.querySelector('.restore-overlay').getBoundingClientRect();
+        expect(bounds.width).to.equal(window.innerWidth);
+        expect(bounds.height).to.equal(window.innerHeight);
+        finishRestore({ restored: [before.id], event: { ...version, id: 'version-3', version: 3 } });
+        await waitUntil(() => client.listPromotionHistory.callCount === 2);
+        await element.updateComplete;
+        expect(root.querySelector('.restore-overlay')).not.to.be.null;
+
+        finishHistory({ events: [{ ...version, id: 'version-3', version: 3 }], currentEventId: 'version-3' });
+        await pending;
+        await element.updateComplete;
+
+        expect(root.querySelector('.restore-overlay')).to.be.null;
+        expect(root.querySelector('.history-layout').inert).to.be.false;
+        expect(element.selectedEvent.id).to.equal('version-3');
+    });
+
+    it('removes restore progress and shows the error when restoration fails', async () => {
+        const root = await mount();
+        await selectCode(root);
+        client.restorePromotionHistory.rejects(Object.assign(new Error('Conflict'), { status: 409 }));
+
+        await element.confirmRestore();
+        await element.updateComplete;
+
+        expect(root.querySelector('.restore-overlay')).to.be.null;
+        expect(root.querySelector('.history-layout').inert).to.be.false;
+        expect(root.querySelector('[role="alert"]').textContent).to.include('changed');
+    });
+
     it('does not allow a read-only user to restore', async () => {
         Store.users.set([]);
         const root = await mount();
@@ -268,6 +325,183 @@ describe('Promotion version history', () => {
 
         expect(element.eligibleRows).to.deep.equal([]);
         expect(element.canRestore).to.be.false;
+    });
+
+    it('omits the repeated field-state message without enabling unrestorable fields', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, action: 'create', beforeSnapshot: { fragments: [] } }],
+            currentEventId: version.id,
+        });
+
+        const root = await mount();
+
+        expect(root.textContent).not.to.include('Field is unavailable or already matches this saved state');
+        expect(root.querySelector('[data-field="promoCode"] sp-checkbox').disabled).to.be.true;
+    });
+
+    it('groups attached default, country and promo references by their card with links to the correct fragments', async () => {
+        const cardPath = '/content/dam/mas/acom/en_US/photoshop';
+        const countryPath = '/content/dam/mas/acom/en_US/pzn/photoshop-fi';
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/sale/photoshop';
+        const card = {
+            id: 'card',
+            path: cardPath,
+            title: 'photoshop-card',
+            model: { path: CARD_MODEL_PATH },
+            fields: [
+                { name: 'cardTitle', values: ['<b>Photoshop Individual</b>'] },
+                { name: 'variant', values: ['mini-compare-chart'] },
+                { name: 'mnemonicIcon', values: ['/img/photoshop.svg'] },
+                { name: 'variations', values: [countryPath] },
+            ],
+        };
+        const country = {
+            ...card,
+            id: 'country',
+            path: countryPath,
+            fields: [{ name: 'pznTags', values: ['FI'] }],
+        };
+        const promo = {
+            ...card,
+            id: 'promo',
+            path: promoPath,
+            tags: ['mas:promotion/sale'],
+            fields: [{ name: 'pznTags', values: ['GB', 'DE', 'FR'] }],
+        };
+        const references = [cardPath, countryPath, promoPath];
+        getByPath.withArgs(cardPath).resolves(card);
+        getByPath.withArgs(countryPath).resolves(country);
+        getByPath.withArgs(promoPath).resolves(promo);
+        getById.withArgs(card.id).resolves(card);
+        getReferencedBy.resolves({ parentReferences: [{ id: card.id, path: card.path }] });
+        getWithEtag.resolves({ ...after, fields: [{ name: 'fragments', values: references }], etag: '"refs"' });
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    changes: [
+                        {
+                            fragmentId: before.id,
+                            path,
+                            field: 'fragments',
+                            before: [],
+                            after: references,
+                            category: 'fragments',
+                        },
+                    ],
+                },
+            ],
+            currentEventId: version.id,
+        });
+
+        const root = await mount();
+        const section = root.querySelector('[aria-label="Fragments"]');
+        const links = [...section.querySelectorAll('a.fragment-link')];
+
+        expect(section.querySelectorAll('.fragment-changes')).to.have.length(1);
+        expect(section.querySelector('.fragment-heading strong').textContent).to.equal('Photoshop Individual');
+        expect(section.querySelector('.fragment-path').textContent).to.include('ACOM / merch-card');
+        expect(section.querySelector('.product-icon').getAttribute('src')).to.equal('/img/photoshop.svg');
+        expect([...section.querySelectorAll('.field-label')].map((label) => label.textContent.trim())).to.deep.equal([
+            'Fragment:',
+            'Country:',
+            'Promo variation:',
+        ]);
+        expect(links.map((link) => new URLSearchParams(link.hash.slice(1)).get('fragmentId'))).to.deep.equal([
+            card.id,
+            country.id,
+            promo.id,
+        ]);
+        expect(section.textContent).to.include('Applies to 3 countries');
+        expect(section.textContent).to.include('GB, DE, FR');
+
+        element.toggleRows(element.eligibleRows, true);
+        expect(element.selections).to.deep.equal([{ fragmentId: before.id, fields: ['fragments'] }]);
+    });
+
+    it('shows country changes under the historical default card and opens the affected promo variation', async () => {
+        const promoPath = '/content/dam/mas/acom/en_US/promotions/sale/photoshop';
+        const promo = {
+            id: 'promo',
+            path: promoPath,
+            title: 'Photoshop promo',
+            fields: [{ name: 'pznTags', values: ['FI'] }],
+        };
+        getVersion.withArgs(promo.id, 'promo-before').resolves(promo);
+        getVersion.withArgs('default-card', 'default-version').resolves({
+            id: 'default-card',
+            path: '/content/dam/mas/acom/en_US/photoshop',
+            title: 'Photoshop Individual',
+            fields: [{ name: 'variant', values: ['mini-compare-chart'] }],
+        });
+        getWithEtag.withArgs(promo.id).resolves({
+            ...promo,
+            fields: [{ name: 'pznTags', values: ['FI', 'DE'] }],
+            etag: '"promo"',
+        });
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    targetId: promo.id,
+                    changes: [
+                        {
+                            fragmentId: promo.id,
+                            path: promoPath,
+                            field: 'pznTags',
+                            before: ['FI'],
+                            after: ['FI', 'DE'],
+                            category: 'fragments',
+                        },
+                    ],
+                    beforeSnapshot: {
+                        fragments: [{ id: promo.id, path: promoPath, versionId: 'promo-before' }],
+                        inheritance: [{ fragmentId: promo.id, id: 'default-card', versionId: 'default-version' }],
+                    },
+                },
+            ],
+            currentEventId: version.id,
+        });
+
+        const root = await mount();
+        const section = root.querySelector('[aria-label="Fragments"]');
+
+        expect(section.querySelector('.fragment-heading strong').textContent).to.equal('Photoshop Individual');
+        expect(section.querySelector('.field-label').textContent).to.equal('Country:');
+        expect(section.querySelector('.change-badge').textContent.trim()).to.equal('Added');
+        expect(section.textContent).to.include('Applies to promo variation:');
+        expect(section.textContent).to.include(promo.title);
+        expect(new URLSearchParams(section.querySelector('a.fragment-link').hash.slice(1)).get('fragmentId')).to.equal(
+            promo.id,
+        );
+    });
+
+    it('reports unavailable referenced fragments without linking to the project as if it were the fragment', async () => {
+        const missingPath = '/content/dam/mas/acom/en_US/deleted-card';
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    changes: [
+                        {
+                            fragmentId: before.id,
+                            path,
+                            field: 'fragments',
+                            before: [missingPath],
+                            after: [],
+                            category: 'fragments',
+                        },
+                    ],
+                },
+            ],
+            currentEventId: version.id,
+        });
+
+        const root = await mount();
+        const section = root.querySelector('[aria-label="Fragments"]');
+
+        expect(section.textContent).to.include('Fragment details unavailable');
+        expect(section.querySelector('a.fragment-link')).to.be.null;
     });
 
     it('disables restore if a native historical version is unavailable', async () => {

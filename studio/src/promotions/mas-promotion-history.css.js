@@ -325,6 +325,31 @@ export const promotionHistoryStyles = css`
         font-size: 12px;
     }
 
+    .fragment-path {
+        max-width: 360px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .fragment-path,
+    .fragment-context {
+        color: var(--spectrum-gray-700, #6e6e6e);
+        font-size: 12px;
+    }
+
+    .restore-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        background: rgb(255 255 255 / 85%);
+    }
+
     .muted,
     .row-warning {
         font-size: 12px;

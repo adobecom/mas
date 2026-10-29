@@ -6,11 +6,20 @@ import Events from '../events.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { canManagePromotions } from '../groups.js';
 import { PAGE_NAMES } from '../constants.js';
-import { extractLocaleFromPath, extractSurfaceFromPath } from '../utils.js';
+import {
+    extractLocaleFromPath,
+    extractSurfaceFromPath,
+    resolveHydratedParentFragment,
+    resolvePromoVariationDefaultCard,
+} from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { getCachedTagTitle } from '../aem/tag-cache.js';
 import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { VARIANTS } from '../editors/variant-picker.js';
+import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
+import { getStudioFragmentDisplayPath } from '../common/utils/render-utils.js';
+import { getPromotionTagFromFragment, isPromoVariationPath } from './promotion-model.js';
+import { resolveDefaultFragmentForPromoVariation } from './promotion-variations.js';
 import * as historyClient from './promotion-version.js';
 import { promotionHistoryStyles } from './mas-promotion-history.css.js';
 
@@ -55,6 +64,7 @@ const fieldLabels = {
     variationStrategy: 'Variation strategy',
 };
 const richTextFields = new Set([
+    'cardTitle',
     'description',
     'badge',
     'trialBadge',
@@ -80,6 +90,7 @@ export class MasPromotionHistory extends LitElement {
         events: { state: true },
         selectedEvent: { state: true },
         historicalFragments: { state: true },
+        fragmentDetails: { state: true },
         currentEventId: { state: true },
         rows: { state: true },
         groups: { state: true },
@@ -89,6 +100,7 @@ export class MasPromotionHistory extends LitElement {
         loading: { state: true },
         baselineLoading: { state: true },
         operating: { state: true },
+        restoring: { state: true },
         error: { state: true },
         operationError: { state: true },
         cursor: { state: true },
@@ -105,6 +117,7 @@ export class MasPromotionHistory extends LitElement {
         this.events = [];
         this.selectedEvent = null;
         this.historicalFragments = [];
+        this.fragmentDetails = new Map();
         this.currentEventId = '';
         this.rows = [];
         this.groups = [];
@@ -114,6 +127,7 @@ export class MasPromotionHistory extends LitElement {
         this.loading = false;
         this.baselineLoading = false;
         this.operating = false;
+        this.restoring = false;
         this.error = '';
         this.operationError = '';
         this.cursor = null;
@@ -132,7 +146,7 @@ export class MasPromotionHistory extends LitElement {
             this.filters = {};
             this.loadHistory();
         }
-        if (changed.has('rows')) {
+        if (changed.has('rows') || changed.has('fragmentDetails')) {
             this.groups = categories.map((label) => this.buildGroup(label)).filter((group) => group.rows.length);
         }
     }
@@ -144,7 +158,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     get busy() {
-        return this.loading || this.baselineLoading || this.operating;
+        return this.loading || this.baselineLoading || this.operating || this.restoring;
     }
 
     get canRestore() {
@@ -181,6 +195,7 @@ export class MasPromotionHistory extends LitElement {
             this.events = [];
             this.selectedEvent = null;
             this.historicalFragments = [];
+            this.fragmentDetails = new Map();
             this.rows = [];
             this.selectedFields = new Set();
             this.expected = [];
@@ -286,6 +301,7 @@ export class MasPromotionHistory extends LitElement {
         const request = ++this.versionRequest;
         this.selectedEvent = event;
         this.historicalFragments = [];
+        this.fragmentDetails = new Map();
         this.selectedFields = new Set();
         this.expected = [];
         this.unavailable = [];
@@ -320,7 +336,10 @@ export class MasPromotionHistory extends LitElement {
                 this.unavailable.push(fragmentId);
             }
         }
+        const fragmentDetails = await this.readFragmentDetails(event, fragments);
+        if (request !== this.versionRequest) return;
         this.historicalFragments = fragments;
+        this.fragmentDetails = fragmentDetails;
         for (const fragment of [...fragments, ...current.values()]) {
             for (const tag of [...(fragment.tags ?? []), ...(fragment.fieldTags ?? [])]) {
                 if (tag.title) this.tagTitles.set(normalizeTagId(tag), tag.title);
@@ -332,6 +351,55 @@ export class MasPromotionHistory extends LitElement {
             this.operationError =
                 'Some fragments or historical AEM versions are unavailable. Deleted fragments are not recreated. Reload the version to retry.';
         }
+    }
+
+    async readFragmentDetails(event, fragments) {
+        const referenceChanges = event.changes.filter((change) => change.field === 'fragments');
+        const attachedPaths = referenceChanges.flatMap((change) => [...(change.before ?? []), ...(change.after ?? [])]);
+        const paths = [
+            ...new Set([
+                ...attachedPaths,
+                ...event.changes
+                    .filter((change) => change.category === 'fragments' && change.fragmentId !== this.projectId)
+                    .map((change) => change.path),
+            ]),
+        ];
+        const historical = new Map(fragments.map((fragment) => [fragment.path, fragment]));
+        return new Map(
+            await processConcurrently(
+                paths,
+                async (path) => {
+                    try {
+                        const fragment = historical.get(path) ?? (await this.repository.aem.sites.cf.fragments.getByPath(path));
+                        if (!fragment) return [path, { unavailable: true }];
+                        let parent = event.afterParents?.get(fragment.id) ?? event.beforeParents?.get(fragment.id);
+                        if (!parent && isPromoVariationPath(path)) {
+                            parent = await resolveDefaultFragmentForPromoVariation(
+                                this.repository.aem,
+                                path,
+                                fragment.id,
+                                attachedPaths,
+                                getPromotionTagFromFragment(new Fragment(fragment)),
+                            );
+                            parent = await resolvePromoVariationDefaultCard(this.repository.aem, parent);
+                        } else if (!parent && Fragment.isGroupedVariationPath(path)) {
+                            parent = await resolveHydratedParentFragment(this.repository.aem, path);
+                        }
+                        return [
+                            path,
+                            {
+                                fragment,
+                                parent,
+                                unavailable: !parent && (isPromoVariationPath(path) || Fragment.isGroupedVariationPath(path)),
+                            },
+                        ];
+                    } catch {
+                        return [path, { fragment: historical.get(path), unavailable: true }];
+                    }
+                },
+                VARIATIONS_CONCURRENCY_LIMIT,
+            ),
+        );
     }
 
     buildRows(event, current) {
@@ -397,7 +465,7 @@ export class MasPromotionHistory extends LitElement {
     changeSegments(row) {
         const empty = (value) =>
             value == null || value === '' || (Array.isArray(value) && value.every((item) => item == null || item === ''));
-        if (['@tags', 'tags', 'geos', 'countries', 'surfaces', 'fragments', 'offers'].includes(row.field)) {
+        if (['@tags', 'tags', 'geos', 'countries', 'pznTags', 'surfaces', 'fragments', 'offers'].includes(row.field)) {
             const before = row.before ?? [];
             const after = row.after ?? [];
             const added = after.filter((value) => !before.some((item) => JSON.stringify(item) === JSON.stringify(value)));
@@ -412,6 +480,60 @@ export class MasPromotionHistory extends LitElement {
         return [{ kind }];
     }
 
+    fragmentRows(row) {
+        if (row.field !== 'fragments') return [this.fragmentRow(row, row.path)];
+        return row.segments.flatMap((segment) =>
+            segment.values.map((path) => this.fragmentRow({ ...row, segments: [{ kind: segment.kind }] }, path)),
+        );
+    }
+
+    fragmentTitle(fragment, parent) {
+        const title = this.effectiveValue(this.fieldValue(fragment, 'cardTitle'), 'cardTitle', parent)?.[0];
+        return this.formatValue(title || fragment?.title || 'Unavailable fragment', 'cardTitle');
+    }
+
+    fragmentDisplayPath(fragment) {
+        return getStudioFragmentDisplayPath(
+            new Fragment({
+                ...fragment,
+                tags: (fragment.tags ?? []).map((tag) => ({ id: normalizeTagId(tag), title: tag.title })),
+            }),
+        );
+    }
+
+    fragmentRow(row, path) {
+        const detail = this.fragmentDetails.get(path);
+        const fragment = detail?.fragment;
+        const promo = isPromoVariationPath(path);
+        const country =
+            row.field === 'pznTags' || (row.field === 'fragments' && !promo && Fragment.isGroupedVariationPath(path));
+        const countries = this.fieldValue(fragment, 'pznTags').map((value) => this.formatValue(value, 'pznTags'));
+        const referenceOnly = row.field === 'fragments' && !country;
+        return {
+            ...row,
+            displayKey: JSON.stringify([row.key, path]),
+            groupFragment: detail?.parent ?? fragment,
+            referenceLabel: country ? 'Country' : promo ? 'Promo variation' : referenceOnly ? 'Fragment' : row.label,
+            referenceTitle: this.fragmentTitle(fragment, detail?.parent),
+            referencePath: path,
+            referenceDescription: fragment ? this.fragmentDisplayPath(fragment) || path : path,
+            referenceOnly,
+            referenceField: promo && !referenceOnly && !country ? row.label : '',
+            referenceContext: country
+                ? `Applies to ${promo ? 'promo variation' : 'fragment'}:`
+                : countries.length
+                  ? `Applies to ${countries.length} countries:`
+                  : '',
+            referenceContextValue: country ? this.fragmentTitle(fragment, detail?.parent) : countries.join(', '),
+            detailsUnavailable: detail?.unavailable,
+            linkTarget: fragment?.id ? { fragmentId: fragment.id, path } : null,
+            segments:
+                row.field === 'fragments' && country
+                    ? row.segments.map((segment) => ({ ...segment, values: this.fieldValue(fragment, 'pznTags') }))
+                    : row.segments,
+        };
+    }
+
     buildGroup(label) {
         const rows = this.rows.filter((row) => row.category === label);
         const counts = new Map();
@@ -420,20 +542,26 @@ export class MasPromotionHistory extends LitElement {
             for (const segment of row.segments) {
                 counts.set(segment.kind, (counts.get(segment.kind) ?? 0) + (segment.values?.length ?? 1));
             }
-            if (!items.has(row.fragmentId)) {
-                const fragment = this.historicalFragments.find((item) => item.id === row.fragmentId);
+            for (const displayRow of label === 'Fragments' ? this.fragmentRows(row) : [row]) {
+                const fragment =
+                    label === 'Fragments'
+                        ? displayRow.groupFragment
+                        : this.historicalFragments.find((item) => item.id === row.fragmentId);
+                const id = label === 'Fragments' ? (fragment?.id ?? displayRow.referencePath) : row.fragmentId;
                 const parent =
                     this.selectedEvent.beforeParents?.get(row.fragmentId) ??
                     this.selectedEvent.afterParents?.get(row.fragmentId);
-                items.set(row.fragmentId, {
-                    id: row.fragmentId,
-                    title: fragment?.title ?? row.path?.split('/').at(-1) ?? row.fragmentId,
-                    icon: this.effectiveValue(this.fieldValue(fragment, 'mnemonicIcon'), 'mnemonicIcon', parent)?.[0],
-                    variant: this.effectiveValue(this.fieldValue(fragment, 'variant'), 'variant', parent)?.[0],
-                    rows: [],
-                });
+                if (!items.has(id)) {
+                    items.set(id, {
+                        id,
+                        title: label === 'Fragments' ? this.fragmentTitle(fragment, parent) : fragment?.title,
+                        icon: this.effectiveValue(this.fieldValue(fragment, 'mnemonicIcon'), 'mnemonicIcon', parent)?.[0],
+                        variant: this.effectiveValue(this.fieldValue(fragment, 'variant'), 'variant', parent)?.[0],
+                        rows: [],
+                    });
+                }
+                items.get(id).rows.push(displayRow);
             }
-            items.get(row.fragmentId).rows.push(row);
         }
         return { label, rows, counts: [...counts], items: [...items.values()] };
     }
@@ -553,10 +681,24 @@ export class MasPromotionHistory extends LitElement {
         const eventId = this.selectedEvent.id;
         this.confirmation = '';
         this.operating = true;
+        this.restoring = true;
         this.operationError = '';
-        let result;
         try {
-            result = await this.client.restorePromotionHistory(projectId, eventId, options);
+            const result = await this.client.restorePromotionHistory(projectId, eventId, options);
+            this.operating = false;
+            if (projectId !== this.projectId || !this.isConnected) return;
+            const failed = result.failures?.length ?? 0;
+            Events.toast.emit({
+                variant: result.unchanged ? 'info' : failed ? 'warning' : 'positive',
+                content: result.unchanged
+                    ? 'Selected fields already match this version.'
+                    : !failed
+                      ? 'Selected changes have been successfully restored.'
+                      : `Restored ${result.restored.length} fragment(s) as a draft. ${failed} fragment(s) could not be restored. Nothing published.`,
+            });
+            this.dispatchEvent(new CustomEvent('history-restored', { bubbles: true, composed: true, detail: result }));
+            this.filters = {};
+            await this.loadHistory(false, result.event?.id);
         } catch (error) {
             if (projectId !== this.projectId) return;
             if (error.details?.versionPending) {
@@ -577,20 +719,8 @@ export class MasPromotionHistory extends LitElement {
             return;
         } finally {
             this.operating = false;
+            this.restoring = false;
         }
-        if (projectId !== this.projectId || !this.isConnected) return;
-        const failed = result.failures?.length ?? 0;
-        Events.toast.emit({
-            variant: result.unchanged ? 'info' : failed ? 'warning' : 'positive',
-            content: result.unchanged
-                ? 'Selected fields already match this version.'
-                : !failed
-                  ? 'Selected changes have been successfully restored.'
-                  : `Restored ${result.restored.length} fragment(s) as a draft. ${failed} fragment(s) could not be restored. Nothing published.`,
-        });
-        this.dispatchEvent(new CustomEvent('history-restored', { bubbles: true, composed: true, detail: result }));
-        this.filters = {};
-        await this.loadHistory(false, result.event?.id);
     }
 
     get sidebarHeaderTemplate() {
@@ -673,28 +803,42 @@ export class MasPromotionHistory extends LitElement {
                             <span class=${`change-badge ${segment.kind}`}
                                 >${segment.kind[0].toUpperCase() + segment.kind.slice(1)}</span
                             >
-                            <span class="field-label">${row.label}:</span>
-                            ${segment.values
-                                ? html`<span class="value-tags ${segment.kind === 'removed' ? 'before' : 'after'}">
-                                      ${repeat(
-                                          segment.values,
-                                          (value) => JSON.stringify(value),
-                                          (value) => html`<span class="value-tag">${this.formatValue(value, row.field)}</span>`,
-                                      )}
-                                  </span>`
-                                : html`
-                                      ${segment.kind === 'changed' || segment.kind === 'removed'
-                                          ? html`<span class="before">${this.formatValue(row.before, row.field)}</span>`
-                                          : nothing}
-                                      ${segment.kind === 'changed'
-                                          ? html`<span class="change-arrow" aria-label="changed to">&#8594;</span>`
-                                          : nothing}
-                                      <span class="after">${this.formatValue(row.after, row.field)}</span>
-                                  `}
-                            ${row.category === 'Fragments' && row.fragmentId !== this.projectId
+                            <span class="field-label">${row.referenceLabel ?? row.label}:</span>
+                            ${row.referenceOnly || row.referenceField
+                                ? html`<span class="fragment-name">${row.referenceTitle}</span>
+                                      <span class="muted">${row.referenceField ? `${row.referenceField}:` : nothing}</span>`
+                                : nothing}
+                            ${row.referenceOnly
+                                ? html`<span class="fragment-path" title=${row.referencePath}
+                                      >${row.referenceDescription}</span
+                                  >`
+                                : segment.values
+                                  ? html`<span class="value-tags ${segment.kind === 'removed' ? 'before' : 'after'}">
+                                        ${repeat(
+                                            segment.values,
+                                            (value) => JSON.stringify(value),
+                                            (value) =>
+                                                html`<span class="value-tag">${this.formatValue(value, row.field)}</span>`,
+                                        )}
+                                    </span>`
+                                  : html`
+                                        ${segment.kind === 'changed' || segment.kind === 'removed'
+                                            ? html`<span class="before">${this.formatValue(row.before, row.field)}</span>`
+                                            : nothing}
+                                        ${segment.kind === 'changed'
+                                            ? html`<span class="change-arrow" aria-label="changed to">&#8594;</span>`
+                                            : nothing}
+                                        <span class="after">${this.formatValue(row.after, row.field)}</span>
+                                    `}
+                            ${row.referenceContext
+                                ? html`<span class="fragment-context"
+                                      >${row.referenceContext} ${row.referenceContextValue}</span
+                                  >`
+                                : nothing}
+                            ${row.linkTarget
                                 ? html`<a
                                       class="fragment-link"
-                                      href=${this.fragmentLink(row)}
+                                      href=${this.fragmentLink(row.linkTarget)}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                   >
@@ -707,9 +851,8 @@ export class MasPromotionHistory extends LitElement {
                 ${unavailable ? html`<small class="row-warning">Unavailable — cannot restore</small>` : nothing}
                 ${row.conflicted
                     ? html`<small class="row-warning">This field has changed since this event. Review newer changes.</small>`
-                    : !row.restorable && !unavailable && this.restoreSnapshot
-                      ? html`<small class="row-warning">Field is unavailable or already matches this saved state</small>`
-                      : nothing}
+                    : nothing}
+                ${row.detailsUnavailable ? html`<small class="row-warning">Fragment details unavailable</small>` : nothing}
             </div>
         `;
     }
@@ -772,7 +915,7 @@ export class MasPromotionHistory extends LitElement {
                                           : nothing}
                                       ${repeat(
                                           item.rows,
-                                          (row) => row.key,
+                                          (row) => row.displayKey ?? row.key,
                                           (row) => this.rowTemplate(row),
                                       )}
                                   </div>`,
@@ -859,9 +1002,17 @@ export class MasPromotionHistory extends LitElement {
         `;
     }
 
+    get restoreProgressTemplate() {
+        if (!this.restoring) return nothing;
+        return html`<div class="restore-overlay" role="status" aria-live="polite">
+            <sp-progress-circle size="l" indeterminate label="Restoring selected changes"></sp-progress-circle>
+            <p>Restoring selected changes...</p>
+        </div>`;
+    }
+
     render() {
         return html`
-            <div class="history-layout" aria-busy=${this.busy}>
+            <div class="history-layout" aria-busy=${this.busy} ?inert=${this.restoring}>
                 <aside aria-label="Saved versions">
                     ${this.sidebarHeaderTemplate}
                     ${this.error
@@ -922,7 +1073,7 @@ export class MasPromotionHistory extends LitElement {
                     ${this.detailsTemplate}
                 </main>
             </div>
-            ${this.confirmationTemplate}
+            ${this.confirmationTemplate} ${this.restoreProgressTemplate}
         `;
     }
 }

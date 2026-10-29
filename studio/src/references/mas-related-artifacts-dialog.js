@@ -1,4 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
+import { dialogTableStyles } from './dialog-table.css.js';
 import { styles } from './mas-related-artifacts-dialog.css.js';
 import { ARTIFACT_TYPE_KEYS, REFERENCE_TYPES } from './references-repository.js';
 
@@ -10,7 +11,7 @@ const LABEL_BY_KEY = new Map(REFERENCE_TYPES.map((type) => [type.key, type.label
 // The modal sp-overlay owns focus entry, Tab containment, Escape and focus restoration; the dialog
 // wrapper owns the frame, headline, close button and underlay.
 class MasRelatedArtifactsDialog extends LitElement {
-    static styles = styles;
+    static styles = [dialogTableStyles, styles];
 
     static properties = {
         open: { type: Boolean },

@@ -1,6 +1,7 @@
 /**
  * This script creates locale tree for a given surface, bucket(env) in Odin.
  * Locales are sourced from locales.js for the given surface.
+ * Also creates the translations and bulk-publish-projects folders.
  * e.g: node gen-locales.mjs author-p22655-e155390 ccd [--dry-run]
  */
 
@@ -8,6 +9,8 @@ import { fileURLToPath } from 'url';
 import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/locales.js';
 
 const ROOT_PATH = '/content/dam/mas';
+// Project folders Studio saves translation and bulk publish projects into.
+const PROJECT_FOLDERS = ['translations', 'bulk-publish-projects'];
 
 async function listExistingFolders(baseUrl, headers, surface) {
     const path = `${ROOT_PATH}/${surface}`;
@@ -36,11 +39,11 @@ export async function run({ bucket, surface, dryRun = false, accessToken, apiKey
     const existing = [];
     const toCreate = [];
 
-    for (const locale of locales) {
-        if (existingNames.has(locale)) {
-            existing.push(`${ROOT_PATH}/${surface}/${locale}`);
+    for (const name of [...locales, ...PROJECT_FOLDERS]) {
+        if (existingNames.has(name)) {
+            existing.push(`${ROOT_PATH}/${surface}/${name}`);
         } else {
-            toCreate.push(locale);
+            toCreate.push(name);
         }
     }
 
@@ -48,9 +51,9 @@ export async function run({ bucket, surface, dryRun = false, accessToken, apiKey
 
     const batchSize = 5;
     for (let i = 0; i < toCreate.length; i += batchSize) {
-        const batch = toCreate.slice(i, i + batchSize).map((locale) => ({
-            path: `${ROOT_PATH}/${surface}/${locale}`,
-            title: locale,
+        const batch = toCreate.slice(i, i + batchSize).map((name) => ({
+            path: `${ROOT_PATH}/${surface}/${name}`,
+            title: name,
         }));
 
         if (dryRun) {
@@ -77,7 +80,7 @@ export async function run({ bucket, surface, dryRun = false, accessToken, apiKey
     console.log(
         '\nFolders to create:',
         JSON.stringify(
-            toCreate.map((l) => `${ROOT_PATH}/${surface}/${l}`),
+            toCreate.map((n) => `${ROOT_PATH}/${surface}/${n}`),
             null,
             2,
         ),

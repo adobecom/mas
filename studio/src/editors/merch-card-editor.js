@@ -1427,20 +1427,25 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
-                .fragment-title-header {
+                #fragment-title-header {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    margin-bottom: 12px;
                     font-size: 12px;
                     font-weight: 700;
                     color: var(--spectrum-gray-900);
                 }
 
-                .fragment-title-header::after {
+                #fragment-title-header::after {
                     content: '';
                     flex: 1;
                     border-top: 1px solid currentColor;
+                }
+
+                #fragment-title-header,
+                #fragment-description-group,
+                #fragment-title-group {
+                    grid-column: 1 / -1;
                 }
 
                 .fragment-title-fields {
@@ -1655,8 +1660,17 @@ class MerchCardEditor extends LitElement {
                         ></sp-textfield>
                         ${this.renderFieldStatusIndicator('cardName')}
                     </sp-field-group>
+                    <div id="fragment-title-header">Fragment title</div>
+                    <sp-field-group id="fragment-description-group">
+                        <sp-field-label for="fragment-description">Fragment description</sp-field-label>
+                        <sp-textfield
+                            placeholder="Enter fragment description"
+                            id="fragment-description"
+                            value="${this.fragment.description}"
+                            @input="${this.#handleFragmentDescriptionUpdate}"
+                        ></sp-textfield>
+                    </sp-field-group>
                     <sp-field-group id="fragment-title-group">
-                        <div class="fragment-title-header">Fragment title</div>
                         <div class="fragment-title-fields">
                             <div>
                                 <sp-field-label for="fragment-title-org" required>Org</sp-field-label>
@@ -1685,15 +1699,6 @@ class MerchCardEditor extends LitElement {
                             </div>
                         </div>
                         <sp-help-text id="fragment-title-preview">${composeFragmentTitle(this.#titleParts)}</sp-help-text>
-                    </sp-field-group>
-                    <sp-field-group id="fragment-description-group">
-                        <sp-field-label for="fragment-description">Fragment description</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter fragment description"
-                            id="fragment-description"
-                            value="${this.fragment.description}"
-                            @input="${this.#handleFragmentDescriptionUpdate}"
-                        ></sp-textfield>
                     </sp-field-group>
                     <sp-field-group id="fragment-enable-baselines-group">
                         <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>

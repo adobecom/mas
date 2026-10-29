@@ -69,8 +69,10 @@ The configuration CI check does not need secrets, call a model, launch real
 preview servers, or publish a PR. Model availability must additionally be
 verified in the runtime environment.
 
-The `unit-tests` gate runs `npm test` across all workspaces on every
-candidate; a failure is blocking and sends the candidate back to be rebuilt.
+The `unit-tests` gate runs `.pinata/scripts/run-affected-tests.mjs` on every
+candidate: it tests only the workspaces the change touches (in studio, the
+tests that mention the changed files). The full suite takes ~8 min and runs in
+CI. A failure is blocking and sends the candidate back to be rebuilt.
 It was disabled on 2026-08-17 for order-dependent suite failures and
 re-enabled on 2026-10-01. MAS's existing unit-test CI remains unchanged and
 must still pass before merge.

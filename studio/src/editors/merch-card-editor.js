@@ -108,13 +108,6 @@ const VARIANT_RTE_MARKS = {
 /** Basic format buttons allowed on FAQ's 3 answer fields (bold, italic, underline only). */
 const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
 
-/** Marquee/FAQ/Banner-Blade templates don't offer a "Send to translation?" toggle. */
-const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
-    VARIANT_NAMES.MARQUEE,
-    VARIANT_NAMES.FAQ,
-    VARIANT_NAMES.BANNER_BLADE,
-]);
-
 class MerchCardEditor extends LitElement {
     static properties = {
         currentVariantMapping: { type: Object, attribute: false },
@@ -1640,18 +1633,6 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
                     </sp-field-group>
-                    ${HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY.has(variantValue)
-                        ? nothing
-                        : html`
-                              <sp-field-group id="fragment-locready-group">
-                                  <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
-                                  <sp-switch
-                                      id="fragment-locready"
-                                      ?checked="${form.locReady?.values[0]}"
-                                      @click="${this.#handleLocReady}"
-                                  ></sp-switch>
-                              </sp-field-group>
-                          `}
                     <sp-field-group id="fragment-enable-baselines-group">
                         <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>
                         <sp-switch
@@ -2201,11 +2182,6 @@ class MerchCardEditor extends LitElement {
 
     #handleFragmentDescriptionUpdate(e) {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
-    }
-
-    #handleLocReady() {
-        const value = !this.fragment.getField('locReady')?.values[0];
-        this.fragmentStore.updateField('locReady', [value]);
     }
 
     #handleEnableBaselines() {

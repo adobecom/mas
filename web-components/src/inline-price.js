@@ -325,7 +325,11 @@ export async function resolvePriceOffers(
     }
 
     // Dual-OSI discount: use individual prices for cross-offer percentage
-    if (options.template === 'discount' && offers.length === 2) {
+    if (
+        (options.template === 'discount' ||
+            options.template === 'discount-amount') &&
+        offers.length === 2
+    ) {
         const [discountedOffer, referenceOffer] = offers;
         return [
             {

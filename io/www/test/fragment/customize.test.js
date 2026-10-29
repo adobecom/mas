@@ -4,12 +4,13 @@ import { createResponse } from './mocks/MockFetch.js';
 import { MockState } from './mocks/MockState.js';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { deepMerge, transformer as customize } from '../../src/fragment/transformers/customize.js';
-import { updateOffers } from '../../src/fragment/transformers/wcs.js';
+import { updateOffers, transformer as wcs } from '../../src/fragment/transformers/wcs.js';
 import { resolveCountdownTimer } from '../../src/fragment/transformers/corrector.js';
 import { transformer as defaultLanguage } from '../../src/fragment/transformers/defaultLanguage.js';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../src/fragment/utils/explicit-empty.js';
 import FRAGMENT_RESPONSE_FR from './mocks/fragment-fr.json' with { type: 'json' };
 import FRAGMENT_COLL_RESPONSE_US from './mocks/collection-customization.json' with { type: 'json' };
+import DICTIONARY_RESPONSE from './mocks/dictionaryForCollection.json' with { type: 'json' };
 
 const FAKE_CONTEXT = {
     status: 200,
@@ -914,6 +915,7 @@ describe('customize collections', function () {
         // referencesTree should reflect the merged cards: card-b removed, order updated
         const cardEntries = result.body.referencesTree.filter((e) => e.fieldName === 'cards');
         expect(cardEntries.map((e) => e.identifier)).to.deep.equal(['card-c', 'card-a', 'card-d']);
+        expect(result.body.references).to.have.all.keys('card-a', 'card-c', 'card-d');
     });
 
     it('should create stub referencesTree entry for a card added by a variation that had no entry in original tree', async function () {
@@ -1417,6 +1419,146 @@ async function processWithPromoProjects(context, promoProjects) {
     updateOffers(result);
     return result;
 }
+
+describe('customize active grouped references', function () {
+    let body;
+
+    beforeEach(function () {
+        fetchStub = sinon.stub(globalThis, 'fetch').returns(createResponse(200, { resolvedOffers: [{ price: 100 }] }));
+        const reference = (id, fields, path = id) => ({
+            type: 'content-fragment',
+            value: { id, path: `/content/dam/mas/sandbox/en_US/${path}`, fields },
+        });
+        const entry = (fieldName, identifier, referencesTree = []) => ({ fieldName, identifier, referencesTree });
+        const price = (promo) => `<span data-wcs-osi="SHARED-OSI"${promo ? ` data-promotion-code="${promo}"` : ''}></span>`;
+        body = {
+            id: 'root',
+            path: '/content/dam/mas/sandbox/en_US/root',
+            fields: { collections: ['collection'] },
+            references: {
+                collection: reference('collection', { cards: ['card'], variations: ['inactive-collection'] }),
+                'inactive-collection': reference(
+                    'inactive-collection',
+                    { pznTags: ['mas:pzn/country/GB'], cards: ['inactive-card', 'card'] },
+                    'collection/pzn/gb',
+                ),
+                'inactive-card': reference('inactive-card', { prices: price('INACTIVE-CHILD') }),
+                card: reference('card', {
+                    osi: 'SHARED-OSI',
+                    prices: price(),
+                    variations: ['active', 'inactive'],
+                    tags: ['tag'],
+                }),
+                active: reference('active', { pznTags: ['mas:pzn/country/AR'], prices: price('ACTIVE') }, 'card/pzn/ar'),
+                inactive: reference('inactive', { pznTags: ['mas:pzn/country/GB'], prices: price('INACTIVE') }, 'card/pzn/gb'),
+                tag: { type: 'tag', value: { id: 'tag', title: 'Card tag' } },
+            },
+            referencesTree: [
+                entry('collections', 'collection', [
+                    entry('cards', 'card', [
+                        entry('variations', 'active'),
+                        entry('variations', 'inactive'),
+                        entry('tags', 'tag'),
+                    ]),
+                    entry('variations', 'inactive-collection', [entry('cards', 'inactive-card'), entry('cards', 'card')]),
+                ]),
+            ],
+        };
+    });
+
+    afterEach(function () {
+        fetchStub.restore();
+    });
+
+    it('preserves active dictionary subtrees while removing nested variation branches', async function () {
+        const dictionary = structuredClone(DICTIONARY_RESPONSE);
+        const [entry, nestedEntry] = dictionary.referencesTree;
+        const references = dictionary.references;
+        dictionary.fields.entries = [entry.identifier];
+        references[entry.identifier].value.fields.entries = [nestedEntry.identifier];
+        const activeTree = [{ ...entry, referencesTree: [{ fieldName: 'entries', identifier: nestedEntry.identifier }] }];
+        dictionary.references = { ...references, inactive: body.references.inactive };
+        dictionary.referencesTree = [
+            {
+                ...activeTree[0],
+                referencesTree: [
+                    ...activeTree[0].referencesTree,
+                    { fieldName: 'variations', identifier: 'inactive', referencesTree: [] },
+                ],
+            },
+        ];
+        const result = await process({
+            ...FAKE_CONTEXT,
+            surface: 'acom',
+            fragmentPath: 'dictionary/index',
+            locale: 'en_US',
+            body: dictionary,
+        });
+
+        expect(result.body.references).to.deep.equal(references);
+        expect(result.body.referencesTree).to.deep.equal(activeTree);
+    });
+
+    for (const [country, promo] of [
+        ['AR', 'ACTIVE'],
+        ['CA', null],
+    ]) {
+        it(`only prices the effective card for ${country}, excluding inactive grouped branches`, async function () {
+            const result = await process({
+                ...FAKE_CONTEXT,
+                debugLogs: false,
+                fragmentPath: 'root',
+                locale: 'en_US',
+                country,
+                body,
+            });
+            result.promises.wcs = Promise.resolve([]);
+            result.wcsConfiguration = [{ env: 'prod', wcsURL: 'https://www.adobe.com/web_commerce_artifact' }];
+
+            await wcs.process(result);
+
+            expect(fetchStub.callCount).to.equal(1);
+            const params = new URL(fetchStub.firstCall.args[0]).searchParams;
+            expect(params.get('offer_selector_ids')).to.equal('SHARED-OSI');
+            expect(params.get('promotion_code')).to.equal(promo);
+            expect(result.body.wcs.prod).to.have.all.keys(`SHARED-OSI-${country.toLowerCase()}-mult${promo ? '-active' : ''}`);
+            expect(result.body.references).to.have.all.keys('collection', 'card', 'tag');
+            expect(result.body.references.card.value.variationId).to.equal(promo ? 'active' : undefined);
+            const cardEntries = result.body.referencesTree[0].referencesTree;
+            expect(cardEntries.map(({ identifier }) => identifier)).to.deep.equal(['card']);
+            expect(cardEntries[0].referencesTree).to.deep.equal([{ fieldName: 'tags', identifier: 'tag', referencesTree: [] }]);
+        });
+    }
+
+    it('keeps the selected promo price without pricing the unused grouped variations', async function () {
+        const result = await processWithPromos(
+            { ...FAKE_CONTEXT, debugLogs: false, fragmentPath: 'root', locale: 'en_US', country: 'AR', body },
+            {
+                id: 'sale',
+                fragmentPaths: ['card'],
+                defaultVariations: {
+                    card: {
+                        id: 'promo-card',
+                        fields: {
+                            prices: '<span data-wcs-osi="SHARED-OSI" data-promotion-code="PROJECT"></span>',
+                        },
+                    },
+                },
+                regionVariations: {},
+            },
+            { 'SHARED-OSI': 'PROJECT' },
+        );
+        result.promises.wcs = Promise.resolve([]);
+        result.wcsConfiguration = [{ env: 'prod', wcsURL: 'https://www.adobe.com/web_commerce_artifact' }];
+
+        await wcs.process(result);
+
+        expect(fetchStub.callCount).to.equal(1);
+        expect(new URL(fetchStub.firstCall.args[0]).searchParams.get('promotion_code')).to.equal('PROJECT');
+        expect(result.body.references.card.value.variationId).to.equal('promo-card');
+        expect(result.body.wcs.prod).to.have.all.keys('SHARED-OSI-ar-mult-project');
+    });
+});
 
 describe('customize typical cases', function () {
     beforeEach(function () {
@@ -4363,7 +4505,7 @@ describe('countdown timer dates', function () {
                 body: {
                     id: 'collection-cdt',
                     path: '/content/dam/mas/sandbox/en_US/collection-cdt',
-                    fields: { cards: ['card-1', 'card-2'], collections: ['sub'] },
+                    fields: { cards: ['card-1', 'card-2', 'card-plain'], collections: ['sub'] },
                     references: {
                         'card-1': makeCard('card-1', { osi: 'OSI-1', description: CDT_LINK }),
                         'card-2': makeCard('card-2', { osi: 'OSI-2', description: CDT_LINK }),

@@ -8,6 +8,7 @@ import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+const BASELINES_HASH_LINK = { hashKeyPrefix: 'baselines.', page: PAGE_NAMES.BASELINES };
 
 // Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
 // (programmatic nav only) never runs — mapped to the permission gate for reaching them.
@@ -423,15 +424,17 @@ export class Router extends EventTarget {
      * @param {boolean} isObject - Whether the store value is an object
      * @param {string[]} keysArray - The keys to sync
      * @param {any} defaultValue - The default value to use if the key is not in the hash
+     * @param {{ hashKeyPrefix?: string }} [options] - hashKeyPrefix maps store key `k` to hash key `${hashKeyPrefix}k`
      * @returns {boolean} Whether the store was updated
      */
-    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
+    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined, { hashKeyPrefix = '' } = {}) {
         this.currentParams ??= new URLSearchParams(this.#hashValue());
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
 
         for (const key of keysArray) {
-            if (this.currentParams.has(key)) {
-                const value = this.currentParams.get(key);
+            const hashKey = `${hashKeyPrefix}${key}`;
+            if (this.currentParams.has(hashKey)) {
+                const value = this.currentParams.get(hashKey);
                 let parsedValue;
                 try {
                     parsedValue = JSON.parse(value);
@@ -466,31 +469,35 @@ export class Router extends EventTarget {
      * @param {ReactiveStore} store - The store to link
      * @param {string|string[]} keys - The key(s) to link
      * @param {any} defaultValue - The default value to use if the key is not in the hash
+     * @param {{ hashKeyPrefix?: string, page?: string }} [options]
+     *   hashKeyPrefix - maps store key `k` to hash key `${hashKeyPrefix}k`, avoiding collisions with other linked stores
+     *   page - links the store only while this page is active; its hash keys are dropped when another page is shown
      */
-    linkStoreToHash(store, keys, defaultValue) {
+    linkStoreToHash(store, keys, defaultValue, { hashKeyPrefix = '', page } = {}) {
         const getDefaultValue = defaultValueGetter(defaultValue);
         store.set(getDefaultValue());
         const keysArray = Array.isArray(keys) ? keys : [keys];
+        const link = { store, keysArray, defaultValue, hashKeyPrefix, page };
 
         // Store the link configuration for later use with popstate
-        this.linkedStores.push({
-            store,
-            keysArray,
-            defaultValue,
-        });
+        this.linkedStores.push(link);
 
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
         // Initial sync from hash to store
-        this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue);
+        if (this.#isLinkActive(link)) {
+            this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue, { hashKeyPrefix });
+        }
 
         const self = this;
         store.subscribe((value) => {
+            if (!self.#isLinkActive(link)) return;
             self.currentParams ??= new URLSearchParams(self.#hashValue());
 
-            for (const key of keysArray) {
+            for (const storeKey of keysArray) {
+                const key = `${hashKeyPrefix}${storeKey}`;
                 const hadParamBeforeUpdate = self.currentParams.has(key);
-                const storeValue = isObject ? value?.[key] : value;
+                const storeValue = isObject ? value?.[storeKey] : value;
 
                 if (Array.isArray(storeValue) && storeValue.length === 0) {
                     if (self.currentParams.has(key)) {
@@ -513,12 +520,13 @@ export class Router extends EventTarget {
                 }
 
                 const defaultValue = getDefaultValue();
-                const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
+                const defaultValueToCompare = isObject ? defaultValue?.[storeKey] : defaultValue;
                 const currentParamValue = self.currentParams.get(key);
                 if (currentParamValue === String(defaultValueToCompare) && currentParamValue !== PAGE_NAMES.WELCOME) {
                     self.currentParams.delete(key);
                 }
             }
+            self.#dropInactivePageScopedParams();
             for (const [key, value] of self.currentParams.entries()) {
                 if (!value || value === '') {
                     self.currentParams.delete(key);
@@ -529,6 +537,17 @@ export class Router extends EventTarget {
             }
             self.updateHistory();
         });
+    }
+
+    #isLinkActive({ page }) {
+        return !page || Store.page.value === page;
+    }
+
+    #dropInactivePageScopedParams() {
+        for (const link of this.linkedStores) {
+            if (this.#isLinkActive(link)) continue;
+            for (const key of link.keysArray) this.currentParams.delete(`${link.hashKeyPrefix}${key}`);
+        }
     }
 
     start() {
@@ -552,6 +571,8 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
+        this.linkStoreToHash(Store.baselines.search, ['query'], {}, BASELINES_HASH_LINK);
+        this.linkStoreToHash(Store.baselines.filters, ['tags', 'paCodes', 'createdBy'], {}, BASELINES_HASH_LINK);
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
         if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
@@ -631,10 +652,12 @@ export class Router extends EventTarget {
             const normalizedLocaleRegion = this.#normalizeLocaleRegionFromHash();
 
             // Sync all linked stores from the current hash
-            this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
+            this.linkedStores.forEach((link) => {
+                if (!this.#isLinkActive(link)) return;
+                const { store, keysArray, defaultValue, hashKeyPrefix } = link;
                 const currentValue = store.get();
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
-                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
+                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue, { hashKeyPrefix });
             });
 
             this.#clearRedundantRegionOverride();

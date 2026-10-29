@@ -123,6 +123,70 @@ describe('Promotion version history', () => {
         await element.updateComplete;
     }
 
+    function createdPromoVersion(pznTags) {
+        const promo = {
+            id: 'created-promo',
+            path: '/content/dam/mas/acom/en_US/promotions/sale/photoshop',
+            title: 'Photoshop summer promo',
+            tags: [],
+            fields: [
+                { name: 'cardTitle', values: ['Promo heading'] },
+                { name: 'promoCode', values: ['SUMMER'] },
+                { name: 'pznTags', values: pznTags },
+            ],
+        };
+        getVersion.withArgs(promo.id, 'created-version').resolves(promo);
+        getVersion.withArgs('default-card', 'default-version').resolves({
+            id: 'default-card',
+            path: '/content/dam/mas/acom/en_US/photoshop',
+            title: 'Default card',
+            fields: [
+                { name: 'cardTitle', values: ['Photoshop Individual'] },
+                { name: 'variant', values: ['mini-compare-chart'] },
+            ],
+        });
+        getWithEtag.withArgs(promo.id).resolves({
+            ...promo,
+            title: 'Renamed later',
+            fields: [{ name: 'pznTags', values: ['mas:pzn/country/US'] }],
+            etag: '"later"',
+        });
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    action: 'create',
+                    targetId: promo.id,
+                    changes: [
+                        {
+                            fragmentId: promo.id,
+                            path: promo.path,
+                            field: '@title',
+                            before: null,
+                            after: promo.title,
+                            category: 'fragments',
+                        },
+                        ...promo.fields.map((field) => ({
+                            fragmentId: promo.id,
+                            path: promo.path,
+                            field: field.name,
+                            before: null,
+                            after: field.values,
+                            category: 'fragments',
+                        })),
+                    ],
+                    beforeSnapshot: { fragments: [] },
+                    afterSnapshot: {
+                        fragments: [{ id: promo.id, path: promo.path, versionId: 'created-version' }],
+                        inheritance: [{ fragmentId: promo.id, id: 'default-card', versionId: 'default-version' }],
+                    },
+                },
+            ],
+            currentEventId: version.id,
+        });
+        return promo;
+    }
+
     it('retains the saved author and timestamp on version cards', async () => {
         const root = await mount();
         const card = root.querySelector(`[data-event-id="${version.id}"]`);
@@ -161,10 +225,11 @@ describe('Promotion version history', () => {
     it('disables undo for fields that have changed again', async () => {
         getWithEtag.resolves({ ...after, title: 'Changed again', etag: '"later"' });
 
-        await mount();
+        const root = await mount();
 
         expect(element.eligibleRows.some((row) => row.field === '@title')).to.be.false;
         expect(element.eligibleRows.some((row) => row.field === 'promoCode')).to.be.true;
+        expect(root.textContent).not.to.include('This field has changed since this event. Review newer changes.');
     });
 
     it('can undo a field that was introduced after the historical version', async () => {
@@ -255,12 +320,19 @@ describe('Promotion version history', () => {
         await selectCode(root);
 
         expect(root.querySelector('#restore-confirmation')).not.to.be.null;
+        expect(root.querySelector('#restore-confirmation p').textContent).to.equal(
+            'Do you want to continue to restore selected changes?',
+        );
         expect(client.restorePromotionHistory.called).to.be.false;
     });
 
-    it('blocks the history and shows restore progress until the refreshed version has loaded', async () => {
+    it('removes restore progress before notifying success without waiting for history to refresh', async () => {
         const root = await mount();
         await selectCode(root);
+        let overlayAtNotification;
+        const toast = sandbox.stub(Events.toast, 'emit').callsFake(() => {
+            overlayAtNotification = root.querySelector('.restore-overlay');
+        });
         let finishRestore;
         let finishHistory;
         const restore = new Promise((resolve) => {
@@ -283,7 +355,10 @@ describe('Promotion version history', () => {
         finishRestore({ restored: [before.id], event: { ...version, id: 'version-3', version: 3 } });
         await waitUntil(() => client.listPromotionHistory.callCount === 2);
         await element.updateComplete;
-        expect(root.querySelector('.restore-overlay')).not.to.be.null;
+        expect(root.querySelector('.restore-overlay')).to.be.null;
+        expect(root.querySelector('.history-layout').inert).to.be.false;
+        expect(toast.calledWithMatch({ variant: 'positive' })).to.be.true;
+        expect(overlayAtNotification).to.be.null;
 
         finishHistory({ events: [{ ...version, id: 'version-3', version: 3 }], currentEventId: 'version-3' });
         await pending;
@@ -474,6 +549,42 @@ describe('Promotion version history', () => {
         expect(new URLSearchParams(section.querySelector('a.fragment-link').hash.slice(1)).get('fragmentId')).to.equal(
             promo.id,
         );
+    });
+
+    it('summarizes promo creation as one addition under its default card without listing its fields', async () => {
+        const promo = createdPromoVersion(['mas:pzn/country/GB', 'mas:pzn/country/DE']);
+
+        const root = await mount();
+        const section = root.querySelector('[aria-label="Fragments"]');
+
+        expect(section.querySelector('.fragment-heading strong').textContent).to.equal('Photoshop Individual');
+        expect(section.querySelectorAll('.change-row')).to.have.length(1);
+        expect(section.querySelector('.change-count').textContent).to.equal('1 added');
+        expect(section.querySelector('.change-badge').textContent.trim()).to.equal('Added');
+        expect(section.querySelector('.field-label').textContent).to.equal('Promo variation:');
+        expect(section.querySelector('.fragment-name').textContent).to.equal(promo.title);
+        expect(section.textContent).to.include('Applies to 2 countries: GB, DE');
+        expect(section.textContent).not.to.include('Promo heading');
+        expect(section.textContent).not.to.include('SUMMER');
+        expect(section.querySelector('.fragment-path')).to.be.null;
+        expect(new URLSearchParams(section.querySelector('.fragment-link').hash.slice(1)).get('fragmentId')).to.equal(promo.id);
+        expect(element.selectedEvent.changes).to.have.length(4);
+        expect(element.eligibleRows).to.deep.equal([]);
+    });
+
+    it('labels a created promo without geo tags Baseline using its saved version rather than its later state', async () => {
+        const promo = createdPromoVersion([]);
+
+        const root = await mount();
+        const section = root.querySelector('[aria-label="Fragments"]');
+
+        expect(section.querySelectorAll('.change-row')).to.have.length(1);
+        expect(section.querySelector('.fragment-name').textContent).to.equal(promo.title);
+        expect(section.textContent).to.include('Baseline');
+        expect(section.textContent).not.to.include('Applies to');
+        expect(section.textContent).not.to.include('Renamed later');
+        expect(section.querySelector('.change-count').textContent).to.equal('1 added');
+        expect(element.canRestore).to.be.false;
     });
 
     it('reports unavailable referenced fragments without linking to the project as if it were the fragment', async () => {

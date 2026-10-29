@@ -246,7 +246,27 @@ export class MasPromotionHistory extends LitElement {
         );
     }
 
+    presentationChanges(event) {
+        if (event.action !== 'create') return event.changes;
+        const creations = (event.afterSnapshot?.fragments ?? []).filter(
+            (fragment) => fragment.id !== event.projectId && isPromoVariationPath(fragment.path),
+        );
+        return [
+            ...event.changes.filter((change) => !creations.some((fragment) => fragment.id === change.fragmentId)),
+            ...creations.map((fragment) => ({
+                fragmentId: fragment.id,
+                path: fragment.path,
+                field: '@id',
+                before: null,
+                after: fragment.id,
+                category: 'fragments',
+                promoCreation: true,
+            })),
+        ];
+    }
+
     async preparePresentation(event) {
+        const changes = this.presentationChanges(event);
         const beforeManifest = event.beforeSnapshot;
         const unavailableParents = new Set(
             [...(beforeManifest?.inheritanceUnavailable ?? []), ...(event.afterSnapshot?.inheritanceUnavailable ?? [])].map(
@@ -266,7 +286,7 @@ export class MasPromotionHistory extends LitElement {
         } catch {
             return {
                 ...event,
-                displayChanges: event.changes,
+                displayChanges: changes,
                 comparisonWarning: 'Inherited values could not be loaded. Raw stored differences are shown; reload to retry.',
             };
         }
@@ -274,7 +294,7 @@ export class MasPromotionHistory extends LitElement {
             beforeParents.delete(id);
             afterParents.delete(id);
         }
-        const displayChanges = event.changes
+        const displayChanges = changes
             .map((change) => ({
                 ...change,
                 rawAfter: change.after,
@@ -418,7 +438,8 @@ export class MasPromotionHistory extends LitElement {
                 key,
                 category: categoryLabels.get(change.category?.toLowerCase()) ?? 'Fragments',
                 restorable: Boolean(
-                    this.restoreSnapshot?.fragments.length &&
+                    !change.promoCreation &&
+                        this.restoreSnapshot?.fragments.length &&
                         fragment &&
                         !conflicted &&
                         JSON.stringify(this.fieldValue(current.get(change.fragmentId), change.field)) !==
@@ -508,22 +529,24 @@ export class MasPromotionHistory extends LitElement {
         const country =
             row.field === 'pznTags' || (row.field === 'fragments' && !promo && Fragment.isGroupedVariationPath(path));
         const countries = this.fieldValue(fragment, 'pznTags').map((value) => this.formatValue(value, 'pznTags'));
-        const referenceOnly = row.field === 'fragments' && !country;
+        const referenceOnly = row.promoCreation || (row.field === 'fragments' && !country);
         return {
             ...row,
             displayKey: JSON.stringify([row.key, path]),
             groupFragment: detail?.parent ?? fragment,
             referenceLabel: country ? 'Country' : promo ? 'Promo variation' : referenceOnly ? 'Fragment' : row.label,
-            referenceTitle: this.fragmentTitle(fragment, detail?.parent),
+            referenceTitle: row.promoCreation ? fragment?.title : this.fragmentTitle(fragment, detail?.parent),
             referencePath: path,
-            referenceDescription: fragment ? this.fragmentDisplayPath(fragment) || path : path,
+            referenceDescription: row.promoCreation ? '' : fragment ? this.fragmentDisplayPath(fragment) || path : path,
             referenceOnly,
             referenceField: promo && !referenceOnly && !country ? row.label : '',
             referenceContext: country
                 ? `Applies to ${promo ? 'promo variation' : 'fragment'}:`
                 : countries.length
                   ? `Applies to ${countries.length} countries:`
-                  : '',
+                  : row.promoCreation && fragment
+                    ? 'Baseline'
+                    : '',
             referenceContextValue: country ? this.fragmentTitle(fragment, detail?.parent) : countries.join(', '),
             detailsUnavailable: detail?.unavailable,
             linkTarget: fragment?.id ? { fragmentId: fragment.id, path } : null,
@@ -686,6 +709,8 @@ export class MasPromotionHistory extends LitElement {
         try {
             const result = await this.client.restorePromotionHistory(projectId, eventId, options);
             this.operating = false;
+            this.restoring = false;
+            await this.updateComplete;
             if (projectId !== this.projectId || !this.isConnected) return;
             const failed = result.failures?.length ?? 0;
             Events.toast.emit({
@@ -809,9 +834,11 @@ export class MasPromotionHistory extends LitElement {
                                       <span class="muted">${row.referenceField ? `${row.referenceField}:` : nothing}</span>`
                                 : nothing}
                             ${row.referenceOnly
-                                ? html`<span class="fragment-path" title=${row.referencePath}
-                                      >${row.referenceDescription}</span
-                                  >`
+                                ? row.referenceDescription
+                                    ? html`<span class="fragment-path" title=${row.referencePath}
+                                          >${row.referenceDescription}</span
+                                      >`
+                                    : nothing
                                 : segment.values
                                   ? html`<span class="value-tags ${segment.kind === 'removed' ? 'before' : 'after'}">
                                         ${repeat(
@@ -849,9 +876,6 @@ export class MasPromotionHistory extends LitElement {
                     `,
                 )}
                 ${unavailable ? html`<small class="row-warning">Unavailable — cannot restore</small>` : nothing}
-                ${row.conflicted
-                    ? html`<small class="row-warning">This field has changed since this event. Review newer changes.</small>`
-                    : nothing}
                 ${row.detailsUnavailable ? html`<small class="row-warning">Fragment details unavailable</small>` : nothing}
             </div>
         `;
@@ -997,7 +1021,7 @@ export class MasPromotionHistory extends LitElement {
                     this.confirmation = '';
                 }}
             >
-                <p>Do you want to continue to restore selected changes? Only the draft will be updated.</p>
+                <p>Do you want to continue to restore selected changes?</p>
             </sp-dialog-wrapper>
         `;
     }

@@ -1454,6 +1454,11 @@ class MerchCardEditor extends LitElement {
                     gap: 12px;
                 }
 
+                .fragment-title-fields sp-picker,
+                .fragment-title-fields sp-textfield {
+                    width: 100%;
+                }
+
                 .tags-spacing {
                     margin: 0;
                 }

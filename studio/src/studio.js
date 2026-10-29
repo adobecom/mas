@@ -233,13 +233,7 @@ class MasStudio extends LitElement {
     get promotionsHistory() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_HISTORY) return nothing;
         if (!this.#lazyLoad('mas-promotion-history', './promotions/mas-promotion-history.js')) return nothing;
-        return html`<mas-promotion-history
-            .projectId=${Store.promotions.promotionId.get()}
-            @history-back=${() => {
-                Store.promotions.inEdit.set(null);
-                router.navigateToPage(PAGE_NAMES.PROMOTIONS_EDITOR)();
-            }}
-        ></mas-promotion-history>`;
+        return html`<mas-promotion-history .projectId=${Store.promotions.promotionId.get()}></mas-promotion-history>`;
     }
 
     get translation() {

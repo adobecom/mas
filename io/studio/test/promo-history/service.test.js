@@ -677,6 +677,24 @@ describe('Promotion history', () => {
         expect((await call('list', { limit: 1, cursor: page.cursor })).events).to.have.length(1);
     });
 
+    it('numbers versions chronologically before searching and paginating', async () => {
+        const backup = await legacyBackup();
+        const creation = { ...backup, id: 'creation', action: 'create', createdAt: '2026-01-01T10:00:00Z' };
+        const saved = { ...backup, id: 'saved', action: 'save', createdAt: '2026-01-02T10:00:00Z' };
+        stored.clear();
+        for (const event of [saved, creation]) {
+            stored.set(`promo-history.${PROJECT}.event.${event.id}`, JSON.stringify(event));
+        }
+
+        const page = await call('list', { limit: 1 });
+        const next = await call('list', { limit: 1, cursor: page.cursor });
+        const searched = await call('list', { query: 'creation' });
+
+        expect(page.events[0]).to.include({ id: 'saved', version: 2 });
+        expect(next.events[0]).to.include({ id: 'creation', version: 1 });
+        expect(searched.events[0]).to.include({ id: 'creation', version: 1 });
+    });
+
     it('preflights all ETags and does no writes on conflict', async () => {
         const event = await legacyBackup();
         await expectError(

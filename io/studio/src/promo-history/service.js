@@ -514,6 +514,8 @@ function list(events, params) {
     }
     if (params.query) text(params.query, 'query', 200);
     let filtered = events
+        .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
+        .map((event, index) => ({ ...event, version: index + 1 }))
         .filter(
             (event) =>
                 (!params.user || [event.user.id, event.user.email].includes(params.user)) &&

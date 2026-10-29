@@ -83,12 +83,12 @@ export const promotionHistoryStyles = css`
         overflow-wrap: anywhere;
     }
 
-    .history-card.current {
-        border-color: var(--spectrum-green-600, #009c59);
-    }
-
     .history-card.selected {
         border-color: var(--spectrum-indigo-600, #5258ff);
+    }
+
+    .history-card.current {
+        border-color: var(--spectrum-green-600, #009c59);
     }
 
     .history-card:focus-visible,
@@ -123,9 +123,14 @@ export const promotionHistoryStyles = css`
         line-height: 21px;
     }
 
+    .version-label {
+        font-size: 12px;
+        line-height: 18px;
+    }
+
     .version-author {
-        font-size: 18px;
-        line-height: 22px;
+        font-size: 16px;
+        line-height: 20px;
     }
 
     .card-summary {
@@ -134,7 +139,7 @@ export const promotionHistoryStyles = css`
         flex-wrap: wrap;
         gap: 4px;
         margin-top: auto;
-        padding-top: 24px;
+        padding-top: 16px;
         font-size: 14px;
     }
 
@@ -349,45 +354,22 @@ export const promotionHistoryStyles = css`
         margin-top: 20px;
     }
 
-    .history-filters {
-        margin-top: 12px;
-        font-size: 12px;
-    }
-
-    .history-filters summary {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        width: fit-content;
-        cursor: pointer;
-        list-style: none;
-    }
-
-    .history-filters summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .history-filters form {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 12px;
-    }
-
-    .filter-active {
-        color: var(--spectrum-blue-800, #0265dc);
-    }
-
-    .filter sp-textfield {
-        width: 100%;
-    }
-
-    .sidebar-tools {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 16px;
+    #restore-confirmation {
+        --mod-dialog-confirm-small-width: 480px;
+        --mod-dialog-min-inline-size: min(480px, calc(100vw - 32px));
+        --mod-dialog-confirm-padding-grid: 32px;
+        --mod-modal-confirm-border-radius: 16px;
+        --mod-dialog-confirm-title-text-size: 20px;
+        --mod-dialog-confirm-description-text-size: 14px;
+        --mod-dialog-confirm-divider-block-spacing-start: 8px;
+        --mod-dialog-confirm-divider-block-spacing-end: 8px;
+        --mod-dialog-confirm-divider-height: 0px;
+        --mod-dialog-confirm-buttongroup-padding-top: 20px;
+        --mod-icon-color: var(--spectrum-orange-800, #d55a00);
+        --spectrum-accent-background-color-default: var(--spectrum-gray-900, #292929);
+        --spectrum-accent-background-color-hover: var(--spectrum-gray-1000, #000);
+        --spectrum-accent-background-color-key-focus: var(--spectrum-gray-1000, #000);
+        --spectrum-accent-background-color-down: var(--spectrum-gray-1000, #000);
     }
 
     .empty,

@@ -371,20 +371,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     versionLabel(event) {
-        if (event.label && event.label !== event.createdAt) return event.label;
-        if (event.version) return `Version ${event.version}`;
-        return (
-            {
-                create: 'Project created',
-                duplicate: 'Project duplicated',
-                save: 'Saved changes',
-                restore: 'Restored changes',
-                publish: 'Published',
-                unpublish: 'Unpublished',
-                delete: 'Deleted',
-                backup: 'Backup',
-            }[event.action] ?? 'Version'
-        );
+        return `Version ${event.version}`;
     }
 
     toggleGroup(label) {
@@ -472,9 +459,12 @@ export class MasPromotionHistory extends LitElement {
         const failed = result.failures?.length ?? 0;
         Events.toast.emit({
             variant: failed ? 'warning' : 'positive',
-            message: `Restored ${result.restored.length} fragment(s) as a draft. Audit event ${result.event.id}. Nothing published.${
-                failed ? ` ${failed} fragment(s) could not be restored.` : ''
-            }`,
+            message:
+                !full && !failed
+                    ? 'Selected changes have been successfully restored.'
+                    : `Restored ${result.restored.length} fragment(s) as a draft. Audit event ${result.event.id}. Nothing published.${
+                          failed ? ` ${failed} fragment(s) could not be restored.` : ''
+                      }`,
         });
         this.dispatchEvent(new CustomEvent('history-restored', { bubbles: true, composed: true, detail: result }));
         this.currentEventId = result.event.id;
@@ -485,46 +475,6 @@ export class MasPromotionHistory extends LitElement {
         return html`
             <h1>Version history</h1>
             ${this.searchTemplate}
-        `;
-    }
-
-    get filterTemplate() {
-        const fields = [
-            ['user', 'User', 'text'],
-            ['from', 'From date', 'date'],
-            ['to', 'To date', 'date'],
-            ['action', 'Action', 'text'],
-            ['fragmentId', 'Fragment', 'text'],
-        ];
-        return html`
-            <details class="history-filters">
-                <summary>
-                    <sp-icon-filter size="s"></sp-icon-filter>
-                    Filters
-                    ${Object.entries(this.filters).some(([name, value]) => name !== 'query' && value)
-                        ? html`<span class="filter-active">Applied</span>`
-                        : nothing}
-                </summary>
-                <form aria-label="History filters" @submit=${this.applyFilters}>
-                    ${repeat(
-                        fields,
-                        ([name]) => name,
-                        ([name, label, type]) => html`
-                            <div class="filter">
-                                <sp-field-label for=${`history-filter-${name}`}>${label}</sp-field-label>
-                                <sp-textfield
-                                    id=${`history-filter-${name}`}
-                                    name=${name}
-                                    type=${type}
-                                    .value=${this.filters[name] ?? ''}
-                                    ?disabled=${this.busy}
-                                ></sp-textfield>
-                            </div>
-                        `,
-                    )}
-                    <sp-button type="submit" variant="secondary" ?disabled=${this.busy}>Apply filters</sp-button>
-                </form>
-            </details>
         `;
     }
 
@@ -566,20 +516,17 @@ export class MasPromotionHistory extends LitElement {
                     by ${event.user.name || event.user.email || event.user.id}
                 </strong>
                 <span class="card-summary">
-                    <span class="category-tag">${event.action}</span>
-                    <strong
-                        >${event.action === 'create'
-                            ? 'Project created'
-                            : `${event.changes.length} change${event.changes.length === 1 ? '' : 's'}`}</strong
-                    >
-                    ${repeat(
-                        labels,
-                        (label) => label,
-                        (label) => html`<span class="category-tag">${label}</span>`,
-                    )}
+                    ${event.action === 'create'
+                        ? 'Project created'
+                        : html`
+                              <span>${event.changes.length} change${event.changes.length === 1 ? '' : 's'}</span>
+                              ${repeat(
+                                  labels,
+                                  (label) => label,
+                                  (label) => html`<span class="category-tag">${label}</span>`,
+                              )}
+                          `}
                 </span>
-                <span class="muted">${event.targetPath ?? event.targetId ?? event.projectId}</span>
-                ${!event.snapshot ? html`<span class="muted">Read-only event</span>` : nothing}
             </button>
         `;
     }
@@ -779,7 +726,11 @@ export class MasPromotionHistory extends LitElement {
                 open
                 mode="modal"
                 underlay
-                headline=${this.confirmation === 'full' ? 'Restore full project' : 'Restore selected changes'}
+                size="s"
+                no-divider
+                .headline=${html`<sp-icon-alert size="s"></sp-icon-alert> ${this.confirmation === 'full'
+                        ? 'Restore full project'
+                        : 'Restore selected changes'}`}
                 cancel-label="Cancel"
                 confirm-label="Restore"
                 @confirm=${this.confirmRestore}
@@ -790,18 +741,13 @@ export class MasPromotionHistory extends LitElement {
                     this.confirmation = '';
                 }}
             >
-                <p>
-                    ${this.confirmation === 'full'
-                        ? 'The complete saved project snapshot'
-                        : `${this.selectedFields.size} selected field(s)`}
-                    ${this.selectedEvent.restoreMode === 'undo'
-                        ? 'will be returned to their values before this change in the current draft.'
-                        : 'will be restored to the current draft.'}
-                </p>
-                <p>
-                    Nothing will be published. Deleted fragments will not be recreated. Unsaved changes in the main editor are
-                    not included or overwritten here.
-                </p>
+                ${this.confirmation === 'full'
+                    ? html`<p>The complete saved project snapshot will be restored to the current draft.</p>
+                          <p>
+                              Nothing will be published. Deleted fragments will not be recreated. Unsaved changes in the main
+                              editor are not included or overwritten here.
+                          </p>`
+                    : html`<p>Do you want to continue to restore selected changes?</p>`}
             </sp-dialog-wrapper>
         `;
     }
@@ -850,17 +796,6 @@ export class MasPromotionHistory extends LitElement {
                               >Load more</sp-button
                           >`
                         : nothing}
-                    ${this.filterTemplate}
-                    <div class="sidebar-tools">
-                        <sp-action-button
-                            id="history-back"
-                            quiet
-                            ?disabled=${this.busy}
-                            @click=${() =>
-                                this.dispatchEvent(new CustomEvent('history-back', { bubbles: true, composed: true }))}
-                            ><sp-icon-chevron-left slot="icon" size="s"></sp-icon-chevron-left>Back to project</sp-action-button
-                        >
-                    </div>
                 </aside>
                 <main aria-label="Version comparison">
                     ${this.operationError

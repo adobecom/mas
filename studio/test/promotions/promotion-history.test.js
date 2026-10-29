@@ -23,6 +23,7 @@ const fragment = {
 
 const version = {
     id: 'event-1',
+    version: 2,
     action: 'save',
     projectId: 'project-1',
     createdAt: '2026-10-01T10:00:00Z',
@@ -160,10 +161,34 @@ describe('Promotion version history', () => {
         expect(root.querySelector('.columns')).to.be.null;
     });
 
-    it('keeps filters collapsed rather than above the history panels', async () => {
+    it('omits filters and back-to-project controls from the sidebar', async () => {
         const root = await mount();
-        expect(root.querySelector('aside details.history-filters').open).to.be.false;
+        expect(Boolean(root.querySelector('aside details.history-filters'))).to.be.false;
+        expect(Boolean(root.querySelector('#history-back'))).to.be.false;
         expect(root.querySelector('aside #create-backup')).to.be.null;
+    });
+
+    it('shows numbered versions and change counts without action badges or paths', async () => {
+        const root = await mount();
+        const card = root.querySelector('.history-card');
+        expect(card.querySelector('.version-label').textContent).to.equal('Version 2');
+        expect(card.querySelector('.card-summary').textContent).to.include('4 changes');
+        expect(card.querySelector('.card-summary').textContent).not.to.include('save');
+        expect(card.textContent).not.to.include(fragment.path);
+        expect(root.querySelector('main h2').textContent).to.equal('Version 2');
+    });
+
+    it('shows only Project created in the creation summary', async () => {
+        client.listPromotionHistory.resolves({
+            events: [{ ...version, action: 'create', version: 1, snapshot: undefined }],
+            cursor: null,
+        });
+        const root = await mount();
+        const card = root.querySelector('.history-card');
+        expect(card.querySelector('.version-label').textContent).to.equal('Version 1');
+        expect(card.querySelector('.card-summary').textContent.trim()).to.equal('Project created');
+        expect(card.querySelector('.category-tag')).to.be.null;
+        expect(card.textContent).not.to.include('Read-only event');
     });
 
     it('shows the current marker and distinct current and selected card states', async () => {
@@ -533,8 +558,13 @@ describe('Promotion version history', () => {
             root.querySelector('#restore-selected').click();
             await element.updateComplete;
 
-            expect(root.querySelector('#restore-confirmation').getAttribute('headline')).to.equal('Restore selected changes');
-            expect(root.querySelector('#restore-confirmation').textContent).to.include('before');
+            const dialog = root.querySelector('#restore-confirmation');
+            await dialog.updateComplete;
+            expect(dialog.shadowRoot.querySelector('h2').textContent).to.include('Restore selected changes');
+            expect(dialog.textContent.trim()).to.equal('Do you want to continue to restore selected changes?');
+            expect(dialog.hasAttribute('no-divider')).to.be.true;
+            expect(dialog.size).to.equal('s');
+            expect(dialog.shadowRoot.querySelector('sp-icon-alert')).to.exist;
             root.querySelector('#restore-confirmation').dispatchEvent(new Event('confirm'));
             await waitUntil(() => client.restorePromotionHistory.called);
 
@@ -561,7 +591,7 @@ describe('Promotion version history', () => {
         });
     });
 
-    it('identifies the action and target of an audit event with no field differences', async () => {
+    it('omits the target path for audit events without field differences', async () => {
         client.listPromotionHistory.resolves({
             events: [
                 {
@@ -579,8 +609,9 @@ describe('Promotion version history', () => {
         const root = await mount();
 
         const card = root.querySelector('[data-event-id="event-1"]');
-        expect(card.textContent).to.include('publish');
-        expect(card.textContent).to.include(fragment.path);
+        expect(card.querySelector('.version-label').textContent).to.equal('Version 2');
+        expect(card.textContent).not.to.include(fragment.path);
+        expect(root.querySelector('main').textContent).to.include('Read-only event');
     });
 
     it('marks the latest content audit entry current without requiring an automatic snapshot', async () => {
@@ -615,26 +646,12 @@ describe('Promotion version history', () => {
         expect(element.currentEventId).to.equal('event-1');
     });
 
-    it('submits user, date, action, fragment and search filters to the server', async () => {
+    it('submits version history search to the server', async () => {
         const root = await mount();
-        for (const [name, value] of [
-            ['user', 'author@adobe.com'],
-            ['from', '2026-09-01'],
-            ['to', '2026-10-01'],
-            ['action', 'save'],
-            ['fragmentId', 'project-1'],
-            ['query', 'offer'],
-        ]) {
-            root.querySelector(`[name="${name}"]`).value = value;
-        }
+        root.querySelector('[name="query"]').value = 'offer';
         root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
         await waitUntil(() => client.listPromotionHistory.calledTwice);
         expect(client.listPromotionHistory.secondCall.args[1]).to.include({
-            user: 'author@adobe.com',
-            from: '2026-09-01',
-            to: '2026-10-01',
-            action: 'save',
-            fragmentId: 'project-1',
             query: 'offer',
         });
     });
@@ -648,6 +665,33 @@ describe('Promotion version history', () => {
         await waitUntil(() => toast.called);
         expect(toast.firstCall.args[0].message).to.include('new-version');
         expect(toast.firstCall.args[0].message).to.include('draft');
+    });
+
+    it('shows the selected changes success toast after a successful selective restore', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        await mount();
+        element.toggleRows([element.eligibleRows[0]], true);
+        element.requestRestore('selected');
+        await element.confirmRestore();
+        expect(toast.firstCall.args[0]).to.deep.equal({
+            variant: 'positive',
+            message: 'Selected changes have been successfully restored.',
+        });
+    });
+
+    it('warns about partial selective restoration instead of reporting success', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        client.restorePromotionHistory.resolves({
+            event: { ...version, id: 'partial-restore' },
+            restored: ['project-1'],
+            failures: [{ fragmentId: 'failed-fragment' }],
+        });
+        await mount();
+        element.toggleRows([element.eligibleRows[0]], true);
+        element.requestRestore('selected');
+        await element.confirmRestore();
+        expect(toast.firstCall.args[0].variant).to.equal('warning');
+        expect(toast.firstCall.args[0].message).to.include('could not be restored');
     });
 
     it('reloads and selects the new draft after restoration', async () => {
@@ -712,8 +756,7 @@ describe('Promotion version history', () => {
         await waitUntil(() => client.restorePromotionHistory.called);
         await element.updateComplete;
         expect(root.querySelector('#restore-full').disabled).to.be.true;
-        expect(root.querySelector('#history-back').disabled).to.be.true;
-        expect(root.querySelector('[name="user"]').disabled).to.be.true;
+        expect(root.querySelector('#history-search').disabled).to.be.true;
         complete({ event: version, restored: ['project-1'] });
         await waitUntil(() => !element.busy);
     });
@@ -815,14 +858,5 @@ describe('Promotion version history', () => {
         const root = await mount();
         expect(root.querySelector('.after img')).to.be.null;
         expect(root.querySelector('[data-field="@title"] .after').textContent).to.include('<img');
-    });
-
-    it('dispatches history-back without writing editor state', async () => {
-        const root = await mount();
-        const listener = sandbox.spy();
-        element.addEventListener('history-back', listener);
-        root.querySelector('#history-back').click();
-        expect(listener.calledOnce).to.be.true;
-        expect(client.restorePromotionHistory.called).to.be.false;
     });
 });

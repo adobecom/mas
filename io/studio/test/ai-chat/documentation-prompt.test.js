@@ -8,11 +8,23 @@ describe('ai-chat/documentation-prompt', () => {
         buildDocumentationPrompt = mod.buildDocumentationPrompt;
     });
 
-    it('does not contradict itself about card creation', () => {
+    it('derives supported actions from the registry instead of promising unsupported operations', async () => {
         const prompt = buildDocumentationPrompt('how do I publish a card?');
-        expect(prompt).to.include('I cannot create cards');
-        expect(prompt).to.not.include('You are NOT the card creation AI');
-        expect(prompt).to.not.include('tell users to use the regular AI Creator');
+        const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
+        for (const intent of INTENTS.filter((entry) => entry.tool_target)) {
+            expect(prompt).to.include(`${intent.name}: ${intent.description}`);
+        }
+        expect(prompt).to.not.include('Publish / unpublish / update / delete');
+        expect(prompt).to.include('Do not promise operations absent from');
+    });
+
+    it('requires retrieved documentation and does not carry a second support guide', () => {
+        const prompt = buildDocumentationPrompt();
+        expect(prompt).to.include('If no relevant documentation is supplied');
+        expect(prompt).to.include('Do not invent support channels');
+        expect(prompt).to.not.include('#merch-at-scale');
+        expect(prompt).to.not.include('#project-odin-stakeholders');
+        expect(prompt).to.not.include('aio app deploy');
     });
 
     it('keeps the no-JSON output contract for documentation answers', () => {

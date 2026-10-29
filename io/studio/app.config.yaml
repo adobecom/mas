@@ -129,6 +129,29 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    masa-api:
+                        function: src/masa-api/index.js
+                        web: 'raw'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000
+                        inputs:
+                            MASA_API_ENABLED: $MASA_API_ENABLED
+                            MASA_API_BASE_URL: $MASA_API_BASE_URL
+                            MASA_MEDIA_BASE_URL: $MASA_MEDIA_BASE_URL
+                            MASA_API_SERVICE_TOKEN: $MASA_API_SERVICE_TOKEN
+                            MASA_IDENTITY_PRIVATE_KEY_B64: $MASA_IDENTITY_PRIVATE_KEY_B64
+                            MASA_API_ISSUER: $MASA_API_ISSUER
+                            MASA_API_AUDIENCE: $MASA_API_AUDIENCE
+                            MASA_PILOT_USERS: $MASA_PILOT_USERS
+                            MASA_READ_SURFACES: $MASA_READ_SURFACES
+                            MASA_STUDIO_ORIGINS: $MASA_STUDIO_ORIGINS
+                            MASA_IMS_ENVIRONMENT: $MASA_IMS_ENVIRONMENT
+                            MASA_IMS_CLIENT_ID: $MASA_IMS_CLIENT_ID
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                            web-custom-options: true
                     ai-chat:
                         function: src/ai-chat/index.js
                         web: 'yes'

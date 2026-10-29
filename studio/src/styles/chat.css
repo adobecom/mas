@@ -3437,3 +3437,12 @@ mas-top-nav:has(.top-nav-search) .top-nav-search {
     --mod-search-border-color-focus: var(--spectrum-gray-500);
     --mod-search-background-color: var(--spectrum-gray-75);
 }
+:where(.mas-feature) .investigation-switcher {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+}
+
+:where(.mas-feature) .chat-mode-view:not([hidden]) {
+    display: contents;
+}

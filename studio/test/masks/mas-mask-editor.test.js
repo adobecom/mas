@@ -277,4 +277,63 @@ describe('mas-mask-editor', () => {
             expect(multifield.value).to.deep.equal([{ value: 'k1:v1' }, { value: 'k2:v2' }]);
         });
     });
+
+    describe('tags section', () => {
+        beforeEach(() => Store.search.set({ path: 'acom' }));
+
+        async function mountWith(fields) {
+            const fragment = new Fragment({
+                id: 'm1',
+                title: 'P',
+                path: '/content/dam/mas/acom/en_US/masks/p',
+                fields,
+                model: { path: CARD_MODEL_PATH },
+            });
+            Store.masks.editing.set(fragment);
+            Store.masks.fragmentId.set('m1');
+            const el = await mount();
+            await el.updateComplete;
+            return el;
+        }
+
+        it('renders a product_code tag picker pre-filled from the tags field', async () => {
+            const el = await mountWith([{ name: 'tags', type: 'tag', multiple: true, values: ['mas:product_code/phsp'] }]);
+
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+            expect(picker).to.not.equal(null);
+            expect(picker.getAttribute('namespace')).to.equal('/content/cq:tags/mas');
+            expect(picker.getAttribute('value')).to.equal('mas:product_code/phsp');
+        });
+
+        it('writes the tags field and newTags with the identity tag first on change', async () => {
+            const el = await mountWith([]);
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+
+            picker.setAttribute('value', 'mas:product_code/phsp,mas:product_code/ilst');
+            picker.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/ilst']);
+            expect(el.fragment.newTags).to.deep.equal(['mas:masks/acom/p', 'mas:product_code/phsp', 'mas:product_code/ilst']);
+            expect(el.fragment.hasChanges).to.equal(true);
+        });
+
+        it('keeps only the mask identity tag when every product code is cleared', async () => {
+            const el = await mountWith([{ name: 'tags', type: 'tag', multiple: true, values: ['mas:product_code/phsp'] }]);
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+
+            picker.setAttribute('value', '');
+            picker.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
+
+            expect(el.fragment.getFieldValues('tags')).to.deep.equal([]);
+            expect(el.fragment.newTags).to.deep.equal(['mas:masks/acom/p']);
+            expect(el.fragment.hasChanges).to.equal(true);
+        });
+
+        it('renders an empty picker when the mask has no tags field', async () => {
+            const el = await mountWith([]);
+
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+            expect(picker.getAttribute('value')).to.equal('');
+        });
+    });
 });

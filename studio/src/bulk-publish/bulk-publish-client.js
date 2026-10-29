@@ -1,3 +1,5 @@
+import { trackedFetch } from '../network-latency.js';
+
 const ENDPOINT = '/bulk-publish';
 const REVERT_ENDPOINT = '/bulk-revert';
 const RESET_ENDPOINT = '/bulk-publish-reset';
@@ -18,7 +20,7 @@ async function callAction(ioBaseUrl, endpoint, payload, token) {
     if (!token) throw new BulkPublishError('token is required');
     let response;
     try {
-        response = await fetch(`${ioBaseUrl}${endpoint}`, {
+        response = await trackedFetch(`${ioBaseUrl}${endpoint}`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,

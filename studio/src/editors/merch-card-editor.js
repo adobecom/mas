@@ -1427,6 +1427,27 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
+                .fragment-title-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: var(--spectrum-gray-900);
+                }
+
+                .fragment-title-header::after {
+                    content: '';
+                    flex: 1;
+                    border-top: 1px solid currentColor;
+                }
+
+                .fragment-title-fields {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                }
+
                 .tags-spacing {
                     margin: 0;
                 }
@@ -1634,9 +1655,8 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('cardName')}
                     </sp-field-group>
                     <sp-field-group id="fragment-title-group">
-                        <sp-field-label>Fragment title</sp-field-label>
-                        <sp-divider size="s"></sp-divider>
-                        <div class="two-column-grid">
+                        <div class="fragment-title-header">Fragment title</div>
+                        <div class="fragment-title-fields">
                             <div>
                                 <sp-field-label for="fragment-title-org" required>Org</sp-field-label>
                                 <sp-picker

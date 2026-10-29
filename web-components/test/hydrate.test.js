@@ -53,6 +53,9 @@ const mockMerchCard = () => {
     const merchCard = document.createElement('div');
     merchCard.spectrum = 'css';
     merchCard.loading = 'lazy';
+    merchCard.priceLiterals = {
+        buyNow: 'Buy now',
+    };
     merchCard.attachShadow({ mode: 'open' });
 
     document.body.appendChild(merchCard);
@@ -420,6 +423,170 @@ describe('processCTAs', async () => {
         const footer = getFooterElement(merchCard);
         expect(footer.children).to.have.lengthOf(2);
     });
+
+    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const button = footer.querySelector('button');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
+        expect(button.getAttribute('data-modal')).to.equal('crm');
+        expect(button.getAttribute('aria-label')).to.equal(null);
+        expect([...button.classList].includes('blue')).to.be.true;
+        expect(button.textContent).to.equal('Buy now');
+    });
+
+    it('should replace free-trial CTA with buy-now in headless when hideTrialCTAs is true', async () => {
+        const merchCard = mockMerchCard();
+        const aemFragmentMapping = {
+            ctas: {
+                slot: 'footer',
+                size: 'm',
+            },
+        };
+
+        merchCard.variant = 'headless';
+        const fields = {
+            ctas: '<p><a href="#" data-wcs-osi="abm" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now">Buy now</a></p>',
+        };
+
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+
+        const footer = getFooterElement(merchCard);
+        expect(footer).to.exist;
+        expect(footer.querySelector('a.blue[data-analytics-id="buy-now"]')).to
+            .exist;
+        expect(footer.querySelector('a').textContent).to.equal('Buy now');
+        expect(footer.querySelector('a[data-analytics-id="free-trial"]')).to.not
+            .exist;
+    });
+
+    it('hide free-trial CTA with buy-now when hideTrialCTAs is true and no offer mapping', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const buttons = footer.querySelectorAll('button');
+        expect(buttons).to.have.lengthOf(1);
+        const button = buttons[0];
+        expect(button.textContent).to.equal('Buy now');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect([...button.classList].includes('blue')).to.be.false; // swap did not happen, just Free Trial CTA removed
+    });
+
+    it('hide free-trial CTA with buy-now when hideTrialCTAs is false and no offer mapping', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: false,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const buttons = footer.querySelectorAll('button');
+        expect(buttons).to.have.lengthOf(2);
+        const trialBtn = buttons[0];
+        expect(trialBtn.textContent).to.equal('Free trial');
+        expect(trialBtn.getAttribute('data-analytics-id')).to.equal(
+            'free-trial',
+        );
+        expect([...trialBtn.classList].includes('blue')).to.be.false;
+        const buyNowBtn = buttons[1];
+        expect(buyNowBtn.textContent).to.equal('Buy now');
+        expect(buyNowBtn.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect([...buyNowBtn.classList].includes('blue')).to.be.false;
+    });
+
+    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour non-buy-now CTA exists', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="select" class="accent">Select</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const buttons = footer.querySelectorAll('button');
+        const button1 = buttons[0];
+        expect(button1.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button1.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
+        expect(button1.getAttribute('data-modal')).to.equal('crm');
+        expect(button1.getAttribute('aria-label')).to.equal(null);
+        expect([...button1.classList].includes('blue')).to.be.true;
+        expect(button1.textContent).to.equal('Buy now');
+        const button2 = buttons[1];
+        expect(button2.getAttribute('data-analytics-id')).to.equal('select');
+        expect(button2.textContent).to.equal('Select');
+        expect([...button2.classList].includes('blue')).to.be.false;
+    });
+
+    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour plain link exists', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="https://www.adobe.com" class="accent">Click me</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
+        const buttons = footer.querySelectorAll('button, a');
+        const button1 = buttons[0];
+        expect(button1.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button1.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
+        expect(button1.getAttribute('data-modal')).to.equal('crm');
+        expect(button1.getAttribute('aria-label')).to.equal(null);
+        expect([...button1.classList].includes('blue')).to.be.true;
+        expect(button1.textContent).to.equal('Buy now');
+        const button2 = buttons[1];
+        expect(button2.className.includes('accent')).to.be.true;
+        expect(button2.textContent).to.equal('Click me');
+        expect([...button2.classList].includes('blue')).to.be.false;
+    });
+
+    it('should just remove free-trial CTA if buy-now PH is not resolved when hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        merchCard.priceLiterals = {
+            buyNow: 'buy-now',
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(0);
+    });
+
+    it('should hide free-trial CTA when buy-now exists and hideTrialCTAs is true', async () => {
+        const fields = {
+            ctas: `<p><a href="#" data-wcs-osi="abm" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="buy-now" class="accent">Buy now</a></p>`,
+            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+        };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const button = footer.querySelector('button');
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect([...button.classList].includes('blue')).to.be.true;
+    });
 });
 
 describe('processCTAs - headless CTA variant labels', async () => {
@@ -612,8 +779,8 @@ describe('processCTAs - headless CTA variant labels', async () => {
             merchCard.variant = variant;
             const fields = {
                 ctas:
-                    '<a class="primary" data-wcs-osi="abm">Buy</a>' +
-                    '<a class="secondary" data-wcs-osi="stock-m2m-mult">Try</a>',
+                    '<a class="primary" data-wcs-osi="abm" data-analytics-id="buy-now">Buy</a>' +
+                    '<a class="secondary" data-wcs-osi="stock-m2m-mult" data-analytics-id="free-trial">Try</a>',
             };
             processCTAs(fields, merchCard, aemFragmentMapping, variant, {
                 hideTrialCTAs: true,
@@ -1038,6 +1205,30 @@ describe('hydrate', () => {
         expect(litCard.addon).to.exist;
         expect(litCard.addon.tagName.toLowerCase()).to.equal('merch-addon');
         expect(litCard.addon.getAttribute('slot')).to.equal('addon');
+        litCard.remove();
+    });
+
+    it('names the pro add-on after the hydrated card title', async () => {
+        const litCard = document.createElement('merch-card');
+        document.body.appendChild(litCard);
+        await customElements.whenDefined('merch-card');
+        const fragment = (cardTitle) => ({
+            id: 'pro-addon-name',
+            fields: {
+                variant: 'pro',
+                cardTitle,
+                addon: '<p><strong>Acrobat AI Assistant</strong></p>',
+            },
+        });
+        const product = async () => {
+            await litCard.addon.updateComplete;
+            return litCard.addon.shadowRoot.getElementById('addon-product')
+                ?.textContent;
+        };
+        await hydrate(fragment('Acrobat Pro'), litCard);
+        expect(await product()).to.equal('Acrobat Pro');
+        await hydrate(fragment('Creative Cloud Pro'), litCard);
+        expect(await product()).to.equal('Creative Cloud Pro');
         litCard.remove();
     });
 

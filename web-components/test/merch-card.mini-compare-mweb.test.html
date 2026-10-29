@@ -67,6 +67,15 @@
                             data-wcs-osi="abm"
                         ></span>
                     </p>
+                    <div slot="quantity-select">
+                        <merch-quantity-select
+                            title="Number of licenses"
+                            min="1"
+                            max="10"
+                            step="2"
+                            default-value="3"
+                        ></merch-quantity-select>
+                    </div>
                     <div slot="promo-text">
                         <p>
                             Save 19% with an annual plan
@@ -102,6 +111,8 @@
                     </div>
                     <p class="action-area" slot="footer">
                         <a
+                            is="checkout-link"
+                            data-wcs-osi="abm"
                             href="https://adobe.com/"
                             class="con-button blue button-l"
                             >Buy now</a

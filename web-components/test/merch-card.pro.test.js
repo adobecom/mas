@@ -585,6 +585,137 @@ describe('pro edu size', () => {
     });
 });
 
+describe('pro edu heading semantics', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const PROMO = 'Students and teachers <strong>save 7%</strong>';
+    const SECTION =
+        '<div class="section"><h4>Apps</h4><ul><li>Desktop, web, and mobile</li></ul></div>';
+
+    async function renderEduCard(placeholders, size = 'edu') {
+        const rendered = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${PROMO}</p>${SECTION}</div>`,
+        );
+        rendered.setAttribute('size', size);
+        if (placeholders) rendered.placeholders = placeholders;
+        rendered.requestUpdate();
+        await rendered.updateComplete;
+        return rendered;
+    }
+
+    const headingsIn = (el) => el.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+    it('makes "What\'s included" the H4 under the card title, not the promo', async () => {
+        card = await renderEduCard({ whatsIncludedLabel: "What's included:" });
+        expect(card.querySelector('[slot="heading-xs"]').tagName).to.equal(
+            'H3',
+        );
+        const slot = card.querySelector('[slot="whats-included"]');
+        const headings = headingsIn(slot);
+        expect(headings.length).to.equal(1);
+        expect(headings[0].tagName).to.equal('H4');
+        expect(headings[0].className).to.equal('whats-included-label');
+        expect(headings[0].textContent).to.equal("What's included:");
+        const promo = slot.querySelector('.whats-included-title');
+        expect(promo.tagName).to.equal('P');
+        expect(promo.innerHTML).to.equal(PROMO);
+        expect(slot.querySelector('.section p').textContent).to.equal('Apps');
+    });
+
+    it('keeps the H4 when the page wraps the card in a section', async () => {
+        const page = document.createElement('div');
+        page.className = 'section';
+        document.body.append(page);
+        card = await renderCard(
+            '<h3 slot="heading-xs">Creative Cloud Pro</h3>' +
+                `<div slot="whats-included"><p class="whats-included-label">${PROMO}</p>${SECTION}</div>`,
+        );
+        page.append(card);
+        card.setAttribute('size', 'edu');
+        card.placeholders = { whatsIncludedLabel: "What's included:" };
+        card.requestUpdate();
+        await card.updateComplete;
+        const slot = card.querySelector('[slot="whats-included"]');
+        const headings = headingsIn(slot);
+        page.remove();
+        expect(headings.length).to.equal(1);
+        expect(headings[0].tagName).to.equal('H4');
+        expect(headings[0].className).to.equal('whats-included-label');
+    });
+
+    for (const [what, placeholders, text] of [
+        ['missing', undefined, ''],
+        ['absent', {}, ''],
+        ['empty', { whatsIncludedLabel: '' }, ''],
+        ['blank', { whatsIncludedLabel: '   ' }, '   '],
+    ]) {
+        it(`adds no heading when the label is ${what}`, async () => {
+            card = await renderEduCard(placeholders);
+            const slot = card.querySelector('[slot="whats-included"]');
+            expect(headingsIn(slot).length).to.equal(0);
+            const label = slot.querySelector('.whats-included-label');
+            expect(label.tagName).to.equal('P');
+            expect(label.textContent).to.equal(text);
+            expect(
+                slot.querySelector('.whats-included-title').tagName,
+            ).to.equal('P');
+        });
+    }
+
+    it('applies once across re-renders', async () => {
+        card = await renderEduCard({
+            whatsIncludedLabel: "What's included:",
+            eduDisclaimer: 'Eligibility required.',
+        });
+        card.variantLayout.adjustEduWhatsIncluded();
+        card.requestUpdate();
+        await card.updateComplete;
+        const slot = card.querySelector('[slot="whats-included"]');
+        expect(slot.querySelectorAll('.whats-included-title').length).to.equal(
+            1,
+        );
+        expect(slot.querySelectorAll('.whats-included-label').length).to.equal(
+            1,
+        );
+        expect(
+            slot.querySelectorAll('.whats-included-disclaimer').length,
+        ).to.equal(1);
+    });
+
+    it('leaves non-edu cards alone', async () => {
+        card = await renderEduCard(
+            { whatsIncludedLabel: "What's included:" },
+            'wide',
+        );
+        const slot = card.querySelector('[slot="whats-included"]');
+        expect(slot.querySelector('.whats-included-title')).to.be.null;
+        expect(slot.querySelector('.whats-included-label').tagName).to.equal(
+            'P',
+        );
+        expect(slot.querySelector('.section h4')).to.exist;
+    });
+
+    it('keeps the promo and label typography', async () => {
+        card = await renderEduCard({ whatsIncludedLabel: "What's included:" });
+        const promo = getComputedStyle(
+            card.querySelector('.whats-included-title'),
+        );
+        expect(promo.fontWeight).to.equal('900');
+        expect(promo.marginTop).to.equal('0px');
+        expect(promo.marginBottom).to.equal('0px');
+        const label = getComputedStyle(
+            card.querySelector('.whats-included-label'),
+        );
+        expect(label.fontWeight).to.equal('700');
+        expect(label.fontSize).to.equal('16px');
+        expect(label.lineHeight).to.equal('20px');
+        expect(label.marginTop).to.equal('0px');
+        expect(label.marginBottom).to.equal('0px');
+    });
+});
+
 describe('pro edu disclaimer', () => {
     let card;
     afterEach(() => card?.remove());
@@ -1178,6 +1309,139 @@ describe('pro whats-included toggle interaction', () => {
         await card.updateComplete;
         expect(zone.hasAttribute('hidden')).to.be.true;
         expect(toggle.getAttribute('aria-expanded')).to.equal('false');
+    });
+});
+
+describe('pro section grid (no collection)', () => {
+    const fixtures = [];
+    const initialViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+    };
+
+    // Milo markup: <div class="section X-merch-cards"><div class="content">cards
+    async function renderSection(layout, cardVariants) {
+        const section = document.createElement('div');
+        section.className = `section ${layout}`;
+        section.style.cssText =
+            'width: calc(100vw - 48px); margin-inline: auto;';
+        const content = document.createElement('div');
+        content.className = 'content';
+        section.appendChild(content);
+        const cards = cardVariants.map((variant) => {
+            const card = document.createElement('merch-card');
+            card.setAttribute('variant', variant);
+            card.innerHTML = '<h3 slot="heading-xs">Plan</h3>';
+            content.appendChild(card);
+            return card;
+        });
+        document.body.appendChild(section);
+        fixtures.push(section);
+        await Promise.all(cards.map((card) => card.updateComplete));
+        return { section, content, cards };
+    }
+
+    const tracks = (el) =>
+        getComputedStyle(el).gridTemplateColumns.split(' ').length;
+    const pro = (count) => Array(count).fill('pro');
+
+    afterEach(() => {
+        for (const fixture of fixtures) fixture.remove();
+        fixtures.length = 0;
+    });
+
+    after(() => setViewport(initialViewport));
+
+    // [layout, cards, columns at 375, 768, 1280]
+    for (const [layout, count, mobile, tablet, desktop] of [
+        ['one-merch-card', 1, 1, 1, 1],
+        ['two-merch-cards', 2, 1, 2, 2],
+        ['three-merch-cards', 3, 1, 2, 3],
+        ['four-merch-cards', 4, 1, 2, 4],
+    ]) {
+        it(`lays out pro cards in ${layout} at the collection breakpoints`, async () => {
+            for (const [width, columns] of [
+                [375, mobile],
+                [768, tablet],
+                [1280, desktop],
+            ]) {
+                await setViewport({ width, height: 1000 });
+                const { section, content, cards } = await renderSection(
+                    layout,
+                    pro(count),
+                );
+                expect(
+                    getComputedStyle(content).display,
+                    `${layout} @${width}: content`,
+                ).to.equal('contents');
+                expect(tracks(section), `${layout} @${width}: tracks`).to.equal(
+                    columns,
+                );
+                // Cards share one row, cap at the pro width and fill their track.
+                const [first] = cards;
+                const rows = new Set(
+                    cards.map((card) => card.getBoundingClientRect().top),
+                );
+                expect(rows.size).to.equal(Math.ceil(count / columns));
+                expect(first.getBoundingClientRect().width).to.be.at.most(
+                    count === 2 && width >= 1280 ? 596.5 : 1000,
+                );
+                if (width === 375) {
+                    expect(first.getBoundingClientRect().width).to.be.closeTo(
+                        section.getBoundingClientRect().width,
+                        1,
+                    );
+                }
+                section.remove();
+            }
+        });
+    }
+
+    it('caps a lone pro card at the pro max width', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const { cards } = await renderSection('one-merch-card', pro(1));
+        expect(cards[0].getBoundingClientRect().width).to.be.closeTo(394, 1);
+    });
+
+    it('leaves a lone edu card at its own 1068px cap', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const { section, content, cards } = await renderSection(
+            'one-merch-card',
+            pro(1),
+        );
+        cards[0].setAttribute('size', 'edu');
+        expect(getComputedStyle(content).display).to.not.equal('contents');
+        expect(getComputedStyle(section).gridTemplateColumns).to.not.equal(
+            '394px',
+        );
+    });
+
+    it('leaves collections and mixed sections to their own rules', async () => {
+        await setViewport({ width: 1280, height: 1000 });
+        const mixed = await renderSection('three-merch-cards', [
+            'pro',
+            'plans',
+            'plans',
+        ]);
+        expect(getComputedStyle(mixed.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(mixed.section).maxWidth).to.not.equal('1192px');
+
+        const wrapped = await renderSection('three-merch-cards', []);
+        const collection = document.createElement('merch-card-collection');
+        collection.className = 'plans three-merch-cards';
+        wrapped.content.appendChild(collection);
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'pro');
+        collection.appendChild(card);
+        await card.updateComplete;
+        expect(getComputedStyle(wrapped.content).display).to.not.equal(
+            'contents',
+        );
+        expect(getComputedStyle(wrapped.section).maxWidth).to.not.equal(
+            '1192px',
+        );
     });
 });
 

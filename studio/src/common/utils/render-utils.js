@@ -17,7 +17,7 @@ import { getItemsSelectionStore } from '../items-selection-store.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
- * `authorPath` (`<web-component>: <surface> / <name>`) the content table view shows,
+ * `authorPath` (`<surface> / <web-component> / <name>`) the content table view shows,
  * resolved against the active search surface and page.
  * @param {object} fragment - Fragment payload or Fragment instance
  * @returns {string}

@@ -587,6 +587,34 @@ describe('MasRepository dictionary helpers', () => {
                 Store.profile.set(originalProfile);
             }
         });
+
+        it('loads baselines of the surface and locale on BASELINES page, aborting the previous load', async () => {
+            const { default: Store } = await import('../src/store.js');
+            const originalProfile = Store.profile.value;
+            const originalSearch = structuredClone(Store.search.get());
+            const originalFilters = structuredClone(Store.filters.get());
+            Store.profile.set({ name: 'test-user' });
+            Store.search.set({ ...originalSearch, path: 'sandbox' });
+            Store.filters.set({ ...originalFilters, locale: 'fr_FR' });
+            const repository = createFullRepository();
+            repository.page = { value: PAGE_NAMES.BASELINES };
+            repository.searchFragmentList = sandbox.stub().returns(new Promise(() => {}));
+            try {
+                MasRepository.prototype.handleSearch.call(repository);
+                MasRepository.prototype.handleSearch.call(repository);
+                const [firstQuery, , firstController] = repository.searchFragmentList.firstCall.args;
+                expect(firstQuery.path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+                expect(firstController.signal.aborted).to.be.true;
+                expect(repository.searchFragmentList.secondCall.args[2].signal.aborted).to.be.false;
+            } finally {
+                Store.profile.set(originalProfile);
+                Store.search.set(originalSearch);
+                Store.filters.set(originalFilters);
+                Store.baselines.list.data.removeMeta('loadedPath');
+                Store.baselines.list.data.set([]);
+                Store.baselines.list.loading.set(false);
+            }
+        });
     });
 
     describe('loadTranslationProjects', () => {

@@ -1427,6 +1427,22 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
+                .fragment-title-fields {
+                    display: grid;
+                    grid-template-columns: 96px 1fr;
+                    align-items: center;
+                    gap: 12px 8px;
+                }
+
+                .fragment-title-fields sp-field-label {
+                    justify-self: end;
+                }
+
+                .fragment-title-fields sp-picker,
+                .fragment-title-fields sp-textfield {
+                    width: 100%;
+                }
+
                 .tags-spacing {
                     margin: 0;
                 }
@@ -1635,33 +1651,26 @@ class MerchCardEditor extends LitElement {
                     </sp-field-group>
                     <sp-field-group id="fragment-title-group">
                         <sp-field-label>Fragment title</sp-field-label>
-                        <sp-divider size="s"></sp-divider>
-                        <div class="two-column-grid">
-                            <div>
-                                <sp-field-label for="fragment-title-org" required>Org</sp-field-label>
-                                <sp-picker
-                                    id="fragment-title-org"
-                                    label="Select org"
-                                    .value="${this.#titleParts.org}"
-                                    ?invalid="${this.#titleOrgTouched && !this.#titleParts.org}"
-                                    @change="${this.#handleFragmentTitleOrgChange}"
-                                    @focusout="${this.#handleFragmentTitleOrgTouched}"
-                                    @sp-closed="${this.#handleFragmentTitleOrgTouched}"
-                                >
-                                    ${FRAGMENT_TITLE_ORGS.map(
-                                        (org) => html`<sp-menu-item value="${org}">${org}</sp-menu-item>`,
-                                    )}
-                                </sp-picker>
-                            </div>
-                            <div>
-                                <sp-field-label for="fragment-title-state">State</sp-field-label>
-                                <sp-textfield
-                                    id="fragment-title-state"
-                                    placeholder="i.e. default, bf-26-variation"
-                                    .value="${this.#titleParts.state}"
-                                    @input="${this.#handleFragmentTitleStateInput}"
-                                ></sp-textfield>
-                            </div>
+                        <div class="fragment-title-fields">
+                            <sp-field-label for="fragment-title-org" required>Org:</sp-field-label>
+                            <sp-picker
+                                id="fragment-title-org"
+                                label="Select org"
+                                .value="${this.#titleParts.org}"
+                                ?invalid="${this.#titleOrgTouched && !this.#titleParts.org}"
+                                @change="${this.#handleFragmentTitleOrgChange}"
+                                @focusout="${this.#handleFragmentTitleOrgTouched}"
+                                @sp-closed="${this.#handleFragmentTitleOrgTouched}"
+                            >
+                                ${FRAGMENT_TITLE_ORGS.map((org) => html`<sp-menu-item value="${org}">${org}</sp-menu-item>`)}
+                            </sp-picker>
+                            <sp-field-label for="fragment-title-state">State:</sp-field-label>
+                            <sp-textfield
+                                id="fragment-title-state"
+                                placeholder="i.e. default, bf-26-variation"
+                                .value="${this.#titleParts.state}"
+                                @input="${this.#handleFragmentTitleStateInput}"
+                            ></sp-textfield>
                         </div>
                         <sp-help-text id="fragment-title-preview">${composeFragmentTitle(this.#titleParts)}</sp-help-text>
                     </sp-field-group>

@@ -1936,7 +1936,7 @@
                             await editor.updateComplete;
                         };
 
-                        it('renders the Org picker and State textfield side by side', async () => {
+                        it('stacks the Org picker above the State textfield', async () => {
                             const { editor } = await setupTestEnvironment({ isVariation: false }, 'title-layout');
                             // the form stays display:none until fieldsReady
                             await waitFor(() => editor.fieldsReady, 5000);
@@ -1946,7 +1946,7 @@
                             expect(editor.querySelector('#fragment-title')).to.equal(null);
                             expect(org.querySelectorAll('sp-menu-item').length).to.equal(6);
                             expect(state.getAttribute('placeholder')).to.equal('i.e. default, bf-26-variation');
-                            expect(org.getBoundingClientRect().left).to.be.lessThan(state.getBoundingClientRect().left);
+                            expect(org.getBoundingClientRect().top).to.be.lessThan(state.getBoundingClientRect().top);
                         });
 
                         it('saves the composed title and previews it', async () => {

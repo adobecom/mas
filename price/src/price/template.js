@@ -77,17 +77,12 @@ export const renderSpan = (cssClass, content, attributes, convertSpaces = false)
 };
 
 function encodeLinksAndPrices(literal) {
-    literal = literal
-        .replaceAll('</a>', '&lt;/a&gt;')
-        .replaceAll('</span>', '&lt;/span&gt;');
+    literal = literal.replaceAll('</a>', '&lt;/a&gt;').replaceAll('</span>', '&lt;/span&gt;');
 
     const regex = /<(a|span) [^>]+(>|$)/g;
     const matches = literal.match(regex);
     matches?.forEach((match) => {
-        const encodedMatch = match
-            .replace('<a ', '&lt;a ')
-            .replace('<span ', '&lt;span ')
-            .replace('>', '&gt;');
+        const encodedMatch = match.replace('<a ', '&lt;a ').replace('<span ', '&lt;span ').replace('>', '&gt;');
         literal = literal.replaceAll(match, encodedMatch);
     });
 
@@ -95,17 +90,12 @@ function encodeLinksAndPrices(literal) {
 }
 
 function decodeLinksAndPrices(literal) {
-    literal = literal
-        .replaceAll('&lt;/a&gt;', '</a>')
-        .replaceAll('&lt;/span&gt;', '</span>');
+    literal = literal.replaceAll('&lt;/a&gt;', '</a>').replaceAll('&lt;/span&gt;', '</span>');
 
     const regex = /&lt;(a|span) (?!&gt;)(.*?)(&gt;|$)/g;
     const matches = literal.match(regex);
     matches?.forEach((match) => {
-        const encodedMatch = match
-            .replace('&lt;a ', '<a ')
-            .replace('&lt;span ', '<span ')
-            .replace('&gt;', '>');
+        const encodedMatch = match.replace('&lt;a ', '<a ').replace('&lt;span ', '<span ').replace('&gt;', '>');
         literal = literal.replaceAll(match, encodedMatch);
     });
 
@@ -122,13 +112,10 @@ export function formatLiteral(literals, locale, key, parameters, logger = consol
     const hasLinks = literal.includes('<a ');
     const hasPrices = literal.includes('<span is="inline-price" ');
     try {
-        literal =
-            hasLinks || hasPrices ? encodeLinksAndPrices(literal) : literal;
+        literal = hasLinks || hasPrices ? encodeLinksAndPrices(literal) : literal;
         literal = hasHtml ? literal.replace(htmlPattern, '') : literal;
         const formattedLiteral = formatMessage(literal, locale, parameters);
-        return hasLinks || hasPrices
-            ? decodeLinksAndPrices(formattedLiteral)
-            : formattedLiteral;
+        return hasLinks || hasPrices ? decodeLinksAndPrices(formattedLiteral) : formattedLiteral;
     } catch {
         logger.error('Failed to format literal:', literal);
         return '';

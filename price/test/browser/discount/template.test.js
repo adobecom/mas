@@ -123,5 +123,5 @@ describe('discount template', () => {
             formatString: '#0',
         });
         expect(htmlToText(templateHtml)).to.equal('0');
-    });    
+    });
 });

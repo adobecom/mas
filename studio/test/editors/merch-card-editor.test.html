@@ -1906,6 +1906,102 @@
                             expect([...grid.children].map((child) => child.id)).to.deep.equal(expectedGridOrder);
                         });
 
+                        const setTitle = async (editor, fragmentStore, title) => {
+                            fragmentStore.get().title = title;
+                            fragmentStore.notify();
+                            await editor.updateComplete;
+                        };
+
+                        const recordTitleSaves = (fragmentStore) => {
+                            const calls = [];
+                            const original = fragmentStore.updateFieldInternal.bind(fragmentStore);
+                            fragmentStore.updateFieldInternal = (...args) => {
+                                calls.push(args);
+                                return original(...args);
+                            };
+                            return calls;
+                        };
+
+                        const typeState = async (editor, state) => {
+                            const stateField = editor.querySelector('#fragment-title-state');
+                            stateField.value = state;
+                            stateField.dispatchEvent(new Event('input', { bubbles: true }));
+                            await editor.updateComplete;
+                        };
+
+                        const chooseOrg = async (editor, value) => {
+                            const org = editor.querySelector('#fragment-title-org');
+                            org.value = value;
+                            org.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+                        };
+
+                        it('renders the Org picker and State textfield side by side', async () => {
+                            const { editor } = await setupTestEnvironment({ isVariation: false }, 'title-layout');
+                            await editor.updateComplete;
+                            // the form stays display:none until fieldsReady, so measure only once it is shown
+                            for (let i = 0; i < 50 && !editor.fieldsReady; i++) {
+                                await new Promise((resolve) => setTimeout(resolve, 100));
+                            }
+                            await editor.updateComplete;
+                            const org = editor.querySelector('#fragment-title-org');
+                            const state = editor.querySelector('#fragment-title-state');
+                            expect(editor.querySelector('#fragment-title')).to.equal(null);
+                            expect(org.querySelectorAll('sp-menu-item').length).to.equal(6);
+                            expect(state.getAttribute('placeholder')).to.equal('i.e. default, bf-26-variation');
+                            expect(org.getBoundingClientRect().left).to.be.lessThan(state.getBoundingClientRect().left);
+                        });
+
+                        it('saves the composed title and previews it', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'title-compose',
+                            );
+                            await setTitle(editor, fragmentStore, 'OPT: Catalog: Animate: Individual: old');
+                            const calls = recordTitleSaves(fragmentStore);
+                            await chooseOrg(editor, 'MERCH');
+                            await typeState(editor, 'default');
+                            const expected = 'MERCH: Catalog: Animate: Individual: default';
+                            expect(calls.at(-1)).to.deep.equal(['title', expected]);
+                            expect(editor.querySelector('#fragment-title-preview').textContent.trim()).to.equal(expected);
+                        });
+
+                        it('keeps a legacy title whole', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'title-legacy',
+                            );
+                            await setTitle(editor, fragmentStore, 'Photoshop card');
+                            expect(editor.querySelector('#fragment-title-org').value).to.equal('');
+                            expect(editor.querySelector('#fragment-title-preview').textContent.trim()).to.equal(
+                                'Photoshop card',
+                            );
+                        });
+
+                        it('does not re-parse while typing in State', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'title-typing',
+                            );
+                            await setTitle(editor, fragmentStore, 'OPT: Catalog: Animate: Individual: old');
+                            const calls = recordTitleSaves(fragmentStore);
+                            await chooseOrg(editor, 'MERCH');
+                            await typeState(editor, 'a');
+                            await typeState(editor, 'ab');
+                            expect(editor.querySelector('#fragment-title-state').value).to.equal('ab');
+                            expect(calls.at(-1)[1].endsWith('ab')).to.equal(true);
+                        });
+
+                        it('updates Org and State on an external title change', async () => {
+                            const { editor, fragmentStore } = await setupTestEnvironment(
+                                { isVariation: false },
+                                'title-external',
+                            );
+                            await setTitle(editor, fragmentStore, 'DC: X: Y: Z: default');
+                            expect(editor.querySelector('#fragment-title-org').value).to.equal('DC');
+                            expect(editor.querySelector('#fragment-title-state').value).to.equal('default');
+                        });
+
                         it('leaves an existing locReady value unchanged', async () => {
                             const { editor, fragmentStore } = await setupTestEnvironment({}, 'no-locready-existing');
                             fragmentStore.get().fields.push({ name: 'locReady', type: 'boolean', values: [true] });

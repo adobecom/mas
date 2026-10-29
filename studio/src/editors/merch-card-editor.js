@@ -16,7 +16,14 @@ import { HEADLESS_STYLE_CTA_VARIANTS } from '../../../web-components/src/constan
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
-import { extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
+import {
+    FRAGMENT_TITLE_ORGS,
+    composeFragmentTitle,
+    extractImageUrl,
+    getFragmentMapping,
+    parseFragmentTitle,
+    showToast,
+} from '../utils.js';
 import {
     buildPictureInnerMarkup as buildPictureHtml,
     extractImageDimensions,
@@ -920,10 +927,21 @@ class MerchCardEditor extends LitElement {
 
     #cachedGlobalDefaults = null;
 
+    // Kept apart from fragment.title so typing is never reformatted by a re-parse.
+    #titleParts = { org: '', middle: '', state: '' };
+    #titleOrgTouched = false;
+
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
+        if (changedProperties.has('fragmentStore')) {
+            this.#titleOrgTouched = false;
+        }
         if (this.fragmentStore?.get()) {
             this.#syncGroupedPreviewLocale();
+            const title = this.fragment.title ?? '';
+            if (composeFragmentTitle(this.#titleParts) !== title) {
+                this.#titleParts = parseFragmentTitle(title);
+            }
         }
         if (changedProperties.has('fragmentStore') && this.fragmentStore) {
             this.fieldsReady = false;
@@ -1409,6 +1427,12 @@ class MerchCardEditor extends LitElement {
                     gap: 20px;
                 }
 
+                .fragment-title-fields {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                }
+
                 .tags-spacing {
                     margin: 0;
                 }
@@ -1616,13 +1640,36 @@ class MerchCardEditor extends LitElement {
                         ${this.renderFieldStatusIndicator('cardName')}
                     </sp-field-group>
                     <sp-field-group id="fragment-title-group">
-                        <sp-field-label for="fragment-title">Fragment title</sp-field-label>
-                        <sp-textfield
-                            placeholder="Enter fragment title"
-                            id="fragment-title"
-                            value="${this.fragment.title}"
-                            @input="${this.#handleFragmentTitleUpdate}"
-                        ></sp-textfield>
+                        <sp-field-label>Fragment title</sp-field-label>
+                        <sp-divider size="s"></sp-divider>
+                        <div class="fragment-title-fields">
+                            <div>
+                                <sp-field-label for="fragment-title-org" required>Org</sp-field-label>
+                                <sp-picker
+                                    id="fragment-title-org"
+                                    label="Select org"
+                                    .value="${this.#titleParts.org}"
+                                    ?invalid="${this.#titleOrgTouched && !this.#titleParts.org}"
+                                    @change=${this.#handleFragmentTitleOrgChange}
+                                    @focusout=${this.#handleFragmentTitleOrgTouched}
+                                    @sp-closed=${this.#handleFragmentTitleOrgTouched}
+                                >
+                                    ${FRAGMENT_TITLE_ORGS.map(
+                                        (org) => html`<sp-menu-item value="${org}">${org}</sp-menu-item>`,
+                                    )}
+                                </sp-picker>
+                            </div>
+                            <div>
+                                <sp-field-label for="fragment-title-state">State</sp-field-label>
+                                <sp-textfield
+                                    id="fragment-title-state"
+                                    placeholder="i.e. default, bf-26-variation"
+                                    .value="${this.#titleParts.state}"
+                                    @input=${this.#handleFragmentTitleStateInput}
+                                ></sp-textfield>
+                            </div>
+                        </div>
+                        <sp-help-text id="fragment-title-preview">${composeFragmentTitle(this.#titleParts)}</sp-help-text>
                     </sp-field-group>
                     <sp-field-group id="fragment-description-group">
                         <sp-field-label for="fragment-description">Fragment description</sp-field-label>
@@ -2176,8 +2223,24 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField('tags', newTags);
     }
 
-    #handleFragmentTitleUpdate(e) {
-        this.fragmentStore.updateFieldInternal('title', e.target.value);
+    #handleFragmentTitleOrgChange(e) {
+        this.#titleOrgTouched = true;
+        this.#titleParts = { ...this.#titleParts, org: e.target.value };
+        this.#saveComposedFragmentTitle();
+    }
+
+    #handleFragmentTitleStateInput(e) {
+        this.#titleParts = { ...this.#titleParts, state: e.target.value };
+        this.#saveComposedFragmentTitle();
+    }
+
+    #handleFragmentTitleOrgTouched() {
+        this.#titleOrgTouched = true;
+        this.requestUpdate();
+    }
+
+    #saveComposedFragmentTitle() {
+        this.fragmentStore.updateFieldInternal('title', composeFragmentTitle(this.#titleParts));
     }
 
     #handleFragmentDescriptionUpdate(e) {

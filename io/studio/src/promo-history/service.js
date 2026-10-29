@@ -3,6 +3,7 @@ const { setTimeout: delay } = require('node:timers/promises');
 const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken, isAllowed } = require('../../utils.js');
+const { DEFAULT_LOCALES } = require('../locales.js');
 
 const logger = Core.Logger('promo-history', { level: 'info' });
 const RETENTION = 95 * 86400;
@@ -240,6 +241,80 @@ async function versionSnapshot(context, current) {
     return { fragments };
 }
 
+async function nativeInheritanceParent(context, path) {
+    const parent = await readPath(context, path);
+    const { fragment } = await readFragment(context, parent.id);
+    if (fragment.path !== path) fail(409, 'Inheritance source moved; reload and retry');
+    return fragment;
+}
+
+async function groupedInheritanceParent(context, sourcePath) {
+    const response = await aem(context, '/referencedBy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: [sourcePath] }),
+    });
+    const refs = (await response.json()).items?.[0]?.parentReferences ?? [];
+    if (refs.length > MAX_FRAGMENTS) fail(413, 'Too many inheritance parent references');
+    const [, , , , surface, locale] = sourcePath.split('/');
+    const [lang, country] = locale.split('_');
+    const family = (DEFAULT_LOCALES[surface] ?? []).find(
+        (entry) => entry.lang === lang && [entry.country, ...(entry.regions ?? [])].includes(country),
+    );
+    const parents = new Map();
+    for (const ref of refs) {
+        if (
+            ref.type !== 'content-fragment' ||
+            !family ||
+            !ref.path?.startsWith(`/content/dam/mas/${surface}/${family.lang}_${family.country}/`) ||
+            ref.path.includes('/pzn/') ||
+            ownVariation(context.project, ref)
+        )
+            continue;
+        const candidate = await nativeInheritanceParent(context, ref.path);
+        if (values(candidate, 'variations').includes(sourcePath)) parents.set(candidate.id, candidate);
+    }
+    return parents.size === 1
+        ? { parent: [...parents.values()][0] }
+        : { reason: parents.size ? 'grouped-parent-ambiguous' : 'grouped-parent-missing' };
+}
+
+async function historySnapshot(context, current) {
+    const snapshot = await versionSnapshot(context, current);
+    const sources = new Map();
+    for (const path of references(context.project)) {
+        const match = /^(\/content\/dam\/mas\/[\w-]+\/[\w-]+)\/(.+)$/.exec(pathValue(path));
+        if (!match || match[2].startsWith('promotions/')) continue;
+        for (const name of promotionNames(context.project)) {
+            sources.set(`${match[1]}/promotions/${name}/${match[2]}`, path);
+        }
+    }
+    const inheritance = [];
+    const inheritanceUnavailable = [];
+    for (const fragment of current.fragments) {
+        if (!ownVariation(context.project, fragment)) continue;
+        const suffix = /^(.*)-(\d+)$/.exec(fragment.path);
+        const parentPath =
+            sources.get(fragment.path) ??
+            (suffix && Number(suffix[2]) >= 1 && Number(suffix[2]) <= 50 ? sources.get(suffix[1]) : undefined);
+        if (!parentPath) continue;
+        const resolved = parentPath.includes('/pzn/')
+            ? await groupedInheritanceParent(context, parentPath)
+            : { parent: await nativeInheritanceParent(context, parentPath) };
+        if (!resolved.parent) {
+            inheritanceUnavailable.push({ fragmentId: fragment.id, reason: resolved.reason });
+            continue;
+        }
+        const manifest = await versionSnapshot(context, { fragments: [resolved.parent] });
+        inheritance.push({ fragmentId: fragment.id, ...manifest.fragments[0] });
+    }
+    return {
+        ...snapshot,
+        ...(inheritance.length ? { inheritance } : {}),
+        ...(inheritanceUnavailable.length ? { inheritanceUnavailable } : {}),
+    };
+}
+
 function auditSnapshot(fragment) {
     return {
         fragments: fragment
@@ -450,7 +525,12 @@ async function record(context, params) {
         return writeEvent(context, intent.action, before, after, {
             intentId: intent.id,
             changes: changes.filter((change) => change.fragmentId === context.targetId),
-            ...(intent.snapshot ? { snapshot: intent.snapshot, restoreMode: 'undo' } : {}),
+            ...(intent.snapshot ? { snapshot: intent.snapshot, beforeSnapshot: intent.snapshot, restoreMode: 'undo' } : {}),
+            ...(['save', 'create', 'duplicate'].includes(intent.action) &&
+            target &&
+            (target.id === context.projectId || ownVariation(project, target))
+                ? { afterSnapshot: await historySnapshot(context, { fragments: [target] }) }
+                : {}),
         });
     }
     if (!ACTIONS.has(params.action)) fail(400, 'Invalid audit action');
@@ -460,7 +540,11 @@ async function record(context, params) {
         if (!target) fail(404, 'Created fragment is not available');
         context.targetId = target.id;
         context.targetPath = target.path;
-        return writeEvent(context, params.action, { fragments: [] }, auditSnapshot(target));
+        return writeEvent(context, params.action, { fragments: [] }, auditSnapshot(target), {
+            ...(target.id === context.projectId || ownVariation(context.project, target)
+                ? { afterSnapshot: await historySnapshot(context, { fragments: [target] }) }
+                : {}),
+        });
     }
     if (params.phase !== 'prepare') fail(400, 'Invalid record phase');
     const intents = await readEntries(context.state, context.projectId, 'intent');
@@ -480,7 +564,7 @@ async function record(context, params) {
     const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
     const manifest =
         params.action === 'save' && target && (target.id === context.projectId || ownVariation(context.project, target))
-            ? await versionSnapshot(context, { fragments: [target] })
+            ? await historySnapshot(context, { fragments: [target] })
             : null;
     const intent = {
         id: stableId(context, 'intent'),
@@ -687,7 +771,7 @@ async function restore(context, params, events) {
     const changed = plan.filter(
         (item) => diff({ fragments: [item.before] }, { fragments: [{ ...item.before, ...item.payload }] }).length,
     );
-    const manifest = changed.length ? await versionSnapshot(context, { fragments: changed.map((item) => item.before) }) : null;
+    const manifest = changed.length ? await historySnapshot(context, { fragments: changed.map((item) => item.before) }) : null;
     await persist(
         context,
         'restore-intent',
@@ -728,6 +812,27 @@ async function restore(context, params, events) {
     try {
         const changes = diff(before, { fragments: after });
         const undoFragments = manifest?.fragments.filter((entry) => changes.some((change) => change.fragmentId === entry.id));
+        const undoSnapshot = undoFragments?.length
+            ? {
+                  ...manifest,
+                  fragments: undoFragments,
+                  ...Object.fromEntries(
+                      ['inheritance', 'inheritanceUnavailable']
+                          .filter((key) => manifest[key])
+                          .map((key) => [
+                              key,
+                              manifest[key].filter((entry) => undoFragments.some(({ id }) => id === entry.fragmentId)),
+                          ]),
+                  ),
+              }
+            : null;
+        const confirmed = { fragments: [] };
+        for (const item of plan) {
+            if (restored.includes(item.id) || failures.some((failure) => failure.fragmentId === item.id && failure.partial)) {
+                confirmed.fragments.push((await readFragment(context, item.id)).fragment);
+            }
+        }
+        const afterSnapshot = confirmed.fragments.length ? await historySnapshot(context, confirmed) : null;
         result = await writeEvent(
             context,
             'restore',
@@ -738,7 +843,8 @@ async function restore(context, params, events) {
                 restored,
                 ...(failures.length ? { failures } : {}),
                 sourceEventId: source.id,
-                ...(undoFragments?.length ? { snapshot: { ...manifest, fragments: undoFragments }, restoreMode: 'undo' } : {}),
+                ...(undoSnapshot ? { snapshot: undoSnapshot, beforeSnapshot: undoSnapshot, restoreMode: 'undo' } : {}),
+                ...(afterSnapshot ? { afterSnapshot } : {}),
             },
         );
     } catch {

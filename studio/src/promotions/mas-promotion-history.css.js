@@ -345,15 +345,6 @@ export const promotionHistoryStyles = css`
         margin: 0;
     }
 
-    .details-footer {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 20px;
-    }
-
     #restore-confirmation {
         --mod-dialog-confirm-small-width: 480px;
         --mod-dialog-min-inline-size: min(480px, calc(100vw - 32px));

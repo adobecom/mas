@@ -297,6 +297,10 @@ describe('Promotion history', () => {
         const persisted = JSON.parse(state.put.lastCall.args[1]);
         expect(persisted.snapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-1' }]);
         expect(persisted.snapshot).to.deep.equal(event.snapshot);
+        expect(persisted.beforeSnapshot).to.deep.equal(event.snapshot);
+        expect(persisted.afterSnapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-2' }]);
+        const after = persisted.afterSnapshot.fragments[0];
+        expect(versions.get(`${after.id}:${after.versionId}`).title).to.equal('Updated');
         expect(state.put.lastCall.args[1]).not.to.include('"fields"');
         expect(state.put.lastCall.args[2].ttl).to.be.at.least(90 * 86400);
     });
@@ -445,7 +449,7 @@ describe('Promotion history', () => {
         expect(event.snapshot.fragments).to.deep.equal([{ id: VARIATION, path: variationPath, versionId: 'version-1' }]);
         expect(event.projectPath).to.equal(projectPath);
         expect(event.environment.aem).to.equal('https://author.example.com');
-        expect(versions.size).to.equal(1);
+        expect(versions.size).to.equal(2);
         const intent = [...stored.values()].map((value) => JSON.parse(value)).find((value) => value.id === intentId);
         expect(intent.before.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
         expect(intent.before.fragments[0].fields[0].values).to.deep.equal(['Old']);
@@ -462,7 +466,7 @@ describe('Promotion history', () => {
 
         expect(event.changes.find(({ field }) => field === 'promoCode').after).to.deep.equal(['NEWCODE']);
         expect(event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
-        expect(versions.size).to.equal(1);
+        expect(versions.size).to.equal(2);
     });
 
     it('blocks save preparation when the native before version cannot be created', async () => {
@@ -484,6 +488,335 @@ describe('Promotion history', () => {
 
         expect(retry.intentId).to.equal(first.intentId);
         expect(versions.size).to.equal(1);
+    });
+
+    for (const action of ['save', 'create']) {
+        it(`retries failed ${action} completion capture without recording a false success`, async () => {
+            const { intentId } = await call('record', { phase: 'prepare', action, targetId: VARIATION });
+            fragments.get(VARIATION).fields[0].values = ['Saved'];
+            const posts = fetchStub.withArgs(
+                sinon.match((url) => url.endsWith(`/${VARIATION}/versions`)),
+                sinon.match({ method: 'POST' }),
+            );
+            posts.onCall(posts.callCount).resolves(response({}, 503));
+            const payload = { phase: 'complete', intentId };
+
+            await expectError(call('record', payload), 503);
+            expect((await call('list')).events).to.have.length(0);
+            expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['Saved']);
+
+            const completed = await call('record', payload);
+            const count = versions.size;
+            fragments.get(VARIATION).fields[0].values = ['Later change'];
+            const retry = await call('record', payload);
+
+            expect(retry).to.deep.equal(JSON.parse(JSON.stringify(completed)));
+            expect(versions.size).to.equal(count);
+            expect((await call('list')).events).to.have.length(1);
+        });
+    }
+
+    it('rejects completion when the created after version is not readable', async () => {
+        const { intentId } = await prepareSave();
+        fragments.get(PROJECT).title = 'Saved';
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`))).resolves(response({}, 404));
+
+        await expectError(call('record', { phase: 'complete', intentId }), 404);
+
+        expect(delay.args).to.deep.equal([[250], [500], [1000]]);
+        expect((await call('list')).events).to.have.length(0);
+    });
+
+    it('rejects completion if content changes during after version capture', async () => {
+        const { intentId } = await prepareSave();
+        fragments.get(PROJECT).title = 'Saved';
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions/`)))
+            .resolves(response({ ...makeProject(), title: 'Concurrent edit' }));
+
+        await expectError(call('record', { phase: 'complete', intentId }), 409);
+
+        expect((await call('list')).events).to.have.length(0);
+    });
+
+    it('rejects completion when after version creation returns no native reference', async () => {
+        const { intentId } = await prepareSave();
+        fragments.get(PROJECT).title = 'Saved';
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match({ method: 'POST' }),
+            )
+            .resolves(response({}, 201));
+
+        await expectError(call('record', { phase: 'complete', intentId }), 502);
+
+        expect((await call('list')).events).to.have.length(0);
+    });
+
+    describe('historical inheritance references', () => {
+        const parentId = '33333333-3333-4333-8333-333333333333';
+        const parentPath = '/content/dam/mas/acom/en_US/card';
+
+        beforeEach(() => {
+            fragments.set(parentId, { ...makeVariation(), id: parentId, path: parentPath, status: 'DRAFT' });
+            fragments.get(PROJECT).fields[0].values = [parentPath];
+        });
+
+        it('captures immutable before and after parents outside writable targets', async () => {
+            const { intentId } = await prepareSave({ targetId: VARIATION });
+            fragments.get(parentId).fields[0].values = ['Parent at save'];
+            fragments.get(VARIATION).fields[0].values = ['Saved'];
+
+            const { event } = await call('record', { phase: 'complete', intentId });
+            fragments.get(parentId).fields[0].values = ['Later parent'];
+
+            expect(event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+            expect(event.beforeSnapshot).to.deep.equal(event.snapshot);
+            for (const [manifest, expected] of [
+                [event.beforeSnapshot, 'Old'],
+                [event.afterSnapshot, 'Parent at save'],
+            ]) {
+                expect(manifest.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+                expect(manifest.inheritance).to.have.length(1);
+                const entry = manifest.inheritance[0];
+                expect(entry).to.deep.equal({
+                    fragmentId: VARIATION,
+                    id: parentId,
+                    path: parentPath,
+                    versionId: entry.versionId,
+                    status: 'DRAFT',
+                });
+                expect(versions.get(`${entry.id}:${entry.versionId}`).fields[0].values).to.deep.equal([expected]);
+            }
+        });
+
+        for (const suffix of ['', '-3']) {
+            it(`captures the referenced original parent for a created variation with suffix "${suffix}"`, async () => {
+                fragments.get(VARIATION).path += suffix;
+                const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+                expect(event.afterSnapshot.inheritance[0]).to.include({ fragmentId: VARIATION, id: parentId });
+                expect(event).not.to.have.property('snapshot');
+            });
+        }
+
+        it('prefers an exactly referenced numeric source name over stripping its suffix', async () => {
+            const numericId = '55555555-5555-4555-8555-555555555555';
+            fragments.set(numericId, { ...makeVariation(), id: numericId, path: `${parentPath}-2` });
+            fragments.get(PROJECT).fields[0].values.push(`${parentPath}-2`);
+            fragments.get(VARIATION).path += '-2';
+
+            const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+            expect(event.afterSnapshot.inheritance[0].id).to.equal(numericId);
+        });
+
+        it('fails explicitly when a mapped parent cannot be read', async () => {
+            fragments.delete(parentId);
+
+            await expectError(prepareSave({ targetId: VARIATION }), 404);
+
+            expect(stored.size).to.equal(0);
+        });
+
+        it('fails explicitly when a mapped parent native version cannot be created', async () => {
+            fetchStub
+                .withArgs(
+                    sinon.match((url) => url.endsWith(`/${parentId}/versions`)),
+                    sinon.match({ method: 'POST' }),
+                )
+                .resolves(response({}, 503));
+
+            await expectError(prepareSave({ targetId: VARIATION }), 503);
+
+            expect(stored.size).to.equal(0);
+        });
+
+        it('does not infer an unreferenced parent from a matching path', async () => {
+            fragments.get(PROJECT).fields[0].values = [variationPath];
+
+            const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+            expect(event.afterSnapshot).not.to.have.property('inheritance');
+            expect([...versions.keys()].some((key) => key.startsWith(parentId))).to.equal(false);
+        });
+
+        it('captures restore parent versions without restoring parent content', async () => {
+            const { intentId } = await prepareSave({ targetId: VARIATION });
+            fragments.get(VARIATION).fields[0].values = ['Saved'];
+            const { event } = await call('record', { phase: 'complete', intentId });
+            fragments.get(parentId).fields[0].values = ['Current parent'];
+            fetchStub.resetHistory();
+
+            const result = await call('restore', {
+                eventId: event.id,
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+
+            expect(result.restored).to.deep.equal([VARIATION]);
+            expect(result.event.beforeSnapshot.inheritance[0].id).to.equal(parentId);
+            expect(result.event.afterSnapshot.inheritance[0].id).to.equal(parentId);
+            expect(fragments.get(parentId).fields[0].values).to.deep.equal(['Current parent']);
+            expect(fetchStub.getCalls().some(({ args }) => args[0].endsWith(parentId) && args[1]?.method === 'PUT')).to.equal(
+                false,
+            );
+        });
+
+        describe('grouped source inheritance', () => {
+            const defaultId = '55555555-5555-4555-8555-555555555555';
+            const defaultPath = '/content/dam/mas/acom/en_US/default-card';
+            const groupedPath = '/content/dam/mas/acom/en_US/pzn/card';
+            let parentRefs;
+
+            beforeEach(() => {
+                fragments.get(parentId).path = groupedPath;
+                fragments.get(parentId).fields[0].values = ['Grouped override is not the promo parent'];
+                fragments.get(PROJECT).fields[0].values = [groupedPath];
+                fragments.get(VARIATION).path = variationPath.replace('/card', '/pzn/card');
+                fragments.set(defaultId, {
+                    ...makeVariation(),
+                    id: defaultId,
+                    path: defaultPath,
+                    fields: [
+                        { name: 'headline', values: ['Default card value'] },
+                        { name: 'variations', values: [groupedPath] },
+                    ],
+                });
+                parentRefs = [{ type: 'content-fragment', path: defaultPath }];
+                fetchStub
+                    .withArgs(
+                        sinon.match((url) => url.endsWith('/referencedBy')),
+                        sinon.match({ method: 'POST' }),
+                    )
+                    .callsFake(async () => response({ items: [{ path: groupedPath, parentReferences: parentRefs }] }));
+            });
+
+            it('captures the verified native default parent rather than the raw grouped source', async () => {
+                const { intentId } = await prepareSave({ targetId: VARIATION });
+                fragments.get(defaultId).fields[0].values = ['Default at completion'];
+                fragments.get(VARIATION).fields[0].values = ['Saved'];
+
+                const { event } = await call('record', { phase: 'complete', intentId });
+
+                for (const [manifest, expected] of [
+                    [event.beforeSnapshot, 'Default card value'],
+                    [event.afterSnapshot, 'Default at completion'],
+                ]) {
+                    expect(manifest.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+                    const entry = manifest.inheritance[0];
+                    expect(entry).to.include({ fragmentId: VARIATION, id: defaultId, path: defaultPath });
+                    expect(versions.get(`${entry.id}:${entry.versionId}`).fields[0].values).to.deep.equal([expected]);
+                }
+                expect([...versions.keys()].some((key) => key.startsWith(parentId))).to.equal(false);
+                const referencedBy = fetchStub.getCalls().find(({ args }) => args[0].endsWith('/referencedBy'));
+                expect(JSON.parse(referencedBy.args[1].body)).to.deep.equal({ paths: [groupedPath] });
+                expect(fetchStub.getCalls().some(({ args }) => ['PUT', 'DELETE', 'PATCH'].includes(args[1]?.method))).to.equal(
+                    false,
+                );
+            });
+
+            it('prefers the verified default-locale parent over a regional reverse reference', async () => {
+                const regionalId = '66666666-6666-4666-8666-666666666666';
+                const regionalPath = '/content/dam/mas/acom/en_CA/default-card';
+                fragments.set(regionalId, {
+                    ...structuredClone(fragments.get(defaultId)),
+                    id: regionalId,
+                    path: regionalPath,
+                });
+                parentRefs.unshift({ type: 'content-fragment', path: regionalPath });
+
+                const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+                expect(event.afterSnapshot.inheritance[0].id).to.equal(defaultId);
+            });
+
+            it('resolves a regional grouped source to its verified locale-default parent', async () => {
+                const regionalGroupedPath = groupedPath.replace('/en_US/', '/en_CA/');
+                fragments.get(parentId).path = regionalGroupedPath;
+                fragments.get(PROJECT).fields[0].values = [regionalGroupedPath];
+                fragments.get(VARIATION).path = fragments.get(VARIATION).path.replace('/en_US/', '/en_CA/');
+                fragments.get(defaultId).fields[1].values = [regionalGroupedPath];
+
+                const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+                expect(event.afterSnapshot.inheritance[0]).to.include({ id: defaultId, path: defaultPath });
+            });
+
+            for (const reason of ['missing', 'ambiguous']) {
+                it(`marks ${reason} grouped parents unavailable instead of using grouped raw fields`, async () => {
+                    if (reason === 'missing') fragments.get(defaultId).fields[1].values = [];
+                    else {
+                        const otherId = '66666666-6666-4666-8666-666666666666';
+                        const otherPath = `${defaultPath}-other`;
+                        fragments.set(otherId, {
+                            ...structuredClone(fragments.get(defaultId)),
+                            id: otherId,
+                            path: otherPath,
+                        });
+                        parentRefs.push({ type: 'content-fragment', path: otherPath });
+                    }
+
+                    const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+                    expect(event.afterSnapshot).not.to.have.property('inheritance');
+                    expect(event.afterSnapshot.inheritanceUnavailable).to.deep.equal([
+                        { fragmentId: VARIATION, reason: `grouped-parent-${reason}` },
+                    ]);
+                    expect([...versions.keys()].some((key) => !key.startsWith(VARIATION))).to.equal(false);
+                });
+            }
+
+            it('ignores cross-surface references and references that are not content fragments', async () => {
+                parentRefs = [
+                    { type: 'content-fragment', path: '/content/dam/mas/sandbox/en_US/default-card' },
+                    { type: 'page', path: defaultPath },
+                ];
+
+                const { event } = await call('record', { action: 'create', targetId: VARIATION });
+
+                expect(event.afterSnapshot).not.to.have.property('inheritance');
+                expect(event.afterSnapshot.inheritanceUnavailable[0].reason).to.equal('grouped-parent-missing');
+            });
+
+            it('propagates grouped reverse-reference I/O failures instead of treating them as missing parents', async () => {
+                fetchStub
+                    .withArgs(
+                        sinon.match((url) => url.endsWith('/referencedBy')),
+                        sinon.match({ method: 'POST' }),
+                    )
+                    .resolves(response({}, 503));
+
+                await expectError(prepareSave({ targetId: VARIATION }), 503);
+
+                expect(stored.size).to.equal(0);
+            });
+
+            it('omits unavailable inheritance for failed targets from a partial restore undo manifest', async () => {
+                fragments.get(defaultId).fields[1].values = [];
+                const event = await legacyBackup();
+                fragments.get(PROJECT).title = 'New project title';
+                fragments.get(VARIATION).fields[0].values = ['New headline'];
+                fetchStub
+                    .withArgs(
+                        sinon.match((url) => url.endsWith(VARIATION)),
+                        sinon.match({ method: 'PUT' }),
+                    )
+                    .resolves(response({}, 412));
+
+                const result = await call('restore', {
+                    eventId: event.id,
+                    expected: [
+                        { fragmentId: PROJECT, etag: '"one"' },
+                        { fragmentId: VARIATION, etag: '"one"' },
+                    ],
+                });
+
+                expect(result.restored).to.deep.equal([PROJECT]);
+                expect(result.event.beforeSnapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
+                expect(result.event.beforeSnapshot.inheritanceUnavailable ?? []).to.deep.equal([]);
+            });
+        });
     });
 
     describe('automatic content undo', () => {
@@ -569,6 +902,69 @@ describe('Promotion history', () => {
             expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['New']);
         });
 
+        it('refuses blindly retrying an undo after its writes succeeded but after snapshot capture failed', async () => {
+            const posts = fetchStub.withArgs(
+                sinon.match((url) => url.endsWith(`/${VARIATION}/versions`)),
+                sinon.match({ method: 'POST' }),
+            );
+            posts.onCall(posts.callCount + 1).resolves(response({}, 503));
+            const payload = {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            };
+            let failure;
+            try {
+                await call('restore', payload);
+            } catch (error) {
+                failure = error;
+            }
+            expect(failure?.result).to.deep.equal({ restored: [VARIATION], failures: [], auditPending: true });
+            fetchStub.resetHistory();
+
+            await expectError(call('restore', payload), 409);
+
+            expect(fetchStub.getCalls().some(({ args }) => ['POST', 'PUT', 'DELETE'].includes(args[1]?.method))).to.equal(
+                false,
+            );
+            expect(fragments.get(VARIATION).fields[0].values).to.deep.equal(['Old']);
+        });
+
+        for (const [field, before] of [
+            ['cardTitle', []],
+            ['badge', ['<explicit_empty/>']],
+        ]) {
+            it(`restores raw ${field} inheritance or explicit-empty values without copying parent display text`, async () => {
+                const parentId = '33333333-3333-4333-8333-333333333333';
+                const parentPath = '/content/dam/mas/acom/en_US/card';
+                fragments.set(parentId, {
+                    ...makeVariation(),
+                    id: parentId,
+                    path: parentPath,
+                    fields: [{ name: field, values: ['Parent display text'] }],
+                });
+                fragments.get(PROJECT).fields[0].values = [parentPath];
+                fragments.get(VARIATION).fields.push({ name: field, values: before });
+                const { intentId } = await prepareSave({ requestId: 'save-inheritance', targetId: VARIATION });
+                fragments.get(VARIATION).fields.find(({ name }) => name === field).values = ['Override'];
+                const saved = await call('record', { phase: 'complete', requestId: 'save-inheritance', intentId });
+
+                const result = await call('restore', {
+                    eventId: saved.event.id,
+                    selections: [{ fragmentId: VARIATION, fields: [field] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                });
+
+                expect(fragments.get(VARIATION).fields.find(({ name }) => name === field).values).to.deep.equal(before);
+                expect(result.event.changes.find((change) => change.field === field).after).to.deep.equal(before);
+                const entry = result.event.afterSnapshot.fragments[0];
+                expect(
+                    versions.get(`${entry.id}:${entry.versionId}`).fields.find(({ name }) => name === field).values,
+                ).to.deep.equal(before);
+                expect(fragments.get(parentId).fields[0].values).to.deep.equal(['Parent display text']);
+            });
+        }
+
         it('keeps audit listable but refuses undo when the native before version is missing', async () => {
             versions.clear();
 
@@ -585,14 +981,18 @@ describe('Promotion history', () => {
     });
 
     for (const action of ['create', 'duplicate']) {
-        it(`records ${action} after creation without preparing a version backup`, async () => {
+        it(`records ${action} after creation with a native after version but no creation undo`, async () => {
             const { event } = await call('record', { action, targetId: PROJECT });
 
             expect(event.action).to.equal(action);
             expect(event.user.id).to.equal('verified-user');
             expect(event.changes.find(({ field }) => field === '@title')).to.include({ before: null, after: 'Project' });
             expect(event).not.to.have.property('snapshot');
-            expect(versions.size).to.equal(0);
+            expect(event).not.to.have.property('beforeSnapshot');
+            expect(event).not.to.have.property('restoreMode');
+            expect(event.afterSnapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-1' }]);
+            expect(versions.size).to.equal(1);
+            await expectError(call('restore', { eventId: event.id, expected: [] }), 404);
         });
     }
 
@@ -607,6 +1007,8 @@ describe('Promotion history', () => {
             expect(event.action).to.equal(action);
             expect(event.targetId).to.equal(VARIATION);
             expect(event).not.to.have.property('snapshot');
+            expect(event).not.to.have.property('beforeSnapshot');
+            expect(event).not.to.have.property('afterSnapshot');
             expect(versions.size).to.equal(0);
         });
     }
@@ -622,6 +1024,7 @@ describe('Promotion history', () => {
 
         expect(event.changes[0]).to.include({ fragmentId: VARIATION, path: shared.path });
         expect(event).not.to.have.property('snapshot');
+        expect(event).not.to.have.property('afterSnapshot');
         expect(versions.size).to.equal(0);
     });
 
@@ -642,6 +1045,7 @@ describe('Promotion history', () => {
 
         expect(event).to.include({ action: 'delete', targetId: VARIATION, targetPath: variationPath });
         expect(event.changes.find(({ field }) => field === 'headline').before).to.deep.equal(['Old']);
+        expect(event).not.to.have.property('afterSnapshot');
         expect(versions.size).to.equal(0);
     });
 
@@ -770,6 +1174,7 @@ describe('Promotion history', () => {
         fetchStub.resetHistory();
         const { event } = await call('record', { phase: 'complete', intentId });
         expect(event.changes.some((change) => change.field === '@title' && change.before === 'Project')).to.equal(true);
+        expect(event).not.to.have.property('afterSnapshot');
         expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/versions/'))).to.equal(false);
     });
 
@@ -852,8 +1257,96 @@ describe('Promotion history', () => {
         ]);
         expect(result.event.restored).to.deep.equal([PROJECT]);
         expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
+        expect(result.event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
         expect(result.event.changes.some((change) => change.fragmentId === VARIATION)).to.equal(false);
     });
+
+    for (const partial of [false, true]) {
+        it(`reports auditPending without masking ${partial ? 'partial' : 'successful'} restores if after capture fails`, async () => {
+            const event = await legacyBackup();
+            fragments.get(PROJECT).title = 'New title';
+            fragments.get(VARIATION).fields[0].values = ['New headline'];
+            if (partial) {
+                fetchStub
+                    .withArgs(
+                        sinon.match((url) => url.endsWith(VARIATION)),
+                        sinon.match({ method: 'PUT' }),
+                    )
+                    .resolves(response({}, 412));
+            }
+            const posts = fetchStub.withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}/versions`)),
+                sinon.match({ method: 'POST' }),
+            );
+            posts.onSecondCall().resolves(response({}, 503));
+            let failure;
+            try {
+                await call('restore', {
+                    eventId: event.id,
+                    expected: [
+                        { fragmentId: PROJECT, etag: '"one"' },
+                        { fragmentId: VARIATION, etag: '"one"' },
+                    ],
+                });
+            } catch (error) {
+                failure = error;
+            }
+
+            it('captures native actual content after a partially failed tags restore', async () => {
+                fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
+                const event = await legacyBackup();
+                fragments.get(VARIATION).fields[0].values = ['New headline'];
+                fragments.get(VARIATION).tags = [{ id: 'mas:new' }];
+                fetchStub
+                    .withArgs(
+                        sinon.match((url) => url.endsWith(`/${VARIATION}/tags`)),
+                        sinon.match({ method: 'PUT' }),
+                    )
+                    .resolves(response({}, 412));
+
+                const result = await call('restore', {
+                    eventId: event.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['headline', '@tags'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                });
+
+                expect(result.restored).to.deep.equal([]);
+                expect(result.failures[0]).to.include({ fragmentId: VARIATION, partial: true });
+                const entry = result.event.afterSnapshot.fragments[0];
+                const actual = versions.get(`${entry.id}:${entry.versionId}`);
+                expect(actual.fields[0].values).to.deep.equal(['Old']);
+                expect(actual.tags).to.deep.equal([{ id: 'mas:new' }]);
+                expect(result.event.beforeSnapshot).to.deep.equal(result.event.snapshot);
+            });
+
+            it('returns completed restore audit and native references unchanged on retry without more AEM writes', async () => {
+                const source = await legacyBackup();
+                fragments.get(VARIATION).fields[0].values = ['New'];
+                const payload = {
+                    eventId: source.id,
+                    selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                    expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+                };
+                const completed = await call('restore', payload);
+                fetchStub.resetHistory();
+
+                const retry = await call('restore', payload);
+
+                expect(retry).to.deep.equal(JSON.parse(JSON.stringify(completed)));
+                expect(fetchStub.getCalls().some(({ args }) => ['POST', 'PUT', 'DELETE'].includes(args[1]?.method))).to.equal(
+                    false,
+                );
+                expect((await call('list', { action: 'restore' })).events).to.have.length(1);
+            });
+
+            expect(failure?.statusCode).to.equal(503);
+            expect(failure.result.auditPending).to.equal(true);
+            expect(failure.result.restored).to.deep.equal(partial ? [PROJECT] : [PROJECT, VARIATION]);
+            expect(failure.result.failures).to.have.length(partial ? 1 : 0);
+            expect(fragments.get(PROJECT).title).to.equal('Project');
+            expect((await call('list', { action: 'restore' })).events).to.have.length(0);
+        });
+    }
 
     it('restores metadata while preserving unrelated metadata and field values', async () => {
         const event = await legacyBackup();
@@ -952,6 +1445,9 @@ describe('Promotion history', () => {
         expect(event.targetId).to.equal(VARIATION);
         expect(event.changes.some(({ fragmentId }) => fragmentId === VARIATION)).to.equal(true);
         expect(event).not.to.have.property('snapshot');
+        expect(event).not.to.have.property('beforeSnapshot');
+        expect(event).not.to.have.property('restoreMode');
+        expect(event.afterSnapshot.fragments).to.deep.equal([{ id: VARIATION, path: variationPath, versionId: 'version-1' }]);
     });
 
     it('restores tags through the ETag-protected tags API, not ignored fragment PUT properties', async () => {
@@ -980,7 +1476,11 @@ describe('Promotion history', () => {
         });
         expect(result.event.restoreMode).to.equal('undo');
         expect(result.event.snapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
-        expect(versions.size).to.equal(versionCount + 1);
+        expect(result.event.beforeSnapshot).to.deep.equal(result.event.snapshot);
+        expect(result.event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+        const after = result.event.afterSnapshot.fragments[0];
+        expect(versions.get(`${after.id}:${after.versionId}`).fields[0].values).to.deep.equal(['Old']);
+        expect(versions.size).to.equal(versionCount + 2);
     });
 
     it('full fragment restore replaces the historical field set instead of retaining later additions', async () => {

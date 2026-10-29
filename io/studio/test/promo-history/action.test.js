@@ -36,6 +36,21 @@ describe('Promotion history web actions', () => {
         expect(result.body).to.deep.equal({ error: 'Conflict' });
     });
 
+    it('exposes post-write auditPending and partial restore results at the HTTP body top level', async () => {
+        const partial = {
+            restored: ['confirmed-fragment'],
+            failures: [{ fragmentId: 'partial-fragment', statusCode: 412, error: 'Draft restore failed', partial: true }],
+            auditPending: true,
+        };
+        const message = 'Draft writes finished but audit completion failed; do not retry blindly';
+        execute.rejects(Object.assign(new Error(message), { statusCode: 503, result: partial }));
+
+        const result = await handle('restore', {});
+
+        expect(result.statusCode).to.equal(503);
+        expect(result.body).to.deep.equal({ error: message, ...partial });
+    });
+
     it('does not expose unexpected exception details', async () => {
         execute.rejects(new Error('private server details'));
         const result = await handle('list', {});

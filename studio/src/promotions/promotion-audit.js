@@ -45,20 +45,24 @@ async function resolveProjectIds(repository, fragment) {
     if (isProject(fragment)) return [fragment.id];
     if (!fragment.path || !isPromoVariationPath(fragment.path)) return [];
     const tag = getPromotionTagFromFragment(fragment);
-    let projects = Store.promotions.list.data.get().map((store) => store.get());
-    if (!projects.length) {
-        projects = await repository.searchFragmentList(
-            { path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] },
-            50,
-        );
-    }
-    const matches = projects.filter((item) => {
+    const matchesProject = (item) => {
         const projectTag = getPromotionTagFromFragment(item);
         if (tag) return projectTag === tag;
         const promoName = getPromoNameFromTag(projectTag ?? '');
         return promoName && fragment.path.includes(`/promotions/${promoName}/`);
-    });
-    if (!matches.length && isPromoVariationPath(fragment.path)) {
+    };
+    let matches = Store.promotions.list.data
+        .get()
+        .map((store) => store.get())
+        .filter(matchesProject);
+    if (!matches.length) {
+        const projects = await repository.searchFragmentList(
+            { path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] },
+            50,
+        );
+        matches = projects.filter(matchesProject);
+    }
+    if (!matches.length) {
         throw new Error('The promotion project could not be resolved. Reload and try again.');
     }
     return matches.map((project) => project.id);
@@ -121,16 +125,14 @@ export async function withPromotionAudit(repository, action, target, write) {
         return created;
     }
     const intents = [];
-    for (const fragment of targets) {
+    const publication = ['publish', 'unpublish'].includes(actualAction);
+    for (const fragment of publication ? targets.filter(isProject) : targets) {
         for (const projectId of await resolveProjectIds(repository, fragment)) {
             intents.push(await prepareAudit(projectId, actualAction, fragment));
         }
     }
     const result = await write();
-    const failures =
-        intents.length && ['publish', 'unpublish'].includes(actualAction)
-            ? (result?.items ?? []).filter((item) => item.status !== 'SUCCESS_TRIGGERED')
-            : [];
+    const failures = publication ? (result?.items ?? []).filter((item) => item.status !== 'SUCCESS_TRIGGERED') : [];
     for (const intent of intents) {
         if (
             failures.some((item) => item.id === intent.targetId || (item.path !== undefined && item.path === intent.targetPath))

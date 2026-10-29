@@ -14,10 +14,12 @@ const logger = Core.Logger('promo-history', { level: 'info' });
 const RETENTION = 95 * 86400;
 const INTENT_RETENTION = 86400;
 const MAX_ENTRIES = 2000;
+const MAX_PENDING_INTENTS = 50;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
+const RECORD_GROUPS = new Set([...RESTORE_GROUPS, 'GRP-ODIN-MAS-PROMO-EDITORS']);
 const ACTIONS = new Set(['create', 'save', 'delete', 'duplicate', 'publish', 'unpublish']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const VARIATION_PATH = /^\/content\/dam\/mas\/[\w-]+\/[\w-]+\/promotions\//;
@@ -74,7 +76,7 @@ async function authenticate(params) {
     return { token, user: { id, email: profile.email, ...(profile.name ? { name: profile.name } : {}) } };
 }
 
-async function authorizeRestore(state, email) {
+async function authorizeWrite(state, email, operation) {
     let users;
     try {
         const cached = await state.get('mas-users');
@@ -89,8 +91,14 @@ async function authorizeRestore(state, email) {
     if (!Array.isArray(groups) || groups.some((group) => typeof group !== 'string')) {
         fail(503, 'Promotion permissions are temporarily unavailable');
     }
-    if (!groups.some((group) => RESTORE_GROUPS.has(group.toUpperCase()))) {
-        fail(403, 'Restore requires MAS admin or promotion power-user membership');
+    const permitted = operation === 'restore' ? RESTORE_GROUPS : RECORD_GROUPS;
+    if (!groups.some((group) => permitted.has(group.toUpperCase()))) {
+        fail(
+            403,
+            operation === 'restore'
+                ? 'Restore requires MAS admin or promotion power-user membership'
+                : 'Recording requires promotion author membership',
+        );
     }
 }
 
@@ -409,28 +417,57 @@ function namespace(projectId, kind) {
     return `promo-history.${projectId}.${kind}.`;
 }
 
-async function readEntries(state, projectId, kind = 'event', storageKeys) {
+function canonicalEntry(entries) {
+    const score = (entry) =>
+        (entry.restored?.length ?? 0) * (MAX_FRAGMENTS + 1) +
+        (entry.afterSnapshot?.fragments.length ?? 0) +
+        (['confirmed', 'failed'].includes(entry.publicationOutcome) ? 1 : 0);
+    entries.sort(
+        (a, b) =>
+            score(b) - score(a) ||
+            (a.failures?.length ?? 0) - (b.failures?.length ?? 0) ||
+            b.createdAt.localeCompare(a.createdAt) ||
+            JSON.stringify(a).localeCompare(JSON.stringify(b)),
+    );
+    const [entry, ...others] = entries;
+    if (entry.action !== 'restore') return entry;
+    const outcome = (attempt) => JSON.stringify([attempt.restored, attempt.failures, attempt.changes]);
+    const alternatives = others.filter((attempt) => outcome(attempt) !== outcome(entry));
+    return alternatives.length ? { ...entry, concurrentAttempts: alternatives } : entry;
+}
+
+async function readEntries(state, projectId, kind = 'event', storageKeys, entryId = '') {
     const result = [];
-    for await (const { keys } of state.list({ match: `${namespace(projectId, kind)}*` })) {
-        for (const key of keys) {
-            if (result.length >= MAX_ENTRIES * 2) fail(507, 'Project history capacity reached');
-            const entry = await state.get(key);
-            if (entry?.value) {
-                const value = JSON.parse(entry.value);
-                result.push(value);
-                if (storageKeys) {
-                    if (!storageKeys.has(value.id)) storageKeys.set(value.id, []);
-                    storageKeys.get(value.id).push(key);
+    let scanned = 0;
+    for await (const { keys } of state.list({ match: `${namespace(projectId, kind)}${entryId ? `${entryId}.` : ''}*` })) {
+        scanned += keys.length;
+        if (scanned > MAX_ENTRIES * 2) fail(507, 'Project history capacity reached');
+        for (let offset = 0; offset < keys.length; offset += 10) {
+            const batch = keys.slice(offset, offset + 10);
+            const entries = await Promise.all(batch.map((key) => state.get(key)));
+            for (const [index, entry] of entries.entries()) {
+                if (entry?.value) {
+                    const value = JSON.parse(entry.value);
+                    result.push(value);
+                    if (storageKeys) {
+                        if (!storageKeys.has(value.id)) storageKeys.set(value.id, []);
+                        storageKeys.get(value.id).push(batch[index]);
+                    }
                 }
             }
         }
     }
-    result.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    return [...new Map(result.reverse().map((entry) => [entry.id, entry])).values()];
+    const grouped = new Map();
+    for (const entry of result) {
+        if (!grouped.has(entry.id)) grouped.set(entry.id, []);
+        grouped.get(entry.id).push(entry);
+    }
+    return [...grouped.values()].map(canonicalEntry);
 }
 
 async function persist(context, kind, value, ttl = RETENTION) {
-    await context.state.put(`${namespace(context.projectId, kind)}${crypto.randomUUID()}`, bounded(value), { ttl });
+    const suffix = kind === 'event' ? `${value.id}.${crypto.randomUUID()}` : crypto.randomUUID();
+    await context.state.put(`${namespace(context.projectId, kind)}${suffix}`, bounded(value), { ttl });
     return value;
 }
 
@@ -502,7 +539,8 @@ async function writeEvent(context, action, before, after, extra = {}) {
         ...extra,
     };
     await persist(context, 'event', event);
-    return { event };
+    const [canonical] = await readEntries(context.state, context.projectId, 'event', null, event.id);
+    return { event: canonical };
 }
 
 async function saveCapture(context) {
@@ -592,7 +630,7 @@ async function duplicateSource(context, params) {
     return { sourceProjectId: fragment.id };
 }
 
-async function record(context, params) {
+async function record(context, params, events) {
     if (params.phase === 'complete') {
         identifier(params.intentId);
         const intent = (await readEntries(context.state, context.projectId, 'intent')).find(
@@ -600,6 +638,8 @@ async function record(context, params) {
         );
         if (!intent) fail(404, 'History intent expired or missing');
         if (intent.user.id !== context.user.id || intent.requestId !== context.requestId) fail(403, 'History intent mismatch');
+        if (['publish', 'unpublish'].includes(intent.action) && intent.targetId !== context.projectId)
+            fail(400, 'Publication history is only available for the promotion project');
         context.targetId = intent.targetId;
         context.targetPath = intent.targetPath;
         let project;
@@ -648,12 +688,11 @@ async function record(context, params) {
         if (['publish', 'unpublish'].includes(intent.action)) {
             if (params.workflowInstanceId !== undefined) extra.workflowInstanceId = params.workflowInstanceId;
             const oldTarget = before.fragments.find((fragment) => fragment.id === context.targetId);
-            const operation = target.operations?.replication;
-            const terminal = operation == null && target.status === (intent.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED');
-            if (target.status !== undefined) extra.publicationStatus = target.status;
-            if (operation != null) extra.publicationOperation = operation;
-            extra.publicationOutcome =
-                !params.workflowInstanceId && terminal && oldTarget?.status !== target.status ? 'confirmed' : 'pending';
+            extra.publicationBeforeStatus = oldTarget?.status ?? null;
+            Object.assign(
+                extra,
+                publicationResult({ ...extra, action: intent.action, targetPath: intent.targetPath }, null, target),
+            );
         }
         if (params.sourceProjectId !== undefined) {
             if (intent.sourceProjectId && params.sourceProjectId !== intent.sourceProjectId)
@@ -674,6 +713,9 @@ async function record(context, params) {
         return stateEvent(context, params.action, { fragments: [] }, target, await duplicateSource(context, params));
     }
     if (params.phase !== 'prepare') fail(400, 'Invalid record phase');
+    const target = await auditTarget(context, params);
+    if (['publish', 'unpublish'].includes(params.action) && target?.id !== context.projectId)
+        fail(400, 'Publication history is only available for the promotion project');
     const intents = await readEntries(context.state, context.projectId, 'intent');
     const existing = intents.find((intent) => intent.requestId === context.requestId && intent.user.id === context.user.id);
     if (existing) {
@@ -686,8 +728,11 @@ async function record(context, params) {
             fail(409, 'Request ID already used');
         return { intentId: existing.id };
     }
-    if (intents.length >= MAX_ENTRIES) fail(507, 'Project history intent capacity reached');
-    const target = await auditTarget(context, params);
+    const completed = new Set(events.map((event) => event.intentId));
+    const pending = intents.filter((intent) => !completed.has(intent.id));
+    if (pending.filter((intent) => intent.user.id === context.user.id).length >= MAX_PENDING_INTENTS)
+        fail(429, 'Too many pending history intents for this author; complete existing operations before retrying');
+    if (pending.length >= MAX_ENTRIES) fail(507, 'Project history intent capacity reached');
     const current = auditSnapshot(target);
     const before = ['create', 'duplicate'].includes(params.action) ? { fragments: [] } : current;
     const provenance = await duplicateSource(context, params);
@@ -762,7 +807,11 @@ function list(events, params) {
 function promotionEvents(context, events) {
     return events
         .filter(
-            (event) => (event.targetId ?? event.projectId) === context.projectId || VARIATION_PATH.test(event.targetPath ?? ''),
+            (event) =>
+                ((event.targetId ?? event.projectId) === context.projectId || VARIATION_PATH.test(event.targetPath ?? '')) &&
+                (!['publish', 'unpublish'].includes(event.action) ||
+                    ((event.targetId ?? event.projectId) === context.projectId &&
+                        !VARIATION_PATH.test(event.targetPath ?? ''))),
         )
         .map((event) => ({
             ...event,
@@ -775,17 +824,26 @@ function promotionEvents(context, events) {
 }
 
 function publicationResult(event, workflow, fragment) {
+    const operation = fragment.operations?.replication ?? null;
+    const state = (typeof operation === 'string' ? operation : (operation?.status ?? operation?.state))?.toUpperCase();
     if (
         workflow?.invalidFragments?.some((item) => item.fragmentPath === event.targetPath) ||
-        (workflow?.end && workflow.state !== 'COMPLETED')
+        (workflow?.end && workflow.state !== 'COMPLETED') ||
+        ['FAILED', 'ABORTED', 'CANCELLED', 'ERROR'].includes(workflow?.state) ||
+        ['FAILED', 'ABORTED', 'CANCELLED', 'ERROR'].includes(state)
     ) {
-        return { publicationOutcome: 'failed', publicationOperation: null };
+        return { publicationOutcome: 'failed', publicationStatus: fragment.status, publicationOperation: operation };
     }
-    const operation = fragment.operations?.replication ?? null;
+    const active = ['PENDING', 'SCHEDULED', 'QUEUED', 'ACCEPTED', 'RUNNING', 'PROCESSING', 'STARTED'].includes(state);
+    const settled = !operation || ['COMPLETED', 'SUCCEEDED', 'SUCCESS', 'FINISHED'].includes(state);
     const confirmed =
-        !operation &&
-        fragment.status === (event.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED') &&
-        (workflow ? workflow.state === 'COMPLETED' : fragment.status !== event.publicationStatus);
+        !active &&
+        (workflow?.state === 'COMPLETED' ||
+            (!event.workflowInstanceId &&
+                settled &&
+                fragment.status === (event.action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED') &&
+                fragment.status !==
+                    (event.publicationBeforeStatus !== undefined ? event.publicationBeforeStatus : event.publicationStatus)));
     return {
         publicationOutcome: confirmed ? 'confirmed' : 'pending',
         publicationStatus: fragment.status,
@@ -799,6 +857,7 @@ async function refreshPublication(context, event) {
         const workflow = event.workflowInstanceId
             ? await (await aem(context, `/${encodeURIComponent(event.workflowInstanceId)}`, {}, 'workflows')).json()
             : null;
+        if (event.workflowInstanceId && !workflow?.state) fail(502, 'Publication workflow state is unavailable');
         if (workflow && workflow.type !== `${event.action}-fragments`) fail(409, 'Publication workflow type does not match');
         const { fragment } = await readFragment(context, event.targetId ?? event.projectId);
         if (fragment.path !== event.targetPath) fail(409, 'Publication target moved');
@@ -847,42 +906,51 @@ async function readTags(context, id) {
 async function writeDraft(context, item) {
     const { tags, ...content } = item.payload;
     let contentWritten = false;
-    if (item.contentSelected) {
-        await aem(context, `/${item.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'If-Match': item.expected },
-            body: JSON.stringify(content),
-        });
-        contentWritten = true;
-        let confirmed = false;
-        for (let attempt = 0; attempt < 10; attempt++) {
-            const { fragment } = await readFragment(context, item.id);
-            const current = { title: fragment.title ?? '', description: fragment.description ?? '', fields: fragment.fields };
-            if (JSON.stringify(current) === JSON.stringify(content)) {
-                confirmed = true;
-                break;
+    let writing = false;
+    try {
+        if (item.contentSelected) {
+            writing = true;
+            await aem(context, `/${item.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'If-Match': item.expected },
+                body: JSON.stringify(content),
+            });
+            writing = false;
+            contentWritten = true;
+            let confirmed = false;
+            for (let attempt = 0; attempt < 10; attempt++) {
+                const { fragment } = await readFragment(context, item.id);
+                const current = {
+                    title: fragment.title ?? '',
+                    description: fragment.description ?? '',
+                    fields: fragment.fields,
+                };
+                if (JSON.stringify(current) === JSON.stringify(content)) {
+                    confirmed = true;
+                    break;
+                }
+                if (attempt < 9) await new Promise((resolve) => setTimeout(resolve, 250));
             }
-            if (attempt < 9) await new Promise((resolve) => setTimeout(resolve, 250));
+            if (!confirmed)
+                throw Object.assign(new Error('Draft write could not be confirmed'), { statusCode: 409, partial: true });
         }
-        if (!confirmed)
-            throw Object.assign(new Error('Draft write could not be confirmed'), { statusCode: 409, partial: true });
-    }
-    if (item.tags) {
-        const current = contentWritten ? await readTags(context, item.id) : item.tags;
-        if (JSON.stringify(current.tags) !== JSON.stringify(item.tags.tags)) {
-            throw Object.assign(new Error('Tags changed during restore'), { statusCode: 409, partial: contentWritten });
-        }
-        const wanted = tagIds(tags);
-        try {
+        if (item.tags) {
+            const current = contentWritten ? await readTags(context, item.id) : item.tags;
+            if (JSON.stringify(current.tags) !== JSON.stringify(item.tags.tags)) {
+                throw Object.assign(new Error('Tags changed during restore'), { statusCode: 409, partial: contentWritten });
+            }
+            const wanted = tagIds(tags);
+            writing = true;
             await aem(context, `/${item.id}/tags`, {
                 method: wanted.length ? 'PUT' : 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'If-Match': current.etag },
                 ...(wanted.length ? { body: JSON.stringify({ tags: wanted }) } : {}),
             });
-        } catch (error) {
-            error.partial = contentWritten;
-            throw error;
+            writing = false;
         }
+    } catch (error) {
+        error.partial = contentWritten || (writing && (!error.statusCode || error.statusCode >= 500));
+        throw error;
     }
 }
 
@@ -891,9 +959,7 @@ async function restore(context, params, events) {
     const snapshot = source?.restoreMode === 'state' ? source.afterSnapshot : source?.snapshot;
     if (!snapshot?.fragments?.length) fail(404, 'Historical snapshot missing');
     const restoreKey = `${namespace(context.projectId, 'restore-intent')}${stableId(context, 'restore-intent')}`;
-    const pending = (await readEntries(context.state, context.projectId, 'restore-intent')).find(
-        (entry) => entry.requestId === context.requestId && entry.user.id === context.user.id,
-    );
+    const pending = await context.state.get(restoreKey);
     if (pending) {
         throw Object.assign(new Error('Restore was already attempted; review its pending audit before retrying'), {
             statusCode: 409,
@@ -1046,7 +1112,11 @@ async function restore(context, params, events) {
             result: { restored, failures, auditPending: true },
         });
     }
-    return { ...result, restored, ...(failures.length ? { failures } : {}) };
+    return {
+        ...result,
+        restored: result.event.restored,
+        ...(result.event.failures ? { failures: result.event.failures } : {}),
+    };
 }
 
 async function execute(operation, params) {
@@ -1063,7 +1133,7 @@ async function execute(operation, params) {
     }
     const identity = await authenticate(params);
     const state = await init();
-    if (operation === 'restore') await authorizeRestore(state, identity.user.email);
+    if (operation !== 'list') await authorizeWrite(state, identity.user.email, operation);
     const context = {
         ...identity,
         operation,
@@ -1125,7 +1195,7 @@ async function execute(operation, params) {
         }
         return page;
     }
-    if (operation === 'record') return record(context, params);
+    if (operation === 'record') return record(context, params, events);
     return restore(context, params, events);
 }
 

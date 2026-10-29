@@ -167,6 +167,7 @@ class MasStudio extends LitElement {
     profile = new StoreController(this, Store.profile);
     landscape = new StoreController(this, Store.landscape);
     viewMode = new StoreController(this, Store.viewMode);
+    promotionId = new StoreController(this, Store.promotions.promotionId);
 
     get content() {
         if (this.page.value !== PAGE_NAMES.CONTENT) return nothing;
@@ -233,7 +234,7 @@ class MasStudio extends LitElement {
     get promotionsHistory() {
         if (this.page.value !== PAGE_NAMES.PROMOTIONS_HISTORY) return nothing;
         if (!this.#lazyLoad('mas-promotion-history', './promotions/mas-promotion-history.js')) return nothing;
-        return html`<mas-promotion-history .projectId=${Store.promotions.promotionId.get()}></mas-promotion-history>`;
+        return html`<mas-promotion-history .projectId=${this.promotionId.value}></mas-promotion-history>`;
     }
 
     get translation() {

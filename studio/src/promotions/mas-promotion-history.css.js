@@ -238,11 +238,6 @@ export const promotionHistoryStyles = css`
         background: var(--spectrum-red-100, #ffeceb);
     }
 
-    .saved {
-        color: var(--spectrum-gray-700, #6e6e6e);
-        background: var(--spectrum-gray-100, #f5f5f5);
-    }
-
     .group-toggle {
         display: flex;
         align-items: center;
@@ -339,10 +334,6 @@ export const promotionHistoryStyles = css`
     .row-warning {
         display: block;
         margin: 4px 0 0 24px;
-    }
-
-    .group-empty {
-        margin: 0;
     }
 
     #restore-confirmation {

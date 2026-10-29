@@ -86,7 +86,10 @@ export class MasPromotionHistory extends LitElement {
         selectedEvent: { state: true },
         historicalFragments: { state: true },
         currentEventId: { state: true },
+        currentEvent: { state: true },
         rows: { state: true },
+        restoreRows: { state: true },
+        comparingCurrent: { state: true },
         groups: { state: true },
         selectedFields: { state: true },
         expected: { state: true },
@@ -111,7 +114,10 @@ export class MasPromotionHistory extends LitElement {
         this.selectedEvent = null;
         this.historicalFragments = [];
         this.currentEventId = '';
+        this.currentEvent = null;
         this.rows = [];
+        this.restoreRows = [];
+        this.comparingCurrent = false;
         this.groups = [];
         this.selectedFields = new Set();
         this.expected = [];
@@ -137,11 +143,13 @@ export class MasPromotionHistory extends LitElement {
     willUpdate(changed) {
         if (changed.has('projectId')) {
             this.currentEventId = '';
+            this.currentEvent = null;
+            this.auditRetry = null;
             this.filters = {};
             this.loadHistory();
         }
-        if (changed.has('rows')) {
-            this.groups = categories.map((label) => this.buildGroup(label));
+        if (changed.has('rows') || changed.has('restoreRows') || changed.has('comparingCurrent')) {
+            this.groups = categories.map((label) => this.buildGroup(label)).filter((group) => group.rows.length);
         }
     }
 
@@ -169,7 +177,23 @@ export class MasPromotionHistory extends LitElement {
     }
 
     get eligibleRows() {
-        return this.rows.filter((row) => row.restorable && !this.unavailable.includes(row.fragmentId));
+        return this.displayRows.filter((row) => row.restorable && !this.unavailable.includes(row.fragmentId));
+    }
+
+    get displayRows() {
+        return this.comparingCurrent ? this.restoreRows : this.rows;
+    }
+
+    get orderedEvents() {
+        return this.currentEvent
+            ? [this.currentEvent, ...this.events.filter((event) => event.id !== this.currentEventId)]
+            : this.events;
+    }
+
+    toggleComparison() {
+        this.comparingCurrent = !this.comparingCurrent;
+        this.selectedFields = new Set();
+        this.confirmation = '';
     }
 
     get selections() {
@@ -177,9 +201,18 @@ export class MasPromotionHistory extends LitElement {
         for (const row of this.eligibleRows) {
             if (!this.selectedFields.has(row.key)) continue;
             if (!fragments.has(row.fragmentId)) fragments.set(row.fragmentId, new Set());
-            fragments.get(row.fragmentId).add(row.field);
+            for (const field of row.fields) fragments.get(row.fragmentId).add(field);
         }
         return [...fragments].map(([fragmentId, fields]) => ({ fragmentId, fields: [...fields] }));
+    }
+
+    get restoreImpactRows() {
+        const selected = new Set(
+            this.selections.flatMap(({ fragmentId, fields }) => fields.map((field) => JSON.stringify([fragmentId, field]))),
+        );
+        return this.restoreRows.filter((row) =>
+            row.fields.some((field) => selected.has(JSON.stringify([row.fragmentId, field]))),
+        );
     }
 
     async loadHistory(append = false) {
@@ -194,6 +227,8 @@ export class MasPromotionHistory extends LitElement {
             this.selectedEvent = null;
             this.historicalFragments = [];
             this.rows = [];
+            this.restoreRows = [];
+            this.comparingCurrent = false;
             this.selectedFields = new Set();
             this.expected = [];
             this.unavailable = [];
@@ -232,6 +267,7 @@ export class MasPromotionHistory extends LitElement {
             this.currentEventId =
                 this.events.find((event) => !event.isBackup && !['backup', 'publish', 'unpublish'].includes(event.action))
                     ?.id ?? '';
+            this.currentEvent = this.events.find((event) => event.id === this.currentEventId) ?? null;
         }
         if (!append && this.events.length) await this.selectVersion(this.events[0]);
         this.schedulePublicationRefresh();
@@ -262,7 +298,7 @@ export class MasPromotionHistory extends LitElement {
                     const update = updates.get(event.id);
                     return update ? { ...event, ...update, publicationCheckError: update.publicationCheckError } : event;
                 });
-                this.selectedEvent = this.events.find((event) => event.id === this.selectedEvent?.id) ?? null;
+                this.selectedEvent = this.orderedEvents.find((event) => event.id === this.selectedEvent?.id) ?? null;
                 this.error = '';
             }
         } catch {
@@ -388,6 +424,8 @@ export class MasPromotionHistory extends LitElement {
         this.operationError = '';
         this.confirmation = '';
         this.rows = [];
+        this.restoreRows = [];
+        this.comparingCurrent = false;
         this.baselineLoading = true;
         if (!event.displayChanges) event = await this.preparePresentation(event);
         if (request !== this.versionRequest) return;
@@ -422,7 +460,11 @@ export class MasPromotionHistory extends LitElement {
                 if (tag.title) this.tagTitles.set(normalizeTagId(tag), tag.title);
             }
         }
-        this.rows = this.buildRows(event, current);
+        this.restoreRows = this.buildSnapshotRows(current);
+        this.rows =
+            !event.restoreMode && !event.changes.length && this.restoreSnapshot
+                ? this.restoreRows
+                : this.buildRows(event, current);
         this.baselineLoading = false;
         if (this.unavailable.length) {
             this.operationError =
@@ -457,7 +499,7 @@ export class MasPromotionHistory extends LitElement {
                 conflicted,
                 before: change.before,
                 after:
-                    fragment && this.restoreSnapshot && event.restoreMode !== 'undo'
+                    fragment && this.restoreSnapshot && !event.restoreMode
                         ? this.effectiveValue(
                               this.fieldValue(fragment, change.field),
                               change.field,
@@ -466,7 +508,12 @@ export class MasPromotionHistory extends LitElement {
                         : change.after,
             });
         }
-        for (const fragment of event.changes.length || !this.restoreSnapshot ? [] : snapshot.values()) {
+        return this.prepareRows([...rows.values()]);
+    }
+
+    buildSnapshotRows(current) {
+        const rows = [];
+        for (const fragment of this.restoreSnapshot ? this.historicalFragments : []) {
             const fields = [
                 ...['title', 'description', 'tags']
                     .filter((field) => Object.hasOwn(fragment, field))
@@ -475,8 +522,7 @@ export class MasPromotionHistory extends LitElement {
             ];
             for (const field of fields) {
                 const key = JSON.stringify([fragment.id, field]);
-                if (rows.has(key)) continue;
-                rows.set(key, {
+                rows.push({
                     key,
                     fragmentId: fragment.id,
                     path: fragment.path,
@@ -484,15 +530,38 @@ export class MasPromotionHistory extends LitElement {
                     category: this.snapshotCategory(fragment.id, field),
                     restorable: true,
                     before: this.fieldValue(current.get(fragment.id), field),
-                    after: this.effectiveValue(this.fieldValue(fragment, field), field, event.afterParents?.get(fragment.id)),
+                    after: this.fieldValue(fragment, field),
                 });
             }
         }
-        return [...rows.values()].map((row) => ({
-            ...row,
-            label: fieldLabels[row.field.replace(/^@/, '')] ?? row.field.replace(/^@/, '').replace(/([a-z])([A-Z])/g, '$1 $2'),
-            segments: this.changeSegments(row),
-        }));
+        return this.prepareRows(rows);
+    }
+
+    prepareRows(rows) {
+        const unique = new Map();
+        for (const row of rows) {
+            const segments = this.changeSegments(row);
+            if (!segments.length) continue;
+            const field = row.field.replace(/^@/, '');
+            const key = JSON.stringify([
+                row.fragmentId,
+                field,
+                row.restorable,
+                ...[row.before, row.after].map((value) => [value].flat().filter((item) => item != null && item !== '')),
+            ]);
+            const duplicate = unique.get(key);
+            if (duplicate) {
+                duplicate.fields.push(row.field);
+                continue;
+            }
+            unique.set(key, {
+                ...row,
+                fields: [row.field],
+                label: fieldLabels[field] ?? field.replace(/([a-z])([A-Z])/g, '$1 $2'),
+                segments,
+            });
+        }
+        return [...unique.values()];
     }
 
     changeSegments(row) {
@@ -503,27 +572,18 @@ export class MasPromotionHistory extends LitElement {
             const after = row.after ?? [];
             const added = after.filter((value) => !before.some((item) => JSON.stringify(item) === JSON.stringify(value)));
             const removed = before.filter((value) => !after.some((item) => JSON.stringify(item) === JSON.stringify(value)));
-            if (added.length || removed.length) {
-                return [
-                    ...(added.length ? [{ kind: 'added', values: added }] : []),
-                    ...(removed.length ? [{ kind: 'removed', values: removed }] : []),
-                ];
-            }
+            return [
+                ...(added.length ? [{ kind: 'added', values: added }] : []),
+                ...(removed.length ? [{ kind: 'removed', values: removed }] : []),
+            ];
         }
-        const kind = empty(row.before)
-            ? empty(row.after)
-                ? 'saved'
-                : 'added'
-            : empty(row.after)
-              ? 'removed'
-              : JSON.stringify(row.before) === JSON.stringify(row.after)
-                ? 'saved'
-                : 'changed';
+        if ((empty(row.before) && empty(row.after)) || JSON.stringify(row.before) === JSON.stringify(row.after)) return [];
+        const kind = empty(row.before) ? 'added' : empty(row.after) ? 'removed' : 'changed';
         return [{ kind }];
     }
 
     buildGroup(label) {
-        const rows = this.rows.filter((row) => row.category === label);
+        const rows = this.displayRows.filter((row) => row.category === label);
         const counts = new Map();
         const items = new Map();
         for (const row of rows) {
@@ -610,6 +670,9 @@ export class MasPromotionHistory extends LitElement {
         if (event.action === 'create') return `${subject} created`;
         if (event.action === 'duplicate') return `${subject} duplicated`;
         if (event.action === 'restore') return 'Selected fields restored';
+        if (['publish', 'unpublish'].includes(event.action) && event.publicationCheckError) {
+            return `${subject} ${event.action === 'publish' ? 'publication' : 'unpublication'} status unavailable`;
+        }
         if (event.action === 'publish') {
             if (event.publicationOutcome === 'failed') return `${subject} publication failed`;
             if (event.publicationOperation?.status === 'SCHEDULED') return `${subject} publication scheduled`;
@@ -918,7 +981,6 @@ export class MasPromotionHistory extends LitElement {
                                       )}
                                   </div>`,
                           )}
-                          ${!group.rows.length ? html`<p class="muted group-empty">No changes</p>` : nothing}
                       </div>`}
             </section>
         `;
@@ -951,24 +1013,21 @@ export class MasPromotionHistory extends LitElement {
                           >`
                         : nothing}
                 </div>
-                <div class="selection-toolbar">
-                    <sp-checkbox
-                        id="select-all"
-                        .checked=${this.eligibleRows.length > 0 && this.selectedFields.size === this.eligibleRows.length}
-                        .indeterminate=${this.selectedFields.size > 0 && this.selectedFields.size < this.eligibleRows.length}
-                        ?disabled=${!this.canRestore || !this.eligibleRows.length}
-                        @change=${(event) => this.toggleRows(this.eligibleRows, event.target.checked)}
-                        >Select all</sp-checkbox
-                    >
-                    <sp-button
-                        id="restore-selected"
-                        variant="primary"
-                        ?disabled=${!this.canRestore || !this.selectedFields.size}
-                        @click=${() => this.requestRestore('selected')}
-                        >Restore selected (${this.selectedFields.size})</sp-button
-                    >
-                </div>
+                ${this.displayRows.length
+                    ? this.selectionToolbarTemplate
+                    : html`<p class="muted">No content changes. ${this.eventLabel(this.selectedEvent)}</p>`}
             </div>
+            ${this.selectedEvent.restoreMode === 'state' && this.historicalFragments.length
+                ? html`<sp-action-button id="compare-current" ?disabled=${this.busy} @click=${this.toggleComparison}
+                          >${this.comparingCurrent ? 'Show recorded changes' : 'Compare with current'}</sp-action-button
+                      >
+                      ${this.comparingCurrent
+                          ? html`<p class="version-meta">
+                                Current draft compared with this saved snapshot. These are restore effects, not historical
+                                changes.
+                            </p>`
+                          : nothing}`
+                : nothing}
             ${this.selectedEvent.comparisonWarning
                 ? html`<p class="row-warning">${this.selectedEvent.comparisonWarning}</p>`
                 : nothing}
@@ -985,6 +1044,26 @@ export class MasPromotionHistory extends LitElement {
                       (group) => this.groupTemplate(group),
                   )}
         `;
+    }
+
+    get selectionToolbarTemplate() {
+        return html`<div class="selection-toolbar">
+            <sp-checkbox
+                id="select-all"
+                .checked=${this.eligibleRows.length > 0 && this.selectedFields.size === this.eligibleRows.length}
+                .indeterminate=${this.selectedFields.size > 0 && this.selectedFields.size < this.eligibleRows.length}
+                ?disabled=${!this.canRestore || !this.eligibleRows.length}
+                @change=${(event) => this.toggleRows(this.eligibleRows, event.target.checked)}
+                >Select all</sp-checkbox
+            >
+            <sp-button
+                id="restore-selected"
+                variant="primary"
+                ?disabled=${!this.canRestore || !this.selectedFields.size}
+                @click=${() => this.requestRestore('selected')}
+                >Restore selected (${this.selectedFields.size})</sp-button
+            >
+        </div> `;
     }
 
     get confirmationTemplate() {
@@ -1013,6 +1092,20 @@ export class MasPromotionHistory extends LitElement {
                         ? `Restore selected fields to the saved state of ${this.versionLabel(this.selectedEvent)}? Only the draft will be updated.`
                         : 'Do you want to continue to restore selected changes?'}
                 </p>
+                ${this.selectedEvent.restoreMode === 'state'
+                    ? html`<p>Current draft &#8594; saved state. Nothing will be published.</p>
+                          ${repeat(
+                              this.restoreImpactRows,
+                              (row) => row.key,
+                              (row) =>
+                                  html`<div class="change-line">
+                                      <span class="field-label">${row.label}:</span>
+                                      <span class="before">${this.formatValue(row.before, row.field)}</span>
+                                      <span class="change-arrow" aria-label="changed to">&#8594;</span>
+                                      <span class="after">${this.formatValue(row.after, row.field)}</span>
+                                  </div>`,
+                          )}`
+                    : nothing}
             </sp-dialog-wrapper>
         `;
     }
@@ -1040,7 +1133,7 @@ export class MasPromotionHistory extends LitElement {
                         : nothing}
                     <div class="history-cards">
                         ${repeat(
-                            this.events,
+                            this.orderedEvents,
                             (event) => event.id,
                             (event) => this.historyCardTemplate(event),
                         )}

@@ -292,9 +292,9 @@ describe('Promotion history', () => {
 
     for (const status of ['NEW', 'MODIFIED', 'PUBLISHED']) {
         it(`captures observed ${status} publication state without inventing published status`, async () => {
-            fragments.get(VARIATION).status = 'DRAFT';
-            const { intentId } = await call('record', { phase: 'prepare', action: 'publish', targetId: VARIATION });
-            fragments.get(VARIATION).status = status;
+            fragments.get(PROJECT).status = 'DRAFT';
+            const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+            fragments.get(PROJECT).status = status;
 
             const { event } = await call('record', { phase: 'complete', intentId });
 
@@ -313,8 +313,8 @@ describe('Promotion history', () => {
         ['unpublish', 'DRAFT'],
     ]) {
         it(`captures unchanged ${status} as pending ${action} without claiming workflow success`, async () => {
-            fragments.get(VARIATION).status = status;
-            const { intentId } = await call('record', { phase: 'prepare', action, targetId: VARIATION });
+            fragments.get(PROJECT).status = status;
+            const { intentId } = await call('record', { phase: 'prepare', action });
 
             const { event } = await call('record', { phase: 'complete', intentId });
             const retry = await call('record', { phase: 'complete', intentId });
@@ -323,7 +323,7 @@ describe('Promotion history', () => {
             expect(event.publicationOutcome).to.equal('pending');
             expect(event.changes).to.deep.equal([]);
             expect(event.restoreMode).to.equal('state');
-            expect(event.afterSnapshot.fragments[0]).to.include({ id: VARIATION, status });
+            expect(event.afterSnapshot.fragments[0]).to.include({ id: PROJECT, status });
             expect(retry.event.id).to.equal(event.id);
             expect(versions.size).to.equal(1);
         });
@@ -336,9 +336,9 @@ describe('Promotion history', () => {
         ['MODIFIED', 'pending'],
     ]) {
         it(`records unpublish observed ${status} with ${outcome} outcome`, async () => {
-            fragments.get(VARIATION).status = 'PUBLISHED';
-            const { intentId } = await call('record', { phase: 'prepare', action: 'unpublish', targetId: VARIATION });
-            fragments.get(VARIATION).status = status;
+            fragments.get(PROJECT).status = 'PUBLISHED';
+            const { intentId } = await call('record', { phase: 'prepare', action: 'unpublish' });
+            fragments.get(PROJECT).status = status;
 
             const { event } = await call('record', { phase: 'complete', intentId });
 
@@ -349,10 +349,10 @@ describe('Promotion history', () => {
 
     for (const operation of ['PENDING', 'SCHEDULED', 'QUEUED']) {
         it(`preserves observed replication ${operation} and prevents confirmation despite terminal lifecycle status`, async () => {
-            fragments.get(VARIATION).status = 'MODIFIED';
-            const { intentId } = await call('record', { phase: 'prepare', action: 'publish', targetId: VARIATION });
-            fragments.get(VARIATION).status = 'PUBLISHED';
-            fragments.get(VARIATION).operations = { replication: operation };
+            fragments.get(PROJECT).status = 'MODIFIED';
+            const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+            fragments.get(PROJECT).status = 'PUBLISHED';
+            fragments.get(PROJECT).operations = { replication: operation };
 
             const { event } = await call('record', { phase: 'complete', intentId });
 
@@ -566,6 +566,54 @@ describe('Promotion history', () => {
         await legacyBackup();
         roles = [];
         expect((await call('list')).events).to.have.length(1);
+    });
+
+    it('denies read-only principals recording before AEM access or intent allocation, ignoring supplied groups', async () => {
+        roles = [];
+        await expectError(prepareSave({ user: { email: profile.email, groups: ['GRP-ODIN-MAS-ADMINS'] } }), 403);
+        expect(state.put.called).to.equal(false);
+        expect(fetchStub.getCalls().some(({ args }) => args[0].includes('/adobe/sites/'))).to.equal(false);
+    });
+
+    it('permits regular trusted promo editors to record saves but not restore', async () => {
+        roles = ['grp-odin-mas-promo-editors'];
+        const { event } = await completeSave();
+        expect(event.action).to.equal('save');
+        await expectError(call('restore', { eventId: event.id, expected: [] }), 403);
+    });
+
+    it('limits pending intents per principal without blocking another author', async () => {
+        for (let index = 0; index < 50; index++) {
+            stored.set(
+                `promo-history.${PROJECT}.intent.pending-${index}`,
+                JSON.stringify({ id: `pending-${index}`, createdAt: new Date().toISOString(), user: profile }),
+            );
+        }
+        await expectError(prepareSave(), 429);
+        expect(state.put.called).to.equal(false);
+        cachedMembers = JSON.stringify([{ userPrincipalName: 'other@example.com', groups: roles }]);
+        profile = { id: 'other-user', email: 'other@example.com' };
+        expect((await prepareSave()).intentId).to.be.a('string');
+    });
+
+    it('does not count completed intents against the pending quota', async () => {
+        for (let index = 0; index < 50; index++) {
+            stored.set(
+                `promo-history.${PROJECT}.intent.done-${index}`,
+                JSON.stringify({ id: `done-${index}`, createdAt: new Date().toISOString(), user: profile }),
+            );
+            stored.set(
+                `promo-history.${PROJECT}.event.done-${index}`,
+                JSON.stringify({
+                    id: `event-${index}`,
+                    intentId: `done-${index}`,
+                    createdAt: new Date().toISOString(),
+                    user: profile,
+                    requestId: `done-${index}`,
+                }),
+            );
+        }
+        expect((await prepareSave()).intentId).to.be.a('string');
     });
 
     it('rejects restore without a verified admin or promo power-user role', async () => {
@@ -1380,20 +1428,56 @@ describe('Promotion history', () => {
 
     for (const action of ['publish', 'unpublish']) {
         it(`audits ${action} with one native saved-state version`, async () => {
-            fragments.get(VARIATION).status = action === 'publish' ? 'DRAFT' : 'PUBLISHED';
-            const { intentId } = await call('record', { phase: 'prepare', action, targetId: VARIATION });
-            fragments.get(VARIATION).status = action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED';
+            fragments.get(PROJECT).status = action === 'publish' ? 'DRAFT' : 'PUBLISHED';
+            const { intentId } = await call('record', { phase: 'prepare', action });
+            fragments.get(PROJECT).status = action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED';
 
             const { event } = await call('record', { phase: 'complete', intentId });
 
             expect(event.action).to.equal(action);
-            expect(event.targetId).to.equal(VARIATION);
+            expect(event.targetId).to.equal(PROJECT);
             expect(event.snapshot).to.deep.equal(event.afterSnapshot);
             expect(event.publicationStatus).to.equal(action === 'publish' ? 'PUBLISHED' : 'UNPUBLISHED');
             expect(event.restoreMode).to.equal('state');
             expect(event).not.to.have.property('beforeSnapshot');
-            expect(event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([VARIATION]);
+            expect(event.afterSnapshot.fragments.map(({ id }) => id)).to.deep.equal([PROJECT]);
             expect(versions.size).to.equal(1);
+        });
+
+        it(`rejects variation ${action} before allocating history or native versions`, async () => {
+            await expectError(call('record', { phase: 'prepare', action, targetId: VARIATION }), 400);
+            expect(state.put.called).to.equal(false);
+            expect(versions.size).to.equal(0);
+        });
+
+        it(`rejects completion of legacy variation ${action} intents`, async () => {
+            const { intentId } = await prepareSave({ targetId: VARIATION });
+            for (const [key, serialized] of stored) {
+                const entry = JSON.parse(serialized);
+                if (entry.id === intentId) stored.set(key, JSON.stringify({ ...entry, action }));
+            }
+            await expectError(call('record', { phase: 'complete', intentId }), 400);
+            expect(versions.size).to.equal(0);
+        });
+
+        it(`hides legacy variation ${action} before numbering visible versions`, async () => {
+            const { event } = await completeSave({ targetId: VARIATION });
+            stored.set(
+                `promo-history.${PROJECT}.event.legacy-publication`,
+                JSON.stringify({ ...event, id: 'legacy-publication', action, createdAt: '2020-01-01T00:00:00.000Z' }),
+            );
+            stored.set(
+                `promo-history.${PROJECT}.event.legacy-path-only`,
+                JSON.stringify({
+                    ...event,
+                    id: 'legacy-path-only',
+                    action,
+                    targetId: undefined,
+                    createdAt: '2020-01-01T00:00:00.000Z',
+                }),
+            );
+            const { events } = await call('list');
+            expect(events.map(({ id, version }) => ({ id, version }))).to.deep.equal([{ id: event.id, version: 1 }]);
         });
     }
 
@@ -1565,6 +1649,68 @@ describe('Promotion history', () => {
         const event = (await call('list')).events[0];
         expect(event.publicationOutcome).to.equal('pending');
         expect(event.publicationCheckError).to.be.a('string');
+    });
+
+    it('labels a workflow without verification state unavailable rather than indefinitely pending', async () => {
+        const { intentId } = await call('record', { phase: 'prepare', action: 'unpublish' });
+        await call('record', { phase: 'complete', intentId, workflowInstanceId: 'workflow-one' });
+        workflows.set('workflow-one', { type: 'unpublish-fragments' });
+        const event = (await call('list')).events[0];
+        expect(event.publicationOutcome).to.equal('pending');
+        expect(event.publicationCheckError).to.be.a('string');
+    });
+
+    for (const [action, status] of [
+        ['publish', 'MODIFIED'],
+        ['unpublish', 'DRAFT'],
+    ]) {
+        it(`confirms completed ${action} workflow despite stale lifecycle and replication metadata`, async () => {
+            fragments.get(PROJECT).status = status;
+            const { intentId } = await call('record', { phase: 'prepare', action });
+            await call('record', { phase: 'complete', intentId, workflowInstanceId: 'workflow-one' });
+            workflows.set('workflow-one', { type: `${action}-fragments`, state: 'COMPLETED', invalidFragments: [] });
+            fragments.get(PROJECT).operations = { replication: { action: action.toUpperCase(), status: 'COMPLETED' } };
+            const event = (await call('list')).events[0];
+            expect(event.publicationOutcome).to.equal('confirmed');
+            expect(event.publicationStatus).to.equal(status);
+        });
+    }
+
+    it('recognizes terminal replication metadata on a changed unpublish lifecycle', async () => {
+        fragments.get(PROJECT).status = 'PUBLISHED';
+        const { intentId } = await call('record', { phase: 'prepare', action: 'unpublish' });
+        fragments.get(PROJECT).status = 'UNPUBLISHED';
+        fragments.get(PROJECT).operations = { replication: { action: 'UNPUBLISH', status: 'COMPLETED' } };
+        const { event } = await call('record', { phase: 'complete', intentId });
+        expect(event.publicationOutcome).to.equal('confirmed');
+    });
+
+    it('refreshes terminal lifecycle against the original baseline, not the persisted pending status', async () => {
+        fragments.get(PROJECT).status = 'PUBLISHED';
+        const { intentId } = await call('record', { phase: 'prepare', action: 'unpublish' });
+        fragments.get(PROJECT).status = 'UNPUBLISHED';
+        fragments.get(PROJECT).operations = { replication: 'PENDING' };
+        await call('record', { phase: 'complete', intentId });
+        delete fragments.get(PROJECT).operations;
+        expect((await call('list')).events[0].publicationOutcome).to.equal('confirmed');
+    });
+
+    for (const state of ['SCHEDULED', 'ACCEPTED', 'RUNNING']) {
+        it(`does not confirm ${state} operations even with completed workflow metadata`, async () => {
+            fragments.get(PROJECT).status = 'PUBLISHED';
+            const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+            await call('record', { phase: 'complete', intentId, workflowInstanceId: 'workflow-one' });
+            workflows.set('workflow-one', { type: 'publish-fragments', state: 'COMPLETED' });
+            fragments.get(PROJECT).operations = { replication: { status: state } };
+            expect((await call('list')).events[0].publicationOutcome).to.equal('pending');
+        });
+    }
+
+    it('preserves explicit replication failure rather than leaving it pending indefinitely', async () => {
+        const { intentId } = await call('record', { phase: 'prepare', action: 'publish' });
+        fragments.get(PROJECT).operations = { replication: { status: 'FAILED' } };
+        const { event } = await call('record', { phase: 'complete', intentId });
+        expect(event.publicationOutcome).to.equal('failed');
     });
 
     it('does not authorize an existing unrelated fragment as an audit target', async () => {
@@ -1870,6 +2016,87 @@ describe('Promotion history', () => {
         expect(result.event).not.to.have.property('beforeSnapshot');
     });
 
+    for (const resource of ['content', 'tags']) {
+        it(`retains partial-write evidence when post-PUT ${resource} confirmation fails`, async () => {
+            fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
+            const event = await legacyBackup();
+            fragments.get(VARIATION).fields[0].values = ['New headline'];
+            fragments.get(VARIATION).tags = [{ id: 'mas:new' }];
+            const reads = fetchStub.withArgs(
+                sinon.match((url) => url.endsWith(`/${VARIATION}${resource === 'tags' ? '/tags' : ''}`)),
+                sinon.match((options) => options.method === undefined),
+            );
+            reads.onCall(1).resolves(response({}, 503));
+            const result = await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline', '@tags'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+            expect(result.failures[0]).to.include({ fragmentId: VARIATION, partial: true });
+            expect(result.event.changes.find(({ field }) => field === 'headline').after).to.deep.equal(['Old']);
+            expect(result.event.afterSnapshot.fragments[0].id).to.equal(VARIATION);
+        });
+    }
+
+    it('reports auditPending when committed content cannot be read back at all', async () => {
+        const event = await legacyBackup();
+        const puts = fetchStub.withArgs(
+            sinon.match((url) => url.endsWith(`/${VARIATION}`)),
+            sinon.match({ method: 'PUT' }),
+        );
+        puts.callsFake(async (url, options) => {
+            fragments.set(VARIATION, { ...fragments.get(VARIATION), ...JSON.parse(options.body) });
+            fetchStub
+                .withArgs(
+                    sinon.match((value) => value.endsWith(`/${VARIATION}`)),
+                    sinon.match((value) => value.method === undefined),
+                )
+                .resolves(response({}, 503));
+            return response(fragments.get(VARIATION));
+        });
+        let failure;
+        try {
+            await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.result.auditPending).to.equal(true);
+        expect(failure.result.failures[0].partial).to.equal(true);
+        expect((await call('list', { action: 'restore' })).events).to.have.length(0);
+    });
+
+    it('does not audit an unacknowledged committed tags-only write as an unchanged failure', async () => {
+        fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
+        const event = await legacyBackup([VARIATION]);
+        fragments.get(VARIATION).tags = [{ id: 'mas:new' }];
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${VARIATION}/tags`)),
+                sinon.match({ method: 'PUT' }),
+            )
+            .callsFake(async () => {
+                fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
+                throw new Error('Connection closed after the write');
+            });
+        let failure;
+        try {
+            await call('restore', {
+                eventId: event.id,
+                selections: [{ fragmentId: VARIATION, fields: ['@tags'] }],
+                expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+            });
+        } catch (error) {
+            failure = error;
+        }
+        expect(failure?.result.auditPending).to.equal(true);
+        expect(failure.result.failures[0].partial).to.equal(true);
+        expect((await call('list', { action: 'restore' })).events).to.have.length(0);
+    });
+
     it('returns completed restore audit and native references unchanged on retry without more AEM writes', async () => {
         const source = await legacyBackup();
         fragments.get(VARIATION).fields[0].values = ['New'];
@@ -2051,6 +2278,109 @@ describe('Promotion history', () => {
             call('record', { action: 'create', targetId: PROJECT, requestId: 'two' }),
         ]);
         expect((await call('list')).events).to.have.length(2);
+    });
+
+    it('uses bounded parallel state reads for retained history', async () => {
+        for (let index = 0; index < 25; index++) {
+            stored.set(
+                `promo-history.${PROJECT}.event.${index}`,
+                JSON.stringify({
+                    id: `${index}`,
+                    createdAt: new Date().toISOString(),
+                    projectId: PROJECT,
+                    changes: [],
+                    user: profile,
+                }),
+            );
+        }
+        const originalGet = state.get;
+        let active = 0;
+        let peak = 0;
+        state.get = async (key) => {
+            active++;
+            peak = Math.max(peak, active);
+            await new Promise((resolve) => setImmediate(resolve));
+            const value = await originalGet(key);
+            active--;
+            return value;
+        };
+        expect((await call('list')).events).to.have.length(25);
+        expect(peak).to.be.within(2, 10);
+    });
+
+    it('prefers a successful concurrent restore over an older failed duplicate and retains attempt evidence', async () => {
+        const base = {
+            id: '55555555-5555-4555-8555-555555555555',
+            action: 'restore',
+            projectId: PROJECT,
+            requestId: 'restore-request',
+            user: profile,
+            changes: [],
+        };
+        stored.set(
+            `promo-history.${PROJECT}.event.first`,
+            JSON.stringify({
+                ...base,
+                createdAt: '2026-01-01T00:00:00.000Z',
+                restored: [],
+                failures: [{ fragmentId: PROJECT, statusCode: 412 }],
+            }),
+        );
+        stored.set(
+            `promo-history.${PROJECT}.event.second`,
+            JSON.stringify({ ...base, createdAt: '2026-01-01T00:00:01.000Z', restored: [PROJECT] }),
+        );
+        const { events } = await call('list');
+        expect(events).to.have.length(1);
+        expect(events[0].restored).to.deep.equal([PROJECT]);
+        expect(events[0].concurrentAttempts).to.have.length(1);
+        expect(events[0].concurrentAttempts[0].failures[0].statusCode).to.equal(412);
+        expect([...stored.keys()].filter((key) => key.includes('.event.'))).to.have.length(2);
+    });
+
+    it('retains the successful ETag-protected result when identical restores race across invocations', async () => {
+        const source = await legacyBackup([VARIATION]);
+        fragments.get(VARIATION).fields[0].values = ['New'];
+        let etag = '"one"';
+        let writes = 0;
+        let successStored;
+        const successfulAudit = new Promise((resolve) => {
+            successStored = resolve;
+        });
+        const originalPut = state.put;
+        state.put = async (key, value, options) => {
+            const entry = JSON.parse(value);
+            if (entry.action === 'restore' && entry.failures?.length) await successfulAudit;
+            await originalPut(key, value, options);
+            if (entry.action === 'restore' && entry.restored?.length) successStored();
+        };
+        fetchStub.withArgs(sinon.match((url) => url.endsWith(`/${VARIATION}`))).callsFake(async (url, options) => {
+            if (options.method === 'PUT') {
+                if (options.headers['If-Match'] !== etag) return response({}, 412);
+                writes++;
+                etag = '"two"';
+                fragments.set(VARIATION, { ...fragments.get(VARIATION), ...JSON.parse(options.body) });
+            }
+            return response(fragments.get(VARIATION), 200, etag);
+        });
+        const payload = {
+            eventId: source.id,
+            selections: [{ fragmentId: VARIATION, fields: ['headline'] }],
+            expected: [{ fragmentId: VARIATION, etag: '"one"' }],
+        };
+        const results = await Promise.all([call('restore', payload), call('restore', payload)]);
+        expect(writes).to.equal(1);
+        for (const result of results) {
+            expect(result.restored).to.deep.equal([VARIATION]);
+            expect(result).not.to.have.property('failures');
+        }
+        const listed = (await call('list', { action: 'restore' })).events;
+        expect(listed).to.have.length(1);
+        expect(listed[0].restored).to.deep.equal([VARIATION]);
+        expect(listed[0].concurrentAttempts[0].failures[0].statusCode).to.equal(412);
+        const retry = await call('restore', payload);
+        expect(retry.restored).to.deep.equal([VARIATION]);
+        expect(writes).to.equal(1);
     });
 });
 

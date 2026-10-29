@@ -242,7 +242,7 @@ describe('Promotion version history', () => {
                         restoreMode: 'state',
                         snapshot: undefined,
                         afterSnapshot: { fragments: [{ id: fragment.id, path: fragment.path, versionId: 'saved-version' }] },
-                        changes: [version.changes[0]],
+                        changes: [{ ...version.changes[0], after: 'Saved state' }],
                     },
                 ],
             });
@@ -281,16 +281,110 @@ describe('Promotion version history', () => {
             expect(root.querySelector('main').textContent).to.include('saved state');
         });
 
-        it('provides saved content for publication events even when no fields changed', async () => {
+        it('does not turn a publication snapshot into apparent content changes after later edits', async () => {
             const event = (await client.listPromotionHistory()).events[0];
             client.listPromotionHistory.resolves({
                 events: [{ ...event, action: 'publish', publicationStatus: 'PUBLISHED', changes: [] }],
             });
+            getWithEtag.resolves({
+                ...fragment,
+                title: 'Later edit',
+                fields: [...fragment.fields, { name: 'offers', values: ['new-offer'] }],
+                etag: '"fresh-etag"',
+            });
             const root = await mount();
             expect(root.querySelector('.card-summary').textContent).to.include('Project published');
             expect(root.querySelector('.card-summary').textContent).not.to.include('0 changes');
-            expect(root.querySelector('[data-field="@title"] sp-checkbox').disabled).to.be.false;
-            expect(root.querySelector('[data-field="@title"] .after').textContent).to.equal('Saved state');
+            expect(root.querySelectorAll('.change-group')).to.have.length(0);
+            expect(root.querySelector('main').textContent).to.include('No content changes.');
+            expect(root.querySelector('#select-all')).to.be.null;
+            expect(root.querySelectorAll('.saved')).to.have.length(0);
+        });
+
+        it('compares a publication snapshot with current content only when explicitly requested', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            client.listPromotionHistory.resolves({
+                events: [{ ...event, action: 'publish', publicationStatus: 'PUBLISHED', changes: [] }],
+            });
+            getWithEtag.resolves({
+                ...fragment,
+                title: 'Later edit',
+                fields: fragment.fields.map((field) =>
+                    field.name === 'geos' ? { ...field, values: ['US', 'CA', 'GB'] } : field,
+                ),
+                etag: '"fresh-etag"',
+            });
+            const root = await mount();
+
+            root.querySelector('#compare-current').click();
+            await element.updateComplete;
+
+            expect(root.querySelector('[data-field="geos"] .removed').textContent).to.equal('Removed');
+            expect(root.querySelector('[data-field="geos"] .value-tag').textContent).to.equal('GB');
+            expect(root.querySelectorAll('.saved')).to.have.length(0);
+            element.toggleRows([element.eligibleRows.find((row) => row.field === 'geos')], true);
+            element.requestRestore('selected');
+            await element.updateComplete;
+            expect(root.querySelector('#restore-confirmation').textContent).to.include('GB');
+            expect(root.querySelector('#restore-confirmation').textContent).to.include('Nothing will be published');
+        });
+
+        it('shows only actual historical differences and omits unchanged groups', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...event,
+                        changes: [
+                            ...event.changes,
+                            { fragmentId: fragment.id, field: 'geos', before: ['US'], after: ['US'], category: 'countries' },
+                        ],
+                    },
+                ],
+            });
+            const root = await mount();
+
+            expect(root.querySelectorAll('.change-badge')).to.have.length(1);
+            expect(root.querySelector('[aria-label="Countries"]')).to.be.null;
+            expect(root.querySelectorAll('.saved')).to.have.length(0);
+        });
+
+        it('combines matching metadata and content titles without dropping either restore field', async () => {
+            const event = (await client.listPromotionHistory()).events[0];
+            const saved = { ...fragment, title: 'Saved state', fields: [{ name: 'title', values: ['Saved state'] }] };
+            getVersion.withArgs(fragment.id, 'saved-version').resolves(saved);
+            getWithEtag.resolves({
+                ...saved,
+                title: 'Later edit',
+                fields: [{ name: 'title', values: ['Later edit'] }],
+                etag: '"fresh-etag"',
+            });
+            client.listPromotionHistory.resolves({
+                events: [
+                    {
+                        ...event,
+                        changes: [
+                            ...event.changes,
+                            {
+                                fragmentId: fragment.id,
+                                field: 'title',
+                                before: ['Old'],
+                                after: ['Saved state'],
+                                category: 'general',
+                            },
+                        ],
+                    },
+                ],
+            });
+            const root = await mount();
+
+            expect(root.querySelectorAll('.change-row')).to.have.length(1);
+            await openSelectedRestore(root);
+            await element.confirmRestore();
+
+            expect(client.restorePromotionHistory.firstCall.args[2].selections).to.deep.equal([
+                { fragmentId: fragment.id, fields: ['@title', 'title'] },
+            ]);
         });
     });
 
@@ -409,6 +503,8 @@ describe('Promotion version history', () => {
         });
         const root = await mount();
         expect(root.querySelector('main').textContent).to.include('Publication status could not be verified');
+        expect(root.querySelector('.card-summary').textContent).to.include('status unavailable');
+        expect(root.querySelector('.card-summary').textContent).not.to.include('pending');
     });
 
     describe('inherited variation changes', () => {
@@ -912,6 +1008,17 @@ describe('Promotion version history', () => {
     });
 
     it('allows selecting backup snapshot fields with no recorded changes', async () => {
+        getWithEtag.resolves({
+            ...fragment,
+            title: 'Live project',
+            tags: ['mas:current'],
+            fields: [
+                { name: 'geos', values: ['GB'] },
+                { name: 'promoCode', values: ['LATER'] },
+                { name: 'removedField', values: ['new'] },
+            ],
+            etag: '"viewed-etag"',
+        });
         client.listPromotionHistory.resolves({
             events: [{ ...version, id: 'backup-version', action: 'backup', isBackup: true, changes: [] }],
             cursor: null,
@@ -932,6 +1039,11 @@ describe('Promotion version history', () => {
     });
 
     it('offers selective restore for snapshot values that are not recorded changes', async () => {
+        getWithEtag.resolves({
+            ...fragment,
+            fields: fragment.fields.map((field) => (field.name === 'promoCode' ? { ...field, values: ['LATER'] } : field)),
+            etag: '"viewed-etag"',
+        });
         client.listPromotionHistory.resolves({
             events: [{ ...version, action: 'backup', isBackup: true, changes: [] }],
             cursor: null,
@@ -1004,6 +1116,7 @@ describe('Promotion version history', () => {
         });
         const root = await mount();
         expect(element.currentEventId).to.equal(version.id);
+        expect(root.querySelector('.history-card').dataset.eventId).to.equal(version.id);
         expect(root.querySelector(`.history-card[data-event-id="${version.id}"]`).classList.contains('current')).to.be.true;
         expect(root.querySelector('.history-card[data-event-id="latest-backup"]').textContent).not.to.include('Current');
     });
@@ -1026,6 +1139,26 @@ describe('Promotion version history', () => {
             cursor: null,
         });
         await element.loadHistory();
+        expect(element.currentEventId).to.equal(version.id);
+        await element.updateComplete;
+        expect(element.shadowRoot.querySelector('.history-card').dataset.eventId).to.equal(version.id);
+        expect(element.shadowRoot.querySelectorAll(`[data-event-id="${version.id}"]`)).to.have.length(1);
+    });
+
+    it('keeps a pinned current selection when publication status refreshes filtered results', async () => {
+        await mount();
+        const pending = { ...version, id: 'publication', action: 'publish', publicationOutcome: 'pending' };
+        element.filters = { query: 'published' };
+        client.listPromotionHistory.resolves({ events: [pending], cursor: null });
+        await element.loadHistory();
+        await element.selectVersion(element.currentEvent);
+        client.listPromotionHistory.resolves({
+            events: [{ ...pending, publicationOutcome: 'confirmed', publicationStatus: 'PUBLISHED' }],
+        });
+
+        await element.refreshPublications();
+
+        expect(element.selectedEvent.id).to.equal(version.id);
         expect(element.currentEventId).to.equal(version.id);
     });
 

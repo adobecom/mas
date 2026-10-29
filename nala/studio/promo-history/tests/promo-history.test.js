@@ -13,6 +13,13 @@ test.describe('M@S Studio - Promo project history', () => {
         await page.goto(testPage);
         await expect(page.locator('mas-promotions')).toBeVisible();
         const creation = beginFragmentCreation('promotion-history-project');
+        const creationAudit = page.waitForResponse(
+            (res) =>
+                res.url().endsWith('/promo-history-record') &&
+                res.request().method() === 'POST' &&
+                res.request().postDataJSON().action === 'create' &&
+                res.request().postDataJSON().phase !== 'prepare',
+        );
         const fragment = await page.evaluate(
             async ({ title, promoCode }) => {
                 const repository = document.querySelector('mas-repository');
@@ -42,6 +49,10 @@ test.describe('M@S Studio - Promo project history', () => {
             { title: getTitle(), promoCode: data.originalCode },
         );
         finishFragmentCreation(creation, fragment);
+        const creationResponse = await creationAudit;
+        expect(creationResponse.ok()).toBeTruthy();
+        const { event: initialEvent } = await creationResponse.json();
+        expect(initialEvent.restoreMode).toBe('state');
 
         let savedEventId;
         await test.step('Open Version history without creating a manual backup', async () => {
@@ -71,8 +82,8 @@ test.describe('M@S Studio - Promo project history', () => {
             const { event } = await auditResponse.json();
             expect(event.action).toBe('save');
             expect(event.targetId).toBe(fragment.id);
-            expect(event.restoreMode).toBe('undo');
-            expect(event.snapshot.fragments).toEqual([
+            expect(event.restoreMode).toBe('state');
+            expect(event.afterSnapshot.fragments).toEqual([
                 expect.objectContaining({ id: fragment.id, path: fragment.path, versionId: expect.any(String) }),
             ]);
             savedEventId = event.id;
@@ -89,8 +100,8 @@ test.describe('M@S Studio - Promo project history', () => {
             await expect(promoHistory.panel.locator(`[data-event-id="${savedEventId}"]`)).toBeVisible();
         });
 
-        await test.step('Undo the saved promo code and verify persisted draft content and audit', async () => {
-            await promoHistory.panel.locator(`[data-event-id="${savedEventId}"]`).click();
+        await test.step('Restore the initial saved state and verify persisted draft content and audit', async () => {
+            await promoHistory.panel.locator(`[data-event-id="${initialEvent.id}"]`).click();
             await promoHistory.panel.locator('[data-field="promoCode"] sp-checkbox').click();
             await expect(promoHistory.restoreSelectedButton).toBeEnabled();
             await promoHistory.restoreSelectedButton.click();
@@ -103,8 +114,8 @@ test.describe('M@S Studio - Promo project history', () => {
             expect(restoreResponse.ok()).toBeTruthy();
             const { event } = await restoreResponse.json();
             expect(event.action).toBe('restore');
-            expect(event.restoreMode).toBe('undo');
-            expect(event.sourceEventId).toBe(savedEventId);
+            expect(event.restoreMode).toBe('state');
+            expect(event.sourceEventId).toBe(initialEvent.id);
             await expect(studio.toastPositive).toBeVisible();
             const restored = await page.evaluate(async (id) => {
                 const fragment = await document.querySelector('mas-repository').aem.sites.cf.fragments.getById(id);
@@ -112,7 +123,7 @@ test.describe('M@S Studio - Promo project history', () => {
             }, fragment.id);
             expect(restored.code).toBe(data.originalCode);
             expect(restored.status).toBe('DRAFT');
-            await expect(promoHistory.cards.filter({ hasText: 'restore' }).first()).toBeVisible();
+            await expect(promoHistory.cards.filter({ hasText: 'Selected fields restored' }).first()).toBeVisible();
         });
     });
 });

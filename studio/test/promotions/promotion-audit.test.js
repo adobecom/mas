@@ -264,7 +264,7 @@ describe('promotion write audit capture', () => {
         expect(JSON.parse(sessionStorage.getItem('mas.pendingPromotionAudit'))).to.deep.equal([]);
     });
 
-    it('prepares every target in a batch once and executes the batch once', async () => {
+    it('audits only the project when unpublishing a project with its variations', async () => {
         const variation = {
             id: 'variation',
             path: '/content/dam/mas/acom/en_US/promotions/launch/card',
@@ -274,7 +274,71 @@ describe('promotion write audit capture', () => {
         await withPromotionAudit(repository, 'unpublish', [project, variation], write);
         expect(write.calledOnce).to.be.true;
         const prepares = fetchStub.getCalls().filter((call) => JSON.parse(call.args[1].body).phase === 'prepare');
-        expect(prepares).to.have.length(2);
+        expect(prepares.map((call) => JSON.parse(call.args[1].body).targetId)).to.deep.equal([project.id]);
+        expect(fetchStub.callCount).to.equal(2);
+    });
+
+    it('does not create history for standalone variation publication', async () => {
+        const variation = {
+            id: 'variation',
+            path: '/content/dam/mas/acom/en_US/promotions/launch/card',
+            tags: [{ id: 'mas:promotion/launch' }],
+        };
+        const write = sandbox.stub().resolves({ workflowInstanceId: 'workflow' });
+
+        await withPromotionAudit(repository, 'publish', variation, write);
+
+        expect(write.calledOnce).to.be.true;
+        expect(fetchStub.called).to.be.false;
+        expect(repository.searchFragmentList.called).to.be.false;
+    });
+
+    it('still reports rejected variation publication while recording only the accepted project', async () => {
+        const variation = {
+            id: 'variation',
+            path: '/content/dam/mas/acom/en_US/promotions/launch/card',
+        };
+        let failure;
+        try {
+            await withPromotionAudit(
+                repository,
+                'publish',
+                [project, variation],
+                sandbox.stub().resolves({
+                    items: [
+                        { id: project.id, status: 'SUCCESS_TRIGGERED' },
+                        { id: variation.id, status: 'ERROR_REFERENCED' },
+                    ],
+                }),
+            );
+        } catch (error) {
+            failure = error;
+        }
+
+        expect(failure?.message).to.include('1 fragment');
+        expect(fetchStub.callCount).to.equal(2);
+        expect(JSON.parse(fetchStub.secondCall.args[1].body).targetId).to.equal(project.id);
+    });
+
+    it('refreshes a populated project cache when cloning variations into a new project', async () => {
+        const copy = {
+            ...project,
+            id: 'copy',
+            path: '/content/dam/mas/promotions/copied-launch',
+            fields: [{ name: 'tags', values: ['mas:promotion/copied-launch'] }],
+        };
+        const variation = {
+            path: '/content/dam/mas/acom/en_US/promotions/copied-launch/card',
+            tags: [{ id: 'mas:promotion/copied-launch' }],
+        };
+        repository.searchFragmentList.resolves([new Fragment(project), new Fragment(copy)]);
+        const write = sandbox.stub().resolves({ ...variation, id: 'new-variation' });
+
+        await withPromotionAudit(repository, 'create', variation, write);
+
+        expect(repository.searchFragmentList.calledOnce).to.be.true;
+        expect(write.calledOnce).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).projectId).to.equal(copy.id);
     });
 
     it('blocks the mutation when no durable audit intent can be recorded', async () => {

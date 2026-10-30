@@ -1,5 +1,12 @@
 import { expect } from '@esm-bundle/chai';
-import { clearCaches, DEFAULT_CONTEXT, loadRequestMetadata, saveRequestMetadata } from '../../libs/fragment-client.js';
+import {
+    clearCaches,
+    DEFAULT_CONTEXT,
+    loadRequestMetadata,
+    previewFragment,
+    saveRequestMetadata,
+} from '../../libs/fragment-client.js';
+import FRAGMENT_RESPONSE_EN from '../../../io/www/test/fragment/mocks/fragment-en-default.json' with { type: 'json' };
 
 const context = { ...DEFAULT_CONTEXT, id: 'nala-metadata-test', locale: 'en_US', country: 'US' };
 const renderedContext = {
@@ -64,5 +71,46 @@ describe('fragment-client request metadata', () => {
         clearCaches();
         expect(localStorage.getItem('req-nala-metadata-test-en_US-US')).to.equal(null);
         expect(localStorage.getItem('unrelated-key')).to.equal('keep');
+    });
+
+    it('clearCaches removes persisted missing-mask lookups', () => {
+        const key = 'mask-ids-https://odinpreview.corp.adobe.com/adobe/contentFragments/byPath?path=photo';
+        localStorage.setItem(key, JSON.stringify({ value: { status: 404 }, timestamp: Date.now(), ttl: 5 * 60 * 1000 }));
+        localStorage.setItem('unrelated-key', 'keep');
+        clearCaches();
+        expect(localStorage.getItem(key)).to.equal(null);
+        expect(localStorage.getItem('unrelated-key')).to.equal('keep');
+    });
+
+    it('preserves rendering after a missing mask in the real preview pipeline', async () => {
+        const originalFetch = window.fetch;
+        let maskLookups = 0;
+        window.fetch = async (url) => {
+            if (url.includes('/masks/missing-photo')) maskLookups++;
+            const fragmentFound = url.includes('/some-en-us-fragment?');
+            return new Response(JSON.stringify(fragmentFound ? FRAGMENT_RESPONSE_EN : { detail: 'Not Found' }), {
+                status: fragmentFound ? 200 : 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        };
+        try {
+            for (const run of [1, 2]) {
+                const result = await previewFragment('some-en-us-fragment', {
+                    locale: 'en_US',
+                    country: 'US',
+                    mask: 'missing-photo',
+                    requestId: `mask-preview-${run}`,
+                    fullContext: true,
+                });
+                expect(result.status).to.equal(200);
+                expect(result.body).to.have.property('id', FRAGMENT_RESPONSE_EN.id);
+                expect(result.body).not.to.have.property('message');
+                expect(result.body).not.to.have.property('maskError');
+                expect(result).not.to.have.property('maskError');
+            }
+            expect(maskLookups).to.equal(1);
+        } finally {
+            window.fetch = originalFetch;
+        }
     });
 });

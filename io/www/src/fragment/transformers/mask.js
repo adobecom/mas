@@ -7,8 +7,20 @@ import {
 } from '../utils/common.js';
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { logDebug, logError } from '../utils/log.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 
 const MASKS_FOLDER = 'masks';
+const maskIdCache = createSwrCache({
+    name: 'mask-ids',
+    ttl: 5 * 60 * 1000,
+    jitter: 0,
+    staleWhileRevalidate: false,
+    shouldCache: ({ status }) => status === 404,
+});
+
+export function clearMaskCache(preview = false) {
+    maskIdCache.clear(preview);
+}
 
 /**
  * Fetches the mask card fragment by path convention (`masks/<name>`) for a given surface/locale.
@@ -17,7 +29,7 @@ const MASKS_FOLDER = 'masks';
 async function fetchMaskAtLocale(context, surface, locale, mask) {
     const { preview } = context;
     const url = odinUrl(surface, { locale, fragmentPath: `${MASKS_FOLDER}/${mask}`, preview });
-    const { id, status } = await getFragmentId(context, url, `mask-id-${locale}`);
+    const { id, status } = await maskIdCache.get(context, url, () => getFragmentId(context, url, `mask-id-${locale}`));
     if (status !== 200) return null;
     const response = await fetch(odinReferences(id, preview), context, `mask-${locale}`);
     if (response.status !== 200) return null;
@@ -35,6 +47,7 @@ async function fetchMask(context) {
         const maskFragment = await fetchMaskAtLocale(context, surface, locale, mask);
         if (maskFragment) return maskFragment;
     }
+    logError(`Unable to load mask '${mask}' for ${surface} in locales ${locales.join(', ')}`, context);
     return null;
 }
 

@@ -14,7 +14,7 @@ import { clearDictionaryCache, getDictionary, transformer as replace } from '../
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
 import { clearPromoCache, transformer as promotions } from '../../io/www/src/fragment/transformers/promotions.js';
-import { transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
+import { clearMaskCache, transformer as mask } from '../../io/www/src/fragment/transformers/mask.js';
 import { ODIN_PREVIEW_FRAGMENTS_URL } from '../src/constants.js';
 import { clearOfferMappingCache, transformer as wcs } from '../../io/www/src/fragment/transformers/wcs.js';
 import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration.js';
@@ -23,8 +23,7 @@ import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js'
 
 const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
-    constructor() {        
-    }
+    constructor() {}
 
     async get(key) {
         return new Promise((resolve) => {
@@ -76,6 +75,7 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    clearMaskCache(true);
     clearBaselineCache(true);
     clearPendingFetches();
     Object.keys(window.localStorage)
@@ -124,7 +124,7 @@ async function previewFragment(id, options) {
     context = { ...context, ...metadataContext };
     context.fragmentsIds = context.fragmentsIds || {};
     context.measures = context.measures || [];
-    try {    
+    try {
         for (const transformer of PIPELINE) {
             if (transformer.init) {
                 //we fork context to avoid init to override any context property

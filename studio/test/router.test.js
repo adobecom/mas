@@ -782,6 +782,67 @@ describe('Router', () => {
         });
     });
 
+    describe('baselines filters hash params', () => {
+        let originalBaselinesSearch;
+        let originalBaselinesFilters;
+
+        beforeEach(() => {
+            originalBaselinesSearch = Store.baselines.search.get();
+            originalBaselinesFilters = Store.baselines.filters.get();
+        });
+
+        afterEach(() => {
+            Store.baselines.search.set(originalBaselinesSearch);
+            Store.baselines.filters.set(originalBaselinesFilters);
+        });
+
+        it('syncs the prefixed hash keys into the baselines stores on the baselines page', () => {
+            mockLocation.hash =
+                '#baselines.createdBy=a@adobe.com&baselines.paCodes=PA-1,PA-2&baselines.query=phsp&page=baselines';
+            router.start();
+
+            expect(Store.baselines.search.get().query).to.equal('phsp');
+            expect(Store.baselines.filters.get()).to.include({ paCodes: 'PA-1,PA-2', createdBy: 'a@adobe.com' });
+        });
+
+        it('ignores the prefixed hash keys on other pages', () => {
+            mockLocation.hash = '#baselines.paCodes=PA-1&page=content';
+            router.start();
+
+            expect(Store.baselines.filters.get().paCodes).to.be.undefined;
+        });
+
+        it('writes the baselines filters under prefixed keys without touching the global filters', async () => {
+            mockLocation.hash = '#page=baselines';
+            router.start();
+            Store.baselines.filters.set({ tags: 'mas:market_segments/edu', paCodes: 'PA-1' });
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            expect(mockLocation.hash).to.include('baselines.tags=mas%3Amarket_segments%2Fedu');
+            expect(mockLocation.hash).to.include('baselines.paCodes=PA-1');
+            expect(Store.filters.get().tags).to.be.undefined;
+        });
+
+        it('drops the baselines keys from the hash when leaving the page but keeps the store values', async () => {
+            mockLocation.hash = '#baselines.paCodes=PA-1&page=baselines';
+            router.start();
+            Store.page.set(PAGE_NAMES.CONTENT);
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            expect(mockLocation.hash).to.not.include('baselines.');
+            expect(Store.baselines.filters.get().paCodes).to.equal('PA-1');
+        });
+
+        it('does not write baselines filter changes made on another page', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.baselines.filters.set({ paCodes: 'PA-1' });
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            expect(mockLocation.hash).to.not.include('baselines.');
+        });
+    });
+
     describe('navigateToFragmentEditor', () => {
         it('should navigate to fragment editor', async () => {
             await router.navigateToFragmentEditor('test-id');

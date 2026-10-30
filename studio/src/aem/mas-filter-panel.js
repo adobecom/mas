@@ -50,13 +50,29 @@ class MasFilterPanel extends LitElement {
         #filters {
             display: flex;
             min-height: 32px;
-            align-items: center;
             flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        #filters > overlay-trigger > sp-action-button,
+        #filters aem-tag-picker-field,
+        #filters mas-user-picker {
+            --mod-actionbutton-background-color-default: var(--spectrum-gray-25);
+            --mod-actionbutton-background-color-hover: var(--spectrum-gray-100);
+            --mod-actionbutton-background-color-down: var(--spectrum-gray-200);
+            --mod-actionbutton-background-color-focus: var(--spectrum-gray-100);
+            --mod-actionbutton-border-color-default: var(--spectrum-gray-300);
+            --mod-actionbutton-border-color-hover: var(--spectrum-gray-400);
+            --mod-actionbutton-border-color-down: var(--spectrum-gray-500);
+            --mod-actionbutton-border-color-focus: var(--spectrum-gray-400);
+            --mod-actionbutton-border-width: 1px;
+            --mod-actionbutton-border-radius: 8px;
+            --mod-actionbutton-content-color-default: var(--spectrum-gray-800);
         }
 
         .filter-icon {
             inline-size: 20px;
-            block-size: 20px;
+            block-size: 30px;
             color: var(--spectrum-white);
         }
 
@@ -505,7 +521,7 @@ class MasFilterPanel extends LitElement {
                 data-filter-type="status"
                 @sp-closed=${this.#discardPendingStatuses}
             >
-                <sp-action-button slot="trigger" quiet aria-label="Status">
+                <sp-action-button slot="trigger" aria-label="Status">
                     ${displayLabel}
                     <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>
@@ -548,6 +564,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.offer_type)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -558,6 +575,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.plan_type)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -568,6 +586,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType['workflow-step'])}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -578,6 +597,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.market_segments)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -588,6 +608,7 @@ class MasFilterPanel extends LitElement {
                     label="Customer Segment"
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.customer_segment)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -598,6 +619,7 @@ class MasFilterPanel extends LitElement {
                     label="Product Code"
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.product_code)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -609,6 +631,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.variant)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -621,6 +644,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType['studio/content-type'])}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -631,6 +655,7 @@ class MasFilterPanel extends LitElement {
                     multiple
                     selection="checkbox"
                     value=${pathsToTagIds(this.tagsByType.custom)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                 ></aem-tag-picker-field>
 
@@ -644,6 +669,7 @@ class MasFilterPanel extends LitElement {
                     personalization-toggle
                     .personalizationEnabled=${this.#personalizationFilterEnabled}
                     value=${pathsToTagIds(this.tagsByType.pzn)}
+                    .quiet=${false}
                     @change=${this.#handleTagChange}
                     @personalization-toggle-change=${this.#onPersonalizationToggleEnabled}
                 ></aem-tag-picker-field>
@@ -653,10 +679,11 @@ class MasFilterPanel extends LitElement {
                     .currentUser=${Store.profile}
                     .selectedUsers=${Store.createdByUsers}
                     .users=${Store.users}
+                    .quiet=${false}
                 ></mas-user-picker>
 
-                <sp-action-button quiet @click=${this.#handleRefresh} title="Clear all filters"
-                    >Reset Filters
+                <sp-action-button quiet @click=${this.#handleRefresh} title="Clear all filters">
+                    Reset Filters
                     <sp-icon-refresh slot="icon"></sp-icon-refresh>
                 </sp-action-button>
             </div>

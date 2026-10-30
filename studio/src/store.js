@@ -229,6 +229,10 @@ const Store = {
             data: new ReactiveStore([]),
             loading: new ReactiveStore(true),
         },
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({}),
+        allBaselines: new ReactiveStore([]),
+        displayBaselines: new ReactiveStore([]),
     },
     bulkEditProjects: {
         list: {

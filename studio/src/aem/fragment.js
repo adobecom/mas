@@ -492,6 +492,17 @@ export class Fragment {
     }
 
     /**
+     * Checks whether a fragment was created by one of the given users (case-insensitive).
+     * @param {{ created?: { by?: string } }} fragment
+     * @param {string[]} userPrincipalNames
+     * @returns {boolean}
+     */
+    static isCreatedByAny(fragment, userPrincipalNames) {
+        const createdBy = fragment.created?.by?.toLowerCase();
+        return Boolean(createdBy) && userPrincipalNames.some((name) => name.toLowerCase() === createdBy);
+    }
+
+    /**
      * Categorizes all variation references in a single pass into locale, promo, and grouped buckets.
      * Each variation is classified into exactly one category (grouped > promo > locale).
      * @returns {{ locale: Object[], promo: Object[], grouped: Object[] }}

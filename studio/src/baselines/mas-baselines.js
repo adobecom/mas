@@ -1,12 +1,13 @@
 import { html, LitElement, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import styles from './mas-baselines.css.js';
-import { BASELINE_CREATE_TYPE } from '../constants.js';
+import { BASELINE_CREATE_TYPE, FILTER_TYPE, TABLE_TYPE } from '../constants.js';
 import Store from '../store.js';
 import router from '../router.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
 import { extractLocaleFromPath, showToast } from '../utils.js';
-import { filterBySearchQuery, handleSearchInput } from '../common/utils/selectable-list.js';
+import { handleSearchInput } from '../common/utils/selectable-list.js';
+import { popItemsSelectionStore, pushItemsSelectionStore } from '../common/items-selection-store.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { renderSkeletonRows, untrackPendingProject } from '../common/utils/project-list-utils.js';
@@ -14,6 +15,7 @@ import { closePreview, openPreview } from '../mas-card-preview.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { getBaselineInfo } from './baseline-model.js';
 import '../mas-create-dialog.js';
+import '../common/components/mas-search-and-filters.js';
 
 const COLUMNS = [
     { key: 'title', label: 'Title', sortable: true },
@@ -27,7 +29,36 @@ const COLUMNS = [
     { key: 'preview', label: 'Preview' },
 ];
 
-const SEARCHABLE_KEYS = ['productCode', 'productArrangementCode', 'marketSegment', 'template', 'title'];
+const ENABLED_FILTERS = [
+    FILTER_TYPE.MARKET_SEGMENT,
+    FILTER_TYPE.TEMPLATE,
+    FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE,
+    FILTER_TYPE.CREATED_BY,
+];
+
+/**
+ * Matches baselines on the market segment, PA code and template of their folder path, since their tags and variant are optional.
+ * @param {Fragment} fragment
+ * @param {string} filterType
+ * @returns {string[] | undefined}
+ */
+const resolveBaselineFilterValues = (fragment, filterType) => {
+    const { marketSegment, productArrangementCode, template } = getBaselineInfo(fragment);
+    if (filterType === FILTER_TYPE.MARKET_SEGMENT) return [`mas:market_segments/${marketSegment.toLowerCase()}`];
+    if (filterType === FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE) return [productArrangementCode];
+    if (filterType === FILTER_TYPE.TEMPLATE) return [template];
+    return undefined;
+};
+
+/**
+ * Matches the search query on the derived columns, including the default COM segment that has no folder.
+ * @param {Fragment} fragment
+ * @returns {string[]}
+ */
+const resolveBaselineSearchValues = (fragment) => {
+    const { productArrangementCode, marketSegment, template } = getBaselineInfo(fragment);
+    return [productArrangementCode, marketSegment, template];
+};
 
 const PREVIEW_POSITION = { left: '50%', transform: 'translate(-50%, -50%)' };
 
@@ -40,26 +71,56 @@ class MasBaselines extends LitElement {
         sortDirection: { state: true },
     };
 
+    #itemsSelectionStoreToken = null;
+
     constructor() {
         super();
         this.createDialogOpen = false;
         this.searchQuery = '';
         this.sortDirection = 'asc';
         this.rows = [];
-        this.reactiveController = new ReactiveController(this, [Store.baselines.list.data, Store.baselines.list.loading]);
+        this.reactiveController = new ReactiveController(this, [
+            Store.baselines.list.data,
+            Store.baselines.list.loading,
+            Store.baselines.displayBaselines,
+            Store.baselines.search,
+        ]);
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#itemsSelectionStoreToken = pushItemsSelectionStore(Store.baselines);
+        this.searchQuery = String(Store.baselines.search.get().query ?? '');
+        Store.baselines.list.data.subscribe(this.#syncAllBaselines);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        Store.baselines.list.data.unsubscribe(this.#syncAllBaselines);
+        popItemsSelectionStore(this.#itemsSelectionStoreToken);
+        this.#itemsSelectionStoreToken = null;
         closePreview();
+    }
+
+    #syncAllBaselines = (stores) => {
+        Store.baselines.allBaselines.set(stores.map((store) => store.get()));
+    };
+
+    #syncSearchQueryFromStore() {
+        const storeQuery = String(Store.baselines.search.get().query ?? '');
+        if (storeQuery !== this.searchQuery.trim()) this.searchQuery = storeQuery;
     }
 
     get repository() {
         return document.querySelector('mas-repository');
     }
 
-    willUpdate() {
-        const rows = Store.baselines.list.data.get().map((store) => {
+    willUpdate(changed) {
+        if (!changed.has('searchQuery')) this.#syncSearchQueryFromStore();
+        const storesById = new Map(Store.baselines.list.data.get().map((store) => [store.id, store]));
+        const rows = Store.baselines.displayBaselines.get().flatMap(({ id }) => {
+            const store = storesById.get(id);
+            if (!store) return [];
             const fragment = store.get();
             return {
                 store,
@@ -70,10 +131,7 @@ class MasBaselines extends LitElement {
                 lastModifiedBy: fragment.modified?.fullName ?? '',
             };
         });
-        const filtered = filterBySearchQuery(rows, this.searchQuery.trim(), (row) =>
-            SEARCHABLE_KEYS.map((key) => row[key]).join(' '),
-        );
-        this.rows = filtered.sort(this.#compareTitles);
+        this.rows = rows.sort(this.#compareTitles);
     }
 
     #compareTitles = (a, b) => {
@@ -194,8 +252,17 @@ class MasBaselines extends LitElement {
                     @input=${(event) => (this.searchQuery = handleSearchInput(event))}
                     @submit=${(event) => event.preventDefault()}
                 ></sp-search>
-                <div>${this.rows.length} result(s)</div>
+                <span class="result-count">${this.rows.length} result(s)</span>
             </div>
+            <mas-search-and-filters
+                .type=${TABLE_TYPE.BASELINES}
+                .searchQuery=${this.searchQuery}
+                .enabledFilters=${ENABLED_FILTERS}
+                .filterValueResolver=${resolveBaselineFilterValues}
+                .searchValuesResolver=${resolveBaselineSearchValues}
+                show-reset
+                hide-count
+            ></mas-search-and-filters>
             ${this.#content}
             ${this.createDialogOpen
                 ? html`<mas-create-dialog

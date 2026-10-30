@@ -28,6 +28,12 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export const ANALYTICS_TAG = 'mas:product_code/';
 export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
+// CTAs that lead to purchase; keep identical to the list in mas-field.js.
+const QUALIFYING_CTA_ANALYTICS_IDS = new Set([
+    'buy-now',
+    'select',
+    'see-all-plans-and-pricing',
+]);
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 
@@ -1003,8 +1009,8 @@ export async function processCTAs(
                       cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const buyNowExists = filteredLinks.some(
-            (c) => c.dataset.analyticsId === 'buy-now',
+        const qualifyingCtaExists = filteredLinks.some((c) =>
+            QUALIFYING_CTA_ANALYTICS_IDS.has(c.dataset.analyticsId),
         );
         const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
@@ -1053,7 +1059,7 @@ export async function processCTAs(
                             ) &&
                             checkout.hasAttribute('data-replaced-osi')
                         ) {
-                            if (buyNowExists) {
+                            if (qualifyingCtaExists) {
                                 checkout.classList.remove('blue');
                                 checkout.removeAttribute('data-analytics-id');
                                 cta.remove();
@@ -1122,8 +1128,8 @@ export async function processCTAs(
                 });
                 const buyNowCta = ctas.find((c) => {
                     const checkout = getCtaSource(c);
-                    return (
-                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    return QUALIFYING_CTA_ANALYTICS_IDS.has(
+                        checkout.dataset.analyticsId,
                     );
                 });
                 if (!hasBlueCta && buyNowCta) {

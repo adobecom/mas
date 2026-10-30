@@ -552,4 +552,62 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
     });
+
+    describe('baseline parent', () => {
+        const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values;
+        const createCard = () =>
+            createFragment({
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['Own title'] },
+                    { name: 'subtitle', values: [''] },
+                    { name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] },
+                ],
+            });
+        const baselineParent = new Fragment({
+            fields: [
+                { name: 'cardTitle', values: ['Baseline title'] },
+                { name: 'subtitle', values: ['Baseline subtitle'] },
+                { name: 'badge', values: ['Baseline badge'] },
+                { name: 'promoText', values: ['Baseline promo'] },
+            ],
+        });
+
+        beforeEach(() => {
+            sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+        });
+
+        it('fills the empty card fields of the preview with the baseline values', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+            store.baselineParent = baselineParent;
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'cardTitle')).to.deep.equal(['Own title']);
+            expect(fieldValues(result, 'subtitle')).to.deep.equal(['Baseline subtitle']);
+            expect(fieldValues(result, 'promoText')).to.deep.equal(['Baseline promo']);
+            expect(store.value.getFieldValue('subtitle')).to.equal('');
+            store.dispose();
+        });
+
+        it('keeps a field cleared with the explicit empty sentinel empty', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+            store.baselineParent = baselineParent;
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'badge')).to.deep.equal(['']);
+            store.dispose();
+        });
+
+        it('leaves the preview fields alone without a baseline parent', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'subtitle')).to.deep.equal(['']);
+            expect(fieldValues(result, 'promoText')).to.be.undefined;
+            store.dispose();
+        });
+    });
 });

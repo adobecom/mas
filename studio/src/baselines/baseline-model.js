@@ -161,7 +161,7 @@ export async function createBaseline(repository, { title, osi, ...baseline }) {
     return { folder, fragment };
 }
 
-const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
+export const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
 
 const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
     ...offerBaseline,

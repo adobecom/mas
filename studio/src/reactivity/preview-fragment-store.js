@@ -14,6 +14,7 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
+import { mergeParentFields } from '../aem/variation-utils.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
 const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
@@ -93,6 +94,8 @@ export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
     previewLocaleOverride = null;
+    /** @type {Fragment | null} merged baselines filling the empty fields of the preview */
+    baselineParent = null;
     #resolving = false;
     #resolvePending = false;
     #resolveDebounceTimer = null;
@@ -258,6 +261,7 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
+        if (this.baselineParent) mergeParentFields(body, this.baselineParent);
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 

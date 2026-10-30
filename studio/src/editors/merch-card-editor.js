@@ -2,7 +2,7 @@ import { html, LitElement, nothing } from 'lit';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
-import '../fields/mnemonic-field.js';
+import { BASELINE_FIELD_STATE } from '../fields/mnemonic-field.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
@@ -48,6 +48,9 @@ import { getLocaleByCode } from '../../../io/www/src/fragment/locales.js';
 import { normalizePznTagToLocaleCode, parseCtas, getCtaKeyIssues, summarizeCtaKeyIssues } from './variation-utils.js';
 import { parseProWhatsIncluded, serializeProWhatsIncluded } from '../utils/pro-whats-included.js';
 import { BASELINE_STATUS, CardBaselinesController } from '../baselines/card-baselines-controller.js';
+import { hasContent } from '../baselines/baseline-model.js';
+import { cachedInheritanceParent } from '../aem/variation-utils.js';
+import { buildEditorHref } from '../common/utils/editor-link.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
@@ -141,6 +144,7 @@ class MerchCardEditor extends LitElement {
     availableSizes = [];
     availableColors = [];
     availableBorderColors = [];
+    #inheritanceParent = cachedInheritanceParent();
     availableWhatsIncludedDividerColors = [];
     availableBadgeColors = [];
     availableBackgroundColors = [];
@@ -331,27 +335,38 @@ class MerchCardEditor extends LitElement {
         `;
     }
 
+    /** The fragment empty fields inherit from: the locale default fragment of a variation and/or the card baselines. */
+    get inheritanceParent() {
+        const parentFragment = this.effectiveIsVariation ? this.localeDefaultFragment : null;
+        return this.#inheritanceParent(parentFragment, this.baselinesController.parent);
+    }
+
     getEffectiveFieldValue(fieldName, index = 0) {
-        const value = this.fragment.getEffectiveFieldValue(
-            fieldName,
-            this.localeDefaultFragment,
-            this.effectiveIsVariation,
-            index,
-        );
+        const parent = this.inheritanceParent;
+        const value = this.fragment.getEffectiveFieldValue(fieldName, parent, Boolean(parent), index);
         return fieldName === 'variant' ? normalizeVariantName(value) : value;
     }
 
     getEffectiveFieldValues(fieldName) {
-        const values = this.fragment.getEffectiveFieldValues(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        const parent = this.inheritanceParent;
+        const values = this.fragment.getEffectiveFieldValues(fieldName, parent, Boolean(parent));
         return fieldName === 'variant' ? values.map(normalizeVariantName) : values;
     }
 
     isFieldOverridden(fieldName) {
-        return this.fragment.isFieldOverridden(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        return this.getFieldState(fieldName) === 'overridden';
     }
 
     getFieldState(fieldName) {
-        return this.fragment.getFieldState(fieldName, this.localeDefaultFragment, this.effectiveIsVariation);
+        const parent = this.inheritanceParent;
+        if (!parent || (!this.effectiveIsVariation && !parent.getField(fieldName))) return 'no-parent';
+        return this.fragment.getFieldState(fieldName, parent, true);
+    }
+
+    /** Whether an inherited field gets its value from the baselines rather than the locale default fragment. */
+    isInheritedFromBaseline(fieldName) {
+        const fromLocaleDefault = this.effectiveIsVariation && hasContent(this.localeDefaultFragment.getFieldValues(fieldName));
+        return !fromLocaleDefault && hasContent(this.baselinesController.parent?.getFieldValues(fieldName));
     }
 
     getTagsFieldState() {
@@ -402,25 +417,24 @@ class MerchCardEditor extends LitElement {
 
     /**
      * Gets the combined field state for all mnemonic fields.
-     * Returns 'overridden' if ANY mnemonic field is overridden.
+     * Returns 'overridden' if ANY mnemonic field is overridden, 'no-parent' if no parent provides any of them.
      */
     getMnemonicsFieldState() {
-        if (!this.effectiveIsVariation) return 'no-parent';
-        const isAnyOverridden = MerchCardEditor.MNEMONIC_FIELDS.some(
-            (fieldName) => this.getFieldState(fieldName) === 'overridden',
-        );
-        return isAnyOverridden ? 'overridden' : 'inherited';
+        if (!this.inheritanceParent) return 'no-parent';
+        const states = MerchCardEditor.MNEMONIC_FIELDS.map((fieldName) => this.getFieldState(fieldName));
+        if (states.includes('overridden')) return 'overridden';
+        return states.every((state) => state === 'no-parent') ? 'no-parent' : 'inherited';
     }
 
     async resetMnemonicsToParent() {
+        const source = this.isInheritedFromBaseline('mnemonicIcon') ? 'baseline' : 'parent';
         for (const fieldName of MerchCardEditor.MNEMONIC_FIELDS) {
             this.fragmentStore.resetFieldToParent(fieldName);
         }
-        showToast('Visuals restored to parent value', 'positive');
+        showToast(`Visuals restored to ${source} value`, 'positive');
     }
 
     renderMnemonicsStatusIndicator() {
-        if (!this.effectiveIsVariation) return nothing;
         if (this.getMnemonicsFieldState() !== 'overridden') return nothing;
         return this.#renderOverrideIndicatorLink(() => this.resetMnemonicsToParent());
     }
@@ -428,15 +442,22 @@ class MerchCardEditor extends LitElement {
     async resetFieldToParent(fieldName) {
         const success = this.fragmentStore.resetFieldToParent(fieldName);
         if (success) {
-            showToast('Field restored to parent value', 'positive');
+            showToast(`Field restored to ${this.isInheritedFromBaseline(fieldName) ? 'baseline' : 'parent'} value`, 'positive');
         }
         return success;
     }
 
+    get fromBaselineIndicator() {
+        return html`<div class="field-status-indicator field-status-indicator--baseline">
+            <span class="field-status-label">From baseline</span>
+        </div>`;
+    }
+
     renderFieldStatusIndicator(fieldName) {
-        if (!this.effectiveIsVariation) return nothing;
-        if (this.getFieldState(fieldName) !== 'overridden') return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+        const state = this.getFieldState(fieldName);
+        if (state === 'overridden') return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(fieldName));
+        if (state !== 'inherited' || !this.isInheritedFromBaseline(fieldName)) return nothing;
+        return this.fromBaselineIndicator;
     }
 
     /** Flags reference-key problems (missing or duplicated `data-key`) in the CTAs field that would
@@ -864,9 +885,8 @@ class MerchCardEditor extends LitElement {
 
     getFormWithInheritance() {
         const allFieldNames = new Set();
-        this.fragment.fields.forEach((f) => allFieldNames.add(f.name));
-        if (this.localeDefaultFragment) {
-            this.localeDefaultFragment.fields.forEach((f) => allFieldNames.add(f.name));
+        for (const fragment of [this.fragment, this.localeDefaultFragment, this.baselinesController.parent]) {
+            fragment?.fields.forEach((f) => allFieldNames.add(f.name));
         }
 
         const form = {};
@@ -1077,7 +1097,8 @@ class MerchCardEditor extends LitElement {
         const mnemonicLink = this.getEffectiveFieldValues('mnemonicLink');
         const mnemonicTooltipText = this.getEffectiveFieldValues('mnemonicTooltipText');
         const mnemonicTooltipPlacement = this.getEffectiveFieldValues('mnemonicTooltipPlacement');
-        const parentIcons = this.localeDefaultFragment?.getField('mnemonicIcon')?.values || [];
+        const parentIcons = this.inheritanceParent?.getFieldValues('mnemonicIcon') ?? [];
+        const fromBaseline = this.isInheritedFromBaseline('mnemonicIcon');
 
         return (
             mnemonicIcon?.map((icon, index) => {
@@ -1089,10 +1110,9 @@ class MerchCardEditor extends LitElement {
                     mnemonicPlacement: mnemonicTooltipPlacement[index] ?? 'top',
                 };
 
-                if (this.effectiveIsVariation) {
-                    const fieldState = getItemFieldStateByIndex(icon, parentIcons, index);
-                    if (fieldState) mnemonic.fieldState = fieldState;
-                }
+                const fieldState = getItemFieldStateByIndex(icon, parentIcons, index);
+                if (fieldState) mnemonic.fieldState = fieldState;
+                else if (fromBaseline && icon === parentIcons[index]) mnemonic.fieldState = BASELINE_FIELD_STATE;
 
                 return mnemonic;
             }) ?? []
@@ -1380,6 +1400,50 @@ class MerchCardEditor extends LitElement {
                     justify-content: space-between;
                 }
 
+                #fragment-enable-baselines-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    margin-bottom: 24px;
+                    padding: 0 16px;
+                    border: 2px solid var(--spectrum-gray-200);
+                    border-radius: 12px;
+                }
+
+                #fragment-enable-baselines-group.inheriting {
+                    background: var(--spectrum-green-100);
+                    border-color: var(--spectrum-green-400);
+                }
+
+                .baselines-header {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px 16px;
+                }
+
+                .baseline-inherits {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: var(--spectrum-green-900);
+                    font-size: 14px;
+                    text-decoration: none;
+                }
+
+                .baseline-inherits-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: inherit;
+                    text-decoration: none;
+                }
+
+                .baseline-inherits-link:hover {
+                    text-decoration: underline;
+                }
+
                 .section-staged-status {
                     display: flex;
                     align-items: center;
@@ -1582,7 +1646,7 @@ class MerchCardEditor extends LitElement {
             </style>
             <div class="editor-skeleton-wrapper" style="--skeleton-display: ${skeletonDisplay}">${this.renderSkeleton()}</div>
             <div class="editor-form-container" style="--form-display: ${formDisplay}">
-                ${this.renderValidationBanner()}
+                ${this.renderValidationBanner()} ${this.baselinesTemplate}
                 <div class="section-title-status">
                     <div class="section-title">General info</div>
                     <div class="section-staged-status">
@@ -1634,16 +1698,6 @@ class MerchCardEditor extends LitElement {
                             value="${this.fragment.description}"
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
-                    </sp-field-group>
-                    <sp-field-group id="fragment-enable-baselines-group">
-                        <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>
-                        <sp-switch
-                            id="fragment-enable-baselines"
-                            ?checked="${form.enableBaselines?.values[0]}"
-                            aria-describedby=${this.baselinesController.message ? 'fragment-baseline-status' : nothing}
-                            @click="${this.#handleEnableBaselines}"
-                        ></sp-switch>
-                        ${this.baselineStatusTemplate}
                     </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
@@ -2193,15 +2247,45 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateField('enableBaselines', [value]);
     }
 
-    get baselineStatusTemplate() {
-        const { message, status } = this.baselinesController;
-        if (!message) return nothing;
-        return html`<sp-help-text
-            id="fragment-baseline-status"
-            size="s"
-            variant=${status === BASELINE_STATUS.ERROR ? 'negative' : 'neutral'}
-            >${message}</sp-help-text
-        >`;
+    /** Whether the edited fragment is a baseline itself, which never inherits from baselines. */
+    get isBaseline() {
+        return Fragment.isBaselinePath(this.fragment.path);
+    }
+
+    get baselinesTemplate() {
+        if (this.isBaseline) return nothing;
+        const enabled = this.getEffectiveFieldValue('enableBaselines') === true;
+        const found = this.baselinesController.status === BASELINE_STATUS.FOUND;
+        const inheriting = enabled && found;
+        return html`<div id="fragment-enable-baselines-group" class=${inheriting ? 'inheriting' : nothing}>
+            <div class="baselines-header" title=${inheriting ? nothing : this.baselinesController.message}>
+                <sp-switch
+                    id="fragment-enable-baselines"
+                    ?checked=${enabled}
+                    ?disabled=${!enabled && !found}
+                    aria-describedby=${inheriting ? 'fragment-baseline-inherits' : nothing}
+                    @click=${this.#handleEnableBaselines}
+                    >Enable baseline</sp-switch
+                >
+                ${inheriting ? this.baselineInheritsTemplate : nothing}
+            </div>
+        </div>`;
+    }
+
+    get baselineInheritsTemplate() {
+        const { baseline, offerProductName } = this.baselinesController;
+        if (!baseline) {
+            return html`<span id="fragment-baseline-inherits" class="baseline-inherits"
+                >Inherits from <strong>${offerProductName}</strong></span
+            >`;
+        }
+        return html`<span id="fragment-baseline-inherits" class="baseline-inherits">
+            Inherits from
+            <a class="baseline-inherits-link" href=${buildEditorHref(baseline)} target="_blank" rel="noopener">
+                <strong>${baseline.title}</strong>
+                <sp-icon-open-in size="s"></sp-icon-open-in>
+            </a>
+        </span>`;
     }
 
     #whatsIncludedRowIsEmpty(value) {
@@ -2465,11 +2549,10 @@ class MerchCardEditor extends LitElement {
             mnemonicTooltipPlacement.push(mnemonicPlacement ?? 'top');
         });
 
-        // For variations: use empty string sentinel [""] to explicitly clear (vs [] which inherits)
-        // For non-variations or when values differ from parent: update normally
-        // When values match parent: auto-reset to inherited state
-        const isExplicitClear = mnemonicIcon.length === 0 && this.effectiveIsVariation;
-        const parent = this.effectiveIsVariation ? this.localeDefaultFragment : null;
+        // With a parent (locale default fragment or baselines): use empty string sentinel [""] to explicitly clear
+        // (vs [] which inherits), and auto-reset to inherited state when values match the parent
+        const parent = this.inheritanceParent;
+        const isExplicitClear = mnemonicIcon.length === 0 && Boolean(parent);
 
         const values = {
             mnemonicIcon: isExplicitClear ? [''] : mnemonicIcon,

@@ -1,4 +1,5 @@
 import { fieldValuesArePersistedExplicitEmpty } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { Fragment } from './fragment.js';
 
 /**
  * Whether a variation field should inherit parent values in preview merge.
@@ -37,4 +38,30 @@ export function mergeParentFields(previewData, parentFragment) {
         }
     }
     return previewData;
+}
+
+/**
+ * The fragment a card inherits its empty fields from: its merged baselines, under its locale default fragment for a
+ * variation (baselines < locale default < card, like the delivery pipeline).
+ * @param {Fragment | null} parentFragment
+ * @param {Fragment | null} baselineParent
+ * @returns {Fragment | null}
+ */
+export function buildInheritanceParent(parentFragment, baselineParent) {
+    if (!parentFragment || !baselineParent) return parentFragment ?? baselineParent;
+    return new Fragment(mergeParentFields(structuredClone({ fields: parentFragment.fields }), baselineParent));
+}
+
+/**
+ * `buildInheritanceParent`, rebuilt only when the parent or the baselines change.
+ * @returns {(parentFragment: Fragment | null, baselineParent: Fragment | null) => Fragment | null}
+ */
+export function cachedInheritanceParent() {
+    let cached = {};
+    return (parentFragment, baselineParent) => {
+        if (cached.parentFragment !== parentFragment || cached.baselineParent !== baselineParent) {
+            cached = { parentFragment, baselineParent, fragment: buildInheritanceParent(parentFragment, baselineParent) };
+        }
+        return cached.fragment;
+    };
 }

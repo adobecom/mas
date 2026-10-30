@@ -2,10 +2,8 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { BASELINE_STATUS, CardBaselinesController } from '../../src/baselines/card-baselines-controller.js';
 import { Fragment } from '../../src/aem/fragment.js';
-import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
 
 const CARD_PATH = '/content/dam/mas/sandbox/fr_FR/card';
-const DEFAULT_LOCALE = getDefaultLocaleCode('sandbox', 'fr_FR');
 
 const field = (name, ...values) => ({ name, values });
 const templateBaseline = {
@@ -17,11 +15,13 @@ const offerBaseline = { id: 'offer', fields: [field('mnemonicIcon', 'offer.svg')
 
 const flush = () => new Promise((resolve) => setTimeout(resolve));
 
-const createHost = (values = {}, path = CARD_PATH) => {
-    const fragment = new Fragment({ id: 'card', path, fields: [] });
+const createHost = (values = {}, path = CARD_PATH, fields = []) => {
+    const fragment = new Fragment({ id: 'card', path, fields });
     return {
         values: { osi: 'OSI', variant: 'catalog', ...values },
         fragmentStore: { get: () => fragment, setBaselineParent: sinon.spy() },
+        localeDefaultFragment: null,
+        effectiveIsVariation: false,
         addController: sinon.spy(),
         requestUpdate: sinon.spy(),
         getEffectiveFieldValue(name) {
@@ -75,7 +75,7 @@ describe('CardBaselinesController', () => {
             controller.hostUpdate();
 
             expect(controller.status).to.equal(BASELINE_STATUS.NONE);
-            expect(controller.message).to.equal('');
+            expect(controller.message).to.equal('Select an offer and a template to look for a baseline');
         }
         expect(find.called).to.be.false;
     });
@@ -111,10 +111,28 @@ describe('CardBaselinesController', () => {
         expect(host.requestUpdate.calledOnce).to.be.true;
     });
 
-    it('reports an offer baseline alone as found', async () => {
+    it('reports an offer baseline alone as found, with its product name', async () => {
+        const namedOfferBaseline = { ...offerBaseline, fields: [field('cardTitle', 'Photoshop'), ...offerBaseline.fields] };
         const controller = new CardBaselinesController(
             createHost(),
-            sinon.stub().resolves({ offerBaseline, fragmentBaseline: null, fragmentSegmentBaseline: null }),
+            sinon.stub().resolves({ offerBaseline: namedOfferBaseline, fragmentBaseline: null, fragmentSegmentBaseline: null }),
+        );
+
+        controller.hostUpdate();
+        await flush();
+
+        expect(controller.message).to.equal('Offer baseline found: Photoshop');
+        expect(controller.baseline).to.be.null;
+    });
+
+    it('describes an offer baseline without a product name by what it provides', async () => {
+        const controller = new CardBaselinesController(
+            createHost(),
+            sinon.stub().resolves({
+                offerBaseline: { id: 'offer', fields: [field('mnemonicIcon', 'offer.svg')] },
+                fragmentBaseline: null,
+                fragmentSegmentBaseline: null,
+            }),
         );
 
         controller.hostUpdate();
@@ -123,16 +141,63 @@ describe('CardBaselinesController', () => {
         expect(controller.message).to.equal('Offer baseline found: product title and icon');
     });
 
-    it('reports missing baselines with the locale they were looked up in', async () => {
-        for (const baselines of [null, { offerBaseline: null, fragmentBaseline: null, fragmentSegmentBaseline: null }]) {
-            const controller = new CardBaselinesController(createHost(), sinon.stub().resolves(baselines));
+    it('exposes the most specific baseline fragment found', async () => {
+        const segmentBaseline = { id: 'segment', title: 'Photoshop catalog EDU', fields: [] };
+        const controller = new CardBaselinesController(
+            createHost(),
+            sinon
+                .stub()
+                .resolves({ offerBaseline, fragmentBaseline: templateBaseline, fragmentSegmentBaseline: segmentBaseline }),
+        );
 
-            controller.hostUpdate();
-            await flush();
+        expect(controller.baseline).to.be.null;
+        controller.hostUpdate();
+        await flush();
 
-            expect(controller.status).to.equal(BASELINE_STATUS.MISSING);
-            expect(controller.message).to.equal(`No baseline for this offer and template in ${DEFAULT_LOCALE}`);
-        }
+        expect(controller.baseline).to.equal(segmentBaseline);
+        expect(controller.message).to.equal('Baseline found: Photoshop catalog EDU');
+    });
+
+    it('reports missing baselines with the template, PA code and market segment they were looked up for', async () => {
+        const controller = new CardBaselinesController(
+            createHost(),
+            sinon.stub().resolves({
+                productArrangementCode: 'PA-1',
+                marketSegment: 'com',
+                offerBaseline: null,
+                fragmentBaseline: null,
+                fragmentSegmentBaseline: null,
+            }),
+        );
+
+        controller.hostUpdate();
+        await flush();
+
+        expect(controller.status).to.equal(BASELINE_STATUS.MISSING);
+        expect(controller.lookup).to.deep.equal({ template: 'catalog', productArrangementCode: 'PA-1', marketSegment: 'com' });
+        expect(controller.message).to.equal('Baseline for Catalog, PA-1, and COM not found');
+    });
+
+    it('reports missing baselines of an offer without market segment', async () => {
+        const controller = new CardBaselinesController(
+            createHost(),
+            sinon.stub().resolves({ productArrangementCode: 'PA-1', offerBaseline: null, fragmentBaseline: null }),
+        );
+
+        controller.hostUpdate();
+        await flush();
+
+        expect(controller.message).to.equal('Baseline for Catalog and PA-1 not found');
+    });
+
+    it('reports an offer without PA code as missing baselines', async () => {
+        const controller = new CardBaselinesController(createHost(), sinon.stub().resolves(null));
+
+        controller.hostUpdate();
+        await flush();
+
+        expect(controller.status).to.equal(BASELINE_STATUS.MISSING);
+        expect(controller.message).to.equal('No PA code found for this offer');
     });
 
     it('reports a failed lookup', async () => {
@@ -229,18 +294,43 @@ describe('CardBaselinesController', () => {
             expect(lastParent(host)).to.be.null;
         });
 
+        const offerOnly = () => sinon.stub().resolves({ offerBaseline, fragmentBaseline: null, fragmentSegmentBaseline: null });
+
         it('drops the offer icon when the card has its own icon', async () => {
-            const host = createHost({ enableBaselines: true, mnemonicIcon: 'card.svg' });
-            const controller = new CardBaselinesController(
-                host,
-                sinon.stub().resolves({ offerBaseline, fragmentBaseline: null, fragmentSegmentBaseline: null }),
-            );
+            const host = createHost({ enableBaselines: true }, CARD_PATH, [field('mnemonicIcon', 'card.svg')]);
+            const controller = new CardBaselinesController(host, offerOnly());
 
             controller.hostUpdate();
             await flush();
             controller.hostUpdate();
 
             expect(lastParent(host)).to.be.null;
+        });
+
+        it('drops the offer icon when the locale default card of a variation has an icon', async () => {
+            const host = createHost({ enableBaselines: true }, CARD_PATH);
+            host.effectiveIsVariation = true;
+            host.localeDefaultFragment = new Fragment({ fields: [field('mnemonicIcon', 'default.svg')] });
+            const controller = new CardBaselinesController(host, offerOnly());
+
+            controller.hostUpdate();
+            await flush();
+            controller.hostUpdate();
+
+            expect(lastParent(host)).to.be.null;
+        });
+
+        it('keeps the offer icon it provides itself across updates', async () => {
+            const host = createHost({ enableBaselines: true });
+            const controller = new CardBaselinesController(host, offerOnly());
+
+            controller.hostUpdate();
+            await flush();
+            controller.hostUpdate();
+            host.values.mnemonicIcon = 'offer.svg';
+            controller.hostUpdate();
+
+            expect(lastParent(host).getFieldValues('mnemonicIcon')).to.deep.equal(['offer.svg']);
         });
 
         it('does not rebuild the parent when nothing it depends on changed', async () => {

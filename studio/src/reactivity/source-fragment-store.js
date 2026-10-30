@@ -3,7 +3,7 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
-import { mergeParentFields } from '../aem/variation-utils.js';
+import { cachedInheritanceParent, mergeParentFields } from '../aem/variation-utils.js';
 
 export class SourceFragmentStore extends FragmentStore {
     /** @type {PreviewFragmentStore} */
@@ -14,6 +14,8 @@ export class SourceFragmentStore extends FragmentStore {
 
     /** @type {boolean} Flag to skip variation detection on next editor init (set after copy) */
     skipVariationDetection = false;
+
+    #inheritanceParent = cachedInheritanceParent();
 
     /**
      * @param {Fragment} sourceFragment - The raw fragment data (for editing)
@@ -36,11 +38,19 @@ export class SourceFragmentStore extends FragmentStore {
         }
     }
 
+    /**
+     * The fragment empty fields inherit from: the variation parent filled with the baselines, if any.
+     * @returns {Fragment | null}
+     */
+    get inheritanceParent() {
+        return this.#inheritanceParent(this.parentFragment, this.previewStore.baselineParent);
+    }
+
     updateField(name, value) {
-        const result = this.value.updateField(name, value, this.parentFragment);
+        const result = this.value.updateField(name, value, this.inheritanceParent);
         if (result) {
             this.notify();
-            this.previewStore.updateField(name, value);
+            this.previewStore.updateField(name, result === 'reset' ? value : this.value.getFieldValues(name));
         }
         return result;
     }

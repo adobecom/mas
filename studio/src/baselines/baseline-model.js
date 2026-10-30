@@ -9,11 +9,16 @@ import {
     TAG_MODEL_ID_MAPPING,
 } from '../constants.js';
 import Store from '../store.js';
+import { Fragment } from '../aem/fragment.js';
+import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import { loadOfferData } from '../common/utils/item-loading-browser.js';
 import { loadProjectList, mergePendingProjects, trackPendingProject } from '../common/utils/project-list-utils.js';
-import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
+import { DEFAULT_CONTEXT } from '../../libs/fragment-client.js';
+import { getDefaultLocaleCode } from '../../../io/www/src/fragment/locales.js';
+import { getOfferBaseline } from '../../../io/www/src/fragment/transformers/offer.js';
+import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 const DEFAULT_MARKET_SEGMENT = 'com';
 const MARKET_SEGMENTS_TAG_ROOT = '/content/cq:tags/mas/market_segments';
@@ -21,6 +26,26 @@ const PRODUCT_ARRANGEMENT_CODE_TAG_ROOT = '/content/cq:tags/mas/product_arrangem
 const LOADED_PATH_META = 'loadedPath';
 
 export const getBaselinesPath = ({ surface, locale }) => `${ROOT_PATH}/${surface}/${locale}/${BASELINES_FOLDER}`;
+
+const BASELINE_LAYERS = [
+    ['offerBaseline', 'offer'],
+    ['fragmentBaseline', 'template'],
+    ['fragmentSegmentBaseline', 'segment'],
+];
+
+const CARD_OWN_FIELDS = new Set([
+    'variant',
+    'osi',
+    'tags',
+    'pznTags',
+    'variations',
+    'enableBaselines',
+    'locReady',
+    'compatVersion',
+    'originalId',
+]);
+
+const OFFER_ICON_FIELDS = new Set(['mnemonicIcon', 'mnemonicAlt']);
 
 export const buildBaselineFolderPath = ({ surface, locale, template, productArrangementCode, marketSegment }) => {
     const folder = `${getBaselinesPath({ surface, locale })}/${template}/${productArrangementCode}`;
@@ -134,4 +159,61 @@ export async function createBaseline(repository, { title, osi, ...baseline }) {
         Store.baselines.list.data.set((list) => [store, ...list]);
     }
     return { folder, fragment };
+}
+
+const hasContent = (values = []) => values.some((value) => value !== '' && value !== null && value !== undefined);
+
+const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
+    ...offerBaseline,
+    fields: Object.entries(fields).map(([name, value]) => ({
+        name,
+        multiple: Array.isArray(value),
+        values: Array.isArray(value) ? value : [value],
+    })),
+});
+
+/**
+ * Baselines a card would inherit from (ADR CONT-0005), looked up like the `offer` transformer does: in the default locale
+ * of the card locale, for the PA code & market segment of its offer and its template. `null` without offer, template or
+ * PA code; each missing baseline is `null`.
+ */
+export async function findCardBaselines(fragmentsApi, { surface, locale, osi, template }) {
+    const defaultLocale = getDefaultLocaleCode(surface, locale);
+    if (!osi || !template || !defaultLocale) return null;
+    const { productArrangementCode, marketSegment } = await resolveBaselineOffer(osi, {});
+    if (!productArrangementCode) return null;
+    const folder = { surface, locale: defaultLocale, template, productArrangementCode };
+    const templatePath = `${buildBaselineFolderPath(folder)}/${BASELINE_NAME}`;
+    const segmentPath = `${buildBaselineFolderPath({ ...folder, marketSegment })}/${BASELINE_NAME}`;
+    const [offerBaseline, fragmentBaseline, fragmentSegmentBaseline] = await Promise.all([
+        getOfferBaseline({ ...DEFAULT_CONTEXT, defaultLocale }, productArrangementCode),
+        getFragmentByPathOrNull(fragmentsApi, templatePath),
+        segmentPath === templatePath ? null : getFragmentByPathOrNull(fragmentsApi, segmentPath),
+    ]);
+    return { offerBaseline: offerBaseline ? toAuthorFragment(offerBaseline) : null, fragmentBaseline, fragmentSegmentBaseline };
+}
+
+/**
+ * Merges a card's baselines into one parent fragment, with the same layering as `applyBaselines` in the `customize`
+ * transformer: offer < template < segment, field by field; empty values inherit, the explicit_empty sentinel clears; the
+ * offer icon & its alt text are dropped when a higher baseline or the card has its own icon. Card identity & system
+ * fields never come from a baseline. `null` when no baseline provides any field.
+ * @returns {{ fragment: Fragment, sources: Record<string, 'offer' | 'template' | 'segment'> } | null}
+ */
+export function buildBaselineParent(baselines, card) {
+    const hasOwnIcon = [baselines.fragmentBaseline, baselines.fragmentSegmentBaseline, card].some((layer) =>
+        hasContent(layer?.fields.find(({ name }) => name === 'mnemonicIcon')?.values),
+    );
+    const fields = new Map();
+    const sources = {};
+    for (const [key, source] of BASELINE_LAYERS) {
+        for (const field of baselines[key]?.fields ?? []) {
+            if (CARD_OWN_FIELDS.has(field.name) || !hasContent(field.values)) continue;
+            if (source === 'offer' && hasOwnIcon && OFFER_ICON_FIELDS.has(field.name)) continue;
+            fields.set(field.name, field);
+            sources[field.name] = source;
+        }
+    }
+    if (!fields.size) return null;
+    return { fragment: new Fragment({ fields: normalizeExplicitEmptyInFields([...fields.values()]), tags: [] }), sources };
 }

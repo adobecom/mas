@@ -52,6 +52,7 @@ import {
 } from './promotions/promotion-model.js';
 import { VARIATION_FILTER } from './fragments/variation-filter.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { loadBaselines } from './baselines/baseline-model.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 
 async function confirmReferenceDiagnosis(aem, roots) {
@@ -171,6 +172,7 @@ export class MasRepository extends LitElement {
             collections: null,
             bulkPublish: null,
             bulkEdit: null,
+            baselines: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -345,6 +347,15 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.bulkEdit?.abort();
                 this.#abortControllers.bulkEdit = new AbortController();
                 loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
+                break;
+            case PAGE_NAMES.BASELINES:
+                this.#abortControllers.baselines?.abort();
+                this.#abortControllers.baselines = new AbortController();
+                loadBaselines(
+                    this,
+                    { surface: this.search.value.path, locale: this.filters.value.locale },
+                    this.#abortControllers.baselines,
+                );
                 break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:

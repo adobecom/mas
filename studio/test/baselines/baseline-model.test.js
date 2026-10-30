@@ -5,9 +5,14 @@ import {
     buildBaselineTags,
     createBaseline,
     filterExistingTags,
+    getBaselineInfo,
+    getBaselinesPath,
+    loadBaselines,
     prepareBaselineFolder,
     resolveBaselineOffer,
 } from '../../src/baselines/baseline-model.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import Store from '../../src/store.js';
 import { COMPAT_VERSION, TAG_MERCH_CARD, TAG_MODEL_ID_MAPPING, BASELINE_NAME } from '../../src/constants.js';
 
 const FOLDER = '/content/dam/mas/sandbox/fr_FR/baselines/catalog/ccsn_direct_individual';
@@ -17,7 +22,6 @@ const baseline = {
     locale: 'fr_FR',
     template: 'catalog',
     productArrangementCode: 'ccsn_direct_individual',
-    name: BASELINE_NAME,
     productCode: 'CCSN',
 };
 
@@ -35,6 +39,13 @@ const createFragmentsApi = (getByPath) => ({
 });
 
 describe('baseline-model', () => {
+    afterEach(() => {
+        Store.baselines.list.data.set([]);
+        Store.baselines.list.data.removeMeta('pendingProjects');
+        Store.baselines.list.data.removeMeta('loadedPath');
+        Store.baselines.list.loading.set(true);
+    });
+
     it('builds the baseline folder path under <locale>/baselines/<template>/<PA code>', () => {
         expect(buildBaselineFolderPath(baseline)).to.equal(FOLDER);
     });
@@ -61,7 +72,7 @@ describe('baseline-model', () => {
         expect(await prepareBaselineFolder(fragmentsApi, baseline)).to.deep.equal({ folder: FOLDER, exists: false });
     });
 
-    it('reports an existing baseline with the same name', async () => {
+    it('reports an existing baseline in the PA code and segment folder', async () => {
         const getByPath = sinon.stub().resolves({ path: `${FOLDER}/${BASELINE_NAME}` });
         const fragmentsApi = createFragmentsApi(getByPath);
 
@@ -187,6 +198,14 @@ describe('baseline-model', () => {
             expect(repository.createFragment.called).to.be.false;
         });
 
+        it('adds the created baseline to the baselines list', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
+
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['baseline-id']);
+        });
+
         it('creates a tagged card in the baseline folder', async () => {
             const repository = createRepository(sinon.stub().rejects(notFoundError()));
 
@@ -203,6 +222,94 @@ describe('baseline-model', () => {
                     data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
                 }),
             ).to.be.true;
+        });
+    });
+
+    describe('getBaselinesPath', () => {
+        it('builds the baselines root of the surface and locale', () => {
+            expect(getBaselinesPath(baseline)).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+        });
+    });
+
+    describe('getBaselineInfo', () => {
+        const createFragment = (path, { variant = 'catalog', tags = [] } = {}) =>
+            new Fragment({ id: 'id', path, tags, fields: [{ name: 'variant', values: [variant] }] });
+
+        it('reads the template and PA code from the path and defaults the market segment to COM', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/baseline`))).to.deep.equal({
+                productCode: '',
+                productArrangementCode: 'ccsn_direct_individual',
+                marketSegment: 'COM',
+                template: 'catalog',
+            });
+        });
+
+        it('reads the market segment from the segment folder', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/edu/baseline`)).marketSegment).to.equal('EDU');
+        });
+
+        it('reads the product code from the product code tag', () => {
+            const fragment = createFragment(`${FOLDER}/baseline`, {
+                tags: [{ id: 'mas:market_segments/com' }, { id: 'mas:product_code/ccsn' }],
+            });
+
+            expect(getBaselineInfo(fragment).productCode).to.equal('CCSN');
+        });
+
+        it('prefers the variant field over the template folder', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/baseline`, { variant: 'plans' })).template).to.equal('plans');
+        });
+    });
+
+    describe('loadBaselines', () => {
+        it('does not search without a surface and clears the list', async () => {
+            const repository = { searchFragmentList: sinon.stub() };
+            Store.baselines.list.data.set([{ id: 'stale' }]);
+
+            expect(await loadBaselines(repository, { locale: 'fr_FR' })).to.be.false;
+            expect(repository.searchFragmentList.called).to.be.false;
+            expect(Store.baselines.list.data.get()).to.deep.equal([]);
+            expect(Store.baselines.list.loading.get()).to.be.false;
+        });
+
+        it('clears rows of the previous locale while the new one loads', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([{ id: 'a', path: `${FOLDER}/baseline`, fields: [] }]),
+            };
+            await loadBaselines(repository, baseline, new AbortController());
+
+            repository.searchFragmentList = sinon.stub().returns(new Promise(() => {}));
+            loadBaselines(repository, { ...baseline, locale: 'de_DE' }, new AbortController());
+
+            expect(Store.baselines.list.data.get()).to.deep.equal([]);
+            expect(Store.baselines.list.loading.get()).to.be.true;
+        });
+
+        it('keeps rows when reloading the same locale', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([{ id: 'a', path: `${FOLDER}/baseline`, fields: [] }]),
+            };
+            await loadBaselines(repository, baseline, new AbortController());
+
+            repository.searchFragmentList = sinon.stub().returns(new Promise(() => {}));
+            loadBaselines(repository, baseline, new AbortController());
+
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['a']);
+        });
+
+        it('loads only baseline fragments under the locale baselines folder', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([
+                    { id: 'a', path: `${FOLDER}/baseline`, fields: [] },
+                    { id: 'b', path: `${FOLDER}/pzn/other`, fields: [] },
+                ]),
+            };
+
+            expect(await loadBaselines(repository, baseline, new AbortController())).to.be.true;
+
+            expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['a']);
+            expect(Store.baselines.list.loading.get()).to.be.false;
         });
     });
 });

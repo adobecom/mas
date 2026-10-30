@@ -111,6 +111,30 @@ describe('MasTopNav', () => {
         });
     });
 
+    describe('locale picker', () => {
+        it('is enabled on the baselines page', async () => {
+            Store.page.value = PAGE_NAMES.BASELINES;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isLocalePickerDisabled).to.be.false;
+            expect(el.querySelector('mas-locale-picker').hasAttribute('disabled')).to.be.false;
+        });
+
+        it('is disabled on the translations page', async () => {
+            Store.page.value = PAGE_NAMES.TRANSLATIONS;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isLocalePickerDisabled).to.be.true;
+        });
+
+        it('updates the locale filter when the locale changes on the baselines page', async () => {
+            Store.page.value = PAGE_NAMES.BASELINES;
+            const originalFilters = Store.filters.value;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.onLocaleChanged({ detail: { locale: 'fr_FR' } });
+            expect(Store.filters.value.locale).to.equal('fr_FR');
+            Store.filters.value = originalFilters;
+        });
+    });
+
     describe('isBulkEditEditorPage getter', () => {
         it('should return true when on bulk edit editor page', async () => {
             Store.page.value = PAGE_NAMES.BULK_EDIT_EDITOR;

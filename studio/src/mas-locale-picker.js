@@ -375,6 +375,8 @@ export class MasLocalePicker extends LitElement {
                   size="m"
                   placeholder="${this.searchPlaceholder}"
                   @input=${this.handleSearchInput}
+                  @change=${(e) => e.stopPropagation()}
+                  @submit=${(e) => e.preventDefault()}
                   @click=${this.handleSearchFieldClick}
                   .value=${this.searchQuery}
               ></sp-search>`

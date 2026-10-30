@@ -2040,12 +2040,14 @@
                                 const label = row.querySelector('.baselines-header #fragment-baseline-inherits');
                                 expect(row.classList.contains('inheriting')).to.be.true;
                                 expect(row.querySelector('#fragment-baseline-status')).to.be.null;
-                                expect(label.tagName).to.equal('A');
+                                const link = label.querySelector('a');
+                                expect(label.tagName).to.equal('SPAN');
                                 expect(label.textContent.replace(/\s+/g, ' ').trim()).to.equal(
                                     'Inherits from Photoshop catalog',
                                 );
-                                expect(label.getAttribute('target')).to.equal('_blank');
-                                expect(new URLSearchParams(label.getAttribute('href').slice(1)).get('fragmentId')).to.equal(
+                                expect(link.textContent.trim()).to.equal('Photoshop catalog');
+                                expect(link.getAttribute('target')).to.equal('_blank');
+                                expect(new URLSearchParams(link.getAttribute('href').slice(1)).get('fragmentId')).to.equal(
                                     'baseline-id',
                                 );
                             });

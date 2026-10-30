@@ -1432,7 +1432,15 @@ class MerchCardEditor extends LitElement {
                     text-decoration: none;
                 }
 
-                a.baseline-inherits:hover {
+                .baseline-inherits-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: inherit;
+                    text-decoration: none;
+                }
+
+                .baseline-inherits-link:hover {
                     text-decoration: underline;
                 }
 
@@ -2271,14 +2279,13 @@ class MerchCardEditor extends LitElement {
                 >Inherits from <strong>${offerProductName}</strong></span
             >`;
         }
-        return html`<a
-            id="fragment-baseline-inherits"
-            class="baseline-inherits"
-            href=${buildEditorHref(baseline)}
-            target="_blank"
-            rel="noopener"
-            >Inherits from <strong>${baseline.title}</strong><sp-icon-open-in size="s"></sp-icon-open-in
-        ></a>`;
+        return html`<span id="fragment-baseline-inherits" class="baseline-inherits">
+            Inherits from
+            <a class="baseline-inherits-link" href=${buildEditorHref(baseline)} target="_blank" rel="noopener">
+                <strong>${baseline.title}</strong>
+                <sp-icon-open-in size="s"></sp-icon-open-in>
+            </a>
+        </span>`;
     }
 
     #whatsIncludedRowIsEmpty(value) {

@@ -101,7 +101,7 @@ class MasBulkEditEditor extends LitElement {
     get titleError() {
         const title = this.projectTitle.trim();
         if (!isValidBulkEditProjectTitle(title)) {
-            return 'Title must follow the format [project title]-MWPW-[Jira number], e.g. Spring sale-MWPW-123456.';
+            return 'Title must follow the format [project title]-MWPW|DOTCOM-[Jira number], e.g. Spring sale-DOTCOM-123456.';
         }
         if (isBulkEditProjectTitleTaken(title, this.project?.get().id)) return TITLE_TAKEN_MESSAGE;
         return null;
@@ -220,13 +220,13 @@ class MasBulkEditEditor extends LitElement {
                     <sp-field-label for="project-title">Project name</sp-field-label>
                     <sp-action-button quiet label="Project name format" data-testid="title-info">
                         <sp-icon-info slot="icon"></sp-icon-info>
-                        <sp-tooltip self-managed placement="top">Format: [project title]-MWPW-[Jira number]</sp-tooltip>
+                        <sp-tooltip self-managed placement="top">Format: [project title]-MWPW|DOTCOM-[Jira number]</sp-tooltip>
                     </sp-action-button>
                 </div>
                 <sp-textfield
                     id="project-title"
                     data-testid="title-input"
-                    placeholder="Project title-MWPW-123456"
+                    placeholder="Project title-DOTCOM-123456"
                     .value=${this.projectTitle}
                     ?disabled=${this.saving}
                     ?invalid=${this.hasChanges && !!this.titleError}

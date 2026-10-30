@@ -505,7 +505,7 @@ describe('mas-bulk-edit-editor', () => {
             await el.updateComplete;
             const help = el.shadowRoot.querySelector('[data-testid="title-error"]');
             expect(help.getAttribute('slot')).to.equal('negative-help-text');
-            expect(help.textContent).to.include('MWPW-[Jira number]');
+            expect(help.textContent).to.include('MWPW|DOTCOM-[Jira number]');
         });
 
         it('does not mark a pristine title field as invalid', async () => {

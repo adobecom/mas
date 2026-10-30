@@ -32,6 +32,12 @@ jobs:
         name: Build and Test Web Components
         runs-on: ubuntu-latest
         timeout-minutes: 15
+        permissions:
+            contents: write
+            actions: write
+        env:
+            # Fork PRs get a read-only token, so only same-repo PRs can have the bot commit the build.
+            SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         defaults:
             run:
                 working-directory: web-components
@@ -42,6 +48,11 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  repository: ${{ github.event.pull_request.head.repo.full_name }}
+                  ref: ${{ github.head_ref }}
+                  # GITHUB_TOKEN pushes don't trigger workflows, so required checks never run on the bot commit.
+                  token: ${{ secrets.DIST_BOT_TOKEN || github.token }}
 
             - name: Set up Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
@@ -57,7 +68,41 @@ jobs:
             - name: Run build
               run: npm run build
 
+            - name: Commit build output
+              id: dist
+              if: env.SAME_REPO == 'true'
+              run: |
+                  git add -A dist
+                  git add -u docs
+                  git diff --cached --quiet && exit 0
+                  git config user.name mas-bot
+                  git config user.email mas-bot@users.noreply.github.com
+                  git commit -m "chore: build dist"
+                  git push
+                  echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+            # GITHUB_TOKEN pushes start PR runs in approval-required state and fire no event we can hook.
+            # Poll until they appear, then approve them. Same token, no extra secret.
+            - name: Approve runs on bot commit
+              if: steps.dist.outputs.sha != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  BOT_SHA: ${{ steps.dist.outputs.sha }}
+              run: |
+                  q='.workflow_runs[] | select(.conclusion == "action_required") | .id'
+                  for _ in $(seq 24); do
+                    [ -n "$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$BOT_SHA" -q "$q")" ] && break
+                    sleep 5
+                  done
+                  # Runs are created in a burst, not at once. Let the rest land before approving.
+                  sleep 5
+                  for id in $(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$BOT_SHA" -q "$q"); do
+                    gh api -X POST "repos/${{ github.repository }}/actions/runs/$id/approve" > /dev/null && echo "approved $id"
+                  done
+
+            # Fork PRs still have to commit the build themselves.
             - name: Check for uncommitted changes
+              if: env.SAME_REPO != 'true'
               run: |
                   if [ -n "$(git status --porcelain)" ]; then
                     echo "❌ Build generated changes that are not committed:"

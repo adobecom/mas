@@ -510,28 +510,104 @@ describe('processCTAs', async () => {
         expect([...buyNowBtn.classList].includes('blue')).to.be.false;
     });
 
-    it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour non-buy-now CTA exists', async () => {
+    const trialPlus = (analyticsId, text, trialOsiAttr = true) =>
+        `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp"${trialOsiAttr ? ' data-replaced-osi="original-abm"' : ''} data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm"${analyticsId ? ` data-analytics-id="${analyticsId}"` : ''} class="accent">${text}</a></p>`;
+
+    const expectQualifyingOnly = (analyticsId, text) => {
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(1);
+        const button = footer.querySelector('button');
+        expect(button.getAttribute('data-analytics-id')).to.equal(analyticsId);
+        expect(button.textContent).to.equal(text);
+        expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
+            .exist;
+        expect([...button.classList].includes('blue')).to.be.false;
+    };
+
+    it('removes Free trial and adds no Buy now when a select CTA is nearby', async () => {
+        const fields = { ctas: trialPlus('select', 'Select') };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        expectQualifyingOnly('select', 'Select');
+    });
+
+    it('removes Free trial and adds no Buy now when a see-all-plans-and-pricing CTA is nearby', async () => {
         const fields = {
-            ctas: `<p><a href="#" data-wcs-osi="abm" daa-ll="free-trial-cta-1" aria-label="Authored text" data-modal="twp" data-replaced-osi="original-abm" data-analytics-id="free-trial" class="primary-outline">Free trial</a><a href="#" data-wcs-osi="abm" data-analytics-id="select" class="accent">Select</a></p>`,
-            description: `Another CTA <a data-wcs-osi="abm" class="primary-link">Link Style</a><a data-wcs-osi="abm" class="secondary-link">Link Style</a>`,
+            ctas: trialPlus(
+                'see-all-plans-and-pricing',
+                'See all plans & pricing',
+            ),
         };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        expectQualifyingOnly(
+            'see-all-plans-and-pricing',
+            'See all plans & pricing',
+        );
+    });
+
+    it('processCTAs applies the select and see-all-plans rules to merch card CTAs', async () => {
+        for (const [id, text] of [
+            ['select', 'Select'],
+            ['see-all-plans-and-pricing', 'See all plans & pricing'],
+        ]) {
+            const card = mockMerchCard();
+            card.consonant = true;
+            card.priceLiterals = { buyNow: 'Buy now' };
+            await processCTAs(
+                { ctas: trialPlus(id, text) },
+                card,
+                aemFragmentMapping,
+                undefined,
+                { hideTrialCTAs: true },
+            );
+            const footer = getFooterElement(card);
+            expect(footer.children).to.have.lengthOf(1);
+            expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
+                .exist;
+            expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to
+                .exist;
+            card.remove();
+        }
+    });
+
+    it('Free trial next to Learn more still becomes Buy now', async () => {
+        const fields = { ctas: trialPlus('learn-more', 'Learn more') };
         await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
             hideTrialCTAs: true,
         });
         const footer = getFooterElement(merchCard);
         expect(footer.children).to.have.lengthOf(2);
+        const button = footer.querySelectorAll('button')[0];
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button.textContent).to.equal('Buy now');
+    });
+
+    it('leaves Free trial and Select untouched when the swap setting is off', async () => {
+        const fields = { ctas: trialPlus('select', 'Select') };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: false,
+        });
+        const footer = getFooterElement(merchCard);
+        expect(footer.children).to.have.lengthOf(2);
         const buttons = footer.querySelectorAll('button');
-        const button1 = buttons[0];
-        expect(button1.getAttribute('data-analytics-id')).to.equal('buy-now');
-        expect(button1.getAttribute('daa-ll')).to.equal('buy-now-cta-1');
-        expect(button1.getAttribute('data-modal')).to.equal('crm');
-        expect(button1.getAttribute('aria-label')).to.equal(null);
-        expect([...button1.classList].includes('blue')).to.be.true;
-        expect(button1.textContent).to.equal('Buy now');
-        const button2 = buttons[1];
-        expect(button2.getAttribute('data-analytics-id')).to.equal('select');
-        expect(button2.textContent).to.equal('Select');
-        expect([...button2.classList].includes('blue')).to.be.false;
+        expect(buttons[0].getAttribute('data-analytics-id')).to.equal(
+            'free-trial',
+        );
+        expect(buttons[1].getAttribute('data-analytics-id')).to.equal('select');
+    });
+
+    it('treats a Select-labelled CTA without data-analytics-id=select as a regular CTA', async () => {
+        const fields = { ctas: trialPlus(null, 'Select') };
+        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
+            hideTrialCTAs: true,
+        });
+        const footer = getFooterElement(merchCard);
+        const button = footer.querySelectorAll('button, a')[0];
+        expect(button.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(button.textContent).to.equal('Buy now');
     });
 
     it('should replace free-trial CTA with buy-now when hideTrialCTAs is true when neighbour plain link exists', async () => {

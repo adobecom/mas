@@ -61,10 +61,20 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
+// CTAs that lead to purchase; keep identical to the list in hydrate.js.
+const QUALIFYING_CTA_SELECTOR = [
+    'buy-now',
+    'select',
+    'see-all-plans-and-pricing',
+]
+    .map((id) => `a[data-analytics-id="${id}"]`)
+    .join(',');
+
 export async function stripTrialCtas(template, indexed, self) {
     let buyNowCta = template.content.querySelector(
         'a[data-analytics-id="buy-now"]',
     );
+    let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
@@ -107,6 +117,7 @@ export async function stripTrialCtas(template, indexed, self) {
                     buyNowCta ??= c.querySelector(
                         'a[data-analytics-id="buy-now"]',
                     );
+                    qualifyingCta ??= c.querySelector(QUALIFYING_CTA_SELECTOR);
                 }
             });
         }
@@ -116,7 +127,7 @@ export async function stripTrialCtas(template, indexed, self) {
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
             const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
-            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
+            if (qualifyingCta || !buyNowText || buyNowText === 'buy-now') {
                 anchor.remove();
             } else {
                 if (anchor.hasAttribute('aria-label'))

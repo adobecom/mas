@@ -2202,6 +2202,22 @@ describe('mas-field – hideTrialCTAs setting', () => {
         expect(anchorsOf(el)).to.have.lengthOf(4);
     });
 
+    it('stripTrialCtas leaves Free trial and Select untouched when the swap setting is off', () => {
+        const el = makeField(
+            'ctas',
+            '<a is="checkout-link" class="primary-outline" href="" data-wcs-osi="osi2" data-replaced-osi="osi0" data-analytics-id="free-trial">Free trial</a>' +
+                '<a is="checkout-link" class="accent" href="" data-wcs-osi="osi1" data-analytics-id="select">Select</a>',
+            { hideTrialCTAs: false },
+        );
+        const anchors = [
+            ...el.querySelectorAll('[data-role="mas-field-content"] a'),
+        ];
+        expect(anchors.map((a) => a.dataset.analyticsId)).to.deep.equal([
+            'free-trial',
+            'select',
+        ]);
+    });
+
     it('keeps every CTA when the setting is absent', () => {
         const el = makeField('ctas', TRIAL_CTAS, undefined);
         expect(anchorsOf(el)).to.have.lengthOf(4);
@@ -2521,7 +2537,73 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
     });
 
-    it('replace free-trial CTA with buy-now CTA with stripTrialCtas when other mas-fields are next to it', async () => {
+    const SELECT_CTA_HTML =
+        '<a data-wcs-osi="ABC123" data-analytics-id="select" class="accent">Select</a>';
+    const SEE_ALL_PLANS_CTA_HTML =
+        '<a data-wcs-osi="ABC123" data-analytics-id="see-all-plans-and-pricing" class="accent">See all plans &amp; pricing</a>';
+    const LEARN_MORE_CTA_HTML =
+        '<a data-wcs-osi="ABC123" data-analytics-id="learn-more" class="accent">Learn more</a>';
+
+    it('stripTrialCtas removes Free trial when the select CTA is outside the template', async () => {
+        const html = `<div><p><mas-field field="ctas[77]"><span data-role="mas-field-content">${CTA_TRIAL_HTML}</span></mas-field></p></div>`;
+        const template = document.createElement('template');
+        template.innerHTML = html;
+
+        const el1 = makeIndexedField(1, SELECT_CTA_HTML);
+        const el2 = makeIndexedField(2, SELECT_CTA_HTML);
+
+        const div = document.createElement('div');
+        div.appendChild(el1);
+        div.appendChild(el2);
+        document.body.append(div);
+
+        const resultHtml = await stripTrialCtas(template, true, el2);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const ctas = doc.querySelectorAll('mas-field[field="ctas[77]"] a');
+        expect(ctas.length).to.equal(0);
+    });
+
+    [
+        ['select', SELECT_CTA_HTML],
+        ['see-all-plans-and-pricing', SEE_ALL_PLANS_CTA_HTML],
+    ].forEach(([analyticsId, ctaHtml]) => {
+        it(`stripTrialCtas removes Free trial next to data-analytics-id=${analyticsId}`, async () => {
+            const template = document.createElement('template');
+            template.innerHTML = CTA_TRIAL_HTML + ctaHtml;
+            const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+            const resultHtml = await stripTrialCtas(template, false, el);
+            const doc = new DOMParser().parseFromString(
+                resultHtml,
+                'text/html',
+            );
+            expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not
+                .exist;
+            expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not
+                .exist;
+            const qualifying = doc.querySelector(
+                `[data-analytics-id="${analyticsId}"]`,
+            );
+            expect(qualifying).to.exist;
+            expect(qualifying.classList.contains('blue')).to.be.false;
+            expect(qualifying.classList.contains('con-button')).to.be.false;
+        });
+    });
+
+    it('Free trial next to Learn more still becomes Buy now', async () => {
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML + LEARN_MORE_CTA_HTML;
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
+
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
+        expect(trialEl).to.exist;
+        expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(trialEl.textContent).to.equal('Buy now');
+    });
+
+    it('stripTrialCtas removes Free trial when the select CTA is in a neighbouring mas-field', async () => {
         const template = document.createElement('template');
         template.innerHTML = CTA_TRIAL_HTML;
 
@@ -2542,9 +2624,8 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
 
         const resultHtml = await stripTrialCtas(template, true, el);
         const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
-        const trialEl = doc.querySelector('[data-test-id="my-trial-cta"]');
-        expect(trialEl).to.exist;
-        expect(trialEl.getAttribute('data-analytics-id')).to.equal('buy-now');
+        expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not.exist;
+        expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not.exist;
     });
 
     it('replace free-trial CTA with buy-now CTA with stripTrialCtas when mas-field with buy now is next to it', async () => {

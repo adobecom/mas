@@ -71,9 +71,6 @@ const QUALIFYING_CTA_SELECTOR = [
     .join(',');
 
 export async function stripTrialCtas(template, indexed, self) {
-    let buyNowCta = template.content.querySelector(
-        'a[data-analytics-id="buy-now"]',
-    );
     let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
@@ -81,7 +78,7 @@ export async function stripTrialCtas(template, indexed, self) {
     );
     if (trials.length === 0) return template.innerHTML;
 
-    if (indexed && !buyNowCta) {
+    if (indexed && !qualifyingCta) {
         // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
         const thisField = self.getAttribute('field');
 
@@ -114,9 +111,6 @@ export async function stripTrialCtas(template, indexed, self) {
         if (fieldsReady.some((c) => c === true)) {
             masFields.forEach((c) => {
                 if (c.getAttribute('field') !== thisField) {
-                    buyNowCta ??= c.querySelector(
-                        'a[data-analytics-id="buy-now"]',
-                    );
                     qualifyingCta ??= c.querySelector(QUALIFYING_CTA_SELECTOR);
                 }
             });
@@ -144,8 +138,8 @@ export async function stripTrialCtas(template, indexed, self) {
     });
 
     const buyNowCtaNew =
-        template.content.querySelector('a[data-analytics-id="buy-now"]') ||
-        buyNowCta;
+        template.content.querySelector(QUALIFYING_CTA_SELECTOR) ||
+        qualifyingCta;
     if (buyNowCtaNew && trialCtaSwapped) {
         if (buyNowCtaNew.className.trim()) {
             buyNowCtaNew.className

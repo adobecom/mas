@@ -2585,8 +2585,8 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
                 `[data-analytics-id="${analyticsId}"]`,
             );
             expect(qualifying).to.exist;
-            expect(qualifying.classList.contains('blue')).to.be.false;
-            expect(qualifying.classList.contains('con-button')).to.be.false;
+            expect(qualifying.classList.contains('blue')).to.be.true;
+            expect(qualifying.classList.contains('con-button')).to.be.true;
         });
     });
 

@@ -1128,8 +1128,8 @@ export async function processCTAs(
                 });
                 const buyNowCta = ctas.find((c) => {
                     const checkout = getCtaSource(c);
-                    return (
-                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    return QUALIFYING_CTA_ANALYTICS_IDS.has(
+                        checkout.dataset.analyticsId,
                     );
                 });
                 if (!hasBlueCta && buyNowCta) {

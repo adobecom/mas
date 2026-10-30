@@ -521,7 +521,7 @@ describe('processCTAs', async () => {
         expect(button.textContent).to.equal(text);
         expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
             .exist;
-        expect([...button.classList].includes('blue')).to.be.false;
+        expect([...button.classList].includes('blue')).to.be.true;
     };
 
     it('removes Free trial and adds no Buy now when a select CTA is nearby', async () => {

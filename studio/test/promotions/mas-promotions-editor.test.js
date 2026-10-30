@@ -4,7 +4,10 @@ import sinon from 'sinon';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import MasPromotionsEditor from '../../src/promotions/mas-promotions-editor.js';
+import MasPromotionsEditor, {
+    PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS,
+    PROMOTION_ITEM_GROUPED_VARIATION_CELLS,
+} from '../../src/promotions/mas-promotions-editor.js';
 import { Promotion } from '../../src/aem/promotion.js';
 import {
     CARD_MODEL_PATH,
@@ -73,6 +76,36 @@ function isPromotionQuickActionDisabled(el, title) {
     const button = [...quickActions.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.title === title);
     return button.disabled === true || button.hasAttribute('disabled');
 }
+
+describe('promotion item grouped variation table config', () => {
+    const columnKeys = PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.map(({ key }) => key);
+
+    it('puts the select column first since the row renders its checkbox before the cells', () => {
+        expect(columnKeys[0]).to.equal('select');
+    });
+
+    it('has exactly one cell per column after the select column', () => {
+        expect(PROMOTION_ITEM_GROUPED_VARIATION_COLUMNS.length - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.length);
+    });
+
+    it('places promoCode at the same position as PromoCodeValue', () => {
+        expect(columnKeys.indexOf('promoCode') - 1).to.equal(PROMOTION_ITEM_GROUPED_VARIATION_CELLS.indexOf('PromoCodeValue'));
+    });
+
+    it('pairs every column key with its matching cell renderer', () => {
+        const pairs = columnKeys.slice(1).map((key, index) => [key, PROMOTION_ITEM_GROUPED_VARIATION_CELLS[index]]);
+        expect(pairs).to.deep.equal([
+            ['offer', 'OfferName'],
+            ['fragmentTitle', 'Title'],
+            ['path', 'StudioPath'],
+            ['pznTags', 'PersonalizationTags'],
+            ['promoCode', 'PromoCodeValue'],
+            ['offerId', 'OfferId'],
+            ['osi', 'Osi'],
+            ['status', 'Status'],
+        ]);
+    });
+});
 
 describe('MasPromotionsEditor', () => {
     let sandbox;

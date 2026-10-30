@@ -48,6 +48,8 @@ class MasItemsSelector extends LitElement {
         variationTabs: { type: Array },
         variationColumns: { type: Array, attribute: false },
         variationCells: { type: Array, attribute: false },
+        groupedVariationColumns: { type: Array, attribute: false },
+        groupedVariationCells: { type: Array, attribute: false },
         hideVariationExpand: { type: Boolean, attribute: false },
         /** @type {(fragmentData: object) => string} */
         getDisplayName: { type: Function },
@@ -98,6 +100,8 @@ class MasItemsSelector extends LitElement {
         this.renderData = null;
         this.variationColumns = null;
         this.variationCells = null;
+        this.groupedVariationColumns = null;
+        this.groupedVariationCells = null;
         this.hideVariationExpand = false;
     }
 
@@ -513,6 +517,8 @@ class MasItemsSelector extends LitElement {
                 .hideGroupedVariations=${this.hideGroupedVariations}
                 .variationColumns=${this.variationColumns}
                 .variationCells=${this.variationCells}
+                .groupedVariationColumns=${this.groupedVariationColumns}
+                .groupedVariationCells=${this.groupedVariationCells}
                 .hideVariationExpand=${this.hideVariationExpand}
                 @show-toast=${this.#showToast}
             ></mas-select-items-table>

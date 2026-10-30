@@ -45,6 +45,8 @@ class MasSelectItemsTable extends LitElement {
         cellsOverride: { type: Array },
         variationCells: { type: Array },
         variationColumns: { type: Array },
+        groupedVariationCells: { type: Array },
+        groupedVariationColumns: { type: Array },
         hideVariationExpand: { type: Boolean },
         openVariationOnActivate: { type: Boolean },
         sortBy: { type: String },
@@ -93,6 +95,8 @@ class MasSelectItemsTable extends LitElement {
         this.cellsOverride = null;
         this.variationCells = null;
         this.variationColumns = null;
+        this.groupedVariationCells = null;
+        this.groupedVariationColumns = null;
         this.hideVariationExpand = false;
         this.openVariationOnActivate = false;
         this.sortBy = null;
@@ -440,6 +444,8 @@ class MasSelectItemsTable extends LitElement {
                             .cellsOverride=${this.cellsOverride}
                             .variationCells=${this.variationCells}
                             .variationColumns=${this.variationColumns}
+                            .groupedVariationCells=${this.groupedVariationCells}
+                            .groupedVariationColumns=${this.groupedVariationColumns}
                             .hideVariationExpand=${this.hideVariationExpand}
                             .openVariationOnActivate=${this.openVariationOnActivate}
                         ></mas-collapsible-table-row>`,

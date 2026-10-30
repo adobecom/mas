@@ -19,6 +19,11 @@ export const tableHeaderBaseStyles = css`
     .item-table {
         --mod-table-header-background-color: var(--spectrum-gray-50);
         --mod-table-border-radius: 0;
+        --items-table-head-height: 44px;
+    }
+
+    .item-table sp-table-head {
+        height: var(--items-table-head-height);
     }
 
     .item-table sp-table-head-cell {
@@ -48,7 +53,7 @@ export const tableColumnIconStyles = css`
     }
 
     .table-icon-cell--chevron {
-        padding: 35px;
+        padding: 0 35px;
     }
 
     .table-icon-cell--checkbox {
@@ -175,6 +180,11 @@ export const tableCellBaseStyles = css`
         sp-tooltip {
             word-break: break-all;
         }
+    }
+
+    .table-cell--invisible {
+        background: transparent;
+        border: none;
     }
 `;
 

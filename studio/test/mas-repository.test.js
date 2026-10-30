@@ -1824,6 +1824,44 @@ describe('MasRepository dictionary helpers', () => {
                 }
             });
 
+            it('resolves top-level card for promo variation of a grouped variation UUID', async () => {
+                const repository = createFullRepository();
+                repository.page = { value: PAGE_NAMES.CONTENT };
+                const variationPath = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/photoshop/pzn/my-card`;
+                const groupedPath = `${ROOT_PATH}/acom/en_US/photoshop/pzn/my-card`;
+                const parentPath = `${ROOT_PATH}/acom/en_US/my-card`;
+                const variationFragment = createFragment({ id: variationUuid, path: variationPath, fields: [] });
+                const groupedFragment = createFragment({ id: 'grouped-id', path: groupedPath, fields: [] });
+                const parentFragment = createFragment({
+                    id: parentUuid,
+                    path: parentPath,
+                    fields: [{ name: 'variations', values: [groupedPath] }],
+                });
+                repository.search = { value: { path: 'acom', query: variationUuid } };
+                repository.filters = { value: { locale: 'en_US', tags: '' } };
+                const getByPathStub = sandbox.stub().resolves(groupedFragment);
+                repository.aem = createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().resolves(variationFragment),
+                        getByPath: getByPathStub,
+                        search: sandbox.stub(),
+                    },
+                });
+                const resolveParentStub = sandbox.stub(repository, 'resolveHydratedParentFragment').resolves(parentFragment);
+                const { Store, mockDataStore, restore } = await setupVariationUuidSearch();
+                try {
+                    await repository.searchFragments();
+                    expect(getByPathStub.firstCall.args[0]).to.equal(groupedPath);
+                    expect(resolveParentStub.calledOnceWith(groupedPath)).to.be.true;
+                    expect(mockDataStore.set.secondCall.args[0][0].get().id).to.equal(parentUuid);
+                    expect(Store.fragments.expandedId.get()).to.equal(parentUuid);
+                    expect(Store.fragments.highlightedVariationId.get()).to.equal(variationUuid);
+                    expect(Store.fragments.variationSearchTab.get()).to.equal('promotion');
+                } finally {
+                    restore();
+                }
+            });
+
             it('fetches promo variation parent with references=direct-hydrated so Promotions tab is populated', async () => {
                 const repository = createFullRepository();
                 repository.page = { value: PAGE_NAMES.CONTENT };

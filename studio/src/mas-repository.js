@@ -2273,7 +2273,9 @@ export class MasRepository extends LitElement {
                 const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
                     references: 'direct-hydrated',
                 });
-                if (fragment) return fragment;
+                if (!fragment) continue;
+                if (!Fragment.isGroupedVariationPath(fragment.path)) return fragment;
+                return await this.resolveHydratedParentFragment(fragment.path);
             }
             return null;
         }

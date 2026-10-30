@@ -558,8 +558,7 @@
 
                         // Simulate add visual - this adds an empty field and opens modal
                         const multifield = editor.querySelector('mas-multifield#mnemonics');
-                        multifield.addField();
-                        await delay(100);
+                        await multifield.addField();
                         await editor.updateComplete;
 
                         // Simulate cancel (delete the empty field that was just added)

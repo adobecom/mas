@@ -379,6 +379,7 @@
         "filtersCategory": "coll-filters-category-text",
         "filtersApplied": "coll-filters-applied-text",
         "filtersResults": "coll-filters-results-text",
-        "filtersReset": "coll-filters-reset-text"
+        "filtersReset": "coll-filters-reset-text",
+        "filterPillLabel": "coll-filter-pill-label"
     }
 }

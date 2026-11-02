@@ -19,7 +19,7 @@ describe('merch-card-editor custom field saved state', () => {
                 path: '/content/dam/mas/sandbox/en_US/parent',
                 fields: parentFields,
             });
-            Object.defineProperty(editor, 'effectiveIsVariation', { value: true });
+            editor.isVariation = true;
         }
         return editor;
     }
@@ -51,6 +51,13 @@ describe('merch-card-editor custom field saved state', () => {
     it('flags fields a variation inherits from its parent', () => {
         const editor = makeEditor(customFields([], []), customFields(['<p>a</p>'], ['A']));
         expect(editor.customFieldValues[0].saved).to.be.true;
+    });
+
+    it('does not flag a new field when saved labels contain duplicates', () => {
+        const editor = makeEditor(customFields(['<p>a</p>', '<p>b</p>'], ['A', 'A']));
+        editor.fragmentStore.updateField('customFields', ['<p>a</p>', '<p>b</p>', '']);
+        editor.fragmentStore.updateField('customFieldLabels', ['A', 'A', 'New']);
+        expect(editor.customFieldValues[2].saved).to.be.undefined;
     });
 
     it('does not flag a blank saved row', () => {

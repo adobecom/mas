@@ -4,7 +4,6 @@ import { fixture } from '@open-wc/testing-helpers/pure';
 
 import '../../src/swc.js';
 import '../../src/fields/rte-field-item.js';
-import '../../src/mas-confirm-dialog.js';
 import '../../../web-components/src/mas-commerce-service.js';
 import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
 import { withWcs } from '../../../web-components/test/mocks/wcs.js';

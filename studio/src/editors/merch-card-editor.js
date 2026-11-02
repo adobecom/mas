@@ -2352,9 +2352,9 @@ class MerchCardEditor extends LitElement {
         const values = this.getEffectiveFieldValues('customFields') || [];
         const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
         const count = Math.max(values.length, labels.length);
-        const savedLabels = this.savedCustomFieldLabels;
+        const savedLabels = this.#savedCustomFieldLabels;
         const namedLabels = new Set(savedLabels.filter(Boolean));
-        let unnamedCount = savedLabels.length - namedLabels.size;
+        let unnamedCount = savedLabels.filter((label) => !label).length;
         return Array.from({ length: count }, (_, i) => {
             const item = {};
             if (values[i]) item.value = values[i];
@@ -2364,14 +2364,14 @@ class MerchCardEditor extends LitElement {
         });
     }
 
-    get savedCustomFieldLabels() {
+    get #savedCustomFieldLabels() {
         const saved = new Fragment(this.fragment.initialValue);
         const read = (name) => saved.getEffectiveFieldValues(name, this.localeDefaultFragment, this.effectiveIsVariation);
         const values = read('customFields');
         const labels = read('customFieldLabels');
-        return Array.from({ length: Math.max(values.length, labels.length) }, (_, i) => labels[i] || '').filter(
-            (label, i) => label || values[i],
-        );
+        return [...Array(Math.max(values.length, labels.length)).keys()]
+            .filter((i) => labels[i] || values[i])
+            .map((i) => labels[i] || '');
     }
 
     get footerRows() {

@@ -95,7 +95,10 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     if (!toPublish.length) return skipped;
     const indexDetails = [...skipped];
     for (const chunk of groupAndChunk(toPublish, MAX_CHUNK_SIZE)) {
-        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { filterReferencesByStatus: [] });
+        const results = await publishOneChunk(chunk, odinEndpoint, authToken, logger, {
+            filterReferencesByStatus: [],
+            replicate: true,
+        });
         indexDetails.push(...results);
     }
     return indexDetails;

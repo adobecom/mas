@@ -69,6 +69,7 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         ]);
         for (const call of publishChunkStub.getCalls()) {
             expect(call.args[0].filterReferencesByStatus).to.deep.equal([]);
+            expect(call.args[0].replicate).to.be.true;
         }
     });
 

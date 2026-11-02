@@ -1666,7 +1666,7 @@ export class MasRepository extends LitElement {
     async publishFragment(fragment, options = {}, withToast = true) {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
-        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false, replicate = false } = options;
         try {
             const roots = [
                 fragment,
@@ -1676,7 +1676,9 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
-            if (allSelected) {
+            if (replicate) {
+                await this.aem.replicateFragment(fragment);
+            } else if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);

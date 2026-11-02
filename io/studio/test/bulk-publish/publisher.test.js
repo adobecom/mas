@@ -79,6 +79,79 @@ describe('bulk-publish/publisher.js', () => {
         expect(body.filterReferencesByStatus).to.deep.equal([]);
     });
 
+    it('activates index paths directly with CSRF protection instead of starting a workflow', async () => {
+        const indexes = ['/content/dam/mas/acom/en_US/dictionary/index', '/content/dam/mas/acom/fr_FR/dictionary/index'];
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+            json: async () => ({ token: 'csrf-token' }),
+        });
+        fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken).resolves({ status: 200 });
+
+        const results = await publisher.publishChunk({ chunk: indexes, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(fetchOdinStub.callCount).to.equal(2);
+        const [, uri, , options] = fetchOdinStub.secondCall.args;
+        expect(uri).to.equal('/bin/replicate');
+        expect(options).to.include({
+            method: 'POST',
+            contentType: 'application/x-www-form-urlencoded',
+            csrfToken: 'csrf-token',
+        });
+        const form = new URLSearchParams(options.body);
+        expect(form.get('cmd')).to.equal('Activate');
+        expect(form.getAll('path')).to.deep.equal(indexes);
+        expect([...form.keys()]).to.deep.equal(['cmd', 'path', 'path']);
+        expect(results).to.deep.equal(indexes.map((path) => ({ path, status: 'published', retries: 0 })));
+    });
+
+    it('reports forbidden replication without falling back to the reference workflow', async () => {
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+            json: async () => ({ token: 'csrf-token' }),
+        });
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/bin/replicate', authToken)
+            .rejects(new Error('POST failed with status 403: Forbidden'));
+
+        const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(results.every((result) => result.status === 'failed' && result.reason.includes('403'))).to.be.true;
+        expect(fetchOdinStub.callCount).to.equal(2);
+        expect(logger.error.calledOnce).to.be.true;
+    });
+
+    it('does not activate indexes when the CSRF request fails', async () => {
+        fetchOdinStub.rejects(new Error('GET failed with status 401: Unauthorized'));
+
+        const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+        expect(results.every((result) => result.status === 'failed' && result.reason.includes('401'))).to.be.true;
+        expect(fetchOdinStub).to.have.been.calledOnce;
+        expect(fetchOdinStub.firstCall.args[1]).to.equal('/libs/granite/csrf/token.json');
+    });
+
+    it('retries transient replication failures with a fresh CSRF token', async () => {
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken)
+            .onFirstCall()
+            .resolves({ json: async () => ({ token: 'csrf-first' }) })
+            .onSecondCall()
+            .resolves({ json: async () => ({ token: 'csrf-second' }) });
+        fetchOdinStub
+            .withArgs(odinEndpoint, '/bin/replicate', authToken)
+            .onFirstCall()
+            .rejects(new Error('POST failed with status 503: Unavailable'))
+            .onSecondCall()
+            .resolves({ status: 200 });
+        const clock = sinon.useFakeTimers();
+
+        const publishing = publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        await clock.tickAsync(1000);
+        const results = await publishing;
+
+        expect(results.every((result) => result.status === 'published' && result.retries === 1)).to.be.true;
+        expect(fetchOdinStub.callCount).to.equal(4);
+        expect(fetchOdinStub.lastCall.args[3].csrfToken).to.equal('csrf-second');
+    });
+
     it('translates partial success — 2 published + 1 not-found', async () => {
         fetchOdinStub.resolves(
             odinResponse([

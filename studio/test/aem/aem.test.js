@@ -341,6 +341,57 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: replicateFragment', () => {
+        let originalFetch;
+        let originalGetCsrfToken;
+        const fragment = {
+            path: '/content/dam/mas/sandbox/de_DE/dictionary/index',
+            fields: [{ name: 'entries', values: ['/content/dam/mas/sandbox/de_DE/dictionary/missing'] }],
+        };
+
+        beforeEach(() => {
+            originalFetch = window.fetch;
+            originalGetCsrfToken = aem.getCsrfToken;
+            aem.getCsrfToken = async () => 'csrf-test';
+        });
+
+        afterEach(() => {
+            window.fetch = originalFetch;
+            aem.getCsrfToken = originalGetCsrfToken;
+        });
+
+        it('activates only the fragment path without submitting or modifying its references', async () => {
+            const calls = [];
+            const before = structuredClone(fragment);
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.replicateFragment(fragment);
+
+            expect(calls).to.have.lengthOf(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/bin/replicate`);
+            expect(calls[0].options.method).to.equal('POST');
+            expect(calls[0].options.headers['CSRF-Token']).to.equal('csrf-test');
+            expect(calls[0].options.headers.Authorization).to.equal(aem.headers.Authorization);
+            expect([...calls[0].options.body.entries()]).to.deep.equal([
+                ['cmd', 'Activate'],
+                ['path', fragment.path],
+            ]);
+            expect(fragment).to.deep.equal(before);
+        });
+
+        it('rejects failed activation responses instead of reporting success', async () => {
+            window.fetch = async () => ({ ok: false, status: 403, statusText: 'Forbidden' });
+
+            const error = await aem.replicateFragment(fragment).catch((err) => err);
+
+            expect(error).to.be.instanceOf(Error);
+            expect(error.message).to.equal('Failed to replicate fragment: 403 Forbidden');
+        });
+    });
+
     describe('method: createTag', () => {
         let originalGetCsrfToken;
 

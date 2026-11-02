@@ -19,9 +19,18 @@ async function publishChunk({
     logger,
     maxRetries = DEFAULT_MAX_RETRIES,
     filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
+    replicate = false,
 }) {
     try {
-        return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus });
+        return await doPublishChunk({
+            chunk,
+            odinEndpoint,
+            authToken,
+            logger,
+            maxRetries,
+            filterReferencesByStatus,
+            replicate,
+        });
     } catch (error) {
         const message = error.message || String(error);
         logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: chunk.length, error: message }));
@@ -29,12 +38,29 @@ async function publishChunk({
     }
 }
 
-async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus }) {
+async function replicateChunk({ chunk, odinEndpoint, authToken }) {
+    const response = await fetchOdin(odinEndpoint, '/libs/granite/csrf/token.json', authToken);
+    const { token } = await response.json();
+    await fetchOdin(odinEndpoint, '/bin/replicate', authToken, {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: new URLSearchParams([['cmd', 'Activate'], ...chunk.map((path) => ['path', path])]).toString(),
+        csrfToken: token,
+    });
+}
+
+async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus, replicate }) {
     logger.info(JSON.stringify({ event: 'publish-start', chunkSize: chunk.length }));
 
     let lastError = null;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+            if (replicate) {
+                await replicateChunk({ chunk, odinEndpoint, authToken });
+                const retries = attempt - 1;
+                logger.info(JSON.stringify({ event: 'replicate-success', chunkSize: chunk.length, retries }));
+                return chunk.map((path) => ({ path, status: 'published', retries }));
+            }
             const response = await fetchOdin(odinEndpoint, PUBLISH_URI, authToken, {
                 method: 'POST',
                 contentType: 'application/json',

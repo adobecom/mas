@@ -101,10 +101,9 @@ gates:
         timeout_s: 900
         blocking: true
         violation_exit_code: 3
-        # Applies to EVERY non-zero exit, not only 3: a target the check cannot
-        # reach (a Studio page behind IMS sign-in, an outage) also spends
-        # producer candidates, and a person decides once regeneration.max_candidates
-        # is spent. escalate_to_human instead is the MAS owners' call.
+        # Only the violation (3) asks for a new candidate. Any other failing
+        # exit means the check could not look (a Studio page behind IMS sign-in,
+        # an outage, no browser): the engine sends that to a person at once.
         failure_route: regenerate
 
     visual:

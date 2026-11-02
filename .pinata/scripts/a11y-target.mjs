@@ -22,7 +22,7 @@
  *   3  the rule reports a violation on the element (the gate's violation_exit_code);
  *   1  the target could not be checked: never a verdict (no matching element, the rule does not apply to it or
  *      needs review, the state was not reached, the page left the preview host, nothing on the page came from the
- *      checkout, no page, no browser).
+ *      checkout, no page, no browser, or the check did not finish within its deadline).
  */
 import { accessSync, constants, realpathSync } from 'node:fs';
 import { readFile, realpath, stat } from 'node:fs/promises';
@@ -40,6 +40,10 @@ const NAVIGATION_TIMEOUT_MS = 60_000;
 const SETTLE_MS = 15_000;
 const ANIMATION_MS = 5_000;
 const SHOWN = 5;
+// The whole check, page and axe included, well inside the gate's own timeout: a page that never settles (a script
+// that never yields, an evaluate that never returns) is "could not check", said by this script, never a kill.
+// A11Y_TARGET_DEADLINE_MS shortens it (the tests).
+const DEADLINE_MS = Number(process.env.A11Y_TARGET_DEADLINE_MS) > 0 ? Number(process.env.A11Y_TARGET_DEADLINE_MS) : 300_000;
 
 // A state that already holds is left alone; otherwise the element is the control that opens it, and only a click
 // that changed the page from not-in-the-state to in-the-state counts.
@@ -55,6 +59,18 @@ const REACHED = {
 };
 
 class Unchecked extends Error {}
+
+/** `promise`, or Unchecked once `ms` have passed without it settling. */
+function withDeadline(promise, ms) {
+    let timer;
+    const late = new Promise((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Unchecked(`the check did not finish within ${Math.round(ms / 1000)} s (the page never settled)`)),
+            ms,
+        );
+    });
+    return Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
 
 /** `href` as a URL on a MAS preview host, or Unchecked naming why not (never echoing a user name or password). */
 function previewUrl(href) {
@@ -320,7 +336,10 @@ async function main(file) {
     const root = await realpath(process.cwd());
     console.log(`Checking axe rule "${target.rule}" on ${JSON.stringify(target.element)} (state: ${target.state})`);
     console.log(`at ${target.page}`);
-    const { violations, incomplete, passes, entered, matched, served, version } = await check(target, root);
+    const { violations, incomplete, passes, entered, matched, served, version } = await withDeadline(
+        check(target, root),
+        DEADLINE_MS,
+    );
     console.log(
         `State ${target.state}: ${entered}. axe-core ${version}, ${matched} matching element(s), ` +
             `${served} file(s) served from the checkout: ` +
@@ -337,12 +356,14 @@ async function main(file) {
     return PASSED;
 }
 
-main(process.argv[2]).then(
-    (code) => {
-        process.exitCode = code;
-    },
-    (error) => {
-        console.log(`Could not check the target: ${error instanceof Unchecked ? error.message : error.stack}`);
-        process.exitCode = UNCHECKED;
-    },
-);
+/** Ends with `code`: at once when nothing is left running, else shortly after (a check abandoned at its deadline
+ *  can still hold a browser open, and nothing it could add is owed). */
+function finish(code) {
+    process.exitCode = code;
+    setTimeout(() => process.exit(code), 2_000).unref();
+}
+
+main(process.argv[2]).then(finish, (error) => {
+    console.log(`Could not check the target: ${error instanceof Unchecked ? error.message : error.stack}`);
+    finish(UNCHECKED);
+});

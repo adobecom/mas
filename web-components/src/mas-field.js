@@ -62,11 +62,7 @@ function escapeAttr(value) {
 }
 
 // CTAs that lead to purchase; keep identical to the list in hydrate.js.
-const QUALIFYING_CTA_SELECTOR = [
-    'buy-now',
-    'select',
-    'see-all-plans-and-pricing',
-]
+const QUALIFYING_CTA_SELECTOR = ['buy-now', 'select']
     .map((id) => `a[data-analytics-id="${id}"]`)
     .join(',');
 

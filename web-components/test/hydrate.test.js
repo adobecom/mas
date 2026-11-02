@@ -532,45 +532,25 @@ describe('processCTAs', async () => {
         expectQualifyingOnly('select', 'Select');
     });
 
-    it('removes Free trial and adds no Buy now when a see-all-plans-and-pricing CTA is nearby', async () => {
-        const fields = {
-            ctas: trialPlus(
-                'see-all-plans-and-pricing',
-                'See all plans & pricing',
-            ),
-        };
-        await processCTAs(fields, merchCard, aemFragmentMapping, undefined, {
-            hideTrialCTAs: true,
-        });
-        expectQualifyingOnly(
-            'see-all-plans-and-pricing',
-            'See all plans & pricing',
+    it('processCTAs applies the select rules to merch card CTAs', async () => {
+        const id = 'select';
+        const text = 'Select';
+        const card = mockMerchCard();
+        card.consonant = true;
+        card.priceLiterals = { buyNow: 'Buy now' };
+        await processCTAs(
+            { ctas: trialPlus(id, text) },
+            card,
+            aemFragmentMapping,
+            undefined,
+            { hideTrialCTAs: true },
         );
-    });
-
-    it('processCTAs applies the select and see-all-plans rules to merch card CTAs', async () => {
-        for (const [id, text] of [
-            ['select', 'Select'],
-            ['see-all-plans-and-pricing', 'See all plans & pricing'],
-        ]) {
-            const card = mockMerchCard();
-            card.consonant = true;
-            card.priceLiterals = { buyNow: 'Buy now' };
-            await processCTAs(
-                { ctas: trialPlus(id, text) },
-                card,
-                aemFragmentMapping,
-                undefined,
-                { hideTrialCTAs: true },
-            );
-            const footer = getFooterElement(card);
-            expect(footer.children).to.have.lengthOf(1);
-            expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
-                .exist;
-            expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to
-                .exist;
-            card.remove();
-        }
+        const footer = getFooterElement(card);
+        expect(footer.children).to.have.lengthOf(1);
+        expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
+            .exist;
+        expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to.exist;
+        card.remove();
     });
 
     it('Free trial next to Learn more still becomes Buy now', async () => {

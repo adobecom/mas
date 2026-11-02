@@ -29,11 +29,7 @@ export const ANALYTICS_TAG = 'mas:product_code/';
 export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 // CTAs that lead to purchase; keep identical to the list in mas-field.js.
-const QUALIFYING_CTA_ANALYTICS_IDS = new Set([
-    'buy-now',
-    'select',
-    'see-all-plans-and-pricing',
-]);
+const QUALIFYING_CTA_ANALYTICS_IDS = new Set(['buy-now', 'select']);
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 

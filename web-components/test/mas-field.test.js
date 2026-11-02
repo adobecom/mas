@@ -2539,8 +2539,6 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
 
     const SELECT_CTA_HTML =
         '<a data-wcs-osi="ABC123" data-analytics-id="select" class="accent">Select</a>';
-    const SEE_ALL_PLANS_CTA_HTML =
-        '<a data-wcs-osi="ABC123" data-analytics-id="see-all-plans-and-pricing" class="accent">See all plans &amp; pricing</a>';
     const LEARN_MORE_CTA_HTML =
         '<a data-wcs-osi="ABC123" data-analytics-id="learn-more" class="accent">Learn more</a>';
 
@@ -2563,31 +2561,23 @@ describe('mas-field – hidden attribute when render resolves to empty', () => {
         expect(ctas.length).to.equal(0);
     });
 
-    [
-        ['select', SELECT_CTA_HTML],
-        ['see-all-plans-and-pricing', SEE_ALL_PLANS_CTA_HTML],
-    ].forEach(([analyticsId, ctaHtml]) => {
-        it(`stripTrialCtas removes Free trial next to data-analytics-id=${analyticsId}`, async () => {
-            const template = document.createElement('template');
-            template.innerHTML = CTA_TRIAL_HTML + ctaHtml;
-            const el = makeIndexedField(1, CTA_TRIAL_HTML);
+    it('stripTrialCtas removes Free trial next to data-analytics-id=select', async () => {
+        const analyticsId = 'select';
+        const ctaHtml = SELECT_CTA_HTML;
+        const template = document.createElement('template');
+        template.innerHTML = CTA_TRIAL_HTML + ctaHtml;
+        const el = makeIndexedField(1, CTA_TRIAL_HTML);
 
-            const resultHtml = await stripTrialCtas(template, false, el);
-            const doc = new DOMParser().parseFromString(
-                resultHtml,
-                'text/html',
-            );
-            expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not
-                .exist;
-            expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not
-                .exist;
-            const qualifying = doc.querySelector(
-                `[data-analytics-id="${analyticsId}"]`,
-            );
-            expect(qualifying).to.exist;
-            expect(qualifying.classList.contains('blue')).to.be.true;
-            expect(qualifying.classList.contains('con-button')).to.be.true;
-        });
+        const resultHtml = await stripTrialCtas(template, false, el);
+        const doc = new DOMParser().parseFromString(resultHtml, 'text/html');
+        expect(doc.querySelector('[data-test-id="my-trial-cta"]')).to.not.exist;
+        expect(doc.querySelector('[data-analytics-id="buy-now"]')).to.not.exist;
+        const qualifying = doc.querySelector(
+            `[data-analytics-id="${analyticsId}"]`,
+        );
+        expect(qualifying).to.exist;
+        expect(qualifying.classList.contains('blue')).to.be.true;
+        expect(qualifying.classList.contains('con-button')).to.be.true;
     });
 
     it('Free trial next to Learn more still becomes Buy now', async () => {

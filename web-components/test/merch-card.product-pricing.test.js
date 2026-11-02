@@ -9,10 +9,51 @@ import '../src/mas.js';
 import '../src/merch-card-collection.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
+import { hydrate } from '../src/hydrate.js';
+
 let ProductPricing;
+let PRODUCT_PRICING_AEM_FRAGMENT_MAPPING;
 
 before(async () => {
-    ({ ProductPricing } = await import('../src/variants/product-pricing.js'));
+    ({ ProductPricing, PRODUCT_PRICING_AEM_FRAGMENT_MAPPING } = await import(
+        '../src/variants/product-pricing.js'
+    ));
+});
+
+describe('ProductPricing title heading level', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    it('maps the title to an h2 in heading-s', () => {
+        expect(PRODUCT_PRICING_AEM_FRAGMENT_MAPPING.title).to.deep.equal({
+            tag: 'h2',
+            slot: 'heading-s',
+        });
+    });
+
+    it('hydrates the title as an h2 in heading-s', async () => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        try {
+            await hydrate(
+                {
+                    id: 'pp-title',
+                    fields: {
+                        variant: 'product-pricing',
+                        cardTitle: 'Photoshop',
+                    },
+                },
+                card,
+            );
+            const title = card.querySelector('[slot="heading-s"]');
+            expect(title).to.exist;
+            expect(title.tagName).to.equal('H2');
+            expect(card.querySelector('h3[slot="heading-s"]')).to.be.null;
+            expect(title.textContent).to.equal('Photoshop');
+        } finally {
+            card.remove();
+        }
+    });
 });
 
 describe('ProductPricing.resyncOnReflow', () => {
@@ -487,7 +528,7 @@ describe('ProductPricing price row collapse', () => {
         const card = document.createElement('merch-card');
         card.setAttribute('variant', 'product-pricing');
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="body-xs">Copy</div>
             ${withPrice ? '<p slot="heading-xs">US$9.99/mo</p>' : ''}
             <div slot="footer"><a href="#">Buy</a></div>`;
@@ -541,7 +582,7 @@ describe('ProductPricing row alignment', () => {
         wrap.innerHTML = cardsHtml
             .map(
                 (inner) => `<merch-card variant="product-pricing">
-                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+                    <h2 slot="heading-s">Title</h2>${inner}</merch-card>`,
             )
             .join('');
         document.body.appendChild(wrap);
@@ -691,7 +732,7 @@ describe('ProductPricing CTAs', () => {
         card.setAttribute('variant', 'product-pricing');
         card.style.width = width;
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="footer">
                 ${links(labels)}
             </div>`;

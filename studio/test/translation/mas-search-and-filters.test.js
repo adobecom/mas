@@ -1478,6 +1478,7 @@ describe('MasSearchAndFilters', () => {
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
                 status: undefined,
+                variation: undefined,
             });
         });
 
@@ -1870,6 +1871,7 @@ describe('MasSearchAndFilters', () => {
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
                 status: undefined,
+                variation: undefined,
             });
         });
     });

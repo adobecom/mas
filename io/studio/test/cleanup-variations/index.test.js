@@ -142,9 +142,9 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.not.include('en_US');
         });
 
-        it('returns zh_TW + zh_HK for acom (HK is a region of TW)', () => {
+        it('returns zh_TW + zh_HK + zh_MO for acom', () => {
             const result = action.getValidVariationsLocales('acom', 'zh_TW');
-            expect(result).to.deep.equal(['zh_TW', 'zh_HK']);
+            expect(result).to.deep.equal(['zh_TW', 'zh_HK', 'zh_MO']);
         });
 
         it('returns just [localeCode] for an unknown surface', () => {
@@ -157,9 +157,10 @@ describe('cleanup-variations/index.js', () => {
             expect(result).to.deep.equal(['xx_XX']);
         });
 
-        it('acom-cc and acom-dc are mapped to ACOM locale set', () => {
-            expect(action.getValidVariationsLocales('acom-cc', 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
-            expect(action.getValidVariationsLocales('acom-dc', 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
+        it('ACOM sub-surfaces are mapped to the ACOM locale set', () => {
+            for (const surface of ['acom-cc', 'acom-dc', 'acom-edu']) {
+                expect(action.getValidVariationsLocales(surface, 'de_DE')).to.deep.equal(['de_DE', 'de_AT', 'de_CH', 'de_LU']);
+            }
         });
 
         it('ccd surface returns correct locales for fr_FR', () => {
@@ -510,9 +511,9 @@ describe('cleanup-variations/index.js', () => {
                     return match ? match[1] : null;
                 }),
             );
-            // all 9 surfaces in DEFAULT_LOCALES should appear at least once
-            expect(surfacesTouched.size).to.equal(9);
+            expect(surfacesTouched.size).to.equal(10);
             expect(surfacesTouched).to.include('acom');
+            expect(surfacesTouched).to.include('acom-edu');
             expect(surfacesTouched).to.include('ccd');
             expect(surfacesTouched).to.include('express');
             expect(surfacesTouched).to.include('adobe-home');

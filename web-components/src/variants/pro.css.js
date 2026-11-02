@@ -6,9 +6,10 @@ import {
 } from '../media.js';
 
 // Milo section grids (.one-merch-card ... .four-merch-cards) holding only pro
-// cards. Collections are excluded: they have their own rules below.
+// cards. Collections and the standalone edu card are excluded: they have their
+// own rules.
 const PRO_ONLY =
-    ':not(merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card:not([variant="pro"]), merch-card-collection))';
+    ':not(merch-card-collection):has(merch-card[variant="pro"]):not(:has(merch-card:not([variant="pro"]), merch-card[size="edu"], merch-card-collection))';
 const grid = (classes, suffix = '') =>
     classes.map((name) => `.${name}${PRO_ONLY}${suffix}`).join(',\n');
 const ONE_TO_FOUR = [

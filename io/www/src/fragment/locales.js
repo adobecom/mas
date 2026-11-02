@@ -549,7 +549,6 @@ const DEFAULT_LOCALES = {
     sandbox: ACOM,
     'brand-concierge': ACOM,
     genuine: ACOM,
-    'acom-edu': ACOM,
     dalp: ACOM,
     elements: ACOM,
     ccd: CCD,

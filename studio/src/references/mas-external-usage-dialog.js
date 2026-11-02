@@ -184,7 +184,6 @@ class MasExternalUsageDialog extends LitElement {
     }
 
     render() {
-        console.log('TEST_DIALOG');
         if (!this.open) return nothing;
         return html`
             <sp-overlay type="modal" open @sp-closed=${this.#handleOverlayClosed}>

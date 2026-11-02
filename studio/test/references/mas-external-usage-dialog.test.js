@@ -381,6 +381,7 @@ describe('mas-external-usage-dialog', () => {
     });
 
     it('resets the sort order each time it reopens', async () => {
+        console.log('TEST_START')
         const element = await openDialog();
         headerCell(element, 0).click();
         await element.updateComplete;
@@ -390,5 +391,6 @@ describe('mas-external-usage-dialog', () => {
         await element.updateComplete;
         expect(element.sortColumn).to.equal('requests');
         expect(element.sortDirection).to.equal('desc');
+        console.log('TEST_END')
     });
 });

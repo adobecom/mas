@@ -48,11 +48,14 @@ async function publishOneChunk({ locale, paths }, odinEndpoint, authToken, logge
 }
 
 async function publishResolved(resolved, odinEndpoint, authToken, logger) {
-    const chunks = groupAndChunk(resolved, MAX_CHUNK_SIZE);
+    const chunks = [false, true].flatMap((replicate) => {
+        const paths = resolved.filter((path) => path.endsWith(INDEX_SUFFIX) === replicate);
+        return groupAndChunk(paths, MAX_CHUNK_SIZE).map((chunk) => ({ ...chunk, replicate }));
+    });
     logger.info(JSON.stringify({ event: 'resolved', total: resolved.length, chunks: chunks.length }));
     const details = [];
-    for (const chunk of chunks) {
-        const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, logger);
+    for (const { replicate, ...chunk } of chunks) {
+        const chunkResults = await publishOneChunk(chunk, odinEndpoint, authToken, logger, { replicate });
         details.push(...chunkResults);
     }
     return details;

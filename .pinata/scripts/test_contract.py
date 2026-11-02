@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from urllib.parse import urlsplit
 
@@ -192,12 +193,24 @@ NODE_ENV = {name: value for name, value in os.environ.items() if name not in ("N
 PREVIEW = "https://main--mas--adobecom.aem.page"
 
 
-def run_target_check(document, checkout, timeout=30):
+def run_target_check(document, checkout, timeout=30, env=None):
     item = Path(checkout) / "work-item.json"
     item.write_text(document if isinstance(document, str) else json.dumps(document))
     return subprocess.run(
-        ["node", str(SCRIPT), str(item)], cwd=checkout, env=NODE_ENV, text=True, capture_output=True, timeout=timeout,
+        ["node", str(SCRIPT), str(item)], cwd=checkout, env={**NODE_ENV, **(env or {})}, text=True,
+        capture_output=True, timeout=timeout,
     )
+
+
+# The CI job that installs the browser sets this: there, a browser class that cannot run is a failure, never a
+# skip, since a skipped class proves nothing about the paths it covers.
+BROWSER_TESTS_REQUIRED = os.environ.get("A11Y_TARGET_BROWSER_TESTS") == "required"
+
+
+def cannot_run_browser_tests(reason):
+    if BROWSER_TESTS_REQUIRED:
+        raise AssertionError(f"A11Y_TARGET_BROWSER_TESTS=required, but {reason}")
+    raise unittest.SkipTest(reason)
 
 
 @unittest.skipUnless(shutil.which("node"), "node is not installed")
@@ -280,31 +293,46 @@ document.getElementById('details').addEventListener('click', () => document.getE
 """
 
 
-@unittest.skipUnless(shutil.which("node"), "node is not installed")
-@unittest.skipUnless((CONTRACT.parent / "node_modules/@playwright/test").is_dir(), "needs `npm ci`")
+# A page whose script stops answering just after it loads, while the check is still asking it something.
+FROZEN_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<head><title>Never answers</title></head>
+<body><main><button id="named">Named</button></main>
+<script>setTimeout(() => { for (;;) {} }, 200);</script>
+</body>
+</html>
+"""
+
+
 class A11yTargetStateTests(unittest.TestCase):
     """States on a page that exists only in the checkout, so no network is needed: a state that already holds is
-    not clicked away, and a click counts only when it changed the state."""
+    not clicked away, a click counts only when it changed the state, and a page that never answers ends the check
+    at its deadline."""
 
     @classmethod
     def setUpClass(cls):
+        if not shutil.which("node"):
+            cannot_run_browser_tests("node is not installed")
+        if not (CONTRACT.parent / "node_modules/@playwright/test").is_dir():
+            cannot_run_browser_tests("this checkout needs `npm ci`")
         cls.temp = tempfile.TemporaryDirectory()
         cls.checkout = Path(cls.temp.name)
         (cls.checkout / "node_modules").symlink_to(CONTRACT.parent / "node_modules")
         (cls.checkout / "a11y-states.html").write_text(STATES_PAGE)
+        (cls.checkout / "a11y-frozen.html").write_text(FROZEN_PAGE)
         probe = cls.check("#open", "none")
         if "no browser to run" in probe.stdout:
             cls.temp.cleanup()
-            raise unittest.SkipTest("no Chromium for Playwright here")
+            cannot_run_browser_tests("there is no Chromium for Playwright here")
 
     @classmethod
     def tearDownClass(cls):
         cls.temp.cleanup()
 
     @classmethod
-    def check(cls, element, state):
-        target = {"page": f"{PREVIEW}/a11y-states.html", "element": element, "rule": "button-name", "state": state}
-        return run_target_check({"required": True, "target": target}, cls.checkout, timeout=120)
+    def check(cls, element, state, env=None, page="a11y-states.html"):
+        target = {"page": f"{PREVIEW}/{page}", "element": element, "rule": "button-name", "state": state}
+        return run_target_check({"required": True, "target": target}, cls.checkout, timeout=120, env=env)
 
     def assertExit(self, element, state, code, message=None):
         result = self.check(element, state)
@@ -329,6 +357,13 @@ class A11yTargetStateTests(unittest.TestCase):
 
     def test_a_violation_in_a_state_that_already_holds_is_reported(self):
         self.assertExit("#unnamed", "expanded", 3)
+
+    def test_a_page_that_never_answers_is_not_a_verdict_and_ends_at_the_deadline(self):
+        began = time.monotonic()
+        result = self.check("#named", "none", env={"A11Y_TARGET_DEADLINE_MS": "8000"}, page="a11y-frozen.html")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("did not finish within 8 s", result.stdout)
+        self.assertLess(time.monotonic() - began, 60)
 
 
 if __name__ == "__main__":

@@ -142,13 +142,13 @@ These targets cannot be checked (exit `1`):
 - An element that is missing, a rule that does not apply to it or needs
   review, or a state that is not reached.
 
-**Every non-zero exit fails the gate the same way.** The gate's
-`failure_route: regenerate` cannot tell exit `1` from exit `3`. A target the
-check cannot reach (a Studio page, an outage) therefore also spends producer
-candidates, up to `regeneration.max_candidates`, before a person sees it.
-`regenerate` is the default because a fix that still fails should be retried
-without waiting for a person. Choosing `escalate_to_human` instead, which
-stops at the first failure, is the MAS owners' decision.
+**Only exit `3` asks for a new candidate.** A still-present violation takes the
+gate's `failure_route: regenerate`: a new candidate may fix it. Any other
+failing exit (a Studio page, an outage, no browser, a timeout) says the check
+could not look, which no candidate changes, so the engine sends it to a person
+at once instead of spending candidates on it. The check also stops itself
+after 300 seconds, well inside the gate's 900, and reports that as exit `1`,
+so a page that never settles is "could not check", not a killed gate.
 
 To try a target locally, after `npm ci`:
 

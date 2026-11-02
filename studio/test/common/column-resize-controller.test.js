@@ -91,4 +91,41 @@ describe('ColumnResizeController', () => {
         handle.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, composed: true }));
         expect(el.headClicks).to.equal(0);
     });
+
+    it('resizes by dragging and stops on pointer up', async () => {
+        const el = await fixture(testHtml`<resize-host-test></resize-host-test>`);
+        const handle = handleOf(el, 'first');
+        handle.setPointerCapture = () => {};
+        const pointer = (type, clientX) =>
+            handle.dispatchEvent(
+                new PointerEvent(type, { pointerId: 1, clientX, bubbles: true, composed: true, cancelable: true }),
+            );
+        pointer('pointermove', 500);
+        expect(el.columnResize.widths.size).to.equal(0);
+        pointer('pointerdown', 100);
+        const start = el.columnResize.widths.get('first');
+        pointer('pointermove', 160);
+        expect(el.columnResize.widths.get('first')).to.equal(start + 60);
+        pointer('pointerup', 160);
+        pointer('pointermove', 400);
+        expect(el.columnResize.widths.get('first')).to.equal(start + 60);
+        pointer('pointerdown', 100);
+        pointer('pointercancel', 100);
+        pointer('pointermove', 400);
+        expect(el.columnResize.widths.get('first')).to.equal(start + 60);
+    });
+
+    it('swallows Enter and Space on the handle without resizing', async () => {
+        const el = await fixture(testHtml`<resize-host-test></resize-host-test>`);
+        const handle = handleOf(el, 'first');
+        for (const key of ['Enter', ' ']) {
+            const event = new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true });
+            handle.dispatchEvent(event);
+            expect(event.defaultPrevented).to.be.true;
+        }
+        expect(el.columnResize.widths.size).to.equal(0);
+        const other = new KeyboardEvent('keydown', { key: 'a', bubbles: true, composed: true, cancelable: true });
+        handle.dispatchEvent(other);
+        expect(other.defaultPrevented).to.be.false;
+    });
 });

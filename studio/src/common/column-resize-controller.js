@@ -138,6 +138,30 @@ export class ColumnResizeController {
     }
 }
 
+const tableScope = (key) => `sp-table[data-resized-columns~='${key}']`;
+
+/**
+ * Width rules for resized columns only, one per column, using `var(--mas-col-<key>-width)`.
+ * @param {{ key: string }[]} columns column definitions
+ * @param {{ match: 'class' | 'index', scope?: (key: string) => string }} options `class` matches cells by `.key`,
+ * `index` by position. `scope` returns the selector prefix that is only true once `key` is resized.
+ * @returns {string}
+ */
+export const resizedColumnRules = (columns, { match, scope = tableScope }) =>
+    columns
+        .map(({ key }, index) => {
+            const head = match === 'class' ? `.${key}` : `:nth-of-type(${index + 1})`;
+            const width = `var(--mas-col-${key}-width)`;
+            return `${scope(key)} sp-table-head-cell${head}, ${scope(key)} sp-table-cell${head} {
+    flex: 0 0 ${width} !important;
+    width: ${width} !important;
+    min-width: ${width} !important;
+    max-width: ${width} !important;
+    box-sizing: border-box;
+}`;
+        })
+        .join('\n');
+
 /**
  * Builds the CSS for resizable columns: resized-column widths for header and body cells, the handle,
  * and horizontal overflow of the table. Rules only apply to columns listed in `data-resized-columns`,
@@ -146,19 +170,7 @@ export class ColumnResizeController {
  * @param {{ match: 'class' | 'index' }} options `class` matches cells by `.key`, `index` by position
  * @returns {import('lit').CSSResult}
  */
-export const columnResizeStyles = (columns, { match }) => {
-    const resized = columns.map(({ key }, index) => {
-        const head = match === 'class' ? `.${key}` : `:nth-of-type(${index + 1})`;
-        const scope = `sp-table[data-resized-columns~='${key}']`;
-        const width = `var(--mas-col-${key}-width)`;
-        return `${scope} sp-table-head-cell${head}, ${scope} sp-table-cell${head} {
-    flex: 0 0 ${width} !important;
-    width: ${width} !important;
-    min-width: ${width} !important;
-    max-width: ${width} !important;
-    box-sizing: border-box;
-}`;
-    });
+export const columnResizeStyles = (columns, options) => {
     return unsafeCSS(`
 sp-table[data-resized-columns] {
     overflow-x: auto;
@@ -187,6 +199,6 @@ sp-table-head-cell {
     outline: 2px solid var(--spectrum-blue-800, #2680eb);
     outline-offset: -2px;
 }
-${resized.join('\n')}
+${resizedColumnRules(columns, options)}
 `);
 };

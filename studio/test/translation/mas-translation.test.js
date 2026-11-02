@@ -66,6 +66,22 @@ describe('MasTranslation', () => {
         });
     });
 
+    describe('column resizing', () => {
+        it('applies a resized width to the header and to the row cells', async () => {
+            Store.translationProjects.list.data.value = [createMockTranslationProject('1', 'Project 1')];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const handle = el.shadowRoot.querySelector('.column-resize-handle[data-column="status"]');
+            handle.dispatchEvent(
+                new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true, cancelable: true }),
+            );
+            await el.updateComplete;
+            const width = `${el.columnResize.widths.get('status')}px`;
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-head-cell')[1]).width).to.equal(width);
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-cell')[1]).width).to.equal(width);
+        });
+    });
+
     describe('translationProjectsData getter', () => {
         it('should return empty array when no data', async () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);

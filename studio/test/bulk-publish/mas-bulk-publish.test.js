@@ -139,6 +139,20 @@ describe('mas-bulk-publish (methods)', () => {
         expect(navigateStub.calledOnce).to.equal(true);
     });
 
+    it('renders the revert dialog inside the page container', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        el.revertPending = { title: 'Test Project' };
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.page-container mas-bulk-publish-revert-dialog')).to.exist;
+    });
+
+    it('renders the reset dialog inside the page container', async () => {
+        const el = await fixture(html`<mas-bulk-publish></mas-bulk-publish>`);
+        el.resetPending = { title: 'Test Project' };
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.page-container mas-bulk-publish-reset-dialog')).to.exist;
+    });
+
     it('resets the previously edited project when its title link is activated with Enter', async () => {
         Store.bulkPublishProjects.list.data.set([makeProjectStore({ id: 'next-project' })]);
         Store.bulkPublishProjects.inEdit.set(makeProjectStore({ id: 'previous-project' }));

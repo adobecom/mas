@@ -3,12 +3,12 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
+import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
 import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
     buildPromoVariationPathForTag,
     buildPromotionsRootPath,
-    getFragmentByPathOrNull,
     getPromoNameFromTag,
     getPromotionTagFromFragment,
     isPromoVariationPath,

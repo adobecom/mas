@@ -1211,6 +1211,137 @@ describe('customize collections', function () {
     });
 });
 
+describe('customize baselines', function () {
+    const baseline = (id, fields) => ({ id, path: `/content/dam/mas/sandbox/en_US/baselines/${id}`, fields });
+
+    it('lets an explicit empty of a higher baseline clear a lower baseline value', async function () {
+        const body = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: {},
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'card',
+            locale: 'en_US',
+            body,
+            baselines: {
+                card: {
+                    fragmentBaseline: baseline('template', { backgrounds: ['base.png'], badge: 'Template badge' }),
+                    fragmentSegmentBaseline: baseline('segment', {
+                        backgrounds: [EXPLICIT_EMPTY_SENTINEL],
+                        badge: EXPLICIT_EMPTY_SENTINEL,
+                    }),
+                },
+            },
+        });
+        expect(result.body.fields.backgrounds).to.deep.equal([]);
+        expect(result.body.fields.badge).to.equal('');
+    });
+
+    it('concatenates compare-chart-column features of every baseline layer, then the fragment', async function () {
+        const features = (...values) => ({ value: values });
+        const body = {
+            id: 'column',
+            path: '/content/dam/mas/sandbox/en_US/column',
+            fields: { variant: 'compare-chart-column', features: features('own') },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'column',
+            locale: 'en_US',
+            body,
+            baselines: {
+                column: {
+                    offerBaseline: baseline('offer', { features: features('offer') }),
+                    fragmentBaseline: baseline('template', { features: features('template') }),
+                    fragmentSegmentBaseline: baseline('segment', { features: features('segment') }),
+                },
+            },
+        });
+        expect(result.body.id).to.equal('column');
+        expect(result.body.fields.features.value).to.deep.equal(['offer', 'template', 'segment', 'own']);
+    });
+
+    it('concatenates features of a partial layer inheriting the compare-chart-column variant', async function () {
+        const body = {
+            id: 'edu-segment',
+            path: '/content/dam/mas/sandbox/en_US/baselines/edu-segment',
+            fields: { features: { value: ['edu'] } },
+            references: {},
+            referencesTree: [],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'edu-segment',
+            locale: 'en_US',
+            body,
+            baselines: {
+                'edu-segment': {
+                    fragmentBaseline: baseline('template', { variant: 'compare-chart-column', features: { value: ['base'] } }),
+                },
+            },
+        });
+        expect(result.body.fields.variant).to.equal('compare-chart-column');
+        expect(result.body.fields.features.value).to.deep.equal(['base', 'edu']);
+    });
+
+    it('layers baselines once on a card referenced by nested collections', async function () {
+        const card = {
+            id: 'card',
+            path: '/content/dam/mas/sandbox/en_US/card',
+            fields: {
+                variant: 'compare-chart-column',
+                features: { value: ['own'] },
+                backgrounds: [EXPLICIT_EMPTY_SENTINEL],
+                variations: [],
+            },
+        };
+        const body = {
+            id: 'root',
+            path: '/content/dam/mas/sandbox/en_US/root',
+            fields: { cards: ['card'], collections: ['sub'], variations: [] },
+            references: {
+                card: { type: 'content-fragment', value: card },
+                sub: {
+                    type: 'content-fragment',
+                    value: {
+                        id: 'sub',
+                        path: '/content/dam/mas/sandbox/en_US/sub',
+                        fields: { cards: ['card'], collections: [], variations: [] },
+                    },
+                },
+            },
+            referencesTree: [
+                { fieldName: 'cards', identifier: 'card', referencesTree: [] },
+                {
+                    fieldName: 'collections',
+                    identifier: 'sub',
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card', referencesTree: [] }],
+                },
+            ],
+        };
+        const result = await process({
+            ...FAKE_CONTEXT,
+            fragmentPath: 'root',
+            locale: 'en_US',
+            body,
+            baselines: {
+                card: {
+                    fragmentBaseline: baseline('template', { features: { value: ['base'] }, backgrounds: ['base.png'] }),
+                },
+            },
+        });
+        const { fields } = result.body.references.card.value;
+        expect(fields.features.value).to.deep.equal(['base', 'own']);
+        expect(fields.backgrounds).to.deep.equal([]);
+    });
+});
+
 async function process(context) {
     const phase1 = {
         status: 200,
@@ -2901,7 +3032,7 @@ const CARD_MODEL = { id: CARD_MODEL_ID };
 const COLLECTION_MODEL = { id: COLLECTION_MODEL_ID };
 // `customize` receives the already-fetched mask fragment on `context.maskFragment` (set by the `mask`
 // transformer). These tests cover the merge only; mask resolution/fetch lives in `mask.test.js`.
-const MASK = { fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
+const MASK = { id: 'mask-001', fields: { badge: 'MASKED BADGE', mnemonicIcon: [] } };
 
 describe('customize mask overlay', function () {
     it('should overlay the mask onto a card fragment (authored fields win, empty fields preserved)', async function () {
@@ -2925,38 +3056,109 @@ describe('customize mask overlay', function () {
         expect(result.body.fields.badge).to.equal('MASKED BADGE');
         expect(result.body.fields.subtitle).to.equal('keep me');
         expect(result.body.fields.title).to.equal('Card');
+        expect(result.body.maskId).to.equal('mask-001');
     });
 
-    it('does not apply mask when root fragment is not a card (root-only overlay)', async function () {
+    it('lets the request offer override a mask-authored osi on the root card', async function () {
         const result = await process({
             ...FAKE_CONTEXT,
-            fragmentPath: 'promo-coll',
+            fragmentPath: 'promo-card',
             locale: 'en_US',
             parsedLocale: 'en_US',
-            maskFragment: MASK,
+            offer: 'offer-osi',
+            maskFragment: { id: 'mask-001', fields: { osi: 'mask-osi' } },
             body: {
-                path: '/content/dam/mas/sandbox/en_US/promo-coll',
-                id: 'coll-root',
-                // collection root has no model -> mask must not apply
-                fields: { cards: ['card-1'], collections: [] },
-                references: {
-                    'card-1': {
-                        type: 'content-fragment',
-                        value: {
-                            path: '/content/dam/mas/sandbox/en_US/card-1',
-                            id: 'card-1',
-                            model: CARD_MODEL,
-                            fields: { badge: 'ORIGINAL', variations: [] },
-                        },
-                    },
-                },
-                referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                path: '/content/dam/mas/sandbox/en_US/promo-card',
+                id: 'card-root',
+                model: CARD_MODEL,
+                fields: { osi: 'card-osi' },
+                references: {},
+                referencesTree: [],
             },
         });
+        expect(result.body.fields.osi).to.equal('offer-osi');
+        expect(result.body.maskId).to.equal('mask-001');
+    });
+
+    const cardRef = (id, fields) => ({
+        type: 'content-fragment',
+        value: { path: `/content/dam/mas/sandbox/en_US/${id}`, id, model: CARD_MODEL, fields: { ...fields, variations: [] } },
+    });
+    const collectionContext = (body) => ({
+        ...FAKE_CONTEXT,
+        fragmentPath: 'promo-coll',
+        locale: 'en_US',
+        parsedLocale: 'en_US',
+        maskFragment: MASK,
+        body: { path: '/content/dam/mas/sandbox/en_US/promo-coll', id: 'coll-root', model: COLLECTION_MODEL, ...body },
+    });
+
+    it('overlays the mask on every card referenced by a collection root and leaves the collection untouched', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: ['card-1', 'card-2'], collections: [] },
+                references: {
+                    'card-1': cardRef('card-1', { badge: 'ORIGINAL', subtitle: 'keep me' }),
+                    'card-2': cardRef('card-2', { badge: 'ORIGINAL' }),
+                },
+                referencesTree: [
+                    { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                    { fieldName: 'cards', identifier: 'card-2', referencesTree: [] },
+                ],
+            }),
+        );
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.be.undefined;
-        // card references are not overlaid (root-only overlay)
-        expect(result.body.references['card-1'].value.fields.badge).to.equal('ORIGINAL');
+        expect(result.body.maskId).to.be.undefined;
+        expect(result.body.references['card-1'].value.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.references['card-1'].value.fields.subtitle).to.equal('keep me');
+        expect(result.body.references['card-1'].value.maskId).to.equal('mask-001');
+        expect(result.body.references['card-2'].value.maskId).to.equal('mask-001');
+    });
+
+    it('overlays the mask on cards of a nested collection', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: [], collections: ['coll-2'] },
+                references: {
+                    'coll-2': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-2',
+                            id: 'coll-2',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-3'], collections: [] },
+                        },
+                    },
+                    'card-3': cardRef('card-3', { badge: 'ORIGINAL' }),
+                },
+                referencesTree: [
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-2',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-3', referencesTree: [] }],
+                    },
+                ],
+            }),
+        );
+        expect(result.body.references['coll-2'].value.maskId).to.be.undefined;
+        expect(result.body.references['card-3'].value.fields.badge).to.equal('MASKED BADGE');
+        expect(result.body.references['card-3'].value.maskId).to.equal('mask-001');
+    });
+
+    it('skips a card listed in cards but missing from references and still masks its siblings', async function () {
+        const result = await process(
+            collectionContext({
+                fields: { cards: ['missing', 'card-1'], collections: [] },
+                references: { 'card-1': cardRef('card-1', { badge: 'ORIGINAL' }) },
+                referencesTree: [
+                    { fieldName: 'cards', identifier: 'missing', referencesTree: [] },
+                    { fieldName: 'cards', identifier: 'card-1', referencesTree: [] },
+                ],
+            }),
+        );
+        expect(result.status).to.equal(200);
+        expect(result.body.references['card-1'].value.maskId).to.equal('mask-001');
     });
 
     it('should not overlay when the fragment has a non-card model', async function () {
@@ -2996,6 +3198,111 @@ describe('customize mask overlay', function () {
         });
         expect(result.status).to.equal(200);
         expect(result.body.fields.badge).to.equal('ORIGINAL');
+    });
+
+    const cardContext = (maskFragment, cardFields, extra = {}) => ({
+        ...FAKE_CONTEXT,
+        fragmentPath: 'promo-card',
+        locale: 'en_US',
+        parsedLocale: 'en_US',
+        maskFragment,
+        body: {
+            path: '/content/dam/mas/sandbox/en_US/promo-card',
+            id: 'card-root',
+            model: CARD_MODEL,
+            fields: cardFields,
+            references: {},
+            referencesTree: [],
+            ...extra,
+        },
+    });
+
+    it('unions mask tags before card tags without duplicates', async function () {
+        const maskFragment = { id: 'mask-001', fields: { tags: ['mas:product_code/phsp', 'mas:plan_type/abm'] } };
+        const result = await process(cardContext(maskFragment, { tags: ['mas:plan_type/abm', 'mas:product_code/apcc'] }));
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/phsp', 'mas:plan_type/abm', 'mas:product_code/apcc']);
+    });
+
+    it('leaves card tags untouched when the mask has no tags', async function () {
+        const result = await process(cardContext(MASK, { tags: ['mas:product_code/apcc'] }));
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/apcc']);
+    });
+
+    it('does not add a tags field when neither mask nor card has tags', async function () {
+        const result = await process(cardContext(MASK, { badge: 'ORIGINAL' }));
+        expect(result.body.fields.tags).to.be.undefined;
+    });
+
+    it('applies the union once for a card referenced by two collections in the same response', async function () {
+        const result = await process({
+            ...collectionContext({
+                fields: { cards: [], collections: ['coll-a', 'coll-b'] },
+                references: {
+                    'coll-a': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-a',
+                            id: 'coll-a',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-1'], collections: [] },
+                        },
+                    },
+                    'coll-b': {
+                        type: 'content-fragment',
+                        value: {
+                            path: '/content/dam/mas/sandbox/en_US/coll-b',
+                            id: 'coll-b',
+                            model: COLLECTION_MODEL,
+                            fields: { cards: ['card-1'], collections: [] },
+                        },
+                    },
+                    'card-1': cardRef('card-1', { tags: ['mas:plan_type/abm'] }),
+                },
+                referencesTree: [
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-a',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                    },
+                    {
+                        fieldName: 'collections',
+                        identifier: 'coll-b',
+                        referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                    },
+                ],
+            }),
+            maskFragment: { id: 'mask-001', fields: { tags: ['mas:product_code/phsp'] } },
+        });
+        expect(result.body.references['card-1'].value.fields.tags).to.deep.equal([
+            'mas:product_code/phsp',
+            'mas:plan_type/abm',
+        ]);
+    });
+
+    it('unions mask tags with a selected pzn variation tags', async function () {
+        const pznVarId = 'pzn-edu-card';
+        const result = await process({
+            ...cardContext(
+                { id: 'mask-001', fields: { tags: ['mas:product_code/phsp'] } },
+                { tags: ['mas:product_code/apcc'], variations: [pznVarId] },
+                {
+                    references: {
+                        [pznVarId]: {
+                            type: 'content-fragment',
+                            value: {
+                                path: '/content/dam/mas/sandbox/en_US/phsp_direct_individual/pzn/phsp-edu',
+                                id: pznVarId,
+                                model: CARD_MODEL,
+                                fields: { pznTags: ['mas:pzn/edu'], tags: ['mas:product_code/edu'] },
+                            },
+                        },
+                    },
+                },
+            ),
+            pzn: 'edu',
+        });
+        expect(result.body.variationId).to.equal(pznVarId);
+        expect(result.body.fields.tags).to.deep.equal(['mas:product_code/phsp', 'mas:product_code/edu']);
     });
 
     it('should apply pzn then mask: mask fields win, pzn-only fields preserved, variationId and maskId both set, model.id preserved', async function () {

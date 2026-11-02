@@ -42,6 +42,7 @@ const PAGE_GETTERS = [
     { getter: 'bulkEdit', matchingPages: [PAGE_NAMES.BULK_EDIT], tag: 'mas-bulk-edit' },
     { getter: 'bulkEditEditor', matchingPages: [PAGE_NAMES.BULK_EDIT_EDITOR], tag: 'mas-bulk-edit-editor' },
     { getter: 'advancedTools', matchingPages: [PAGE_NAMES.ADVANCED_TOOLS], tag: 'mas-advanced-tools' },
+    { getter: 'baselines', matchingPages: [PAGE_NAMES.BASELINES], tag: 'mas-baselines' },
 ];
 
 // Pre-register stubs so customElements.get(tag) returns a constructor in template tests,
@@ -71,6 +72,14 @@ describe('MasStudio – page getters', () => {
 
     beforeEach(() => {
         el = document.createElement('mas-studio');
+    });
+
+    it('routes the Baselines page through currentPage', () => {
+        el.page.value = PAGE_NAMES.BASELINES;
+
+        const result = el.currentPage;
+
+        expect(result.strings.some((s) => s.includes('<mas-baselines'))).to.be.true;
     });
 
     for (const { getter, matchingPages, tag } of PAGE_GETTERS) {

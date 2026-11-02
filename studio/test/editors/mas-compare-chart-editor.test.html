@@ -230,6 +230,23 @@
                         Store.editor.referencedFragmentStoresHaveChanges.set(false);
                     });
 
+                    it('toggles enableBaselines from the General info switch', async () => {
+                        const seed = structuredClone(compareChartSeed);
+                        upsertField(seed, 'enableBaselines', []);
+                        const fragmentStore = generateFragmentStore(seed);
+                        const el = await fixture(
+                            html`<mas-compare-chart-editor .fragmentStore=${fragmentStore}></mas-compare-chart-editor>`,
+                            { parentNode: fixtureHost() },
+                        );
+                        await el.updateComplete;
+                        const sw = el.shadowRoot.querySelector('sp-switch#compchart-enable-baselines');
+                        expect(sw.hasAttribute('checked')).to.be.false;
+                        sw.click();
+                        await el.updateComplete;
+                        expect(fragmentStore.get().getFieldValues('enableBaselines')).to.deep.equal([true]);
+                        expect(sw.hasAttribute('checked')).to.be.true;
+                    });
+
                     it('renders three cards, sections, features, and authored feature tooltips', async () => {
                         const fragmentStore = generateFragmentStore(structuredClone(compareChartSeed));
                         const el = await fixture(

@@ -8,9 +8,9 @@ import { MAS_ROOT, odinFolder } from '../fragment/utils/paths.js';
 import { createSwrCache } from '../fragment/utils/swr-cache.js';
 
 /**
- * MWPW-186204: keeps offer baselines (`/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`) in the namespace state, one key
- * per locale & product arrangement, so the fragment pipeline reads the few it needs instead of listing the whole folder
- * (~1800 product arrangements per locale).
+ * ADR CONT-0005: keeps offer baselines (`/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`) in the namespace state, one key
+ * per locale & product arrangement plus one bundle per locale, so that they are served without listing the whole folder
+ * (~1800 product arrangements per locale). The fragment pipeline fetches whole locales from this action, behind the CDN.
  * - sync: non web invocations (every 15 minutes alarm, or on demand), for one `locale` or all of them,
  * - serve: web `GET ?locale=<locale>[&pa=<pa>[,<pa>…]]`, brotli compressed, with an ETag for conditional requests. Without
  *   `pa`, every offer baseline of the locale, read from its bundle (one state entry per locale). State reads are cached
@@ -63,9 +63,11 @@ const hash = (value) => createHash('sha1').update(value).digest('base64url');
 /**
  * Offer baseline of a product arrangement as synced in state, falling back to en_US when not localized yet.
  */
-export async function readOfferBaseline(context, locale, productArrangementCode) {
+async function readOfferBaseline(context, locale, productArrangementCode) {
     const key = offerStateKey(locale, productArrangementCode);
-    const value = await offersCache.get(context, key, async () => (await getFromState(key, context)) ?? '');
+    // offers have no preview: `preview` would move offersCache to localStorage
+    const published = { ...context, preview: false };
+    const value = await offersCache.get(published, key, async () => (await getFromState(key, context)) ?? '');
     if (value || locale === OFFER_BASELINE_FALLBACK_LOCALE) return value ? JSON.parse(value) : undefined;
     return readOfferBaseline(context, OFFER_BASELINE_FALLBACK_LOCALE, productArrangementCode);
 }

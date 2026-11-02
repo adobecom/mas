@@ -39,6 +39,8 @@ The commerce service resolves `service.settings.aupSelect` during initialization
 
 When configuring the service through Milo, use `commerce['aup-select'] = 'on'`. Milo does not translate `commerce.aupSelect` to the service's hyphenated attribute.
 
+The setting can also change after initialization (for example when Target sets it late): setting or changing the `aup-select` attribute on `mas-commerce-service` re-resolves `service.settings.aupSelect` and refreshes the hrefs of all connected checkout links and buttons. The precedence below still applies, so a URL parameter or metadata value overrides the attribute. Nothing is observed or polled until the attribute changes.
+
 Any value other than `off` or `false` enables routing (for example `on` or an empty value); the default, when no value is set, is disabled. At initialization, the `aup-select` query parameter takes precedence over metadata, which takes precedence over the service attribute, including an explicit `off` or `false` value. Storage overrides are ignored.
 
 AUP-eligible links render `href="#"` (buttons use `data-href="#"`). M@S retains the original destination internally for checkout fallback. Upgrade and perpetual offers, downloads, and links targeting another window retain their existing URLs.

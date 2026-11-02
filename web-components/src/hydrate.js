@@ -2,6 +2,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TRIAL_ANALYTICS_IDS,
     HEADLESS_STYLE_CTA_VARIANTS,
+    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
 import { UptLink } from './upt-link.js';
 import {
@@ -17,6 +18,7 @@ import {
     sanitizePictureMarkup,
 } from './image-markup.js';
 import { getFragmentMapping } from './variants/variants.js';
+import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
 const DEFAULT_BADGE_BACKGROUND_COLOR = '#F8D904';
@@ -28,23 +30,6 @@ export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
-
-/**
- * Normalizes variant names for consistency.
- * Converts any variant starting with 'plans' to just 'plans'.
- * The 'pro' variant also normalizes to 'plans' so it shares the plans
- * merch-card-collection column classes and styling (it does not carry the
- * 'plans' prefix, so it needs an explicit mapping).
- * @param {string} variant - The variant name to normalize
- * @returns {string} The normalized variant name
- */
-export function normalizeVariant(variant) {
-    if (!variant) return variant;
-    if (variant === 'bizpro') variant = 'pro'; // TODO(MWPW-200587): remove after content migration
-    if (variant === 'pro') return 'plans';
-    if (variant.startsWith('plans')) return 'plans';
-    return variant;
-}
 
 export function appendSlot(fieldName, fields, el, mapping) {
     const config = mapping[fieldName];
@@ -996,8 +981,9 @@ function createConsonantButton(
 const isFilled = (cta) => cta.classList.contains('blue');
 const filledFirst = (ctas) =>
     [...ctas].sort((a, b) => isFilled(b) - isFilled(a));
+const getCtaSource = (cta) => cta.source ?? cta;
 
-export function processCTAs(
+export async function processCTAs(
     fields,
     merchCard,
     aemFragmentMapping,
@@ -1012,12 +998,15 @@ export function processCTAs(
         const allCtaLinks = [...footer.querySelectorAll('a')];
         const filteredLinks = settings?.hideTrialCTAs
             ? allCtaLinks.filter(
-                  (cta) => !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId),
+                  (cta) =>
+                      !TRIAL_ANALYTICS_IDS.has(cta.dataset.analyticsId) ||
+                      cta.hasAttribute('data-replaced-osi'),
               )
             : allCtaLinks;
-        const ctas = (
-            filteredLinks.length > 0 ? filteredLinks : allCtaLinks
-        ).map((cta) =>
+        const buyNowExists = filteredLinks.some(
+            (c) => c.dataset.analyticsId === 'buy-now',
+        );
+        const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
         );
 
@@ -1030,14 +1019,24 @@ export function processCTAs(
         merchCard.append(footer);
 
         if (settings?.hideTrialCTAs && filteredLinks.length > 0) {
+            const trialCtaSwappedPromises = [];
             ctas.forEach((cta) => {
+                let trialCtaSwapped;
+                const promise = new Promise((resolve) => {
+                    trialCtaSwapped = resolve;
+                });
+                trialCtaSwappedPromises.push(promise);
                 const checkout = cta.source ?? cta;
-                if (!checkout.onceSettled) return;
+                if (!checkout.onceSettled) {
+                    trialCtaSwapped(false);
+                    return;
+                }
                 cta.hidden = true;
                 checkout
                     .onceSettled()
                     .then(() => {
-                        if (checkout.value?.[0]?.offerType === 'TRIAL') {
+                        const offerType = checkout.value?.[0]?.offerType;
+                        if (offerType === 'TRIAL') {
                             const othersVisible = ctas.some(
                                 (c) => c !== cta && !c.hidden,
                             );
@@ -1046,14 +1045,93 @@ export function processCTAs(
                             } else {
                                 cta.hidden = false;
                             }
+                            trialCtaSwapped(false);
+                        } else if (
+                            offerType === 'BASE' &&
+                            TRIAL_ANALYTICS_IDS.has(
+                                checkout.dataset.analyticsId,
+                            ) &&
+                            checkout.hasAttribute('data-replaced-osi')
+                        ) {
+                            if (buyNowExists) {
+                                checkout.classList.remove('blue');
+                                checkout.removeAttribute('data-analytics-id');
+                                cta.remove();
+                                trialCtaSwapped(true);
+                            } else if (
+                                merchCard.priceLiterals?.buyNow &&
+                                merchCard.priceLiterals.buyNow !== 'buy-now'
+                            ) {
+                                checkout.setAttribute(
+                                    'data-analytics-id',
+                                    'buy-now',
+                                );
+                                if (checkout.hasAttribute('aria-label'))
+                                    checkout.removeAttribute('aria-label');
+                                if (checkout.hasAttribute('data-modal'))
+                                    checkout.setAttribute('data-modal', 'crm');
+                                const daall = checkout.getAttribute('daa-ll');
+                                if (daall) {
+                                    checkout.setAttribute(
+                                        'daa-ll',
+                                        daall.replaceAll(
+                                            'free-trial',
+                                            'buy-now',
+                                        ),
+                                    );
+                                }
+                                checkout.textContent =
+                                    merchCard.priceLiterals.buyNow;
+                                cta.hidden = false;
+                                trialCtaSwapped(true);
+                            } else {
+                                cta.remove();
+                                trialCtaSwapped(false);
+                            }
                         } else {
                             cta.hidden = false;
+                            trialCtaSwapped(false);
                         }
                     })
                     .catch(() => {
                         cta.hidden = false;
+                        trialCtaSwapped(false);
                     });
             });
+            const settleAll = Promise.all(trialCtaSwappedPromises);
+            let timeoutId;
+            const timeout = new Promise((resolve) => {
+                timeoutId = setForegroundTimeout(
+                    () => resolve([]),
+                    MERCH_CARD_LOAD_TIMEOUT,
+                );
+            });
+            const trialCtaSwappedResults = await Promise.race([
+                settleAll,
+                timeout,
+            ]);
+            clearForegroundTimeout(timeoutId);
+
+            if (trialCtaSwappedResults.some((c) => c === true)) {
+                const hasBlueCta = ctas.some((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        footer.contains(c) &&
+                        checkout.classList.contains('blue')
+                    );
+                });
+                const buyNowCta = ctas.find((c) => {
+                    const checkout = getCtaSource(c);
+                    return (
+                        checkout.getAttribute('data-analytics-id') === 'buy-now'
+                    );
+                });
+                if (!hasBlueCta && buyNowCta) {
+                    const checkout = getCtaSource(buyNowCta);
+                    checkout.classList.remove('primary');
+                    checkout.classList.add('blue');
+                }
+            }
         }
     }
 }
@@ -1217,7 +1295,7 @@ export async function hydrate(fragment, merchCard) {
         // UptLink construction may fail (customized built-in element timing);
         // must not block remaining hydration steps.
     }
-    processCTAs(fields, merchCard, mapping, variant, settings);
+    await processCTAs(fields, merchCard, mapping, variant, settings);
     processAnalytics(fields, merchCard);
     updateLinksCSS(merchCard);
 }

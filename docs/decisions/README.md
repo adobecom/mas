@@ -1,0 +1,20 @@
+# Architecture decision records
+
+Project-scoped decisions of M@S, following [KNOW-0000](https://github.com/Adobe-acom/core/blob/main/decisions/knowledge/KNOW-0000-record-decisions-as-adrs.md) and the [ADR template](https://github.com/Adobe-acom/core/blob/main/templates/adr.md). Cross-team decisions live in [Adobe-acom/core](https://github.com/Adobe-acom/core).
+
+ADRs are grouped by domain: `<domain>/<PREFIX>-NNNN-short-title.md`, each domain with its own counter (as in [KNOW-0001](https://github.com/Adobe-acom/core/blob/main/decisions/knowledge/KNOW-0001-adr-repository-topology.md)). Identifiers are never reused or renumbered.
+
+| Domain            | Prefix | Folder               |
+| ----------------- | ------ | -------------------- |
+| Content structure | `CONT` | [content](./content) |
+
+## Content
+
+| ID                                                                              | Title                                                                      | Status |
+| ------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ------ |
+| [CONT-0001](./content/CONT-0001-organize-content-by-surface-and-locale.md)      | Organize merch content by surface and locale under /content/dam/mas        | active |
+| [CONT-0002](./content/CONT-0002-store-placeholders-as-dictionary-entries.md)    | Store placeholders as indexed dictionary entries layered from acom         | active |
+| [CONT-0003](./content/CONT-0003-model-promotions-as-projects-and-variations.md) | Model promotions as cross-surface projects with per-locale variations      | active |
+| [CONT-0004](./content/CONT-0004-scope-settings-per-surface.md)                  | Scope settings and offer mappings per surface with targeted overrides      | active |
+| [CONT-0005](./content/CONT-0005-layer-merch-content-through-baselines.md)       | Layer merch content through product, template and market segment baselines | active |
+| [CONT-0006](./content/CONT-0006-select-one-fragment-variation.md)               | Select one promotion, regional or PZN variation per fragment               | active |

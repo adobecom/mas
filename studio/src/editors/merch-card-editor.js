@@ -2352,12 +2352,26 @@ class MerchCardEditor extends LitElement {
         const values = this.getEffectiveFieldValues('customFields') || [];
         const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
         const count = Math.max(values.length, labels.length);
+        const savedLabels = this.savedCustomFieldLabels;
+        const namedLabels = new Set(savedLabels.filter(Boolean));
+        let unnamedCount = savedLabels.length - namedLabels.size;
         return Array.from({ length: count }, (_, i) => {
             const item = {};
             if (values[i]) item.value = values[i];
             if (labels[i]) item.label = labels[i];
+            if (namedLabels.has(labels[i]) || unnamedCount-- > 0) item.saved = true;
             return item;
         });
+    }
+
+    get savedCustomFieldLabels() {
+        const saved = new Fragment(this.fragment.initialValue);
+        const read = (name) => saved.getEffectiveFieldValues(name, this.localeDefaultFragment, this.effectiveIsVariation);
+        const values = read('customFields');
+        const labels = read('customFieldLabels');
+        return Array.from({ length: Math.max(values.length, labels.length) }, (_, i) => labels[i] || '').filter(
+            (label, i) => label || values[i],
+        );
     }
 
     get footerRows() {

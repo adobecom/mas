@@ -5,7 +5,7 @@ class MasRteFieldItem extends LitElement {
     static properties = {
         label: { type: String },
         osi: { type: String },
-        _labelLocked: { type: Boolean, state: true },
+        saved: { type: Boolean },
     };
 
     static styles = css`
@@ -67,20 +67,13 @@ class MasRteFieldItem extends LitElement {
         super();
         this.label = '';
         this.osi = '';
-        this._labelLocked = false;
+        this.saved = false;
     }
 
-    willUpdate(changed) {
-        // Lock the label field whenever an external label value arrives.
-        if (changed.has('label') && this.label) {
-            this._labelLocked = true;
-        }
-    }
-
-    // A named custom field is referenced by name in documents, so it can neither be
-    // renamed (the label stays read-only) nor deleted (MWPW-205018).
+    // A saved custom field is referenced by name or position in documents, so its label
+    // cannot change and it cannot be deleted (MWPW-205018). New fields stay editable until saved.
     get deleteButton() {
-        if (this._labelLocked) return nothing;
+        if (this.saved) return nothing;
         return html`
             <sp-action-button class="delete-btn" quiet @click=${this.#handleDelete}>
                 <sp-icon-delete slot="icon"></sp-icon-delete>
@@ -95,7 +88,7 @@ class MasRteFieldItem extends LitElement {
                 <sp-textfield
                     placeholder="Enter title"
                     .value="${this.label || ''}"
-                    ?readonly=${this._labelLocked}
+                    ?readonly=${this.saved && this.label}
                     @input=${(e) => e.stopPropagation()}
                     @change=${this.#handleLabelChange}
                 ></sp-textfield>
@@ -121,7 +114,6 @@ class MasRteFieldItem extends LitElement {
     #handleLabelChange = (e) => {
         e.stopPropagation();
         this.label = e.target.value;
-        if (this.label) this._labelLocked = true;
         this.dispatchEvent(new CustomEvent('change', { bubbles: true, composed: true }));
     };
 

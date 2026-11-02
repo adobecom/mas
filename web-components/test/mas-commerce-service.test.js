@@ -84,9 +84,39 @@ describe('commerce service', () => {
                 expect(service.settings.aupSelect).to.be.true;
             });
 
-            for (const value of ['on', 'off', 'true', 'ON', '']) {
+            it('uses metadata "off" ahead of an enabling service attribute on initialization', () => {
+                meta.content = 'off';
+                document.head.append(meta);
+                const service = initMasCommerceService({ 'aup-select': 'on' });
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('is disabled when the attribute is not set', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            for (const value of ['on', 'true', 'ON', '']) {
+                it(`enables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.true;
+                });
+            }
+
+            for (const value of ['off', 'false']) {
+                it(`disables with attribute ${JSON.stringify(value)}`, () => {
+                    const service = initMasCommerceService({
+                        'aup-select': value,
+                    });
+                    expect(service.settings.aupSelect).to.be.false;
+                });
+            }
+
+            for (const value of ['on', 'off', 'true', 'false', 'ON', '']) {
                 it(`uses the query override ${JSON.stringify(value)} on initialization`, () => {
-                    const enabled = value === 'on';
+                    const enabled = value !== 'off' && value !== 'false';
                     const fallback = enabled ? 'off' : 'on';
                     meta.content = fallback;
                     document.head.append(meta);
@@ -99,6 +129,22 @@ describe('commerce service', () => {
                     expect(service.settings.aupSelect).to.equal(enabled);
                 });
             }
+
+            it('updates settings when the attribute is set after initialization', () => {
+                const service = initMasCommerceService();
+                expect(service.settings.aupSelect).to.be.false;
+                service.setAttribute('aup-select', 'on');
+                expect(service.settings.aupSelect).to.be.true;
+                service.setAttribute('aup-select', 'off');
+                expect(service.settings.aupSelect).to.be.false;
+            });
+
+            it('ignores aup-select changes that do not alter the setting', () => {
+                const service = initMasCommerceService();
+                service.setAttribute('aup-select', 'on');
+                service.setAttribute('aup-select', 'true');
+                expect(service.settings.aupSelect).to.be.true;
+            });
         });
 
         it('returns "Defaults" object', async () => {

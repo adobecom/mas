@@ -444,6 +444,12 @@ merch-card[variant="mini-compare-chart-mweb"].bullet-list p.card-heading[slot="b
   padding: var(--consonant-merch-spacing-xxxs) var(--consonant-merch-spacing-xs) 0;
 }
 
+merch-card[variant="mini-compare-chart-mweb"] [slot="quantity-select"] {
+  padding: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 merch-card[variant="mini-compare-chart-mweb"] [slot="promo-text"] {
   padding: 0;
   font-size: var(--consonant-merch-card-body-s-font-size);

@@ -2,16 +2,18 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.j
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
+import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
 
 // Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
-// (programmatic nav only) never runs — mapped to the per-surface permission gate for reaching them.
-// Both currently share settings access.
+// (programmatic nav only) never runs — mapped to the permission gate for reaching them.
 const RESTRICTED_PAGE_ACCESS = {
+    [PAGE_NAMES.BULK_PUBLISH]: canAccessBulkPublish,
+    [PAGE_NAMES.BULK_PUBLISH_EDITOR]: canAccessBulkPublish,
     [PAGE_NAMES.SETTINGS]: canAccessSettings,
     [PAGE_NAMES.SETTINGS_EDITOR]: canAccessSettings,
     [PAGE_NAMES.MASKS]: canAccessMasks,
@@ -50,7 +52,7 @@ export function promoHashIsSearchSync(previousHash, nextHash) {
         nextHash,
         PAGE_NAMES.PROMOTIONS_EDITOR,
         'promotionId',
-        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region', 'status']),
+        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region', 'status', 'variation']),
     );
 }
 
@@ -203,6 +205,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BULK_EDIT_EDITOR: {
+                const editor = document.querySelector('mas-bulk-edit-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -276,7 +287,7 @@ export class Router extends EventTarget {
                     if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
-                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined, variation: undefined }));
                     }
                     if (
                         (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
@@ -284,6 +295,13 @@ export class Router extends EventTarget {
                     ) {
                         Store.settings.creating.set(false);
                         Store.settings.fragmentId.set(null);
+                    }
+                    // Clear the product-detail arrangement code when leaving
+                    // the product catalog so the hash-linked `arrangementCode`
+                    // param doesn't bleed into unrelated pages (MASA,
+                    // Fragments, etc.) where it's semantically meaningless.
+                    if (Store.page.value === PAGE_NAMES.PRODUCT_CATALOG && targetPage !== PAGE_NAMES.PRODUCT_CATALOG) {
+                        Store.productDetail.arrangementCode.set(null);
                     }
                     if (
                         (Store.page.value === PAGE_NAMES.MASKS || Store.page.value === PAGE_NAMES.MASKS_EDITOR) &&
@@ -294,8 +312,11 @@ export class Router extends EventTarget {
                         Store.masks.editing.set(null);
                         Store.masks.editingName.set('');
                     }
-                    if (options.bulkPublishProjectId !== undefined) {
+                    if (targetPage === PAGE_NAMES.BULK_PUBLISH_EDITOR && options.bulkPublishProjectId !== undefined) {
                         Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.bulkEditProjectId !== undefined) {
+                        Store.bulkEditProjects.projectId.set(options.bulkEditProjectId);
                     }
                     if (options.translationProjectId !== undefined) {
                         Store.translationProjects.translationProjectId.set(options.translationProjectId);
@@ -515,7 +536,7 @@ export class Router extends EventTarget {
         const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
-        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'status'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'status', 'variation'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
         });
@@ -527,7 +548,9 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
+        this.linkStoreToHash(Store.bulkEditProjects.projectId, 'bulkEditProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
+        this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
@@ -695,12 +718,21 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.OFFER_MAPPING;
     }
 
+    #isBulkPublishPage(page) {
+        return page === PAGE_NAMES.BULK_PUBLISH || page === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
     #syncSearchStoreFromHashParams() {
         const currentValue = Store.search.get();
         this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
     }
 
     #getAuthorizedPage(page) {
+        if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
+        if (this.#isBulkPublishPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            return canAccessBulkPublish() ? page : PAGE_NAMES.WELCOME;
+        }
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;
@@ -740,6 +772,12 @@ export class Router extends EventTarget {
     }
 
     #enforceRestrictedAccessFromParams() {
+        if (!isFeaturePageEnabled(this.currentParams.get('page'))) {
+            this.currentParams.set('page', PAGE_NAMES.WELCOME);
+            this.currentParams.delete('arrangementCode');
+            Store.page.set(PAGE_NAMES.WELCOME);
+            return true;
+        }
         const canAccess = RESTRICTED_PAGE_ACCESS[this.currentParams.get('page')];
         if (!canAccess) return false;
         if (!Store.users.getMeta('loaded')) {
@@ -748,6 +786,10 @@ export class Router extends EventTarget {
         }
         this.#stopWatchingRestrictedAccessRoute();
         if (canAccess(Store.surface())) return false;
+        if (this.#isBulkPublishPage(this.currentParams.get('page'))) {
+            this.currentParams.delete('bulkPublishProjectId');
+            Store.bulkPublishProjects.projectId.set(null);
+        }
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

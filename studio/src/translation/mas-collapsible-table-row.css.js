@@ -30,7 +30,10 @@ export const styles = [
         }
 
         .title,
-        .path,
+        .path {
+            min-width: 0;
+        }
+
         .offer-id,
         .osi {
             min-width: 0;
@@ -43,9 +46,8 @@ export const styles = [
             }
 
             div:not([slot='trigger']) {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 
@@ -55,9 +57,8 @@ export const styles = [
             }
 
             div {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 
@@ -241,7 +242,7 @@ export const styles = [
             flex-shrink: 0;
         }
 
-        .nested-content sp-table-body sp-table-row:first-of-type {
+        .nested-content sp-table-body > sp-table-row:first-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-top-left-radius: 12px;
             }
@@ -251,7 +252,7 @@ export const styles = [
             }
         }
 
-        .nested-content sp-table-body sp-table-row:last-of-type {
+        .nested-content sp-table-body > sp-table-row:last-of-type:not(.variation-details-row) {
             sp-table-cell:first-of-type {
                 border-bottom-left-radius: 12px;
             }

@@ -17,17 +17,16 @@ import {
     getService,
     getSlotText,
     debounce,
+    normalizeVariant,
     setForegroundTimeout,
     clearForegroundTimeout,
 } from './utils.js';
-import { getFragmentMapping } from './variants/variants.js';
 import {
     matchesTagGroups,
     groupTagFilters,
     cardFilterTags,
+    isExcluded,
 } from './tag-groups.js';
-import { normalizeVariant } from './hydrate.js';
-import './mas-commerce-service';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
@@ -69,21 +68,21 @@ const typeFilter = (elements, { types }) => {
     );
 };
 
-// Filters cards against every author-defined tag group. No-op when a
-// collection has no tag groups.
+// Filters cards against every author-defined tag group, then drops the tags
+// excluded for the current category. No-op when a collection has no tag groups.
 const tagGroupFilter = (elements, collection) => {
     const groups = collection.tagGroups;
     if (!groups?.length) return elements;
     const state = parseState();
-    return elements.filter((element) =>
-        matchesTagGroups(
-            (element.getAttribute('filter-tags') || '')
-                .split(',')
-                .filter(Boolean),
-            groups,
-            state,
-        ),
-    );
+    return elements.filter((element) => {
+        const tags = (element.getAttribute('filter-tags') || '')
+            .split(',')
+            .filter(Boolean);
+        return (
+            matchesTagGroups(tags, groups, state) &&
+            !isExcluded(tags, collection.excludeTags, collection.filter)
+        );
+    });
 };
 
 const alphabeticalSorter = (elements) =>
@@ -123,6 +122,8 @@ export class MerchCardCollection extends LitElement {
     static properties = {
         id: { type: String, attribute: 'id', reflect: true },
         displayResult: { type: Boolean, attribute: 'display-result' },
+        // { <category>: ['group:tag', ...] } cards never shown under a category.
+        excludeTags: { type: Object, attribute: false },
         filter: { type: String, attribute: 'filter', reflect: true },
         filtered: { type: String, attribute: 'filtered', reflect: true }, // freeze filter
         hasMore: { type: Boolean },
@@ -145,10 +146,18 @@ export class MerchCardCollection extends LitElement {
     };
 
     #overrideMap = {};
-    #service;
-    #log;
+    #logger;
 
-    #merchCardElement;
+    // Resolved lazily: the host page loads mas.js/commerce.js separately, so
+    // the service may not be registered or activated when this element connects.
+    get #log() {
+        this.#logger ??= getService()?.Log?.module(MERCH_CARD_COLLECTION);
+        return this.#logger;
+    }
+
+    get #merchCardElement() {
+        return customElements.get('merch-card');
+    }
 
     constructor() {
         super();
@@ -292,11 +301,6 @@ export class MerchCardCollection extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#service = getService();
-        if (this.#service) {
-            this.#log = this.#service.Log.module(MERCH_CARD_COLLECTION);
-        }
-        this.#merchCardElement = customElements.get('merch-card');
         this.buildOverrideMap();
         this.init();
         window.addEventListener('resize', this.resizeHandlerDebounced);
@@ -400,6 +404,8 @@ export class MerchCardCollection extends LitElement {
         const aemFragment = this.querySelector('aem-fragment');
         if (!aemFragment) return;
         this.id = aemFragment.getAttribute('fragment');
+        const mask = aemFragment.getAttribute('mask');
+        const pzn = aemFragment.getAttribute('pzn');
 
         this.hydrating = true;
         let resolveHydration;
@@ -532,7 +538,6 @@ export class MerchCardCollection extends LitElement {
                       event.detail.fields.defaultchild
                     : null;
 
-            aemFragment.cache.add(...cards);
             const checkDefaultChild = (collections, fragmentId) => {
                 for (const collection of collections) {
                     if (collection.defaultchild === fragmentId) return true;
@@ -574,9 +579,10 @@ export class MerchCardCollection extends LitElement {
                 }
 
                 // Check if this variant supports default child through mapping
-                const variantMapping = getFragmentMapping(
-                    fragment.fields.variant,
-                );
+                const variantMapping =
+                    this.#merchCardElement?.getFragmentMapping(
+                        fragment.fields.variant,
+                    );
                 if (variantMapping?.supportsDefaultChild) {
                     const isDefault = rootDefaultChild
                         ? fragmentId === rootDefaultChild
@@ -603,6 +609,25 @@ export class MerchCardCollection extends LitElement {
                 populateFilters(hierarchy);
 
                 const mcAemFragment = document.createElement('aem-fragment');
+                mcAemFragment.setAttribute('fragment', fragment.id);
+                if (mask) mcAemFragment.setAttribute('mask', mask);
+                if (pzn) mcAemFragment.setAttribute('pzn', pzn);
+                for (const key of [
+                    'settings',
+                    'placeholders',
+                    'dictionary',
+                    'priceLiterals',
+                ]) {
+                    fragment[key] = {
+                        ...event.detail[key],
+                        ...fragment[key],
+                    };
+                }
+                if (mask || pzn) {
+                    aemFragment.cache.set(mcAemFragment.cacheKey(), fragment);
+                } else {
+                    aemFragment.cache.add(fragment);
+                }
                 mcAemFragment.setAttribute('fragment', fragmentId);
                 merchCard.append(mcAemFragment);
                 // if no filters are set, set the default filter
@@ -668,6 +693,16 @@ export class MerchCardCollection extends LitElement {
 
     get showMoreButton() {
         if (!this.hasMore) return;
+        // product-pricing loads no Spectrum, so it gets a native button.
+        if (this.classList.contains('product-pricing')) {
+            return html`<button
+                type="button"
+                class="show-more"
+                @click="${this.showMore}"
+            >
+                <slot name="showMoreText"></slot>
+            </button>`;
+        }
         return html`<sp-button
             variant="secondary"
             treatment="outline"
@@ -751,6 +786,27 @@ export class MerchCardCollection extends LitElement {
             margin-top: calc(24px - 8px - 4px);
             /* Room for the button's focus ring, which an ancestor would clip. */
             padding-block: 4px;
+        }
+
+        /* Same look as the outlined product-pricing CTAs. */
+        :host(.product-pricing) .show-more {
+            box-sizing: border-box;
+            min-height: 40px;
+            padding: 8px 22px;
+            border: 2px solid #000;
+            border-radius: 999px;
+            background: transparent;
+            color: #000;
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 18px;
+            cursor: pointer;
+        }
+
+        :host(.product-pricing) .show-more:focus-visible {
+            outline: 2px solid #3b63fb;
+            outline-offset: 2px;
         }
 
         sp-theme {

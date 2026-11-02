@@ -6,7 +6,9 @@ import ReactiveController from '../reactivity/reactive-controller.js';
 import { canAccessMasks } from '../groups.js';
 import { confirmation } from '../mas-confirm-dialog.js';
 import { tableHeaderBaseStyles, tableBodyBaseStyles, tableCellBaseStyles } from '../common/styles/table-styles.css.js';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 import { skeletonStyles } from '../common/skeleton-styles.css.js';
+import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import '../mas-locale-picker.js';
 import './mas-mask-editor.js';
 
@@ -20,11 +22,11 @@ class MasMasks extends LitElement {
         tableHeaderBaseStyles,
         tableBodyBaseStyles,
         tableCellBaseStyles,
+        pageContainerStyles,
         css`
             :host {
                 display: block;
                 box-sizing: border-box;
-                padding: 32px;
                 min-width: 800px;
             }
 
@@ -206,7 +208,12 @@ class MasMasks extends LitElement {
                     ${masks.map(
                         (fragment) => html`
                             <sp-table-row @dblclick=${() => this.#edit(fragment)}>
-                                <sp-table-cell>${fragment.title || fragment.fragmentName}</sp-table-cell>
+                                ${renderRowLinkOverlay(fragment, { page: PAGE_NAMES.MASKS_EDITOR })}
+                                <sp-table-cell
+                                    >${renderEditorLink(fragment, fragment.title || fragment.fragmentName, {
+                                        page: PAGE_NAMES.MASKS_EDITOR,
+                                    })}</sp-table-cell
+                                >
                                 <sp-table-cell>${fragment.description || ''}</sp-table-cell>
                                 <sp-table-cell>${fragment.modified?.fullName || fragment.modified?.by || ''}</sp-table-cell>
                                 <sp-table-cell>${fragment.published?.fullName || fragment.published?.by || ''}</sp-table-cell>
@@ -247,26 +254,28 @@ class MasMasks extends LitElement {
             return html`<div class="no-access">You do not have access to masks for this surface.</div>`;
         }
         if (this.isEditorPage) {
-            return html`<mas-mask-editor></mas-mask-editor>`;
+            return html`<div class="page-container"><mas-mask-editor></mas-mask-editor></div>`;
         }
         return html`
-            <div id="header">
-                <h1 id="title">Masks</h1>
-                <div class="toolbar">
-                    <mas-locale-picker
-                        surface=${this.surface}
-                        label="Region"
-                        locale=${Store.localeOrRegion()}
-                        mode="region"
-                        searchplaceholder="Search region"
-                        @locale-changed=${(event) => Store.search.set((prev) => ({ ...prev, region: event.detail.locale }))}
-                    ></mas-locale-picker>
-                    <sp-button variant="accent" @click=${this.#create}
-                        ><sp-icon-add slot="icon"></sp-icon-add>Create mask</sp-button
-                    >
+            <div class="page-container">
+                <div id="header">
+                    <h1 id="title">Masks</h1>
+                    <div class="toolbar">
+                        <mas-locale-picker
+                            surface=${this.surface}
+                            label="Region"
+                            locale=${Store.localeOrRegion()}
+                            mode="region"
+                            searchplaceholder="Search region"
+                            @locale-changed=${(event) => Store.search.set((prev) => ({ ...prev, region: event.detail.locale }))}
+                        ></mas-locale-picker>
+                        <sp-button variant="accent" @click=${this.#create}
+                            ><sp-icon-add slot="icon"></sp-icon-add>Create mask</sp-button
+                        >
+                    </div>
                 </div>
+                ${this.listTemplate}
             </div>
-            ${this.listTemplate}
         `;
     }
 }

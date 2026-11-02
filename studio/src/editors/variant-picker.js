@@ -1,4 +1,4 @@
-import { html, LitElement, css } from 'lit';
+import { html, LitElement, css, nothing } from 'lit';
 import { SURFACES } from '../constants.js';
 
 export const VARIANT_NAMES = {
@@ -12,6 +12,7 @@ export const VARIANT_NAMES = {
     PRODUCT: 'product',
     BRAND_CONCIERGE_PRODUCT: 'brand-concierge-product',
     PRODUCT_PRICING: 'product-pricing',
+    PRODUCT_C2: 'product-c2',
     SEGMENT: 'segment',
     SLICES: 'ccd-slice',
     SPECIAL_OFFERS: 'special-offers',
@@ -37,7 +38,7 @@ export const VARIANT_NAMES = {
 export const VARIANTS = [
     { label: 'All', value: VARIANT_NAMES.ALL, surfaces: ['all'] },
     { label: 'Catalog', value: VARIANT_NAMES.CATALOG, surfaces: [SURFACES.ACOM] },
-    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM] },
+    { label: 'Plans', value: VARIANT_NAMES.PLANS, surfaces: [SURFACES.ACOM, SURFACES.GENUINE] },
     {
         label: 'Plans v2',
         value: VARIANT_NAMES.PLANS_V2,
@@ -61,7 +62,7 @@ export const VARIANTS = [
     {
         label: 'Product',
         value: VARIANT_NAMES.PRODUCT,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Brand Concierge Product',
@@ -72,6 +73,11 @@ export const VARIANTS = [
         label: 'Product Pricing',
         value: VARIANT_NAMES.PRODUCT_PRICING,
         surfaces: [SURFACES.ACOM],
+    },
+    {
+        label: 'Product C2',
+        value: VARIANT_NAMES.PRODUCT_C2,
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
     },
     {
         label: 'Segment',
@@ -124,17 +130,17 @@ export const VARIANTS = [
     {
         label: 'Headless',
         value: VARIANT_NAMES.HEADLESS,
-        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.SANDBOX, SURFACES.ACOM_CC, SURFACES.ACOM, SURFACES.ACOM_DC, SURFACES.GENUINE, SURFACES.ACOM_EDU],
     },
     {
         label: 'Mini Compare Chart',
         value: VARIANT_NAMES.MINI_COMPARE_CHART,
-        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC],
+        surfaces: [SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Mini Compare Chart Mweb',
         value: VARIANT_NAMES.MINI_COMPARE_CHART_MWEB,
-        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC],
+        surfaces: [SURFACES.ACOM, SURFACES.ACOM_CC, SURFACES.ACOM_DC, SURFACES.ACOM_EDU],
     },
     {
         label: 'Compare Chart Column',
@@ -199,6 +205,10 @@ export const getVariantTreeData = (surface) =>
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
 
+/** Names of variants allowed on at least one of the given surfaces. */
+export const getSurfacesVariantNames = (surfaces) =>
+    new Set(surfaces.flatMap((surface) => getVariantTreeData(surface).map(({ name }) => name)));
+
 class VariantPicker extends LitElement {
     static styles = css`
         :host {
@@ -218,6 +228,15 @@ class VariantPicker extends LitElement {
             --mod-picker-border-color-default: var(--spectrum-blue-400);
             --mod-picker-background-color-default: var(--spectrum-blue-100);
         }
+
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
     `;
 
     static properties = {
@@ -225,11 +244,17 @@ class VariantPicker extends LitElement {
         defaultValue: { type: String, attribute: 'default-value' },
         showAll: { type: Boolean, attribute: 'show-all' },
         disabled: { type: Boolean, attribute: 'disabled' },
+        invalid: { type: Boolean },
+        description: { type: String },
         surface: { type: String },
     };
 
+    applyFocusElementLabel = (value, labelElement) => {
+        this.shadowRoot?.querySelector('sp-picker')?.applyFocusElementLabel(value, labelElement);
+    };
+
     #surfaceVariantNames() {
-        return new Set(getVariantTreeData(this.surface).map((v) => v.name));
+        return getSurfacesVariantNames([this.surface]);
     }
 
     get variants() {
@@ -250,9 +275,11 @@ class VariantPicker extends LitElement {
             value=${this.value ?? this.defaultValue}
             .value=${this.value ?? this.defaultValue}
             ?disabled=${this.disabled}
+            ?invalid=${this.invalid}
             @change=${this.#handleChange}
         >
             ${this.variants}
+            ${this.description ? html`<span slot="description" class="visually-hidden">${this.description}</span>` : nothing}
         </sp-picker>`;
     }
 }

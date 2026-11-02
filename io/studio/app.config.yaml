@@ -40,6 +40,13 @@ application:
                         function: src/members/list.js
                         web: 'yes'
                         runtime: nodejs:22
+                    bulk-publish-access:
+                        function: src/bulk-publish/access.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     bulk-edit-find:
                         function: src/bulk-edit/bulk-edit.js
                         web: 'yes'
@@ -122,6 +129,27 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
+                    ai-chat:
+                        function: src/ai-chat/index.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        inputs:
+                            AI_FOUNDRY_API_KEY: $AI_FOUNDRY_API_KEY
+                            AI_FOUNDRY_BASE_URL: $AI_FOUNDRY_BASE_URL
+                            AI_FOUNDRY_MODEL_ID: $AI_FOUNDRY_MODEL_ID
+                            AI_FOUNDRY_FAST_MODEL_ID: $AI_FOUNDRY_FAST_MODEL_ID
+                            AI_FOUNDRY_FALLBACK_MODEL_ID: $AI_FOUNDRY_FALLBACK_MODEL_ID
+                            AI_FOUNDRY_THINKING: $AI_FOUNDRY_THINKING
+                            RAG_ENABLED: $RAG_ENABLED
+                            USE_LLM_CLASSIFIER: $USE_LLM_CLASSIFIER
+                            NATIVE_ENVELOPE: $NATIVE_ENVELOPE
+                            TEXT_PARSE_RETRY: $TEXT_PARSE_RETRY
+                            NATIVE_GUIDED: $NATIVE_GUIDED
+                            DEAD_END_RETRY: $DEAD_END_RETRY
+                            GUIDED_TOOL_MISS_RETRY: $GUIDED_TOOL_MISS_RETRY
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
                     bulk-publish:
                         function: src/bulk-publish/index.js
                         web: 'yes'
@@ -188,3 +216,34 @@ application:
                             timeout: 300000
                         annotations:
                             require-adobe-auth: false
+                    fragment-usage:
+                        function: src/fragment-usage/usage.js
+                        web: 'yes'
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 60000 # ms — 1 min (web action ceiling)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                    fragment-usage-rollup:
+                        function: src/fragment-usage/rollup.js
+                        runtime: nodejs:22
+                        inputs:
+                            GRAFANA_SERVICE_TOKEN: $GRAFANA_SERVICE_TOKEN
+                            GRAFANA_SERVICE_URL: $GRAFANA_SERVICE_URL
+                            GRAFANA_DATASOURCE_UID: $GRAFANA_DATASOURCE_UID
+                            GRAFANA_ORG_ID: $GRAFANA_ORG_ID
+                        limits:
+                            timeout: 300000 # ms — 5 min (two log scans, measured ~15 s)
+                        annotations:
+                            require-adobe-auth: false
+                            final: true
+                triggers:
+                    fragment-usage-hourly:
+                        feed: /whisk.system/alarms/alarm
+                        inputs:
+                            cron: '5 * * * *' # on the clock: every deploy recreates the feed, which restarts an interval alarm
+                rules:
+                    fragment-usage-rollup-rule:
+                        trigger: fragment-usage-hourly
+                        action: fragment-usage-rollup

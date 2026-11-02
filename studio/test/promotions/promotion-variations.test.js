@@ -278,54 +278,67 @@ describe('promotion-variations', () => {
             expect(result).to.deep.equal(createdFragment);
         });
 
-        it('resolves the grouped-variation source effective (parent-inherited) fields before cloning', async () => {
-            const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
-            const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
-            const groupedFragment = {
-                id: 'grouped-var-id',
-                path: groupedSourcePath,
-                title: 'Card title',
-                model: { id: 'model-1' },
-                fields: [{ name: 'pznTags', values: ['mas:pzn/edu'] }],
-                tags: [{ id: 'mas:product_code/cc' }],
-            };
-            const rawParentFragment = {
-                id: 'parent-id',
-                path: parentPath,
-                fields: [{ name: 'variations', values: [groupedSourcePath] }],
-            };
-            const hydratedParentFragment = {
-                ...rawParentFragment,
-                fields: [
-                    { name: 'variations', values: [groupedSourcePath] },
-                    { name: 'osi', values: ['OSI-PARENT-123'] },
-                ],
-            };
-            const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
-            const aem = createAemMock({
-                fragments: {
-                    getById: sandbox.stub().callsFake((id) => {
-                        if (id === 'grouped-var-id') return Promise.resolve(groupedFragment);
-                        if (id === 'parent-id') return Promise.resolve(hydratedParentFragment);
-                        return Promise.resolve(null);
-                    }),
-                    getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: parentPath }] }),
-                    getByPath: sandbox.stub().resolves(rawParentFragment),
-                    pollCreatedFragment: sandbox
-                        .stub()
-                        .resolves({ id: 'new-promo-var-id', path: `${promoFolder}/PA-123/pzn/my-card-grouped` }),
-                },
-                createFragmentCopy,
+        for (const prices of [[], [''], ['SMB price']]) {
+            it(`copies grouped-variation content exactly when prices is ${JSON.stringify(prices)}`, async () => {
+                const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-grouped';
+                const parentPath = '/content/dam/mas/sandbox/en_US/my-card';
+                const groupedFragment = {
+                    id: 'grouped-var-id',
+                    path: groupedSourcePath,
+                    title: 'Card title',
+                    model: { id: 'model-1' },
+                    fields: [
+                        { name: 'cardTitle', values: ['SMB Grouped'] },
+                        { name: 'prices', values: prices, multiple: false },
+                        { name: 'ctas', values: [], multiple: true },
+                        { name: 'showPlanType', values: [false] },
+                        { name: 'pznTags', type: 'tag', multiple: true, values: ['mas:pzn/smb'] },
+                    ],
+                    tags: [{ id: 'mas:product_code/cc' }],
+                };
+                const rawParentFragment = {
+                    id: 'parent-id',
+                    path: parentPath,
+                    fields: [{ name: 'variations', values: [groupedSourcePath] }],
+                };
+                const hydratedParentFragment = {
+                    ...rawParentFragment,
+                    fields: [
+                        { name: 'variations', values: [groupedSourcePath] },
+                        { name: 'cardTitle', values: ['Default title'] },
+                        { name: 'prices', values: ['Default price'], multiple: false },
+                        { name: 'ctas', values: ['Default CTA'], multiple: true },
+                        { name: 'showPlanType', values: [true] },
+                        { name: 'osi', values: ['OSI-PARENT-123'] },
+                    ],
+                };
+                const createFragmentCopy = sandbox.stub().resolves({ id: 'new-promo-var-id' });
+                const aem = createAemMock({
+                    fragments: {
+                        getById: sandbox.stub().callsFake((id) => {
+                            if (id === 'grouped-var-id') return Promise.resolve(groupedFragment);
+                            if (id === 'parent-id') return Promise.resolve(hydratedParentFragment);
+                            return Promise.resolve(null);
+                        }),
+                        getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: parentPath }] }),
+                        getByPath: sandbox.stub().resolves(rawParentFragment),
+                        pollCreatedFragment: sandbox
+                            .stub()
+                            .resolves({ id: 'new-promo-var-id', path: `${promoFolder}/PA-123/pzn/my-card-grouped` }),
+                    },
+                    createFragmentCopy,
+                });
+
+                const originalFields = structuredClone(groupedFragment.fields);
+                await createPromoVariation(aem, 'grouped-var-id', promoTag);
+
+                const [fragmentForCopy] = createFragmentCopy.firstCall.args;
+                expect(fragmentForCopy.fields).to.deep.equal(originalFields);
+                expect(groupedFragment.fields).to.deep.equal(originalFields);
             });
+        }
 
-            await createPromoVariation(aem, 'grouped-var-id', promoTag, ['mas:pzn/country/ar']);
-
-            const [fragmentForCopy] = createFragmentCopy.firstCall.args;
-            const osiField = fragmentForCopy.fields.find((field) => field.name === 'osi');
-            expect(osiField.values).to.deep.equal(['OSI-PARENT-123']);
-        });
-
-        it('drops a preview-only settings fallback (e.g. showSecureLabel) instead of copying it as a real field', async () => {
+        it('preserves an empty settings field without copying a preview-only fallback', async () => {
             const groupedSourcePath = '/content/dam/mas/sandbox/en_US/PA-123/pzn/my-card-secure';
             const parentPath = '/content/dam/mas/sandbox/en_US/my-card-secure-parent';
             const groupedFragment = {
@@ -333,8 +346,6 @@ describe('promotion-variations', () => {
                 path: groupedSourcePath,
                 title: 'Card title',
                 model: { id: 'model-1' },
-                // AEM returns an entry for every model field even when unset — showSecureLabel is
-                // present but empty here, unlike a field that's genuinely absent from the model.
                 fields: [{ name: 'showSecureLabel', values: [''], multiple: false }],
                 tags: [{ id: 'mas:product_code/cc' }],
             };
@@ -381,7 +392,7 @@ describe('promotion-variations', () => {
 
             const [fragmentForCopy] = createFragmentCopy.firstCall.args;
             const secureLabelField = fragmentForCopy.fields.find((field) => field.name === 'showSecureLabel');
-            expect(secureLabelField).to.be.undefined;
+            expect(secureLabelField).to.deep.equal(groupedFragment.fields[0]);
         });
 
         it('keeps the grouped-variation source own showSecureLabel value when it is meaningfully set', async () => {

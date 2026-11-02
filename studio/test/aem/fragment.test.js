@@ -21,6 +21,32 @@ describe('Fragment', () => {
         };
     };
 
+    describe('isBaselinePath', () => {
+        it('returns true for paths under a baselines folder', () => {
+            expect(Fragment.isBaselinePath('/content/dam/mas/acom/en_US/baselines/plans/PA-1/card')).to.be.true;
+        });
+
+        it('returns false for regular card paths and missing paths', () => {
+            expect(Fragment.isBaselinePath('/content/dam/mas/acom/en_US/baselines-card')).to.be.false;
+            expect(Fragment.isBaselinePath(undefined)).to.be.false;
+        });
+    });
+
+    describe('isHiddenFromSearch', () => {
+        it('returns true for grouped variation paths', () => {
+            expect(Fragment.isHiddenFromSearch('/content/dam/mas/acom/en_US/photoshop/pzn/my-card')).to.be.true;
+        });
+
+        it('returns true for baseline paths', () => {
+            expect(Fragment.isHiddenFromSearch('/content/dam/mas/acom/en_US/baselines/plans/PA-1/card')).to.be.true;
+        });
+
+        it('returns false for regular card paths and missing paths', () => {
+            expect(Fragment.isHiddenFromSearch('/content/dam/mas/acom/en_US/my-card')).to.be.false;
+            expect(Fragment.isHiddenFromSearch(undefined)).to.be.false;
+        });
+    });
+
     describe('locale getter', () => {
         [
             { path: '/content/dam/mas/surface-name/en_US/my-fragment', expected: 'en_US' },

@@ -1,6 +1,7 @@
 import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
+import { PAGE_NAMES } from '../src/constants.js';
 
 describe('store', () => {
     let sandbox;
@@ -14,6 +15,35 @@ describe('store', () => {
     afterEach(() => {
         Store.fragments.list.data.value = originalStoreData;
         sandbox.restore();
+    });
+
+    describe('productCatalog.search', () => {
+        let originalProductCatalogSearch;
+
+        beforeEach(() => {
+            originalProductCatalogSearch = Store.productCatalog.search.value;
+        });
+
+        afterEach(() => {
+            Store.productCatalog.search.value = originalProductCatalogSearch;
+        });
+
+        it('has initial value of empty string', () => {
+            expect(Store.productCatalog.search.get()).to.equal('');
+        });
+
+        it('updates value with set()', () => {
+            Store.productCatalog.search.set('photoshop');
+            expect(Store.productCatalog.search.get()).to.equal('photoshop');
+        });
+
+        it('notifies subscribers on change', () => {
+            const spy = sandbox.spy();
+            Store.productCatalog.search.subscribe(spy);
+            Store.productCatalog.search.set('acrobat');
+            expect(spy.calledWith('acrobat')).to.be.true;
+            Store.productCatalog.search.unsubscribe(spy);
+        });
     });
 
     describe('compareChart slice', () => {
@@ -32,6 +62,35 @@ describe('store', () => {
             Store.compareChart.filters.set({ locale: 'fr_FR', tags: ['a', 'b'] });
             expect(Store.compareChart.filters.get().tags).to.equal('a,b');
             Store.compareChart.filters.set({ locale: 'en_US' });
+        });
+    });
+
+    describe('filtersValidator variation normalization', () => {
+        afterEach(() => {
+            Store.filters.set({ locale: 'en_US' });
+        });
+
+        it('keeps single selections and canonicalizes combined selections', () => {
+            for (const variation of ['promo', 'grouped', 'none', 'promo,grouped']) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.equal(variation);
+            }
+            Store.filters.set({ variation: 'grouped,promo,promo' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+        });
+
+        it('makes No variation exclusive for URL input', () => {
+            Store.filters.set({ variation: 'grouped,none,promo' });
+            expect(Store.filters.get().variation).to.equal('none');
+        });
+
+        it('removes invalid entries and clears empty selections', () => {
+            Store.filters.set({ variation: 'promo,bogus,grouped' });
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+            for (const variation of ['bogus', '', undefined]) {
+                Store.filters.set({ variation });
+                expect(Store.filters.get().variation).to.be.undefined;
+            }
         });
     });
 
@@ -63,6 +122,17 @@ describe('store', () => {
         it('normalizes an empty array to undefined', () => {
             Store.filters.set({ locale: 'en_US', status: [] });
             expect(Store.filters.value.status).to.equal(undefined);
+        });
+    });
+
+    describe('pageValidator', () => {
+        afterEach(() => {
+            Store.page.set(PAGE_NAMES.WELCOME);
+        });
+
+        it('accepts the baselines page', () => {
+            Store.page.set(PAGE_NAMES.BASELINES);
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINES);
         });
     });
 });

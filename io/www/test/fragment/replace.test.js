@@ -257,9 +257,7 @@ describe('replace', () => {
         });
 
         it('does not unwrap a value with content outside the p tag', async () => {
-            expect(await resolve('{{wrap-ws}}', { 'wrap-ws': 'a {{ws}} b', ws: '<p>ws</p> ' })).to.equal(
-                'a <p>ws</p>  b',
-            );
+            expect(await resolve('{{wrap-ws}}', { 'wrap-ws': 'a {{ws}} b', ws: '<p>ws</p> ' })).to.equal('a <p>ws</p>  b');
         });
     });
 

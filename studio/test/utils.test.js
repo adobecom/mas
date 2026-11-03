@@ -2,6 +2,8 @@ import { expect } from '@open-wc/testing';
 import sinon from 'sinon';
 import {
     buildCardsDeepLink,
+    buildProjectDeepLink,
+    formatAuthorPath,
     generateLinkToUse,
     generateFieldLink,
     getFragmentPartsToUse,
@@ -19,6 +21,7 @@ import {
     describeVariationsToDelete,
     extractImageUrl,
     getFragmentEditorUrl,
+    resolvePromoVariationDefaultCard,
 } from '../src/utils.js';
 import { buildPictureInnerMarkup } from '../../web-components/src/image-markup.js';
 import {
@@ -72,7 +75,38 @@ describe('getFragmentEditorUrl', () => {
     });
 });
 
+describe('formatAuthorPath', () => {
+    it('inserts the content type right after the surface', () => {
+        expect(formatAuthorPath('merch-card', 'ACOM / Catalog / Teams')).to.equal('ACOM / merch-card / Catalog / Teams');
+    });
+
+    it('returns the parts unchanged without a content type', () => {
+        expect(formatAuthorPath('', 'ACOM / Catalog')).to.equal('ACOM / Catalog');
+    });
+
+    it('returns an empty string for empty parts', () => {
+        expect(formatAuthorPath('merch-card', '')).to.equal('');
+    });
+
+    it('keeps separators inside a title', () => {
+        expect(formatAuthorPath('merch-card-collection', 'ACOM / A / B')).to.equal('ACOM / merch-card-collection / A / B');
+    });
+});
+
 describe('generateLinkToUse', () => {
+    it('builds the path as surface / content type / parts', () => {
+        const { authorPath } = generateLinkToUse(mockFragmentForCode(CARD_MODEL_PATH), 'acom', 'content');
+        expect(authorPath).to.match(/^ACOM \/ merch-card \//);
+        expect(authorPath).to.not.match(/^merch-card:/);
+    });
+
+    it('puts the content type right after the surface for collections', () => {
+        const fragment = mockFragmentForCode(COLLECTION_MODEL_PATH, 'frag-456', 'My Collection Title');
+        expect(generateLinkToUse(fragment, 'acom', 'content').authorPath).to.equal(
+            'ACOM / merch-card-collection / My Collection Title',
+        );
+    });
+
     it('appends fragment title to richText link text for cards', () => {
         const fragment = mockFragmentForCode(CARD_MODEL_PATH);
         const { authorPath, richText, href } = generateLinkToUse(fragment, 'acom', 'content');
@@ -373,6 +407,24 @@ describe('buildCardsDeepLink', () => {
         const linkable = [{ model: { path: CARD_MODEL_PATH } }, { model: { path: COLLECTION_MODEL_PATH } }];
         const lines = linkable.map((f) => buildCardsDeepLink(f, 'sandbox', 'content')).filter(Boolean);
         expect(lines).to.deep.equal([]);
+    });
+});
+
+describe('buildProjectDeepLink', () => {
+    it('builds a Studio editor URL from page, id param and surface', () => {
+        const href = buildProjectDeepLink('bulkPublishEditor', 'bulkPublishProjectId', 'proj-123', 'acom');
+        expect(href).to.equal(
+            'https://mas.adobe.com/studio.html#page=bulkPublishEditor&bulkPublishProjectId=proj-123&path=acom',
+        );
+    });
+
+    it('omits the surface when it is unknown', () => {
+        const href = buildProjectDeepLink('promotions-editor', 'promotionId', 'promo-1');
+        expect(href).to.equal('https://mas.adobe.com/studio.html#page=promotions-editor&promotionId=promo-1');
+    });
+
+    it('returns null when id is missing', () => {
+        expect(buildProjectDeepLink('translation-editor', 'translationProjectId', null, 'acom')).to.be.null;
     });
 });
 
@@ -867,6 +919,41 @@ describe('describeVariationsToDelete', () => {
         expect(describeVariationsToDelete(fragment, [groupedPath1, promoFromGroupedPath])).to.equal(
             '1 grouped, 1 promo variation(s)',
         );
+    });
+});
+
+describe('resolvePromoVariationDefaultCard', () => {
+    const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+    const defaultCard = {
+        id: 'default-id',
+        path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+        fields: [{ name: 'variations', values: [groupedPath] }],
+    };
+    const aem = {
+        sites: {
+            cf: {
+                fragments: {
+                    getReferencedBy: async () => ({ parentReferences: [{ path: defaultCard.path }] }),
+                    getByPath: async (path) => (path === defaultCard.path ? defaultCard : null),
+                    getById: async (id) => (id === defaultCard.id ? defaultCard : null),
+                },
+            },
+        },
+    };
+
+    it('resolves a grouped variation source to its default card', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, { id: 'edu-id', path: groupedPath });
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a default card source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, defaultCard);
+        expect(result).to.equal(defaultCard);
+    });
+
+    it('returns a null source unchanged', async () => {
+        const result = await resolvePromoVariationDefaultCard(aem, null);
+        expect(result).to.be.null;
     });
 });
 

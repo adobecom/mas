@@ -30,7 +30,10 @@ export const styles = [
         }
 
         .title,
-        .path,
+        .path {
+            min-width: 0;
+        }
+
         .offer-id,
         .osi {
             min-width: 0;
@@ -43,9 +46,8 @@ export const styles = [
             }
 
             div:not([slot='trigger']) {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 
@@ -55,9 +57,8 @@ export const styles = [
             }
 
             div {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 

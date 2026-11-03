@@ -14,6 +14,7 @@ import {
 } from './translation-utils.js';
 import './mas-translation-duplicate-dialog.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
+import { untrackPendingProject } from '../common/utils/project-list-utils.js';
 
 const translationSkeletonRow = () =>
     html`<sp-table-row class="skeleton-row">
@@ -279,7 +280,7 @@ class MasTranslation extends LitElement {
             Store.translationProjects.list.loading.set(true);
             showToast('Deleting translation project...');
             await this.repository.deleteFragment(translationProject, { startToast: false, endToast: false });
-            Store.translationProjects.list.data.getMeta('pendingDuplicates')?.delete(translationProject.id);
+            untrackPendingProject(Store.translationProjects.list.data, translationProject.id);
             const updatedTranslationProjects = this.#allTranslationProjectsData.filter(
                 (project) => project.get().id !== translationProject.get().id,
             );

@@ -2,7 +2,14 @@ import { html, nothing } from 'lit';
 import { FRAGMENT_STATUS, TRANSLATION_PROJECT_MODEL_ID } from '../constants.js';
 import Store from '../store.js';
 import { FragmentStore } from '../reactivity/fragment-store.js';
-import { getFragmentPartsToUse, MODEL_WEB_COMPONENT_MAPPING, normalizeKey, UserFriendlyError } from '../utils.js';
+import {
+    formatAuthorPath,
+    getFragmentPartsToUse,
+    MODEL_WEB_COMPONENT_MAPPING,
+    normalizeKey,
+    UserFriendlyError,
+} from '../utils.js';
+import { trackPendingProject } from '../common/utils/project-list-utils.js';
 
 /** Field types for duplication; `title` is replaced and `status`, `submissionDate`, and `completedLocales` are reset. */
 const TRANSLATION_PROJECT_FIELD_TYPE_MAP = {
@@ -99,30 +106,11 @@ export async function duplicateTranslationProject(repository, sourceProject, tit
     }
     const projectStore = new FragmentStore(newProject);
     const list = Store.translationProjects.list.data;
-    const pendingDuplicates = list.getMeta('pendingDuplicates') ?? new Map();
-    pendingDuplicates.set(newProject.id, projectStore);
-    list.setMeta('pendingDuplicates', pendingDuplicates);
+    trackPendingProject(list, projectStore);
     if (repository.getTranslationsPath() === payload.parentPath) {
         list.set((projects) => [projectStore, ...projects.filter((project) => project.id !== newProject.id)]);
     }
     return newProject;
-}
-
-/**
- * Keeps newly created duplicates visible for their surface until AEM search returns them.
- * @param {FragmentStore[]} projects - Indexed projects in server sort order.
- * @param {string} translationsPath - Active surface's translations folder.
- * @returns {FragmentStore[]} Indexed projects preceded by unindexed duplicates, newest first.
- */
-export function mergeTranslationProjectList(projects, translationsPath) {
-    const pendingDuplicates = Store.translationProjects.list.data.getMeta('pendingDuplicates') ?? new Map();
-    for (const project of projects) {
-        pendingDuplicates.delete(project.id);
-    }
-    return [
-        ...[...pendingDuplicates.values()].reverse().filter((project) => project.get().path.startsWith(`${translationsPath}/`)),
-        ...projects,
-    ];
 }
 
 export const ODIN_LOC_TASK_NAME_MAX_LENGTH = 255;
@@ -155,14 +143,14 @@ export function getOdinLocTaskNameValidationError(value) {
 }
 
 /**
- * Returns a human-readable fragment name for display (e.g. "merch-card: SURFACE / Title").
+ * Returns a human-readable fragment name for display (e.g. "SURFACE / merch-card / Title").
  * @param {Object} data - Fragment data (object with model.path, fields, tags, etc.)
  * @returns {string}
  */
 export function getFragmentName(data) {
     const webComponentName = MODEL_WEB_COMPONENT_MAPPING[data?.model?.path];
     const { fragmentParts } = getFragmentPartsToUse(data, Store.search.value.path);
-    return `${webComponentName}: ${fragmentParts}`;
+    return formatAuthorPath(webComponentName, fragmentParts);
 }
 
 /**

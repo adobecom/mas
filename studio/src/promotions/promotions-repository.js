@@ -4,7 +4,7 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment } from '../utils.js';
+import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
 
@@ -102,12 +102,13 @@ export async function resolveDefaultFragmentForPromoVariation(aem, promoVariatio
         const promoTag = getPromotionTagFromFragment(variation);
         if (promoTag) attachedFragmentPaths = getAttachedFragmentPathsForTag(projects, promoTag);
     }
-    const parent = await promotionVariations.resolveDefaultFragmentForPromoVariation(
+    const source = await promotionVariations.resolveDefaultFragmentForPromoVariation(
         aem,
         promoVariationPath,
         promoVariationId,
         attachedFragmentPaths,
     );
+    const parent = await resolvePromoVariationDefaultCard(aem, source);
     if (!parent) return null;
     return mergePromoReferencesIntoFragmentData(aem, parent, loadPromotions);
 }

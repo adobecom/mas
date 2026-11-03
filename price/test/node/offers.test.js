@@ -1,7 +1,27 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { selectOffers, sumOffers } from '../../src/index.js';
+import { applyPlanType, selectOffers, sumOffers } from '../../src/index.js';
 import { baseOffer } from '../fixtures/cases.js';
+import { planTypeCases } from '../fixtures/offer-cases.js';
+
+describe('applyPlanType', () => {
+    for (const { id, offer, expected } of planTypeCases) {
+        it(`maps ${id} offers to the expected plan type`, () => {
+            const result = applyPlanType(offer);
+            assert.deepEqual(result, { ...offer, planType: expected });
+        });
+    }
+    it('preserves other offer fields without mutating the input', () => {
+        const offer = structuredClone(baseOffer);
+        offer.planType = 'STALE';
+        const before = structuredClone(offer);
+        const result = applyPlanType(offer);
+        assert.notEqual(result, offer);
+        assert.deepEqual(result, { ...offer, planType: 'ABM' });
+        assert.equal(result.priceDetails, offer.priceDetails);
+        assert.deepEqual(offer, before);
+    });
+});
 
 describe('selectOffers', () => {
     it('returns the original empty array', () => {

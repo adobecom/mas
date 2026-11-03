@@ -23,6 +23,8 @@ describe('MasTopNav', () => {
     let originalTranslationInEdit;
     let originalMasksFragmentId;
     let originalMasksCreating;
+    let originalBulkEditInEdit;
+    let originalBulkEditProjectId;
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
@@ -36,6 +38,8 @@ describe('MasTopNav', () => {
         originalTranslationInEdit = Store.translationProjects.inEdit.value;
         originalMasksFragmentId = Store.masks.fragmentId.value;
         originalMasksCreating = Store.masks.creating.value;
+        originalBulkEditInEdit = Store.bulkEditProjects.inEdit.value;
+        originalBulkEditProjectId = Store.bulkEditProjects.projectId.value;
         window.adobeIMS = {
             getAccessToken: () => ({ token: 'mock-token' }),
             getProfile: () => Promise.resolve({ displayName: 'Test User', email: 'test@example.com' }),
@@ -60,6 +64,8 @@ describe('MasTopNav', () => {
         Store.translationProjects.inEdit.value = originalTranslationInEdit;
         Store.masks.fragmentId.value = originalMasksFragmentId;
         Store.masks.creating.value = originalMasksCreating;
+        Store.bulkEditProjects.inEdit.value = originalBulkEditInEdit;
+        Store.bulkEditProjects.projectId.value = originalBulkEditProjectId;
         delete window.adobeIMS;
     });
 
@@ -105,7 +111,48 @@ describe('MasTopNav', () => {
         });
     });
 
+    describe('isBulkEditEditorPage getter', () => {
+        it('should return true when on bulk edit editor page', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT_EDITOR;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.isBulkEditEditorPage).to.be.true;
+        });
+    });
+
+    describe('bulkEditEditorBreadcrumbLabel getter', () => {
+        it('should return the project title when the project in edit has one', async () => {
+            Store.bulkEditProjects.inEdit.value = { get: () => ({ getFieldValue: () => 'My Bulk Edit' }) };
+            Store.bulkEditProjects.projectId.value = 'project-1';
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('My Bulk Edit');
+        });
+
+        it('should return Edit project when there is a project id but no title', async () => {
+            Store.bulkEditProjects.inEdit.value = null;
+            Store.bulkEditProjects.projectId.value = 'project-1';
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Edit project');
+        });
+
+        it('should return Create project when there is no project id and no title', async () => {
+            Store.bulkEditProjects.inEdit.value = null;
+            Store.bulkEditProjects.projectId.value = null;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Create project');
+        });
+    });
+
     describe('breadcrumbs', () => {
+        it('should render bulk edit breadcrumbs and navigate to advanced tools from first crumb', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Bulk edits']);
+            breadcrumbs[0].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.ADVANCED_TOOLS)).to.be.true;
+        });
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;
             Store.promotions.promotionId.value = null;

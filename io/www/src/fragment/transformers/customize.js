@@ -68,12 +68,15 @@ function _deepMerge(topLevel, ...objects) {
     // Some variants carry partial array fields across variations (e.g. compare-chart `features`);
     // concatenate parent + child into the freshly-built result instead of mutating `child`
     // (a shared reference reused by sibling merges).
-    const arraysToMerge = MERGE_CONFIG[objects?.[0]?.fields?.variant]?.arraysToMerge;
+    // Every layer counts, in order (e.g. baselines then the fragment); a layer repeated to keep its id & path first only
+    // counts at its last position.
+    // effective variant: a partial layer (e.g. a segment baseline) inherits it from another one
+    const arraysToMerge = MERGE_CONFIG[result.fields?.variant]?.arraysToMerge;
+    const layers = objects.filter((obj, index) => objects.lastIndexOf(obj) === index);
     arraysToMerge?.forEach((field) => {
-        const parentValues = objects[0]?.fields?.[field]?.value || [];
-        const childValues = objects[1]?.fields?.[field]?.value || [];
-        if (result.fields?.[field] && (parentValues.length || childValues.length)) {
-            result.fields[field].value = [...parentValues, ...childValues];
+        const values = layers.flatMap((obj) => obj?.fields?.[field]?.value || []);
+        if (result.fields?.[field] && values.length) {
+            result.fields[field].value = values;
         }
     });
     return result;
@@ -473,26 +476,77 @@ function adaptReferencesTree(referencesTree, customizedRoot, variationReferences
 }
 
 /**
+ * Baseline fragments only provide defaults: their own variations are never resolved.
+ */
+function prepareBaseline(baseline) {
+    const { variations, ...fields } = baseline.fields;
+    // explicit empty sentinels must survive layering to override lower layers, they are normalized once merged
+    return { ...skimFragmentFromReferences(baseline), fields };
+}
+
+/**
+ * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Unset
+ * icons are delivered as `[]`, which merging skips: they don't count.
+ */
+function withOfferIcon(offerBaseline, higherLayers) {
+    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon?.length)) return offerBaseline;
+    const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
+    return { ...offerBaseline, fields };
+}
+
+/**
+ * ADR CONT-0005: layers `offerBaseline` < `fragmentBaseline` < `fragmentSegmentBaseline` < fragment, as resolved by the
+ * `offer` transformer for that fragment. Applied before variations, so they override baselines too.
+ */
+function applyBaselines(fragment, { baselines }) {
+    const { offerBaseline, fragmentBaseline, fragmentSegmentBaseline } = baselines?.[fragment.id] ?? {};
+    const higherLayers = [fragmentBaseline, fragmentSegmentBaseline, fragment].filter(Boolean);
+    const layers = [
+        offerBaseline && withOfferIcon(offerBaseline, higherLayers),
+        fragmentBaseline,
+        fragmentSegmentBaseline,
+    ].filter((baseline) => baseline && baseline.id !== fragment.id);
+    if (!layers.length) return fragment;
+    const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
+    if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
+    if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
+    if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
+    return merged;
+}
+
+function applyMask(fragment, maskFragment) {
+    const merged = { ...deepMerge(fragment, maskFragment), maskId: maskFragment.id };
+    const tags = [...new Set([...(maskFragment.fields?.tags ?? []), ...(fragment.fields?.tags ?? [])])];
+    if (tags.length > 0) merged.fields.tags = tags;
+    return merged;
+}
+
+/**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
  * @param {*} referencesTree
  * @param {*} customizeContext
  * @returns
  */
-function customizeTree(root, referencesTree = [], customizeContext) {
+function customizeTree(fragment, referencesTree = [], customizeContext) {
+    const root = applyBaselines(fragment, customizeContext);
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
     //apply regional or promo variation, if any.
     const {
         references: variationReferences,
         referencesTree: variationReferencesTree,
-        ...customizedRoot
+        ...mergedRoot
     } = mergeVariations(root, customizeContext, selectedPromoProject);
+    let customizedRoot = mergedRoot;
     if (variationReferences) {
         // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
         // win, since they may already hold customized values.
         customizeContext.references = { ...variationReferences, ...customizeContext.references };
     }
     customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
+    if (customizeContext.maskFragment && customizedRoot.model?.id === CARD_MODEL_ID) {
+        customizedRoot = applyMask(customizedRoot, customizeContext.maskFragment);
+    }
     if (selectedPromoProject) {
         // set data-promotion-project attribute, even when the project
         // only substitutes the OSI (no promo code and no variation).
@@ -515,6 +569,15 @@ function customizeTree(root, referencesTree = [], customizeContext) {
         const reference = adaptedTree[i];
         //customize each card/collection
         if (reference.fieldName === 'cards' || reference.fieldName === 'collections') {
+            // a fragment referenced several times (e.g. by 2 nested collections) is customized once: customizing its
+            // customized value again would layer baselines & variations twice
+            const customizedTree = customizeContext.customizedTrees.get(reference.identifier);
+            if (customizedTree) {
+                if (customizedTree !== reference.referencesTree) {
+                    adaptedTree[i] = { ...reference, referencesTree: customizedTree };
+                }
+                continue;
+            }
             const child = customizeContext.references[reference.identifier]?.value;
             if (child) {
                 //start customization of the child fragment
@@ -525,6 +588,7 @@ function customizeTree(root, referencesTree = [], customizeContext) {
                 );
                 //we collect update references and merge in current references
                 customizeContext.references = { ...customizeContext.references, ...customizedReferences };
+                customizeContext.customizedTrees.set(reference.identifier, childAdaptedTree);
                 //propagate adapted child tree up so the parent's tree stays in sync with the customized child fields
                 if (childAdaptedTree !== reference.referencesTree) {
                     adaptedTree[i] = { ...reference, referencesTree: childAdaptedTree };
@@ -556,7 +620,7 @@ async function customize(context) {
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promoProjects = context.promoProjects ?? [];
-    const { maskFragment, pzn } = context;
+    const { pzn } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -575,6 +639,8 @@ async function customize(context) {
         surface,
         // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
         promoScopeById: {},
+        // adapted references tree of each customized card / collection, by id
+        customizedTrees: new Map(),
     };
     if (
         pzn &&
@@ -587,14 +653,10 @@ async function customize(context) {
     }
 
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
-    let { fragment: customizedFragment } = customizedTree;
+    const { fragment: customizedFragment } = customizedTree;
+    if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
-    if (maskFragment && customizedFragment.model?.id === CARD_MODEL_ID) {
-        logDebug(() => `Applying mask ${maskFragment.id} on fragment ${customizedFragment.id}`, context);
-        customizedFragment = deepMerge(customizedFragment, maskFragment);
-        customizedFragment.maskId = maskFragment.id;
-    }
     customizedFragment.references = customizedReferences;
     customizedFragment.referencesTree = customizedReferenceTree;
     return {

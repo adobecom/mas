@@ -10,21 +10,30 @@ import { Fragment } from '../../src/aem/fragment.js';
 import Events from '../../src/events.js';
 import '../../src/swc.js';
 import '../../src/promotions/mas-promotions-items-table.js';
+import '../../src/common/components/mas-selected-items.js';
 import { buildPromotionOfferRecord } from '../../src/promotions/promotion-editor-utils.js';
 import { setCardVariationsByPaths } from '../../src/common/utils/items-loader.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
+    let originalProfile;
+    let originalUsers;
 
     const createItemsTable = () => document.createElement('mas-promotions-items-table');
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        originalProfile = Store.profile.get();
+        originalUsers = Store.users.get();
+        Store.profile.set({ email: 'poweruser@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
         setItemsSelectionStore(Store.promotions);
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
+        Store.promotions.collectionsByPaths.set(new Map());
         Store.promotions.offerRecordsCache = new Map();
         // mas-select-items-table's showSkeleton calc factors in the global fragments list
         // loading state even in viewOnly mode, so it must reflect an already-settled list
@@ -40,11 +49,37 @@ describe('MasPromotionsItemsTable', () => {
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
         Store.promotions.selectedCollections.set([]);
+        Store.promotions.cardsByPaths.set(new Map());
+        Store.promotions.collectionsByPaths.set(new Map());
         Store.promotions.offerRecordsCache = new Map();
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
         setItemsSelectionStore(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
     });
+
+    for (const { label, groups, allowed } of [
+        { label: 'editor', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'], allowed: false },
+        { label: 'poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], allowed: true },
+        { label: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], allowed: true },
+        { label: 'viewer', groups: [], allowed: false },
+    ]) {
+        it(`only allows an authorized ${label} to remove offers`, async () => {
+            Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups }]);
+            Store.promotions.selectedOffers.set(['restricted-offer']);
+            const el = await fixture(
+                html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`,
+            );
+            const remove = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes('Remove from list'),
+            );
+            expect(remove.disabled).to.equal(!allowed);
+            remove.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.promotions.selectedOffers.value).to.deep.equal(allowed ? [] : ['restricted-offer']);
+        });
+    }
 
     it('renders offer column headers when type is offers', async () => {
         Store.promotions.selectedOffers.set(['offer-header-test']);
@@ -135,6 +170,79 @@ describe('MasPromotionsItemsTable', () => {
         await selectItemsTable.updateComplete;
         expect(selectItemsTable.shadowRoot.textContent).to.include('Collection title');
         el.remove();
+    });
+
+    describe('selection sidebar cache', () => {
+        for (const { type, modelPath } of [
+            { type: TABLE_TYPE.CARDS, modelPath: CARD_MODEL_PATH },
+            { type: TABLE_TYPE.COLLECTIONS, modelPath: COLLECTION_MODEL_PATH },
+        ]) {
+            it(`displays nine already-loaded ${type} without waiting for catalog results or fetching them again`, async () => {
+                const paths = Array.from({ length: 9 }, (_, i) => `/content/dam/mas/sandbox/en_US/selected-${i}`);
+                const selectedStore =
+                    type === TABLE_TYPE.CARDS ? Store.promotions.selectedCards : Store.promotions.selectedCollections;
+                selectedStore.set(paths);
+                Store.promotions.showSelected.set(true);
+                const getFragmentByPath = sandbox.stub().callsFake(async (path) => ({
+                    id: path,
+                    path,
+                    title: `Selected ${path.split('/').pop()}`,
+                    model: { path: modelPath },
+                    fields: [],
+                    tags: [],
+                }));
+                const el = createItemsTable();
+                el.type = type;
+                sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+                document.body.appendChild(el);
+                try {
+                    await waitUntil(() => el.viewOnlyFragments.length === 9 && !el.viewOnlyLoading);
+                    const sidebar = await fixture(html`<mas-selected-items></mas-selected-items>`);
+                    expect(sidebar.shadowRoot.querySelectorAll('.item').length).to.equal(9);
+                    expect(getFragmentByPath.callCount).to.equal(9);
+                } finally {
+                    el.remove();
+                    Store.promotions.showSelected.set(false);
+                }
+            });
+        }
+
+        it('displays selected card titles while grouped variation enrichment is still pending', async () => {
+            const path = '/content/dam/mas/sandbox/en_US/selected-card';
+            const variationPath = `${path}/pzn/smb`;
+            let resolveVariation;
+            const variationPending = new Promise((resolve) => {
+                resolveVariation = resolve;
+            });
+            const card = {
+                id: 'selected-card',
+                path,
+                title: 'Already selected card',
+                model: { path: CARD_MODEL_PATH },
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+                tags: [],
+            };
+            const getFragmentByPath = sandbox.stub().resolves(card);
+            getFragmentByPath.withArgs(variationPath).returns(variationPending);
+            Store.promotions.selectedCards.set([path]);
+            Store.promotions.showSelected.set(true);
+            const el = createItemsTable();
+            el.type = TABLE_TYPE.CARDS;
+            sandbox.stub(el, 'repository').get(() => ({ aem: { getFragmentByPath } }));
+            document.body.appendChild(el);
+            try {
+                await waitUntil(() => getFragmentByPath.calledWith(variationPath));
+                const sidebar = await fixture(html`<mas-selected-items></mas-selected-items>`);
+                expect(el.viewOnlyLoading).to.be.true;
+                expect(sidebar.shadowRoot.querySelector('.title')?.textContent).to.equal('Already selected card');
+            } finally {
+                resolveVariation(null);
+                await waitUntil(() => !el.viewOnlyLoading);
+                el.remove();
+                Store.promotions.showSelected.set(false);
+            }
+        });
     });
 
     describe('viewOnly windowing', () => {
@@ -763,6 +871,36 @@ describe('MasPromotionsItemsTable', () => {
         removeItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
         await el.updateComplete;
         expect(Store.promotions.selectedOffers.value).to.not.include('offer-remove');
+    });
+
+    it('rechecks poweruser permission after the offer removal dialog is confirmed', async () => {
+        const path = '/content/dam/mas/sandbox/en_US/ffsa-card';
+        Store.promotions.selectedOffers.set(['ffsa-osi']);
+        Store.promotions.selectedCards.set([path]);
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        Store.promotions.cardsByPaths.set(new Map([[path, { path, tags: [{ id: 'mas:product_code/ffsa' }] }]]));
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        const remove = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+            item.textContent.includes('Remove from list'),
+        );
+        remove.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await el.updateComplete;
+        expect(el.confirmDialogConfig).to.exist;
+        Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        const toast = sandbox.spy();
+        el.addEventListener('show-toast', toast);
+        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+        await el.updateComplete;
+        await Promise.resolve();
+        expect(Store.promotions.selectedOffers.value).to.deep.equal(['ffsa-osi']);
+        expect(Store.promotions.selectedCards.value).to.deep.equal([path]);
+        expect(toast.firstCall.args[0].detail).to.deep.equal({
+            text: 'You do not have permission to remove items from a promotion project.',
+            variant: 'negative',
+        });
     });
 
     it('removes offer by OST selector id when offerData.offerId differs', async () => {
@@ -1531,6 +1669,31 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
 
+            expect(aem.createFragmentCopy.called).to.be.false;
+        });
+
+        it('rechecks editor permission after promo variation creation is confirmed', async () => {
+            setupPromotionInEdit();
+            const aem = createPromoVariationAem();
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
+                aem,
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+            await clickCreateAndWaitForDialog(el);
+            el.promoVariationSelectedGeos = ['mas:pzn/country/ar'];
+            await el.updateComplete;
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            expect(el.confirmDialogConfig).to.exist;
+            Store.users.set([]);
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 10));
             expect(aem.createFragmentCopy.called).to.be.false;
         });
 
@@ -2738,8 +2901,8 @@ describe('MasPromotionsItemsTable', () => {
                 '',
                 'Offer',
                 'Actions',
-                'Fragment title',
                 'Path',
+                'Fragment title',
                 'Related pages',
                 'Offer ID',
                 'OSI',
@@ -2753,8 +2916,8 @@ describe('MasPromotionsItemsTable', () => {
                 'chevron',
                 'offer',
                 'actions',
-                'fragmentTitle',
                 'path',
+                'fragmentTitle',
                 'relatedPages',
                 'offerId',
                 'osi',
@@ -2763,8 +2926,8 @@ describe('MasPromotionsItemsTable', () => {
             expect(selectItemsTable.cellsOverride).to.deep.equal([
                 'OfferName',
                 'Actions',
-                'Title',
                 'StudioPath',
+                'Title',
                 'RelatedPages',
                 'OfferId',
                 'Osi',
@@ -2773,8 +2936,8 @@ describe('MasPromotionsItemsTable', () => {
             expect(selectItemsTable.variationColumns.map(({ key }) => key)).to.deep.equal([
                 'offer',
                 'actions',
-                'fragmentTitle',
                 'path',
+                'fragmentTitle',
                 'applies-to',
                 'country',
                 'offerId',
@@ -2785,8 +2948,8 @@ describe('MasPromotionsItemsTable', () => {
             expect(selectItemsTable.variationCells).to.deep.equal([
                 'OfferName',
                 'Actions',
-                'Title',
                 'StudioPath',
+                'Title',
                 'AppliesTo',
                 'Country',
                 'OfferId',
@@ -2842,8 +3005,8 @@ describe('MasPromotionsItemsTable', () => {
             expect(headers.map((header) => header.textContent.trim())).to.deep.equal([
                 'Offer',
                 'Actions',
-                'Fragment title',
                 'Path',
+                'Fragment title',
                 'Applies to',
                 'Country',
                 'Offer ID',
@@ -2854,8 +3017,8 @@ describe('MasPromotionsItemsTable', () => {
             expect(headers.map((header) => header.className)).to.deep.equal([
                 'offer-head-cell',
                 'actions-head-cell',
-                'title-head-cell',
                 'path-head-cell',
+                'title-head-cell',
                 'applies-to-head-cell',
                 'country-head-cell',
                 'offer-id-head-cell',

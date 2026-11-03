@@ -247,7 +247,7 @@ export default class MasRelatedVariations extends LitElement {
         const tagNames = variation?.fieldTags?.map(({ name }) => name) || [];
         return html`
             <sp-table-row @dblclick=${(e) => this.#handleVariationRowDblClick(e, variation)}>
-                ${this.#renderVariationTitleCell(variation)} ${this.#renderPathCell(variation.path)}
+                ${this.#renderPathCell(variation.path)} ${this.#renderVariationTitleCell(variation)}
                 <sp-table-cell>
                     ${tagNames.length
                         ? html`<sp-tags>${tagNames.map((tagName) => html`<sp-tag>${tagName}</sp-tag>`)}</sp-tags>`
@@ -268,8 +268,8 @@ export default class MasRelatedVariations extends LitElement {
         return html`
             <sp-table size="m">
                 <sp-table-head>
-                    <sp-table-head-cell>Variation name</sp-table-head-cell>
                     <sp-table-head-cell class="path">Path</sp-table-head-cell>
+                    <sp-table-head-cell>Variation name</sp-table-head-cell>
                     <sp-table-head-cell>Grouped tags</sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body>
@@ -287,7 +287,7 @@ export default class MasRelatedVariations extends LitElement {
         const region = extractLocaleFromPath(variation.path) || '-';
         return html`
             <sp-table-row @dblclick=${(e) => this.#handleVariationRowDblClick(e, variation)}>
-                ${this.#renderVariationTitleCell(variation)} ${this.#renderPathCell(variation.path)}
+                ${this.#renderPathCell(variation.path)} ${this.#renderVariationTitleCell(variation)}
                 <sp-table-cell>${region}</sp-table-cell>
             </sp-table-row>
         `;
@@ -303,8 +303,8 @@ export default class MasRelatedVariations extends LitElement {
         return html`
             <sp-table size="m">
                 <sp-table-head>
-                    <sp-table-head-cell>Variation name</sp-table-head-cell>
                     <sp-table-head-cell class="path">Path</sp-table-head-cell>
+                    <sp-table-head-cell>Variation name</sp-table-head-cell>
                     <sp-table-head-cell>Region</sp-table-head-cell>
                 </sp-table-head>
                 <sp-table-body>

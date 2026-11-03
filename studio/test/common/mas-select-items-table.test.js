@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
@@ -49,10 +49,10 @@ describe('MasSelectItemsTable', () => {
      * Sets up cards in all stores needed for testing.
      * This prevents the component from subscribing to fragments.list.data
      */
-    const setupCardsInStore = (cards) => {
-        Store.translationProjects.allCards.set(cards);
-        Store.translationProjects.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
-        Store.translationProjects.displayCards.set([...cards]);
+    const setupCardsInStore = (cards, store = Store.translationProjects) => {
+        store.allCards.set(cards);
+        store.cardsByPaths.set(new Map(cards.map((c) => [c.path, c])));
+        store.displayCards.set([...cards]);
     };
 
     /**
@@ -95,6 +95,7 @@ describe('MasSelectItemsTable', () => {
         Store.fragments.list.data.set([]);
         Store.fragments.list.firstPageLoaded.set(true);
         Store.fragments.list.loading.set(false);
+        Store.fragments.list.hasMore.set(false);
         Store.placeholders.list.data.set([]);
         Store.placeholders.list.loading.set(false);
     };
@@ -236,9 +237,9 @@ describe('MasSelectItemsTable', () => {
                 'chevron',
                 'checkbox',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'status',
             ]);
         });
@@ -249,9 +250,9 @@ describe('MasSelectItemsTable', () => {
             expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
                 'chevron',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'itemType',
                 'status',
             ]);
@@ -270,9 +271,9 @@ describe('MasSelectItemsTable', () => {
             expect(el.tableColumns.map((c) => c.key)).to.deep.equal([
                 'chevron',
                 'offer',
+                'path',
                 'fragmentTitle',
                 'offerId',
-                'path',
                 'itemType',
                 'status',
                 'preview',
@@ -283,7 +284,7 @@ describe('MasSelectItemsTable', () => {
         it('exposes selectable collection columns', async () => {
             const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
             await el.updateComplete;
-            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'collectionTitle', 'path', 'status']);
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['checkbox', 'path', 'collectionTitle', 'status']);
         });
 
         it('exposes view-only collection columns without a preview column even when a preview renderer is provided', async () => {
@@ -296,7 +297,7 @@ describe('MasSelectItemsTable', () => {
                 ></mas-select-items-table>`,
             );
             await el.updateComplete;
-            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['collectionTitle', 'path', 'status', 'actions']);
+            expect(el.tableColumns.map((c) => c.key)).to.deep.equal(['path', 'collectionTitle', 'status', 'actions']);
         });
 
         it('exposes selectable placeholder columns', async () => {
@@ -480,6 +481,105 @@ describe('MasSelectItemsTable', () => {
     });
 
     describe('rendering - loading state', () => {
+        async function mountSearchTable(repository = null, store = Store.promotions) {
+            setItemsSelectionStore(store);
+            store.allCards.set([]);
+            store.displayCards.set([]);
+            store.cardsByPaths.set(new Map());
+            store.groupedVariationsByParent.set(new Map());
+            store.groupedVariationsData.set(new Map());
+            const el = document.createElement('mas-select-items-table');
+            el.type = TABLE_TYPE.CARDS;
+            el.getDisplayName = (fragment) => fragment.path;
+            sandbox.stub(el, 'repository').get(() => repository);
+            await fixture(el);
+            await waitUntil(() => el.dataReady && !el.dataState.isProcessingCards);
+            return el;
+        }
+
+        for (const name of ['translationProjects', 'compareChart', 'collectionCards', 'bulkPublishProjects']) {
+            it(`preserves the existing post-load empty state while fetching in ${name}`, async () => {
+                const el = await mountSearchTable(null, Store[name]);
+                Store.fragments.list.loading.set(true);
+                await el.updateComplete;
+                expect(el.shadowRoot.textContent).to.include('No items found.');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+            });
+        }
+
+        it('keeps the loading skeleton when an empty search is still fetching after the initial page', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).not.to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+        });
+
+        it('keeps the loading skeleton while more search pages remain and no matches are available yet', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.hasMore.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).not.to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+        });
+
+        it('keeps loading until a grouped variation search result is ready to render', async () => {
+            const path = '/content/dam/mas/acom/en_US/parent';
+            const variationPath = `${path}/pzn/smb`;
+            let resolveVariation;
+            const variationPending = new Promise((resolve) => {
+                resolveVariation = resolve;
+            });
+            const getFragmentByPath = sandbox.stub().returns(variationPending);
+            const el = await mountSearchTable({ aem: { getFragmentByPath } });
+            const card = {
+                ...createMockCard(path, 'UUID parent result'),
+                fields: [{ name: 'variations', values: [variationPath] }],
+                references: [{ path: variationPath }],
+            };
+            try {
+                Store.fragments.list.data.set([{ value: card }]);
+                await waitUntil(() => getFragmentByPath.calledWith(variationPath));
+                await el.updateComplete;
+                expect(el.shadowRoot.textContent).not.to.include('No items found.');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).to.exist;
+
+                resolveVariation({ path: variationPath, fields: [], fieldTags: [{ id: 'mas:personalization/smb' }] });
+                await waitUntil(() => !el.dataState.isProcessingCards);
+                await el.updateComplete;
+                const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+                await row.updateComplete;
+                expect(row.shadowRoot.textContent).to.include('UUID parent result');
+                expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+            } finally {
+                resolveVariation(null);
+                await waitUntil(() => !el.dataState.isProcessingCards);
+            }
+        });
+
+        it('shows the empty state once fetching and card processing have both completed without results', async () => {
+            const el = await mountSearchTable();
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            Store.fragments.list.data.set([]);
+            Store.fragments.list.loading.set(false);
+            await waitUntil(() => !el.dataState.isProcessingCards);
+            await el.updateComplete;
+            expect(el.shadowRoot.textContent).to.include('No items found.');
+            expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+        });
+
+        it('keeps existing results visible while fetching another page', async () => {
+            const el = await mountSearchTable();
+            setupCardsInStore([createMockCard('/existing', 'Existing result')], Store.promotions);
+            await el.updateComplete;
+            const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            Store.fragments.list.loading.set(true);
+            await el.updateComplete;
+            expect(el.shadowRoot.querySelector('mas-collapsible-table-row')).to.equal(row);
+            expect(el.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+        });
+
         it('should render skeleton rows when loading', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
             await el.updateComplete;
@@ -542,9 +642,9 @@ describe('MasSelectItemsTable', () => {
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(7);
             expect(headers[2].textContent.trim()).to.include('Offer');
-            expect(headers[3].textContent.trim()).to.include('Fragment title');
-            expect(headers[4].textContent.trim()).to.include('Offer ID');
-            expect(headers[5].textContent.trim()).to.include('Path');
+            expect(headers[3].textContent.trim()).to.include('Path');
+            expect(headers[4].textContent.trim()).to.include('Fragment title');
+            expect(headers[5].textContent.trim()).to.include('Offer ID');
             expect(headers[6].textContent.trim()).to.include('Status');
         });
 
@@ -556,9 +656,27 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const headers = el.shadowRoot.querySelectorAll('sp-table-head-cell');
             expect(headers.length).to.equal(4);
-            expect(headers[1].textContent.trim()).to.include('Collection title');
-            expect(headers[2].textContent.trim()).to.include('Path');
+            expect(headers[1].textContent.trim()).to.include('Path');
+            expect(headers[2].textContent.trim()).to.include('Collection title');
             expect(headers[3].textContent.trim()).to.include('Status');
+        });
+
+        it('should keep non-Path/title column order unchanged in the full header lists', async () => {
+            const cardsEl = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            await cardsEl.updateComplete;
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await cardsEl.updateComplete;
+            const cardHeaders = [...cardsEl.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+            expect(cardHeaders).to.deep.equal(['', '', 'Offer', 'Path', 'Fragment title', 'Offer ID', 'Status']);
+
+            const collectionsEl = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            await collectionsEl.updateComplete;
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await collectionsEl.updateComplete;
+            const collectionHeaders = [...collectionsEl.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) =>
+                h.textContent.trim(),
+            );
+            expect(collectionHeaders.slice(1)).to.deep.equal(['Path', 'Collection title', 'Status']);
         });
 
         it('should render table headers for placeholders', async () => {
@@ -592,7 +710,7 @@ describe('MasSelectItemsTable', () => {
             expect(collapsibleRow).to.exist;
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
             expect(cells[2].textContent.trim()).to.equal('Photoshop');
-            expect(cells[3].textContent.trim()).includes('Test Card');
+            expect(cells[4].textContent.trim()).includes('Test Card');
         });
 
         it('should display placeholder when no product tag exists', async () => {
@@ -651,7 +769,7 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const collapsibleRow = el.shadowRoot.querySelector('mas-collapsible-table-row');
             const cells = collapsibleRow.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[4].textContent).to.include('no offer data');
+            expect(cells[5].textContent).to.include('no offer data');
         });
     });
 
@@ -669,7 +787,8 @@ describe('MasSelectItemsTable', () => {
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             expect(rows.length).to.equal(1);
             const cells = rows[0].querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent.trim()).to.equal('Test Collection');
+            expect(cells[1].textContent.trim()).to.equal('merch-card-collection: ACOM / Test Collection');
+            expect(cells[2].textContent.trim()).to.equal('Test Collection');
         });
 
         it('should display "-" for collection with no title', async () => {
@@ -680,7 +799,7 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const rows = el.shadowRoot.querySelectorAll('sp-table-row');
             const cells = rows[0].querySelectorAll('sp-table-cell');
-            expect(cells[1].textContent.trim()).to.equal('-');
+            expect(cells[2].textContent.trim()).to.equal('-');
         });
     });
 
@@ -885,7 +1004,7 @@ describe('MasSelectItemsTable', () => {
             Store.translationProjects.selectedCollections.set(['/path/col1']);
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
-            const titleCell = row.querySelectorAll('sp-table-cell')[1];
+            const titleCell = row.querySelectorAll('sp-table-cell')[2];
             titleCell.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
             await el.updateComplete;
             expect(Store.translationProjects.selectedCollections.get()).to.not.include('/path/col1');
@@ -1345,8 +1464,50 @@ describe('MasSelectItemsTable', () => {
             await el.updateComplete;
             const row = el.shadowRoot.querySelector('sp-table-row');
             const cells = row?.querySelectorAll('sp-table-cell');
-            expect(cells?.[2]?.textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
+            expect(cells?.[1]?.textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
         });
+
+        for (const viewOnly of [false, true]) {
+            const mode = viewOnly ? 'viewOnly' : 'selectable';
+
+            it(`should render collection path cell before the title cell and match header order (${mode})`, async () => {
+                const el = await fixture(
+                    html`<mas-select-items-table type="collections" .viewOnly=${viewOnly}></mas-select-items-table>`,
+                );
+                await el.updateComplete;
+                const collections = [
+                    createMockCollection('/path/collection1', 'Collection 1', {
+                        studioPath: 'merch-card-collection: ACOM / Collection 1',
+                    }),
+                ];
+                setupCollectionsInStore(collections);
+                if (viewOnly) el.viewOnlyFragments = collections;
+                await el.updateComplete;
+                const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+                const cells = [...el.shadowRoot.querySelector('sp-table-row').querySelectorAll('sp-table-cell')];
+                const pathIndex = headers.indexOf('Path');
+                const titleIndex = headers.indexOf('Collection title');
+                expect(titleIndex).to.equal(pathIndex + 1);
+                expect(cells[pathIndex].textContent.trim()).to.equal('merch-card-collection: ACOM / Collection 1');
+                expect(cells[titleIndex].textContent.trim()).to.equal('Collection 1');
+            });
+
+            it(`should render card path cell immediately before the title cell (${mode})`, async () => {
+                const el = await fixture(
+                    html`<mas-select-items-table type="cards" .viewOnly=${viewOnly}></mas-select-items-table>`,
+                );
+                await el.updateComplete;
+                const cards = [createMockCard('/path/card1', 'Card 1')];
+                setupCardsInStore(cards);
+                if (viewOnly) el.viewOnlyFragments = cards;
+                await el.updateComplete;
+                const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
+                expect(headers.indexOf('Fragment title')).to.equal(headers.indexOf('Path') + 1);
+                const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+                const path = row.shadowRoot.querySelector('.path');
+                expect(path.nextElementSibling.classList.contains('title')).to.be.true;
+            });
+        }
     });
 
     describe('data loading early returns', () => {
@@ -1970,7 +2131,7 @@ describe('MasSelectItemsTable column overrides and sorting', () => {
         el.dataReady = true;
         await el.updateComplete;
         const headers = [...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((h) => h.textContent.trim());
-        expect(headers).to.deep.equal(['', '', 'Offer', 'Fragment title', 'Offer ID', 'Path', 'Status']);
+        expect(headers).to.deep.equal(['', '', 'Offer', 'Path', 'Fragment title', 'Offer ID', 'Status']);
     });
 
     it('renders columnsOverride verbatim', async () => {

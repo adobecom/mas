@@ -17,9 +17,10 @@ const buckets = () => [
     { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow('Launch', 'b-1')] },
 ];
 
-// Opening the modal runs a Spectrum transition, which can take over a second on a loaded CI
-// runner.
-const modalTransition = { timeout: 5000 };
+// Opening and closing the modal each run a Spectrum transition. On the CI runner (run 41587889767)
+// one open plus one close outlasted mocha's 5000ms, so each wait gets 8s inside a 20s suite limit and
+// a slow step fails with its own message instead of a generic mocha timeout.
+const modalTransition = { timeout: 8000 };
 const wrapperOf = (el) => el.shadowRoot.querySelector('sp-dialog-wrapper');
 const closeButtonOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
 const headCellOf = (el) => el.shadowRoot.querySelector('sp-table-head-cell');
@@ -43,7 +44,8 @@ const closeFixture = async () => {
     await Promise.race([closed, aTimeout(1000)]);
 };
 
-describe('mas-related-artifacts-dialog', () => {
+describe('mas-related-artifacts-dialog', function () {
+    this.timeout(20000);
     afterEach(closeFixture);
     it('renders an underlay behind the dialog', async () => {
         const el = await openDialog();
@@ -145,7 +147,8 @@ describe('mas-related-artifacts-dialog', () => {
     });
 });
 
-describe('related artifacts modal keyboard lifecycle', () => {
+describe('related artifacts modal keyboard lifecycle', function () {
+    this.timeout(20000);
     afterEach(closeFixture);
     let dialog;
     let opener;

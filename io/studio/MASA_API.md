@@ -24,7 +24,8 @@ Controls reach MASA through the iPaaS API Gateway ([IPAASOPS-5173](https://jira.
 The adapter forwards the verified Studio IMS token in `Authorization` for the gateway's own IMS check and
 sends the service token in `Target-Authorization`. The gateway moves it into MASA's `Authorization`, so MASA
 never receives the user's IMS token. The gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and
-`Content-Type` through unchanged, with no path prefix and the body byte-for-byte, or the assertion fails.
+`Content-Type` through unchanged, strip its route prefix so MASA receives `/v1/...`, and keep the body
+byte-for-byte, or the assertion fails.
 
 The current pilot shares MASA's internal read policy. Studio editing permissions do not become a new
 fragment-level read ACL. Opening access to every eligible Studio user requires the entitlement increment
@@ -40,7 +41,7 @@ and [OpenWhisk raw web actions](https://github.com/apache/openwhisk/blob/master/
 | Input                                  | Required value when enabled                                                                                                    |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `MASA_API_ENABLED`                     | Exactly `true`; missing/empty/false leaves the endpoint disabled                                                               |
-| `MASA_API_BASE_URL`                    | Exact HTTPS origin of the MASA control ingress, no path/trailing slash                                                         |
+| `MASA_API_BASE_URL`                    | HTTPS origin of the MASA control ingress, plus the gateway's route prefix if any; no trailing slash                            |
 | `MASA_MEDIA_BASE_URL`                  | Exact HTTPS origin of the browser-reachable media ingress                                                                      |
 | `MASA_API_SERVICE_TOKEN`               | MASA's `STUDIO_API_SERVICE_TOKEN`; 43–256 URL-safe characters                                                                  |
 | `MASA_IDENTITY_PRIVATE_KEY_B64`        | Base64 of a PEM Ed25519 private key; MASA loads its public half from `STUDIO_API_IDENTITY_PUBLIC_KEY_PATH`                     |

@@ -194,6 +194,36 @@ describe('Studio MASA Runtime adapter', function () {
         }
     });
 
+    it('calls the gateway route prefix while signing the path MASA receives', async () => {
+        const h = harness();
+        const response = await h.handler(
+            params(undefined, { MASA_API_BASE_URL: 'https://gateway.example.test/masa-studio-api' }),
+        );
+        assert.equal(response.statusCode, 200);
+        const call = h.calls.find(({ url }) => !url.startsWith('https://ims-na1'));
+        assert.equal(call.url, 'https://gateway.example.test/masa-studio-api/v1/sessions');
+        const claims = JSON.parse(Buffer.from(call.init.headers['X-Masa-User-Assertion'].split('.')[1], 'base64url'));
+        assert.equal(claims.path, '/v1/sessions');
+    });
+
+    it('rejects gateway URLs that could change the request target', async () => {
+        for (const url of [
+            'http://gateway.example.test/masa-studio-api',
+            'https://gateway.example.test/',
+            'https://gateway.example.test/masa-studio-api/',
+            'https://gateway.example.test/masa-studio-api?route=other',
+            'https://gateway.example.test/masa-studio-api#fragment',
+            'https://gateway.example.test/masa/../other',
+            'https://gateway.example.test/masa%2fother',
+            'https://user:secret@gateway.example.test/masa-studio-api',
+        ]) {
+            const h = harness();
+            const response = await h.handler(params(undefined, { MASA_API_BASE_URL: url }));
+            assert.equal(response.body.error.code, 'masa-not-configured', url);
+            assert.equal(h.calls.length, 0, url);
+        }
+    });
+
     it('admits exact configured origins and handles preflight without an IMS request', async () => {
         const h = harness();
         const response = await h.handler(

@@ -108,7 +108,7 @@ export async function callMasa(config, identity, operation, { fetchImpl, signal,
     let response;
     try {
         response = await requestJson(
-            config.apiOrigin + operation.path,
+            config.apiBaseUrl + operation.path,
             {
                 method: operation.method,
                 headers: signedHeaders(config, identity, operation, now()),

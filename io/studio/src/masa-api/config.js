@@ -24,6 +24,14 @@ const origin = (value, local = false) => {
         throw invalid();
     return value;
 };
+/** A gateway routes on a path prefix and strips it, so MASA still receives the signed `/v1/...` path. */
+const apiBase = (value) => {
+    if (typeof value !== 'string' || value.length > 200) throw invalid();
+    const url = new URL(value);
+    const prefix = url.pathname === '/' ? '' : url.pathname;
+    if (origin(url.origin) + prefix !== value || !/^(?:\/[\w-]+)*$/.test(prefix)) throw invalid();
+    return value;
+};
 
 /** Read immutable action inputs, never fields parsed from browser JSON. Empty enablement stays off. */
 export function loadConfig(params) {
@@ -46,7 +54,7 @@ export function loadConfig(params) {
         const privateKey = createPrivateKey(pem);
         if (privateKey.asymmetricKeyType !== 'ed25519') throw invalid();
         return {
-            apiOrigin: origin(params.MASA_API_BASE_URL),
+            apiBaseUrl: apiBase(params.MASA_API_BASE_URL),
             mediaOrigin: origin(params.MASA_MEDIA_BASE_URL),
             privateKey,
             serviceToken: params.MASA_API_SERVICE_TOKEN,

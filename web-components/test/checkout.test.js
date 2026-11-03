@@ -5,6 +5,7 @@ import { CheckoutWorkflowStep } from '../src/constants.js';
 
 describe('Checkout', () => {
     let checkout;
+    let meta;
     const mockSettings = {
         checkoutClientId: 'creative',
         checkoutWorkflowStep: CheckoutWorkflowStep.SEGMENTATION,
@@ -18,6 +19,12 @@ describe('Checkout', () => {
 
     beforeEach(() => {
         checkout = Checkout({ settings: mockSettings });
+    });
+
+    afterEach(() => {
+        meta?.remove();
+        meta = undefined;
+        sinon.restore();
     });
 
     describe('collectCheckoutOptions', () => {
@@ -193,12 +200,11 @@ describe('Checkout', () => {
         });
 
         it('keeps 3-in-1 disabled when the page flag is off', () => {
-            const meta = document.createElement('meta');
+            meta = document.createElement('meta');
             meta.name = 'mas-ff-3in1';
             meta.content = 'off';
             document.head.append(meta);
             const url = checkout.buildCheckoutURL(mockOffers, { modal: 'twp' });
-            meta.remove();
             const params = new URL(url).searchParams;
             expect(params.get('ctx')).to.equal('fp');
             expect(params.has('rtc')).to.be.false;
@@ -206,9 +212,8 @@ describe('Checkout', () => {
         });
 
         it('collects iframe context outside the shared resolver', () => {
-            const frameStub = sinon.stub(window, 'frameElement').value({});
+            sinon.stub(window, 'frameElement').value({});
             const url = checkout.buildCheckoutURL(mockOffers, {});
-            frameStub.restore();
             expect(new URL(url).searchParams.get('ctx')).to.equal('if');
         });
     });

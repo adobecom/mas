@@ -10,7 +10,6 @@ import { delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import Media from '../src/media.js';
-import { MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart-mweb.js';
 
 // Deterministically control Media.isMobile without real viewport changes —
 // setViewport round-trips are slow/flaky under the full suite and can stall the
@@ -31,6 +30,9 @@ runTests(async () => {
     mockLana();
     await mockFetch(withWcs);
     await import('../src/mas.js');
+    const { MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING } = await import(
+        '../src/variants/mini-compare-chart-mweb.js'
+    );
 
     describe('merch-card web component with mini-compare-chart-mweb variant', () => {
         describe('legal-text slot', () => {

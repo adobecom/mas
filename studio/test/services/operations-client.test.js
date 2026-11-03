@@ -235,6 +235,60 @@ describe('mcp-client', () => {
             expect(result.rawResult?.selector?.product_arrangement_code).to.equal('PA-1636');
         });
 
+        describe('ENTERPRISE offers', () => {
+            const individual = { offerId: 'i', customer_segment: 'INDIVIDUAL' };
+            const team = { offerId: 't', customer_segment: 'TEAM' };
+            const enterprise = { offerId: 'e', customer_segment: 'ENTERPRISE' };
+            const respondWith = (body) => fetchStub.resolves({ ok: true, json: async () => body });
+
+            it('drops ENTERPRISE items from search_offers and its rawResult', async () => {
+                respondWith({ offers: [enterprise, individual, team] });
+                const result = await executeStudioOperation('search_offers', {});
+                expect(result.offers).to.deep.equal([individual, team]);
+                expect(result.rawResult.offers).to.deep.equal([individual, team]);
+                expect(result.unavailable).to.equal(undefined);
+            });
+
+            it('reports search_offers as unavailable when every match is ENTERPRISE', async () => {
+                respondWith({ offers: [enterprise] });
+                const result = await executeStudioOperation('search_offers', {});
+                expect(result.offers).to.deep.equal([]);
+                expect(result.unavailable).to.equal(true);
+                expect(result.message).to.include("isn't available");
+            });
+
+            it('drops ENTERPRISE items from list_products', async () => {
+                const products = [{ customerSegments: { ENTERPRISE: true } }, { customerSegments: { TEAM: true } }];
+                respondWith({ products });
+                const result = await executeStudioOperation('list_products', {});
+                expect(result.products).to.deep.equal([products[1]]);
+                expect(result.products[0]).to.equal(products[1]);
+            });
+
+            it('hides an ENTERPRISE offer from get_offer_by_id', async () => {
+                respondWith({ offer: enterprise });
+                const result = await executeStudioOperation('get_offer_by_id', { offerId: 'e' });
+                expect(result.offer).to.equal(null);
+                expect(result.rawResult.offer).to.equal(null);
+                expect(result.unavailable).to.equal(true);
+            });
+
+            it('keeps a non-ENTERPRISE offer from get_offer_by_id', async () => {
+                respondWith({ offer: team });
+                const result = await executeStudioOperation('get_offer_by_id', { offerId: 't' });
+                expect(result.offer).to.deep.equal(team);
+                expect(result.unavailable).to.equal(undefined);
+            });
+
+            it('drops the selector when resolve_offer_selector only matches ENTERPRISE offers', async () => {
+                respondWith({ offers: [enterprise], selector: { product_arrangement_code: 'PA-1' } });
+                const result = await executeStudioOperation('resolve_offer_selector', { offerSelectorId: 'x' });
+                expect(result.offers).to.deep.equal([]);
+                expect(result.unavailable).to.equal(true);
+                expect(result.rawResult.selector).to.equal(undefined);
+            });
+        });
+
         it('preserves a partially failed release result', async () => {
             fetchStub.resolves({
                 ok: true,

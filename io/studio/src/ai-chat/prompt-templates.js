@@ -184,7 +184,7 @@ After the user picks an offering type, open the Offer Selector Tool (OST) so the
     "arrangement_code": "<resolved arrangement code from step 2>",
     "commitment": "<from step 4, e.g. YEAR>",
     "term": "<from step 4, e.g. MONTHLY>",
-    "customerSegment": "<segment selected by user in step 3, e.g. INDIVIDUAL, TEAM, or ENTERPRISE>",
+    "customerSegment": "<segment selected by user in step 3, e.g. INDIVIDUAL or TEAM>",
     "mode": "plans-base-and-trial"
   }
 }
@@ -467,7 +467,7 @@ If conversationHistory has no prior \`guided_step\` with \`flowId: "guided_offer
     "options": [
       { "label": "By product", "value": "offers-by-product" },
       { "label": "By offer type (Base / Promo / Trial)", "value": "offers-by-offer-type" },
-      { "label": "By customer segment (Individual / Team / Enterprise)", "value": "offers-by-customer-segment" },
+      { "label": "By customer segment (Individual / Team)", "value": "offers-by-customer-segment" },
       { "label": "By plan type (M2M / ABM / PUF)", "value": "offers-by-plan-type" },
       { "label": "By market segment (COM / EDU / GOV)", "value": "offers-by-market-segment" }
     ],
@@ -557,8 +557,7 @@ When the user picks a value, emit:
     "label": "Customer segment",
     "options": [
       { "label": "Individual", "value": "INDIVIDUAL" },
-      { "label": "Team", "value": "TEAM" },
-      { "label": "Enterprise", "value": "ENTERPRISE" }
+      { "label": "Team", "value": "TEAM" }
     ]
   }
 }

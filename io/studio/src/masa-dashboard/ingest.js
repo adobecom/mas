@@ -1,7 +1,14 @@
 const { timingSafeEqual } = require('node:crypto');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken } = require('../../utils.js');
-const { CACHE_KEY, SNAPSHOT_TTL_SECONDS, MAX_SNAPSHOT_BYTES, validSnapshot, response } = require('./snapshot.js');
+const {
+    CACHE_KEY,
+    SNAPSHOT_TTL_SECONDS,
+    MAX_SNAPSHOT_BYTES,
+    validSnapshot,
+    response,
+    safeRejectionKey,
+} = require('./snapshot.js');
 
 /** Receives an authenticated aggregate snapshot; raw-http keeps input separate from configuration. */
 async function main(params) {
@@ -29,6 +36,16 @@ async function main(params) {
         return response(400, { error: 'Invalid JSON snapshot.' });
     }
     if (!validSnapshot(snapshot)) return response(400, { error: 'Invalid aggregate snapshot.' });
+    for (const window of Object.values(snapshot.windows)) {
+        const rejections = new Map();
+        for (const { key, count } of window.rejections) {
+            const safeKey = safeRejectionKey(key);
+            const total = (rejections.get(safeKey) ?? 0) + count;
+            if (!Number.isSafeInteger(total)) return response(400, { error: 'Invalid aggregate snapshot.' });
+            rejections.set(safeKey, total);
+        }
+        window.rejections = [...rejections].map(([key, count]) => ({ key, count }));
+    }
     try {
         const state = await init();
         const previous = await state.get(CACHE_KEY);

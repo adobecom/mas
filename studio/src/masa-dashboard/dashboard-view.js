@@ -1,14 +1,16 @@
 import { LitElement, html, css, nothing } from 'lit';
-import { styleMap } from 'lit/directives/style-map.js';
-import '@spectrum-web-components/action-button/sp-action-button.js';
-import '@spectrum-web-components/action-group/sp-action-group.js';
-import '@spectrum-web-components/status-light/sp-status-light.js';
 
 const format = (value) =>
     value === null ? '—' : new Intl.NumberFormat(undefined, { maximumFractionDigits: 1, notation: 'compact' }).format(value);
 const percent = (value) =>
     value === null ? '—' : new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 0 }).format(value);
 const seconds = (value) => (value === null ? '—' : `${format(value / 1000)} s`);
+const dollars = (value) =>
+    value === null
+        ? '—'
+        : value > 0 && value < 0.0001
+          ? '<$0.0001'
+          : new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(value);
 const entries = (counts) => Object.entries(counts).sort((a, b) => b[1] - a[1]);
 const breakdown = (counts) =>
     entries(counts)
@@ -59,9 +61,9 @@ function countPanel(title, counts) {
                       ([name, count]) =>
                           html`<li>
                               <span class="count-label">${name}</span><strong>${format(count)}</strong>
-                              <span class="track" aria-hidden="true"
-                                  ><span style=${styleMap({ width: `${(100 * count) / max}%` })}></span
-                              ></span>
+                              <svg class="track" aria-hidden="true" viewBox="0 0 100 6" preserveAspectRatio="none">
+                                  <rect width=${(100 * count) / max} height="6" rx="1"></rect>
+                              </svg>
                           </li>`,
                   )}
               </ul>`
@@ -69,8 +71,9 @@ function countPanel(title, counts) {
     </section>`;
 }
 
-function dailyChart(title, rows, key) {
-    const max = Math.max(1, ...rows.map((row) => row[key]));
+function dailyChart(title, rows, key, valueFormat) {
+    const max = Math.max(0, ...rows.map((row) => row[key] ?? 0)) || 1;
+    const display = valueFormat ?? format;
     return html`<section class="panel">
         <h2>${title}</h2>
         <p class="muted">UTC dates · first and last day may be partial</p>
@@ -81,15 +84,20 @@ function dailyChart(title, rows, key) {
                         role="listitem"
                         class="column"
                         tabindex="0"
-                        aria-label=${`${row.day}: ${row[key]}`}
-                        title=${`${row.day}: ${row[key]}`}
+                        aria-label=${`${row.day}: ${valueFormat ? valueFormat(row[key]) : row[key]}`}
+                        title=${`${row.day}: ${valueFormat ? valueFormat(row[key]) : row[key]}`}
                     >
-                        <span class="bar" style=${styleMap({ height: `${(100 * row[key]) / max}%` })}></span>
-                        <span class="chart-tooltip">${row.day}<br />${format(row[key])}</span>
+                        <svg class="bar" aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <rect y=${100 - (100 * row[key]) / max} width="100" height=${(100 * row[key]) / max}></rect>
+                        </svg>
+                        <span class="chart-tooltip">${row.day}<br />${display(row[key])}</span>
                     </div>`,
             )}
         </div>
-        <div class="axis"><span>${rows[0]?.day}</span><span>Peak ${format(max)}</span><span>${rows.at(-1)?.day}</span></div>
+        <div class="axis">
+            <span>${rows[0]?.day}</span><span>Peak ${display(Math.max(0, ...rows.map((row) => row[key] ?? 0)))}</span
+            ><span>${rows.at(-1)?.day}</span>
+        </div>
     </section>`;
 }
 
@@ -194,6 +202,9 @@ export class MasaDashboardView extends LitElement {
             font-size: 13px;
             font-variant-numeric: tabular-nums;
         }
+        .spending table {
+            min-width: 560px;
+        }
         th,
         td {
             text-align: left;
@@ -240,16 +251,14 @@ export class MasaDashboardView extends LitElement {
         }
         .track {
             grid-column: 1 / -1;
+            width: 100%;
             height: 6px;
             border-radius: 4px;
             background: var(--spectrum-gray-100, #f5f5f5);
             overflow: hidden;
         }
-        .track span {
-            display: block;
-            height: 100%;
-            background: var(--spectrum-blue-700, #1473e6);
-            border-radius: 4px;
+        rect {
+            fill: var(--spectrum-blue-700, #1473e6);
         }
         .chart {
             height: 128px;
@@ -269,8 +278,7 @@ export class MasaDashboardView extends LitElement {
         .bar {
             display: block;
             width: 100%;
-            background: var(--spectrum-blue-700, #1473e6);
-            border-radius: 4px 4px 0 0;
+            height: 100%;
         }
         .chart-tooltip {
             display: none;
@@ -340,9 +348,18 @@ export class MasaDashboardView extends LitElement {
         return this.snapshot.windows[this.days];
     }
 
+    #receivedAt = 0;
+
+    willUpdate(changes) {
+        if (changes.has('snapshot')) this.#receivedAt = this.now;
+    }
+
     get controlsTemplate() {
-        const age = Math.max(0, this.now - Date.parse(this.snapshot.generatedAt));
-        const stale = age >= 600000;
+        const age =
+            this.snapshot.ageMs === undefined
+                ? Math.max(0, this.now - Date.parse(this.snapshot.generatedAt))
+                : this.snapshot.ageMs + Math.max(0, this.now - this.#receivedAt);
+        const stale = this.snapshot.stale || age >= 600000;
         return html`<div class="controls">
             <sp-action-group selects="single" label="Time window">
                 ${[1, 7, 30].map(
@@ -440,6 +457,53 @@ export class MasaDashboardView extends LitElement {
                 : nothing}`;
     }
 
+    get spendingTemplate() {
+        const spending = this.data.spending;
+        if (!spending)
+            return html`<section class="spending">
+                <h2 class="section-title">Estimated model spend</h2>
+                <p class="muted">Spending data is not available in this snapshot.</p>
+            </section>`;
+        const calls = spending.pricedCalls + spending.unpricedCalls;
+        return html`<section class="spending">
+            <h2 class="section-title">Estimated model spend</h2>
+            <p class="muted">
+                USD at configured rates: ${dollars(spending.inputUsdPerMillion)} input and
+                ${dollars(spending.outputUsdPerMillion)} output per 1M tokens. Cached input uses the same input rate. Estimates
+                from retained model calls in this publisher, not billed spend. Calls outside this data source are excluded.
+            </p>
+            <div class="metrics">
+                ${[
+                    [
+                        'Estimated cost',
+                        dollars(spending.estimatedUsd),
+                        spending.unpricedCalls ? 'Partial estimate · unpriced calls excluded' : 'Recorded usage at these rates',
+                    ],
+                    ['Input cost', dollars(spending.inputUsd), 'Includes cached input'],
+                    ['Output cost', dollars(spending.outputUsd), 'Reported output tokens'],
+                    [
+                        'Pricing coverage',
+                        `${spending.pricedCalls} of ${calls}`,
+                        'Recorded calls with known model and complete usage',
+                    ],
+                ].map(metric)}
+            </div>
+            <div class="grid">
+                ${dailyChart('Estimated spend per day', spending.daily, 'estimatedUsd', dollars)}
+                ${dataTable(
+                    'Spend by model',
+                    ['Model', 'Estimated USD', 'Priced calls', 'Unpriced calls'],
+                    spending.models.map((row) => [
+                        row.model,
+                        dollars(row.estimatedUsd),
+                        format(row.pricedCalls),
+                        format(row.unpricedCalls),
+                    ]),
+                )}
+            </div>
+        </section>`;
+    }
+
     get diagnosticsTemplate() {
         const { model, summary, probes, outcomes } = this.data;
         return html`<h2 class="section-title">Model & tools</h2>
@@ -512,7 +576,7 @@ export class MasaDashboardView extends LitElement {
                   <p>Choose a longer window or check back after MASA answers a question.</p>
               </div>`
             : nothing}
-        ${this.summaryTemplate}${this.usageTemplate}${this.qualityTemplate}${this.diagnosticsTemplate}`;
+        ${this.summaryTemplate}${this.usageTemplate}${this.spendingTemplate}${this.qualityTemplate}${this.diagnosticsTemplate}`;
     }
 }
 

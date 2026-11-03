@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire');
 const fixture = require('../../../../studio/test/masa-dashboard/snapshot.json');
-const { validSnapshot, CACHE_KEY, SNAPSHOT_TTL_SECONDS } = require('../../src/masa-dashboard/snapshot.js');
+const { validSnapshot, safeRejectionKey, CACHE_KEY, SNAPSHOT_TTL_SECONDS } = require('../../src/masa-dashboard/snapshot.js');
 
 const SECRET = 'dashboard-test-secret';
 const NOW = Date.parse(fixture.generatedAt);
@@ -53,6 +53,96 @@ describe('MASA dashboard', () => {
         expect((await ingest.main(payload())).statusCode).to.equal(200);
         expect(state.put.firstCall.args).to.deep.equal([CACHE_KEY, JSON.stringify(fixture), { ttl: SNAPSHOT_TTL_SECONDS }]);
     });
+
+    it('accepts estimated spending without weakening the legacy snapshot contract', async () => {
+        const snapshot = structuredClone(fixture);
+        const amounts = { inputUsd: 0.05, outputUsd: 0.94, estimatedUsd: 0.99, pricedCalls: 1, unpricedCalls: 0 };
+        snapshot.windows[7].spending = {
+            currency: 'USD',
+            inputUsdPerMillion: 0.05,
+            outputUsdPerMillion: 0.47,
+            ...amounts,
+            daily: [{ day: '2026-10-28', ...amounts }],
+            models: [{ model: 'aifoundry/Qwen/Qwen-latest', ...amounts }],
+        };
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+        expect(JSON.parse(state.put.firstCall.args[1]).windows[7].spending.estimatedUsd).to.equal(0.99);
+        for (const window of Object.values(snapshot.windows)) delete window.spending;
+        expect(validSnapshot(snapshot)).to.equal(true);
+    });
+
+    for (const [name, change] of [
+        [
+            'private metadata',
+            (s) => {
+                s.note = 'private question';
+            },
+        ],
+        [
+            'non-USD currency',
+            (s) => {
+                s.currency = 'private-account';
+            },
+        ],
+        [
+            'negative amount',
+            (s) => {
+                s.estimatedUsd = -1;
+            },
+        ],
+        [
+            'non-numeric amount',
+            (s) => {
+                s.inputUsd = 'secret';
+            },
+        ],
+        [
+            'invalid call count',
+            (s) => {
+                s.pricedCalls = 1.5;
+            },
+        ],
+        [
+            'excessive rate',
+            (s) => {
+                s.inputUsdPerMillion = 1000001;
+            },
+        ],
+        [
+            'private model name',
+            (s) => {
+                s.models[0].model = 'private-project';
+            },
+        ],
+        [
+            'private date',
+            (s) => {
+                s.daily[0].day = 'private question';
+            },
+        ],
+        [
+            'unexpected nested data',
+            (s) => {
+                s.models[0].question = 'private question';
+            },
+        ],
+    ]) {
+        it(`rejects spending with ${name}`, async () => {
+            const snapshot = structuredClone(fixture);
+            const amounts = { inputUsd: 0.05, outputUsd: 0.94, estimatedUsd: 0.99, pricedCalls: 1, unpricedCalls: 0 };
+            snapshot.windows[7].spending = {
+                currency: 'USD',
+                inputUsdPerMillion: 0.05,
+                outputUsdPerMillion: 0.47,
+                ...amounts,
+                daily: [{ day: '2026-10-28', ...amounts }],
+                models: [{ model: 'unknown', ...amounts }],
+            };
+            change(snapshot.windows[7].spending);
+            expect((await ingest.main(payload(snapshot))).statusCode).to.equal(400);
+            expect(state.put.called).to.equal(false);
+        });
+    }
 
     for (const [name, change] of [
         [
@@ -123,6 +213,119 @@ describe('MASA dashboard', () => {
             ).statusCode,
         ).to.equal(415);
         expect((await ingest.main({ ...payload(), __ow_body: 'a'.repeat(400000) })).statusCode).to.equal(413);
+    });
+
+    for (const [name, change] of [
+        [
+            'Slack identity in a category',
+            (s) => {
+                s.windows[7].outcomes.kinds = { U0123456789: 1 };
+            },
+        ],
+        [
+            'question in a rejection',
+            (s) => {
+                s.windows[7].rejections = [{ key: 'Please publish my confidential launch · code_read', count: 1 }];
+            },
+        ],
+        [
+            'secret in a probe',
+            (s) => {
+                s.windows[7].probes[0].probe = 'Bearer private-test-secret';
+            },
+        ],
+        [
+            'private text in a model label',
+            (s) => {
+                s.windows[7].model.servedModels = { 'private question text': 1 };
+            },
+        ],
+        [
+            'Slack identity in a model label',
+            (s) => {
+                s.windows[7].model.servedModels = { U0123456789: 1 };
+            },
+        ],
+        [
+            'credential-shaped model label',
+            (s) => {
+                s.windows[7].model.servedModels = { 'xoxb-synthetic-secret': 1 };
+            },
+        ],
+    ]) {
+        it(`rejects ${name} before storage`, async () => {
+            const snapshot = structuredClone(fixture);
+            change(snapshot);
+            expect((await ingest.main(payload(snapshot))).statusCode).to.equal(400);
+            expect(state.put.called).to.equal(false);
+        });
+    }
+
+    it('accepts publisher identifiers including Foundry model paths and rejection categories', async () => {
+        const snapshot = structuredClone(fixture);
+        snapshot.windows[7].model.servedModels = { 'aifoundry/Qwen/Qwen-latest': 1, 'Qwen/Qwen3.8-27B': 2, unknown: 3 };
+        snapshot.windows[7].rejections = [{ key: 'invalid-input · code_read', count: 1 }];
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+    });
+
+    for (const name of ['confidential_project', 'Qwen/Qwen3.8-27B/private-token']) {
+        it(`denies unapproved model identifier ${name} before storage`, async () => {
+            const snapshot = structuredClone(fixture);
+            snapshot.windows[7].model.servedModels = { [name]: 1 };
+            expect((await ingest.main(payload(snapshot))).statusCode).to.equal(400);
+            expect(state.put.called).to.equal(false);
+        });
+    }
+
+    it('accepts publisher investigation-control jobs', async () => {
+        const snapshot = structuredClone(fixture);
+        snapshot.windows[7].summary.jobKinds = { 'investigation-control': 1 };
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+    });
+
+    for (const [raw, safe] of [
+        ['invalid-input · code_read', 'invalid-input · code_read'],
+        ['unknown-probe · answer', 'unknown-probe · ?'],
+        ['budget-exhausted · private question', 'budget-exhausted · ?'],
+        ['job-aborted · U0123456789', 'job-aborted · ?'],
+        ['investigation-time-limit · Bearer synthetic-secret', 'investigation-time-limit · ?'],
+        ['invalid-input · code_read ·  · private question', 'invalid-input · ?'],
+    ]) {
+        it(`anonymizes rejection diagnostics for ${raw.split(' · ')[0]}`, () => {
+            expect(safeRejectionKey(raw)).to.equal(safe);
+        });
+    }
+
+    it('accepts and anonymizes unvalidated tool names from early rejection paths', async () => {
+        const snapshot = structuredClone(fixture);
+        snapshot.windows[7].rejections = [{ key: 'budget-exhausted · private question', count: 2 }];
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+        const stored = JSON.parse(state.put.firstCall.args[1]);
+        expect(stored.windows[7].rejections).to.deep.equal([{ key: 'budget-exhausted · ?', count: 2 }]);
+    });
+
+    it('stores unknown tool rejections as one anonymous aggregate', async () => {
+        const snapshot = structuredClone(fixture);
+        snapshot.windows[7].rejections = [
+            { key: 'unknown-probe · answer', count: 1 },
+            { key: 'unknown-probe · private question text', count: 2 },
+            { key: 'unknown-probe · U0123456789', count: 3 },
+        ];
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+        const stored = JSON.parse(state.put.firstCall.args[1]);
+        expect(stored.windows[7].rejections).to.deep.equal([{ key: 'unknown-probe · ?', count: 6 }]);
+        expect(JSON.stringify(stored)).not.to.include('private question text');
+        expect(JSON.stringify(stored)).not.to.include('U0123456789');
+    });
+
+    it('rejects an overflowing anonymous rejection total without writing state', async () => {
+        const snapshot = structuredClone(fixture);
+        snapshot.windows[7].rejections = [
+            { key: 'unknown-probe · ?', count: Number.MAX_SAFE_INTEGER },
+            { key: 'unknown-probe · ?', count: 1 },
+        ];
+        expect((await ingest.main(payload(snapshot))).statusCode).to.equal(400);
+        expect(state.put.called).to.equal(false);
     });
 
     it('does not accept missing or wrong secrets, including configuration supplied in the body', async () => {

@@ -273,7 +273,10 @@ class MasStudio extends LitElement {
     }
 
     get masaDashboard() {
-        if (!Store.users.getMeta('loaded') || !isMasAdmin()) return nothing;
+        if (!isMasAdmin())
+            return html`<div class="loading-container masa-dashboard-denied" role="alert">
+                MAS administrator access is required to view this dashboard.
+            </div>`;
         if (!this.#lazyLoad('mas-masa-dashboard', './masa-dashboard/mas-masa-dashboard.js')) return nothing;
         return html`<mas-masa-dashboard></mas-masa-dashboard>`;
     }

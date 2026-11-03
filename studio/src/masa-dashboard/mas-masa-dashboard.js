@@ -1,6 +1,4 @@
 import { LitElement, html, css, nothing } from 'lit';
-import '@spectrum-web-components/button/sp-button.js';
-import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
 import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import { isMasAdmin } from '../groups.js';
@@ -20,7 +18,6 @@ export class MasMasaDashboard extends LitElement {
             display: block;
             height: 100%;
             overflow-y: auto;
-            background: var(--spectrum-gray-100, #f5f5f5);
             border-radius: 16px 16px 0 0;
             color: var(--spectrum-gray-900, #222);
         }
@@ -57,6 +54,9 @@ export class MasMasaDashboard extends LitElement {
             text-align: center;
         }
         @media (max-width: 560px) {
+            header {
+                flex-wrap: wrap;
+            }
             main {
                 padding: 20px 12px;
             }

@@ -41,21 +41,11 @@ class FragmentCache {
      * @param {Object} fragment fragment object.
      */
     add(fragment, references = true) {
-        if (this.has(fragment.id)) return;
-        if (this.has(fragment.fields?.originalId)) return;
-
-        this.#fragmentCache.set(fragment.id, fragment);
-        if (fragment.fields?.originalId) {
-            this.#fragmentCache.set(fragment.fields.originalId, fragment);
-        }
-        if (this.#promises.has(fragment.id)) {
-            const [, resolve] = this.#promises.get(fragment.id);
-            resolve();
-        }
-        if (this.#promises.has(fragment.fields?.originalId)) {
-            const [, resolve] = this.#promises.get(fragment.fields?.originalId);
-            resolve();
-        }
+        const missing = [fragment.id, fragment.fields?.originalId].filter(
+            (key) => key && !this.has(key),
+        );
+        if (!missing.length) return;
+        missing.forEach((key) => this.set(key, fragment));
 
         if (
             !references ||
@@ -470,6 +460,9 @@ export class AemFragment extends HTMLElement {
             id,
             maskId,
             tags,
+            previewLocale,
+            cdtStart,
+            cdtEnd,
             variationId,
             promoProject,
             promoVariationProject,
@@ -496,6 +489,9 @@ export class AemFragment extends HTMLElement {
                 variationId,
                 promoProject,
                 promoVariationProject,
+                cdtStart,
+                cdtEnd,
+                previewLocale,
             },
         );
     }
@@ -511,6 +507,9 @@ export class AemFragment extends HTMLElement {
             dictionary = {},
             maskId,
             placeholders = {},
+            previewLocale,
+            cdtStart,
+            cdtEnd,
             variationId,
             promoProject,
             promoVariationProject,
@@ -532,6 +531,9 @@ export class AemFragment extends HTMLElement {
                 variationId,
                 promoProject,
                 promoVariationProject,
+                cdtStart,
+                cdtEnd,
+                previewLocale,
             },
         );
     }

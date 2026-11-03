@@ -1,0 +1,769 @@
+{
+    "source": "web-components/src/utilities.js at 58b8724dfdfaea7bc1aa17422adb75991c058cfe",
+    "browser": "154.0.8037.98",
+    "selection": {
+        "empty": {
+            "result": [],
+            "input": []
+        },
+        "single": {
+            "result": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    }
+                }
+            ],
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    }
+                }
+            ]
+        },
+        "GB-language": {
+            "result": [
+                {
+                    "language": "EN"
+                }
+            ],
+            "input": [
+                {
+                    "language": "EN"
+                },
+                {
+                    "language": "MULT"
+                }
+            ]
+        },
+        "US-language": {
+            "result": [
+                {
+                    "language": "MULT"
+                }
+            ],
+            "input": [
+                {
+                    "language": "MULT"
+                },
+                {
+                    "language": "EN"
+                }
+            ]
+        },
+        "term-before-language": {
+            "result": [
+                {
+                    "language": "MULT"
+                }
+            ],
+            "input": [
+                {
+                    "language": "MULT"
+                },
+                {
+                    "language": "EN",
+                    "term": "MONTHLY"
+                }
+            ]
+        },
+        "tied-priorities": {
+            "result": [
+                {
+                    "id": "first",
+                    "language": "FR"
+                }
+            ],
+            "input": [
+                {
+                    "id": "first",
+                    "language": "FR"
+                },
+                {
+                    "id": "second",
+                    "language": "DE"
+                }
+            ]
+        },
+        "net-rewrite": {
+            "result": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 24.99,
+                        "priceWithoutDiscount": 33.33,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "VAT"
+                    }
+                }
+            ],
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    },
+                    "priceInfo": {
+                        "format": {
+                            "currencySymbol": "$",
+                            "isCurrencyFirst": true,
+                            "hasCurrencySpace": false,
+                            "decimalsDelimiter": "."
+                        },
+                        "asIs": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "optical": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "annualized": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "359",
+                                    "decimals": "88",
+                                    "full": "359.88"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "479",
+                                    "decimals": "88",
+                                    "full": "479.88"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "already-exclusive": {
+            "result": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "VAT"
+                    },
+                    "priceInfo": {
+                        "format": {
+                            "currencySymbol": "$",
+                            "isCurrencyFirst": true,
+                            "hasCurrencySpace": false,
+                            "decimalsDelimiter": "."
+                        },
+                        "asIs": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "optical": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "annualized": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "359",
+                                    "decimals": "88",
+                                    "full": "359.88"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "479",
+                                    "decimals": "88",
+                                    "full": "479.88"
+                                }
+                            }
+                        }
+                    }
+                }
+            ],
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "VAT"
+                    },
+                    "priceInfo": {
+                        "format": {
+                            "currencySymbol": "$",
+                            "isCurrencyFirst": true,
+                            "hasCurrencySpace": false,
+                            "decimalsDelimiter": "."
+                        },
+                        "asIs": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "optical": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "annualized": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "359",
+                                    "decimals": "88",
+                                    "full": "359.88"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "479",
+                                    "decimals": "88",
+                                    "full": "479.88"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "gross-fallback": {
+            "result": [
+                {
+                    "priceDetails": {
+                        "price": 30,
+                        "priceWithoutDiscount": 40,
+                        "taxDisplay": "TAX_EXCLUSIVE"
+                    }
+                }
+            ],
+            "input": [
+                {
+                    "priceDetails": {
+                        "price": 30,
+                        "priceWithoutDiscount": 40,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS"
+                    }
+                }
+            ]
+        },
+        "zero-trial": {
+            "result": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 33.33,
+                        "priceWithoutDiscount": 33.33,
+                        "priceWithoutTax": 0,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_EXCLUSIVE",
+                        "taxTerm": "VAT"
+                    },
+                    "offerType": "TRIAL"
+                }
+            ],
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 0,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    },
+                    "offerType": "TRIAL"
+                }
+            ]
+        }
+    },
+    "summation": {
+        "null": {
+            "result": null,
+            "input": null
+        },
+        "empty": {
+            "result": null,
+            "input": []
+        },
+        "single": {
+            "result": {
+                "offerId": "base",
+                "offerSelectorIds": ["osi-base"],
+                "language": "MULT",
+                "planType": "ABM",
+                "commitment": "YEAR",
+                "term": "MONTHLY",
+                "marketSegments": ["COM"],
+                "customerSegment": "INDIVIDUAL",
+                "priceDetails": {
+                    "price": 29.99,
+                    "priceWithoutDiscount": 39.99,
+                    "priceWithoutTax": 24.99,
+                    "priceWithoutDiscountAndTax": 33.33,
+                    "formatString": "'US$'#,##0.00",
+                    "usePrecision": true,
+                    "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                    "taxTerm": "VAT"
+                }
+            },
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    }
+                }
+            ]
+        },
+        "bundle": {
+            "result": {
+                "offerId": "base",
+                "offerSelectorIds": ["osi-base", "addon"],
+                "language": "MULT",
+                "planType": "ABM",
+                "commitment": "YEAR",
+                "term": "MONTHLY",
+                "marketSegments": ["COM"],
+                "customerSegment": "INDIVIDUAL",
+                "priceDetails": {
+                    "price": 59.98,
+                    "priceWithoutDiscount": 79.98,
+                    "priceWithoutTax": 49.98,
+                    "priceWithoutDiscountAndTax": 66.66,
+                    "formatString": "'US$'#,##0.00",
+                    "usePrecision": true,
+                    "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                    "taxTerm": "VAT"
+                }
+            },
+            "input": [
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["osi-base"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    },
+                    "priceInfo": {
+                        "format": {
+                            "currencySymbol": "$",
+                            "isCurrencyFirst": true,
+                            "hasCurrencySpace": false,
+                            "decimalsDelimiter": "."
+                        },
+                        "asIs": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "optical": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "29",
+                                    "decimals": "99",
+                                    "full": "29.99"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "39",
+                                    "decimals": "99",
+                                    "full": "39.99"
+                                }
+                            }
+                        },
+                        "annualized": {
+                            "withDiscount": {
+                                "withTax": {
+                                    "integer": "359",
+                                    "decimals": "88",
+                                    "full": "359.88"
+                                }
+                            },
+                            "withoutDiscount": {
+                                "withTax": {
+                                    "integer": "479",
+                                    "decimals": "88",
+                                    "full": "479.88"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "offerId": "base",
+                    "offerSelectorIds": ["addon"],
+                    "language": "MULT",
+                    "planType": "ABM",
+                    "commitment": "YEAR",
+                    "term": "MONTHLY",
+                    "marketSegments": ["COM"],
+                    "customerSegment": "INDIVIDUAL",
+                    "priceDetails": {
+                        "price": 29.99,
+                        "priceWithoutDiscount": 39.99,
+                        "priceWithoutTax": 24.99,
+                        "priceWithoutDiscountAndTax": 33.33,
+                        "formatString": "'US$'#,##0.00",
+                        "usePrecision": true,
+                        "taxDisplay": "TAX_INCLUSIVE_DETAILS",
+                        "taxTerm": "VAT"
+                    }
+                }
+            ]
+        },
+        "absent-details": {
+            "result": {
+                "offerSelectorIds": [],
+                "priceDetails": {}
+            },
+            "input": [{}, {}]
+        },
+        "rounding": {
+            "result": {
+                "priceDetails": {
+                    "price": 31
+                },
+                "offerSelectorIds": []
+            },
+            "input": [
+                {
+                    "priceDetails": {
+                        "price": 10.333
+                    }
+                },
+                {
+                    "priceDetails": {
+                        "price": 20.666
+                    }
+                }
+            ]
+        },
+        "zero-sum": {
+            "result": {
+                "priceDetails": {
+                    "price": 1
+                },
+                "offerSelectorIds": []
+            },
+            "input": [
+                {
+                    "priceDetails": {
+                        "price": 1
+                    }
+                },
+                {
+                    "priceDetails": {
+                        "price": -1
+                    }
+                }
+            ]
+        },
+        "negative-sum": {
+            "result": {
+                "priceDetails": {
+                    "price": 1
+                },
+                "offerSelectorIds": []
+            },
+            "input": [
+                {
+                    "priceDetails": {
+                        "price": 1
+                    }
+                },
+                {
+                    "priceDetails": {
+                        "price": -2
+                    }
+                }
+            ]
+        },
+        "annualized-bundle": {
+            "result": {
+                "priceDetails": {
+                    "annualized": {
+                        "annualizedPrice": 30.33,
+                        "annualizedPriceWithoutTax": 30.33,
+                        "annualizedPriceWithoutDiscount": 30.33,
+                        "annualizedPriceWithoutDiscountAndTax": 30.33
+                    }
+                },
+                "offerSelectorIds": []
+            },
+            "input": [
+                {
+                    "priceDetails": {
+                        "annualized": {
+                            "annualizedPrice": 10.111,
+                            "annualizedPriceWithoutTax": 10.111,
+                            "annualizedPriceWithoutDiscount": 10.111,
+                            "annualizedPriceWithoutDiscountAndTax": 10.111
+                        }
+                    }
+                },
+                {
+                    "priceDetails": {
+                        "annualized": {
+                            "annualizedPrice": 20.222,
+                            "annualizedPriceWithoutTax": 20.222,
+                            "annualizedPriceWithoutDiscount": 20.222,
+                            "annualizedPriceWithoutDiscountAndTax": 20.222
+                        }
+                    }
+                }
+            ]
+        },
+        "partial-annualized": {
+            "result": {
+                "offerSelectorIds": [],
+                "priceDetails": {
+                    "annualized": {
+                        "annualizedPrice": 10
+                    }
+                }
+            },
+            "input": [
+                {},
+                {
+                    "priceDetails": {
+                        "annualized": {
+                            "annualizedPrice": 10,
+                            "annualizedPriceWithoutTax": 0
+                        }
+                    }
+                }
+            ]
+        },
+        "non-positive-annualized": {
+            "result": {
+                "priceDetails": {
+                    "annualized": {}
+                },
+                "offerSelectorIds": []
+            },
+            "input": [
+                {
+                    "priceDetails": {
+                        "annualized": {
+                            "annualizedPrice": 1
+                        }
+                    }
+                },
+                {
+                    "priceDetails": {
+                        "annualized": {
+                            "annualizedPrice": -2
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -15,6 +15,8 @@ import ACOMPlansIndividualsSpec from '../specs/individuals_save.spec.js';
 
 const { features } = ACOMPlansIndividualsSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
     // @studio-plans-individuals-save-edited-variant-change - Validate saving card after variant change to suggested
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -24,7 +26,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -40,9 +42,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Change variant and save card', async () => {
             await expect(await editor.variant).toBeVisible();
-            await editor.variant.click();
-            await page.getByRole('option', { name: 'suggested' }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerValue(editor.variant, 'ccd-suggested');
             await studio.saveCard();
         });
 
@@ -60,7 +60,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -76,12 +76,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit size field', async () => {
             await expect(await editor.size).toBeVisible();
-            await editor.size.scrollIntoViewIfNeeded();
-            await editor.size.click();
-            const wideOption = page.getByRole('option', { name: 'Wide', exact: true });
-            await expect(wideOption).toBeVisible();
-            await wideOption.click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.size, 'Wide');
             await studio.saveCard();
         });
 
@@ -99,7 +94,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -114,17 +109,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-3: Edit title field', async () => {
             await expect(await editor.title).toBeVisible();
-            await editor.title.fill(data.title);
+            await editor.fillRteField(editor.title, data.title);
         });
 
         await test.step('step-4: Edit badge field', async () => {
             await expect(await editor.badge).toBeVisible();
-            await editor.badge.fill(data.badge);
+            await editor.fillRteField(editor.badge, data.badge);
         });
 
         await test.step('step-5: Edit promocode and description field', async () => {
             await expect(await editor.description).toBeVisible();
-            await editor.description.fill(data.description);
+            await editor.fillRteField(editor.description, data.description);
             await editor.promoCode.fill(data.promoCode);
             await editor.descriptionFieldGroup.locator(editor.UPTButton).click();
         });
@@ -139,12 +134,12 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-7: Edit callout field', async () => {
             await expect(await editor.calloutRTE).toBeVisible();
-            await editor.calloutRTE.fill(data.callout);
+            await editor.fillRteField(editor.calloutRTE, data.callout);
         });
 
         await test.step('step-8: Edit promo text field', async () => {
             await expect(await editor.promoText).toBeVisible();
-            await editor.promoText.fill(data.promoText);
+            await editor.fillRteField(editor.promoText, data.promoText);
         });
 
         await test.step('step-9: Edit OSI', async () => {
@@ -167,29 +162,17 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
 
         await test.step('step-11: Edit badge color', async () => {
             await expect(await editor.badgeColor).toBeVisible();
-            await editor.badgeColor.scrollIntoViewIfNeeded();
-            await editor.badgeColor.click();
-            await expect(await editor.badgeColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.badgeColor.name, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.badgeColor, data.badgeColor.name);
         });
 
         await test.step('step-12: Edit badge border color', async () => {
             await expect(await editor.badgeBorderColor).toBeVisible();
-            await editor.badgeBorderColor.scrollIntoViewIfNeeded();
-            await editor.badgeBorderColor.click();
-            await expect(await editor.badgeBorderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.badgeBorderColor.name, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.badgeBorderColor, data.badgeBorderColor.name);
         });
 
         await test.step('step-13: Edit card border color', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.borderColor.name, exact: true }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.borderColor.name);
         });
 
         await test.step('step-14: Save card with all changes', async () => {
@@ -362,7 +345,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -402,7 +385,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -436,7 +419,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -501,11 +484,13 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
                 test.step('Validation-3: Verify checkout parameters saved', async () => {
                     await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('data-wcs-osi', data.osi.updated);
                     await expect(await clonedCard.locator(plans.cardCTA)).toHaveAttribute('is', 'checkout-link');
-                    const CTAhref = await clonedCard.locator(plans.cardCTA).getAttribute('href');
-                    const searchParams = new URLSearchParams(decodeURI(CTAhref).split('?')[1]);
-                    expect(searchParams.get('mv')).toBe(data.checkoutParams.mv);
-                    expect(searchParams.get('promoid')).toBe(data.checkoutParams.promoid);
-                    expect(searchParams.get('mv2')).toBe(data.checkoutParams.mv2);
+                    await expect
+                        .poll(async () => {
+                            const href = await clonedCard.locator(plans.cardCTA).getAttribute('href');
+                            const params = new URLSearchParams(decodeURI(href ?? '').split('?')[1]);
+                            return Object.fromEntries(['mv', 'promoid', 'mv2'].map((name) => [name, params.get(name)]));
+                        })
+                        .toEqual(data.checkoutParams);
                 }),
             ]);
 
@@ -531,7 +516,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });
@@ -596,7 +581,7 @@ test.describe('M@S Studio ACOM Plans Individuals card test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await studio.waitForCardsLoaded();
         });

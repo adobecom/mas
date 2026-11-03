@@ -1,0 +1,36 @@
+{
+    "name": "@adobecom/mas-price",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "sideEffects": false,
+    "exports": {
+        ".": "./src/index.js",
+        "./constants": "./src/constants.js",
+        "./price": "./src/price/index.js",
+        "./price/template": "./src/price/template.js",
+        "./price/utilities": "./src/price/utilities.js",
+        "./price/legal": "./src/price/legal.js",
+        "./discount": "./src/discount/index.js"
+    },
+    "files": [
+        "src",
+        "README.md"
+    ],
+    "engines": {
+        "node": ">=22"
+    },
+    "scripts": {
+        "test": "npm run test:ci",
+        "test:node": "TZ=UTC node --test test/node/*.test.js",
+        "test:coverage": "TZ=UTC c8 --all --include='src/**' --check-coverage --per-file --branches=100 --functions=100 --lines=100 --statements=100 node --test test/node/*.test.js",
+        "test:browser": "wtr --config web-test-runner.config.mjs",
+        "test:ci": "npm run test:coverage && npm run test:browser"
+    },
+    "devDependencies": {
+        "@esm-bundle/chai": "4.3.4-fix.0",
+        "@web/test-runner": "^0.20.2",
+        "@web/test-runner-chrome": "^0.18.1",
+        "c8": "^10.1.3"
+    }
+}

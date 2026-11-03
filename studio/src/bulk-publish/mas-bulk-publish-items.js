@@ -1,6 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
+import { buildEditorHref, renderRowLinkOverlay } from '../common/utils/editor-link.js';
+import { itemTypeFromPath } from './bulk-publish-utils.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
@@ -79,6 +81,9 @@ class MasBulkPublishItems extends LitElement {
     }
 
     itemHref(item) {
+        if (item.fragmentId && (item.type ?? itemTypeFromPath(item.path)) !== 'placeholder') {
+            return buildEditorHref({ id: item.fragmentId, path: item.path });
+        }
         const target = item.href ?? item.url;
         return /^https?:\/\//.test(target) ? target : null;
     }
@@ -137,14 +142,14 @@ class MasBulkPublishItems extends LitElement {
                           <span>${this.isPublished ? 'Modification' : 'Actions'}</span>
                       </div>
                       <ul>
-                          ${rows.map(
-                              (item) => html`
+                          ${rows.map((item) => {
+                              const href = this.itemHref(item);
+                              return html`
                                   <li data-testid="item-row">
-                                      ${this.itemHref(item)
-                                          ? html`<a href=${this.itemHref(item)} target="_blank" rel="noopener"
-                                                >${this.itemLabel(item)}</a
-                                            >`
+                                      ${href
+                                          ? html`<a href=${href} target="_blank" rel="noopener">${this.itemLabel(item)}</a>`
                                           : html`<span class="item-label">${this.itemLabel(item)}</span>`}
+                                      ${href ? renderRowLinkOverlay({ id: item.fragmentId }, { href }) : nothing}
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
                                       ${this.isPublished
@@ -162,8 +167,8 @@ class MasBulkPublishItems extends LitElement {
                                                 </sp-action-button>
                                             </span>`}
                                   </li>
-                              `,
-                          )}
+                              `;
+                          })}
                           <li class="footer-row" data-testid="items-footer">
                               <span class="footer-count">${rows.length} URL${rows.length !== 1 ? 's' : ''}</span>
                               <span class="url-spacer"></span>

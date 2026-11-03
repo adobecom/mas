@@ -33,6 +33,7 @@ class AemTagPickerField extends LitElement {
         },
         namespace: { type: String },
         top: { type: String },
+        excludeCountryTags: { type: Boolean, attribute: 'exclude-country-tags' },
         surface: { type: String },
         multiple: { type: Boolean }, // Whether multiple selection is allowed
         hierarchicalTags: { type: Object, state: true },
@@ -397,7 +398,7 @@ class AemTagPickerField extends LitElement {
         this.addContentTypeTags();
 
         let allTags = [...this.#data.values()].filter((tag) => this.#tagRoots.some((root) => tag.path.startsWith(root)));
-        if (this.top === 'pzn') {
+        if (this.excludeCountryTags) {
             allTags = allTags.filter((tag) => !isPznCountryTagPath(tag.path));
         }
 

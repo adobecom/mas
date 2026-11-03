@@ -9,14 +9,17 @@ echo "GITHUB_REF: $GITHUB_REF"
 echo "GITHUB_HEAD_REF: $GITHUB_HEAD_REF"
 
 if [[ "$GITHUB_REF" == refs/pull/* ]]; then
-  # extract PR number and branch name
+  # extract PR number
   PR_NUMBER=$(echo "$GITHUB_REF" | awk -F'/' '{print $3}')
-  FEATURE_BRANCH="$GITHUB_HEAD_REF"
-elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
-  # extract branch name from GITHUB_REF
-  FEATURE_BRANCH=$(echo "$GITHUB_REF" | awk -F'/' '{print $3}')
-else
-  echo "Unknown reference format"
+fi
+
+FEATURE_BRANCH="${prBranch:-${GITHUB_HEAD_REF:-${branch:-}}}"
+if [[ -z "$FEATURE_BRANCH" && "$GITHUB_REF" == refs/heads/* ]]; then
+  FEATURE_BRANCH="${GITHUB_REF#refs/heads/}"
+fi
+if [[ -z "$FEATURE_BRANCH" ]]; then
+  echo "GitHub test branch is missing: provide the PR head branch, not a PR merge ref." >&2
+  exit 1
 fi
 
 # Replace "/" characters in the feature branch name with "-"
@@ -87,6 +90,16 @@ if [[ -z "$PROJECT" ]]; then
         # Default to mas-live-chromium if still not determined (safe with auth)
         PROJECT="${PROJECT:-mas-live-chromium}"
     fi
+fi
+
+# The config selects exact files without filtering out the setup/teardown dependency projects.
+if [[ -n "$NALA_STUDIO_SHARD" ]]; then
+    if [[ "$PROJECT" != "mas-studio-chromium" ]]; then
+        echo "Studio sharding requires the mas-studio-chromium project." >&2
+        exit 1
+    fi
+    echo "Studio shard: $NALA_STUDIO_SHARD"
+    node ./nala/utils/studio-shards.js "$NALA_STUDIO_SHARD" || exit $?
 fi
 
 # Run Playwright tests on the specific projects using root-level playwright.config.js

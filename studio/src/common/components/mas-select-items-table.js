@@ -14,6 +14,7 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath, getOfferName } from '../utils/render-utils.js';
+import { renderEditorLink } from '../utils/editor-link.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';
 
@@ -45,6 +46,7 @@ class MasSelectItemsTable extends LitElement {
         variationCells: { type: Array },
         variationColumns: { type: Array },
         hideVariationExpand: { type: Boolean },
+        openVariationOnActivate: { type: Boolean },
         sortBy: { type: String },
         sortDirection: { type: String },
     };
@@ -59,7 +61,14 @@ class MasSelectItemsTable extends LitElement {
         super();
         this.dataSubscription = null;
         this.processAbortController = null;
-        this.dataState = { isProcessingCards: false, pendingCards: null, abortController: null };
+        this.dataState = {
+            isProcessingCards: false,
+            pendingCards: null,
+            abortController: null,
+            onProcessingChange: () => {
+                if (this.itemsSelection.value === Store.promotions) this.requestUpdate();
+            },
+        };
         this.viewOnlyLoading = false;
         this.viewOnlyFragments = [];
         this.displayCardsStoreController = null;
@@ -85,6 +94,7 @@ class MasSelectItemsTable extends LitElement {
         this.variationCells = null;
         this.variationColumns = null;
         this.hideVariationExpand = false;
+        this.openVariationOnActivate = false;
         this.sortBy = null;
         this.sortDirection = 'asc';
     }
@@ -250,7 +260,12 @@ class MasSelectItemsTable extends LitElement {
     get isLoading() {
         if (this.effectiveType === TABLE_TYPE.CARDS) {
             if (this.viewOnly) return this.viewOnlyLoading;
-            return !this.dataReady;
+            return (
+                !this.dataReady ||
+                (this.itemsSelection.value === Store.promotions &&
+                    this.itemsToDisplay.length === 0 &&
+                    (this.loading.value || this.hasMore.value || this.dataState.isProcessingCards))
+            );
         }
         if (this.effectiveType === TABLE_TYPE.COLLECTIONS) {
             if (this.viewOnly) return this.viewOnlyLoading;
@@ -335,17 +350,17 @@ class MasSelectItemsTable extends LitElement {
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
                     { label: '', key: 'chevron', class: 'table-icon-cell table-icon-cell--chevron' },
                     { label: 'Offer', key: 'offer', sortable: true },
+                    { label: 'Path', key: 'path' },
                     { label: 'Fragment title', key: 'fragmentTitle' },
                     { label: 'Offer ID', key: 'offerId' },
-                    { label: 'Path', key: 'path' },
                     { label: 'Item type', key: 'itemType' },
                     { label: 'Status', key: 'status' },
                 ],
@@ -353,13 +368,13 @@ class MasSelectItemsTable extends LitElement {
             collections: {
                 selectable: [
                     { label: '', key: 'checkbox', class: 'table-icon-cell table-icon-cell--checkbox' },
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
                 viewOnly: [
-                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Path', key: 'path' },
+                    { label: 'Collection title', key: 'collectionTitle' },
                     { label: 'Status', key: 'status' },
                 ],
             },
@@ -426,6 +441,7 @@ class MasSelectItemsTable extends LitElement {
                             .variationCells=${this.variationCells}
                             .variationColumns=${this.variationColumns}
                             .hideVariationExpand=${this.hideVariationExpand}
+                            .openVariationOnActivate=${this.openVariationOnActivate}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -450,8 +466,13 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
-                            <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
+                            <sp-table-cell>
+                                ${renderEditorLink(fragment, fragment.title || '-', {
+                                    selectionOnly: !this.viewOnly,
+                                    nativeKeyboard: this.viewOnly,
+                                })}
+                            </sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,
                 )}`;

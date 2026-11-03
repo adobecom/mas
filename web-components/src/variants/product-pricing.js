@@ -33,6 +33,30 @@ const SYNCED_ROWS = [
     },
 ];
 
+const clearSynced = (card) => {
+    card.removeAttribute('stacked');
+    SYNCED_ROWS.forEach(({ name }) =>
+        card.style.removeProperty(
+            `--consonant-merch-card-product-pricing-${name}-height`,
+        ),
+    );
+};
+
+// Two CTAs wrap when the second sits below the first. A lone CTA never does,
+// so a long single label can't stack its row.
+const ctasWrap = (card) => {
+    const [first, second] = [
+        ...card.querySelectorAll('[slot="footer"] a'),
+    ].filter((a) => a.getClientRects().length);
+    return Boolean(
+        second &&
+            second.getBoundingClientRect().top >=
+                first.getBoundingClientRect().bottom,
+    );
+};
+
+const rowOf = (card) => Math.round(card.getBoundingClientRect().top);
+
 export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
     mnemonics: { size: 's' },
@@ -116,9 +140,23 @@ export class ProductPricing extends VariantLayout {
     }
 
     syncHeights() {
+        if (this.card.heightSync === false) return;
         if (this.card.getBoundingClientRect().width <= 2) return;
+        const cards = [
+            ...(this.getContainer()?.querySelectorAll(
+                'merch-card[variant="product-pricing"]',
+            ) ?? []),
+        ];
+        // Narrow cards are each their own row: drop what a wider layout set.
+        cards.forEach(clearSynced);
         if (!window.matchMedia(SYNC_MIN_WIDTH).matches) return;
         this.syncRowHeights(SYNCED_ROWS);
+        // One card whose CTAs wrap stacks every card in its row.
+        const rows = cards.map(rowOf);
+        const stackedRows = new Set(rows.filter((_, i) => ctasWrap(cards[i])));
+        cards.forEach((card, i) =>
+            card.toggleAttribute('stacked', stackedRows.has(rows[i])),
+        );
     }
 
     // Cards with no authored price must not reserve the synced price row.

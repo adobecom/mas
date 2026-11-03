@@ -33,3 +33,18 @@ describe('openOfferSelectorTool config forwarding', () => {
         expect(app.config.bundleOsis).to.be.undefined;
     });
 });
+
+describe('namespaced global for side-by-side loading', () => {
+    it('exposes window.ostNew.openOfferSelectorTool', () => {
+        expect(typeof window.ostNew?.openOfferSelectorTool).to.equal('function');
+    });
+
+    it('does not clobber an existing window.ost (legacy loaded first)', async () => {
+        const sentinel = { openOfferSelectorTool() {} };
+        window.ost = sentinel;
+        const mod = await import(`../src/global.js?reimport=${Date.now()}`);
+        void mod;
+        expect(window.ost).to.equal(sentinel);
+        expect(typeof window.ostNew.openOfferSelectorTool).to.equal('function');
+    });
+});

@@ -100,8 +100,8 @@ popover is rendered instead. Position is set via `data-tooltip-position`
 | --- | --- | --- | --- | --- |
 | `expanded-groups` | `expandedGroups` | `string` | first group | Which accordion groups are open. `all`, `none`, or a comma list of 1-based group indices (e.g. `1,3`). Reflected. |
 | `collapsed` | `collapsed` | `boolean` | `false` | Renders nothing (collapses the whole chart). Reflected. |
-| `consonant` | `consonant` | `boolean` | `false` | Propagated to child cards for Consonant CTA styles. |
-| `spectrum` | `spectrum` | `string` | — | Propagated to child cards (`css` / `swc`). |
+| `consonant` | `consonant` | `boolean` | `false` | Propagated to child cards for Consonant CTA styles. Overrides the cards' own `consonant`. |
+| `spectrum` | `spectrum` | `string` | — | Propagated to child cards (`css` / `swc`). Overrides the cards' own `spectrum`. |
 | `sticky-offset` | `stickyOffset` | `string` | `64` | Viewport offset (px or any CSS length) for the sticky header pin line (desktop). |
 | `mobile-sticky-offset` | `mobileStickyOffset` | `string` | `40` | Viewport offset for the sticky header pin line in mobile layout (below the breakpoint). |
 | `sticky-top` | `stickyTop` | `string` | — | **Deprecated** — use `sticky-offset`. |

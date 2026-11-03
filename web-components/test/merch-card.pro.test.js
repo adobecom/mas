@@ -221,6 +221,75 @@ describe('pro collection responsive widths', () => {
     });
 });
 
+describe('pro edu mobile side spacing', () => {
+    let initialViewport;
+    const wrappers = [];
+
+    before(() => {
+        initialViewport = {
+            width: window.innerWidth,
+            height: window.innerHeight,
+        };
+    });
+
+    afterEach(() => {
+        for (const wrapper of wrappers) wrapper.remove();
+        wrappers.length = 0;
+    });
+
+    after(async () => {
+        await setViewport(initialViewport);
+    });
+
+    async function render(width, size) {
+        await setViewport({ width, height: 1000 });
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText =
+            'width: 100vw; margin: 0; padding: 0; display: block';
+        const card = document.createElement('merch-card');
+        card.setAttribute('variant', 'pro');
+        if (size) card.setAttribute('size', size);
+        wrapper.append(card);
+        document.body.append(wrapper);
+        wrappers.push(wrapper);
+        await card.updateComplete;
+        return {
+            wrapper: wrapper.getBoundingClientRect(),
+            card: card.getBoundingClientRect(),
+            style: getComputedStyle(card),
+        };
+    }
+
+    for (const [width, expected] of [
+        [375, 327],
+        [320, 272],
+        [767, 719],
+    ]) {
+        it(`gives the edu card 24px per side at ${width}px`, async () => {
+            const { wrapper, card } = await render(width, 'edu');
+            expect(card.width).to.be.closeTo(expected, 1);
+            expect(card.left - wrapper.left).to.be.closeTo(24, 1);
+            expect(wrapper.right - card.right).to.be.closeTo(24, 1);
+        });
+    }
+
+    for (const width of [768, 1280]) {
+        it(`adds no edu side spacing at ${width}px`, async () => {
+            const { wrapper, card, style } = await render(width, 'edu');
+            expect(style.maxWidth).to.equal('1068px');
+            expect(style.marginLeft).to.equal('0px');
+            expect(style.marginRight).to.equal('0px');
+            expect(card.width).to.be.closeTo(Math.min(wrapper.width, 1068), 1);
+        });
+    }
+
+    it('keeps non-edu pro cards full width at 375px', async () => {
+        const { wrapper, card, style } = await render(375);
+        expect(card.width).to.be.closeTo(wrapper.width, 1);
+        expect(style.marginLeft).to.equal('0px');
+    });
+});
+
 describe('pro add-on slot', () => {
     let card;
     afterEach(() => card?.remove());

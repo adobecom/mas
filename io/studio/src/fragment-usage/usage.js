@@ -8,6 +8,7 @@
  * from, so the caller can group them by region.
  */
 
+const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 
 const { getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
@@ -59,4 +60,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

@@ -364,6 +364,20 @@ describe('publish reference inspector', () => {
         expect(report.complete).to.be.false;
     });
 
+    it('aborts a timed-out reference lookup with a TimeoutError', async () => {
+        const root = makeFragment('root', ROOT_PATH, [`${ROOT_PATH}/slow`]);
+        let requestSignal;
+        const getByPath = (path, { signal }) => {
+            requestSignal = signal;
+            return new Promise(() => {});
+        };
+        const aem = { sites: { cf: { fragments: { getById: sinon.stub().resolves(root), getByPath } } } };
+
+        await inspectReferences(aem, [root], { requestTimeoutMs: 10 });
+
+        expect(requestSignal.reason.name).to.equal('TimeoutError');
+    });
+
     it('summarizes references left uninspected without starting GETs after the inspection deadline', async () => {
         const paths = Array.from({ length: 6 }, (_, index) => `${ROOT_PATH}/deadline-${index}`);
         const root = makeFragment('root', ROOT_PATH, paths);

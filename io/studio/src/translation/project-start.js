@@ -1,3 +1,4 @@
+const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { Ims } = require('@adobe/aio-lib-ims');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed } = require('../../utils');
@@ -144,5 +145,5 @@ async function updateSubmissionMetadata(params, projectCF, etag, authToken, subm
     return response.json();
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);
 exports.DISPATCHER_ACTION_NAME = DISPATCHER_ACTION_NAME;

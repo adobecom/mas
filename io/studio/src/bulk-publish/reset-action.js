@@ -1,3 +1,4 @@
+const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const {
@@ -58,4 +59,4 @@ async function main(params) {
     }
 }
 
-module.exports = { main };
+module.exports = { main: exposeRequestId(main) };

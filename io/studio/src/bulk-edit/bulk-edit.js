@@ -1,3 +1,4 @@
+const { exposeRequestId } = require('../response-headers.js');
 const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { init: filesInit } = require('@adobe/aio-lib-files');
@@ -733,7 +734,7 @@ async function main(params) {
 }
 
 module.exports = {
-    main,
+    main: exposeRequestId(main),
     resolveBulkEditMode,
     createModeMain,
     jobModeMismatchError,

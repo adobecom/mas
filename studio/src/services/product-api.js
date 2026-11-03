@@ -95,9 +95,9 @@ async function parseJsonBody(response, what, hint = '') {
     }
 }
 
-async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+export async function fetchWithTimeout(url, init = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(new DOMException('Request timed out', 'TimeoutError')), timeoutMs);
     try {
         return await fetch(url, { ...init, signal: controller.signal });
     } finally {

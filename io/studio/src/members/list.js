@@ -3,6 +3,7 @@
  * - GET: Retrieves the user data from state cache (requires mas-studio token)
  */
 
+const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs } = require('../../utils');
 const { init } = require('@adobe/aio-lib-state');
@@ -77,4 +78,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

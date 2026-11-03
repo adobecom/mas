@@ -1,3 +1,4 @@
+const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { revertSnapshot } = require('./snapshot.js');
@@ -118,4 +119,4 @@ async function revertWithProject(params, odinEndpoint, authToken) {
     return { statusCode: 200, body: { status: finalStatus, lastError: finalError, failures, skipped } };
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

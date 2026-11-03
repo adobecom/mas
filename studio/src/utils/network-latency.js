@@ -14,8 +14,8 @@ const READ_URL_PATTERNS = [
     '/referencedBy',
     '/fragment-usage',
     '/bulk-check-modifications',
-    '/get-product-detail',
 ];
+const READ_OPERATION_PATTERN = /\/(get|list|search|resolve)[-_]/;
 const PUBLISH_URL_PATTERNS = ['/publish', '/bulk-publish', '/bulk-revert'];
 
 function isDeleteForm(body) {
@@ -26,7 +26,7 @@ export function classifyRequest(url, method, body) {
     if (url.includes('/ai-chat')) return REQUEST_TYPE.CHAT;
     if (method === 'GET' || method === 'HEAD') return REQUEST_TYPE.GET;
     if (method === 'DELETE' || isDeleteForm(body)) return REQUEST_TYPE.DELETE;
-    if (READ_URL_PATTERNS.some((pattern) => url.includes(pattern))) return REQUEST_TYPE.GET;
+    if (READ_OPERATION_PATTERN.test(url) || READ_URL_PATTERNS.some((pattern) => url.includes(pattern))) return REQUEST_TYPE.GET;
     if (PUBLISH_URL_PATTERNS.some((pattern) => url.includes(pattern))) return REQUEST_TYPE.PUBLISH;
     return REQUEST_TYPE.SAVE;
 }

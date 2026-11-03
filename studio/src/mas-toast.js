@@ -16,6 +16,10 @@ class MasToast extends LitElement {
         sp-toast:not([open]) {
             display: none;
         }
+
+        .pinned {
+            --mod-toast-negative-background-color-default: var(--spectrum-notice-background-color-default);
+        }
     `;
 
     constructor() {

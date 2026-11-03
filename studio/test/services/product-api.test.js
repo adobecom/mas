@@ -1,6 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
-import { fetchProducts, fetchProductDetail, clearProductCache } from '../../src/services/product-api.js';
+import { fetchProducts, fetchProductDetail, clearProductCache, fetchWithTimeout } from '../../src/services/product-api.js';
 
 describe('product-api', () => {
     let sandbox;
@@ -29,6 +29,19 @@ describe('product-api', () => {
         sandbox.restore();
         delete window.adobeIMS;
         clearProductCache();
+    });
+
+    describe('fetchWithTimeout', () => {
+        it('rejects with a TimeoutError once the timeout passes', async () => {
+            fetchStub.callsFake(
+                (url, { signal }) =>
+                    new Promise((resolve, reject) => {
+                        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+                    }),
+            );
+            const error = await fetchWithTimeout('https://example.com', {}, 1).catch((err) => err);
+            expect(error.name).to.equal('TimeoutError');
+        });
     });
 
     describe('fetchProducts caching', () => {

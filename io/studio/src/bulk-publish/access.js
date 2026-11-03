@@ -1,3 +1,4 @@
+const { exposeRequestId } = require('../response-headers.js');
 const { errorResponse, getBearerToken, isAllowed } = require('../../utils.js');
 
 const STUDIO_ORG_ID = '3B962FB55F5F922E0A495C88';
@@ -42,4 +43,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

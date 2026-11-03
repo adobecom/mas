@@ -19,8 +19,10 @@ async function main(params) {
             redirect: 'error',
             signal: AbortSignal.timeout(10000),
         });
-        if (!profileResponse.ok)
-            return response(profileResponse.status === 401 ? 401 : 502, { error: 'Unable to verify your Studio identity.' });
+        if (!profileResponse.ok) {
+            const statusCode = [401, 403].includes(profileResponse.status) ? profileResponse.status : 502;
+            return response(statusCode, { error: 'Unable to verify your Studio identity.' });
+        }
         const profile = await profileResponse.json();
         email = profile.email?.toLowerCase();
     } catch {

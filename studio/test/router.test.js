@@ -675,6 +675,26 @@ describe('Router', () => {
         });
     });
 
+    describe('variation filter hash params', () => {
+        it('restores both variation selections from the URL', () => {
+            mockLocation.hash = '#page=content&variation=promo%2Cgrouped';
+            router.start();
+            expect(Store.filters.get().variation).to.equal('promo,grouped');
+        });
+
+        it('syncs combined selections and removes the URL parameter when cleared', async () => {
+            mockLocation.hash = '#page=content';
+            router.start();
+            Store.filters.set((prev) => ({ ...prev, variation: 'promo,grouped' }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(new URLSearchParams(mockLocation.hash.slice(1)).get('variation')).to.equal('promo,grouped');
+
+            Store.filters.set((prev) => ({ ...prev, variation: undefined }));
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            expect(new URLSearchParams(mockLocation.hash.slice(1)).has('variation')).to.be.false;
+        });
+    });
+
     describe('locale and region hash params', () => {
         it('should sync region from store to hash', async () => {
             mockLocation.hash = '#page=fragment-editor&path=sandbox';

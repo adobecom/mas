@@ -54,6 +54,55 @@ describe('MASA dashboard', () => {
         expect(state.put.firstCall.args).to.deep.equal([CACHE_KEY, JSON.stringify(fixture), { ttl: SNAPSHOT_TTL_SECONDS }]);
     });
 
+    for (const [name, change] of [
+        [
+            'ignored outcome',
+            (s) => {
+                s.outcomes.kinds.ignored = 1;
+                s.costliest[0].outcome = 'ignored';
+            },
+        ],
+        [
+            'repository learning job',
+            (s) => {
+                s.summary.jobKinds['repo-learn'] = 1;
+            },
+        ],
+        [
+            'conversation learning job',
+            (s) => {
+                s.summary.jobKinds['conversation-learn'] = 1;
+            },
+        ],
+        [
+            'unverified page rejection',
+            (s) => {
+                s.rejections = [{ key: 'page-unverified · browser_inspect', count: 1 }];
+            },
+        ],
+        [
+            'documentation intent signal',
+            (s) => {
+                s.intents.signals.document = 1;
+            },
+        ],
+        [
+            'documentation answer',
+            (s) => {
+                s.outcomes.answerTypes.document = 1;
+                s.intents.rows[0].answerTypes.document = 1;
+                s.costliest[0].outcome = 'document';
+            },
+        ],
+    ]) {
+        it(`accepts the publisher's ${name} aggregate`, async () => {
+            const snapshot = structuredClone(fixture);
+            change(snapshot.windows[7]);
+            expect((await ingest.main(payload(snapshot))).statusCode).to.equal(200);
+            expect(JSON.parse(state.put.firstCall.args[1]).windows[7]).to.deep.equal(snapshot.windows[7]);
+        });
+    }
+
     it('accepts estimated spending without weakening the legacy snapshot contract', async () => {
         const snapshot = structuredClone(fixture);
         const amounts = { inputUsd: 0.05, outputUsd: 0.94, estimatedUsd: 0.99, pricedCalls: 1, unpricedCalls: 0 };
@@ -386,6 +435,21 @@ describe('MASA dashboard', () => {
         expect(result.statusCode).to.equal(403);
         expect(state.get.calledWith(CACHE_KEY)).to.equal(false);
     });
+
+    for (const [status, expected] of [
+        [401, 401],
+        [403, 403],
+        [500, 502],
+    ]) {
+        it(`returns ${expected} for IMS profile status ${status} before accessing stored data`, async () => {
+            fetchStub.resolves({ ok: false, status });
+            state.get.withArgs(CACHE_KEY).resolves({ value: JSON.stringify(fixture) });
+            const result = await read.main(caller);
+            expect(result.statusCode).to.equal(expected);
+            expect(result.body).not.to.have.property('windows');
+            expect(initialize.called).to.equal(false);
+        });
+    }
 
     it('denies missing profile identity and unavailable membership', async () => {
         fetchStub.resolves({ ok: true, json: async () => ({}) });

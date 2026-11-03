@@ -1,5 +1,5 @@
 import { LitElement, html, nothing } from 'lit';
-import { styles } from './mas-related-artifacts.css.js';
+import { referencesBoxStyles } from './references-box.css.js';
 import { ARTIFACT_TYPE_KEYS, getReferencingFragments } from './references-repository.js';
 import { getPromotionTagFromFragment } from '../promotions/promotion-model.js';
 import * as promotionsRepository from '../promotions/promotions-repository.js';
@@ -12,7 +12,7 @@ import './mas-related-artifacts-dialog.js';
 // A save (saveCount) reloads only when it changed the promotion tag, the one input of the result
 // the open fragment owns.
 export default class MasRelatedArtifacts extends LitElement {
-    static styles = styles;
+    static styles = referencesBoxStyles;
 
     static properties = {
         fragment: { type: Object },

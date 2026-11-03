@@ -12,14 +12,14 @@ const category = (values) => {
     const allowed = new Set(values.split(' '));
     return (value) => allowed.has(value);
 };
-const answerType = category('explain diagnose route clarify decline none');
-const outcome = category('answer fallback timeout model-unreachable none');
+const answerType = category('explain diagnose route document clarify decline none');
+const outcome = category('answer fallback timeout model-unreachable ignored none');
 const cause = category('format studio-link citations code-unverified code-unquoted');
 const probe = category(
     'aos_offer aos_search attachment browser_inspect card_search code_read code_search collection_tree docs_index docs_page docs_pr_patch fragment_inventory fragment_usage github_actions_read github_pr_checks github_pr_file github_pr_info github_pr_read grafana_panel grouped_variations_list io_fragment jira_issue jira_search knowledge_search milo_page nala_results odin_fragment_get odin_fragment_history osi_usage past_questions placeholder_trace prior_cases promo_code_lookup rendered_content settings_trace slack_thread splunk_search studio_inspect studio_link studio_screenshot traffic_breakdown wcs_offer wiki_page wiki_search',
 );
 const rejectionReason = category(
-    'unknown-probe invalid-json invalid-input out-of-scope probe-error job-aborted budget-exhausted investigation-time-limit unknown',
+    'unknown-probe invalid-json invalid-input out-of-scope probe-error job-aborted budget-exhausted investigation-time-limit page-unverified unknown',
 );
 const rejection = (value) => {
     if (typeof value !== 'string' || value.length > 240) return false;
@@ -70,7 +70,7 @@ const windowFields = {
         jobStatuses: counts(category('queued running done failed interrupted stale')),
         jobKinds: counts(
             category(
-                'question learn confirm curate review-digest investigation-batch investigation-control studio-investigation',
+                'question learn confirm curate review-digest investigation-batch investigation-control studio-investigation repo-learn conversation-learn',
             ),
         ),
         outcomesRecorded: count,
@@ -118,7 +118,7 @@ const windowFields = {
             10,
         ),
         unlabelled: count,
-        signals: counts(category('symptom retry thread url image')),
+        signals: counts(category('symptom retry thread url image document')),
     }),
     model: shape({
         calls: count,

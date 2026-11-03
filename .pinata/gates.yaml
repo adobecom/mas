@@ -67,9 +67,11 @@ gates:
     # workspace suites).
     unit-tests:
         template: command
-        name: Unit suites, all workspaces
-        cmd: npm test
-        timeout_s: 600
+        name: Unit suites for the changed workspaces
+        # The full suite takes ~8 min on a fast laptop and overran the old 600s
+        # limit; GitHub CI (run-tests.yaml) still runs all of it on every PR.
+        cmd: node .pinata/scripts/run-affected-tests.mjs
+        timeout_s: 1200
         blocking: true
         failure_route: regenerate
 

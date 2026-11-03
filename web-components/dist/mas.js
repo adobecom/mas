@@ -3397,6 +3397,33 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 		font-style: italic;
 }
 
+merch-card[variant="mini-compare-chart-mweb"] [slot="legal-text"] {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--spectrum-gray-700, #505050);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  font-style: italic;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+merch-card[variant="mini-compare-chart-mweb"] [slot="legal-text"] p {
+  margin: 0;
+}
+
+merch-card[variant="mini-compare-chart-mweb"].has-legal-text [slot="heading-m-price"] .price-plan-type {
+  display: none;
+}
+
+merch-card[variant="mini-compare-chart-mweb"]:not(.has-legal-text) [slot="legal-text"] {
+  display: none;
+}
+
 /* mini compare mobile */
 @media screen and ${D} {
   :root {
@@ -3609,7 +3636,7 @@ merch-card .footer-row-cell:nth-child(7) {
 merch-card .footer-row-cell:nth-child(8) {
   min-height: var(--consonant-merch-card-footer-row-8-min-height);
 }
-`;var Uf=32,qf=0,Bf=()=>`mweb-list-${qf+=1}`,jf=["heading-xs","subtitle","heading-m-price","quantity-select","promo-text","body-m","body-xs"],Vf=8,sc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},promoText:{tag:"div",slot:"promo-text"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"body-m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],ctas:{slot:"footer",size:"l"},style:"consonant"},rt,hr,ea,ta,ra,Nt,nc,oc,Jr=class extends _{constructor(e){super(e);E(this,Nt);E(this,rt);E(this,hr);E(this,ea);E(this,ta,0);E(this,ra);g(this,"getRowMinHeightPropertyName",e=>`--consonant-merch-card-footer-row-${e}-min-height`);g(this,"getMiniCompareFooter",()=>b` <footer>
+`;var Uf=32,qf=0,Bf=()=>`mweb-list-${qf+=1}`,jf=["heading-xs","subtitle","heading-m-price","legal-text","quantity-select","promo-text","body-m","body-xs"],Vf=8,sc={cardName:{attribute:"name"},title:{tag:"h3",slot:"heading-xs"},subtitle:{tag:"p",slot:"subtitle"},prices:{tag:"p",slot:"heading-m-price"},callout:{tag:"div",slot:"legal-text",editorLabel:"Legal text"},promoText:{tag:"div",slot:"promo-text"},quantitySelect:{tag:"div",slot:"quantity-select"},shortDescription:{tag:"div",slot:"body-m"},description:{tag:"div",slot:"body-xs"},mnemonics:{size:"l"},secureLabel:!0,planType:!0,badgeIcon:!0,badge:{tag:"div",slot:"badge",default:"spectrum-yellow-300-plans"},allowedBadgeColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-gray-700-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],allowedBorderColors:["spectrum-yellow-300-plans","spectrum-gray-300-plans","spectrum-green-900-plans","spectrum-red-700-plans","gradient-purple-blue"],borderColor:{attribute:"border-color"},size:["wide","super-wide"],ctas:{slot:"footer",size:"l"},style:"consonant"},rt,hr,ea,ta,ra,Nt,nc,oc,Jr=class extends _{constructor(e){super(e);E(this,Nt);E(this,rt);E(this,hr);E(this,ea);E(this,ta,0);E(this,ra);g(this,"getRowMinHeightPropertyName",e=>`--consonant-merch-card-footer-row-${e}-min-height`);g(this,"getMiniCompareFooter",()=>b` <footer>
             <slot name="secure-transaction-label">
                 <span class="secure-transaction-label-text"
                     >${this.secureLabel}</span
@@ -3621,7 +3648,7 @@ merch-card .footer-row-cell:nth-child(8) {
         </footer>`);g(this,"getMiniCompareFooterRows",()=>b` <div class="footer-rows-container">
             <slot name="body-xs"></slot>
             <slot name="footer-rows"></slot>
-        </div>`);this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(Z,this.updatePriceQuantity),w(this,ta,this.card.getBoundingClientRect().width),w(this,hr,new ResizeObserver(()=>{let e=this.card.getBoundingClientRect().width;e!==d(this,ta)&&(w(this,ta,e),clearTimeout(d(this,ea)),w(this,ea,setTimeout(()=>this.reconcileBreakpoint(),150)))})),d(this,hr).observe(this.card)}disconnectedCallbackHook(){this.card.removeEventListener(Z,this.updatePriceQuantity),clearTimeout(d(this,ea)),d(this,hr)?.disconnect(),w(this,hr,null),d(this,rt)?.disconnect(),w(this,rt,null)}reconcileBreakpoint(){I.isMobile?(this.resetSyncedHeights(),this.removeEmptyRows()):f(this,Nt,oc).call(this)}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}syncHeights(){if(I.isMobile)return;if(this.card.getBoundingClientRect().width<=2){d(this,rt)||(w(this,rt,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(d(this,rt)?.disconnect(),w(this,rt,null),this.syncHeights())})),d(this,rt).observe(this.card));return}let e=["heading-xs","subtitle","heading-m-price","quantity-select","promo-text","body-m","body-xs"];this.syncRowHeights(e.map(r=>({name:r,getElement:i=>i.querySelector(`[slot="${r}"]`)}))),this.adjustMiniCompareFooterRows()}priceOptionsProvider(e,r){let i=sc.prices.slot;if(e.closest(`[slot="${i}"]`)){if(e.dataset.template===G){r.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(e.dataset.template==="strikethrough"||e.dataset.template==="price"&&!e.closest?.("merch-card")?.settings?.displayAnnual)&&(r.displayPerUnit=!1)}}getGlobalCSS(){return Hh}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let e=this.card.querySelector('[slot="footer-rows"] ul');!e||!e.children||[...e.children].forEach((r,i)=>{let n=Math.max(Uf,parseFloat(window.getComputedStyle(r).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(r=>{let i=r.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&r.remove()})}setupToggle(){let e=this.card.querySelector('[slot="body-xs"]'),r=e?.querySelector("p"),i=e?.querySelector("ul");if(!r||!i||e.querySelector(".footer-rows-title"))return;let n=r.textContent.trim(),o=this.card.querySelector("h3")?.id,c=o?`${o}-list`:Bf();i.id=c,i.classList.add("checkmark-copy-container");let s=X("h4",{class:"footer-rows-title"},n),l=X("button",{class:"toggle-icon","aria-label":n,"aria-expanded":"false","aria-controls":c});w(this,ra,{toggleBtn:l,listEl:i}),s.append(l),s.addEventListener("click",()=>{I.isMobile&&this.setListOpen(!this.isListOpen)}),r.replaceWith(s)}get isListOpen(){return d(this,ra)?.listEl.classList.contains("open")??!1}setListOpen(e){let{toggleBtn:r,listEl:i}=d(this,ra);i.classList.toggle("open",e),r.classList.toggle("expanded",e),r.setAttribute("aria-expanded",String(e))}get legalDisplayDot(){return!1}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${O}[data-template="price"]`)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.mainPrice;if(!e)return;let r=e.cloneNode(!0);if(await e.onceSettled(),!e?.options)return;e.options.displayPlanType&&(e.dataset.displayPlanType="false"),xi(this.card,e,r,"displayTax"),xi(this.card,e,r,"displayPerUnit"),r.setAttribute("data-template","legal"),e.parentNode.insertBefore(r,e.nextSibling),await r.onceSettled()}catch{}}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?A:b`<slot name="icons"></slot>`}renderLayout(){return b`
+        </div>`);this.updatePriceQuantity=this.updatePriceQuantity.bind(this)}connectedCallbackHook(){this.card.addEventListener(Z,this.updatePriceQuantity),w(this,ta,this.card.getBoundingClientRect().width),w(this,hr,new ResizeObserver(()=>{let e=this.card.getBoundingClientRect().width;e!==d(this,ta)&&(w(this,ta,e),clearTimeout(d(this,ea)),w(this,ea,setTimeout(()=>this.reconcileBreakpoint(),150)))})),d(this,hr).observe(this.card)}disconnectedCallbackHook(){this.card.removeEventListener(Z,this.updatePriceQuantity),clearTimeout(d(this,ea)),d(this,hr)?.disconnect(),w(this,hr,null),d(this,rt)?.disconnect(),w(this,rt,null)}reconcileBreakpoint(){I.isMobile?(this.resetSyncedHeights(),this.removeEmptyRows()):f(this,Nt,oc).call(this)}updatePriceQuantity({detail:e}){!this.mainPrice||!e?.option||(this.mainPrice.dataset.quantity=e.option)}syncHeights(){if(I.isMobile)return;if(this.card.getBoundingClientRect().width<=2){d(this,rt)||(w(this,rt,new ResizeObserver(()=>{this.card.getBoundingClientRect().width>2&&(d(this,rt)?.disconnect(),w(this,rt,null),this.syncHeights())})),d(this,rt).observe(this.card));return}let e=["heading-xs","subtitle","heading-m-price","legal-text","quantity-select","promo-text","body-m","body-xs"];this.syncRowHeights(e.map(r=>({name:r,getElement:i=>i.querySelector(`[slot="${r}"]`)}))),this.adjustMiniCompareFooterRows()}priceOptionsProvider(e,r){let i=sc.prices.slot;if(e.closest(`[slot="${i}"]`)){if(e.dataset.template===G){r.displayPlanType=this.card?.settings?.displayPlanType??!1;return}(e.dataset.template==="strikethrough"||e.dataset.template==="price"&&!e.closest?.("merch-card")?.settings?.displayAnnual)&&(r.displayPerUnit=!1)}}getGlobalCSS(){return Hh}adjustMiniCompareFooterRows(){if(this.card.getBoundingClientRect().width===0)return;let e=this.card.querySelector('[slot="footer-rows"] ul');!e||!e.children||[...e.children].forEach((r,i)=>{let n=Math.max(Uf,parseFloat(window.getComputedStyle(r).height)||0),o=parseFloat(this.getContainer().style.getPropertyValue(this.getRowMinHeightPropertyName(i+1)))||0;n>o&&this.getContainer().style.setProperty(this.getRowMinHeightPropertyName(i+1),`${n}px`)})}removeEmptyRows(){this.card.querySelectorAll(".footer-row-cell").forEach(r=>{let i=r.querySelector(".footer-row-cell-description");i&&!i.textContent.trim()&&r.remove()})}setupToggle(){let e=this.card.querySelector('[slot="body-xs"]'),r=e?.querySelector("p"),i=e?.querySelector("ul");if(!r||!i||e.querySelector(".footer-rows-title"))return;let n=r.textContent.trim(),o=this.card.querySelector("h3")?.id,c=o?`${o}-list`:Bf();i.id=c,i.classList.add("checkmark-copy-container");let s=X("h4",{class:"footer-rows-title"},n),l=X("button",{class:"toggle-icon","aria-label":n,"aria-expanded":"false","aria-controls":c});w(this,ra,{toggleBtn:l,listEl:i}),s.append(l),s.addEventListener("click",()=>{I.isMobile&&this.setListOpen(!this.isListOpen)}),r.replaceWith(s)}get isListOpen(){return d(this,ra)?.listEl.classList.contains("open")??!1}setListOpen(e){let{toggleBtn:r,listEl:i}=d(this,ra);i.classList.toggle("open",e),r.classList.toggle("expanded",e),r.setAttribute("aria-expanded",String(e))}get legalDisplayDot(){return!1}get mainPrice(){return this.card.querySelector(`[slot="heading-m-price"] ${O}[data-template="price"]`)}async adjustLegal(){if(!this.legalAdjusted)try{this.legalAdjusted=!0,await this.card.updateComplete,await customElements.whenDefined("inline-price");let e=this.mainPrice;if(!e)return;let r=e.cloneNode(!0);if(await e.onceSettled(),!e?.options)return;e.options.displayPlanType&&(e.dataset.displayPlanType="false"),xi(this.card,e,r,"displayTax"),xi(this.card,e,r,"displayPerUnit"),r.setAttribute("data-template","legal"),e.parentNode.insertBefore(r,e.nextSibling),await r.onceSettled()}catch{}}adjustLegalText(){let e=this.card.querySelector('[slot="legal-text"]'),r=!!e&&(!!e.textContent.trim()||!!e.querySelector(".icon-button, img"));this.card.classList.toggle("has-legal-text",r),r&&e.querySelectorAll(".icon-button").forEach(i=>{i.title&&!i.dataset.tooltip&&(i.dataset.tooltip=i.title);let n=i.dataset.tooltip||i.title;i.hasAttribute("tabindex")||(i.tabIndex=0),i.hasAttribute("role")||i.setAttribute("role","button"),n&&!i.hasAttribute("aria-label")&&i.setAttribute("aria-label",n)})}get icons(){return!this.card.querySelector('[slot="icons"]')&&!this.card.getAttribute("id")?A:b`<slot name="icons"></slot>`}renderLayout(){return b`
             ${this.badge}
             <div class="body">
                 <div class="body-main">
@@ -3631,6 +3658,7 @@ merch-card .footer-row-cell:nth-child(8) {
                     <div class="price-wrapping">
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
+                        <slot name="legal-text"></slot>
                     </div>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
@@ -3639,7 +3667,7 @@ merch-card .footer-row-cell:nth-child(8) {
                 ${this.getMiniCompareFooter()}
             </div>
             ${this.getMiniCompareFooterRows()}
-        `}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),this.setupToggle(),I.isMobile&&this.removeEmptyRows(),await super.postCardUpdateHook(),I.isMobile||await f(this,Nt,oc).call(this)}resetSyncedHeights(){let e=this.getContainer();if(!e)return;let r=this.card.variant,i=f(this,Nt,nc).call(this,e);for(let n of jf){let o=`--consonant-merch-card-${r}-${n}-height`;e.style.removeProperty(o),i.forEach(c=>c.style.removeProperty(o))}for(let n=1;n<=Vf;n+=1)e.style.removeProperty(this.getRowMinHeightPropertyName(n))}};rt=new WeakMap,hr=new WeakMap,ea=new WeakMap,ta=new WeakMap,ra=new WeakMap,Nt=new WeakSet,nc=function(e){return e.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)},oc=async function(){let e=this.getContainer();if(!e)return;let r=Array.from(f(this,Nt,nc).call(this,e));this.card===r[0]&&(await Promise.all(r.map(i=>i.updateComplete)),await new Promise(i=>setTimeout(i,100)),requestAnimationFrame(()=>{this.resetSyncedHeights(),this.syncHeights()}))},g(Jr,"variantStyle",C`
+        `}async postCardUpdateHook(){this.legalAdjusted||await this.adjustLegal(),this.setupToggle(),this.adjustLegalText(),I.isMobile&&this.removeEmptyRows(),await super.postCardUpdateHook(),I.isMobile||await f(this,Nt,oc).call(this)}resetSyncedHeights(){let e=this.getContainer();if(!e)return;let r=this.card.variant,i=f(this,Nt,nc).call(this,e);for(let n of jf){let o=`--consonant-merch-card-${r}-${n}-height`;e.style.removeProperty(o),i.forEach(c=>c.style.removeProperty(o))}for(let n=1;n<=Vf;n+=1)e.style.removeProperty(this.getRowMinHeightPropertyName(n))}};rt=new WeakMap,hr=new WeakMap,ea=new WeakMap,ta=new WeakMap,ra=new WeakMap,Nt=new WeakSet,nc=function(e){return e.querySelectorAll(`merch-card[variant="${this.card.variant}"]`)},oc=async function(){let e=this.getContainer();if(!e)return;let r=Array.from(f(this,Nt,nc).call(this,e));this.card===r[0]&&(await Promise.all(r.map(i=>i.updateComplete)),await new Promise(i=>setTimeout(i,100)),requestAnimationFrame(()=>{this.resetSyncedHeights(),this.syncHeights()}))},g(Jr,"variantStyle",C`
         :host([variant='mini-compare-chart-mweb'])
             .body-main
             > .price-wrapping {
@@ -3768,6 +3796,20 @@ merch-card .footer-row-cell:nth-child(8) {
             ::slotted([slot='heading-m-price']) {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted([slot='legal-text']) {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-legal-text-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            .price-wrapping
+            > slot[name='legal-text'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-legal-text-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])

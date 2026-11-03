@@ -45,13 +45,15 @@ MFA) in that browser window, then continue.
 3. **Pick the referers**: the top N (ask the user, default 4) from `https://www.adobe.com/`
    or Creative Cloud Desktop (a `referer=none` event, whose source is the last token of
    its user agent). Skip Studio (`mas.adobe.com`), stage, `*.aem.page` and other hosts.
-4. **Create one job per referer** (same endpoint, without `exec_mode=oneshot`; keep the
-   returned `sid`):
+4. **Create one job per picked source** (same endpoint, without `exec_mode=oneshot`; keep
+   the returned `sid`). Filter on the same computed `source` as step 2, so Creative Cloud
+   Desktop (`referer=none`) resolves to its user-agent token:
     ```
     search index=lana_prod l_client=merch-at-scale
     | rex field=_raw "referer=(?<referer>[^¦^?]+)"
     | rex field=_raw "user-agent=(?<user_agent>[^¦]+)"
-    | where referer="<referer>" | table _time _raw referer user_agent
+    | eval source=if(referer="none", mvindex(split(user_agent, " "), -1), referer)
+    | where source="<source>" | table _time _raw referer user_agent source
     ```
     Poll `/en-US/splunkd/__raw/services/search/jobs/<sid>?output_mode=json` until
     `isDone`.
@@ -165,7 +167,9 @@ literal`): the id is not in the message. Read the OSI / promo code / country fro
    in one click (see "Studio deep link" below).
 
 9. **Name an owner for every action**: the author of the card, the owner of the
-   promotion project, the MEP manifest owner, or the M@S engineering team. "Someone
+   promotion project, the MEP manifest owner, or the M@S engineering team. In the
+   business message, call the MEP manifest owner the "page personalization owner" (no
+   jargon there); keep "MEP manifest owner" in the #mas-alert message. "Someone
    should…" is not a call to action.
 
 10. **Report** in the output format below. Lead with the verdict. Present all volumes
@@ -357,7 +361,7 @@ links, suspect code area, browser/UA clusters), but keep one block per referer, 
 impactful first. Every volume is a sampling-scaled estimate. Every issue ends in exactly
 one status: **reproduced** (with the URL you saw fail), **not reproduced** (what you tried
 and what is needed), or **no action** (noise: bots, unsold markets, secondary timeouts).
-Link any ticket you created or propose one (offer the `mwpw-ticket` skill).
+Link any ticket you created or propose one (offer to create a Jira ticket).
 
 ```
 :mag: *M@S LANA triage — <window, e.g. last 12h to Oct 22 07:45 CEST>*

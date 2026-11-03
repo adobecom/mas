@@ -44,7 +44,6 @@ async function main(params) {
         // hours until the record expires. Pruning here keeps the list true to its 7-day label.
         const pages = prunePages(record?.pages || {}, toEpochHour(Date.now()));
 
-        // No custom headers: I/O Runtime adds CORS only when the response carries none of its own.
         return {
             statusCode: 200,
             body: {

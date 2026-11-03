@@ -41,12 +41,6 @@ export const styles = [
                 }
             }
 
-            .action-cell {
-                display: flex;
-                justify-content: center;
-                --system-action-button-background-color-default: transparent;
-            }
-
             .duplicating-overlay {
                 position: absolute;
                 inset: 0;

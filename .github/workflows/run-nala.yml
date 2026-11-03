@@ -2,8 +2,6 @@ name: Run Nala Tests
 
 on:
     pull_request:
-        branches:
-            - main
         types: [opened, synchronize, labeled, unlabeled]
     # Re-evaluate when a review lands, so an already-labeled PR starts Nala
     # as soon as it reaches the required approval count.

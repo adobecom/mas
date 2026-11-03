@@ -277,6 +277,10 @@ The gate waits only for relevant current-commit checks. A cancellation API failu
 Concurrency is scoped to the heavy jobs, separately for each Studio shard and Docs: incidental reviews do not cancel an active suite.
 The fixed 4/4/3 Studio and 1 Docs allocation and invocation-owned HARs remain unchanged.
 
+Nala PR workflows run for every target branch, including feature branches used during restricted code change periods.
+Studio/Docs tests, trivial-change labeling and Milo commerce tests use the same PR triggers and eligibility rules regardless
+of the target branch. Milo commerce push runs remain limited to `main`.
+
 `Nala Gate` resolves the latest result for each of the three Studio shards and Docs.
 Missing, failed or started-and-cancelled tests cannot pass; an in-flight retry takes precedence over an earlier failure.
 Retrying a failed shard can reuse the other shards' and Docs' passing results for the same commit.

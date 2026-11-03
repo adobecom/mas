@@ -2,7 +2,6 @@ name: Milo Commerce Tests with MasLibs
 
 on:
     pull_request:
-        branches: [main]
         types: [opened, synchronize, reopened]
         paths:
             - 'web-components/**'

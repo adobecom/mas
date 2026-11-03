@@ -298,7 +298,7 @@ describe('MASA dashboard', () => {
         [
             'credential-shaped model label',
             (s) => {
-                s.windows[7].model.servedModels = { 'xoxb-synthetic-secret': 1 };
+                s.windows[7].model.servedModels = { 'synthetic-private-model-secret': 1 };
             },
         ],
     ]) {

@@ -8,7 +8,14 @@ export const REQUEST_TYPE = { GET: 'get', SAVE: 'save', PUBLISH: 'publish', DELE
 
 const LANA_SAMPLE_RATE = 100;
 const UNKNOWN_REQUEST_ID = 'unknown';
-const READ_URL_PATTERNS = ['/bulk-publish-access', '/listMembers'];
+const READ_URL_PATTERNS = [
+    '/bulk-publish-access',
+    '/listMembers',
+    '/referencedBy',
+    '/fragment-usage',
+    '/bulk-check-modifications',
+    '/get-product-detail',
+];
 const PUBLISH_URL_PATTERNS = ['/publish', '/bulk-publish', '/bulk-revert'];
 
 function isDeleteForm(body) {

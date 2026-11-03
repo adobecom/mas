@@ -44,6 +44,16 @@ describe('classifyRequest', () => {
             REQUEST_TYPE.GET,
         ],
         ['read-only member list POST', 'https://io.example.com/listMembers', 'POST', undefined, REQUEST_TYPE.GET],
+        ['read-only referencedBy POST', `${AEM_URL}/referencedBy`, 'POST', undefined, REQUEST_TYPE.GET],
+        ['read-only fragment usage POST', 'https://io.example.com/fragment-usage', 'POST', undefined, REQUEST_TYPE.GET],
+        [
+            'read-only modification check POST',
+            'https://io.example.com/bulk-check-modifications',
+            'POST',
+            undefined,
+            REQUEST_TYPE.GET,
+        ],
+        ['read-only product detail POST', 'https://io.example.com/get-product-detail', 'POST', undefined, REQUEST_TYPE.GET],
         ['fragment save PUT', AEM_URL, 'PUT', undefined, REQUEST_TYPE.SAVE],
         ['generic POST', AEM_URL, 'POST', undefined, REQUEST_TYPE.SAVE],
         [

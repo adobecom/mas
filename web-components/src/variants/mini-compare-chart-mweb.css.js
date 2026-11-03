@@ -518,6 +518,33 @@ merch-card[variant="mini-compare-chart-mweb"] .price-plan-type{
 		font-style: italic;
 }
 
+merch-card[variant="mini-compare-chart-mweb"] [slot="legal-text"] {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--spectrum-gray-700, #505050);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+  font-style: italic;
+  max-width: 100%;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+merch-card[variant="mini-compare-chart-mweb"] [slot="legal-text"] p {
+  margin: 0;
+}
+
+merch-card[variant="mini-compare-chart-mweb"].has-legal-text [slot="heading-m-price"] .price-plan-type {
+  display: none;
+}
+
+merch-card[variant="mini-compare-chart-mweb"]:not(.has-legal-text) [slot="legal-text"] {
+  display: none;
+}
+
 /* mini compare mobile */
 @media screen and ${MOBILE_LANDSCAPE} {
   :root {

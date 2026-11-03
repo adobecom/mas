@@ -35,6 +35,54 @@
 
     <body>
         <main>
+            <div id="legal-text-cards" class="legal-text-cards">
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    id="card-mweb-legal-1"
+                >
+                    <h3 slot="heading-xs">Legal text card</h3>
+                    <p slot="heading-m-price">
+                        US$54.99/mo
+                        <span class="price-plan-type"
+                            >Annual, paid monthly</span
+                        >
+                    </p>
+                    <div slot="legal-text">
+                        <p>
+                            Annual, prepaid.
+                            <span
+                                class="icon-button"
+                                data-tooltip="Billed once per year"
+                            ></span>
+                        </p>
+                    </div>
+                </merch-card>
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    id="card-mweb-legal-empty"
+                >
+                    <h3 slot="heading-xs">Empty legal text card</h3>
+                    <p slot="heading-m-price">
+                        US$54.99/mo
+                        <span class="price-plan-type"
+                            >Annual, paid monthly</span
+                        >
+                    </p>
+                    <div slot="legal-text"></div>
+                </merch-card>
+                <merch-card
+                    variant="mini-compare-chart-mweb"
+                    id="card-mweb-legal-none"
+                >
+                    <h3 slot="heading-xs">No legal text card</h3>
+                    <p slot="heading-m-price">
+                        US$54.99/mo
+                        <span class="price-plan-type"
+                            >Annual, paid monthly</span
+                        >
+                    </p>
+                </merch-card>
+            </div>
             <div class="three-merch-cards mini-compare-chart-mweb">
                 <!-- Card 1: All slots filled, 2 footer rows -->
                 <merch-card

@@ -10,6 +10,7 @@ import { delay } from './utils.js';
 import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import Media from '../src/media.js';
+import { MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart-mweb.js';
 
 // Deterministically control Media.isMobile without real viewport changes —
 // setViewport round-trips are slow/flaky under the full suite and can stall the
@@ -32,6 +33,74 @@ runTests(async () => {
     await import('../src/mas.js');
 
     describe('merch-card web component with mini-compare-chart-mweb variant', () => {
+        describe('legal-text slot', () => {
+            const getCard = async (id) => {
+                const card = document.getElementById(id);
+                await card.checkReady();
+                await delay(200);
+                return card;
+            };
+            const planType = (card) => card.querySelector('.price-plan-type');
+
+            it('maps callout to the legal-text slot', () => {
+                expect(
+                    MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING.callout,
+                ).to.deep.equal({
+                    tag: 'div',
+                    slot: 'legal-text',
+                    editorLabel: 'Legal text',
+                });
+            });
+
+            it('renders legal-text after the price and hides plan type', async () => {
+                const card = await getCard('card-mweb-legal-1');
+                const slot = card.shadowRoot.querySelector(
+                    'slot[name="legal-text"]',
+                );
+                expect(slot.parentElement.classList.contains('price-wrapping'))
+                    .to.be.true;
+                expect(slot.previousElementSibling.name).to.equal(
+                    'heading-m-price',
+                );
+                const legal = card.querySelector('[slot="legal-text"]');
+                const price = card.querySelector('[slot="heading-m-price"]');
+                expect(legal.getBoundingClientRect().top).to.be.at.least(
+                    price.getBoundingClientRect().bottom - 1,
+                );
+                expect(getComputedStyle(planType(card)).display).to.equal(
+                    'none',
+                );
+            });
+
+            it('keeps plan type on cards with empty or no legal-text', async () => {
+                for (const id of [
+                    'card-mweb-legal-empty',
+                    'card-mweb-legal-none',
+                ]) {
+                    const card = await getCard(id);
+                    expect(card.classList.contains('has-legal-text')).to.be
+                        .false;
+                    expect(getComputedStyle(planType(card)).display).to.equal(
+                        'block',
+                    );
+                }
+            });
+
+            it('makes the legal-text tooltip icon focusable', async () => {
+                const card = await getCard('card-mweb-legal-1');
+                const icon = card.querySelector(
+                    '[slot="legal-text"] .icon-button',
+                );
+                expect(icon.getAttribute('tabindex')).to.equal('0');
+                expect(icon.getAttribute('role')).to.equal('button');
+                expect(icon.getAttribute('aria-label')).to.equal(
+                    'Billed once per year',
+                );
+                icon.focus();
+                expect(document.activeElement).to.equal(icon);
+            });
+        });
+
         it('should render layout and sync body slot heights across sibling cards', async () => {
             const container = document.querySelector(
                 'main > .three-merch-cards.mini-compare-chart-mweb',

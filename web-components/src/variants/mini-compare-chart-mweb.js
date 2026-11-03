@@ -24,6 +24,7 @@ const SYNCED_HEIGHT_NAMES = [
     'heading-xs',
     'subtitle',
     'heading-m-price',
+    'legal-text',
     'quantity-select',
     'promo-text',
     'body-m',
@@ -36,6 +37,7 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'h3', slot: 'heading-xs' },
     subtitle: { tag: 'p', slot: 'subtitle' },
     prices: { tag: 'p', slot: 'heading-m-price' },
+    callout: { tag: 'div', slot: 'legal-text', editorLabel: 'Legal text' },
     promoText: { tag: 'div', slot: 'promo-text' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'body-m' },
@@ -147,6 +149,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             'heading-xs',
             'subtitle',
             'heading-m-price',
+            'legal-text',
             'quantity-select',
             'promo-text',
             'body-m',
@@ -351,6 +354,30 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
     }
 
+    // Marks the card when the authored legal text has real content (CSS cannot
+    // detect whitespace-only RTE output) and makes tooltip icons keyboard reachable.
+    adjustLegalText() {
+        const legal = this.card.querySelector('[slot="legal-text"]');
+        // String.trim() also strips &nbsp;, so blank RTE paragraphs count as empty.
+        const hasContent =
+            !!legal &&
+            (!!legal.textContent.trim() ||
+                !!legal.querySelector('.icon-button, img'));
+        this.card.classList.toggle('has-legal-text', hasContent);
+        if (!hasContent) return;
+        legal.querySelectorAll('.icon-button').forEach((icon) => {
+            if (icon.title && !icon.dataset.tooltip) {
+                icon.dataset.tooltip = icon.title;
+            }
+            const label = icon.dataset.tooltip || icon.title;
+            if (!icon.hasAttribute('tabindex')) icon.tabIndex = 0;
+            if (!icon.hasAttribute('role')) icon.setAttribute('role', 'button');
+            if (label && !icon.hasAttribute('aria-label')) {
+                icon.setAttribute('aria-label', label);
+            }
+        });
+    }
+
     get icons() {
         if (
             !this.card.querySelector('[slot="icons"]') &&
@@ -371,6 +398,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                     <div class="price-wrapping">
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
+                        <slot name="legal-text"></slot>
                     </div>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
@@ -387,6 +415,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             await this.adjustLegal();
         }
         this.setupToggle();
+        this.adjustLegalText();
         if (Media.isMobile) {
             this.removeEmptyRows();
         }
@@ -568,6 +597,20 @@ export class MiniCompareChartMweb extends VariantLayout {
             ::slotted([slot='heading-m-price']) {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-heading-m-price-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            ::slotted([slot='legal-text']) {
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-legal-text-height
+            );
+        }
+        :host([variant='mini-compare-chart-mweb'])
+            .price-wrapping
+            > slot[name='legal-text'] {
+            display: block;
+            min-height: var(
+                --consonant-merch-card-mini-compare-chart-mweb-legal-text-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])

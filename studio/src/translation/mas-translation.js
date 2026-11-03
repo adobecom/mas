@@ -154,11 +154,18 @@ class MasTranslation extends LitElement {
                                 data-id=${translationProject.get().id}
                             >
                                 ${renderRowLinkOverlay(translationProject.get(), { page: PAGE_NAMES.TRANSLATION_EDITOR })}
-                                <sp-table-cell
-                                    >${renderEditorLink(translationProject.get(), translationProject.get().title, {
-                                        page: PAGE_NAMES.TRANSLATION_EDITOR,
-                                    })}</sp-table-cell
-                                >
+                                <sp-table-cell class="title">
+                                    <overlay-trigger triggered-by="hover">
+                                        <div slot="trigger" class="title-clamp">
+                                            ${renderEditorLink(translationProject.get(), translationProject.get().title, {
+                                                page: PAGE_NAMES.TRANSLATION_EDITOR,
+                                            })}
+                                        </div>
+                                        <sp-tooltip slot="hover-content" placement="bottom"
+                                            >${translationProject.get().title}</sp-tooltip
+                                        >
+                                    </overlay-trigger>
+                                </sp-table-cell>
                                 <sp-table-cell>${this.#formatProjectStatus(translationProject)}</sp-table-cell>
                                 <sp-table-cell>${translationProject.get().modified.fullName}</sp-table-cell>
                                 <sp-table-cell>${this.#formatSubmissionDate(translationProject)}</sp-table-cell>

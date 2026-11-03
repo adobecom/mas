@@ -73,7 +73,9 @@ describe('mas-related-artifacts', () => {
         if (!overlay?.open) return;
         const closed = oneEvent(overlay, 'sp-closed');
         overlay.open = false;
-        await closed;
+        // sp-closed waits on animation frames, which a starved CI runner can withhold past the hook
+        // timeout. The fixture teardown that follows disconnects the overlay either way.
+        await Promise.race([closed, aTimeout(1000)]);
     });
 
     describe('rendering', () => {

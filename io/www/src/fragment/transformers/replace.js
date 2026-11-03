@@ -17,6 +17,8 @@ export const SYSTEM_PLACEHOLDERS = {
     ...Object.fromEntries(COUNTDOWN_UNITS.map((unit) => [`countdown-${unit}`, countdownUnitPlaceholder(unit)])),
 };
 
+const SINGLE_PARAGRAPH_REGEXP = /^<p>((?:(?!<\/?p[>\s])[\s\S])*)<\/p>$/i;
+
 const TRANSFORMER_NAME = 'replace';
 
 // Each dictionary layer (base or region, per surface+locale) is cached with jittered TTL,
@@ -120,6 +122,13 @@ export async function getDictionary(context) {
     return { ...globalBaseline, ...surfaceBaseline, ...regionOverlay, ...context.dictionary };
 }
 
+// A Rich Text placeholder is stored as `<p>…</p>`. Nested inside another placeholder it would put a
+// paragraph in the middle of the surrounding text, so a value made of exactly one paragraph is unwrapped.
+// Multi-paragraph values are left alone to keep the HTML valid.
+function unwrapParagraph(value) {
+    return value.replace(SINGLE_PARAGRAPH_REGEXP, '$1');
+}
+
 function replaceValues(input, dictionary, calls) {
     const placeholders = input.matchAll(PH_REGEXP);
     let replaced = '';
@@ -131,6 +140,7 @@ function replaceValues(input, dictionary, calls) {
         replaced = replaced + input.slice(nextIndex, match.index);
         //value will be key in case of undefined or circular reference
         let value = dictionary[key] == undefined || calls.includes(key) ? key : dictionary[key];
+        if (calls.length > 0) value = unwrapParagraph(value);
         if (value?.match(PH_REGEXP)) {
             //the value has nested PH
             calls.push(key);

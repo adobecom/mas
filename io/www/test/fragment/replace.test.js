@@ -199,6 +199,70 @@ describe('replace', () => {
         expect(response).to.deep.include(expectedResponse('look! <p>i am "rich"</p>'));
     });
 
+    describe('rich text nested in placeholders', () => {
+        const richEntry = (key, html) => ({ key, richTextValue: { value: html } });
+        const entries = [
+            { key: 'rich-text', richTextValue: { value: '<p>i am <strong>rich</strong></p>' } },
+            richEntry('rich-text-multi', '<p>one</p><p>two</p>'),
+            richEntry('rich-nest', '<p>hello {{nested}}</p>'),
+            richEntry('rich-quotes', '<p>i am "rich"</p>'),
+            { key: 'nested', value: 'little bird' },
+            { key: 'nest-rich', value: 'see {{rich-text}} and {{rich-text-multi}} now' },
+            { key: 'wrap-rich-nest', value: 'x {{rich-nest}} y' },
+            { key: 'nest-rich-quotes', value: 'say {{rich-quotes}}' },
+        ];
+        const fixture = {
+            fields: { entries: entries.map((e) => `entry-${e.key}`) },
+            references: Object.fromEntries(
+                entries.map((e) => [`entry-${e.key}`, { value: { id: `entry-${e.key}`, fields: e } }]),
+            ),
+        };
+
+        const resolve = async (description, dictionary) => {
+            clearDictionaryCache();
+            stubEmptyDictionary(false, BASELINE_SURFACE, DEFAULT_LOCALE, fetchStub);
+            mockDirectDictionary(false, DEFAULT_SURFACE, DEFAULT_LOCALE, fixture, fetchStub);
+            const context = {
+                surface: DEFAULT_SURFACE,
+                locale: DEFAULT_LOCALE,
+                regionLocale: DEFAULT_LOCALE,
+                defaultLocale: DEFAULT_LOCALE,
+                loggedTransformer: 'replace',
+                requestId: 'mas-replace-ut',
+                promises: {},
+            };
+            if (dictionary) context.dictionary = dictionary;
+            context.promises.replace = replace.init(context);
+            await context.promises.replace;
+            context.body = odinResponse(description);
+            return (await replace.process(context)).body.fields.description;
+        };
+
+        it('strips the p tag of a single paragraph and keeps multi-paragraph values', async () => {
+            expect(await resolve('look! {{nest-rich}}')).to.equal(
+                'look! see i am <strong>rich</strong> and <p>one</p><p>two</p> now',
+            );
+        });
+
+        it('keeps the p tag of a top level rich text placeholder', async () => {
+            expect(await resolve('look! {{rich-text}}')).to.equal('look! <p>i am <strong>rich</strong></p>');
+        });
+
+        it('resolves placeholders nested inside an unwrapped value', async () => {
+            expect(await resolve('look! {{wrap-rich-nest}}')).to.equal('look! x hello little bird y');
+        });
+
+        it('handles quotes inside an unwrapped value', async () => {
+            expect(await resolve('look! {{nest-rich-quotes}}')).to.equal('look! say i am "rich"');
+        });
+
+        it('does not unwrap a value with content outside the p tag', async () => {
+            expect(await resolve('{{wrap-ws}}', { 'wrap-ws': 'a {{ws}} b', ws: '<p>ws</p> ' })).to.equal(
+                'a <p>ws</p>  b',
+            );
+        });
+    });
+
     describe('system placeholders (plan-type-text)', () => {
         const buildContext = () => ({
             surface: DEFAULT_SURFACE,

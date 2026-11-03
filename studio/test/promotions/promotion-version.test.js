@@ -9,8 +9,7 @@ import {
     withPromotionVersion,
     listPromotionHistory,
     restorePromotionHistory,
-    getCachedPromotionHistory,
-    clearPromotionHistoryCache,
+    clearPromotionHistoryRequests,
 } from '../../src/promotions/promotion-version.js';
 
 describe('Promotion version capture', () => {
@@ -28,7 +27,7 @@ describe('Promotion version capture', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
-        clearPromotionHistoryCache();
+        clearPromotionHistoryRequests();
         projects = Store.promotions.list.data.get();
         Store.promotions.list.data.set([new FragmentStore(new Fragment(project))]);
         meta = document.createElement('meta');
@@ -46,7 +45,7 @@ describe('Promotion version capture', () => {
     });
 
     afterEach(() => {
-        clearPromotionHistoryCache();
+        clearPromotionHistoryRequests();
         sandbox.restore();
         meta.remove();
         sessionStorage.removeItem('masAccessToken');
@@ -153,18 +152,13 @@ describe('Promotion version capture', () => {
         expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.deep.equal({ projectId: project.id, query: 'Title' });
     });
 
-    it('reuses a history page for sixty seconds without exposing mutable cached objects', async () => {
-        const clock = sandbox.useFakeTimers({ toFake: ['Date'] });
+    it('fetches fresh history after an earlier request completes', async () => {
         const page = await listPromotionHistory(project.id);
         page.events.length = 0;
+        const latest = { events: [{ id: 'latest-version' }] };
+        fetchStub.callsFake(async () => new Response(JSON.stringify(latest)));
 
-        expect(getCachedPromotionHistory(project.id).events).to.have.length(1);
-        await listPromotionHistory(project.id);
-        expect(fetchStub.callCount).to.equal(1);
-
-        clock.tick(60001);
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-        await listPromotionHistory(project.id);
+        expect(await listPromotionHistory(project.id)).to.deep.equal(latest);
         expect(fetchStub.callCount).to.equal(2);
     });
 
@@ -182,31 +176,22 @@ describe('Promotion version capture', () => {
         expect(pages[0]).not.to.equal(pages[1]);
     });
 
-    it('refreshes a cached page explicitly while deduplicating the refresh', async () => {
-        await listPromotionHistory(project.id);
+    it('isolates pending requests by project and filters while normalizing filter order', async () => {
+        const completions = [];
+        fetchStub.callsFake(() => new Promise((resolve) => completions.push(resolve)));
+        const requests = [
+            listPromotionHistory(project.id, { limit: 10, query: 'Title' }),
+            listPromotionHistory(project.id, { query: 'Title', limit: 10 }),
+            listPromotionHistory('other-project', { limit: 10, query: 'Title' }),
+            listPromotionHistory(project.id, { limit: 10, query: 'Other' }),
+        ];
 
-        await Promise.all([
-            listPromotionHistory(project.id, {}, { refresh: true }),
-            listPromotionHistory(project.id, {}, { refresh: true }),
-        ]);
-
-        expect(fetchStub.callCount).to.equal(2);
+        expect(fetchStub.callCount).to.equal(3);
+        for (const complete of completions) complete(new Response(JSON.stringify({ events: [] })));
+        await Promise.all(requests);
     });
 
-    it('isolates cached history by project, filters, endpoint and authentication session', async () => {
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory('other-project')).to.be.undefined;
-        expect(getCachedPromotionHistory(project.id, { query: 'Other' })).to.be.undefined;
-        meta.content = 'https://other.example/api';
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-        meta.content = 'https://studio.example/api';
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
-        sessionStorage.setItem('masAccessToken', 'other-session');
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-    });
-
-    it('isolates cached history when the AEM environment or signed-in profile changes', async () => {
+    it('isolates pending history when the endpoint, token, AEM environment or profile changes', async () => {
         const aem = document.createElement('div');
         aem.setAttribute('base-url', 'https://first-author.example');
         const querySelector = document.querySelector.bind(document);
@@ -214,59 +199,82 @@ describe('Promotion version capture', () => {
             .stub(document, 'querySelector')
             .callsFake((selector) => (selector === 'mas-repository' ? aem : querySelector(selector)));
         const profile = Store.profile.get();
+        const completions = [];
+        fetchStub.callsFake(() => new Promise((resolve) => completions.push(resolve)));
         try {
-            await listPromotionHistory(project.id);
-            expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
+            const requests = [listPromotionHistory(project.id)];
+            meta.content = 'https://other.example/api';
+            requests.push(listPromotionHistory(project.id));
+            sessionStorage.setItem('masAccessToken', 'other-session');
+            requests.push(listPromotionHistory(project.id));
             aem.setAttribute('base-url', 'https://second-author.example');
-            expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-
-            await listPromotionHistory(project.id);
-            expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
+            requests.push(listPromotionHistory(project.id));
             Store.profile.set({ id: 'other-user' });
-            expect(getCachedPromotionHistory(project.id)).to.be.undefined;
+            requests.push(listPromotionHistory(project.id));
+
+            expect(fetchStub.callCount).to.equal(5);
+            for (const complete of completions) complete(new Response(JSON.stringify({ events: [] })));
+            await Promise.all(requests);
         } finally {
             Store.profile.set(profile);
         }
     });
 
-    it('clears an already loaded history page on a fragment save', async () => {
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
+    it('does not reuse an in-flight history request after a fragment save', async () => {
+        let complete;
+        fetchStub.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        const pending = listPromotionHistory(project.id);
 
         Events.fragmentSaved.emit();
+        await listPromotionHistory(project.id);
 
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
+        expect(fetchStub.callCount).to.equal(2);
+        complete(new Response(JSON.stringify({ events: [] })));
+        await pending;
     });
 
-    it('does not cache a late response after the profile changes', async () => {
-        let complete;
-        fetchStub.callsFake(() => new Promise((resolve) => (complete = resolve)));
-        const pending = listPromotionHistory(project.id);
+    it('does not remove a newer pending request when an older session request completes', async () => {
+        const completions = [];
+        fetchStub.callsFake(() => new Promise((resolve) => completions.push(resolve)));
+        const previous = listPromotionHistory(project.id);
         const profile = Store.profile.get();
         try {
             Store.profile.set({ id: 'new-session-user' });
-            complete(new Response(JSON.stringify({ events: [{ id: 'old-session' }] })));
-            await pending;
+            const current = listPromotionHistory(project.id);
+            completions[0](new Response(JSON.stringify({ events: [{ id: 'old-session' }] })));
+            await previous;
+            const duplicate = listPromotionHistory(project.id);
 
-            expect(getCachedPromotionHistory(project.id)).to.be.undefined;
+            expect(fetchStub.callCount).to.equal(2);
+            completions[1](new Response(JSON.stringify({ events: [{ id: 'new-session' }] })));
+            const pages = await Promise.all([current, duplicate]);
+            expect(pages[1].events[0].id).to.equal('new-session');
         } finally {
             Store.profile.set(profile);
         }
     });
 
-    it('invalidates cached history after saving promotion content', async () => {
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
+    it('invalidates pending history after saving promotion content', async () => {
+        let complete;
+        fetchStub.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        const pending = listPromotionHistory(project.id);
 
         await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+        await listPromotionHistory(project.id);
 
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
+        expect(fetchStub.callCount).to.equal(3);
+        complete(new Response(JSON.stringify({ events: [] })));
+        await pending;
     });
 
-    it('invalidates cached history even when restore fails after changing content', async () => {
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
-        fetchStub.callsFake(async () => new Response(JSON.stringify({ error: 'Capture failed' }), { status: 503 }));
+    it('invalidates pending history even when restore fails after changing content', async () => {
+        let complete;
+        fetchStub.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        let pending;
+        fetchStub.onFirstCall().callsFake(async () => {
+            pending = listPromotionHistory(project.id);
+            return new Response(JSON.stringify({ error: 'Capture failed' }), { status: 503 });
+        });
 
         try {
             await restorePromotionHistory(project.id, 'version', { selections: [] });
@@ -274,17 +282,30 @@ describe('Promotion version capture', () => {
             expect(error.status).to.equal(503);
         }
 
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-    });
-
-    it('invalidates cached history after restoring', async () => {
         await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id)).not.to.be.undefined;
-        await restorePromotionHistory(project.id, 'version', { selections: [] });
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
+        expect(fetchStub.callCount).to.equal(3);
+        complete(new Response(JSON.stringify({ events: [] })));
+        await pending;
     });
 
-    it('does not cache failed history requests and allows retrying them', async () => {
+    it('invalidates history requested during a restore', async () => {
+        let complete;
+        fetchStub.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        let pending;
+        fetchStub.onFirstCall().callsFake(async () => {
+            pending = listPromotionHistory(project.id);
+            return new Response(JSON.stringify({ event: { id: 'restored' } }));
+        });
+
+        await restorePromotionHistory(project.id, 'version', { selections: [] });
+        await listPromotionHistory(project.id);
+
+        expect(fetchStub.callCount).to.equal(3);
+        complete(new Response(JSON.stringify({ events: [] })));
+        await pending;
+    });
+
+    it('allows retrying failed history requests', async () => {
         fetchStub.onFirstCall().resolves(new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
 
         let failure;
@@ -294,9 +315,8 @@ describe('Promotion version capture', () => {
             failure = error;
         }
         expect(failure.status).to.equal(503);
-        expect(getCachedPromotionHistory(project.id)).to.be.undefined;
-        await listPromotionHistory(project.id);
-        expect(getCachedPromotionHistory(project.id).events).to.have.length(1);
+        expect((await listPromotionHistory(project.id)).events).to.have.length(1);
+        expect(fetchStub.callCount).to.equal(2);
     });
 
     it('reloads projects when a newly duplicated variation is not in the current project list', async () => {

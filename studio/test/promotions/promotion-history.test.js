@@ -81,7 +81,6 @@ describe('Promotion version history', () => {
         Store.profile.set({ email: 'admin@adobe.com' });
         Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
         client = {
-            getCachedPromotionHistory: sandbox.stub(),
             listPromotionHistory: sandbox.stub().resolves({ events: [version], currentEventId: version.id }),
             restorePromotionHistory: sandbox.stub().resolves({
                 event: { ...version, id: 'version-3', action: 'restore', version: 3 },
@@ -111,7 +110,7 @@ describe('Promotion version history', () => {
         Store.users.set(previousUsers);
     });
 
-    async function mount() {
+    async function mount(waitForLoad = true) {
         element = document.createElement('mas-promotion-history');
         element.client = client;
         element.repository = {
@@ -119,7 +118,7 @@ describe('Promotion version history', () => {
         };
         element.projectId = before.id;
         (document.querySelector('#history-fixtures') ?? document.body).append(element);
-        await waitUntil(() => !element.loading && !element.baselineLoading && element.selectedEvent);
+        if (waitForLoad) await waitUntil(() => !element.loading && !element.baselineLoading && element.selectedEvent);
         await element.updateComplete;
         return element.shadowRoot;
     }
@@ -646,48 +645,64 @@ describe('Promotion version history', () => {
         ]);
     });
 
-    it('shows cached versions immediately while refreshing them in the background', async () => {
-        let complete;
-        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
-        client.listPromotionHistory.callsFake(() => new Promise((resolve) => (complete = resolve)));
-
+    it('keeps previous results hidden until fresh history and its comparison finish loading', async () => {
         const root = await mount();
+        let complete;
+        let completeComparison;
+        client.listPromotionHistory.callsFake(() => new Promise((resolve) => (complete = resolve)));
+        getWithEtag.callsFake(() => new Promise((resolve) => (completeComparison = resolve)));
 
-        expect(root.querySelector(`[data-event-id="${version.id}"]`)).not.to.be.null;
-        expect(element.canRestore).to.be.false;
-        expect(client.listPromotionHistory.firstCall.args).to.deep.equal([before.id, { limit: 10 }, { refresh: true }]);
+        const pending = element.loadHistory();
+        await element.updateComplete;
 
+        expect(root.querySelector('sp-progress-circle[aria-label="Loading history"]')).not.to.be.null;
+        expect(root.querySelector('.history-card')).to.be.null;
+        expect(root.querySelector('main h2')).to.be.null;
+        expect(root.textContent).not.to.include('Refreshing history');
         const latest = { ...version, id: 'version-3', version: 3 };
         complete({ events: [latest, version], currentEventId: latest.id });
-        await waitUntil(() => element.currentEventId === latest.id && !element.refreshing);
+        await waitUntil(() => Boolean(completeComparison));
+        await element.updateComplete;
 
-        expect(element.selectedEvent.id).to.equal(version.id);
+        expect(root.querySelector('sp-progress-circle[aria-label="Loading history"]')).not.to.be.null;
+        expect(root.querySelector('.history-card')).to.be.null;
+        expect(root.querySelector('main h2')).to.be.null;
+        expect(element.canRestore).to.be.false;
+
+        completeComparison({ ...after, etag: '"fresh"' });
+        await pending;
+        await element.updateComplete;
+
+        expect(root.querySelector('sp-progress-circle[aria-label="Loading history"]')).to.be.null;
+        expect(root.querySelector(`[data-event-id="${latest.id}"]`)).not.to.be.null;
+        expect(root.querySelector('main h2').textContent).to.equal('Version 3');
+        expect(element.selectedEvent.id).to.equal(latest.id);
         expect(element.canRestore).to.be.true;
     });
 
-    it('reports background refresh failures without discarding the cached list or enabling restore', async () => {
-        let fail;
-        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
-        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+    it('reports history load failures without showing previous results or enabling restore', async () => {
         const root = await mount();
+        let fail;
+        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+        const pending = element.loadHistory();
 
         fail(new Error('Unavailable'));
-        await waitUntil(() => Boolean(element.error));
+        await pending;
         await element.updateComplete;
 
-        expect(root.querySelector(`[data-event-id="${version.id}"]`)).not.to.be.null;
-        expect(root.querySelector('[role="alert"]').textContent).to.include('refresh');
+        expect(root.querySelector('.history-card')).to.be.null;
+        expect(root.querySelector('[role="alert"]').textContent).to.include('Could not load version history');
         expect(element.canRestore).to.be.false;
     });
 
-    it('removes cached versions and comparison data when revalidation denies access', async () => {
-        let fail;
-        client.getCachedPromotionHistory.returns({ events: [version], currentEventId: version.id });
-        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+    it('removes versions and comparison data when reloading denies access', async () => {
         const root = await mount();
+        let fail;
+        client.listPromotionHistory.callsFake(() => new Promise((resolve, reject) => (fail = reject)));
+        const pending = element.loadHistory();
 
         fail(Object.assign(new Error('Forbidden'), { status: 403 }));
-        await waitUntil(() => Boolean(element.error));
+        await pending;
         await element.updateComplete;
 
         expect(root.querySelector('.history-card')).to.be.null;
@@ -696,11 +711,10 @@ describe('Promotion version history', () => {
         expect(element.canRestore).to.be.false;
     });
 
-    it('ignores a cached project refresh that completes after switching projects', async () => {
+    it('ignores a history request that completes after switching projects', async () => {
         let complete;
-        client.getCachedPromotionHistory.onFirstCall().returns({ events: [version], currentEventId: version.id });
         client.listPromotionHistory.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
-        await mount();
+        await mount(false);
         const other = { ...version, id: 'other-version', projectId: 'other-project' };
         client.listPromotionHistory.onSecondCall().resolves({ events: [other], currentEventId: other.id });
 

@@ -100,7 +100,6 @@ export class MasPromotionHistory extends LitElement {
         expected: { state: true },
         unavailable: { state: true },
         loading: { state: true },
-        refreshing: { state: true },
         baselineLoading: { state: true },
         operating: { state: true },
         restoring: { state: true },
@@ -128,7 +127,6 @@ export class MasPromotionHistory extends LitElement {
         this.expected = [];
         this.unavailable = [];
         this.loading = false;
-        this.refreshing = false;
         this.baselineLoading = false;
         this.operating = false;
         this.restoring = false;
@@ -151,7 +149,7 @@ export class MasPromotionHistory extends LitElement {
         super.connectedCallback();
         this.scrollObserver = new IntersectionObserver(
             (entries) => {
-                if (entries.some((entry) => entry.isIntersecting) && !this.busy && !this.refreshing && !this.error) {
+                if (entries.some((entry) => entry.isIntersecting) && !this.busy && !this.error) {
                     this.loadHistory(true);
                 }
             },
@@ -180,7 +178,7 @@ export class MasPromotionHistory extends LitElement {
     updated() {
         this.scrollObserver.disconnect();
         const sentinel = this.renderRoot.querySelector('#history-sentinel');
-        if (sentinel && !this.busy && !this.refreshing && !this.error) this.scrollObserver.observe(sentinel);
+        if (sentinel && !this.busy && !this.error) this.scrollObserver.observe(sentinel);
     }
 
     get busy() {
@@ -193,7 +191,6 @@ export class MasPromotionHistory extends LitElement {
             Boolean(this.restoreSnapshot?.fragments.length) &&
             this.expected.length > 0 &&
             !this.busy &&
-            !this.refreshing &&
             !this.error
         );
     }
@@ -217,15 +214,15 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async loadHistory(append = false, selectedId) {
-        if (append && (this.busy || this.refreshing || !this.cursor)) return;
+        if (append && (this.busy || !this.cursor)) return;
         const projectId = this.projectId;
         const request = ++this.listRequest;
         this.error = '';
         this.loading = Boolean(projectId);
-        this.refreshing = false;
         if (!append) {
             this.versionRequest += 1;
             this.events = [];
+            this.currentEventId = '';
             this.selectedEvent = null;
             this.historicalFragments = [];
             this.fragmentDetails = new Map();
@@ -243,45 +240,21 @@ export class MasPromotionHistory extends LitElement {
         }
         if (!projectId) return;
         const filters = { limit: HISTORY_PAGE_SIZE, ...this.filters, ...(append ? { cursor: this.cursor } : {}) };
-        const cached = !append && this.client.getCachedPromotionHistory(projectId, filters);
         try {
-            let baseline;
-            if (cached) {
-                this.events = cached.events;
-                this.cursor = cached.cursor;
-                this.currentEventId = cached.currentEventId;
-                this.loading = false;
-                this.refreshing = true;
-                if (cached.events.length) {
-                    baseline = this.selectVersion(cached.events.find((event) => event.id === selectedId) ?? cached.events[0]);
-                }
-            }
-            const [page] = await Promise.all([
-                this.client.listPromotionHistory(projectId, filters, { refresh: Boolean(cached) }),
-                baseline,
-            ]);
+            const page = await this.client.listPromotionHistory(projectId, filters);
             if (request !== this.listRequest) return;
             page.events = await Promise.all(page.events.map((event) => this.preparePresentation(event)));
             if (request !== this.listRequest) return;
             const events = new Map((append ? this.events : []).map((event) => [event.id, event]));
             for (const event of page.events) events.set(event.id, event);
-            this.events = [...events.values()];
+            const versions = [...events.values()];
+            if (!append && versions.length) {
+                await this.selectVersion(versions.find((event) => event.id === selectedId) ?? versions[0]);
+            }
+            if (request !== this.listRequest) return;
+            this.events = versions;
             this.cursor = page.cursor;
             this.currentEventId = page.currentEventId;
-            if (!append) {
-                const selected = this.events.find((event) => event.id === (this.selectedEvent?.id ?? selectedId));
-                if (!selected || !this.selectedEvent) {
-                    if (this.events.length) {
-                        await this.selectVersion(selected ?? this.events[0]);
-                    } else {
-                        this.versionRequest += 1;
-                        this.selectedEvent = null;
-                        this.rows = [];
-                        this.expected = [];
-                        this.baselineLoading = false;
-                    }
-                }
-            }
         } catch (error) {
             if (request !== this.listRequest) return;
             if ([401, 403].includes(error.status)) {
@@ -297,13 +270,10 @@ export class MasPromotionHistory extends LitElement {
                 this.fragmentReads.clear();
             }
             this.failedAppend = append;
-            this.error = cached
-                ? 'Could not refresh version history. Please retry before restoring.'
-                : 'Could not load version history. Please retry.';
+            this.error = 'Could not load version history. Please retry.';
         } finally {
             if (request === this.listRequest) {
                 this.loading = false;
-                this.refreshing = false;
             }
         }
     }
@@ -1071,6 +1041,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     get detailsTemplate() {
+        if (this.loading && !this.events.length) return nothing;
         if (!this.selectedEvent) return html`<p class="empty">Select a version to review its changes.</p>`;
         return html`
             <div class="details-heading">
@@ -1171,7 +1142,6 @@ export class MasPromotionHistory extends LitElement {
                               >
                           </div>`
                         : nothing}
-                    ${this.refreshing ? html`<p role="status">Refreshing history...</p>` : nothing}
                     ${this.loading && !this.events.length
                         ? html`<div class="loading">
                               <sp-progress-circle indeterminate aria-label="Loading history"></sp-progress-circle>

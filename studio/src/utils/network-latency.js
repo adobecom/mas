@@ -8,13 +8,7 @@ export const REQUEST_TYPE = { GET: 'get', SAVE: 'save', PUBLISH: 'publish', DELE
 
 const LANA_SAMPLE_RATE = 100;
 const UNKNOWN_REQUEST_ID = 'unknown';
-const READ_URL_PATTERNS = [
-    '/bulk-publish-access',
-    '/listMembers',
-    '/referencedBy',
-    '/fragment-usage',
-    '/bulk-check-modifications',
-];
+const READ_URL_PATTERNS = ['/referencedBy', '/fragment-usage', '/bulk-check-modifications'];
 const READ_OPERATION_PATTERN = /\/(get|list|search|resolve)[-_]/;
 const PUBLISH_URL_PATTERNS = ['/publish', '/bulk-publish', '/bulk-revert'];
 
@@ -47,8 +41,8 @@ export function createTrackedFetch({ fetch, log, warn, now = () => performance.n
             requestType,
             method,
             requestId,
-            ...(response && { status: response.status }),
-            ...(error && { error: error.name }),
+            status: response?.status,
+            error: error?.name,
         });
         if (hasWarned || requestType === REQUEST_TYPE.CHAT) return;
         hasWarned = true;

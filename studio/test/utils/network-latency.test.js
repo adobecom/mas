@@ -37,14 +37,6 @@ describe('classifyRequest', () => {
     const rows = [
         ['GET', AEM_URL, 'GET', undefined, REQUEST_TYPE.GET],
         ['HEAD', AEM_URL, 'HEAD', undefined, REQUEST_TYPE.GET],
-        [
-            'read-only bulk publish access POST',
-            'https://io.example.com/bulk-publish-access',
-            'POST',
-            undefined,
-            REQUEST_TYPE.GET,
-        ],
-        ['read-only member list POST', 'https://io.example.com/listMembers', 'POST', undefined, REQUEST_TYPE.GET],
         ['read-only referencedBy POST', `${AEM_URL}/referencedBy`, 'POST', undefined, REQUEST_TYPE.GET],
         ['read-only fragment usage POST', 'https://io.example.com/fragment-usage', 'POST', undefined, REQUEST_TYPE.GET],
         [
@@ -119,6 +111,7 @@ describe('createTrackedFetch', () => {
             method: 'PUT',
             status: 200,
             requestId: 'req-1',
+            error: undefined,
         });
     });
 

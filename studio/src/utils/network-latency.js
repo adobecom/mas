@@ -81,6 +81,6 @@ export function startNetworkLatencyMonitor() {
     window.fetch = createTrackedFetch({
         fetch: window.fetch.bind(window),
         log: (facts) => logToLana('Slow Studio network request', facts, LANA_SAMPLE_RATE),
-        warn: (message) => Events.toast.emit({ variant: 'warning', content: message, persistent: true }),
+        warn: (message) => Events.toast.emit({ variant: 'warning', content: message, pinned: true }),
     });
 }

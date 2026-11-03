@@ -33,8 +33,8 @@ class MasToast extends LitElement {
         Events.toast.unsubscribe(this.show);
     }
 
-    show({ variant, content, persistent = false }) {
-        const toast = this.shadowRoot.querySelector(persistent ? '.persistent' : '.auto-close');
+    show({ variant, content, pinned = false }) {
+        const toast = this.shadowRoot.querySelector(pinned ? '.pinned' : '.auto-close');
         if (toast) {
             toast.textContent = content;
             toast.variant = variant;
@@ -45,7 +45,7 @@ class MasToast extends LitElement {
     render() {
         return html`
             <sp-toast class="auto-close" timeout="6000"></sp-toast>
-            <sp-toast class="persistent"></sp-toast>
+            <sp-toast class="pinned" timeout="30000"></sp-toast>
         `;
     }
 }

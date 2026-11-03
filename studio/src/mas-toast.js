@@ -18,7 +18,7 @@ class MasToast extends LitElement {
         }
 
         .pinned {
-            --mod-toast-negative-background-color-default: var(--spectrum-notice-background-color-default);
+            --mod-toast-negative-background-color-default: var(--spectrum-orange-900);
         }
     `;
 

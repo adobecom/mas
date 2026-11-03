@@ -1,5 +1,5 @@
 import { HEADER_X_REQUEST_ID } from '../../../web-components/src/constants.js';
-import { showToast } from '../utils.js';
+import Events from '../events.js';
 import { logToLana } from './lana-logger.js';
 
 export const SLOW_REQUEST_THRESHOLD_MS = 5000;
@@ -15,11 +15,10 @@ function isDeleteForm(body) {
     return body instanceof FormData && body.get(':operation') === 'delete';
 }
 
-export function classifyRequest(url, method = 'GET', body = undefined) {
+export function classifyRequest(url, method, body) {
     if (url.includes('/ai-chat')) return REQUEST_TYPE.CHAT;
-    const upperMethod = method.toUpperCase();
-    if (upperMethod === 'GET' || upperMethod === 'HEAD') return REQUEST_TYPE.GET;
-    if (upperMethod === 'DELETE' || isDeleteForm(body)) return REQUEST_TYPE.DELETE;
+    if (method === 'GET' || method === 'HEAD') return REQUEST_TYPE.GET;
+    if (method === 'DELETE' || isDeleteForm(body)) return REQUEST_TYPE.DELETE;
     if (READ_URL_PATTERNS.some((pattern) => url.includes(pattern))) return REQUEST_TYPE.GET;
     if (PUBLISH_URL_PATTERNS.some((pattern) => url.includes(pattern))) return REQUEST_TYPE.PUBLISH;
     return REQUEST_TYPE.SAVE;
@@ -75,6 +74,6 @@ export function startNetworkLatencyMonitor() {
     window.fetch = createTrackedFetch({
         fetch: window.fetch.bind(window),
         log: (facts) => logToLana('Slow Studio network request', facts, LANA_SAMPLE_RATE),
-        warn: (message) => showToast(message, 'warning', { persistent: true }),
+        warn: (message) => Events.toast.emit({ variant: 'warning', content: message, persistent: true }),
     });
 }

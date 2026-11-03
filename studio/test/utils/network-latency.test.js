@@ -66,10 +66,6 @@ describe('classifyRequest', () => {
             expect(classifyRequest(url, method, body)).to.equal(expected);
         });
     });
-
-    it('treats a lower-case method the same way', () => {
-        expect(classifyRequest(AEM_URL, 'get')).to.equal(REQUEST_TYPE.GET);
-    });
 });
 
 describe('createTrackedFetch', () => {
@@ -200,6 +196,12 @@ describe('createTrackedFetch', () => {
         expect(log.firstCall.args[0]).to.include({ domain: 'author.example.com', method: 'PUT' });
     });
 
+    it('normalizes a lower-case method', async () => {
+        const { trackedFetch, log } = setup();
+        await trackedFetch(AEM_URL, { method: 'put' });
+        expect(log.firstCall.args[0]).to.include({ method: 'PUT', requestType: REQUEST_TYPE.SAVE });
+    });
+
     it('reads the domain from a URL object', async () => {
         const { trackedFetch, log } = setup();
         await trackedFetch(new URL(AEM_URL));
@@ -215,16 +217,13 @@ describe('createTrackedFetch', () => {
 
 describe('startNetworkLatencyMonitor', () => {
     let originalFetch;
-    let originalLana;
 
     beforeEach(() => {
         originalFetch = window.fetch;
-        originalLana = window.lana;
     });
 
     afterEach(() => {
         window.fetch = originalFetch;
-        window.lana = originalLana;
     });
 
     it('routes window.fetch through the original fetch', async () => {

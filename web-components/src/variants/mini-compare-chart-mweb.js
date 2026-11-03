@@ -37,6 +37,11 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     subtitle: { tag: 'p', slot: 'subtitle' },
     prices: { tag: 'p', slot: 'heading-m-price' },
     promoText: { tag: 'div', slot: 'promo-text' },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Legal Disclaimer',
+    },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'body-m' },
     description: { tag: 'div', slot: 'body-xs' },
@@ -351,6 +356,22 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
     }
 
+    // Authored "Legal Disclaimer" (callout field) shown under the price; the CSS
+    // hides the automatic plan-type line while it is present.
+    adjustLegalDisclaimer() {
+        const source = this.card.querySelector('[slot="callout-content"]');
+        const priceSlot = this.card.querySelector('[slot="heading-m-price"]');
+        if (!source || !priceSlot) return;
+        if (priceSlot.querySelector('.mweb-legal-disclaimer')) return;
+        // RTE output such as &nbsp; or empty paragraphs counts as blank
+        const text = source.textContent.replace(/ /g, ' ').trim();
+        if (!text) return;
+        const disclaimer = document.createElement('span');
+        disclaimer.className = 'price-plan-type mweb-legal-disclaimer';
+        disclaimer.innerHTML = source.innerHTML;
+        priceSlot.append(disclaimer);
+    }
+
     get icons() {
         if (
             !this.card.querySelector('[slot="icons"]') &&
@@ -386,6 +407,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
+        this.adjustLegalDisclaimer();
         this.setupToggle();
         if (Media.isMobile) {
             this.removeEmptyRows();

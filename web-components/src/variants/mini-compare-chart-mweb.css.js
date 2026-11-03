@@ -133,6 +133,17 @@ export const CSS = `
     line-height: 1.4;
   }
 
+  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"]:has(.mweb-legal-disclaimer) [data-template="legal"] .price-plan-type,
+  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"]:has(.mweb-legal-disclaimer) [data-template="legal"] span[data-template="planType"] {
+    display: none;
+  }
+
+  merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .mweb-legal-disclaimer {
+    overflow-wrap: anywhere;
+    white-space: normal;
+    max-width: 100%;
+  }
+
   merch-card[variant="mini-compare-chart-mweb"] [slot="callout-content"] {
     padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0px;
   }

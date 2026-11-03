@@ -428,5 +428,90 @@ runTests(async () => {
                 resetIsMobile();
             }
         });
+
+        describe('authored legal disclaimer', () => {
+            const LEGAL =
+                'No refund if you cancel after 14 days. Up to 10 licenses with free trial.';
+            let card;
+            let priceSlot;
+            let addedPrice = false;
+
+            const setCallout = (innerHTML) => {
+                card.querySelector('[slot="callout-content"]')?.remove();
+                if (innerHTML === null) return;
+                const callout = document.createElement('div');
+                callout.setAttribute('slot', 'callout-content');
+                callout.innerHTML = innerHTML;
+                card.append(callout);
+            };
+
+            beforeEach(async () => {
+                card = document.querySelector(
+                    'main > .three-merch-cards.mini-compare-chart-mweb merch-card[variant="mini-compare-chart-mweb"]',
+                );
+                await card.checkReady();
+                priceSlot = card.querySelector('[slot="heading-m-price"]');
+                if (!priceSlot) {
+                    priceSlot = document.createElement('h3');
+                    priceSlot.setAttribute('slot', 'heading-m-price');
+                    card.append(priceSlot);
+                    addedPrice = true;
+                }
+                priceSlot.querySelector('.mweb-legal-disclaimer')?.remove();
+            });
+
+            afterEach(() => {
+                setCallout(null);
+                priceSlot.querySelector('.mweb-legal-disclaimer')?.remove();
+                if (addedPrice) priceSlot.remove();
+                addedPrice = false;
+            });
+
+            it('maps the callout field to the Legal Disclaimer label', async () => {
+                const { MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING: mapping } =
+                    await import('../src/variants/mini-compare-chart-mweb.js');
+                expect(mapping.callout.editorLabel).to.equal('Legal Disclaimer');
+                expect(mapping.callout.slot).to.equal('callout-content');
+            });
+
+            it('renders authored legal text once under the price', () => {
+                setCallout(`<p>${LEGAL}</p>`);
+                card.variantLayout.adjustLegalDisclaimer();
+                card.variantLayout.adjustLegalDisclaimer();
+                const els = priceSlot.querySelectorAll('.mweb-legal-disclaimer');
+                expect(els.length).to.equal(1);
+                expect(priceSlot.lastElementChild).to.equal(els[0]);
+                expect(els[0].classList.contains('price-plan-type')).to.be.true;
+                expect(els[0].textContent.trim()).to.equal(LEGAL);
+            });
+
+            it('adds nothing when the legal text is empty', () => {
+                setCallout('');
+                card.variantLayout.adjustLegalDisclaimer();
+                expect(priceSlot.querySelector('.mweb-legal-disclaimer')).to.not
+                    .exist;
+            });
+
+            it('adds nothing when there is no callout', () => {
+                setCallout(null);
+                card.variantLayout.adjustLegalDisclaimer();
+                expect(priceSlot.querySelector('.mweb-legal-disclaimer')).to.not
+                    .exist;
+            });
+
+            it('adds nothing when the legal text is whitespace only', () => {
+                setCallout('<p>&nbsp; </p><p><br></p>');
+                card.variantLayout.adjustLegalDisclaimer();
+                expect(priceSlot.querySelector('.mweb-legal-disclaimer')).to.not
+                    .exist;
+            });
+
+            it('wraps long legal text inside the card', () => {
+                setCallout(`<p>${LEGAL.repeat(5)} ${'x'.repeat(80)}</p>`);
+                card.variantLayout.adjustLegalDisclaimer();
+                const el = priceSlot.querySelector('.mweb-legal-disclaimer');
+                expect(el.scrollWidth).to.be.at.most(el.clientWidth + 1);
+            });
+        });
     });
 });

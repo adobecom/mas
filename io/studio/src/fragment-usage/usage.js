@@ -8,12 +8,12 @@
  * from, so the caller can group them by region.
  */
 
-const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 
 const { getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { FRAGMENT_ID_PATTERN, prunePages, toEpochHour, topPages } = require('./pages');
 const { readUsage } = require('./state');
+const { exposeRequestId } = require('../response-headers.js');
 
 /**
  * @param {object} params action inputs

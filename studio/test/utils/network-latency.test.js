@@ -10,6 +10,7 @@ import {
 
 const SLOW = SLOW_REQUEST_THRESHOLD_MS + 1;
 const AEM_URL = 'https://author.example.com/adobe/sites/cf/fragments/abc';
+const OPERATIONS_URL = 'https://io.example.com/api/v1/web/MerchAtScaleOperations';
 
 function formData(entries) {
     const body = new FormData();
@@ -54,62 +55,14 @@ describe('classifyRequest', () => {
             REQUEST_TYPE.GET,
         ],
         ['read-only product detail POST', 'https://io.example.com/get-product-detail', 'POST', undefined, REQUEST_TYPE.GET],
-        [
-            'get operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/get-card',
-            'POST',
-            undefined,
-            REQUEST_TYPE.GET,
-        ],
-        [
-            'search operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/search-cards',
-            'POST',
-            undefined,
-            REQUEST_TYPE.GET,
-        ],
-        [
-            'list operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/list-products',
-            'POST',
-            undefined,
-            REQUEST_TYPE.GET,
-        ],
-        [
-            'resolve operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/resolve-offer-selector',
-            'POST',
-            undefined,
-            REQUEST_TYPE.GET,
-        ],
-        [
-            'update operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/update-card',
-            'POST',
-            undefined,
-            REQUEST_TYPE.SAVE,
-        ],
-        [
-            'copy operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/copy-card',
-            'POST',
-            undefined,
-            REQUEST_TYPE.SAVE,
-        ],
-        [
-            'link operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/link-card-to-offer',
-            'POST',
-            undefined,
-            REQUEST_TYPE.SAVE,
-        ],
-        [
-            'create operation',
-            'https://io.example.com/api/v1/web/MerchAtScaleOperations/create-release-cards',
-            'POST',
-            undefined,
-            REQUEST_TYPE.SAVE,
-        ],
+        ['get operation', `${OPERATIONS_URL}/get-card`, 'POST', undefined, REQUEST_TYPE.GET],
+        ['search operation', `${OPERATIONS_URL}/search-cards`, 'POST', undefined, REQUEST_TYPE.GET],
+        ['list operation', `${OPERATIONS_URL}/list-products`, 'POST', undefined, REQUEST_TYPE.GET],
+        ['resolve operation', `${OPERATIONS_URL}/resolve-offer-selector`, 'POST', undefined, REQUEST_TYPE.GET],
+        ['update operation', `${OPERATIONS_URL}/update-card`, 'POST', undefined, REQUEST_TYPE.SAVE],
+        ['copy operation', `${OPERATIONS_URL}/copy-card`, 'POST', undefined, REQUEST_TYPE.SAVE],
+        ['link operation', `${OPERATIONS_URL}/link-card-to-offer`, 'POST', undefined, REQUEST_TYPE.SAVE],
+        ['create operation', `${OPERATIONS_URL}/create-release-cards`, 'POST', undefined, REQUEST_TYPE.SAVE],
         ['local get operation', 'http://localhost:3001/tools/get_card', 'POST', undefined, REQUEST_TYPE.GET],
         ['fragment save PUT', AEM_URL, 'PUT', undefined, REQUEST_TYPE.SAVE],
         ['generic POST', AEM_URL, 'POST', undefined, REQUEST_TYPE.SAVE],

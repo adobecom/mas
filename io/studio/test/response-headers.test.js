@@ -10,6 +10,19 @@ describe('exposeRequestId', () => {
         expect(response.headers[EXPOSE_HEADER]).to.equal('x-request-id');
     });
 
+    it('exposes x-request-id on an error response', async () => {
+        const main = exposeRequestId(async () => ({ error: { statusCode: 405, body: { error: 'Method not allowed' } } }));
+        const response = await main({});
+        expect(response.error.headers[EXPOSE_HEADER]).to.equal('x-request-id');
+    });
+
+    it('keeps the status and body of an error response', async () => {
+        const main = exposeRequestId(async () => ({ error: { statusCode: 405, body: { error: 'Method not allowed' } } }));
+        const { error } = await main({});
+        expect(error).to.include({ statusCode: 405 });
+        expect(error.body).to.deep.equal({ error: 'Method not allowed' });
+    });
+
     it('keeps the status and body', async () => {
         const main = exposeRequestId(async () => ({ statusCode: 202, body: { accepted: true } }));
         const response = await main({});
@@ -56,7 +69,7 @@ describe('Studio-facing actions', () => {
         it(`${file} exposes x-request-id`, async () => {
             const { main } = require(`../src/${file}`);
             const response = await main({ __ow_method: 'options', __ow_headers: {} });
-            expect(response.headers?.[EXPOSE_HEADER]).to.equal('x-request-id');
+            expect((response.error ?? response).headers?.[EXPOSE_HEADER]).to.equal('x-request-id');
         }).timeout(10000);
     });
 });

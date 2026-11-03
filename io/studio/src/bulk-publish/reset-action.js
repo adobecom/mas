@@ -1,4 +1,3 @@
-const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const {
@@ -8,6 +7,7 @@ const {
     getProjectSnapshots,
     removePendingMarker,
 } = require('./project.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-publish-reset', { level: 'info' });
 

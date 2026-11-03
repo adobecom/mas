@@ -1,4 +1,3 @@
-const { exposeRequestId } = require('../response-headers.js');
 const crypto = require('crypto');
 const { Core } = require('@adobe/aio-sdk');
 const { init: filesInit } = require('@adobe/aio-lib-files');
@@ -30,6 +29,7 @@ const {
     parseCsvUploadBody,
     isCsvUpload,
 } = require('./csv.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 

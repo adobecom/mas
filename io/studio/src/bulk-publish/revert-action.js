@@ -1,8 +1,8 @@
-const { exposeRequestId } = require('../response-headers.js');
 const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, checkMissingRequestInputs, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { revertSnapshot } = require('./snapshot.js');
 const { PROJECT_STATUS, readProjectFragment, updateProjectFragment, getProjectSnapshots } = require('./project.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-revert', { level: 'info' });
 

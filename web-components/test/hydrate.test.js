@@ -2682,6 +2682,47 @@ describe('processImage (marquee)', () => {
     });
 });
 
+describe('callout (marquee)', () => {
+    it('maps callout to a callout-content div after shortDescription', () => {
+        expect(MARQUEE_AEM_FRAGMENT_MAPPING.callout).to.deep.equal({
+            tag: 'div',
+            slot: 'callout-content',
+        });
+        const keys = Object.keys(MARQUEE_AEM_FRAGMENT_MAPPING);
+        expect(keys.indexOf('callout')).to.equal(
+            keys.indexOf('shortDescription') + 1,
+        );
+    });
+
+    it('hydrates callout into callout-content slot (marquee)', () => {
+        const el = document.createElement('div');
+
+        processDescription(
+            { callout: '<p>Save 20%</p>' },
+            el,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+            {},
+        );
+
+        const callout = el.querySelector('div[slot="callout-content"]');
+        expect(callout).to.exist;
+        expect(callout.textContent).to.equal('Save 20%');
+    });
+
+    it('does not slot a callout when the callout field is empty (marquee)', () => {
+        const el = document.createElement('div');
+
+        processDescription(
+            { callout: '' },
+            el,
+            MARQUEE_AEM_FRAGMENT_MAPPING,
+            {},
+        );
+
+        expect(el.querySelector('[slot="callout-content"]')).to.not.exist;
+    });
+});
+
 describe('processBackgrounds (marquee)', () => {
     it('slots stored backgrounds markup into a <picture slot="backgrounds">', () => {
         const el = document.createElement('div');

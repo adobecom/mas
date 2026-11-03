@@ -1,6 +1,5 @@
 import { UserFriendlyError } from '../utils.js';
 import { COLLECTION_MODEL_PATH } from '../constants.js';
-import { trackedFetch } from '../network-latency.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
@@ -74,7 +73,7 @@ class AEM {
     }
 
     async getCsrfToken() {
-        const response = await trackedFetch(this.csrfTokenUrl, {
+        const response = await fetch(this.csrfTokenUrl, {
             headers: this.headers,
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
@@ -94,7 +93,7 @@ class AEM {
      */
     async postFormWithCsrf(path, formData) {
         const csrfToken = await this.getCsrfToken();
-        return trackedFetch(`${this.baseUrl}${path}`, {
+        return fetch(`${this.baseUrl}${path}`, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -162,7 +161,7 @@ class AEM {
                 params.cursor = cursor;
             }
             const searchParams = new URLSearchParams(params).toString();
-            const response = await trackedFetch(`${this.cfSearchUrl}?${searchParams}`, {
+            const response = await fetch(`${this.cfSearchUrl}?${searchParams}`, {
                 headers: this.headers,
                 signal: abortController?.signal,
             });
@@ -203,7 +202,7 @@ class AEM {
      */
     async getFragmentById(baseUrl, id, headers, abortController, { references = 'direct-hydrated' } = {}) {
         const refParam = references ? `?references=${references}` : '';
-        const response = await trackedFetch(`${baseUrl}/adobe/sites/cf/fragments/${id}${refParam}`, {
+        const response = await fetch(`${baseUrl}/adobe/sites/cf/fragments/${id}${refParam}`, {
             headers,
             signal: abortController?.signal,
         });
@@ -224,7 +223,7 @@ class AEM {
         const headers = this.#author ? this.headers : {};
         const params = new URLSearchParams({ path });
         if (options.references) params.set('references', options.references);
-        const response = await trackedFetch(`${this.cfFragmentsUrl}?${params.toString()}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}?${params.toString()}`, {
             headers,
             signal: options.signal,
         }).catch((err) => {
@@ -278,7 +277,7 @@ class AEM {
             return { ...field, type, values };
         });
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}`, {
             method: 'PUT',
             headers: {
                 ...this.headers,
@@ -311,7 +310,7 @@ class AEM {
         const { newTags } = fragment;
         if (!newTags) return;
         // we need this to get the Etag
-        const fragmentTags = await trackedFetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+        const fragmentTags = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
             method: 'GET',
             headers: this.headers,
         }).catch((err) => {
@@ -326,14 +325,14 @@ class AEM {
         };
 
         if (newTags?.length === 0) {
-            await trackedFetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'DELETE',
                 headers,
             }).catch((err) => {
                 throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
             });
         } else {
-            await trackedFetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
+            await fetch(`${this.cfFragmentsUrl}/${fragment.id}/tags`, {
                 method: 'PUT',
                 headers,
                 body: JSON.stringify({ tags: newTags }),
@@ -401,7 +400,7 @@ class AEM {
         formData.append('shallow', 'false');
         formData.append('_charset_', 'UTF-8');
 
-        const res = await trackedFetch(this.wcmcommandUrl, {
+        const res = await fetch(this.wcmcommandUrl, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -444,7 +443,7 @@ class AEM {
             throw new Error(`Missing data to create a fragment: ${parentPath}, ${title}, ${modelId}`);
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -483,7 +482,7 @@ class AEM {
      * @returns {Promise<void>}
      */
     async publishFragment(fragment, publishReferencesWithStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED']) {
-        const response = await trackedFetch(this.cfPublishUrl, {
+        const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -510,7 +509,7 @@ class AEM {
      * @returns {Promise<void>}
      */
     async unpublishFragment(fragment) {
-        const response = await trackedFetch(this.cfPublishUrl, {
+        const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -545,7 +544,7 @@ class AEM {
         const etag = fragments[0].etag;
         const paths = fragments.map((fragment) => fragment.path);
 
-        const response = await trackedFetch(this.cfPublishUrl, {
+        const response = await fetch(this.cfPublishUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -573,7 +572,7 @@ class AEM {
      * @returns {Promise<Response>} 202 Accepted (async workflow)
      */
     async deleteFragment(fragment) {
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${fragment.id}/deleteAndUnpublish`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragment.id}/deleteAndUnpublish`, {
             method: 'DELETE',
             headers: {
                 'If-Match': fragment.etag,
@@ -604,7 +603,7 @@ class AEM {
         const formData = new FormData();
         formData.append(':operation', 'delete');
 
-        const response = await trackedFetch(`${this.baseUrl}${fragment.path}`, {
+        const response = await fetch(`${this.baseUrl}${fragment.path}`, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -635,7 +634,7 @@ class AEM {
 
     async ensureFolderExists(folderPath) {
         try {
-            const response = await trackedFetch(`${this.baseUrl}${folderPath}.json`, {
+            const response = await fetch(`${this.baseUrl}${folderPath}.json`, {
                 method: 'GET',
                 headers: this.headers,
             });
@@ -652,7 +651,7 @@ class AEM {
                 for (const part of pathParts) {
                     if (currentPath.startsWith('/content/dam/mas')) {
                         const testPath = `${currentPath}/${part}`;
-                        const checkResponse = await trackedFetch(`${this.baseUrl}${testPath}.json`, {
+                        const checkResponse = await fetch(`${this.baseUrl}${testPath}.json`, {
                             method: 'GET',
                             headers: this.headers,
                         });
@@ -662,7 +661,7 @@ class AEM {
                             formData.append('jcr:primaryType', 'sling:Folder');
                             formData.append('jcr:title', part);
 
-                            const createResponse = await trackedFetch(`${this.baseUrl}${currentPath}/${part}`, {
+                            const createResponse = await fetch(`${this.baseUrl}${currentPath}/${part}`, {
                                 method: 'POST',
                                 headers: {
                                     ...this.headers,
@@ -735,7 +734,7 @@ class AEM {
             fields: fieldsWithoutVariations,
         };
 
-        const response = await trackedFetch(this.cfFragmentsUrl, {
+        const response = await fetch(this.cfFragmentsUrl, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -861,7 +860,7 @@ class AEM {
             fields: [],
         };
 
-        const response = await trackedFetch(this.cfFragmentsUrl, {
+        const response = await fetch(this.cfFragmentsUrl, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -924,7 +923,7 @@ class AEM {
             });
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${parentFragment.id}`, {
             method: 'PUT',
             headers: {
                 ...this.headers,
@@ -1011,7 +1010,7 @@ class AEM {
                 params.set('cursor', cursor);
             }
 
-            const response = await trackedFetch(`${this.cfSearchUrl}?${params.toString()}`, {
+            const response = await fetch(`${this.cfSearchUrl}?${params.toString()}`, {
                 headers: this.headers,
             });
 
@@ -1036,7 +1035,7 @@ class AEM {
 
     async listFolders(path) {
         const name = path?.replace(/^\/content\/dam/, '');
-        const response = await trackedFetch(
+        const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${path}&path.flat=true&type=sling:Folder&p.limit=-1`,
             {
                 method: 'GET',
@@ -1065,7 +1064,7 @@ class AEM {
                 title,
             },
         ];
-        const response = await trackedFetch(`${this.baseUrl}/adobe/folders`, {
+        const response = await fetch(`${this.baseUrl}/adobe/folders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1101,7 +1100,7 @@ class AEM {
     }
 
     async listTags(root) {
-        const response = await trackedFetch(
+        const response = await fetch(
             `${this.baseUrl}/bin/querybuilder.json?path=${root}&type=cq:Tag&orderby=@jcr:path&p.limit=-1`,
             {
                 method: 'GET',
@@ -1121,7 +1120,7 @@ class AEM {
      * @returns {Promise<Response>} - The create response
      */
     async createTag(tagPath, title) {
-        const response = await trackedFetch(`${this.baseUrl}${tagPath}.json`, {
+        const response = await fetch(`${this.baseUrl}${tagPath}.json`, {
             method: 'GET',
             headers: this.headers,
         }).catch((err) => {
@@ -1176,7 +1175,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${id}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}`, {
             method: 'GET',
             headers: {
                 Accept: 'application/json',
@@ -1214,7 +1213,7 @@ class AEM {
         if (options.sort) queryParams.append('sort', options.sort);
 
         const url = `${this.cfFragmentsUrl}/${id}/versions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-        const response = await trackedFetch(url, {
+        const response = await fetch(url, {
             method: 'GET',
             headers: this.headers,
         }).catch((err) => {
@@ -1239,7 +1238,7 @@ class AEM {
             throw new Error('Fragment ID and Version ID are required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
             method: 'GET',
             headers: this.headers,
         }).catch((err) => {
@@ -1266,7 +1265,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${id}/versions`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}/versions`, {
             method: 'POST',
             headers: {
                 ...this.headers,
@@ -1296,7 +1295,7 @@ class AEM {
             throw new Error('Fragment ID and Version ID are required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/restore/${versionId}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/restore/${versionId}`, {
             method: 'POST',
             headers: this.headers,
         }).catch((err) => {
@@ -1320,7 +1319,7 @@ class AEM {
             throw new Error('Fragment ID and Version ID are required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${fragmentId}/versions/${versionId}`, {
             method: 'PUT',
             headers: {
                 ...this.headers,
@@ -1348,7 +1347,7 @@ class AEM {
             throw new Error('Fragment ID is required');
         }
 
-        const response = await trackedFetch(`${this.cfFragmentsUrl}/${id}/translations`, {
+        const response = await fetch(`${this.cfFragmentsUrl}/${id}/translations`, {
             method: 'GET',
             headers: this.headers,
         }).catch((err) => {
@@ -1374,7 +1373,7 @@ class AEM {
             throw new Error('Path is required and must be a non-empty string');
         }
 
-        const response = await trackedFetch(this.cfReferencedByUrl, {
+        const response = await fetch(this.cfReferencedByUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

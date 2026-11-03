@@ -490,10 +490,11 @@ export function previewValue(values) {
  * @param {string} message - The message to display
  * @param {string} variant - The toast variant (positive, negative, info)
  */
-export function showToast(message, variant = 'info') {
+export function showToast(message, variant = 'info', options = {}) {
     Events.toast.emit({
         variant,
         content: message,
+        ...options,
     });
 }
 

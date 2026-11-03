@@ -51,7 +51,7 @@ reports/
 .logs
 .scout
 .scout/**
-
+mcp-server.log
 
 # IO Runtime Config
 config.json

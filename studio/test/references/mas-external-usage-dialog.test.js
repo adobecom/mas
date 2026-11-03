@@ -1,4 +1,4 @@
-import { expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
+import { aTimeout, expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
 import { sendKeys, setViewport } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
@@ -60,7 +60,9 @@ async function closeFixture() {
     if (!overlay?.open) return;
     const closed = oneEvent(overlay, 'sp-closed');
     overlay.open = false;
-    await closed;
+    // sp-closed waits on animation frames, which a starved CI runner can withhold past the hook
+    // timeout. The fixture teardown that follows disconnects the overlay either way.
+    await Promise.race([closed, aTimeout(1000)]);
 }
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());

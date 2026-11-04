@@ -5,7 +5,7 @@ name: Heal Dist Conflicts
 # such PR with the driver on, rebuild dist from the merged source, and push.
 on:
     push:
-        branches: [main, rcp-main]
+        branches: [main, rcp-main, mwpw-214403-test-base]
         paths:
             - 'web-components/dist/**'
     workflow_dispatch:

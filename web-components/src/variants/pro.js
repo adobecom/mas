@@ -110,10 +110,28 @@ export class Pro extends VariantLayout {
     }
 
     // Forwards the Show Plan type setting to the legal-template price (which
-    // renders the plan type line). Same pattern as plans/plans-v2.
+    // renders the plan type line). Same pattern as plans/plans-v2. An authored
+    // Short Description is rendered by the template itself as the plan type, so
+    // every (re-)render of the legal price paints it in the same pass, never
+    // the derived WCS wording (MWPW-214359).
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        const shortDescription = this.shortDescription;
+        if (shortDescription && element.closest('[slot="heading-m"]')) {
+            options.displayPlanType = true;
+            options.customPlanTypeLabel = shortDescription;
+            return;
+        }
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    // Read [slot="legal-text"] in place (never detached): the shadow has no
+    // matching slot so it won't render, and merch-card swaps in a fresh layout
+    // per render.
+    get shortDescription() {
+        const source = this.card?.querySelector('[slot="legal-text"]');
+        if (!source?.textContent?.trim()) return '';
+        return source.innerHTML.trim();
     }
 
     // Clones the main price into a legal-template sibling (as plans/plans-v2) so
@@ -137,46 +155,16 @@ export class Pro extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.dataset.displayPerUnit = 'false';
+            // The dataset outranks priceOptionsProvider; a plan type flag cloned
+            // from the main price must not hide the authored Short Description.
+            if (this.shortDescription) delete legal.dataset.displayPlanType;
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,
             );
             await legal.onceSettled();
-            // Re-apply the override whenever the legal price re-resolves.
-            if (!this.legalResolvedHandler) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-            }
-            this.adjustShortDescription();
         } catch {
             // Proceed with the other post-update adjustments
-        }
-    }
-
-    // Authored Short Description replaces the derived plan type wording. Read
-    // [slot="legal-text"] in place (never detached): the shadow has no matching
-    // slot so it won't render, and merch-card swaps in a fresh layout per render.
-    adjustShortDescription() {
-        const source = this.card.querySelector('[slot="legal-text"]');
-        const text = source?.textContent?.trim();
-        if (!text) return;
-        const legalPrice = this.card.querySelector(
-            '[slot="heading-m"] [data-template="legal"]',
-        );
-        const planType = legalPrice?.querySelector('.price-plan-type');
-        if (!planType) return;
-        planType.innerHTML = source.innerHTML;
-        // The legal template appends ". " between the tax label and plan type, but
-        // only when it rendered the plan type itself; we inject it, so add the same
-        // separator so injected and WCS-sourced lines read alike (MWPW-198626).
-        const tax = legalPrice.querySelector(
-            '.price-tax-inclusivity:not(.disabled)',
-        );
-        if (tax?.textContent && !/\s$/.test(tax.textContent)) {
-            tax.textContent += '. ';
         }
     }
 
@@ -265,7 +253,6 @@ export class Pro extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
-        this.adjustShortDescription();
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row (desktop only).
         if (window.matchMedia('(min-width: 768px)').matches) this.syncHeights();

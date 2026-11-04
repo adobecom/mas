@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const { setTimeout: delay } = require('node:timers/promises');
 const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
+const Files = require('@adobe/aio-lib-files');
 const { getBearerToken, isAllowed } = require('../../utils.js');
 
 const logger = Core.Logger('promo-versions', { level: 'info' });
@@ -10,6 +11,8 @@ const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const HISTORY_PAGE_SIZE = 10;
 const HISTORY_CONCURRENCY = 4;
+const NUMBERING_RETRIES = 5;
+const NUMBERING_URL_TTL = 300;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
 const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
 const RECORD_GROUPS = new Set([...RESTORE_GROUPS, 'GRP-ODIN-MAS-PROMO-EDITORS']);
@@ -338,6 +341,101 @@ function bounded(value) {
     return serialized;
 }
 
+async function numberingRequest(context, options = {}) {
+    if (!context.numberingUrl) {
+        const files = await Files.init();
+        context.numberingUrl = await files.generatePresignURL(`private/promo-versions/${context.projectId}/numbering.json`, {
+            permissions: 'rw',
+            expiryInSeconds: NUMBERING_URL_TTL,
+            urlType: 'internal',
+        });
+        if (new URL(context.numberingUrl).protocol !== 'https:') fail(503, 'Invalid version numbering storage endpoint');
+    }
+    return fetch(context.numberingUrl, {
+        ...options,
+        redirect: 'error',
+        signal: AbortSignal.timeout(15000),
+    });
+}
+
+async function initialNumberingEntries(context, event) {
+    const entries = [];
+    for (const entry of await readEntries(context)) {
+        const stored = entry.event ?? (await readEntry(context, entry.key));
+        if (stored) entries.push(stored);
+    }
+    if (!entries.some((entry) => entry.id === event.id)) entries.push(event);
+    return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+}
+
+function assignVersionNumbers(ledger, events) {
+    for (const event of events) {
+        if (Number.isSafeInteger(event.version) && event.version > 0) {
+            ledger.lastVersion = Math.max(ledger.lastVersion, event.version);
+        }
+    }
+    for (const event of events) {
+        if (ledger.entries[event.id]) continue;
+        const version = Number.isSafeInteger(event.version) && event.version > 0 ? event.version : ++ledger.lastVersion;
+        if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
+        ledger.entries[event.id] = { version, createdAt: event.createdAt };
+    }
+}
+
+async function reserveVersion(context, event) {
+    if (context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
+    let existing;
+    for (let attempt = 0; attempt < NUMBERING_RETRIES; attempt += 1) {
+        const response = await numberingRequest(context);
+        if (!response.ok && response.status !== 404) fail(503, 'Version numbering storage is temporarily unavailable');
+        const ledger = response.ok ? await response.json() : { lastVersion: 0, entries: {} };
+        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
+            fail(503, 'Invalid version numbering metadata');
+        }
+        ledger.entries = Object.fromEntries(
+            Object.entries(ledger.entries).filter(([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000),
+        );
+        if (ledger.entries[event.id]) {
+            context.numbering = ledger;
+            return ledger.entries[event.id];
+        }
+        if (!response.ok) existing ??= await initialNumberingEntries(context, event);
+        const etag = response.ok ? response.headers.get('etag') : null;
+        if (response.ok && !etag) fail(503, 'Version numbering storage did not confirm its revision');
+        assignVersionNumbers(ledger, response.ok ? [event] : existing);
+        const written = await numberingRequest(context, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-ms-blob-type': 'BlockBlob',
+                'x-ms-version': '2021-12-02',
+                ...(response.ok ? { 'If-Match': etag } : { 'If-None-Match': '*' }),
+            },
+            body: bounded(ledger),
+        });
+        if (written.ok) {
+            context.numbering = ledger;
+            return ledger.entries[event.id];
+        }
+        if (written.status !== 412) fail(503, 'Version numbering could not be saved');
+        await delay(25 * 2 ** attempt);
+    }
+    fail(503, 'Version numbering is busy; retry recording shortly');
+}
+
+async function numberedEntry(context, key, event) {
+    event ??= await readEntry(context, key);
+    if (!event || (Number.isSafeInteger(event.version) && event.version > 0)) return event;
+    const { version } = await reserveVersion(context, event);
+    const numbered = { ...event, version };
+    await context.state.put(key, bounded(numbered), { ttl: entryTtl(event) });
+    return numbered;
+}
+
+function entryTtl(event) {
+    return Math.max(1, Math.ceil((Date.parse(event.createdAt) + RETENTION * 1000 - Date.now()) / 1000));
+}
+
 async function readEntries(context) {
     const entries = [];
     for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*` })) {
@@ -361,19 +459,17 @@ async function readEntry(context, key) {
     const stored = await context.state.get(key);
     if (!stored?.value) return null;
     const event = JSON.parse(stored.value);
-    return Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000
-        ? { ...event, version: event.version ?? event.afterSnapshot.fragments[0]?.versionId }
-        : null;
+    return Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000 ? event : null;
 }
 
 async function findEntry(context, id) {
     for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*.${id}` })) {
         for (const key of keys) {
-            const event = await readEntry(context, key);
+            const event = await numberedEntry(context, key);
             if (event) return event;
         }
     }
-    return readEntry(context, `${namespace(context, 'entry')}${id}`);
+    return numberedEntry(context, `${namespace(context, 'entry')}${id}`);
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
@@ -388,10 +484,10 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
         changes: diff(before, after),
         beforeSnapshot,
         afterSnapshot,
-        version: afterSnapshot.fragments[0].versionId,
     };
+    Object.assign(event, await reserveVersion(context, event));
     await context.state.put(`${namespace(context, 'entry')}${Date.parse(event.createdAt)}.${event.id}`, bounded(event), {
-        ttl: RETENTION,
+        ttl: entryTtl(event),
     });
     return event;
 }
@@ -467,7 +563,7 @@ async function list(context, events, params) {
             const index = offset++;
             const entry = numbered[index];
             if (currentEventId && index <= cursorIndex) continue;
-            const event = entry.event ?? (await readEntry(context, entry.key));
+            const event = await numberedEntry(context, entry.key, entry.event);
             if (!event) continue;
             const matches =
                 index > cursorIndex &&

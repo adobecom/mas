@@ -40,6 +40,8 @@ describe('Promotion project versions', () => {
     let profile;
     let allowed;
     let originalFetch;
+    let numberingFiles;
+    let files;
     const params = (extra = {}) => ({
         __ow_method: 'post',
         __ow_headers: { authorization: 'Bearer test-token' },
@@ -76,7 +78,13 @@ describe('Promotion project versions', () => {
         });
     const nativePosts = () =>
         fetchStub.getCalls().filter(({ args: [url, options] }) => url.endsWith('/versions') && options.method === 'POST');
-    const writes = () => fetchStub.getCalls().filter(({ args: [, options] }) => ['PUT', 'DELETE'].includes(options.method));
+    const writes = () =>
+        fetchStub
+            .getCalls()
+            .filter(
+                ({ args: [url, options] }) =>
+                    url.includes('/adobe/sites/cf/fragments/') && ['PUT', 'DELETE'].includes(options.method),
+            );
 
     beforeEach(() => {
         stored = new Map();
@@ -89,6 +97,10 @@ describe('Promotion project versions', () => {
         cachedMembers = undefined;
         profile = { id: 'verified-user', email: 'verified@example.com', name: 'Verified User' };
         allowed = true;
+        numberingFiles = new Map();
+        files = {
+            generatePresignURL: sinon.stub().callsFake(async (path) => `https://files.example.com/${path}`),
+        };
         state = {
             get: sinon.spy(async (key) => {
                 if (key === 'mas-users')
@@ -111,6 +123,21 @@ describe('Promotion project versions', () => {
         fetchStub = sinon.stub().callsFake(async (url, options = {}) => {
             if (url.includes('/ims/profile/')) return response(profile);
             const parsed = new URL(url);
+            if (parsed.hostname === 'files.example.com') {
+                const current = numberingFiles.get(parsed.pathname);
+                if (options.method !== 'PUT') return response(current?.body, current ? 200 : 404, current?.etag);
+                if (
+                    (options.headers['If-None-Match'] === '*' && current) ||
+                    (options.headers['If-Match'] && options.headers['If-Match'] !== current?.etag)
+                )
+                    return response({}, 412);
+                const next = {
+                    etag: `"${Number(current?.etag.replaceAll('"', '') ?? 0) + 1}"`,
+                    body: JSON.parse(options.body),
+                };
+                numberingFiles.set(parsed.pathname, next);
+                return response({}, 201, next.etag);
+            }
             const versionPath = /\/fragments\/([^/]+)\/versions(?:\/([^/]+))?$/.exec(parsed.pathname);
             if (versionPath) {
                 const [, id, versionId] = versionPath;
@@ -144,6 +171,7 @@ describe('Promotion project versions', () => {
             'node:timers/promises': { setTimeout: sinon.stub().resolves() },
             '@adobe/aio-sdk': { Core: { Logger: () => ({ error: sinon.spy() }) } },
             '@adobe/aio-lib-state': { init: async () => state },
+            '@adobe/aio-lib-files': { init: async () => files },
             '../../utils.js': {
                 getBearerToken: (p) => p.__ow_headers?.authorization?.slice(7),
                 isAllowed: async () => allowed,
@@ -161,6 +189,7 @@ describe('Promotion project versions', () => {
         expect(event.user).to.deep.equal(profile);
         expect(new Date(event.createdAt).toISOString()).to.equal(event.createdAt);
         expect(event.action).to.equal('save');
+        expect(event.version).to.equal(1);
         expect(event.changes).to.deep.equal([
             { fragmentId: PROJECT, path: projectPath, field: '@title', before: 'Project', after: 'Saved', category: 'general' },
         ]);
@@ -275,16 +304,16 @@ describe('Promotion project versions', () => {
         expect(stored.size).to.equal(0);
     });
 
-    it('lists native version identifiers, search, cursor and current id before filtering', async () => {
+    it('lists persisted numeric versions, search, cursor and current id before filtering', async () => {
         const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         const first = (await save()).event;
         clock.tick(1000);
         const second = (await save(PROJECT, (fragment) => (fragment.title = 'Second'), { requestId: 'second' })).event;
         const page = await call('list', { limit: 1 });
-        expect(page.events.map((event) => [event.id, event.version])).to.deep.equal([[second.id, second.version]]);
+        expect(page.events.map((event) => [event.id, event.version])).to.deep.equal([[second.id, 2]]);
         expect(page.currentEventId).to.equal(second.id);
         const next = await call('list', { limit: 1, cursor: page.cursor });
-        expect(next.events.map((event) => [event.id, event.version])).to.deep.equal([[first.id, first.version]]);
+        expect(next.events.map((event) => [event.id, event.version])).to.deep.equal([[first.id, 1]]);
         const filtered = await call('list', { query: 'Project' });
         expect(filtered.currentEventId).to.equal(second.id);
         expect(await call('list', { query: 'No matching text' })).to.deep.equal({ events: [], currentEventId: second.id });
@@ -369,15 +398,178 @@ describe('Promotion project versions', () => {
         expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(2);
     });
 
-    it('keeps the same version identifier after older history expires', async () => {
+    it('keeps the same version number after older history expires', async () => {
         const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         await save();
         clock.tick(94 * 86400000);
         const second = (await save(PROJECT, (fragment) => (fragment.title = 'Second'), { requestId: 'second' })).event;
         const before = (await call('list')).events.find((event) => event.id === second.id).version;
+        expect(before).to.equal(2);
         clock.tick(2 * 86400000);
 
         expect((await call('list')).events.find((event) => event.id === second.id).version).to.equal(before);
+    });
+
+    it('continues numbering after all retained events expire, even after more than a year without saves', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        await save();
+        clock.tick(400 * 86400000);
+        stored.clear();
+
+        const { event } = await save(PROJECT, (fragment) => (fragment.title = 'After expiry'), { requestId: 'after-expiry' });
+
+        expect(event.version).to.equal(2);
+        expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2]);
+    });
+
+    it('shares one numeric sequence across project saves, variations, creations and restores', async () => {
+        const created = (await call('record', { action: 'create', requestId: 'create' })).event;
+        const saved = (await save(VARIATION, undefined, { requestId: 'variation' })).event;
+        const restored = await undo(saved);
+
+        expect([created.version, saved.version, restored.event.version]).to.deep.equal([1, 2, 3]);
+        expect((await undo(saved)).event.version).to.equal(3);
+        const next = (await save(PROJECT, undefined, { requestId: 'next' })).event;
+        expect(next.version).to.equal(4);
+    });
+
+    it('allocates distinct numbers for concurrent writers using conditional storage updates', async () => {
+        await call('record', { action: 'create', requestId: 'initial' });
+        const results = await Promise.all([
+            call('record', { action: 'create', requestId: 'concurrent-project' }),
+            call('record', { action: 'create', targetId: VARIATION, requestId: 'concurrent-variation' }),
+        ]);
+
+        expect(results.map(({ event }) => event.version).sort()).to.deep.equal([2, 3]);
+        expect((await call('list')).events.map((event) => event.version).sort()).to.deep.equal([1, 2, 3]);
+        expect(
+            fetchStub.getCalls().some(({ args: [url, options] }) => {
+                return url.includes('files.example.com') && options.headers?.['If-Match'];
+            }),
+        ).to.equal(true);
+    });
+
+    it('reuses one number and event key when identical requests arrive concurrently', async () => {
+        const results = await Promise.all([call('record', { action: 'create' }), call('record', { action: 'create' })]);
+
+        expect(results.map(({ event }) => event.version)).to.deep.equal([1, 1]);
+        expect(stored.size).to.equal(1);
+        expect((await call('record', { action: 'create', requestId: 'next' })).event.version).to.equal(2);
+    });
+
+    it('reuses a reserved number when event persistence fails and the request is retried', async () => {
+        const put = state.put;
+        state.put = sinon.stub().onFirstCall().rejects(new Error('State unavailable'));
+        state.put.callsFake(put);
+        try {
+            await call('record', { action: 'create' });
+            expect.fail('Expected persistence failure');
+        } catch (error) {
+            expect(error.message).to.equal('State unavailable');
+        }
+
+        expect((await call('record', { action: 'create' })).event.version).to.equal(1);
+        expect((await call('record', { action: 'create', requestId: 'next' })).event.version).to.equal(2);
+    });
+
+    it('migrates existing UUID labels chronologically without extending history retention', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const first = (await save()).event;
+        clock.tick(86400000);
+        const second = (await save(PROJECT, (fragment) => (fragment.title = 'Second'), { requestId: 'second' })).event;
+        for (const [key, value] of stored) {
+            const event = JSON.parse(value);
+            stored.set(key, JSON.stringify({ ...event, version: OTHER }));
+        }
+        numberingFiles.clear();
+        state.put.resetHistory();
+
+        const listed = await call('list');
+
+        expect(listed.events.map(({ id, version }) => [id, version])).to.deep.equal([
+            [second.id, 2],
+            [first.id, 1],
+        ]);
+        expect([...stored.values()].map((value) => JSON.parse(value).version)).to.deep.equal([1, 2]);
+        const migrated = state.put.getCalls().find(({ args: [key] }) => key.endsWith(first.id));
+        expect(migrated.args[2].ttl).to.equal(94 * 86400);
+        clock.tick(94 * 86400000 + 1000);
+        expect((await call('list')).events.map((event) => event.version)).to.deep.equal([2]);
+        const next = await save(PROJECT, (fragment) => (fragment.title = 'Third'), { requestId: 'third' });
+        expect(next.event.version).to.equal(3);
+    });
+
+    it('gives existing history the same migrated numbers during concurrent reads', async () => {
+        await recordHistory(2);
+        for (const [key, value] of stored) {
+            const event = JSON.parse(value);
+            delete event.version;
+            stored.set(key, JSON.stringify(event));
+        }
+        numberingFiles.clear();
+
+        const [first, second] = await Promise.all([call('list'), call('list')]);
+
+        expect(first.events.map(({ id, version }) => [id, version])).to.deep.equal(
+            second.events.map(({ id, version }) => [id, version]),
+        );
+        expect(first.events.map((event) => event.version)).to.deep.equal([2, 1]);
+    });
+
+    it('seeds the counter from already persisted numeric labels', async () => {
+        await save();
+        const [key, value] = [...stored][0];
+        stored.set(key, JSON.stringify({ ...JSON.parse(value), version: 7 }));
+        numberingFiles.clear();
+
+        const next = await save(PROJECT, (fragment) => (fragment.title = 'Next'), { requestId: 'next' });
+
+        expect(next.event.version).to.equal(8);
+        expect(JSON.parse(stored.get(key)).version).to.equal(7);
+    });
+
+    it('does not reuse an expired reservation when the same request ID is used again after retention', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        await call('record', { action: 'create' });
+        clock.tick(96 * 86400000);
+        stored.clear();
+
+        const { event } = await call('record', { action: 'create' });
+
+        expect(event.version).to.equal(2);
+        expect(event.createdAt).to.equal(new Date().toISOString());
+        expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2]);
+    });
+
+    it('keeps numbering metadata private and free of authors, field values and AEM version IDs', async () => {
+        const { event } = await save();
+        const { body } = [...numberingFiles.values()][0];
+        expect(body).to.deep.equal({
+            lastVersion: 1,
+            entries: { [event.id]: { version: 1, createdAt: event.createdAt } },
+        });
+        expect(files.generatePresignURL.firstCall.args).to.deep.equal([
+            `private/promo-versions/${PROJECT}/numbering.json`,
+            { permissions: 'rw', expiryInSeconds: 300, urlType: 'internal' },
+        ]);
+        expect(
+            fetchStub
+                .getCalls()
+                .filter(({ args: [url] }) => url.includes('files.example.com'))
+                .every(({ args: [, options] }) => !options.headers?.Authorization && options.redirect === 'error'),
+        ).to.equal(true);
+    });
+
+    it('fails explicitly rather than returning UUID labels when numbering storage is unavailable or contended', async () => {
+        const numberedStorage = fetchStub.withArgs(sinon.match((url) => url.includes('files.example.com')));
+        numberedStorage.resolves(response({}, 503));
+        await expectError(call('record', { action: 'create' }), 503);
+        expect(stored.size).to.equal(0);
+        numberedStorage.callsFake(async (url, options = {}) =>
+            options.method === 'PUT' ? response({}, 412) : response({}, 404),
+        );
+        await expectError(call('record', { action: 'create' }), 503);
+        expect(stored.size).to.equal(0);
     });
 
     it('keeps existing entries readable and idempotent after adding chronological storage keys', async () => {

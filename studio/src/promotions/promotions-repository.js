@@ -200,7 +200,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         geoTags,
         attachedFragmentPaths,
     );
-    await savePromotionVersion({ loadPromotions }, createdFragment);
+    void savePromotionVersion({ loadPromotions }, createdFragment);
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }
@@ -314,7 +314,7 @@ async function duplicateAttachedPromoVariations(repository, sourcePromotion, new
                 attachedFragmentPaths,
                 sourceFragment,
             );
-            await savePromotionVersion(repository, created);
+            void savePromotionVersion(repository, created);
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });

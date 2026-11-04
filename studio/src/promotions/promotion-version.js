@@ -2,6 +2,7 @@ import Store from '../store.js';
 import Events from '../events.js';
 import { PROMOTION_MODEL_ID } from '../constants.js';
 import { showToast } from '../utils.js';
+import { canEditPromotions } from '../groups.js';
 import { getPromotionTagFromFragment, getPromoNameFromTag, isPromoVariationPath } from './promotion-model.js';
 
 const historyRequests = new Map();
@@ -103,6 +104,7 @@ async function resolveProjectIds(repository, fragment) {
 }
 
 export async function savePromotionVersion(repository, fragment, { beforeVersionId, action = 'create' } = {}) {
+    if (!canEditPromotions()) return;
     clearPromotionHistoryRequests();
     try {
         for (const projectId of await resolveProjectIds(repository, fragment)) {
@@ -124,10 +126,24 @@ export async function savePromotionVersion(repository, fragment, { beforeVersion
 }
 
 export async function withPromotionVersion(repository, fragment, write) {
-    if (!isProject(fragment) && !isPromoVariationPath(fragment.path)) return write();
-    const beforeVersionId = fragment.id ? await repository.aem.sites.cf.fragments.createVersion(fragment.id) : undefined;
-    if (fragment.id && !beforeVersionId) throw new Error('AEM did not confirm the version before saving.');
+    if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
+    let beforeVersionId;
+    if (fragment.id) {
+        try {
+            beforeVersionId = await repository.aem.sites.cf.fragments.createVersion(fragment.id);
+        } catch (error) {
+            console.error('Promotion before-version capture failed:', error);
+        }
+    }
     const saved = await write();
-    await savePromotionVersion(repository, saved, { beforeVersionId, action: fragment.id ? 'save' : 'create' });
+    clearPromotionHistoryRequests();
+    if (fragment.id && !beforeVersionId) {
+        showToast(
+            'Your content was saved, but its previous version could not be captured. This save cannot be restored.',
+            'warning',
+        );
+    } else {
+        void savePromotionVersion(repository, saved, { beforeVersionId, action: fragment.id ? 'save' : 'create' });
+    }
     return saved;
 }

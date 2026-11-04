@@ -3,12 +3,6 @@ const { setTimeout: delay } = require('node:timers/promises');
 const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const { getBearerToken, isAllowed } = require('../../utils.js');
-const { DEFAULT_LOCALES } = require('../locales.js');
-const {
-    versionFieldValues,
-    compareVersionValues,
-    restoreVersionFields,
-} = require('../../../../studio/src/common/utils/fragment-version.js');
 
 const logger = Core.Logger('promo-versions', { level: 'info' });
 const RETENTION = 95 * 86400;
@@ -21,6 +15,44 @@ const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWER
 const RECORD_GROUPS = new Set([...RESTORE_GROUPS, 'GRP-ODIN-MAS-PROMO-EDITORS']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const VARIATION_PATH = /^\/content\/dam\/mas\/[\w-]+\/[\w-]+\/promotions\//;
+
+function versionFieldValues(fragment) {
+    if (!fragment) return new Map();
+    return new Map([
+        ['@title', fragment.title ?? ''],
+        ['@description', fragment.description ?? ''],
+        ['@tags', fragment.tags ?? []],
+        ...(fragment.fields ?? []).map((field) => [field.name, field.values ?? null]),
+    ]);
+}
+
+function compareVersionValues(before, after, missingValue) {
+    const differences = [];
+    for (const field of new Set([...before.keys(), ...after.keys()])) {
+        const previous = before.has(field) ? before.get(field) : missingValue;
+        const next = after.has(field) ? after.get(field) : missingValue;
+        if (JSON.stringify(previous) !== JSON.stringify(next)) {
+            differences.push({ field, before: previous, after: next });
+        }
+    }
+    return differences;
+}
+
+function restoreVersionFields(current, historical, fields) {
+    const selected = new Set(fields);
+    const previous = new Map(historical.map((field) => [field.name, field]));
+    const restored = current.map((field) =>
+        selected.has(field.name) && previous.has(field.name)
+            ? { ...field, values: structuredClone(previous.get(field.name).values) }
+            : field,
+    );
+    for (const field of historical) {
+        if (selected.has(field.name) && !restored.some((item) => item.name === field.name)) {
+            restored.push(structuredClone(field));
+        }
+    }
+    return restored;
+}
 
 function fail(statusCode, message) {
     throw Object.assign(new Error(message), { statusCode });
@@ -277,78 +309,15 @@ async function versionSnapshot(context, current) {
     return { fragments };
 }
 
-async function nativeInheritanceParent(context, path) {
-    const parent = await readPath(context, path);
-    const { fragment } = await readFragment(context, parent.id);
-    if (fragment.path !== path) fail(409, 'Inheritance source moved; reload and retry');
-    return fragment;
-}
-
-async function groupedInheritanceParent(context, sourcePath) {
-    const response = await aem(context, '/referencedBy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paths: [sourcePath] }),
-    });
-    const refs = (await response.json()).items?.[0]?.parentReferences ?? [];
-    if (refs.length > MAX_FRAGMENTS) fail(413, 'Too many inheritance parent references');
-    const [, , , , surface, locale] = sourcePath.split('/');
-    const [lang, country] = locale.split('_');
-    const family = (DEFAULT_LOCALES[surface] ?? []).find(
-        (entry) => entry.lang === lang && [entry.country, ...(entry.regions ?? [])].includes(country),
-    );
-    const parents = new Map();
-    for (const ref of refs) {
-        if (
-            ref.type !== 'content-fragment' ||
-            !family ||
-            !ref.path?.startsWith(`/content/dam/mas/${surface}/${family.lang}_${family.country}/`) ||
-            ref.path.includes('/pzn/') ||
-            ownVariation(context.project, ref)
-        )
-            continue;
-        const candidate = await nativeInheritanceParent(context, ref.path);
-        if (values(candidate, 'variations').includes(sourcePath)) parents.set(candidate.id, candidate);
-    }
-    return parents.size === 1
-        ? { parent: [...parents.values()][0] }
-        : { reason: parents.size ? 'grouped-parent-ambiguous' : 'grouped-parent-missing' };
-}
-
-async function inheritanceContext(context, current) {
-    const sources = new Map();
-    for (const path of references(context.project)) {
-        const match = /^(\/content\/dam\/mas\/[\w-]+\/[\w-]+)\/(.+)$/.exec(pathValue(path));
-        if (!match || match[2].startsWith('promotions/')) continue;
-        for (const name of promotionNames(context.project)) sources.set(`${match[1]}/promotions/${name}/${match[2]}`, path);
-    }
-    const inheritance = [];
-    const inheritanceUnavailable = [];
-    for (const fragment of current.fragments) {
-        if (!ownVariation(context.project, fragment)) continue;
-        const suffix = /^(.*)-(\d+)$/.exec(fragment.path);
-        const parentPath =
-            sources.get(fragment.path) ??
-            (suffix && Number(suffix[2]) >= 1 && Number(suffix[2]) <= 50 ? sources.get(suffix[1]) : undefined);
-        if (!parentPath) continue;
-        const resolved = parentPath.includes('/pzn/')
-            ? await groupedInheritanceParent(context, parentPath)
-            : { parent: await nativeInheritanceParent(context, parentPath) };
-        if (!resolved.parent) {
-            inheritanceUnavailable.push({ fragmentId: fragment.id, reason: resolved.reason });
-            continue;
-        }
-        const manifest = await versionSnapshot(context, { fragments: [resolved.parent] });
-        inheritance.push({ fragmentId: fragment.id, ...manifest.fragments[0] });
-    }
-    return {
-        ...(inheritance.length ? { inheritance } : {}),
-        ...(inheritanceUnavailable.length ? { inheritanceUnavailable } : {}),
-    };
+function inheritanceContext(context, current) {
+    const inheritanceUnavailable = current.fragments
+        .filter((fragment) => ownVariation(context.project, fragment))
+        .map((fragment) => ({ fragmentId: fragment.id, reason: 'outside-project' }));
+    return inheritanceUnavailable.length ? { inheritanceUnavailable } : {};
 }
 
 async function historySnapshot(context, current) {
-    return { ...(await versionSnapshot(context, current)), ...(await inheritanceContext(context, current)) };
+    return { ...(await versionSnapshot(context, current)), ...inheritanceContext(context, current) };
 }
 
 function namespace(context, kind) {
@@ -372,16 +341,39 @@ function bounded(value) {
 async function readEntries(context) {
     const entries = [];
     for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*` })) {
-        for (let offset = 0; offset < keys.length; offset += 10) {
-            const batch = await Promise.all(keys.slice(offset, offset + 10).map((key) => context.state.get(key)));
-            for (const entry of batch) {
-                if (!entry?.value) continue;
-                const event = JSON.parse(entry.value);
-                if (Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000) entries.push(event);
+        for (const key of keys) {
+            const suffix = key.slice(namespace(context, 'entry').length);
+            const timestamp = /^(\d{13})\.(.+)$/.exec(suffix);
+            if (timestamp) {
+                if (Number(timestamp[1]) >= Date.now() - RETENTION * 1000) {
+                    entries.push({ key, id: timestamp[2], createdAt: new Date(Number(timestamp[1])).toISOString() });
+                }
+            } else {
+                const event = await readEntry(context, key);
+                if (event) entries.push({ key, id: event.id, createdAt: event.createdAt, event });
             }
         }
     }
     return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+}
+
+async function readEntry(context, key) {
+    const stored = await context.state.get(key);
+    if (!stored?.value) return null;
+    const event = JSON.parse(stored.value);
+    return Date.parse(event.createdAt) >= Date.now() - RETENTION * 1000
+        ? { ...event, version: event.version ?? event.afterSnapshot.fragments[0]?.versionId }
+        : null;
+}
+
+async function findEntry(context, id) {
+    for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*.${id}` })) {
+        for (const key of keys) {
+            const event = await readEntry(context, key);
+            if (event) return event;
+        }
+    }
+    return readEntry(context, `${namespace(context, 'entry')}${id}`);
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
@@ -396,8 +388,11 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
         changes: diff(before, after),
         beforeSnapshot,
         afterSnapshot,
+        version: afterSnapshot.fragments[0].versionId,
     };
-    await context.state.put(`${namespace(context, 'entry')}${event.id}`, bounded(event), { ttl: RETENTION });
+    await context.state.put(`${namespace(context, 'entry')}${Date.parse(event.createdAt)}.${event.id}`, bounded(event), {
+        ttl: RETENTION,
+    });
     return event;
 }
 
@@ -446,7 +441,7 @@ async function record(context, params) {
     const before = { fragments: beforeEntry ? [await readVersion(context, beforeEntry)] : [] };
     const after = { fragments: [target] };
     if (params.action === 'save' && !diff(before, after).length) return { unchanged: true };
-    const inheritance = await inheritanceContext(context, after);
+    const inheritance = inheritanceContext(context, after);
     const beforeSnapshot = { fragments: beforeEntry ? [beforeEntry] : [], ...(beforeEntry ? inheritance : {}) };
     const afterSnapshot = { ...(await versionSnapshot(context, after)), ...inheritance };
     if (params.completionEtag !== undefined && params.completionEtag !== (await readFragment(context, target.id)).etag) {
@@ -467,9 +462,13 @@ async function list(context, events, params) {
     let currentEventId = null;
     for (let offset = 0; offset < numbered.length; ) {
         const batch = [];
-        while (offset < numbered.length && batch.length < Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length)) {
+        const batchSize = params.cursor && !currentEventId ? 1 : Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length);
+        while (offset < numbered.length && batch.length < batchSize) {
             const index = offset++;
-            const event = numbered[index];
+            const entry = numbered[index];
+            if (currentEventId && index <= cursorIndex) continue;
+            const event = entry.event ?? (await readEntry(context, entry.key));
+            if (!event) continue;
             const matches =
                 index > cursorIndex &&
                 (!params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase()));
@@ -649,8 +648,7 @@ function versionPending(restored, failures) {
     });
 }
 
-async function restore(context, params, events) {
-    const source = events.find((event) => event.id === params.eventId);
+async function restore(context, params, source) {
     if (!source) fail(404, 'Version no longer available');
     if (!source.beforeSnapshot.fragments.length) fail(400, 'Creation cannot be undone');
     const plan = await restorePlan(context, params, source);
@@ -728,7 +726,26 @@ async function restore(context, params, events) {
         }
         await context.state.put(guardKey, bounded({ ...guard, versionPending: false, restored, failures }), { ttl: RETENTION });
         return result;
-    } catch {
+    } catch (error) {
+        if (error.statusCode && error.statusCode < 500) {
+            error.result = { restored, failures };
+            try {
+                await context.state.put(
+                    guardKey,
+                    bounded({
+                        ...guard,
+                        versionPending: false,
+                        restored,
+                        failures,
+                        conflict: { statusCode: error.statusCode, message: error.message },
+                    }),
+                    { ttl: RETENTION },
+                );
+            } catch {
+                throw versionPending(restored, failures);
+            }
+            throw error;
+        }
         throw versionPending(restored, failures);
     }
 }
@@ -768,8 +785,7 @@ async function execute(operation, params) {
     context.project = (await readFragment(context, context.projectId)).fragment;
     assertProject(context.project);
     if (operation !== 'list') {
-        const stored = await state.get(`${namespace(context, 'entry')}${requestId(context)}`);
-        const previous = stored?.value ? JSON.parse(stored.value) : null;
+        const previous = await findEntry(context, requestId(context));
         if (previous && operation === 'record') {
             if (
                 previous.action !== params.action ||
@@ -795,15 +811,19 @@ async function execute(operation, params) {
                     statusCode: 409,
                     result: { versionPending: true },
                 });
+            if (prior.conflict)
+                throw Object.assign(new Error(prior.conflict.message), {
+                    statusCode: prior.conflict.statusCode,
+                    result: { restored: prior.restored, failures: prior.failures },
+                });
             if (previous) await authorizeEvent(context, previous);
             return { restored: prior.restored, failures: prior.failures, ...(previous ? { event: previous } : {}) };
         }
         if (previous) fail(409, 'Request ID already used');
     }
     if (operation === 'record') return record(context, params);
-    const events = (await readEntries(context)).map((event, index) => ({ ...event, version: index + 1 }));
-    if (operation === 'restore') return restore(context, params, events);
-    return list(context, events, params);
+    if (operation === 'restore') return restore(context, params, await findEntry(context, params.eventId));
+    return list(context, await readEntries(context), params);
 }
 
 module.exports = { execute };

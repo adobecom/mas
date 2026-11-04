@@ -90,7 +90,7 @@ describe('Promotion project versions', () => {
         profile = { id: 'verified-user', email: 'verified@example.com', name: 'Verified User' };
         allowed = true;
         state = {
-            get: async (key) => {
+            get: sinon.spy(async (key) => {
                 if (key === 'mas-users')
                     return cachedMembers === null
                         ? null
@@ -100,11 +100,12 @@ describe('Promotion project versions', () => {
                                   JSON.stringify([{ userPrincipalName: 'VERIFIED@EXAMPLE.COM', groups: roles }]),
                           };
                 return stored.has(key) ? { value: stored.get(key) } : null;
-            },
+            }),
             put: sinon.spy(async (key, value) => stored.set(key, value)),
             list: ({ match }) =>
                 (async function* () {
-                    yield { keys: [...stored.keys()].filter((key) => key.startsWith(match.replace('*', ''))) };
+                    const pattern = new RegExp(`^${match.replaceAll('.', '\\.').replaceAll('*', '.*')}$`);
+                    yield { keys: [...stored.keys()].filter((key) => pattern.test(key)) };
                 })(),
         };
         fetchStub = sinon.stub().callsFake(async (url, options = {}) => {
@@ -274,19 +275,16 @@ describe('Promotion project versions', () => {
         expect(stored.size).to.equal(0);
     });
 
-    it('lists stable version numbers, search, cursor and current id before filtering', async () => {
+    it('lists native version identifiers, search, cursor and current id before filtering', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         const first = (await save()).event;
+        clock.tick(1000);
         const second = (await save(PROJECT, (fragment) => (fragment.title = 'Second'), { requestId: 'second' })).event;
-        const entries = [...stored].map(([key, value]) => [key, JSON.parse(value)]);
-        for (const [key, event] of entries) {
-            event.createdAt = event.id === first.id ? '2026-10-28T10:00:00.000Z' : '2026-10-29T10:00:00.000Z';
-            stored.set(key, JSON.stringify(event));
-        }
         const page = await call('list', { limit: 1 });
-        expect(page.events.map((event) => [event.id, event.version])).to.deep.equal([[second.id, 2]]);
+        expect(page.events.map((event) => [event.id, event.version])).to.deep.equal([[second.id, second.version]]);
         expect(page.currentEventId).to.equal(second.id);
         const next = await call('list', { limit: 1, cursor: page.cursor });
-        expect(next.events.map((event) => [event.id, event.version])).to.deep.equal([[first.id, 1]]);
+        expect(next.events.map((event) => [event.id, event.version])).to.deep.equal([[first.id, first.version]]);
         const filtered = await call('list', { query: 'Project' });
         expect(filtered.currentEventId).to.equal(second.id);
         expect(await call('list', { query: 'No matching text' })).to.deep.equal({ events: [], currentEventId: second.id });
@@ -298,30 +296,34 @@ describe('Promotion project versions', () => {
         const key = [...stored.keys()].find((key) => JSON.parse(stored.get(key)).id === event.id);
         stored.set(key, JSON.stringify({ ...event, createdAt: new Date(Date.now() + 1000).toISOString() }));
         fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${VARIATION}`))).resolves(response({}, 403));
-        expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2]);
+        expect((await call('list')).events.map((item) => item.version)).to.deep.equal([event.version]);
     });
 
     async function recordHistory(count) {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const events = [];
         for (let index = 0; index < count; index += 1) {
             const { event } = await save(PROJECT, (fragment) => (fragment.title = `Saved ${index}`), {
                 requestId: `save-${index}`,
             });
-            const key = [...stored.keys()].find((key) => JSON.parse(stored.get(key)).id === event.id);
-            stored.set(key, JSON.stringify({ ...event, createdAt: new Date(Date.now() + index * 1000).toISOString() }));
+            events.unshift(event);
+            clock.tick(1000);
         }
+        clock.restore();
         fetchStub.resetHistory();
+        return events;
     }
 
     it('defaults to ten authorized versions and continues without gaps or duplicates', async () => {
-        await recordHistory(25);
+        const events = await recordHistory(25);
 
         const first = await call('list');
         const second = await call('list', { cursor: first.cursor });
         const third = await call('list', { cursor: second.cursor });
 
-        expect(first.events.map((event) => event.version)).to.deep.equal([25, 24, 23, 22, 21, 20, 19, 18, 17, 16]);
-        expect(second.events.map((event) => event.version)).to.deep.equal([15, 14, 13, 12, 11, 10, 9, 8, 7, 6]);
-        expect(third.events.map((event) => event.version)).to.deep.equal([5, 4, 3, 2, 1]);
+        expect(first.events.map((event) => event.id)).to.deep.equal(events.slice(0, 10).map((event) => event.id));
+        expect(second.events.map((event) => event.id)).to.deep.equal(events.slice(10, 20).map((event) => event.id));
+        expect(third.events.map((event) => event.id)).to.deep.equal(events.slice(20).map((event) => event.id));
         expect(third).not.to.have.property('cursor');
         expect(second.currentEventId).to.equal(first.currentEventId);
     });
@@ -341,9 +343,9 @@ describe('Promotion project versions', () => {
         deny(first.events.at(-1));
         const second = await call('list', { cursor: first.cursor });
 
-        expect(first.events.map((event) => event.version)).to.deep.equal([19, 18, 17, 16, 15, 14, 13, 12, 11, 10]);
+        expect(first.events.map((event) => event.id)).to.deep.equal(events.slice(6, 16).map((event) => event.id));
         expect(first.currentEventId).to.equal(events[6].id);
-        expect(second.events.map((event) => event.version)).to.deep.equal([9, 8, 7, 6, 5, 4, 3, 2, 1]);
+        expect(second.events.map((event) => event.id)).to.deep.equal(events.slice(16).map((event) => event.id));
         expect(second.currentEventId).to.equal(first.currentEventId);
         expect(second).not.to.have.property('cursor');
     });
@@ -356,6 +358,51 @@ describe('Promotion project versions', () => {
         const reads = fetchStub.getCalls().filter(({ args: [url] }) => url.includes('/adobe/sites/cf/fragments/'));
         expect(reads.filter(({ args: [url] }) => url.endsWith(`/${PROJECT}`))).to.have.length(1);
         expect(reads.filter(({ args: [url] }) => url.includes('/versions/')).length).to.be.at.most(4);
+    });
+
+    it('reads only a page and lookahead from state rather than every stored event', async () => {
+        await recordHistory(25);
+        state.get.resetHistory();
+
+        await call('list', { limit: 1 });
+
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(2);
+    });
+
+    it('keeps the same version identifier after older history expires', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        await save();
+        clock.tick(94 * 86400000);
+        const second = (await save(PROJECT, (fragment) => (fragment.title = 'Second'), { requestId: 'second' })).event;
+        const before = (await call('list')).events.find((event) => event.id === second.id).version;
+        clock.tick(2 * 86400000);
+
+        expect((await call('list')).events.find((event) => event.id === second.id).version).to.equal(before);
+    });
+
+    it('keeps existing entries readable and idempotent after adding chronological storage keys', async () => {
+        const result = await save();
+        const [key, value] = [...stored][0];
+        const legacy = JSON.parse(value);
+        delete legacy.version;
+        stored.delete(key);
+        stored.set(`promo-versions.${PROJECT}.entry.${legacy.id}`, JSON.stringify(legacy));
+
+        const { events } = await call('list');
+        expect(events.map((event) => [event.id, event.version])).to.deep.equal([[legacy.id, result.event.version]]);
+        expect(await call('record', { beforeVersionId: 'version-1' })).to.deep.equal(result);
+        expect(nativePosts()).to.have.length(1);
+    });
+
+    it('does not read previous page entries again when following a cursor', async () => {
+        await recordHistory(25);
+        const first = await call('list');
+        state.get.resetHistory();
+
+        const second = await call('list', { cursor: first.cursor });
+
+        expect(second.events).to.have.length(10);
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(12);
     });
 
     it('performs independent AEM reads concurrently without exceeding four requests', async () => {
@@ -497,16 +544,20 @@ describe('Promotion project versions', () => {
         expect(fragments.get(VARIATION).fields.find((field) => field.name === 'headline').values).to.deep.equal(['Old']);
     });
 
-    it('captures native inheritance display context without persisting parent content', async () => {
+    it('never creates versions on default fragments outside the promotion project', async () => {
         const parentPath = '/content/dam/mas/acom/en_US/card';
         fragments.set(OTHER, { ...makeVariation(), id: OTHER, path: parentPath });
         fragments.get(PROJECT).fields[0].values = [parentPath];
         const { event } = await save(VARIATION);
-        expect(event.beforeSnapshot.inheritance[0]).to.include({ fragmentId: VARIATION, id: OTHER, path: parentPath });
-        expect(event.afterSnapshot.inheritance[0]).to.include({ fragmentId: VARIATION, id: OTHER, path: parentPath });
+        expect(nativePosts().map(({ args: [url] }) => url)).not.to.include(
+            `https://author.example.com/adobe/sites/cf/fragments/${OTHER}/versions`,
+        );
+        expect(event.afterSnapshot.inheritanceUnavailable).to.deep.equal([
+            { fragmentId: VARIATION, reason: 'outside-project' },
+        ]);
         expect([...stored.values()].join('')).not.to.include('"fields"');
         fetchStub.withArgs(sinon.match((url) => url.includes(`/fragments/${OTHER}`))).resolves(response({}, 403));
-        expect((await call('list')).events).to.deep.equal([]);
+        expect((await call('list')).events).to.have.length(1);
     });
 
     it('validates proposed fragment references before restore writes', async () => {
@@ -636,9 +687,43 @@ describe('Promotion project versions', () => {
                 });
                 return response(fragments.get(VARIATION));
             });
-        const error = await expectError(undo(event), 503);
-        expect(error.result.versionPending).to.equal(true);
+        const error = await expectError(undo(event), 409);
+        expect(error.message).to.equal('Unrelated content changed before version capture');
+        expect(error.result.restored).to.deep.equal([VARIATION]);
+        expect(error.result).not.to.have.property('versionPending');
+        const replay = await expectError(undo(event), 409);
+        expect(replay.message).to.equal(error.message);
+        expect(replay.result).to.deep.equal(error.result);
+        expect(writes()).to.have.length(1);
         expect((await call('list')).events).to.have.length(1);
+    });
+
+    it('reports pending outcomes if a post-write conflict cannot be persisted for safe replay', async () => {
+        const { event } = await save(VARIATION);
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${VARIATION}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .callsFake(async (url, options) => {
+                fragments.set(VARIATION, {
+                    ...fragments.get(VARIATION),
+                    ...JSON.parse(options.body),
+                    description: 'Concurrent',
+                });
+                return response(fragments.get(VARIATION));
+            });
+        const put = state.put;
+        state.put = async (key, value, options) => {
+            if (JSON.parse(value).conflict) throw new Error('State unavailable');
+            return put(key, value, options);
+        };
+
+        const error = await expectError(undo(event), 503);
+
+        expect(error.result).to.include({ versionPending: true });
+        expect(error.result.restored).to.deep.equal([VARIATION]);
+        expect(writes()).to.have.length(1);
     });
 
     it('keeps bounded polling for eventual consistency after successful restore writes', async () => {

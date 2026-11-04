@@ -7,6 +7,7 @@ import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
 import {
     withPromotionVersion,
+    savePromotionVersion,
     listPromotionHistory,
     restorePromotionHistory,
     clearPromotionHistoryRequests,
@@ -18,6 +19,8 @@ describe('Promotion version capture', () => {
     let projects;
     let fetchStub;
     let repository;
+    let profile;
+    let users;
     const project = {
         id: 'project',
         path: '/content/dam/mas/promotions/launch',
@@ -27,6 +30,10 @@ describe('Promotion version capture', () => {
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        profile = Store.profile.get();
+        users = Store.users.get();
+        Store.profile.set({ email: 'author@example.com' });
+        Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
         clearPromotionHistoryRequests();
         projects = Store.promotions.list.data.get();
         Store.promotions.list.data.set([new FragmentStore(new Fragment(project))]);
@@ -45,6 +52,8 @@ describe('Promotion version capture', () => {
     });
 
     afterEach(() => {
+        Store.profile.set(profile);
+        Store.users.set(users);
         clearPromotionHistoryRequests();
         sandbox.restore();
         meta.remove();
@@ -104,18 +113,57 @@ describe('Promotion version capture', () => {
         expect(fetchStub.called).to.be.false;
     });
 
-    it('does not overwrite content when its native before version cannot be captured', async () => {
+    it('saves content without recording an undoable event when the before version fails', async () => {
         repository.aem.sites.cf.fragments.createVersion.rejects(new Error('AEM unavailable'));
-        const write = sandbox.stub();
-        let failure;
-        try {
-            await withPromotionVersion(repository, project, write);
-        } catch (error) {
-            failure = error;
-        }
+        const write = sandbox.stub().resolves(project);
+        const toast = sandbox.spy(Events.toast, 'emit');
 
-        expect(failure?.message).to.equal('AEM unavailable');
-        expect(write.called).to.be.false;
+        expect(await withPromotionVersion(repository, project, write)).to.equal(project);
+        expect(write.calledOnce).to.be.true;
+        expect(fetchStub.called).to.be.false;
+        expect(toast.calledWithMatch({ variant: 'warning' })).to.be.true;
+    });
+
+    it('saves content if AEM does not confirm the before version', async () => {
+        repository.aem.sites.cf.fragments.createVersion.resolves(undefined);
+        const write = sandbox.stub().resolves(project);
+
+        expect(await withPromotionVersion(repository, project, write)).to.equal(project);
+        expect(fetchStub.called).to.be.false;
+    });
+
+    it('returns the saved fragment while version recording is still pending', async () => {
+        let complete;
+        fetchStub.callsFake(() => new Promise((resolve) => (complete = resolve)));
+
+        expect(await withPromotionVersion(repository, project, sandbox.stub().resolves(project))).to.equal(project);
+        expect(fetchStub.calledOnce).to.be.true;
+
+        complete(new Response(JSON.stringify({ event: { id: 'version' } })));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    it('skips version capture for authors without a promotion group', async () => {
+        Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
+        const variation = { id: 'variation', path: '/content/dam/mas/acom/en_US/promotions/launch/card' };
+        const toast = sandbox.spy(Events.toast, 'emit');
+
+        expect(await withPromotionVersion(repository, variation, sandbox.stub().resolves(variation))).to.equal(variation);
+
+        expect(repository.aem.sites.cf.fragments.createVersion.called).to.be.false;
+        expect(fetchStub.called).to.be.false;
+        expect(toast.called).to.be.false;
+    });
+
+    it('does not record variation creation for authors without a promotion group', async () => {
+        Store.users.set([]);
+        const toast = sandbox.spy(Events.toast, 'emit');
+
+        await savePromotionVersion(repository, project);
+
+        expect(fetchStub.called).to.be.false;
+        expect(repository.loadPromotions.called).to.be.false;
+        expect(toast.called).to.be.false;
     });
 
     it('warns explicitly if content was saved but the version catalog could not be updated', async () => {
@@ -124,6 +172,7 @@ describe('Promotion version capture', () => {
         const saved = { ...project, etag: '"saved"' };
 
         expect(await withPromotionVersion(repository, project, sandbox.stub().resolves(saved))).to.equal(saved);
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(toast.calledWithMatch({ variant: 'warning' })).to.be.true;
         expect(sessionStorage.getItem('mas.pendingPromotionAudit')).to.be.null;
@@ -331,6 +380,7 @@ describe('Promotion version capture', () => {
         };
 
         await withPromotionVersion(repository, variation, sandbox.stub().resolves(variation));
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
         expect(JSON.parse(fetchStub.firstCall.args[1].body).projectId).to.equal(newProject.id);
     });

@@ -2640,15 +2640,38 @@ describe('MasSearchAndFilters', () => {
             expect(displayedIds()).to.deep.equal(['a', 'b']);
         });
 
-        it('restores the slice search and filters on disconnect', async () => {
+        it('keeps the latest slice search and filters when leaving and returning to the page', async () => {
+            Store.baselines.search.set({ query: ' PA-1 ' });
             Store.baselines.filters.set({ paCodes: 'PA-1' });
-            const el = await renderBaselineFilters();
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .filterValueResolver=${resolver}
+                    .searchQuery=${' PA-1 '}
+                ></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'PA-2';
             el.productArrangementCodeFilter = ['PA-2'];
             await el.updateComplete;
 
             el.remove();
 
-            expect(Store.baselines.filters.get()).to.deep.equal({ paCodes: 'PA-1' });
+            expect(Store.baselines.search.get()).to.deep.equal({ query: 'PA-2' });
+            expect(Store.baselines.filters.get()).to.include({ paCodes: 'PA-2' });
+
+            const returned = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .filterValueResolver=${resolver}
+                    .searchQuery=${Store.baselines.search.get().query}
+                ></mas-search-and-filters>`,
+            );
+            await returned.updateComplete;
+
+            expect(returned.productArrangementCodeFilter).to.deep.equal(['PA-2']);
+            expect(displayedIds()).to.deep.equal(['b']);
         });
 
         it('hides the result count when hide-count is set', async () => {

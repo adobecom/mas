@@ -179,6 +179,16 @@ describe('MasBaselines', () => {
         expect(Store.baselines.search.get().query).to.equal('PHSP');
     });
 
+    it('filters out every row when searching next to a baseline without a PA code folder', async () => {
+        Store.baselines.list.data.set([createBaseline('a', { paCode: 'phsp_direct_individual' }), createBaseline('b', {})]);
+        const el = await renderBaselines();
+
+        el.searchQuery = 'ZZZ';
+        await settle(el);
+
+        expect(rowTexts(el)).to.deep.equal([]);
+    });
+
     it('keeps trailing spaces in the search field while typing', async () => {
         const el = await renderBaselines();
 
@@ -259,16 +269,19 @@ describe('MasBaselines', () => {
         expect(Store.baselines.filters.get().paCodes).to.be.undefined;
     });
 
-    it('restores the entry-time search and filters when the page unmounts', async () => {
+    it('keeps the latest search and filters when the page unmounts and remounts', async () => {
         Store.baselines.filters.set({ paCodes: 'PA-1' });
         const el = await renderBaselines();
         filtersOf(el).productArrangementCodeFilter = ['PA-2'];
         await settle(el);
-        expect(Store.baselines.filters.get().paCodes).to.equal('PA-2');
 
         el.remove();
 
-        expect(Store.baselines.filters.get()).to.deep.equal({ paCodes: 'PA-1' });
+        expect(Store.baselines.filters.get().paCodes).to.equal('PA-2');
+
+        const returned = await renderBaselines();
+
+        expect(filtersOf(returned).productArrangementCodeFilter).to.deep.equal(['PA-2']);
     });
 
     it('updates the rows when a baseline is added', async () => {

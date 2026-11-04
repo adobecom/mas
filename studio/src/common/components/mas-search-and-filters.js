@@ -381,9 +381,11 @@ class MasSearchAndFilters extends LitElement {
         this.#searchStore = selectionStore.search;
         this.#filtersStore = selectionStore.filters;
         if (this.#isFilterEnabled(FILTER_TYPE.CREATED_BY)) this.#createdByStore.subscribe(this.#onCreatedByStoreChange);
-        if (this.#syncsFiltersToStore) {
+        if (this.type === TABLE_TYPE.CARDS) {
             this.#savedSearch = this.#searchStore.get();
             this.#savedFilters = this.#filtersStore.get();
+        }
+        if (this.#syncsFiltersToStore) {
             this.#syncFiltersFromStore();
             this.#syncLockedTemplateFilter();
             this.#applyDefaultTemplateFilter();
@@ -432,13 +434,11 @@ class MasSearchAndFilters extends LitElement {
         this.dataSubscription?.unsubscribe();
         this.#filtersStore.unsubscribe(this.#onFiltersStoreChange);
         this.#createdByStore.unsubscribe(this.#onCreatedByStoreChange);
-        if (this.#syncsFiltersToStore) {
-            if (this.#savedSearch !== null) {
-                this.#searchStore.set(this.#savedSearch);
-            }
-            if (this.#savedFilters !== null) {
-                this.#filtersStore.set(this.#savedFilters);
-            }
+        if (this.#savedSearch !== null) {
+            this.#searchStore.set(this.#savedSearch);
+        }
+        if (this.#savedFilters !== null) {
+            this.#filtersStore.set(this.#savedFilters);
         }
     }
 

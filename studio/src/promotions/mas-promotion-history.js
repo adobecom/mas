@@ -100,6 +100,7 @@ export class MasPromotionHistory extends LitElement {
         expected: { state: true },
         unavailable: { state: true },
         loading: { state: true },
+        loadingMore: { state: true },
         baselineLoading: { state: true },
         operating: { state: true },
         restoring: { state: true },
@@ -127,6 +128,7 @@ export class MasPromotionHistory extends LitElement {
         this.expected = [];
         this.unavailable = [];
         this.loading = false;
+        this.loadingMore = false;
         this.baselineLoading = false;
         this.operating = false;
         this.restoring = false;
@@ -178,7 +180,7 @@ export class MasPromotionHistory extends LitElement {
     updated() {
         this.scrollObserver.disconnect();
         const sentinel = this.renderRoot.querySelector('#history-sentinel');
-        if (sentinel && !this.busy && !this.error) this.scrollObserver.observe(sentinel);
+        if (sentinel && !this.busy && !this.loadingMore && !this.error) this.scrollObserver.observe(sentinel);
     }
 
     get busy() {
@@ -191,6 +193,7 @@ export class MasPromotionHistory extends LitElement {
             Boolean(this.restoreSnapshot?.fragments.length) &&
             this.expected.length > 0 &&
             !this.busy &&
+            !this.loadingMore &&
             !this.error
         );
     }
@@ -214,11 +217,12 @@ export class MasPromotionHistory extends LitElement {
     }
 
     async loadHistory(append = false, selectedId) {
-        if (append && (this.busy || !this.cursor)) return;
+        if (append && (this.busy || this.loadingMore || !this.cursor)) return;
         const projectId = this.projectId;
         const request = ++this.listRequest;
         this.error = '';
-        this.loading = Boolean(projectId);
+        this.loading = !append && Boolean(projectId);
+        this.loadingMore = append && Boolean(projectId);
         if (!append) {
             this.versionRequest += 1;
             this.events = [];
@@ -274,6 +278,7 @@ export class MasPromotionHistory extends LitElement {
         } finally {
             if (request === this.listRequest) {
                 this.loading = false;
+                this.loadingMore = false;
             }
         }
     }
@@ -1162,7 +1167,7 @@ export class MasPromotionHistory extends LitElement {
                           </p>`
                         : nothing}
                     ${this.cursor ? html`<div id="history-sentinel" aria-hidden="true"></div>` : nothing}
-                    ${this.loading && this.events.length
+                    ${this.loadingMore
                         ? html`<div class="loading-more" role="status">
                               <sp-progress-circle size="s" indeterminate aria-hidden="true"></sp-progress-circle>
                               <span>Loading more...</span>

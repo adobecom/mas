@@ -11,6 +11,7 @@ const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
 const HISTORY_PAGE_SIZE = 10;
 const HISTORY_CONCURRENCY = 4;
+const INDEX_PAGE_SIZE = 100;
 const NUMBERING_RETRIES = 5;
 const NUMBERING_URL_TTL = 300;
 const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
@@ -341,29 +342,57 @@ function bounded(value) {
     return serialized;
 }
 
-async function numberingRequest(context, options = {}) {
-    if (!context.numberingUrl) {
-        const files = await Files.init();
-        context.numberingUrl = await files.generatePresignURL(`private/promo-versions/${context.projectId}/numbering.json`, {
+async function metadataRequest(context, name, options = {}) {
+    context.fileUrls ??= new Map();
+    if (!context.fileUrls.has(name)) {
+        context.files ??= await Files.init();
+        const url = await context.files.generatePresignURL(`private/promo-versions/${context.projectId}/${name}`, {
             permissions: 'rw',
             expiryInSeconds: NUMBERING_URL_TTL,
             urlType: 'internal',
         });
-        if (new URL(context.numberingUrl).protocol !== 'https:') fail(503, 'Invalid version numbering storage endpoint');
+        if (new URL(url).protocol !== 'https:') fail(503, 'Invalid history storage endpoint');
+        context.fileUrls.set(name, url);
     }
-    return fetch(context.numberingUrl, {
+    return fetch(context.fileUrls.get(name), {
         ...options,
         redirect: 'error',
         signal: AbortSignal.timeout(15000),
     });
 }
 
-async function initialNumberingEntries(context, event) {
-    const entries = [];
-    for (const entry of await readEntries(context)) {
-        const stored = entry.event ?? (await readEntry(context, entry.key));
-        if (stored) entries.push(stored);
+async function readMetadata(context, name) {
+    const response = await metadataRequest(context, name);
+    if (response.status === 404) return null;
+    if (!response.ok) fail(503, 'History metadata is temporarily unavailable');
+    return { value: await response.json(), etag: response.headers.get('etag') };
+}
+
+async function updateMetadata(context, name, initial, update) {
+    for (let attempt = 0; attempt < NUMBERING_RETRIES; attempt += 1) {
+        const stored = await readMetadata(context, name);
+        const value = stored ? stored.value : structuredClone(initial);
+        if (!(await update(value, !!stored))) return value;
+        if (stored && !stored.etag) fail(503, 'History storage did not confirm its revision');
+        const written = await metadataRequest(context, name, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-ms-blob-type': 'BlockBlob',
+                'x-ms-version': '2021-12-02',
+                ...(stored ? { 'If-Match': stored.etag } : { 'If-None-Match': '*' }),
+            },
+            body: bounded(value),
+        });
+        if (written.ok) return value;
+        if (written.status !== 412) fail(503, 'History metadata could not be saved');
+        await delay(25 * 2 ** attempt);
     }
+    fail(503, 'History metadata is busy; retry shortly');
+}
+
+async function initialNumberingEntries(context, event) {
+    const entries = [...(context.legacyEntries ?? (await readLegacyEntries(context)).map((entry) => entry.event))];
     if (!entries.some((entry) => entry.id === event.id)) entries.push(event);
     return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
 }
@@ -385,42 +414,26 @@ function assignVersionNumbers(ledger, events) {
 async function reserveVersion(context, event) {
     if (context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
     let existing;
-    for (let attempt = 0; attempt < NUMBERING_RETRIES; attempt += 1) {
-        const response = await numberingRequest(context);
-        if (!response.ok && response.status !== 404) fail(503, 'Version numbering storage is temporarily unavailable');
-        const ledger = response.ok ? await response.json() : { lastVersion: 0, entries: {} };
-        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
-            fail(503, 'Invalid version numbering metadata');
-        }
-        ledger.entries = Object.fromEntries(
-            Object.entries(ledger.entries).filter(([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000),
-        );
-        if (ledger.entries[event.id]) {
-            context.numbering = ledger;
-            return ledger.entries[event.id];
-        }
-        if (!response.ok) existing ??= await initialNumberingEntries(context, event);
-        const etag = response.ok ? response.headers.get('etag') : null;
-        if (response.ok && !etag) fail(503, 'Version numbering storage did not confirm its revision');
-        assignVersionNumbers(ledger, response.ok ? [event] : existing);
-        const written = await numberingRequest(context, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-ms-blob-type': 'BlockBlob',
-                'x-ms-version': '2021-12-02',
-                ...(response.ok ? { 'If-Match': etag } : { 'If-None-Match': '*' }),
-            },
-            body: bounded(ledger),
-        });
-        if (written.ok) {
-            context.numbering = ledger;
-            return ledger.entries[event.id];
-        }
-        if (written.status !== 412) fail(503, 'Version numbering could not be saved');
-        await delay(25 * 2 ** attempt);
-    }
-    fail(503, 'Version numbering is busy; retry recording shortly');
+    context.numbering = await updateMetadata(
+        context,
+        'numbering.json',
+        { lastVersion: 0, entries: {} },
+        async (ledger, exists) => {
+            if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
+                fail(503, 'Invalid version numbering metadata');
+            }
+            ledger.entries = Object.fromEntries(
+                Object.entries(ledger.entries).filter(
+                    ([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000,
+                ),
+            );
+            if (ledger.entries[event.id]) return false;
+            if (!exists) existing ??= await initialNumberingEntries(context, event);
+            assignVersionNumbers(ledger, exists ? [event] : existing);
+            return true;
+        },
+    );
+    return context.numbering.entries[event.id];
 }
 
 async function numberedEntry(context, key, event) {
@@ -436,23 +449,159 @@ function entryTtl(event) {
     return Math.max(1, Math.ceil((Date.parse(event.createdAt) + RETENTION * 1000 - Date.now()) / 1000));
 }
 
-async function readEntries(context) {
-    const entries = [];
+function entryKey(context, id) {
+    return `${namespace(context, 'entry')}${id}`;
+}
+
+function indexPage(version) {
+    return Math.floor((version - 1) / INDEX_PAGE_SIZE);
+}
+
+function indexPosition(entry) {
+    return `${entry.createdAt}|${entry.id}`;
+}
+
+async function indexEntries(context, events, ready = false) {
+    const pages = new Map();
+    for (const { id, version, createdAt } of events) {
+        const page = indexPage(version);
+        if (!pages.has(page)) pages.set(page, []);
+        pages.get(page).push({ id, version, createdAt });
+    }
+    for (const [page, entries] of pages) {
+        await updateMetadata(context, `index-${page}.json`, { entries: {} }, (value) => {
+            let changed = false;
+            for (const entry of entries) {
+                if (JSON.stringify(value.entries[entry.id]) === JSON.stringify(entry)) continue;
+                value.entries[entry.id] = entry;
+                changed = true;
+            }
+            return changed;
+        });
+    }
+    context.index = await updateMetadata(context, 'index.json', { ready: false, pages: {} }, (value) => {
+        const previous = JSON.stringify(value);
+        value.pages = Object.fromEntries(
+            Object.entries(value.pages).filter(
+                ([, range]) => Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000,
+            ),
+        );
+        for (const [page, entries] of pages) {
+            for (const entry of entries) {
+                const position = indexPosition(entry);
+                value.pages[page] ??= { newest: position, oldest: position };
+                const range = value.pages[page];
+                if (position.localeCompare(range.newest) > 0) range.newest = position;
+                if (position.localeCompare(range.oldest) < 0) range.oldest = position;
+            }
+        }
+        value.ready ||= ready;
+        return JSON.stringify(value) !== previous;
+    });
+}
+
+async function readLegacyEntries(context) {
+    const entryKeys = [];
     for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*` })) {
         for (const key of keys) {
             const suffix = key.slice(namespace(context, 'entry').length);
-            const timestamp = /^(\d{13})\.(.+)$/.exec(suffix);
-            if (timestamp) {
-                if (Number(timestamp[1]) >= Date.now() - RETENTION * 1000) {
-                    entries.push({ key, id: timestamp[2], createdAt: new Date(Number(timestamp[1])).toISOString() });
-                }
-            } else {
-                const event = await readEntry(context, key);
-                if (event) entries.push({ key, id: event.id, createdAt: event.createdAt, event });
+            const timestamp = /^(\d{13})\./.exec(suffix);
+            if (!timestamp || Number(timestamp[1]) >= Date.now() - RETENTION * 1000) entryKeys.push(key);
+        }
+    }
+    const entries = new Map();
+    for (let offset = 0; offset < entryKeys.length; offset += HISTORY_CONCURRENCY) {
+        const batch = await Promise.all(
+            entryKeys.slice(offset, offset + HISTORY_CONCURRENCY).map(async (key) => ({
+                key,
+                event: await readEntry(context, key),
+            })),
+        );
+        for (const { key, event } of batch) {
+            if (event && (!entries.has(event.id) || key === entryKey(context, event.id))) {
+                entries.set(event.id, { key, event });
             }
         }
     }
-    return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+    return [...entries.values()].sort(
+        (a, b) => a.event.createdAt.localeCompare(b.event.createdAt) || a.event.id.localeCompare(b.event.id),
+    );
+}
+
+async function ensureHistoryIndex(context) {
+    const stored = await readMetadata(context, 'index.json');
+    if (stored?.value.ready) {
+        context.index = stored.value;
+        return;
+    }
+    const entries = await readLegacyEntries(context);
+    context.legacyEntries = entries.map((entry) => entry.event);
+    const indexed = [];
+    for (const { key, event } of entries) {
+        const canonical = entryKey(context, event.id);
+        const numbered = await numberedEntry(context, canonical, event);
+        if (key !== canonical && numbered === event) {
+            await context.state.put(canonical, bounded(numbered), { ttl: entryTtl(numbered) });
+        }
+        indexed.push(numbered);
+    }
+    await indexEntries(context, indexed, true);
+}
+
+async function readIndexPage(context, page) {
+    context.indexPages ??= new Map();
+    if (!context.indexPages.has(page)) {
+        context.indexPages.set(
+            page,
+            (async () => {
+                const stored = await readMetadata(context, `index-${page}.json`);
+                if (!stored) fail(503, 'History index page is unavailable');
+                return Object.values(stored.value.entries)
+                    .filter((entry) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000)
+                    .sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
+            })(),
+        );
+    }
+    return context.indexPages.get(page);
+}
+
+async function* indexedEntries(context, before) {
+    const pages = Object.entries(context.index.pages)
+        .filter(
+            ([, range]) =>
+                Date.parse(range.newest.split('|')[0]) >= Date.now() - RETENTION * 1000 &&
+                (!before || range.oldest.localeCompare(indexPosition(before)) < 0),
+        )
+        .map(([page, range]) => ({ page: Number(page), ...range }))
+        .sort((a, b) => b.newest.localeCompare(a.newest));
+    const pending = [];
+    while (pages.length || pending.length) {
+        if (!pending.length || (pages.length && pages[0].newest.localeCompare(indexPosition(pending[0])) >= 0)) {
+            const { page } = pages.shift();
+            pending.push(
+                ...(await readIndexPage(context, page)).filter(
+                    (entry) => !before || indexPosition(entry).localeCompare(indexPosition(before)) < 0,
+                ),
+            );
+            pending.sort((a, b) => indexPosition(b).localeCompare(indexPosition(a)));
+        } else {
+            yield pending.shift();
+        }
+    }
+}
+
+async function historyCursor(context, cursor) {
+    const [createdAt, id, number, ...extra] = cursor.split('|');
+    if (!UUID.test(id ?? '') || !Number.isFinite(Date.parse(createdAt)) || extra.length) fail(400, 'Invalid version cursor');
+    const version = number === undefined ? (await readEntry(context, entryKey(context, id)))?.version : Number(number);
+    if (!Number.isSafeInteger(version) || version < 1 || !context.index.pages[indexPage(version)]) {
+        fail(400, 'Invalid version cursor');
+    }
+    const entry = (await readIndexPage(context, indexPage(version))).find(
+        (entry) => entry.version === version && entry.id === id && entry.createdAt === createdAt,
+    );
+    if (!entry) fail(400, 'Invalid version cursor');
+    return entry;
 }
 
 async function readEntry(context, key) {
@@ -463,13 +612,7 @@ async function readEntry(context, key) {
 }
 
 async function findEntry(context, id) {
-    for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*.${id}` })) {
-        for (const key of keys) {
-            const event = await numberedEntry(context, key);
-            if (event) return event;
-        }
-    }
-    return numberedEntry(context, `${namespace(context, 'entry')}${id}`);
+    return numberedEntry(context, entryKey(context, id));
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
@@ -486,7 +629,8 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
         afterSnapshot,
     };
     Object.assign(event, await reserveVersion(context, event));
-    await context.state.put(`${namespace(context, 'entry')}${Date.parse(event.createdAt)}.${event.id}`, bounded(event), {
+    await indexEntries(context, [event]);
+    await context.state.put(entryKey(context, event.id), bounded(event), {
         ttl: entryTtl(event),
     });
     return event;
@@ -546,28 +690,40 @@ async function record(context, params) {
     return { event: await writeEntry(context, params.action, before, after, beforeSnapshot, afterSnapshot) };
 }
 
-async function list(context, events, params) {
+async function list(context, params) {
     const limit = params.limit ?? HISTORY_PAGE_SIZE;
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid version limit');
     if (params.query !== undefined) text(params.query, 'query', 200);
     if (params.cursor !== undefined) text(params.cursor, 'cursor', 150);
-    const numbered = [...events].reverse();
-    const cursorIndex = params.cursor ? numbered.findIndex((event) => `${event.createdAt}|${event.id}` === params.cursor) : -1;
-    if (params.cursor && cursorIndex === -1) fail(400, 'Invalid version cursor');
+    const before = params.cursor ? await historyCursor(context, params.cursor) : undefined;
     const page = [];
     let currentEventId = null;
-    for (let offset = 0; offset < numbered.length; ) {
-        const batch = [];
-        const batchSize = params.cursor && !currentEventId ? 1 : Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length);
-        while (offset < numbered.length && batch.length < batchSize) {
-            const index = offset++;
-            const entry = numbered[index];
-            if (currentEventId && index <= cursorIndex) continue;
-            const event = await numberedEntry(context, entry.key, entry.event);
+    if (params.cursor) {
+        for await (const entry of indexedEntries(context)) {
+            const event = await findEntry(context, entry.id);
             if (!event) continue;
-            const matches =
-                index > cursorIndex &&
-                (!params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase()));
+            try {
+                currentEventId = (await authorizeEvent(context, event)).id;
+                break;
+            } catch (error) {
+                if (![401, 403, 404, 409].includes(error.statusCode)) throw error;
+            }
+        }
+    }
+    const entries = indexedEntries(context, before);
+    let finished = false;
+    while (!finished) {
+        const batch = [];
+        const batchSize = Math.min(HISTORY_CONCURRENCY, limit + 1 - page.length);
+        while (batch.length < batchSize) {
+            const next = await entries.next();
+            if (next.done) {
+                finished = true;
+                break;
+            }
+            const event = await findEntry(context, next.value.id);
+            if (!event) continue;
+            const matches = !params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase());
             if (!currentEventId || matches) batch.push({ event, matches });
         }
         const authorized = await Promise.all(
@@ -588,7 +744,7 @@ async function list(context, events, params) {
         if (page.length > limit) {
             page.pop();
             const last = page.at(-1);
-            return { events: page, currentEventId, cursor: `${last.createdAt}|${last.id}` };
+            return { events: page, currentEventId, cursor: `${last.createdAt}|${last.id}|${last.version}` };
         }
     }
     return { events: page, currentEventId };
@@ -880,6 +1036,7 @@ async function execute(operation, params) {
     };
     context.project = (await readFragment(context, context.projectId)).fragment;
     assertProject(context.project);
+    await ensureHistoryIndex(context);
     if (operation !== 'list') {
         const previous = await findEntry(context, requestId(context));
         if (previous && operation === 'record') {
@@ -919,7 +1076,7 @@ async function execute(operation, params) {
     }
     if (operation === 'record') return record(context, params);
     if (operation === 'restore') return restore(context, params, await findEntry(context, params.eventId));
-    return list(context, await readEntries(context), params);
+    return list(context, params);
 }
 
 module.exports = { execute };

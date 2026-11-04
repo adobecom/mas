@@ -743,7 +743,7 @@ describe('Promotion version history', () => {
         expect(client.listPromotionHistory.lastCall.args[1]).to.deep.equal({ limit: 10, cursor: 'next' });
         const earlier = { ...version, id: 'version-1', version: 1 };
         complete({ events: [earlier, version], currentEventId: version.id });
-        await waitUntil(() => !element.loading);
+        await waitUntil(() => !element.loading && !element.loadingMore);
 
         expect(element.events.map((event) => event.id)).to.deep.equal([version.id, earlier.id]);
         observer.disconnect.resetHistory();
@@ -791,7 +791,7 @@ describe('Promotion version history', () => {
         const earlier = { ...version, id: 'version-1', version: 1 };
         client.listPromotionHistory.onThirdCall().resolves({ events: [earlier], currentEventId: version.id });
         retry.click();
-        await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.loading);
+        await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.loading && !element.loadingMore);
 
         expect(element.events.map((event) => event.id)).to.deep.equal([version.id, earlier.id]);
     });
@@ -811,6 +811,116 @@ describe('Promotion version history', () => {
         expect(element.currentEventId).to.equal(version.id);
         expect(element.selectedEvent).to.equal(selected);
         expect(element.selectedFields.has(field.key)).to.be.true;
+    });
+
+    for (const pageFirst of [false, true]) {
+        it(`keeps loaded versions selectable while paging, with ${pageFirst ? 'page' : 'comparison'} completing first`, async () => {
+            const earlier = {
+                ...version,
+                id: 'version-1',
+                version: 1,
+                beforeSnapshot: { fragments: [{ id: before.id, path, versionId: 'native-earlier' }] },
+            };
+            getVersion.withArgs(before.id, 'native-earlier').resolves({ ...before, title: 'Earlier project' });
+            client.listPromotionHistory
+                .onFirstCall()
+                .resolves({ events: [version, earlier], currentEventId: version.id, cursor: 'next' });
+            const root = await mount();
+            let completePage;
+            let completeComparison;
+            client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (completePage = resolve)));
+            getWithEtag.onSecondCall().callsFake(() => new Promise((resolve) => (completeComparison = resolve)));
+            const pending = element.loadHistory(true);
+            await element.updateComplete;
+
+            const card = root.querySelector(`[data-event-id="${earlier.id}"]`);
+            expect(card.disabled).to.be.false;
+            card.click();
+            await waitUntil(() => Boolean(completeComparison));
+            const page = { events: [{ ...version, id: 'oldest', version: 3 }], currentEventId: version.id };
+            if (pageFirst) {
+                completePage(page);
+                await pending;
+                expect(element.baselineLoading).to.be.true;
+            }
+            completeComparison({ ...after, etag: '"fresh-selection"' });
+            await waitUntil(() => !element.baselineLoading);
+            if (!pageFirst) {
+                expect(root.querySelector('.loading-more')).not.to.be.null;
+                completePage(page);
+                await pending;
+            }
+            await element.updateComplete;
+
+            expect(element.selectedEvent.id).to.equal(earlier.id);
+            expect(element.historicalFragments[0].title).to.equal('Earlier project');
+            expect(element.expected).to.deep.equal([{ fragmentId: before.id, etag: '"fresh-selection"' }]);
+            expect(root.querySelector('main h2').textContent).to.equal('Version 1');
+        });
+    }
+
+    it('keeps restore blocked until the additional history page has finished loading', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        const root = await mount();
+        const field = element.eligibleRows.find((row) => row.field === 'promoCode');
+        element.toggleRows([field], true);
+        let complete;
+        client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+
+        const pending = element.loadHistory(true);
+        await element.updateComplete;
+
+        expect(root.querySelector('#restore-selected').disabled).to.be.true;
+        complete({ events: [], currentEventId: version.id });
+        await pending;
+        await element.updateComplete;
+
+        expect(root.querySelector('#restore-selected').disabled).to.be.false;
+    });
+
+    it('discards an in-flight comparison when the next history page denies access', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        const root = await mount();
+        let deny;
+        let completeComparison;
+        client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve, reject) => (deny = reject)));
+        getWithEtag.onSecondCall().callsFake(() => new Promise((resolve) => (completeComparison = resolve)));
+        const pending = element.loadHistory(true);
+        const selection = element.selectVersion(element.events[0]);
+        await waitUntil(() => Boolean(completeComparison));
+
+        deny(Object.assign(new Error('Forbidden'), { status: 403 }));
+        await pending;
+        completeComparison({ ...after, etag: '"unauthorized"' });
+        await selection;
+        await element.updateComplete;
+
+        expect(root.querySelector('.history-card')).to.be.null;
+        expect(element.selectedEvent).to.be.null;
+        expect(element.historicalFragments).to.deep.equal([]);
+        expect(element.expected).to.deep.equal([]);
+        expect(element.canRestore).to.be.false;
+    });
+
+    it('ignores a pending next page after switching projects', async () => {
+        client.listPromotionHistory.onFirstCall().resolves({ events: [version], currentEventId: version.id, cursor: 'next' });
+        await mount();
+        let complete;
+        client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        const pending = element.loadHistory(true);
+        const other = { ...version, id: 'other-version', projectId: 'other-project' };
+        client.listPromotionHistory.onThirdCall().resolves({ events: [other], currentEventId: other.id });
+
+        element.projectId = other.projectId;
+        await waitUntil(() => element.currentEventId === other.id && !element.loading);
+        complete({ events: [version], currentEventId: version.id, cursor: 'stale-cursor' });
+        await pending;
+        await element.updateComplete;
+
+        expect(element.events.map((event) => event.id)).to.deep.equal([other.id]);
+        expect(element.selectedEvent.id).to.equal(other.id);
+        expect(element.cursor).not.to.equal('stale-cursor');
+        expect(element.loadingMore).to.be.false;
     });
 
     it('limits concurrent AEM reads to four and reuses shared native snapshots', async () => {

@@ -114,11 +114,12 @@ describe('Promotion project versions', () => {
                 return stored.has(key) ? { value: stored.get(key) } : null;
             }),
             put: sinon.spy(async (key, value) => stored.set(key, value)),
-            list: ({ match }) =>
+            list: sinon.spy(({ match }) =>
                 (async function* () {
                     const pattern = new RegExp(`^${match.replaceAll('.', '\\.').replaceAll('*', '.*')}$`);
                     yield { keys: [...stored.keys()].filter((key) => pattern.test(key)) };
                 })(),
+            ),
         };
         fetchStub = sinon.stub().callsFake(async (url, options = {}) => {
             if (url.includes('/ims/profile/')) return response(profile);
@@ -398,6 +399,205 @@ describe('Promotion project versions', () => {
         expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(2);
     });
 
+    it('loads one bounded index page without enumerating State keys or reading the full numbering ledger', async () => {
+        await recordHistory(125);
+        state.get.resetHistory();
+        state.list.resetHistory();
+
+        const first = await call('list');
+
+        expect(first.events).to.have.length(10);
+        expect(state.list.callCount).to.equal(0);
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(11);
+        const metadataReads = fetchStub
+            .getCalls()
+            .filter(({ args: [url, options] }) => url.includes('files.example.com') && options.method !== 'PUT');
+        expect(metadataReads.map(({ args: [url] }) => new URL(url).pathname)).to.deep.equal([
+            `/private/promo-versions/${PROJECT}/index.json`,
+            `/private/promo-versions/${PROJECT}/index-1.json`,
+        ]);
+    });
+
+    it('continues correctly across index-page boundaries without duplicate or missing events', async () => {
+        const events = await recordHistory(125);
+        state.list.resetHistory();
+
+        const first = await call('list', { limit: 100 });
+        const second = await call('list', { limit: 100, cursor: first.cursor });
+
+        expect([...first.events, ...second.events].map((event) => event.id)).to.deep.equal(events.map((event) => event.id));
+        expect(second.currentEventId).to.equal(first.currentEventId);
+        expect(second).not.to.have.property('cursor');
+        expect(state.list.callCount).to.equal(0);
+    });
+
+    it('preserves chronological ordering when version allocation order differs across index pages', async () => {
+        const events = await recordHistory(105);
+        const older = (await call('record', { action: 'create', requestId: 'late-recording' })).event;
+        const expected = [...events, older].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id));
+
+        const first = await call('list', { limit: 100 });
+        const second = await call('list', { limit: 100, cursor: first.cursor });
+
+        expect([...first.events, ...second.events].map((event) => event.id)).to.deep.equal(expected.map((event) => event.id));
+    });
+
+    it('keeps the existing ID tie-breaker when events have identical timestamps', async () => {
+        sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const first = (await call('record', { action: 'create', requestId: 'same-time-one' })).event;
+        const second = (await call('record', { action: 'create', requestId: 'same-time-two' })).event;
+        const expected = [first, second].sort((a, b) => b.id.localeCompare(a.id));
+
+        const listed = await call('list');
+
+        expect(listed.events.map((event) => event.id)).to.deep.equal(expected.map((event) => event.id));
+    });
+
+    it('migrates legacy keys once and preserves their remaining TTL and stable version numbers', async () => {
+        const events = await recordHistory(25);
+        const legacy = [...stored.values()].map((value) => JSON.parse(value));
+        stored.clear();
+        for (const event of legacy) {
+            delete event.version;
+            stored.set(`promo-versions.${PROJECT}.entry.${event.id}`, JSON.stringify(event));
+        }
+        numberingFiles.clear();
+        state.list.resetHistory();
+        state.put.resetHistory();
+        const clock = sinon.useFakeTimers({ now: Date.now() + 86400000, toFake: ['Date'] });
+
+        const first = await call('list');
+
+        expect(state.list.callCount).to.equal(1);
+        expect(first.events.map((event) => event.id)).to.deep.equal(events.slice(0, 10).map((event) => event.id));
+        const migrated = state.put.getCalls().find(({ args: [key] }) => key.endsWith(events.at(-1).id));
+        expect(migrated.args[2].ttl).to.equal(
+            Math.ceil((Date.parse(events.at(-1).createdAt) + 95 * 86400000 - Date.now()) / 1000),
+        );
+        state.list.resetHistory();
+        state.get.resetHistory();
+
+        const second = await call('list', { cursor: first.cursor });
+
+        expect(second.events.map((event) => event.version)).to.deep.equal(events.slice(10, 20).map((event) => event.version));
+        expect(state.list.callCount).to.equal(0);
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(12);
+        clock.restore();
+    });
+
+    it('migrates timestamped State keys to direct ID lookups without scanning them on request replay', async () => {
+        const { event } = await save();
+        const oldKey = [...stored.keys()][0];
+        stored.delete(oldKey);
+        stored.set(`promo-versions.${PROJECT}.entry.${Date.parse(event.createdAt)}.${event.id}`, JSON.stringify(event));
+        numberingFiles.delete(`/private/promo-versions/${PROJECT}/index.json`);
+        await call('list');
+        state.list.resetHistory();
+
+        const repeated = await call('record', { beforeVersionId: 'version-1' });
+
+        expect(repeated.event).to.deep.equal(event);
+        expect(state.list.callCount).to.equal(0);
+        expect(stored.has(`promo-versions.${PROJECT}.entry.${event.id}`)).to.equal(true);
+    });
+
+    it('safely resumes an interrupted legacy migration before marking the index ready', async () => {
+        const events = await recordHistory(3);
+        const original = [...stored.values()].map((value) => JSON.parse(value));
+        stored.clear();
+        for (const event of original) {
+            stored.set(`promo-versions.${PROJECT}.entry.${Date.parse(event.createdAt)}.${event.id}`, JSON.stringify(event));
+        }
+        numberingFiles.delete(`/private/promo-versions/${PROJECT}/index.json`);
+        const put = state.put;
+        state.put = sinon.stub().onFirstCall().rejects(new Error('Migration interrupted'));
+        state.put.callsFake(put);
+        try {
+            await call('list');
+            expect.fail('Expected migration failure');
+        } catch (error) {
+            expect(error.message).to.equal('Migration interrupted');
+        }
+
+        const listed = await call('list');
+
+        expect(listed.events.map(({ id, version }) => [id, version])).to.deep.equal(
+            events.map(({ id, version }) => [id, version]),
+        );
+        expect(numberingFiles.get(`/private/promo-versions/${PROJECT}/index.json`).body.ready).to.equal(true);
+        state.list.resetHistory();
+        await call('list');
+        expect(state.list.callCount).to.equal(0);
+    });
+
+    it('preserves a concurrently recorded event while existing history is being indexed', async () => {
+        const events = await recordHistory(12);
+        numberingFiles.clear();
+
+        await Promise.all([
+            call('list'),
+            call('record', { action: 'create', targetId: VARIATION, requestId: 'during-migration' }),
+        ]);
+        state.list.resetHistory();
+        const listed = await call('list', { limit: 100 });
+
+        expect(new Set(listed.events.map((event) => event.id)).size).to.equal(13);
+        expect(listed.events.map((event) => event.id)).to.include.members(events.map((event) => event.id));
+        expect(state.list.callCount).to.equal(0);
+    });
+
+    it('does not commit an unindexed event when index persistence fails and recovers on retry', async () => {
+        await save();
+        const beforeVersionId = remember();
+        fragments.get(PROJECT).title = 'Second';
+        const pageWrites = fetchStub.withArgs(
+            sinon.match((url) => url.endsWith('/index-0.json')),
+            sinon.match.has('method', 'PUT'),
+        );
+        pageWrites.resolves(response({}, 503));
+
+        await expectError(call('record', { beforeVersionId, requestId: 'index-failure' }), 503);
+
+        expect(stored.size).to.equal(1);
+        pageWrites.resetBehavior();
+        const { event } = await call('record', { beforeVersionId, requestId: 'index-failure' });
+        expect(event.version).to.equal(2);
+        expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2, 1]);
+    });
+
+    it('accepts cursors issued before indexed pagination was introduced', async () => {
+        const events = await recordHistory(25);
+
+        const next = await call('list', { cursor: `${events[9].createdAt}|${events[9].id}` });
+
+        expect(next.events.map((event) => event.id)).to.deep.equal(events.slice(10, 20).map((event) => event.id));
+    });
+
+    it('does not read expired index pages or event bodies after all history has expired', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        await save();
+        clock.tick(96 * 86400000);
+        state.list.resetHistory();
+        state.get.resetHistory();
+        fetchStub.resetHistory();
+
+        expect(await call('list')).to.deep.equal({ events: [], currentEventId: null });
+
+        expect(state.list.callCount).to.equal(0);
+        expect(state.get.getCalls().filter(({ args: [key] }) => key.includes('.entry.'))).to.have.length(0);
+        expect(fetchStub.getCalls().filter(({ args: [url] }) => /\/index-\d+\.json$/.test(url))).to.have.length(0);
+    });
+
+    it('reports a missing index page instead of silently omitting history or rescanning State', async () => {
+        await recordHistory(125);
+        numberingFiles.delete(`/private/promo-versions/${PROJECT}/index-1.json`);
+        state.list.resetHistory();
+
+        await expectError(call('list'), 503);
+
+        expect(state.list.callCount).to.equal(0);
+    });
+
     it('keeps the same version number after older history expires', async () => {
         const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         await save();
@@ -468,6 +668,7 @@ describe('Promotion project versions', () => {
             expect(error.message).to.equal('State unavailable');
         }
 
+        expect((await call('list')).events).to.deep.equal([]);
         expect((await call('record', { action: 'create' })).event.version).to.equal(1);
         expect((await call('record', { action: 'create', requestId: 'next' })).event.version).to.equal(2);
     });
@@ -543,12 +744,13 @@ describe('Promotion project versions', () => {
 
     it('keeps numbering metadata private and free of authors, field values and AEM version IDs', async () => {
         const { event } = await save();
-        const { body } = [...numberingFiles.values()][0];
+        const { body } = numberingFiles.get(`/private/promo-versions/${PROJECT}/numbering.json`);
         expect(body).to.deep.equal({
             lastVersion: 1,
             entries: { [event.id]: { version: 1, createdAt: event.createdAt } },
         });
-        expect(files.generatePresignURL.firstCall.args).to.deep.equal([
+        const presign = files.generatePresignURL.getCalls().find(({ args: [path] }) => path.endsWith('/numbering.json'));
+        expect(presign.args).to.deep.equal([
             `private/promo-versions/${PROJECT}/numbering.json`,
             { permissions: 'rw', expiryInSeconds: 300, urlType: 'internal' },
         ]);

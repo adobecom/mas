@@ -1,4 +1,4 @@
-import { fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
+import { aTimeout, fixture, fixtureSync, html, expect, waitUntil, oneEvent } from '@open-wc/testing';
 // Registers the real sp-* components: against unregistered stubs the underlay and scroll contracts
 // below silently pass no matter what the dialog binds.
 import { sendKeys } from '@web/test-runner-commands';
@@ -17,9 +17,10 @@ const buckets = () => [
     { key: 'bulkPublishProjects', label: 'Bulk Publish Project', rows: [collRow('Launch', 'b-1')] },
 ];
 
-// Opening the modal runs a Spectrum transition, which can take over a second on a loaded CI
-// runner.
-const modalTransition = { timeout: 5000 };
+// Opening and closing the modal each run a Spectrum transition. On the CI runner (run 41587889767)
+// one open plus one close outlasted mocha's 5000ms, so each wait gets 8s inside a 20s suite limit and
+// a slow step fails with its own message instead of a generic mocha timeout.
+const modalTransition = { timeout: 8000 };
 const wrapperOf = (el) => el.shadowRoot.querySelector('sp-dialog-wrapper');
 const closeButtonOf = (el) => wrapperOf(el).shadowRoot.querySelector('sp-dialog').shadowRoot.querySelector('.close-button');
 const headCellOf = (el) => el.shadowRoot.querySelector('sp-table-head-cell');
@@ -38,10 +39,13 @@ const closeFixture = async () => {
     if (!overlay?.open) return;
     const closed = oneEvent(overlay, 'sp-closed');
     overlay.open = false;
-    await closed;
+    // sp-closed waits on animation frames, which a starved CI runner can withhold past the hook
+    // timeout. The fixture teardown that follows disconnects the overlay either way.
+    await Promise.race([closed, aTimeout(1000)]);
 };
 
-describe('mas-related-artifacts-dialog', () => {
+describe('mas-related-artifacts-dialog', function () {
+    this.timeout(20000);
     afterEach(closeFixture);
     it('renders an underlay behind the dialog', async () => {
         const el = await openDialog();
@@ -143,7 +147,8 @@ describe('mas-related-artifacts-dialog', () => {
     });
 });
 
-describe('related artifacts modal keyboard lifecycle', () => {
+describe('related artifacts modal keyboard lifecycle', function () {
+    this.timeout(20000);
     afterEach(closeFixture);
     let dialog;
     let opener;

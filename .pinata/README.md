@@ -71,7 +71,7 @@ verified in the runtime environment.
 
 The `unit-tests` gate runs `.pinata/scripts/run-affected-tests.mjs` on every
 candidate: it tests only the workspaces the change touches (in studio, the
-tests that mention the changed files). The full suite takes ~8 min and runs in
+tests that mention the changed files; `io/www` gets its own `npm ci` first). The full suite takes ~8 min and runs in
 CI. A failure is blocking and sends the candidate back to be rebuilt.
 It was disabled on 2026-08-17 for order-dependent suite failures and
 re-enabled on 2026-10-01. MAS's existing unit-test CI remains unchanged and

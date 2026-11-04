@@ -272,8 +272,9 @@ class MasSearchAndFilters extends LitElement {
 
     #syncCreatedByStore() {
         const toNames = (users) => users.map(({ userPrincipalName }) => userPrincipalName);
+        const filterNames = this.createdByFilter.map((name) => name.toLowerCase());
         const selectedUsers = (Store.users.get() ?? []).filter(({ userPrincipalName }) =>
-            this.createdByFilter.includes(userPrincipalName),
+            filterNames.includes(userPrincipalName.toLowerCase()),
         );
         if (sameValues(toNames(this.#createdByStore.get()), toNames(selectedUsers))) return;
         this.#syncingCreatedByStore = true;
@@ -283,8 +284,8 @@ class MasSearchAndFilters extends LitElement {
 
     #userDisplayName(userPrincipalName) {
         return (
-            (Store.users.get() ?? []).find((user) => user.userPrincipalName === userPrincipalName)?.displayName ??
-            userPrincipalName
+            (Store.users.get() ?? []).find((user) => user.userPrincipalName.toLowerCase() === userPrincipalName.toLowerCase())
+                ?.displayName ?? userPrincipalName
         );
     }
 

@@ -3333,6 +3333,11 @@ merch-card[variant^="plans"] [slot="heading-m"] p {
     line-height: var(--consonant-merch-card-body-xs-line-height);
 }
 
+merch-card[variant^='plans'] [slot="heading-m"] span[data-template="legal"] span[is="inline-price"][data-template] .price {
+   font-size: inherit;
+   line-height: inherit;
+}
+
 merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {
     font-size: var(--consonant-merch-card-heading-m-font-size);
     line-height: var(--consonant-merch-card-heading-m-line-height);
@@ -3442,7 +3447,7 @@ merch-card[variant^='plans'] span.price-legal::first-letter {
     text-transform: uppercase;
 }
 
-merch-card[variant^='plans'] span.price-legal .price-tax-inclusivity::before {
+merch-card[variant^='plans'] span.price-legal > .price-tax-inclusivity::before {
   content: initial;
 }
 

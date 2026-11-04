@@ -48,6 +48,20 @@ ${textWithTooltipStyles}
     color: var(--spectrum-gray-600);
 }
 
+/* Resized columns: nested tables must not scroll on their own, and their rows start where the base row starts. */
+#content sp-table[data-resized-columns] .expanded-content {
+    min-width: max-content;
+}
+
+#content sp-table[data-resized-columns] .expanded-content sp-table {
+    overflow: visible;
+    margin-left: -30px;
+}
+
+#content sp-table[data-resized-columns] .nested-fragment sp-table-row:not(:has(.expand-cell)) {
+    padding-left: 40px;
+}
+
 /* Nested table rows styling */
 #content .expanded-content .nested-fragment sp-table-row {
     background-color: var(--spectrum-blue-200);

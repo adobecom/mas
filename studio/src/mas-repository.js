@@ -52,6 +52,7 @@ import {
 } from './promotions/promotion-model.js';
 import { VARIATION_FILTER } from './fragments/variation-filter.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
+import { loadBaselines } from './baselines/baseline-model.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
 
 async function confirmReferenceDiagnosis(aem, roots) {
@@ -171,6 +172,7 @@ export class MasRepository extends LitElement {
             collections: null,
             bulkPublish: null,
             bulkEdit: null,
+            baselines: null,
         };
         this.saveFragment = this.saveFragment.bind(this);
         this.copyFragment = this.copyFragment.bind(this);
@@ -346,6 +348,15 @@ export class MasRepository extends LitElement {
                 this.#abortControllers.bulkEdit = new AbortController();
                 loadBulkEditProjects(this, this.#abortControllers.bulkEdit);
                 break;
+            case PAGE_NAMES.BASELINES:
+                this.#abortControllers.baselines?.abort();
+                this.#abortControllers.baselines = new AbortController();
+                loadBaselines(
+                    this,
+                    { surface: this.search.value.path, locale: this.filters.value.locale },
+                    this.#abortControllers.baselines,
+                );
+                break;
             case PAGE_NAMES.TRANSLATION_EDITOR:
             case PAGE_NAMES.BULK_PUBLISH_EDITOR:
             case PAGE_NAMES.PROMOTIONS_EDITOR:
@@ -490,7 +501,6 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const lowerQuery = query?.toLowerCase() || '';
-        const createdByLc = createdBy.map((value) => value.toLowerCase());
         return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
@@ -499,10 +509,7 @@ export class MasRepository extends LitElement {
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (status.length && !status.includes(item.status)) return false;
-            if (createdByLc.length) {
-                const itemCreatedBy = (item.created?.by || '').toLowerCase();
-                if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
-            }
+            if (createdBy.length && !Fragment.isCreatedByAny(item, createdBy)) return false;
             if (this.#skipQuery(lowerQuery, item)) return false;
             return true;
         });

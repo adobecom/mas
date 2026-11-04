@@ -24,13 +24,24 @@ export const styles = [
             box-sizing: border-box;
         }
 
+        :host([data-resized-columns]) {
+            min-width: max-content;
+        }
+
+        :host([data-resized-columns]) .top-level-row {
+            min-width: max-content;
+        }
+
         .loading-container--flex {
             padding: 10px;
             width: 100%;
         }
 
         .title,
-        .path,
+        .path {
+            min-width: 0;
+        }
+
         .offer-id,
         .osi {
             min-width: 0;
@@ -43,9 +54,8 @@ export const styles = [
             }
 
             div:not([slot='trigger']) {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 
@@ -55,9 +65,8 @@ export const styles = [
             }
 
             div {
-                overflow: hidden;
-                white-space: nowrap;
-                text-overflow: ellipsis;
+                white-space: normal;
+                overflow-wrap: anywhere;
             }
         }
 

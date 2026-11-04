@@ -2,6 +2,8 @@
 
 This project is a library of web components providing merchandising content to various surfaces.
 
+Architecture decisions are recorded in [docs/decisions](./docs/decisions/README.md).
+
 ## Environments
 
 - Preview: https://main--mas--adobecom.aem.page/

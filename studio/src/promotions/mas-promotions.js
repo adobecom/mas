@@ -1,5 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles } from '../common/column-resize-controller.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
@@ -12,7 +15,7 @@ import { clearCaches } from '../../libs/fragment-client.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import './mas-promotion-duplicate-dialog.js';
 import { renderPromotionStatusCell } from '../common/utils/render-utils.js';
-import { canEditPromotions } from '../groups.js';
+import { canEditPromotions, canManagePromotions } from '../groups.js';
 import {
     canPublishPromotionNow,
     canSchedulePromotion,
@@ -34,8 +37,32 @@ const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'test', label: 'Test' },
 ];
 
+const PROMOTION_COLUMNS = [
+    { key: 'title', label: 'Promotion' },
+    {
+        key: 'timeline',
+        label: 'Timeline',
+        sortable: true,
+    },
+    {
+        key: 'wf-status',
+        label: 'Workflow status',
+    },
+    {
+        key: 'status',
+        label: 'Status',
+    },
+    {
+        key: 'createdBy',
+        label: 'Owner',
+    },
+    { key: 'actions', label: 'Actions', align: 'center' },
+];
+
 class MasPromotions extends LitElement {
-    static styles = styles;
+    static styles = [styles, columnResizeStyles(PROMOTION_COLUMNS, { match: 'index' })];
+
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         filter: { type: String, state: true },
@@ -73,6 +100,7 @@ class MasPromotions extends LitElement {
             Store.promotions?.list?.filter,
             Store.promotions?.list?.filterOptions,
             Store.promotions?.list?.search,
+            Store.profile,
             Store.users,
         ]);
     }
@@ -156,27 +184,6 @@ class MasPromotions extends LitElement {
     renderPromotionsTable() {
         const filteredPromotions = this.filteredPromotions;
 
-        const columns = [
-            { key: 'title', label: 'Promotion' },
-            {
-                key: 'timeline',
-                label: 'Timeline',
-                sortable: true,
-            },
-            {
-                key: 'wf-status',
-                label: 'Workflow status',
-            },
-            {
-                key: 'status',
-                label: 'Status',
-            },
-            {
-                key: 'createdBy',
-                label: 'Owner',
-            },
-            { key: 'actions', label: 'Actions', align: 'center' },
-        ];
         if (!filteredPromotions || filteredPromotions.length === 0) {
             return html`
                 <div class="no-promotions-message">
@@ -186,8 +193,15 @@ class MasPromotions extends LitElement {
         }
 
         return html`
-            <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
-                ${this.renderTableHeader(columns)}
+            <sp-table
+                emphasized
+                scroller
+                @change=${this.updateTableSelection}
+                class="promotions-table"
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+            >
+                ${this.renderTableHeader(PROMOTION_COLUMNS)}
                 <sp-table-body>
                     ${repeat(filteredPromotions, (promotion) => {
                         const promo = promotion.get();
@@ -230,10 +244,10 @@ class MasPromotions extends LitElement {
     render() {
         const statusCounts = this.#statusCounts;
         return html`
-            <div class="promotions-container">
+            <div class="page-container list-page">
                 <div class="promotions-page-header">
                     <h1 class="promotions-page-title">Promotions</h1>
-                    ${this.canEdit
+                    ${canManagePromotions()
                         ? html`<sp-button variant="accent" @click=${() => this.#handleAddPromotion()} class="create-button">
                               <sp-icon-add slot="icon"></sp-icon-add>
                               Create project
@@ -367,7 +381,7 @@ class MasPromotions extends LitElement {
                                   ? 'text-align: center;'
                                   : ''}"
                         >
-                            ${label}
+                            ${label} ${this.columnResize.handle(key, label)}
                         </sp-table-head-cell>
                     `,
                 )}
@@ -398,7 +412,7 @@ class MasPromotions extends LitElement {
                         </sp-menu-item>
                         ${!promotion.get().isPromotionPublished || promotion.get().isPromotionModified
                             ? html`<sp-menu-item
-                                  ?disabled=${promotion.get().promotionStatus === 'expired'}
+                                  ?disabled=${!canManagePromotions() || promotion.get().promotionStatus === 'expired'}
                                   @click=${() => this.#handlePublishPromotionFromList(promotion)}
                               >
                                   <sp-icon-publish slot="icon"></sp-icon-publish>
@@ -406,12 +420,18 @@ class MasPromotions extends LitElement {
                               </sp-menu-item>`
                             : nothing}
                         ${promotion.get().isPromotionPublished
-                            ? html`<sp-menu-item @click=${() => this.#handleUnpublishPromotionFromList(promotion)}>
+                            ? html`<sp-menu-item
+                                  ?disabled=${!canManagePromotions()}
+                                  @click=${() => this.#handleUnpublishPromotionFromList(promotion)}
+                              >
                                   <sp-icon-publish-remove slot="icon"></sp-icon-publish-remove>
                                   Unpublish
                               </sp-menu-item>`
                             : nothing}
-                        <sp-menu-item @click=${() => this.#handleDuplicatePromotionFromList(promotion)}>
+                        <sp-menu-item
+                            ?disabled=${!canManagePromotions()}
+                            @click=${() => this.#handleDuplicatePromotionFromList(promotion)}
+                        >
                             <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                             Duplicate
                         </sp-menu-item>
@@ -423,7 +443,10 @@ class MasPromotions extends LitElement {
                             <sp-icon-archive slot="icon"></sp-icon-archive>
                             Archive
                         </sp-menu-item>
-                        <sp-menu-item @click=${() => this.#handleDeletePromotion(promotion)}>
+                        <sp-menu-item
+                            ?disabled=${!canManagePromotions()}
+                            @click=${() => this.#handleDeletePromotion(promotion)}
+                        >
                             <sp-icon-delete slot="icon"></sp-icon-delete>
                             Delete
                         </sp-menu-item>
@@ -434,6 +457,10 @@ class MasPromotions extends LitElement {
     }
 
     #handleAddPromotion() {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to create promotion projects.', 'negative');
+            return;
+        }
         Store.promotions.inEdit.set(null);
         Store.promotions.promotionId.set('');
         Store.page.set(PAGE_NAMES.PROMOTIONS_EDITOR);
@@ -458,6 +485,10 @@ class MasPromotions extends LitElement {
     }
 
     async #handlePublishPromotionFromList(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
         const fragment = promotion.get();
         const stagedConfirmed =
             !fragment.isStaged ||
@@ -467,6 +498,10 @@ class MasPromotions extends LitElement {
                 variant: 'confirmation',
             }));
         if (!stagedConfirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
 
         if (!canPublishPromotionNow(fragment) && !canSchedulePromotion(fragment)) {
             if (isPromotionExpiredForPublish(fragment)) {
@@ -480,6 +515,10 @@ class MasPromotions extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to publish promotion projects.', 'negative');
+            return;
+        }
         try {
             this.loading = true;
             const ok = await publishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
@@ -490,6 +529,10 @@ class MasPromotions extends LitElement {
     }
 
     async #handleUnpublishPromotionFromList(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to unpublish promotion projects.', 'negative');
+            return;
+        }
         const fragment = promotion.get();
         if (!fragment?.id) return;
         if (!fragment.isPromotionPublished) {
@@ -501,6 +544,10 @@ class MasPromotions extends LitElement {
             (title, message, options) => showConfirmDialog(this, title, message, options),
         );
         if (!confirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to unpublish promotion projects.', 'negative');
+            return;
+        }
         try {
             this.loading = true;
             const ok = await unpublishPromotionProject(this.repository, fragment, variationPaths, skippedCount);
@@ -511,6 +558,10 @@ class MasPromotions extends LitElement {
     }
 
     async #handleDeletePromotion(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to delete promotion projects.', 'negative');
+            return;
+        }
         if (this.isDialogOpen) {
             return;
         }
@@ -527,6 +578,10 @@ class MasPromotions extends LitElement {
             },
         );
         if (!confirmed) return;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to delete this promotion project.', 'negative');
+            return;
+        }
         const tagId = getPromotionTagFromFragment(promotion.get());
         const [tagPath] = tagId ? fromAttribute(tagId) : [];
         try {
@@ -546,6 +601,10 @@ class MasPromotions extends LitElement {
     }
 
     #handleDuplicatePromotionFromList(promotion) {
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         if (this.duplicating) return;
         const fragment = promotion.get();
         this.#duplicateProposedTitle = `${fragment.getFieldValue('title')} copy`;
@@ -555,9 +614,13 @@ class MasPromotions extends LitElement {
     }
 
     #onDuplicateConfirmed = async ({ detail: { title, duplicateVariations = false } }) => {
+        this.duplicateDialogOpen = false;
+        if (!canManagePromotions()) {
+            showToast('You do not have permission to duplicate promotion projects.', 'negative');
+            return;
+        }
         const fragment = this.#duplicateFragment;
         if (!fragment) return;
-        this.duplicateDialogOpen = false;
         this.duplicating = true;
         try {
             const { failedVariations } = await duplicatePromotionProject(this.repository, fragment, {

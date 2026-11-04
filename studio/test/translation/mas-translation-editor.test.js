@@ -94,7 +94,7 @@ describe('MasTranslationEditor', () => {
 
     const resetStores = () => {
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
         Store.translationProjects.selectedCards.value = [];
@@ -803,7 +803,7 @@ describe('MasTranslationEditor', () => {
             const mockFragment = new Fragment(createMockFragment({ id: 'delete-id' }));
             const fragmentStore = new FragmentStore(mockFragment);
             Store.translationProjects.inEdit.set(fragmentStore);
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['delete-id', fragmentStore]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['delete-id', fragmentStore]]));
             Store.translationProjects.translationProjectId.set('delete-id');
             const mockRepository = createMockRepository();
             mockRepository.aem.sites.cf.fragments.getById.resolves(mockFragment);
@@ -826,7 +826,7 @@ describe('MasTranslationEditor', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
             expect(mockRepository.deleteFragment.calledOnce).to.be.true;
             expect(navigateStub.calledWith(PAGE_NAMES.TRANSLATIONS)).to.be.true;
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('delete-id')).to.be.false;
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').has('delete-id')).to.be.false;
         });
 
         it('should navigate to translations page after successful delete', async () => {
@@ -2235,7 +2235,7 @@ describe('MasTranslationEditor', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
             const rows = listView.shadowRoot.querySelectorAll('sp-table-row[data-id]');
             expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-id', 'test-fragment-id']);
-            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Test-Translation-Project-copy');
+            expect(rows[0].querySelector('.title-clamp').textContent.trim()).to.equal('Test-Translation-Project-copy');
         });
 
         it('shows a single error toast and does not switch project when duplication fails', async () => {

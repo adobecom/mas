@@ -714,13 +714,7 @@ class MasSideNav extends LitElement {
                                             (cta, i) => html`
                                                 ${i > 0 ? html`<sp-menu-divider></sp-menu-divider>` : nothing}
                                                 <sp-menu-item
-                                                    @click=${() =>
-                                                        this.copyCtaItem(
-                                                            cta.text,
-                                                            cta.index,
-                                                            cta.sourceFragment,
-                                                            cta.formattedText,
-                                                        )}
+                                                    @click=${() => this.copyCtaItem(cta.text, cta.index, cta.sourceFragment)}
                                                 >
                                                     <div class="field-entry field-entry-filled">
                                                         <span class="field-label"
@@ -844,10 +838,8 @@ class MasSideNav extends LitElement {
         return cta.getAttribute('data-key') || index;
     }
 
-    /** Copies an indexed ctas field link to the clipboard (mas-field: … → ctas[N] format).
-     *  `formattedText` (from parseCtas) carries the CTA's variant-derived bold/italic markup
-     *  and is used only for the richText/clipboard label, never the plain-text one. */
-    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment, formattedText) {
+    /** Copies an indexed CTA reference that inherits Studio presentation unless the page overrides it. */
+    async copyCtaItem(text, index, sourceFragment = this.fragmentEditor?.fragment) {
         const fragment = sourceFragment;
         if (!fragment) return;
         const ctaId = this.#getCtaKey(fragment, index);
@@ -856,7 +848,7 @@ class MasSideNav extends LitElement {
         const ctaInfo = this.getCtaInfo(ctaId);
         const dashCtaInfo = ctaInfo ? ` - ${ctaInfo}` : '';
         const fieldText = `ctas[${text}${dashCtaInfo}]`;
-        const fieldMarkup = formattedText && formattedText !== text ? `ctas[${formattedText}${dashCtaInfo}]` : undefined;
+        const fieldMarkup = fieldText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const link = generateFieldLink(fragment, path, PAGE_NAMES.CONTENT, fieldName, fieldText, fieldMarkup);
         if (!link) return;
         try {
@@ -1040,7 +1032,11 @@ class MasSideNav extends LitElement {
                       <mas-side-nav-item label="Create Variation" ?disabled=${loading} @nav-click="${this.createVariant}">
                           <sp-icon-add slot="icon"></sp-icon-add>
                       </mas-side-nav-item>
-                      <mas-side-nav-item label="Duplicate" ?disabled=${loading} @nav-click="${this.duplicateFragment}">
+                      <mas-side-nav-item
+                          label="Duplicate"
+                          ?disabled=${loading || this.fragmentEditor?.canDuplicateFragment === false}
+                          @nav-click="${this.duplicateFragment}"
+                      >
                           <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
                       </mas-side-nav-item>
                   `
@@ -1048,7 +1044,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Preview" ?disabled=${loading} @nav-click="${this.previewFragment}">
                 <sp-icon-preview slot="icon"></sp-icon-preview>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Publish" ?disabled=${loading} @nav-click="${this.publishFragment}">
+            <mas-side-nav-item
+                label="Publish"
+                ?disabled=${loading || this.fragmentEditor?.canPublishFragment === false}
+                @nav-click="${this.publishFragment}"
+            >
                 <sp-icon-publish slot="icon"></sp-icon-publish>
             </mas-side-nav-item>
             <mas-side-nav-item label="Unpublish" disabled>
@@ -1064,7 +1064,11 @@ class MasSideNav extends LitElement {
             <mas-side-nav-item label="Unlock" @nav-click="${this.unlockFragment}" disabled>
                 <sp-icon-settings slot="icon"></sp-icon-settings>
             </mas-side-nav-item>
-            <mas-side-nav-item label="Delete" ?disabled=${loading} @nav-click="${this.deleteFragment}">
+            <mas-side-nav-item
+                label="Delete"
+                ?disabled=${loading || this.fragmentEditor?.canDeleteFragment === false}
+                @nav-click="${this.deleteFragment}"
+            >
                 <sp-icon-delete slot="icon"></sp-icon-delete>
             </mas-side-nav-item>
         `;

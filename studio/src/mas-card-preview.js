@@ -1,6 +1,23 @@
 import { html, LitElement, nothing } from 'lit';
 import ReactiveController from './reactivity/reactive-controller.js';
 import Store from './store.js';
+import { VARIANT_NAMES } from './editors/variant-picker.js';
+
+const WHITE_PREVIEW_VARIANTS = new Set([
+    VARIANT_NAMES.HEADLESS,
+    VARIANT_NAMES.MARQUEE,
+    VARIANT_NAMES.FAQ,
+    VARIANT_NAMES.BANNER_BLADE,
+]);
+
+/**
+ * Headless-style templates draw no card background, so their preview needs a white popover to stay readable.
+ * @param {string} [variant] fragment variant
+ * @returns {boolean}
+ */
+function isWhitePreviewVariant(variant) {
+    return WHITE_PREVIEW_VARIANTS.has(variant);
+}
 
 class MasCardPreview extends LitElement {
     constructor() {
@@ -10,6 +27,10 @@ class MasCardPreview extends LitElement {
 
     get id() {
         return Store.preview.value.id;
+    }
+
+    get variant() {
+        return Store.preview.value.variant;
     }
 
     get positionStyle() {
@@ -38,7 +59,10 @@ class MasCardPreview extends LitElement {
         if (!this.id) return nothing;
         return html`<div class="preview-container">
             <div class="preview-backdrop"></div>
-            <div class="preview-popover" style=${this.positionStyle}>
+            <div
+                class="preview-popover${isWhitePreviewVariant(this.variant) ? ' white-background' : ''}"
+                style=${this.positionStyle}
+            >
                 <div class="preview-content">
                     <merch-card>
                         <aem-fragment author ims fragment="${this.id}"></aem-fragment>
@@ -52,12 +76,12 @@ class MasCardPreview extends LitElement {
 
 customElements.define('mas-card-preview', MasCardPreview);
 
-function openPreview(id, position) {
-    Store.preview.set({ id, position });
+function openPreview(id, position, variant) {
+    Store.preview.set({ id, position, variant });
 }
 
 function closePreview() {
     Store.preview.set(null);
 }
 
-export { openPreview, closePreview };
+export { openPreview, closePreview, isWhitePreviewVariant };

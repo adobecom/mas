@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { DEFAULT_LOCALES as STUDIO_DEFAULT_LOCALES } from '../../../studio/src/locales.js';
 import {
     getLocaleCode,
     getLocaleByCode,
@@ -22,6 +23,90 @@ import {
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
+    describe('Lingo Phase 5 ACOM markets', function () {
+        const markets = [
+            ['ar', 'SA', ['DZ', 'BH', 'IQ', 'JO', 'LB', 'MA', 'OM']],
+            ['el', 'GR', ['CY']],
+            ['en', 'US', ['BS', 'BD', 'BB', 'HR', 'IS', 'JM', 'MT', 'NP', 'PK', 'RS', 'LK', 'TT']],
+            ['es', 'ES', ['BO', 'DO', 'SV', 'HN', 'NI', 'PA', 'PY', 'TT', 'US', 'UY', 'VE']],
+            ['fr', 'FR', ['DZ', 'LB', 'MU', 'MA']],
+            ['pt', 'BR', ['MO']],
+            ['ro', 'RO', ['MD']],
+            ['ru', 'RU', ['AM', 'AZ', 'GE', 'KZ', 'KG', 'MD', 'TJ', 'TM', 'UZ']],
+            ['tr', 'TR', ['CY', 'DE']],
+            ['zh', 'TW', ['MO']],
+        ];
+
+        for (const surface of ['acom', 'acom-cc', 'acom-dc', 'acom-edu']) {
+            describe(surface, function () {
+                for (const [lang, defaultCountry, countries] of markets) {
+                    const defaultLocale = `${lang}_${defaultCountry}`;
+                    for (const country of countries) {
+                        const locale = `${lang}_${country}`;
+
+                        it(`registers ${locale} in the ${defaultLocale} family`, function () {
+                            const regions = getRegionLocales(surface, defaultLocale).map(getLocaleCode);
+                            expect(regions).to.include(locale);
+                            expect(getDefaultLocaleCode(surface, locale)).to.equal(defaultLocale);
+                        });
+
+                        it(`uses ${country} for commerce on ${defaultLocale}`, function () {
+                            expect(resolveCommerceCountries(surface, defaultLocale, country)).to.deep.equal({
+                                country,
+                                wcsCountry: country,
+                            });
+                        });
+
+                        it(`selects the ${locale} placeholder overlay`, function () {
+                            expect(getPlaceholdersRegionLocale(surface, defaultLocale, country, defaultLocale)).to.equal(
+                                locale,
+                            );
+                        });
+                    }
+                }
+
+                it('keeps Studio and backend locale mappings aligned', function () {
+                    expect(getDefaultLocales(surface)).to.deep.equal(STUDIO_DEFAULT_LOCALES[surface]);
+                });
+            });
+        }
+
+        const countries = [
+            ['BB', 'Barbados', '🇧🇧'],
+            ['BD', 'Bangladesh', '🇧🇩'],
+            ['BO', 'Bolivia', '🇧🇴'],
+            ['BS', 'Bahamas', '🇧🇸'],
+            ['CY', 'Cyprus', '🇨🇾'],
+            ['HN', 'Honduras', '🇭🇳'],
+            ['HR', 'Croatia', '🇭🇷'],
+            ['IS', 'Iceland', '🇮🇸'],
+            ['JM', 'Jamaica', '🇯🇲'],
+            ['LK', 'Sri Lanka', '🇱🇰'],
+            ['MO', 'Macau', '🇲🇴'],
+            ['MT', 'Malta', '🇲🇹'],
+            ['NI', 'Nicaragua', '🇳🇮'],
+            ['NP', 'Nepal', '🇳🇵'],
+            ['PA', 'Panama', '🇵🇦'],
+            ['PK', 'Pakistan', '🇵🇰'],
+            ['PY', 'Paraguay', '🇵🇾'],
+            ['RS', 'Serbia', '🇷🇸'],
+            ['SV', 'El Salvador', '🇸🇻'],
+            ['TT', 'Trinidad and Tobago', '🇹🇹'],
+            ['UY', 'Uruguay', '🇺🇾'],
+            ['VE', 'Venezuela', '🇻🇪'],
+        ];
+
+        for (const [country, name, flag] of countries) {
+            it(`displays the country name for ${country}`, function () {
+                expect(getCountryName(country)).to.equal(name);
+            });
+
+            it(`displays the country flag for ${country}`, function () {
+                expect(getCountryFlag(country)).to.equal(flag);
+            });
+        }
+    });
+
     describe('placeholder resolution helpers', function () {
         it('PLACEHOLDERS_BASELINE_SURFACE is acom', function () {
             expect(PLACEHOLDERS_BASELINE_SURFACE).to.equal('acom');
@@ -228,7 +313,7 @@ describe('locales', function () {
         it('should return region locales for a non default locale', function () {
             const result = getRegionLocales('acom', 'fr_LU', false);
             expect(result).to.be.an('array');
-            expect(result.length).to.be.equal(4);
+            expect(result.length).to.be.equal(8);
         });
 
         it('should return empty array if no regions', function () {
@@ -343,11 +428,11 @@ describe('locales', function () {
             }
         });
 
-        it('should list HK under getRegionLocales for zh_TW only for acom/sandbox/nala', function () {
+        it('should list HK and MO under getRegionLocales for zh_TW only for acom/sandbox/nala', function () {
             const regionsOnly = getRegionLocales('sandbox', 'zh_TW', false);
-            expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK']);
+            expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_MO']);
             const withDefault = getRegionLocales('sandbox', 'zh_TW', true);
-            expect(withDefault.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_TW']);
+            expect(withDefault.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
             for (const surface of surfacesWithoutHKRegion) {
                 const result = getRegionLocales(surface, 'zh_TW', false);
                 expect(result.length, surface).to.equal(0);

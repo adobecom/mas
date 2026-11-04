@@ -4,6 +4,7 @@ on:
     pull_request:
         branches:
             - main
+            - rcp-main
         types: [opened, synchronize]
 
 permissions:

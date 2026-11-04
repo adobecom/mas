@@ -51,6 +51,7 @@ export class MasCollapsibleTableRow extends LitElement {
         renderActionsCell: { type: Function },
         renderPreviewCell: { type: Function },
         groupedVariationsManageOnly: { type: Boolean },
+        resizeCss: { type: String },
         cellsOverride: { type: Array },
         variationCells: { type: Array },
         variationColumns: { type: Array },
@@ -191,8 +192,8 @@ export class MasCollapsibleTableRow extends LitElement {
     get cells() {
         if (this.cellsOverride?.length) return this.cellsOverride;
         return this.viewOnly
-            ? ['OfferName', 'Title', 'OfferId', 'StudioPath', 'ItemType', 'Status']
-            : ['OfferName', 'Title', 'OfferId', 'StudioPath', 'Status'];
+            ? ['OfferName', 'StudioPath', 'Title', 'OfferId', 'ItemType', 'Status']
+            : ['OfferName', 'StudioPath', 'Title', 'OfferId', 'Status'];
     }
 
     get variationCellNames() {
@@ -347,8 +348,8 @@ export class MasCollapsibleTableRow extends LitElement {
                         };
                         return html`<sp-table-row value=${variation.path}>
                             ${renderRowLinkOverlay(variation, linkOptions)} ${this.renderOfferName(variation)}
-                            ${this.renderTitle(variation, linkOptions)} ${this.renderOfferId(variation)}
-                            ${this.renderStudioPath(variation, linkOptions)} ${this.renderStatus(variation)}
+                            ${this.renderStudioPath(variation, linkOptions)} ${this.renderTitle(variation, linkOptions)}
+                            ${this.renderOfferId(variation)} ${this.renderStatus(variation)}
                         </sp-table-row>`;
                     },
                 )}
@@ -464,7 +465,7 @@ export class MasCollapsibleTableRow extends LitElement {
     get viewOnlyTemplate() {
         const cells = this.cells;
         const linkOptions = { ...this.#getEditorLinkOptions(this.topLevelCard), nativeKeyboard: true };
-        const topLevelRow = html`<sp-table-row value=${this.topLevelCard.path}>
+        const topLevelRow = html`<sp-table-row class="top-level-row" value=${this.topLevelCard.path}>
             ${renderRowLinkOverlay(this.topLevelCard, linkOptions)}
             ${this.isGroupedVariation || this.viewOnlyTabs?.length
                 ? html`<sp-table-cell class="table-icon-cell">
@@ -507,7 +508,7 @@ export class MasCollapsibleTableRow extends LitElement {
             }
         }
 
-        return html`${topLevelRow}${nestedContent}`;
+        return html`${this.#resizeStyle}${topLevelRow}${nestedContent}`;
     }
 
     renderTitle(item, linkOptions = {}, editUrl) {
@@ -883,12 +884,22 @@ export class MasCollapsibleTableRow extends LitElement {
         }
     }
 
+    get #resizeStyle() {
+        return this.resizeCss
+            ? html`<style>
+                  ${this.resizeCss}
+              </style>`
+            : nothing;
+    }
+
     render() {
         if (this.viewOnly) return this.viewOnlyTemplate;
         const isSelected = this.selectedCards.includes(this.topLevelCard.path);
         const linkOptions = { ...this.#getEditorLinkOptions(this.topLevelCard), selectionOnly: true };
         return html`
+            ${this.#resizeStyle}
             <sp-table-row
+                class="top-level-row"
                 value=${this.topLevelCard.path}
                 ?selected=${isSelected}
                 aria-selected=${isSelected ? 'true' : 'false'}

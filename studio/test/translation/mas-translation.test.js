@@ -35,7 +35,7 @@ describe('MasTranslation', () => {
     beforeEach(() => {
         sandbox = sinon.createSandbox();
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.list.loading.value = false;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -45,7 +45,7 @@ describe('MasTranslation', () => {
         fixtureCleanup();
         sandbox.restore();
         Store.translationProjects.list.data.value = [];
-        Store.translationProjects.list.data.removeMeta('pendingDuplicates');
+        Store.translationProjects.list.data.removeMeta('pendingProjects');
         Store.translationProjects.list.loading.value = true;
         Store.translationProjects.inEdit.value = null;
         Store.translationProjects.translationProjectId.value = null;
@@ -63,6 +63,22 @@ describe('MasTranslation', () => {
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
             expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
+        });
+    });
+
+    describe('column resizing', () => {
+        it('applies a resized width to the header and to the row cells', async () => {
+            Store.translationProjects.list.data.value = [createMockTranslationProject('1', 'Project 1')];
+            const el = await fixture(html`<mas-translation></mas-translation>`);
+            await el.updateComplete;
+            const handle = el.shadowRoot.querySelector('.column-resize-handle[data-column="status"]');
+            handle.dispatchEvent(
+                new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true, cancelable: true }),
+            );
+            await el.updateComplete;
+            const width = `${el.columnResize.widths.get('status')}px`;
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-head-cell')[1]).width).to.equal(width);
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-cell')[1]).width).to.equal(width);
         });
     });
 
@@ -299,7 +315,7 @@ describe('MasTranslation', () => {
             Store.translationProjects.list.data.value = mockProjects;
             const el = await fixture(html`<mas-translation></mas-translation>`);
             const cells = el.shadowRoot.querySelectorAll('sp-table-cell');
-            expect(cells[0].textContent).to.equal('My Translation Project');
+            expect(cells[0].querySelector('.title-clamp').textContent.trim()).to.equal('My Translation Project');
         });
 
         it('should display last updated by in table row', async () => {
@@ -777,7 +793,7 @@ describe('MasTranslation', () => {
         it('should successfully delete translation project', async () => {
             const mockProject = createMockTranslationProject('del-123', 'Project to Delete');
             Store.translationProjects.list.data.value = [mockProject];
-            Store.translationProjects.list.data.setMeta('pendingDuplicates', new Map([['del-123', mockProject]]));
+            Store.translationProjects.list.data.setMeta('pendingProjects', new Map([['del-123', mockProject]]));
             const el = await fixture(html`<mas-translation></mas-translation>`);
             await el.updateComplete;
             const menuItems = el.shadowRoot.querySelectorAll('sp-menu-item');
@@ -790,7 +806,7 @@ describe('MasTranslation', () => {
             await new Promise((resolve) => setTimeout(resolve, 10));
             expect(deleteFragmentStub.calledOnce).to.be.true;
             expect(deleteFragmentStub.firstCall.args[1]).to.deep.equal({ startToast: false, endToast: false });
-            expect(Store.translationProjects.list.data.getMeta('pendingDuplicates').has('del-123')).to.be.false;
+            expect(Store.translationProjects.list.data.getMeta('pendingProjects').has('del-123')).to.be.false;
         });
 
         it('should handle delete error gracefully', async () => {
@@ -942,7 +958,7 @@ describe('MasTranslation', () => {
             expect(createFragmentStub.firstCall.args[0].title).to.equal('Project-1-copy');
             const rows = el.shadowRoot.querySelectorAll('sp-table-row[data-id]');
             expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-1', 'dup-1']);
-            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Project-1-copy');
+            expect(rows[0].querySelector('.title-clamp').textContent.trim()).to.equal('Project-1-copy');
             expect(Store.translationProjects.list.data.get()[1]).to.equal(mockProject);
             expect(loadTranslationProjectsStub.called).to.be.false;
             expect(el.duplicateDialogOpen).to.be.false;

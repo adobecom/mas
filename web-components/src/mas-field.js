@@ -5,8 +5,9 @@ import {
     FF_DEFAULTS,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
+    MERCH_CARD_LOAD_TIMEOUT,
 } from './constants.js';
-import { getService } from './utils.js';
+import { getService, hydrateHeadlessCta } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
 import {
     applyDisplayAnnualDefault,
@@ -24,7 +25,6 @@ import {
 } from './image-markup.js';
 
 const MAS_FIELD_TAG = 'mas-field';
-const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 const CONTEXT_ATTRIBUTES = [
     'fragment-id',
     'variation-id',
@@ -32,6 +32,8 @@ const CONTEXT_ATTRIBUTES = [
     'data-promotion-project',
     'data-promotion-variation-project',
 ];
+export const CHECKOUT_STYLE_PATTERN =
+    /\b(accent|primary|secondary)\b(-\b(outline|link)\b)?/g;
 
 /**
  * Drops trial CTAs (by analytics id) from already-resolved CTA markup when the
@@ -59,20 +61,91 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
-function stripTrialCtas(html, indexed) {
-    const template = document.createElement('template');
-    template.innerHTML = html;
+export async function stripTrialCtas(template, indexed, self) {
+    let buyNowCta = template.content.querySelector(
+        'a[data-analytics-id="buy-now"]',
+    );
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
     );
-    // Hand back the original string so non-trial markup never round-trips
-    // through serialization, which could renormalize attribute quoting.
-    if (trials.length === 0) return html;
-    // All CTAs are trials: an indexed ref renders nothing, while the plain
-    // field keeps them all so a card is never left with no CTA.
-    if (trials.length === anchors.length) return indexed ? null : html;
-    trials.forEach((anchor) => anchor.remove());
+    if (trials.length === 0) return template.innerHTML;
+
+    if (indexed && !buyNowCta) {
+        // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
+        const thisField = self.getAttribute('field');
+
+        const masFieldsReadyPromises = [];
+        const masFields =
+            self.parentElement.querySelectorAll('mas-field').length > 1
+                ? self.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  )
+                : self.parentElement.parentElement.querySelectorAll(
+                      'mas-field[field^="ctas"]',
+                  );
+        masFields.forEach((c) => {
+            if (c.getAttribute('field') !== thisField) {
+                masFieldsReadyPromises.push(c.checkReady());
+            }
+        });
+        const settleAll = Promise.all(masFieldsReadyPromises);
+        let timeoutId;
+        const timeout = new Promise((resolve) => {
+            timeoutId = setTimeout(() => resolve([]), MERCH_CARD_LOAD_TIMEOUT);
+        });
+        const fieldsReady = await Promise.race([settleAll, timeout]);
+        clearTimeout(timeoutId);
+
+        if (masFieldsReadyPromises.length && !fieldsReady.length) {
+            return template.innerHTML;
+        }
+
+        if (fieldsReady.some((c) => c === true)) {
+            masFields.forEach((c) => {
+                if (c.getAttribute('field') !== thisField) {
+                    buyNowCta ??= c.querySelector(
+                        'a[data-analytics-id="buy-now"]',
+                    );
+                }
+            });
+        }
+    }
+
+    let trialCtaSwapped = false;
+    trials.forEach((anchor) => {
+        if (anchor.hasAttribute('data-replaced-osi')) {
+            const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
+            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
+                anchor.remove();
+            } else {
+                if (anchor.hasAttribute('aria-label'))
+                    anchor.removeAttribute('aria-label');
+                anchor.setAttribute('data-analytics-id', 'buy-now');
+                if (anchor.hasAttribute('data-modal'))
+                    anchor.setAttribute('data-modal', 'crm');
+                anchor.textContent = buyNowText;
+            }
+            trialCtaSwapped = true;
+        } else {
+            anchor.remove();
+        }
+    });
+
+    const buyNowCtaNew =
+        template.content.querySelector('a[data-analytics-id="buy-now"]') ||
+        buyNowCta;
+    if (buyNowCtaNew && trialCtaSwapped) {
+        if (buyNowCtaNew.className.trim()) {
+            buyNowCtaNew.className
+                .match(CHECKOUT_STYLE_PATTERN)
+                ?.forEach((styleClass) => {
+                    buyNowCtaNew.classList.remove(styleClass);
+                });
+        }
+        buyNowCtaNew.classList.add('button', 'con-button', 'blue');
+    }
+
     return template.innerHTML;
 }
 
@@ -433,12 +506,12 @@ class MasField extends HTMLElement {
     };
 
     /** Extracts the target field from the fragment data and renders it as innerHTML. */
-    #onFragmentLoad = (event) => {
+    #onFragmentLoad = async (event) => {
         if (event.target !== this.aemFragment) return;
         this.#fields = event.detail?.fields || null;
         this.settings = event.detail?.settings ?? null;
         this.#loaded = true;
-        this.#renderField();
+        await this.#renderField();
         // Signal that this field finished loading and rendering, so a host (e.g. Milo's
         // merch autoblock) can decorate a CTA that resolved after its block decorated.
         this.dispatchEvent(
@@ -542,10 +615,10 @@ class MasField extends HTMLElement {
         return { fieldName: field, index: null };
     }
 
-    /** Extracts the Nth anchor from CTA HTML, stripping only CSS classes so Milo can restyle it.
+    /** Extracts one anchor without reordering the field, stripping presentation only for page-owned CTAs.
      *  Uses a <template> element so custom elements (e.g. checkout-link) are never upgraded
      *  and their attributes (href, data-wcs-osi, etc.) are preserved exactly as stored. */
-    #extractIndexedAnchor(html, index) {
+    #extractIndexedAnchor(html, index, pageOwnsCta) {
         if (typeof html !== 'string') return null;
         const template = document.createElement('template');
         template.innerHTML = html;
@@ -558,8 +631,18 @@ class MasField extends HTMLElement {
             anchor = template.content.querySelector(`a[data-key="${index}"]`);
         }
         if (!anchor) return null;
-        anchor.removeAttribute('class');
-        return anchor.outerHTML;
+        if (pageOwnsCta) {
+            anchor.removeAttribute('class');
+            return anchor.outerHTML;
+        }
+        let markup = anchor.outerHTML;
+        let parent = anchor.parentElement;
+        while (parent?.matches('strong, em')) {
+            const tag = parent.tagName.toLowerCase();
+            markup = `<${tag}>${markup}</${tag}>`;
+            parent = parent.parentElement;
+        }
+        return markup;
     }
 
     #setFragmentIds() {
@@ -582,10 +665,18 @@ class MasField extends HTMLElement {
             this.setAttribute('data-promotion-code', fragment.fields.promoCode);
     }
 
-    #renderField() {
+    async #renderField() {
         if (!this.#fields || !this.#field) return;
         this.hidden = false;
         const { fieldName, index } = this.#parseFieldAndIndex(this.#field);
+        // FEDS wrappers own presentation even without emphasis; Milo can hoist emphasis inside mas-field.
+        const pageOwnsCta =
+            fieldName === 'ctas' &&
+            index !== null &&
+            !!(
+                this.closest('strong, em, .feds-cta-wrapper') ||
+                this.querySelector(':scope > strong, :scope > em')
+            );
 
         if (index !== null && isNaN(index)) {
             const labelsFieldName = `${fieldName.replace(/s$/, '')}Labels`;
@@ -611,8 +702,10 @@ class MasField extends HTMLElement {
                     return;
                 }
                 if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                    html = stripTrialCtas(html, true);
-                    if (html === null) {
+                    const template = document.createElement('template');
+                    template.innerHTML = html;
+                    html = await stripTrialCtas(template, true, this);
+                    if (!html.trim()) {
                         this.hidden = true;
                         return;
                     }
@@ -674,7 +767,7 @@ class MasField extends HTMLElement {
         const content = this.#ensureContentElement(true);
         let html;
         if (index !== null) {
-            html = this.#extractIndexedAnchor(fieldValue, index);
+            html = this.#extractIndexedAnchor(fieldValue, index, pageOwnsCta);
             if (html === null) {
                 this.hidden = true;
                 return;
@@ -684,15 +777,18 @@ class MasField extends HTMLElement {
         }
         if (typeof html === 'string') {
             if (fieldName === 'ctas' && this.settings?.hideTrialCTAs) {
-                html = stripTrialCtas(html, index !== null);
-                if (html === null) {
+                const template = document.createElement('template');
+                template.innerHTML = html;
+                html = await stripTrialCtas(template, index !== null, this);
+                if (!html.trim()) {
                     this.hidden = true;
                     return;
                 }
             }
-            if (this.#field === 'ctas') {
-                const ctaEl = this.#renderCtaField(html);
+            if (fieldName === 'ctas' && !pageOwnsCta) {
+                const ctaEl = this.#renderCtaField(html, index !== null);
                 if (ctaEl) {
+                    this.#applyCtaPresentation(ctaEl);
                     content.replaceChildren(ctaEl);
                     this.#stampContext(content);
                     return;
@@ -905,73 +1001,101 @@ class MasField extends HTMLElement {
         stamp('data-promotion-code', resolveContextPromotionCode(this));
     }
 
-    /**
-     * Converts a single CTA anchor from the AEM fragment into a checkout-button
-     * (or styled anchor for non-commerce links) using the same Spectrum CSS
-     * classes that merch-card hydration applies.
-     */
-    #buildCtaButton(link) {
-        const isCheckout = !!link.getAttribute('data-wcs-osi');
-        if (!isCheckout) return link.cloneNode(true);
-
-        const CheckoutLink = customElements.get('checkout-link');
-        const button =
-            CheckoutLink?.createCheckoutLink(link.dataset, link.textContent) ??
-            (() => {
-                const el = document.createElement('a', { is: 'checkout-link' });
-                el.innerHTML = `<span style="pointer-events: none;">${link.textContent}</span>`;
-                return el;
-            })();
-
-        for (const { name, value } of link.attributes) {
-            if (['class', 'is', 'href'].includes(name)) continue;
-            button.setAttribute(name, value);
+    #applyCtaPresentation(content) {
+        // Studio-owned CTAs bypass Milo's inline CTA decorator and inherit block presentation here.
+        const section = this.closest('.section');
+        if (!section) return;
+        let wrapper = this.parentElement;
+        while (
+            wrapper.matches('strong, em') &&
+            wrapper.childElementCount === 1 &&
+            wrapper.firstElementChild === this &&
+            wrapper.textContent.trim() === this.textContent.trim()
+        ) {
+            wrapper.replaceWith(...wrapper.childNodes);
+            wrapper = this.parentElement;
         }
-        button.firstElementChild?.classList.add('spectrum-Button-label');
-
-        if (link.className) {
-            // Legacy class-driven system: non-headless CTAs, or headless CTAs authored before
-            // real bold/italic wrapping existed.
-            const styleMatch =
-                CHECKOUT_STYLE_PATTERN.exec(link.className)?.[0] ?? 'accent';
-            const isAccent = styleMatch.startsWith('accent');
-            if (!styleMatch.includes('-link')) {
-                button.classList.add('button', 'con-button');
-                if (isAccent) button.classList.add('blue');
-                else if (
-                    styleMatch.startsWith('primary') &&
-                    !styleMatch.includes('-outline')
-                )
-                    button.classList.add('fill');
+        let block = this;
+        while (block.parentElement !== section) {
+            block = block.parentElement;
+        }
+        const sizePattern = /^button-(s|m|l|xl|xxl)$/;
+        const sibling = [...block.querySelectorAll('.con-button')].find(
+            (button) =>
+                !this.contains(button) &&
+                [...button.classList].some((value) => sizePattern.test(value)),
+        );
+        let size;
+        let utilities = [];
+        if (sibling) {
+            size = [...sibling.classList].find((value) =>
+                sizePattern.test(value),
+            );
+            utilities = [...sibling.classList].filter(
+                (value) =>
+                    value.startsWith('button-') && !sizePattern.test(value),
+            );
+        } else {
+            const authoredSize = [...block.classList].find((value) =>
+                /^(s|m|l|xl|xxl)-button$/.test(value),
+            );
+            if (authoredSize) {
+                size = `button-${authoredSize.split('-')[0]}`;
+            } else if (block.classList.contains('hero-marquee')) {
+                size = 'button-xl';
+                utilities = ['button-justified-mobile'];
+            } else if (!block.matches('.accordion, .media')) {
+                size = block.matches('.large, .xlarge')
+                    ? 'button-xl'
+                    : 'button-l';
             }
-            return button;
         }
-
-        // Headless CTAs authored via the 3-option picker never carry a button-style class,
-        // and MAS must not add one either - preserve the real <strong>/<em> wrapper (see
-        // rte-field.js's #marksForHeadlessVariant) around the checkout-link unchanged, so
-        // whatever decorates the surrounding page content is what determines the button style.
-        const parentTag = link.parentElement?.tagName;
-        if (parentTag === 'STRONG' || parentTag === 'EM') {
-            const wrapper = document.createElement(parentTag.toLowerCase());
-            wrapper.append(button);
-            return wrapper;
+        for (const match of this.merchLink?.matchAll(
+            /(?:&|#)_button-([a-zA-Z-]+)/g,
+        ) ?? []) {
+            utilities.push(match[1]);
         }
-        return button;
+        const buttons = content.matches('.con-button')
+            ? [content]
+            : content.querySelectorAll('.con-button');
+        for (const button of buttons) {
+            if (
+                size &&
+                ![...button.classList].some((value) => sizePattern.test(value))
+            ) {
+                button.classList.add(size);
+            }
+            button.classList.add(...utilities);
+        }
+        const paragraph = this.closest('p');
+        if (
+            paragraph &&
+            (buttons.length ||
+                [...paragraph.childNodes].every(
+                    (node) =>
+                        node === this ||
+                        (node.nodeType === Node.TEXT_NODE &&
+                            !node.textContent.trim()),
+                ))
+        ) {
+            paragraph.classList.add('action-area');
+        }
     }
 
     /**
      * Parses the raw CTA field HTML, converts each anchor to a hydrated
-     * checkout-button, and returns a <div slot="footer"> ready to render.
+     * checkout link, and returns a group or indexed CTA ready to render.
      * Returns null if there are no anchor elements in the field value.
      */
-    #renderCtaField(html) {
+    #renderCtaField(html, indexed = false) {
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const links = [...doc.body.querySelectorAll('a')];
         if (!links.length) return null;
+        if (indexed) return hydrateHeadlessCta(links[0]);
         const footer = document.createElement('div');
         footer.setAttribute('slot', 'footer');
-        footer.append(...links.map((link) => this.#buildCtaButton(link)));
+        footer.classList.add('action-area');
+        footer.append(...links.map((link) => hydrateHeadlessCta(link)));
         return footer;
     }
 

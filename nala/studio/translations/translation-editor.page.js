@@ -7,7 +7,7 @@ export default class TranslationEditorPage {
         this.page = page;
 
         // Translation editor form
-        this.form = page.locator('.translation-editor-form');
+        this.form = page.locator('mas-translation-editor .page-container');
         this.breadcrumb = page.locator('.nav-breadcrumbs sp-breadcrumbs');
 
         // General info section

@@ -1109,8 +1109,19 @@
                     describe('delete fragment', () => {
                         let el;
                         let mockRepo;
+                        let originalProfile;
+                        let originalUsers;
 
                         beforeEach(() => {
+                            originalProfile = Store.profile.get();
+                            originalUsers = Store.users.get();
+                            Store.profile.set({ email: 'poweruser@adobe.com' });
+                            Store.users.set([
+                                {
+                                    userPrincipalName: 'poweruser@adobe.com',
+                                    groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'],
+                                },
+                            ]);
                             el = document.createElement('mas-fragment-editor');
                             mockRepo = {
                                 deleteFragmentWithVariations: sandbox.stub().resolves(),
@@ -1124,6 +1135,11 @@
                             sandbox.stub(Store.fragments.inEdit, 'set').callsFake((val) => {
                                 Store.fragments.inEdit.value = val;
                             });
+                        });
+
+                        afterEach(() => {
+                            Store.profile.set(originalProfile);
+                            Store.users.set(originalUsers);
                         });
 
                         it('confirms delete for non-variation', async () => {

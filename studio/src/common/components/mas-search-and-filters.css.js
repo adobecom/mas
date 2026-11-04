@@ -28,9 +28,30 @@ export const styles = css`
 
     .filters {
         display: flex;
-        gap: 12px;
+        align-items: center;
+        gap: 8px;
         margin-bottom: 8px;
         flex-wrap: wrap;
+    }
+
+    .filters > overlay-trigger > sp-action-button,
+    .filters > aem-tag-picker-field,
+    .filters > mas-user-picker {
+        --mod-actionbutton-background-color-default: var(--spectrum-gray-25);
+        --mod-actionbutton-background-color-hover: var(--spectrum-gray-100);
+        --mod-actionbutton-background-color-down: var(--spectrum-gray-200);
+        --mod-actionbutton-background-color-focus: var(--spectrum-gray-100);
+        --mod-actionbutton-border-color-default: var(--spectrum-gray-300);
+        --mod-actionbutton-border-color-hover: var(--spectrum-gray-400);
+        --mod-actionbutton-border-color-down: var(--spectrum-gray-500);
+        --mod-actionbutton-border-color-focus: var(--spectrum-gray-400);
+        --mod-actionbutton-border-width: 1px;
+        --mod-actionbutton-border-radius: 8px;
+        --mod-actionbutton-content-color-default: var(--spectrum-gray-800);
+    }
+
+    .filters > aem-tag-picker-field {
+        min-height: 0;
     }
 
     sp-action-button {
@@ -44,6 +65,11 @@ export const styles = css`
 
     .filter-popover {
         padding: 12px;
+    }
+
+    .filter-search {
+        margin-bottom: 8px;
+        width: 100%;
     }
 
     .checkbox-list {

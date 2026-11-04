@@ -42,10 +42,14 @@ export const plan = (changed, studioTests) => [
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).split('\n').filter(Boolean);
 
+const hasRef = (ref) => spawnSync('git', ['rev-parse', '--verify', '-q', ref]).status === 0;
+
+/** What to diff against. Pinata clones only the base branch and commits the candidate on it, so there HEAD~1 is the base. */
+export const diffBase = (has) => (has('origin/main') ? 'origin/main' : has('HEAD~1') ? 'HEAD~1' : 'HEAD');
+
 const changedFiles = () => {
-    const base = git('rev-parse', '--verify', '-q', 'origin/main').length
-        ? git('merge-base', 'HEAD', 'origin/main')[0]
-        : 'HEAD';
+    const ref = diffBase(hasRef);
+    const base = ref === 'origin/main' ? git('merge-base', 'HEAD', 'origin/main')[0] : ref;
     return [
         ...new Set([
             ...git('diff', '--name-only', '--diff-filter=d', base),

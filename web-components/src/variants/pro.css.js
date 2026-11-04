@@ -757,6 +757,13 @@ merch-card-collection.plans:is(.one-merch-card, .two-merch-cards, .three-merch-c
         max-width: none;
     }
 
+    /* The Edu card is standalone, often in a section with no gutter, so give it
+       24px per side and keep it centered (MWPW-205283). */
+    merch-card[variant="pro"][size="edu"] {
+        width: calc(100% - 48px);
+        margin-inline: auto;
+    }
+
     /* A collection inside a Milo .section.container inherits its 24px page
        gutter; one dropped straight into a plain section gets none, so the
        now-full-width cards bleed to the viewport edge. Restore the gutter on

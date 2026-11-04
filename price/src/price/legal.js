@@ -20,7 +20,12 @@ const literalKeys = {
     planTypeLabel: 'planTypeLabel',
 };
 
-function renderContainer(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}, displayDot = true) {
+function renderContainer(
+    cssClass,
+    { perUnitLabel, taxInclusivityLabel, planTypeLabel, planTypeSuffix },
+    attributes = {},
+    displayDot = true,
+) {
     let markup = '';
     markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
 
@@ -28,7 +33,9 @@ function renderContainer(cssClass, { perUnitLabel, taxInclusivityLabel, planType
         taxInclusivityLabel += taxInclusivityLabel.endsWith('.') ? ' ' : '. ';
     }
     markup += renderSpan(cssClassNames.taxInclusivity, taxInclusivityLabel, true);
-    markup += renderSpan(cssClassNames.planType, planTypeLabel, null);
+    // The suffix (authored HTML, e.g. a card's Short Description) follows the derived plan type
+    // label but never takes part in the dot decision above.
+    markup += renderSpan(cssClassNames.planType, `${planTypeLabel}${planTypeSuffix}`, null);
 
     return renderSpan(cssClass, markup, {
         ...attributes,
@@ -41,6 +48,8 @@ const legalTemplate = (
         displayPerUnit = false,
         displayTax = false,
         displayPlanType = false,
+        customPlanTypeLabel,
+        planTypeSuffix = '',
         displayDot = true,
         planTypeCase,
         language,
@@ -85,22 +94,27 @@ const legalTemplate = (
     }
 
     let planTypeLabel = '';
-    if (toBoolean(displayPlanType) && planType) {
-        planTypeLabel = formatLiteral(
-            literals,
-            locale,
-            literalKeys.planTypeLabel,
-            {
-                planType,
-            },
-            logger,
-        );
-    }
-
-    if (planTypeLabel && planTypeCase) {
-        planTypeLabel =
-            (planTypeCase === 'lower' ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) +
-            planTypeLabel.slice(1);
+    if (toBoolean(displayPlanType)) {
+        if (customPlanTypeLabel) {
+            // Authored rich text (e.g. a card's Short Description) replaces the
+            // derived wording for any plan type and is rendered as is.
+            planTypeLabel = customPlanTypeLabel;
+        } else if (planType) {
+            planTypeLabel = formatLiteral(
+                literals,
+                locale,
+                literalKeys.planTypeLabel,
+                {
+                    planType,
+                },
+                logger,
+            );
+            if (planTypeLabel && planTypeCase) {
+                planTypeLabel =
+                    (planTypeCase === 'lower' ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) +
+                    planTypeLabel.slice(1);
+            }
+        }
     }
 
     let cssClass = cssClassNames.container;
@@ -112,6 +126,7 @@ const legalTemplate = (
             perUnitLabel,
             taxInclusivityLabel,
             planTypeLabel,
+            planTypeSuffix,
         },
         attributes,
         displayDot,

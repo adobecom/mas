@@ -182,6 +182,11 @@ export const CSS = `
     font-weight: normal;
   }
 
+  /* The Short Description lives in the legal price once it renders there. */
+  merch-card[variant="mini-compare-chart"]:has([slot="heading-m-price"] .price-plan-type em) [slot="body-xxs"] {
+    display: none;
+  }
+
   merch-card[variant="mini-compare-chart"] [slot="promo-text"] {
     font-size: var(--consonant-merch-card-body-m-font-size);
     padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0;

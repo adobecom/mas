@@ -6,7 +6,6 @@ import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-    EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 
@@ -83,28 +82,13 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
 
-        if (this.legalAdjusted && !this.legalObserver) {
-            const legal = this.card.querySelector(
+        if (
+            this.legalAdjusted &&
+            !this.card.querySelector(
                 '[is="inline-price"][data-template="legal"]',
-            );
-            if (legal) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-                this.legalElement = legal;
-                this.legalObserver = new MutationObserver(() =>
-                    this.adjustShortDescription(),
-                );
-                this.legalObserver.observe(legal, {
-                    childList: true,
-                    subtree: true,
-                });
-                this.adjustShortDescription();
-            } else {
-                this.legalAdjusted = false;
-            }
+            )
+        ) {
+            this.legalAdjusted = false;
         }
 
         this.visibilityObserver = new IntersectionObserver(([entry]) => {
@@ -133,16 +117,6 @@ export class MiniCompareChart extends VariantLayout {
             this.updatePriceQuantity,
         );
         this.visibilityObserver?.disconnect();
-        this.legalObserver?.disconnect();
-        this.legalObserver = null;
-        if (this.legalElement && this.legalResolvedHandler) {
-            this.legalElement.removeEventListener(
-                EVENT_TYPE_RESOLVED,
-                this.legalResolvedHandler,
-            );
-            this.legalResolvedHandler = null;
-            this.legalElement = null;
-        }
         if (this.calloutListenersAdded) {
             document.removeEventListener('touchstart', this.handleCalloutTouch);
             document.removeEventListener('mouseover', this.handleCalloutMouse);
@@ -179,6 +153,12 @@ export class MiniCompareChart extends VariantLayout {
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType =
                 this.card?.settings?.displayPlanType ?? false;
+            // The legal price renders the Short Description itself, so it is
+            // never patched in after the price has painted.
+            const { shortDescription } = this;
+            if (shortDescription) {
+                options.planTypeSuffix = `<em> ${shortDescription}</em>`;
+            }
             return;
         }
         // For main price display (strikethrough and regular price)
@@ -633,15 +613,6 @@ export class MiniCompareChart extends VariantLayout {
 
             legal.setAttribute('data-template', 'legal');
 
-            if (!this.legalResolvedHandler) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-                this.legalElement = legal;
-            }
-
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,
@@ -649,20 +620,10 @@ export class MiniCompareChart extends VariantLayout {
             this.legalAdjusted = true;
 
             await legal.onceSettled();
-
-            this.legalObserver = new MutationObserver(() =>
-                this.adjustShortDescription(),
-            );
-            this.legalObserver.observe(legal, {
-                childList: true,
-                subtree: true,
-            });
         } catch {
             if (legal?.parentNode) {
                 legal.parentNode.removeChild(legal);
                 this.legalAdjusted = false;
-                this.legalResolvedHandler = null;
-                this.legalElement = null;
             }
         } finally {
             this.legalAdjusting = false;
@@ -691,51 +652,42 @@ export class MiniCompareChart extends VariantLayout {
         return fallbackLegal.querySelector('.price-plan-type');
     }
 
+    // Authored Short Description, read in place so the legal price can render
+    // it on every (re)render without the card ever detaching it.
+    get shortDescription() {
+        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
+        if (!bodyXxs) return '';
+        const hasContent =
+            bodyXxs.textContent.trim() || bodyXxs.querySelector('.icon-button');
+        return hasContent ? bodyXxs.innerHTML : '';
+    }
+
+    // A legal price renders the Short Description itself (see
+    // priceOptionsProvider). Only when there is no legal price at all (no
+    // price, or it failed to resolve) is the stand-in used, so the text still
+    // shows in the usual legal position. Once a legal price exists, the
+    // stand-in is discarded.
     adjustShortDescription() {
+        if (this.legalAdjusting) return;
         const legalPrice = this.card.querySelector(
             '[is="inline-price"][data-template="legal"]',
         );
-        const realPlanType = legalPrice?.querySelector('.price-plan-type');
         const fallbackLegal = this.headingMPriceSlot?.querySelector(
             '.price-legal[data-fallback]',
         );
-        const fallbackPlanType =
-            fallbackLegal?.querySelector('.price-plan-type');
-
-        // A real legal price is now available — migrate any content
-        // already parked on the fallback stand-in over to it (bodyXxs is
-        // already gone by this point), then discard the fallback.
-        if (realPlanType && fallbackPlanType) {
-            const fallbackEm = fallbackPlanType.querySelector('em');
-            if (fallbackEm && !realPlanType.querySelector('em')) {
-                realPlanType.appendChild(fallbackEm);
-            }
-            fallbackLegal.remove();
+        if (legalPrice) {
+            fallbackLegal?.remove();
+            return;
         }
 
-        // Query fresh each time rather than only relying on a cached node:
-        // the card can re-render body-xxs (e.g. once the price resolves and
-        // the legal price is (re)cloned). The extracted HTML is cached
-        // separately (see below) since adjustLegal() can race and produce a
-        // second legal price clone after body-xxs has already been removed —
-        // without the cache, that second clone would never get populated.
-        const bodyXxs = this.card.querySelector('[slot="body-xxs"]');
-        if (bodyXxs) {
-            const text = bodyXxs.textContent?.trim();
-            const hasIconButton = !!bodyXxs.querySelector('.icon-button');
-            if (text || hasIconButton) {
-                this.shortDescriptionHTML = bodyXxs.innerHTML;
-                bodyXxs.remove();
-            }
-        }
-        if (!this.shortDescriptionHTML) return;
+        const { shortDescription } = this;
+        if (!shortDescription) return;
 
-        const planType = realPlanType ?? this.getOrCreateFallbackPlanType();
-        if (!planType) return;
-        if (planType.querySelector('em')) return;
+        const planType = this.getOrCreateFallbackPlanType();
+        if (!planType || planType.querySelector('em')) return;
 
         const em = document.createElement('em');
-        em.innerHTML = ` ${this.shortDescriptionHTML}`;
+        em.innerHTML = ` ${shortDescription}`;
         planType.appendChild(em);
     }
 

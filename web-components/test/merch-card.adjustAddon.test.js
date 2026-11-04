@@ -243,64 +243,39 @@ describe('MiniCompareChart.adjustShortDescription', () => {
     });
 
     it('does nothing when shortDescription has no text and no icon-button', () => {
-        const planType = document.createElement('span');
+        const headingMPriceSlot = document.createElement('p');
         const bodyXxs = document.createElement('div');
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
-        layout.adjustShortDescription();
-        expect(planType.querySelector('em')).to.be.null;
+        bodyXxs.innerHTML = '<p> </p>';
+        makeLayout({
+            bodyXxs,
+            planType: null,
+            headingMPriceSlot,
+        }).adjustShortDescription();
+        expect(headingMPriceSlot.querySelector('.price-legal')).to.be.null;
     });
 
-    it('appends text into .price-plan-type as an <em>', () => {
+    it('leaves the short description to the legal price and keeps body-xxs in place', () => {
         const planType = document.createElement('span');
         const bodyXxs = document.createElement('div');
         bodyXxs.innerHTML = '<p>Great value</p>';
-        bodyXxs.remove = () => {};
         const layout = makeLayout({ bodyXxs, planType });
         layout.adjustShortDescription();
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.textContent).to.include('Great value');
+        expect(planType.querySelector('em')).to.be.null;
+        expect(bodyXxs.innerHTML).to.equal('<p>Great value</p>');
     });
 
-    it('preserves icon-button HTML when appending to .price-plan-type', () => {
-        const planType = document.createElement('span');
+    it('does not build a stand-in while the legal price is being adjusted', () => {
+        const headingMPriceSlot = document.createElement('p');
         const bodyXxs = document.createElement('div');
-        bodyXxs.innerHTML =
-            '<p>See details <span class="icon-button" data-tooltip="More info"></span></p>';
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
+        bodyXxs.innerHTML = '<p>Fee applies</p>';
+        const layout = makeLayout({
+            bodyXxs,
+            planType: null,
+            headingMPriceSlot,
+        });
+        layout.legalAdjusting = true;
         layout.adjustShortDescription();
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.querySelector('.icon-button')).to.exist;
-        expect(em.querySelector('.icon-button').dataset.tooltip).to.equal(
-            'More info',
-        );
-    });
-
-    it('appends icon-button even when there is no text content', () => {
-        const planType = document.createElement('span');
-        const bodyXxs = document.createElement('div');
-        bodyXxs.innerHTML =
-            '<p><span class="icon-button" data-tooltip="Info"></span></p>';
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
-        layout.adjustShortDescription();
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.querySelector('.icon-button')).to.exist;
-    });
-
-    it('does not append twice when called a second time', () => {
-        const planType = document.createElement('span');
-        const bodyXxs = document.createElement('div');
-        bodyXxs.innerHTML = '<p>Stock</p>';
-        bodyXxs.remove = () => {};
-        const layout = makeLayout({ bodyXxs, planType });
-        layout.adjustShortDescription();
-        layout.adjustShortDescription();
-        expect(planType.querySelectorAll('em').length).to.equal(1);
+        expect(headingMPriceSlot.querySelector('.price-legal')).to.be.null;
     });
 
     it('builds a fallback price-plan-type when there is no legal price', () => {
@@ -324,6 +299,25 @@ describe('MiniCompareChart.adjustShortDescription', () => {
         );
     });
 
+    it('preserves icon-button HTML in the fallback, even without text content', () => {
+        const headingMPriceSlot = document.createElement('p');
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML =
+            '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        const layout = makeLayout({
+            bodyXxs,
+            planType: null,
+            headingMPriceSlot,
+        });
+        layout.adjustShortDescription();
+        const em = headingMPriceSlot.querySelector(
+            '.price-legal[data-fallback] em',
+        );
+        expect(em.querySelector('.icon-button').dataset.tooltip).to.equal(
+            'Info',
+        );
+    });
+
     it('reuses the existing fallback instead of creating a second one', () => {
         const headingMPriceSlot = document.createElement('p');
         const bodyXxs = document.createElement('div');
@@ -339,6 +333,7 @@ describe('MiniCompareChart.adjustShortDescription', () => {
             headingMPriceSlot.querySelectorAll('.price-legal[data-fallback]')
                 .length,
         ).to.equal(1);
+        expect(headingMPriceSlot.querySelectorAll('em').length).to.equal(1);
     });
 
     it('does nothing and does not throw when there is no heading-m-price slot to anchor a fallback', () => {
@@ -349,7 +344,7 @@ describe('MiniCompareChart.adjustShortDescription', () => {
         expect(bodyXxs.querySelector('em')).to.be.null;
     });
 
-    it('migrates short description from the fallback to a real legal price once it resolves', () => {
+    it('discards the fallback once a legal price exists, which renders the short description itself', () => {
         const headingMPriceSlot = document.createElement('p');
         const bodyXxs = document.createElement('div');
         bodyXxs.innerHTML = '<p>Fee applies</p>';
@@ -383,8 +378,45 @@ describe('MiniCompareChart.adjustShortDescription', () => {
 
         expect(headingMPriceSlot.querySelector('.price-legal[data-fallback]'))
             .to.be.null;
-        const em = planType.querySelector('em');
-        expect(em).to.exist;
-        expect(em.textContent).to.include('Fee applies');
+        expect(planType.querySelector('em')).to.be.null;
+        expect(bodyXxs.innerHTML).to.equal('<p>Fee applies</p>');
+    });
+});
+
+// ── MiniCompareChart.shortDescription ─────────────────────────────────────────
+
+describe('MiniCompareChart.shortDescription', () => {
+    function layoutWith(bodyXxs) {
+        const layout = Object.create(MiniCompareChart.prototype);
+        layout.card = { querySelector: () => bodyXxs };
+        return layout;
+    }
+
+    it('is empty when there is no [slot="body-xxs"]', () => {
+        expect(layoutWith(null).shortDescription).to.equal('');
+    });
+
+    it('is empty when it has no text and no icon-button', () => {
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>  </p>';
+        expect(layoutWith(bodyXxs).shortDescription).to.equal('');
+    });
+
+    it('returns the authored markup, read in place', () => {
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML = '<p>See <b>details</b></p>';
+        const layout = layoutWith(bodyXxs);
+        expect(layout.shortDescription).to.equal('<p>See <b>details</b></p>');
+        expect(bodyXxs.isConnected).to.be.false;
+        expect(bodyXxs.innerHTML).to.equal('<p>See <b>details</b></p>');
+    });
+
+    it('counts an icon-button as content even without text', () => {
+        const bodyXxs = document.createElement('div');
+        bodyXxs.innerHTML =
+            '<p><span class="icon-button" data-tooltip="Info"></span></p>';
+        expect(layoutWith(bodyXxs).shortDescription).to.include(
+            'data-tooltip="Info"',
+        );
     });
 });

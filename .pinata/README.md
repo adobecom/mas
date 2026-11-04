@@ -15,7 +15,7 @@ ecosystem package.
 | `preview.yaml`                       | Preview startup, test surfaces, and authentication requirements.                                       |
 | `pr.yaml`                            | Jira-first branch names and MAS before/after links.                                                    |
 | `scripts/check-contract.py`          | Configuration and model-reference checks.                                                              |
-| `scripts/check-dist-sync.sh`         | Rebuild and detect stale web-component bundles/docs.                                                   |
+| `scripts/check-dist-sync.sh`         | Rebuild web-component bundles/docs (no drift check).                                                   |
 | `scripts/test-preview-supervisor.sh` | Isolated tests of preview startup and cleanup.                                                         |
 | `scripts/test_contract.py`           | Offline checks for ownership references, IO review policy, and preview mappings.                       |
 

@@ -511,7 +511,11 @@ describe('cleanup-variations/index.js', () => {
                     return match ? match[1] : null;
                 }),
             );
-            expect(surfacesTouched.size).to.equal(10);
+            // all 13 surfaces in DEFAULT_LOCALES should appear at least once
+            expect(surfacesTouched.size).to.equal(13);
+            expect(surfacesTouched).to.include('genuine');
+            expect(surfacesTouched).to.include('dalp');
+            expect(surfacesTouched).to.include('elements');
             expect(surfacesTouched).to.include('acom');
             expect(surfacesTouched).to.include('acom-edu');
             expect(surfacesTouched).to.include('ccd');

@@ -20,7 +20,12 @@ const literalKeys = {
     planTypeLabel: 'planTypeLabel',
 };
 
-function renderContainer(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}, displayDot = true) {
+function renderContainer(
+    cssClass,
+    { perUnitLabel, taxInclusivityLabel, planTypeLabel, planTypeSuffix },
+    attributes = {},
+    displayDot = true,
+) {
     let markup = '';
     markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
 
@@ -28,7 +33,9 @@ function renderContainer(cssClass, { perUnitLabel, taxInclusivityLabel, planType
         taxInclusivityLabel += taxInclusivityLabel.endsWith('.') ? ' ' : '. ';
     }
     markup += renderSpan(cssClassNames.taxInclusivity, taxInclusivityLabel, true);
-    markup += renderSpan(cssClassNames.planType, planTypeLabel, null);
+    // The suffix (authored HTML, e.g. a card's Short Description) follows the derived plan type
+    // label but never takes part in the dot decision above.
+    markup += renderSpan(cssClassNames.planType, `${planTypeLabel}${planTypeSuffix}`, null);
 
     return renderSpan(cssClass, markup, {
         ...attributes,
@@ -42,6 +49,7 @@ const legalTemplate = (
         displayTax = false,
         displayPlanType = false,
         customPlanTypeLabel,
+        planTypeSuffix = '',
         displayDot = true,
         planTypeCase,
         language,
@@ -118,6 +126,7 @@ const legalTemplate = (
             perUnitLabel,
             taxInclusivityLabel,
             planTypeLabel,
+            planTypeSuffix,
         },
         attributes,
         displayDot,

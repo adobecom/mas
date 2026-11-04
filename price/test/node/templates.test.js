@@ -216,3 +216,47 @@ describe('legal template custom plan type label', () => {
         assert.equal(legalTemplate({ ...options, customPlanTypeLabel: '' }, vat), literal);
     });
 });
+
+describe('legal template plan type suffix', () => {
+    const suffix =
+        '<em> Fee applies if you cancel after 14 days. <span class="icon-button" data-tooltip="Details"></span></em>';
+    const vat = { taxDisplay: 'TAX_INCLUSIVE_DETAILS', taxTerm: 'VAT', planType: 'ABM' };
+    const options = {
+        country: 'CH',
+        language: 'en',
+        displayTax: true,
+        literals: { taxInclusiveLabel: 'incl. VAT', planTypeLabel: 'Annual, billed monthly' },
+    };
+    const planTypeOf = (html) => html.match(/<span class="price-plan-type[^"]*">(.*?)<\/span><\/span>$/)[1];
+
+    it('renders after the derived plan type label', () => {
+        const actual = legalTemplate({ ...options, displayPlanType: true, planTypeSuffix: suffix }, vat);
+        assert.equal(planTypeOf(actual), `Annual, billed monthly${suffix}`);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT\. <\/span>/);
+    });
+    it('renders on its own when the plan type line is off, without the tax dot', () => {
+        const actual = legalTemplate({ ...options, displayPlanType: false, planTypeSuffix: suffix }, vat);
+        assert.equal(planTypeOf(actual), suffix);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT<\/span>/);
+        assert.match(actual, /<span class="price-plan-type">/);
+    });
+    it('renders when there is no derived plan type label', () => {
+        const actual = legalTemplate(
+            { ...options, displayPlanType: true, planTypeSuffix: suffix },
+            { ...vat, planType: undefined },
+        );
+        assert.equal(planTypeOf(actual), suffix);
+    });
+    it('is rendered after a custom plan type label', () => {
+        const actual = legalTemplate(
+            { ...options, displayPlanType: true, customPlanTypeLabel: '<em>custom</em>', planTypeSuffix: suffix },
+            vat,
+        );
+        assert.equal(planTypeOf(actual), `<em>custom</em>${suffix}`);
+    });
+    it('keeps the plan type line disabled when absent or empty', () => {
+        const without = legalTemplate({ ...options, displayPlanType: false }, vat);
+        assert.match(without, /<span class="price-plan-type disabled"><\/span>/);
+        assert.equal(legalTemplate({ ...options, displayPlanType: false, planTypeSuffix: '' }, vat), without);
+    });
+});

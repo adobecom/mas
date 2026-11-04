@@ -513,11 +513,16 @@ runTests(async () => {
             }
         });
 
-        it('adjustLegal sets up MutationObserver on the legal element', async () => {
+        it('adjustLegal does not patch the legal after it resolved', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
+                const legal = card.querySelector(
+                    '[is="inline-price"][data-template="legal"]',
+                );
                 const variantLayout = card.variantLayout;
-                expect(variantLayout.legalObserver).to.not.be.null;
+                expect(variantLayout.legalObserver).to.be.undefined;
+                expect(variantLayout.legalResolvedHandler).to.be.undefined;
+                expect(legal.querySelectorAll('em').length).to.equal(1);
             } finally {
                 mount.remove();
             }
@@ -575,36 +580,26 @@ runTests(async () => {
             }
         });
 
-        it('disconnectedCallbackHook disconnects and nulls legalObserver', async () => {
-            const { card, mount } = await mountCardWithEtf();
-            try {
-                const variantLayout = card.variantLayout;
-                expect(variantLayout.legalObserver).to.not.be.null;
-
-                variantLayout.disconnectedCallbackHook();
-
-                expect(variantLayout.legalObserver).to.be.null;
-            } finally {
-                mount.remove();
-            }
-        });
-
-        it('connectedCallbackHook recovery restores legalObserver after card re-insertion', async () => {
-            const { card, mount } = await mountCardWithEtf();
+        it('keeps the short description in the legal price across card removal and re-insertion', async () => {
+            const { card, mount } = await mountCardWithEtf('Fee applies');
             try {
                 const variantLayout = card.variantLayout;
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.removeChild(card);
                 await card.updateComplete;
-
-                expect(variantLayout.legalObserver).to.be.null;
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.appendChild(card);
                 await card.checkReady();
 
-                expect(variantLayout.legalObserver).to.not.be.null;
+                const planType = card.querySelector(
+                    '[is="inline-price"][data-template="legal"] .price-plan-type',
+                );
+                expect(planType.querySelectorAll('em').length).to.equal(1);
+                expect(planType.querySelector('em').textContent).to.include(
+                    'Fee applies',
+                );
             } finally {
                 mount.remove();
             }

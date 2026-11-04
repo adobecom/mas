@@ -7,6 +7,7 @@ import { getSurfaceLocales, getLocaleCode } from '../../io/www/src/fragment/loca
 
 const opts = { bucket: 'b', surface: 'sandbox', accessToken: 'tok', apiKey: 'key' };
 const allLocales = getSurfaceLocales('sandbox').map(getLocaleCode);
+const projectFolders = ['translations', 'bulk-publish-projects'];
 
 function makeFetch(listHits) {
     const posted = [];
@@ -27,7 +28,7 @@ test('dry-run: no POST requests', async () => {
 });
 
 test('all folders exist: no POST requests', async () => {
-    const posted = makeFetch({ hits: allLocales.map((name) => ({ name })) });
+    const posted = makeFetch({ hits: [...allLocales, ...projectFolders].map((name) => ({ name })) });
     await run(opts);
     assert.equal(posted.length, 0);
 });
@@ -36,7 +37,7 @@ test('missing folders are POSTed', async () => {
     const posted = makeFetch(folderListHits);
     await run(opts);
     const postedLocales = posted.map((b) => b.path.split('/').pop()).sort();
-    const expected = allLocales.filter((l) => !existingFolders.includes(l)).sort();
+    const expected = [...allLocales.filter((l) => !existingFolders.includes(l)), ...projectFolders].sort();
     assert.deepEqual(postedLocales, expected);
 });
 

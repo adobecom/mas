@@ -4,6 +4,8 @@ import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const WORKSPACES = ['web-components', 'io/studio', 'io/operations', 'ost', 'scripts/content', 'price'];
+// Own npm projects, outside the root workspaces that provisioning installs.
+const STANDALONE = ['io/www'];
 const STUDIO_TEST = /^studio\/test\/.*\.test\.(js|html)$/;
 const STUDIO_SRC = /^studio\/src\/.*\.js$/;
 const WTR = ['npx', 'wtr', '--config', './web-test-runner.config.mjs'];
@@ -26,22 +28,16 @@ const studioCommands = (changed, studioTests) => {
     return tests.length ? [nodeTests, { argv: [...WTR, '--files', ...tests], cwd: 'studio' }] : [nodeTests];
 };
 
-// io/www is its own npm project, outside the root workspaces that provisioning installs.
-const ioWwwCommands = (changed) =>
-    changed.some((f) => f.startsWith('io/www/'))
-        ? [
-              { argv: ['npm', 'ci'], cwd: 'io/www' },
-              { argv: ['npm', 'run', 'test:ci'], cwd: 'io/www' },
-          ]
-        : [];
-
 /** Commands that test what `changed` (repo-relative paths) touches. `studioTests` maps studio test paths to their source. */
 export const plan = (changed, studioTests) => [
     ...WORKSPACES.filter((ws) => changed.some((f) => f.startsWith(`${ws}/`))).map((ws) => ({
         argv: ['npm', 'run', 'test:ci', '-w', ws],
     })),
     ...studioCommands(changed, studioTests),
-    ...ioWwwCommands(changed),
+    ...STANDALONE.filter((dir) => changed.some((f) => f.startsWith(`${dir}/`))).flatMap((cwd) => [
+        { argv: ['npm', 'ci'], cwd },
+        { argv: ['npm', 'run', 'test:ci'], cwd },
+    ]),
 ];
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).split('\n').filter(Boolean);

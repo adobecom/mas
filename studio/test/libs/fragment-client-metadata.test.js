@@ -1,5 +1,12 @@
 import { expect } from '@esm-bundle/chai';
-import { clearCaches, DEFAULT_CONTEXT, loadRequestMetadata, saveRequestMetadata } from '../../libs/fragment-client.js';
+import sinon from 'sinon';
+import {
+    clearCaches,
+    DEFAULT_CONTEXT,
+    loadRequestMetadata,
+    previewFragmentContext,
+    saveRequestMetadata,
+} from '../../libs/fragment-client.js';
 
 const context = { ...DEFAULT_CONTEXT, id: 'nala-metadata-test', locale: 'en_US', country: 'US' };
 const renderedContext = {
@@ -64,5 +71,29 @@ describe('fragment-client request metadata', () => {
         clearCaches();
         expect(localStorage.getItem('req-nala-metadata-test-en_US-US')).to.equal(null);
         expect(localStorage.getItem('unrelated-key')).to.equal('keep');
+    });
+});
+
+describe('fragment-client context preview', () => {
+    beforeEach(() => localStorage.clear());
+    afterEach(() => {
+        sinon.restore();
+        localStorage.clear();
+    });
+
+    it('leaves request metadata for the full preview to write', async () => {
+        sinon.stub(window, 'fetch').callsFake(
+            async () =>
+                new Response(
+                    JSON.stringify({ id: 'context-test', path: '/content/dam/mas/acom/en_US/context-test', fields: [] }),
+                    {
+                        status: 200,
+                        headers: { 'content-type': 'application/json' },
+                    },
+                ),
+        );
+        const context = await previewFragmentContext('context-test', { locale: 'en_US', country: 'US' });
+        expect(context.status).to.equal(200);
+        expect(Object.keys(localStorage).filter((key) => key.startsWith('req-'))).to.deep.equal([]);
     });
 });

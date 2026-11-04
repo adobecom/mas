@@ -157,7 +157,8 @@ async function previewFragment(id, options, pipeline = PIPELINE) {
         const { message } = context;
         logError(message, context);
         context.body = { message };
-    } else {
+    } else if (pipeline === PIPELINE) {
+        // A partial pipeline resolves only some fragment ids; saving them would keep the full run's ids out of the cache.
         await saveRequestMetadata(context, requestKey, cachedMetadata);
     }
     return options.fullContext ? context : context.body;

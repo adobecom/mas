@@ -7,6 +7,7 @@ import '../src/merch-card-collection.js';
 import {
     EVENT_MERCH_CARD_QUANTITY_CHANGE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+    EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
@@ -1293,9 +1294,13 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
         const legal = await renderPricedCard(SHORT_DESCRIPTION);
         const host = document.createElement('div');
         document.body.append(host);
+        const reRendered = new Promise((resolve) =>
+            legal.addEventListener(EVENT_TYPE_RESOLVED, resolve, {
+                once: true,
+            }),
+        );
         host.append(card);
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        await legal.onceSettled();
+        await reRendered;
         expectAuthoredLegal(legal);
         host.remove();
     });

@@ -24,6 +24,7 @@ const SYNCED_HEIGHT_NAMES = [
     'heading-xs',
     'subtitle',
     'heading-m-price',
+    'callout-content',
     'quantity-select',
     'promo-text',
     'body-m',
@@ -36,6 +37,11 @@ export const MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING = {
     title: { tag: 'h3', slot: 'heading-xs' },
     subtitle: { tag: 'p', slot: 'subtitle' },
     prices: { tag: 'p', slot: 'heading-m-price' },
+    callout: {
+        tag: 'div',
+        slot: 'callout-content',
+        editorLabel: 'Legal Disclaimer',
+    },
     promoText: { tag: 'div', slot: 'promo-text' },
     quantitySelect: { tag: 'div', slot: 'quantity-select' },
     shortDescription: { tag: 'div', slot: 'body-m' },
@@ -147,6 +153,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             'heading-xs',
             'subtitle',
             'heading-m-price',
+            'callout-content',
             'quantity-select',
             'promo-text',
             'body-m',
@@ -167,8 +174,9 @@ export class MiniCompareChartMweb extends VariantLayout {
         if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
 
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-            options.displayPlanType =
-                this.card?.settings?.displayPlanType ?? false;
+            options.displayPlanType = this.hasLegalDisclaimer
+                ? false
+                : (this.card?.settings?.displayPlanType ?? false);
             return;
         }
         // For main price display (strikethrough and regular price)
@@ -308,6 +316,12 @@ export class MiniCompareChartMweb extends VariantLayout {
         );
     }
 
+    get hasLegalDisclaimer() {
+        return !!this.card
+            .querySelector('[slot="callout-content"]')
+            ?.textContent.trim();
+    }
+
     async adjustLegal() {
         if (this.legalAdjusted) return;
 
@@ -371,6 +385,13 @@ export class MiniCompareChartMweb extends VariantLayout {
                     <div class="price-wrapping">
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
+                        <div class="legal-disclaimer">
+                            <slot
+                                name="callout-content"
+                                ?hidden=${!this.hasLegalDisclaimer}
+                                @slotchange=${() => this.card.requestUpdate()}
+                            ></slot>
+                        </div>
                     </div>
                     <slot name="promo-text"></slot>
                     <slot name="body-m"></slot>
@@ -440,6 +461,11 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     static variantStyle = css`
+        :host([variant='mini-compare-chart-mweb'])
+            slot[name='callout-content'][hidden] {
+            display: none;
+        }
+
         :host([variant='mini-compare-chart-mweb'])
             .body-main
             > .price-wrapping {
@@ -535,6 +561,13 @@ export class MiniCompareChartMweb extends VariantLayout {
         }
 
         @media screen and ${unsafeCSS(TABLET_UP)} {
+            :host([variant='mini-compare-chart-mweb']) .legal-disclaimer {
+                min-height: var(
+                    --consonant-merch-card-mini-compare-chart-mweb-callout-content-height,
+                    0px
+                );
+            }
+
             :host([variant='mini-compare-chart-mweb'])
                 .price-wrapping
                 > slot[name='subtitle'] {
@@ -597,12 +630,6 @@ export class MiniCompareChartMweb extends VariantLayout {
             ::slotted([slot='quantity-select']) {
             min-height: var(
                 --consonant-merch-card-mini-compare-chart-mweb-quantity-select-height
-            );
-        }
-        :host([variant='mini-compare-chart-mweb'])
-            ::slotted([slot='callout-content']) {
-            min-height: var(
-                --consonant-merch-card-mini-compare-chart-mweb-callout-content-height
             );
         }
         :host([variant='mini-compare-chart-mweb'])

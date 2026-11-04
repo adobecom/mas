@@ -134,7 +134,24 @@ export const CSS = `
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [slot="callout-content"] {
-    padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-s) 0px;
+    display: block;
+    margin: 0;
+    padding: 0;
+    color: var(--spectrum-gray-700, #505050);
+    font-size: var(--consonant-merch-card-body-xs-font-size);
+    font-style: italic;
+    font-weight: 400;
+    line-height: var(--consonant-merch-card-body-xs-line-height);
+    overflow-wrap: anywhere;
+  }
+
+  merch-card[variant="mini-compare-chart-mweb"] [slot="callout-content"] p {
+    background: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+    width: auto;
+    font: inherit;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [slot="body-m"] {
@@ -482,11 +499,6 @@ merch-card[variant="mini-compare-chart-mweb"] [slot="body-xs"] {
 
 merch-card[variant="mini-compare-chart-mweb"] [slot="body-m"] p:has(+ p) {
   margin-bottom: 8px;
-}
-
-merch-card[variant="mini-compare-chart-mweb"] [slot="callout-content"] {
-  padding: var(--consonant-merch-spacing-xs) var(--consonant-merch-spacing-xs) 0px;
-  margin: 0;
 }
 
 merch-card[variant="mini-compare-chart-mweb"] [slot="callout-content"] > div > div {

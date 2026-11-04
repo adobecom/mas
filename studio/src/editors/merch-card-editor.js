@@ -16,7 +16,7 @@ import { HEADLESS_STYLE_CTA_VARIANTS } from '../../../web-components/src/constan
 import '../fields/secure-text-field.js';
 import '../fields/plan-type-field.js';
 import '../fields/quantity-select-settings-field.js';
-import { extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
+import { deepEquals, extractImageUrl, getFragmentMapping, showToast } from '../utils.js';
 import {
     buildPictureInnerMarkup as buildPictureHtml,
     extractImageDimensions,
@@ -2352,26 +2352,51 @@ class MerchCardEditor extends LitElement {
         const values = this.getEffectiveFieldValues('customFields') || [];
         const labels = this.getEffectiveFieldValues('customFieldLabels') || [];
         const count = Math.max(values.length, labels.length);
-        const savedLabels = this.#savedCustomFieldLabels;
-        const namedLabels = new Set(savedLabels.filter(Boolean));
-        let unnamedCount = savedLabels.filter((label) => !label).length;
+        const saved = this.#customFieldSavedFlags(values, labels);
         return Array.from({ length: count }, (_, i) => {
             const item = {};
             if (values[i]) item.value = values[i];
             if (labels[i]) item.label = labels[i];
-            if (namedLabels.has(labels[i]) || unnamedCount-- > 0) item.saved = true;
+            if (saved[i]) item.saved = true;
             return item;
         });
     }
 
-    get #savedCustomFieldLabels() {
-        const saved = new Fragment(this.fragment.initialValue);
-        const read = (name) => saved.getEffectiveFieldValues(name, this.localeDefaultFragment, this.effectiveIsVariation);
+    #customFieldSnapshot;
+    #customFieldFlags;
+
+    #customFieldSavedFlags(values, labels) {
+        const remembered = this.#customFieldFlags;
+        if (
+            remembered?.initialValue === this.fragment.initialValue &&
+            deepEquals(remembered.values, values) &&
+            deepEquals(remembered.labels, labels)
+        )
+            return remembered.flags;
+        const remaining = [...this.#savedCustomFieldRows];
+        return [...Array(Math.max(values.length, labels.length)).keys()].map((i) => {
+            const label = labels[i] || '';
+            const index = remaining.findIndex((row) => (row.label ? row.label === label : !label && row.value === values[i]));
+            if (index === -1) return false;
+            remaining.splice(index, 1);
+            return true;
+        });
+    }
+
+    get #savedCustomFieldRows() {
+        const { initialValue } = this.fragment;
+        const parent = this.localeDefaultFragment;
+        const cached = this.#customFieldSnapshot;
+        if (cached?.initialValue === initialValue && cached.parent === parent) return cached.rows;
+        const saved = new Fragment(initialValue);
+        const read = (name) => saved.getEffectiveFieldValues(name, parent, this.effectiveIsVariation);
         const values = read('customFields');
         const labels = read('customFieldLabels');
-        return [...Array(Math.max(values.length, labels.length)).keys()]
+        const rows = [...Array(Math.max(values.length, labels.length)).keys()]
             .filter((i) => labels[i] || values[i])
-            .map((i) => labels[i] || '');
+            .map((i) => ({ label: labels[i] || '', value: values[i] || '' }));
+        this.#customFieldSnapshot = { initialValue, parent, rows };
+        return rows;
     }
 
     get footerRows() {
@@ -2426,6 +2451,12 @@ class MerchCardEditor extends LitElement {
         }
         this.fragmentStore.updateField('customFields', values);
         this.fragmentStore.updateField('customFieldLabels', labels);
+        this.#customFieldFlags = {
+            initialValue: this.fragment.initialValue,
+            values: this.getEffectiveFieldValues('customFields') || [],
+            labels: this.getEffectiveFieldValues('customFieldLabels') || [],
+            flags: items.map((item) => Boolean(item.saved)),
+        };
     };
 
     #updateFooterRows(event) {

@@ -1,0 +1,119 @@
+name: Heal Dist Conflicts
+
+# GitHub ignores the merge=ours driver in .gitattributes, so open PRs conflict on
+# web-components/dist whenever their base gets a new dist. Merge the base into each
+# such PR with the driver on, rebuild dist from the merged source, and push.
+on:
+    push:
+        branches: [main, rcp-main]
+        paths:
+            - 'web-components/dist/**'
+    workflow_dispatch:
+        inputs:
+            base:
+                description: Base branch whose open PRs to heal
+                required: true
+                default: main
+
+concurrency:
+    group: ${{ github.workflow }}-${{ inputs.base || github.ref_name }}
+    cancel-in-progress: false
+
+jobs:
+    heal:
+        name: Heal PRs into ${{ inputs.base || github.ref_name }}
+        runs-on: ubuntu-latest
+        timeout-minutes: 60
+        permissions:
+            contents: write
+            pull-requests: read
+            actions: write
+        env:
+            BASE: ${{ inputs.base || github.ref_name }}
+            GH_TOKEN: ${{ github.token }}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ inputs.base || github.ref_name }}
+                  fetch-depth: 0
+                  # GITHUB_TOKEN pushes don't trigger workflows, so required checks never run on the bot commit.
+                  token: ${{ secrets.DIST_BOT_TOKEN || github.token }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+                  cache: 'npm'
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Find PRs that conflict
+              run: |
+                  q='[.[] | select((.isCrossRepository | not) and any(.files[].path; startswith("web-components/dist/")))]'
+                  # GitHub computes mergeability lazily, so wait until no PR is UNKNOWN.
+                  for _ in $(seq 12); do
+                    prs=$(gh pr list --base "$BASE" --state open --limit 200 \
+                      --json number,headRefName,mergeable,isCrossRepository,files --jq "$q")
+                    [ "$(jq '[.[] | select(.mergeable == "UNKNOWN")] | length' <<< "$prs")" = 0 ] && break
+                    sleep 10
+                  done
+                  jq -r '.[] | select(.mergeable == "CONFLICTING") | "\(.number) \(.headRefName)"' <<< "$prs" > "$RUNNER_TEMP/prs.txt"
+                  echo "Conflicting PRs into $BASE:"
+                  cat "$RUNNER_TEMP/prs.txt"
+
+            - name: Merge base, rebuild dist, push
+              id: heal
+              run: |
+                  git config user.name mas-bot
+                  git config user.email mas-bot@users.noreply.github.com
+                  git config merge.ours.driver true
+                  # Branches cut before .gitattributes existed would still conflict without this.
+                  attrs=$(git rev-parse --git-path info/attributes)
+                  mkdir -p "$(dirname "$attrs")"
+                  echo 'web-components/dist/** merge=ours' >> "$attrs"
+                  shas=()
+                  while read -r n head; do
+                    git checkout -q -f -B "$head" "origin/$head"
+                    if ! git merge -q --no-edit "origin/$BASE"; then
+                      git merge --abort || true
+                      echo "::warning::#$n conflicts outside dist, skipped"
+                      continue
+                    fi
+                    # shortcut: builds with the base's node_modules. If the PR changed deps, its own CI rebuilds dist once more.
+                    if ! (cd web-components && npm run build:bundle && npm run build:docs); then
+                      echo "::warning::#$n build failed, skipped"
+                      continue
+                    fi
+                    git add -A web-components/dist
+                    git add -u web-components/docs
+                    git diff --cached --quiet || git commit -q -m "chore: build dist"
+                    if git push -q origin "$head"; then
+                      echo "healed #$n"
+                      shas+=("$(git rev-parse HEAD)")
+                    else
+                      echo "::warning::#$n push failed, skipped"
+                    fi
+                  done < "$RUNNER_TEMP/prs.txt"
+                  echo "shas=${shas[*]}" >> "$GITHUB_OUTPUT"
+
+            # GITHUB_TOKEN pushes start PR runs in approval-required state. Same approach as web-components-pr.yaml.
+            - name: Approve runs on bot commits
+              if: steps.heal.outputs.shas != ''
+              env:
+                  SHAS: ${{ steps.heal.outputs.shas }}
+              run: |
+                  q='.workflow_runs[] | select(.conclusion == "action_required") | .id'
+                  for sha in $SHAS; do
+                    for _ in $(seq 24); do
+                      [ -n "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha" -q "$q")" ] && break
+                      sleep 5
+                    done
+                    # Runs are created in a burst, not at once. Let the rest land before approving.
+                    sleep 5
+                    for id in $(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$sha" -q "$q"); do
+                      gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" > /dev/null && echo "approved $id"
+                    done
+                  done

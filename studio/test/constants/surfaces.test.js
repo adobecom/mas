@@ -19,6 +19,22 @@ describe('surfaces', () => {
         });
     });
 
+    describe('SURFACES.DALP and SURFACES.ELEMENTS', () => {
+        it('are registered with the expected names and labels', () => {
+            expect(SURFACES.DALP).to.deep.equal({ label: 'DALP', name: 'dalp' });
+            expect(SURFACES.ELEMENTS).to.deep.equal({ label: 'Elements', name: 'elements' });
+        });
+    });
+
+    it('inherits the ACOM locale set for genuine, acom-edu, dalp and elements', () => {
+        const acomLocales = getSurfaceLocales(SURFACES.ACOM.name);
+        for (const surface of [SURFACES.GENUINE, SURFACES.ACOM_EDU, SURFACES.DALP, SURFACES.ELEMENTS]) {
+            const locales = getSurfaceLocales(surface.name);
+            expect(locales, surface.name).to.not.be.empty;
+            expect(locales, surface.name).to.deep.equal(acomLocales);
+        }
+    });
+
     it('is included in PLACEHOLDER_CTA_SURFACES like ACOM', () => {
         expect(PLACEHOLDER_CTA_SURFACES).to.include(SURFACES.ACOM.name);
         expect(PLACEHOLDER_CTA_SURFACES).to.include(SURFACES.BRAND_CONCIERGE.name);

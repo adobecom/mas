@@ -13,6 +13,8 @@ import AHPromotedPlansSpec from '../specs/promoted_plans_save.spec.js';
 
 const { features } = AHPromotedPlansSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
     // @studio-promoted-plans-save-edited-border - Validate saving card after editing border
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -22,7 +24,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
         let clonedCard;
 
         await test.step('step-1: Go to MAS Studio test page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -37,11 +39,7 @@ test.describe('M@S Studio AHome Promoted Plans Save test suite', () => {
 
         await test.step('step-3: Change to Transparent border', async () => {
             await expect(await editor.borderColor).toBeVisible();
-            await editor.borderColor.scrollIntoViewIfNeeded();
-            await editor.borderColor.click();
-            await expect(await editor.borderColor.locator('sp-menu-item').first()).toBeVisible();
-            await page.getByRole('option', { name: data.border.updated.color }).click();
-            await page.waitForTimeout(2000);
+            await editor.selectPickerOption(editor.borderColor, data.border.updated.color);
             await studio.saveCard();
         });
 

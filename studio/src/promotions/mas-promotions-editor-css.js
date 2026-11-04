@@ -75,10 +75,6 @@ export const styles = [
             gap: 20px;
         }
 
-        .promotions-form-items-outer .form-field {
-            margin-top: 0;
-        }
-
         .promotions-form-surfaces-panel sp-button {
             background: white;
         }
@@ -126,7 +122,6 @@ export const styles = [
 
         .form-field {
             padding: 20px;
-            margin-top: 20px;
             border: 1px solid var(--spectrum-gray-300, #dadada);
             border-radius: 16px;
             box-shadow:

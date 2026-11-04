@@ -1,7 +1,7 @@
 import { fetch } from '../utils/common.js';
 import { getErrorContext } from '../utils/log.js';
 import { PATH_TOKENS, odinReferences, REFERENCES } from '../utils/paths.js';
-import { resolveTerritoryCountries, restrictCountryToLocaleMarket } from '../locales.js';
+import { resolveCommerceCountries } from '../locales.js';
 
 const TRANSFORMER_NAME = 'fetchFragment';
 
@@ -32,8 +32,7 @@ async function resolveRequestInfos(initContext) {
         };
     }
     const { parsedLocale, surface, fragmentPath } = match.groups;
-    const fixedCountry = restrictCountryToLocaleMarket(surface, locale, country);
-    const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+    const { country: fixedCountry, wcsCountry } = resolveCommerceCountries(surface, locale, country);
     return {
         status: 200,
         body: response.body,

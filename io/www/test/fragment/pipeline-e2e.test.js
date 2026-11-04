@@ -52,6 +52,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.statusCode).to.equal(200);
         expect(result.body).to.deep.include(EXPECTED_BODY);
+        expect(result.body.placeholders.countdownTimerText).to.equal('countdown-timer-text');
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);

@@ -15,6 +15,9 @@ import { getParameter, toBoolean, toEnumeration } from '@dexter/tacocat-core';
 import { toQuantity } from './utilities.js';
 import { resolveMasIOUrl } from './utils.js';
 
+const isAupSelectEnabled = (value) =>
+    value != null && value !== 'off' && value !== 'false';
+
 const PREVIEW_REGISTERED_SURFACE = {
     'wcms-commerce-ims-ro.+': 'acom',
     'CreativeCloud_.+': 'ccd',
@@ -132,12 +135,13 @@ function getSettings(config = {}, service) {
     return {
         ...getLocaleSettings(config),
         ...previewSettings,
-        aupSelect:
+        aupSelect: isAupSelectEnabled(
             getParameter(
                 'aup-select',
                 { 'aup-select': service.getAttribute('aup-select') },
                 { search: true, storage: false },
-            ) === 'on',
+            ),
+        ),
         displayOldPrice,
         checkoutClientId,
         checkoutWorkflowStep,

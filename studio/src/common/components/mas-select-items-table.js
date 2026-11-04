@@ -14,6 +14,7 @@ import {
     loadSelectedFragments,
 } from '../utils/items-loader.js';
 import { shouldIgnoreRowClickForSelection, getStudioFragmentDisplayPath, getOfferName } from '../utils/render-utils.js';
+import { renderEditorLink } from '../utils/editor-link.js';
 import { fragmentIsPromoVariation } from '../../promotions/promotion-model.js';
 import { Fragment } from '../../aem/fragment.js';
 
@@ -45,6 +46,7 @@ class MasSelectItemsTable extends LitElement {
         variationCells: { type: Array },
         variationColumns: { type: Array },
         hideVariationExpand: { type: Boolean },
+        openVariationOnActivate: { type: Boolean },
         sortBy: { type: String },
         sortDirection: { type: String },
     };
@@ -85,6 +87,7 @@ class MasSelectItemsTable extends LitElement {
         this.variationCells = null;
         this.variationColumns = null;
         this.hideVariationExpand = false;
+        this.openVariationOnActivate = false;
         this.sortBy = null;
         this.sortDirection = 'asc';
     }
@@ -426,6 +429,7 @@ class MasSelectItemsTable extends LitElement {
                             .variationCells=${this.variationCells}
                             .variationColumns=${this.variationColumns}
                             .hideVariationExpand=${this.hideVariationExpand}
+                            .openVariationOnActivate=${this.openVariationOnActivate}
                         ></mas-collapsible-table-row>`,
                 )}`;
             case TABLE_TYPE.COLLECTIONS:
@@ -450,7 +454,12 @@ class MasSelectItemsTable extends LitElement {
                                       </sp-table-cell>
                                   `
                                 : nothing}
-                            <sp-table-cell> ${fragment.title || '-'} </sp-table-cell>
+                            <sp-table-cell>
+                                ${renderEditorLink(fragment, fragment.title || '-', {
+                                    selectionOnly: !this.viewOnly,
+                                    nativeKeyboard: this.viewOnly,
+                                })}
+                            </sp-table-cell>
                             <sp-table-cell>${fragment.studioPath}</sp-table-cell>
                             ${this.renderFragmentStatusCell?.(fragment.status)} ${this.renderActionsCell?.(fragment)}
                         </sp-table-row>`,

@@ -10,6 +10,7 @@ import {
     matchesGeo,
 } from '../utils/common.js';
 import { log, logDebug } from '../utils/log.js';
+import { supportsCountdown } from '../utils/countdown.js';
 
 const SETTINGS_ID_PATH = 'settings/index';
 const CONFIG_CACHE_TTL = 5 * 60 * 1000;
@@ -358,19 +359,42 @@ function applyCollectionSettings(context, locale, settings, country) {
         Object.fromEntries([...tagKeys].map((key) => [key, `{{coll-tag-filter-${placeholderKey(key)}}}`])) || {};
 }
 
-// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer)
-// into body.placeholders, like applyPriceLiterals. `replace` resolves them
-// from the dictionary; pro.js places the resolved strings client-side.
+// Dictionary tokens published per feature into body.placeholders. `replace` resolves them.
+const PLACEHOLDER_TEMPLATES = {
+    edu: {
+        whatsIncludedLabel: '{{whats-included}}',
+        eduDisclaimer: '{{edu-disclaimer}}',
+    },
+    // Authored as "Ends in {{countdown-day}}, {{countdown-hour}}, {{countdown-minute}}!", units come from replace.js.
+    countdown: { countdownTimerText: '{{countdown-timer-text}}' },
+    license: { licenseLabel: '{{license-label}}|{{licenses-label}}' },
+};
+
+const supportsLicenseLabel = (variant) => ['pro', 'bizpro'].includes(variant);
+
+const addPlaceholders = (target, templates) => {
+    target.placeholders = { ...target.placeholders, ...templates };
+};
+
+// Publishes the edu "whats-included" chrome tokens (sub-label + disclaimer);
+// pro.js places the resolved strings client-side.
 function applyEduPlaceholders(body) {
     const fields = body?.fields;
     if (fields?.variant !== 'pro' || fields?.size !== 'edu') return;
-    body.placeholders = {
-        ...body.placeholders,
-        whatsIncludedLabel: '{{whats-included}}',
-    };
-    if (!body.settings?.hideEduDisclaimer) {
-        body.placeholders.eduDisclaimer = '{{edu-disclaimer}}';
+    const { eduDisclaimer, ...withoutDisclaimer } = PLACEHOLDER_TEMPLATES.edu;
+    addPlaceholders(body, body.settings?.hideEduDisclaimer ? withoutDisclaimer : PLACEHOLDER_TEMPLATES.edu);
+}
+
+// A collection card is hydrated from its own reference, so it carries the templates too.
+function addPlaceholdersToCards(body, supports, templates) {
+    if (body?.model?.id !== COLLECTION_MODEL_ID) {
+        if (supports(body?.fields?.variant)) addPlaceholders(body, templates);
+        return;
     }
+    const cards = Object.values(body.references ?? {})
+        .map((ref) => ref?.value)
+        .filter((card) => supports(card?.fields?.variant));
+    for (const target of [body, ...cards]) addPlaceholders(target, templates);
 }
 
 function applyPriceLiterals(fragment) {
@@ -412,6 +436,8 @@ async function settings(context) {
     }
 
     applyEduPlaceholders(body);
+    addPlaceholdersToCards(body, supportsCountdown, PLACEHOLDER_TEMPLATES.countdown);
+    addPlaceholdersToCards(body, supportsLicenseLabel, PLACEHOLDER_TEMPLATES.license);
 
     return context;
 }

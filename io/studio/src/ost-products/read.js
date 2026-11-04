@@ -1,7 +1,7 @@
 const stateLib = require('@adobe/aio-lib-state');
 const { Ims } = require('@adobe/aio-lib-ims');
 
-const authorize = async (__ow_headers) => {
+const authorize = async (__ow_headers = {}) => {
     const authHeader = __ow_headers['authorization'];
     if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.slice(7);
@@ -23,6 +23,32 @@ async function main({ __ow_headers }) {
         }
         const state = await stateLib.init();
         const result = await state.get('ostResult');
+        const cached = result?.value;
+
+        // Only ost-products-write populates this key, and .github/workflows/
+        // ost-products.yaml triggers it for a single workspace. Every other
+        // workspace (stage, personal) has no value, and returning 200 with an
+        // undefined body made the runtime answer content-length 0 — callers then
+        // failed inside response.json() with a parse error naming neither this
+        // action nor the missing cache. Say what is actually wrong instead.
+        //
+        // Test for bytes, not just length: state round-trips values through
+        // serialization, so a Buffer can come back as {type:'Buffer',...}, and a
+        // length-only check would wave that through to the 200 path below and
+        // hand the browser undecodable content under Content-Encoding: br.
+        const hasBytes = (typeof cached === 'string' || Buffer.isBuffer(cached)) && cached.length > 0;
+        if (!hasBytes) {
+            return {
+                statusCode: 404,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                },
+                body: {
+                    error: 'OST product cache is empty for this workspace. Run ost-products-write to populate it.',
+                },
+            };
+        }
 
         return {
             headers: {
@@ -31,7 +57,7 @@ async function main({ __ow_headers }) {
                 'Content-Encoding': 'br',
             },
             statusCode: 200,
-            body: result?.value,
+            body: cached,
         };
     } catch (error) {
         return {

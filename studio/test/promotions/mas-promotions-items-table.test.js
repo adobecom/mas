@@ -16,11 +16,17 @@ import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch
 
 describe('MasPromotionsItemsTable', () => {
     let sandbox;
+    let originalProfile;
+    let originalUsers;
 
     const createItemsTable = () => document.createElement('mas-promotions-items-table');
 
     beforeEach(() => {
         sandbox = sinon.createSandbox();
+        originalProfile = Store.profile.get();
+        originalUsers = Store.users.get();
+        Store.profile.set({ email: 'poweruser@adobe.com' });
+        Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'] }]);
         setItemsSelectionStore(Store.promotions);
         Store.promotions.selectedCards.set([]);
         Store.promotions.selectedOffers.set([]);
@@ -44,7 +50,31 @@ describe('MasPromotionsItemsTable', () => {
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(false);
         setItemsSelectionStore(null);
+        Store.profile.set(originalProfile);
+        Store.users.set(originalUsers);
     });
+
+    for (const { label, groups, allowed } of [
+        { label: 'editor', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'], allowed: false },
+        { label: 'poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], allowed: true },
+        { label: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], allowed: true },
+        { label: 'viewer', groups: [], allowed: false },
+    ]) {
+        it(`only allows an authorized ${label} to remove offers`, async () => {
+            Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups }]);
+            Store.promotions.selectedOffers.set(['restricted-offer']);
+            const el = await fixture(
+                html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`,
+            );
+            const remove = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+                item.textContent.includes('Remove from list'),
+            );
+            expect(remove.disabled).to.equal(!allowed);
+            remove.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.promotions.selectedOffers.value).to.deep.equal(allowed ? [] : ['restricted-offer']);
+        });
+    }
 
     it('renders offer column headers when type is offers', async () => {
         Store.promotions.selectedOffers.set(['offer-header-test']);
@@ -763,6 +793,36 @@ describe('MasPromotionsItemsTable', () => {
         removeItem.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
         await el.updateComplete;
         expect(Store.promotions.selectedOffers.value).to.not.include('offer-remove');
+    });
+
+    it('rechecks poweruser permission after the offer removal dialog is confirmed', async () => {
+        const path = '/content/dam/mas/sandbox/en_US/ffsa-card';
+        Store.promotions.selectedOffers.set(['ffsa-osi']);
+        Store.promotions.selectedCards.set([path]);
+        Store.promotions.offerRecordsCache.set(
+            'ffsa-osi',
+            buildPromotionOfferRecord('ffsa-osi', { product_code: 'FFSA', offer_id: 'wcs-1' }),
+        );
+        Store.promotions.cardsByPaths.set(new Map([[path, { path, tags: [{ id: 'mas:product_code/ffsa' }] }]]));
+        const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.OFFERS}></mas-promotions-items-table>`);
+        const remove = [...el.shadowRoot.querySelectorAll('sp-menu-item')].find((item) =>
+            item.textContent.includes('Remove from list'),
+        );
+        remove.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await el.updateComplete;
+        expect(el.confirmDialogConfig).to.exist;
+        Store.users.set([{ userPrincipalName: 'poweruser@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        const toast = sandbox.spy();
+        el.addEventListener('show-toast', toast);
+        el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+        await el.updateComplete;
+        await Promise.resolve();
+        expect(Store.promotions.selectedOffers.value).to.deep.equal(['ffsa-osi']);
+        expect(Store.promotions.selectedCards.value).to.deep.equal([path]);
+        expect(toast.firstCall.args[0].detail).to.deep.equal({
+            text: 'You do not have permission to remove items from a promotion project.',
+            variant: 'negative',
+        });
     });
 
     it('removes offer by OST selector id when offerData.offerId differs', async () => {
@@ -1531,6 +1591,31 @@ describe('MasPromotionsItemsTable', () => {
             await el.updateComplete;
             await new Promise((r) => setTimeout(r, 10));
 
+            expect(aem.createFragmentCopy.called).to.be.false;
+        });
+
+        it('rechecks editor permission after promo variation creation is confirmed', async () => {
+            setupPromotionInEdit();
+            const aem = createPromoVariationAem();
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            sandbox.stub(el, 'repository').get(() => ({
+                refreshFragment: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().resolves(),
+                aem,
+            }));
+            el.viewOnlyFragments = [cardFragment];
+            await el.updateComplete;
+            await clickCreateAndWaitForDialog(el);
+            el.promoVariationSelectedGeos = ['mas:pzn/country/ar'];
+            await el.updateComplete;
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            expect(el.confirmDialogConfig).to.exist;
+            Store.users.set([]);
+            el.shadowRoot.querySelector('sp-dialog-wrapper').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            await new Promise((resolve) => setTimeout(resolve, 10));
             expect(aem.createFragmentCopy.called).to.be.false;
         });
 
@@ -2695,6 +2780,17 @@ describe('MasPromotionsItemsTable', () => {
     });
 
     describe('cards table columns', () => {
+        let originalPromotionId;
+
+        beforeEach(() => {
+            originalPromotionId = Store.promotions.promotionId.get();
+            Store.promotions.promotionId.set('promo-project-id');
+        });
+
+        afterEach(() => {
+            Store.promotions.promotionId.set(originalPromotionId);
+        });
+
         const card = {
             path: '/content/dam/mas/card-cols',
             id: 'card-cols-id',
@@ -2870,6 +2966,50 @@ describe('MasPromotionsItemsTable', () => {
             const variationRow = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"]`);
             const menuItems = [...variationRow.querySelectorAll('sp-menu-item')].map((i) => i.textContent.trim());
             expect(menuItems).to.deep.equal(['View variation']);
+        });
+
+        it('does not cancel navigation from the View variation action menu link', async () => {
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card-cols';
+            const el = await fixture(html`<mas-promotions-items-table .type=${TABLE_TYPE.CARDS}></mas-promotions-items-table>`);
+            el.viewOnlyFragments = [card];
+            el.existingPromoVariationsByPath = new Map([
+                [card.path, [{ path: variationPath, id: 'bf-id', title: 'BF variation', fields: [], tags: [] }]],
+            ]);
+            await el.updateComplete;
+            const table = el.shadowRoot.querySelector('mas-select-items-table');
+            await table.updateComplete;
+            const row = table.shadowRoot.querySelector('mas-collapsible-table-row');
+            row.isTopLevelExpanded = true;
+            await row.updateComplete;
+            const link = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"] .actions-cell sp-link`);
+            expect(link).to.exist;
+            const clickEvent = new MouseEvent('click', { bubbles: true, composed: true, cancelable: true });
+            let preventedAtLink;
+            link.addEventListener(
+                'click',
+                (event) => {
+                    preventedAtLink = event.defaultPrevented;
+                    event.preventDefault();
+                },
+                { once: true },
+            );
+            link.dispatchEvent(clickEvent);
+            expect(preventedAtLink).to.be.false;
+        });
+
+        it('enables fragment editor links for promotion variation titles through the shared table', async () => {
+            const { row } = await renderCardsTable();
+            const variationPath = '/content/dam/mas/acom/en_US/promotions/bf/card-cols';
+            row.promoVariations = [{ path: variationPath, id: 'bf-id', title: 'BF variation', fields: [], tags: [] }];
+            row.isTopLevelExpanded = true;
+            row.selectedTabKey = 'promotion';
+            await row.updateComplete;
+            const link = row.shadowRoot.querySelector(`sp-table-row[value="${variationPath}"] .title sp-link`);
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal(
+                '#page=fragment-editor&fragmentId=bf-id&path=acom&promotionId=promo-project-id',
+            );
+            expect(row.shadowRoot.querySelector(`sp-table-row[value="${card.path}"] .title sp-link`)).to.not.exist;
         });
     });
 });

@@ -74,6 +74,7 @@ describe('onPlaceholderSelect', () => {
             'data-template': type,
             is: 'inline-price',
             'data-promotion-code': promoOverride,
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -133,6 +134,7 @@ describe('onPlaceholderSelect', () => {
             'data-template': type,
             'data-display-per-unit': true,
             is: 'inline-price',
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -164,6 +166,7 @@ describe('onPlaceholderSelect', () => {
             'data-modal': 'twp',
             'data-entitlement': true,
             'data-upgrade': true,
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -207,6 +210,7 @@ describe('onPlaceholderSelect', () => {
             'data-wcs-osi': offerSelectorId,
             'data-template': type,
             is: 'inline-price',
+            offer,
         };
 
         expect(dispatchEventStub.calledOnce).to.be.true;
@@ -262,12 +266,13 @@ describe('onPlaceholderSelect with mas-ff-defaults on', () => {
 
 describe('openOfferSelectorTool deep-link type parameter', () => {
     let openOfferSelectorTool;
+    let onPlaceholderSelect;
     let openOstStub;
     let originalWindowOst;
     let originalLocalStorage;
 
     before(async () => {
-        ({ openOfferSelectorTool } = await import('../../src/rte/ost.js'));
+        ({ openOfferSelectorTool, onPlaceholderSelect } = await import('../../src/rte/ost.js'));
     });
 
     beforeEach(() => {
@@ -291,6 +296,29 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
         const config = openOstStub.getCall(0).args[0];
         return config.searchParameters;
     }
+
+    it('clears the multi-offer callback for ordinary RTE authoring', async () => {
+        await openOfferSelectorTool(null, null);
+
+        expect(openOstStub.firstCall.args[0].onMultiSelect).to.equal(null);
+        expect(openOstStub.firstCall.args[0].onSelect).to.equal(onPlaceholderSelect);
+    });
+
+    it('hands base and trial offers back only when multi-selection was requested', async () => {
+        const originalNewOst = window.ostNew;
+        window.ostNew = { openOfferSelectorTool: openOstStub };
+        try {
+            await openOfferSelectorTool({ tagName: 'MAS-CHAT' }, null, {
+                mode: 'plans-base-and-trial',
+                ostVariant: 'new',
+            });
+            const config = openOstStub.firstCall.args[0];
+            expect(config.multiSelect).to.equal(true);
+            expect(config.onMultiSelect).to.be.a('function');
+        } finally {
+            window.ostNew = originalNewOst;
+        }
+    });
 
     it('passes type=price when deep-linking from an inline-price element', () => {
         const inlinePriceEl = {
@@ -405,6 +433,26 @@ describe('openOfferSelectorTool deep-link type parameter', () => {
 
         localeOrRegionStub.restore();
     });
+
+    it('routes a MASA open (ostVariant:new) to window.ostNew and keeps the sentinel out of AOS params', async () => {
+        const ostNewStub = sinon.stub().returns(() => {});
+        const originalWindowOstNew = window.ostNew;
+        window.ostNew = { openOfferSelectorTool: ostNewStub };
+        try {
+            await openOfferSelectorTool({ tagName: 'OSI-FIELD' }, null, {
+                arrangement_code: 'phsp_direct_individual',
+                ostVariant: 'new',
+            });
+
+            expect(ostNewStub.calledOnce, 'new OST used').to.be.true;
+            expect(openOstStub.called, 'legacy OST not used').to.be.false;
+            const params = ostNewStub.getCall(0).args[0].searchParameters;
+            expect(params.get('ostVariant'), 'sentinel stripped from AOS params').to.be.null;
+            expect(params.get('arrangement_code')).to.equal('phsp_direct_individual');
+        } finally {
+            window.ostNew = originalWindowOstNew;
+        }
+    });
 });
 
 describe('closeOfferSelectorTool', () => {
@@ -464,5 +512,103 @@ describe('closeOfferSelectorTool', () => {
         closeOfferSelectorTool();
 
         expect(renderCommerceServiceStub.notCalled).to.be.true;
+    });
+});
+
+describe('onOfferSelect / onMultiOfferSelect handback', () => {
+    let onOfferSelect;
+    let onMultiOfferSelect;
+    let ostRoot;
+    let EVENT_OST_OFFER_SELECT;
+    let EVENT_OST_MULTI_OFFER_SELECT;
+
+    before(async () => {
+        ({ onOfferSelect, onMultiOfferSelect } = await import('../../src/rte/ost.js'));
+        ({ EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT } = await import('../../src/constants.js'));
+        ostRoot = document.getElementById('ost');
+        if (typeof ostRoot.dispatchEvent.restore === 'function') ostRoot.dispatchEvent.restore();
+    });
+
+    function captureOn(eventName, run) {
+        let detail;
+        const handler = (e) => {
+            detail = e.detail;
+        };
+        ostRoot.addEventListener(eventName, handler);
+        run();
+        ostRoot.removeEventListener(eventName, handler);
+        return detail;
+    }
+
+    it('forwards the promo code on ost-offer-select', () => {
+        const detail = captureOn(EVENT_OST_OFFER_SELECT, () =>
+            onOfferSelect('sel-1', 'checkoutUrl', { id: 'o1' }, { promotionCode: 'PROMO' }),
+        );
+        expect(detail.offerSelectorId).to.equal('sel-1');
+        expect(detail.promotionCode).to.equal('PROMO');
+    });
+
+    it('prefers an explicit promoOverride over the stored option', () => {
+        const detail = captureOn(EVENT_OST_OFFER_SELECT, () =>
+            onOfferSelect('sel-2', 'checkoutUrl', { id: 'o2' }, { promotionCode: 'STORED' }, 'OVERRIDE'),
+        );
+        expect(detail.promotionCode).to.equal('OVERRIDE');
+    });
+
+    it('hands back base and trial on ost-multi-offer-select', () => {
+        const detail = captureOn(EVENT_OST_MULTI_OFFER_SELECT, () =>
+            onMultiOfferSelect({ base: { osi: 'base-osi', offer: {} }, trial: { osi: 'trial-osi', offer: {} } }),
+        );
+        expect(detail.base.osi).to.equal('base-osi');
+        expect(detail.trial.osi).to.equal('trial-osi');
+    });
+
+    it('defaults base and trial to null when the detail is empty', () => {
+        const detail = captureOn(EVENT_OST_MULTI_OFFER_SELECT, () => onMultiOfferSelect());
+        expect(detail.base).to.equal(null);
+        expect(detail.trial).to.equal(null);
+    });
+});
+
+describe('ensureNewOstLoaded', () => {
+    let ensureNewOstLoaded;
+    let appendStub;
+    let scripts;
+
+    before(async () => {
+        ({ ensureNewOstLoaded } = await import('../../src/rte/ost.js'));
+    });
+
+    beforeEach(() => {
+        delete window.ostNew;
+        scripts = [];
+        appendStub = sinon.stub(document.head, 'appendChild').callsFake((el) => {
+            scripts.push(el);
+            return el;
+        });
+    });
+
+    afterEach(() => {
+        appendStub.restore();
+        delete window.ostNew;
+    });
+
+    it('rejects on a load error then retries and resolves with window.ostNew', async () => {
+        const first = ensureNewOstLoaded();
+        scripts[0].dispatchEvent(new Event('error'));
+        let error;
+        try {
+            await first;
+        } catch (e) {
+            error = e;
+        }
+        expect(error).to.be.an('error');
+
+        const ostNew = { openOfferSelectorTool() {} };
+        const retry = ensureNewOstLoaded();
+        expect(scripts).to.have.lengthOf(2);
+        window.ostNew = ostNew;
+        scripts[1].dispatchEvent(new Event('load'));
+        expect(await retry).to.equal(ostNew);
     });
 });

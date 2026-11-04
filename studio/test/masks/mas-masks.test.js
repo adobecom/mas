@@ -76,6 +76,15 @@ describe('mas-masks', () => {
             return el;
         }
 
+        it('exposes a native deep link to the dedicated mask editor', async () => {
+            const el = await mountWithMasks();
+            const link = el.shadowRoot.querySelector('sp-table-row a');
+            expect(link).to.not.equal(null);
+            const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+            expect(params.get('page')).to.equal('masks-editor');
+            expect(params.get('maskName')).to.equal('m1');
+        });
+
         it('shows confirmation dialog before deleting from list', async () => {
             const el = await mountWithMasks();
             const deleteMaskStub = sinon.stub(Store.masks, 'deleteMask').resolves(true);

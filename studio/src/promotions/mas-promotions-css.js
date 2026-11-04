@@ -100,15 +100,6 @@ export const styles = css`
         margin-bottom: 24px;
     }
 
-    .environment-filter-picker {
-        display: flex;
-    }
-
-    sp-action-button.environment-filter {
-        display: flex;
-        flex-direction: row-reverse;
-    }
-
     .filter-popover {
         padding: 12px;
     }
@@ -178,12 +169,6 @@ export const styles = css`
         line-height: 18px;
     }
 
-    .filters-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
     .promotions-table {
         border-radius: 8px;
         border: 1px solid var(--spectrum-gray-200);
@@ -208,7 +193,7 @@ export const styles = css`
     }
 
     .promotions-table sp-table-head sp-table-head-cell:nth-child(3),
-    .promotions-table sp-table-row sp-table-cell:nth-child(3) {
+    .promotions-table sp-table-row sp-table-cell:nth-of-type(3) {
         max-width: 150px;
     }
 

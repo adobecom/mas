@@ -67,7 +67,7 @@ function initialize() {
             window.MASCardOverlay.updatePositions();
         });
 
-        if (cardData.elementType === 'price' || cardData.elementType === 'cta') return;
+        if (!cardData.sourceFragmentId) return;
 
         if (fetchCount >= FETCH_BUDGET) return;
         fetchCount += 1;
@@ -75,7 +75,7 @@ function initialize() {
             chrome.runtime.sendMessage(
                 {
                     type: 'FETCH_FRAGMENT_DATA',
-                    fragmentId: cardData.fragmentId,
+                    fragmentId: cardData.sourceFragmentId,
                     locale: cardData.locale,
                     country: cardData.country,
                 },
@@ -87,7 +87,10 @@ function initialize() {
                             window.MASCardDetector.updateCardName(cardData.fragmentId, cardName);
                             window.MASCardOverlay.updateCardNameInPanel(cardData.fragmentId, cardName);
                         }
-                        const variant = extractVariantFromFragment(response.data);
+                        // Only cards are labelled by their template; a price, cta or field
+                        // badge keeps the label for its own role.
+                        const isCard = cardData.elementType === 'card' || cardData.elementType === 'collection';
+                        const variant = isCard ? extractVariantFromFragment(response.data) : null;
                         if (variant) {
                             window.MASCardOverlay.updateBadgeVariant(cardData.fragmentId, variant);
                         }

@@ -240,6 +240,22 @@ describe('replace', () => {
             expect(response.body.fields.description).to.contain('data-placeholder="plan-type-text"');
         });
 
+        it('resolves the countdown sentence into <unit>singular|plural</unit> from the dictionary entries', async () => {
+            const context = await initContext();
+            context.dictionary = {
+                'countdown-timer-text': 'Fin dans {{countdown-day}} et {{countdown-minute}}',
+                'countdown-day-singular': '{n} jour',
+                'countdown-day-plural': '{n} jours',
+                'countdown-minute-singular': '{n} minute',
+                'countdown-minute-plural': '{n} minutes',
+            };
+            context.body = odinResponse('{{countdown-timer-text}}');
+            const response = await replace.process(context);
+            expect(response.body.fields.description).to.equal(
+                'Fin dans <day>{n} jour|{n} jours</day> et <minute>{n} minute|{n} minutes</minute>',
+            );
+        });
+
         it('system placeholder wins over an Odin dictionary entry of the same key', async () => {
             const dict = structuredClone(DICTIONARY_RESPONSE);
             dict.references[Object.keys(dict.references)[0]].value.fields = {

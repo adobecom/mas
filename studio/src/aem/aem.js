@@ -225,6 +225,7 @@ class AEM {
         if (options.references) params.set('references', options.references);
         const response = await fetch(`${this.cfFragmentsUrl}?${params.toString()}`, {
             headers,
+            signal: options.signal,
         }).catch((err) => {
             throw new Error(`${NETWORK_ERROR_MESSAGE}: ${err.message}`);
         });

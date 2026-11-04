@@ -52,15 +52,16 @@ jobs:
 
             - name: Find PRs that conflict
               run: |
-                  q='[.[] | select((.isCrossRepository | not) and any(.files[].path; startswith("web-components/dist/")))]'
                   # GitHub computes mergeability lazily, so wait until no PR is UNKNOWN.
                   for _ in $(seq 12); do
                     prs=$(gh pr list --base "$BASE" --state open --limit 200 \
-                      --json number,headRefName,mergeable,isCrossRepository,files --jq "$q")
+                      --json number,headRefName,mergeable,isCrossRepository)
                     [ "$(jq '[.[] | select(.mergeable == "UNKNOWN")] | length' <<< "$prs")" = 0 ] && break
                     sleep 10
                   done
-                  jq -r '.[] | select(.mergeable == "CONFLICTING") | "\(.number) \(.headRefName)"' <<< "$prs" > "$RUNNER_TEMP/prs.txt"
+                  [ "$(jq 'length' <<< "$prs")" -ge 200 ] && echo "::warning::200 PR limit reached, some PRs were not checked"
+                  jq -r '.[] | select(.mergeable == "UNKNOWN") | "::warning::#\(.number) mergeability unknown, skipped"' <<< "$prs"
+                  jq -r '.[] | select((.isCrossRepository | not) and .mergeable == "CONFLICTING") | "\(.number) \(.headRefName)"' <<< "$prs" > "$RUNNER_TEMP/prs.txt"
                   echo "Conflicting PRs into $BASE:"
                   cat "$RUNNER_TEMP/prs.txt"
 
@@ -77,6 +78,7 @@ jobs:
                   shas=()
                   while read -r n head; do
                     git checkout -q -f -B "$head" "origin/$head"
+                    git clean -fdq web-components
                     if ! git merge -q --no-edit "origin/$BASE"; then
                       git merge --abort || true
                       echo "::warning::#$n conflicts outside dist, skipped"

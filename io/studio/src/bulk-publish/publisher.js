@@ -21,21 +21,28 @@ async function publishChunk({
     filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
     replicate = false,
 }) {
-    try {
-        return await doPublishChunk({
-            chunk,
-            odinEndpoint,
-            authToken,
-            logger,
-            maxRetries,
-            filterReferencesByStatus,
-            replicate,
-        });
-    } catch (error) {
-        const message = error.message || String(error);
-        logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: chunk.length, error: message }));
-        return chunk.map((path) => ({ path, status: 'failed', reason: 'unexpected-error', retries: 0 }));
+    const chunks = replicate ? chunk.map((path) => [path]) : [chunk];
+    const results = [];
+    for (const paths of chunks) {
+        try {
+            results.push(
+                ...(await doPublishChunk({
+                    chunk: paths,
+                    odinEndpoint,
+                    authToken,
+                    logger,
+                    maxRetries,
+                    filterReferencesByStatus,
+                    replicate,
+                })),
+            );
+        } catch (error) {
+            const message = error.message || String(error);
+            logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: paths.length, error: message }));
+            results.push(...paths.map((path) => ({ path, status: 'failed', reason: 'unexpected-error', retries: 0 })));
+        }
     }
+    return results;
 }
 
 async function replicateChunk({ chunk, odinEndpoint, authToken }) {

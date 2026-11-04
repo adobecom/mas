@@ -478,6 +478,7 @@ class AEM {
 
     /**
      * Activate only this fragment through classic replication, without a reference workflow.
+     * Requires crx:replicate on the fragment path for the calling user.
      * @param {Object} fragment
      * @returns {Promise<void>}
      */

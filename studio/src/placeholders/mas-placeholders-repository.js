@@ -357,6 +357,12 @@ export async function createPlaceholder(placeholder) {
     }
 }
 
+/**
+ * Start the placeholder workflow, then activate its index independently.
+ * The index may reach publish before the placeholder because the workflow is asynchronous.
+ * @param {Placeholder} placeholder
+ * @returns {Promise<boolean>}
+ */
 export async function publishPlaceholder(placeholder) {
     const repo = getRepository();
     if (!(await repo.publishFragment(placeholder))) return false;

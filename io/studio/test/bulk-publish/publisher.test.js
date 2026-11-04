@@ -79,7 +79,7 @@ describe('bulk-publish/publisher.js', () => {
         expect(body.filterReferencesByStatus).to.deep.equal([]);
     });
 
-    it('activates index paths directly with CSRF protection instead of starting a workflow', async () => {
+    it('activates each index separately with CSRF protection instead of starting a workflow', async () => {
         const indexes = ['/content/dam/mas/acom/en_US/dictionary/index', '/content/dam/mas/acom/fr_FR/dictionary/index'];
         fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
             json: async () => ({ token: 'csrf-token' }),
@@ -88,20 +88,48 @@ describe('bulk-publish/publisher.js', () => {
 
         const results = await publisher.publishChunk({ chunk: indexes, odinEndpoint, authToken, logger, replicate: true });
 
-        expect(fetchOdinStub.callCount).to.equal(2);
-        const [, uri, , options] = fetchOdinStub.secondCall.args;
-        expect(uri).to.equal('/bin/replicate');
-        expect(options).to.include({
-            method: 'POST',
-            contentType: 'application/x-www-form-urlencoded',
-            csrfToken: 'csrf-token',
-        });
-        const form = new URLSearchParams(options.body);
-        expect(form.get('cmd')).to.equal('Activate');
-        expect(form.getAll('path')).to.deep.equal(indexes);
-        expect([...form.keys()]).to.deep.equal(['cmd', 'path', 'path']);
+        expect(fetchOdinStub.callCount).to.equal(4);
+        for (const [index, path] of indexes.entries()) {
+            const [, uri, , options] = fetchOdinStub.getCall(index * 2 + 1).args;
+            expect(uri).to.equal('/bin/replicate');
+            expect(options).to.include({
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                csrfToken: 'csrf-token',
+            });
+            const form = new URLSearchParams(options.body);
+            expect(form.get('cmd')).to.equal('Activate');
+            expect(form.getAll('path')).to.deep.equal([path]);
+            expect([...form.keys()]).to.deep.equal(['cmd', 'path']);
+        }
         expect(results).to.deep.equal(indexes.map((path) => ({ path, status: 'published', retries: 0 })));
     });
+
+    for (const status of [403, 404]) {
+        it(`isolates a replication ${status} failure without failing the other paths`, async () => {
+            fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
+                json: async () => ({ token: 'csrf-token' }),
+            });
+            fetchOdinStub
+                .withArgs(odinEndpoint, '/bin/replicate', authToken)
+                .callsFake(async (endpoint, uri, token, options) => {
+                    if (new URLSearchParams(options.body).getAll('path').includes(chunk[1])) {
+                        throw new Error(`POST failed with status ${status}`);
+                    }
+                    return { status: 200 };
+                });
+
+            const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+
+            expect(results.map(({ path, status }) => ({ path, status }))).to.deep.equal([
+                { path: chunk[0], status: 'published' },
+                { path: chunk[1], status: 'failed' },
+                { path: chunk[2], status: 'published' },
+            ]);
+            expect(results[1].reason).to.include(`status ${status}`);
+            expect(fetchOdinStub.callCount).to.equal(6);
+        });
+    }
 
     it('reports forbidden replication without falling back to the reference workflow', async () => {
         fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).resolves({
@@ -111,7 +139,7 @@ describe('bulk-publish/publisher.js', () => {
             .withArgs(odinEndpoint, '/bin/replicate', authToken)
             .rejects(new Error('POST failed with status 403: Forbidden'));
 
-        const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        const results = await publisher.publishChunk({ chunk: [chunk[0]], odinEndpoint, authToken, logger, replicate: true });
 
         expect(results.every((result) => result.status === 'failed' && result.reason.includes('403'))).to.be.true;
         expect(fetchOdinStub.callCount).to.equal(2);
@@ -121,7 +149,7 @@ describe('bulk-publish/publisher.js', () => {
     it('does not activate indexes when the CSRF request fails', async () => {
         fetchOdinStub.rejects(new Error('GET failed with status 401: Unauthorized'));
 
-        const results = await publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        const results = await publisher.publishChunk({ chunk: [chunk[0]], odinEndpoint, authToken, logger, replicate: true });
 
         expect(results.every((result) => result.status === 'failed' && result.reason.includes('401'))).to.be.true;
         expect(fetchOdinStub).to.have.been.calledOnce;
@@ -143,13 +171,42 @@ describe('bulk-publish/publisher.js', () => {
             .resolves({ status: 200 });
         const clock = sinon.useFakeTimers();
 
-        const publishing = publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        const publishing = publisher.publishChunk({ chunk: [chunk[0]], odinEndpoint, authToken, logger, replicate: true });
         await clock.tickAsync(1000);
         const results = await publishing;
 
         expect(results.every((result) => result.status === 'published' && result.retries === 1)).to.be.true;
         expect(fetchOdinStub.callCount).to.equal(4);
         expect(fetchOdinStub.lastCall.args[3].csrfToken).to.equal('csrf-second');
+    });
+
+    it('retries only the failed replication path without publishing successful paths twice', async () => {
+        let tokenCount = 0;
+        const attemptedPaths = [];
+        fetchOdinStub.withArgs(odinEndpoint, '/libs/granite/csrf/token.json', authToken).callsFake(async () => ({
+            json: async () => ({ token: `csrf-${++tokenCount}` }),
+        }));
+        fetchOdinStub.withArgs(odinEndpoint, '/bin/replicate', authToken).callsFake(async (endpoint, uri, token, options) => {
+            const paths = new URLSearchParams(options.body).getAll('path');
+            attemptedPaths.push(paths);
+            if (paths.includes(chunk[1]) && attemptedPaths.length === 2) {
+                throw new Error('POST failed with status 503: Unavailable');
+            }
+            return { status: 200 };
+        });
+        const clock = sinon.useFakeTimers();
+
+        const publishing = publisher.publishChunk({ chunk, odinEndpoint, authToken, logger, replicate: true });
+        await clock.tickAsync(1000);
+        const results = await publishing;
+
+        expect(attemptedPaths).to.deep.equal([[chunk[0]], [chunk[1]], [chunk[1]], [chunk[2]]]);
+        expect(results).to.deep.equal([
+            { path: chunk[0], status: 'published', retries: 0 },
+            { path: chunk[1], status: 'published', retries: 1 },
+            { path: chunk[2], status: 'published', retries: 0 },
+        ]);
+        expect(fetchOdinStub.getCall(5).args[3].csrfToken).to.equal('csrf-3');
     });
 
     it('translates partial success — 2 published + 1 not-found', async () => {

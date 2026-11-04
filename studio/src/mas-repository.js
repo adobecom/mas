@@ -1660,6 +1660,8 @@ export class MasRepository extends LitElement {
 
     /**
      * @param {Fragment} fragment Fragment to publish
+     * @param {Object} [options={}] Publication options
+     * @param {boolean} [options.replicate=false] Activate only this fragment, ignoring selectedRefIds and allSelected
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */

@@ -311,6 +311,14 @@ export const SURFACES = {
         label: 'Commerce',
         name: 'commerce',
     },
+    DALP: {
+        label: 'DALP',
+        name: 'dalp',
+    },
+    ELEMENTS: {
+        label: 'Elements',
+        name: 'elements',
+    },
     EXPRESS: {
         label: 'Express',
         name: 'express',

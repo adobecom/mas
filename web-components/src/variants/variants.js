@@ -29,13 +29,9 @@ import {
     SpecialOffer,
 } from './special-offer.js';
 import {
-    SimplifiedPricingExpress,
-    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-} from './simplified-pricing-express.js';
-import {
-    FullPricingExpress,
     FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-} from './full-pricing-express.js';
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+} from './express-mappings.js';
 import { Headless, HEADLESS_AEM_FRAGMENT_MAPPING } from './headless.js';
 import { Mini, MINI_AEM_FRAGMENT_MAPPING } from './mini.js';
 import {
@@ -77,6 +73,30 @@ export const registerVariant = (
         style,
         collectionOptions,
     });
+};
+
+// Lazy variants register their fragment mapping up front, so mappings stay
+// synchronously available, and load the layout class and its CSS on demand.
+export const registerLazyVariant = (name, load, fragmentMapping) => {
+    variantRegistry.set(name, { fragmentMapping, load });
+};
+
+// Resolves once the variant layout class is available. Returns undefined when
+// there is nothing to wait for, so eager variants keep their synchronous path.
+export const loadVariant = (name) => {
+    const variantInfo = variantRegistry.get(name);
+    if (!variantInfo?.load || variantInfo.class) return;
+    variantInfo.loading ??= variantInfo.load().then(
+        (variantClass) => {
+            variantInfo.class = variantClass;
+            variantInfo.style = variantClass.variantStyle;
+        },
+        (error) => {
+            variantInfo.loading = undefined;
+            throw error;
+        },
+    );
+    return variantInfo.loading;
 };
 
 // Add core variants to registry
@@ -168,17 +188,21 @@ registerVariant(
     SPECIAL_OFFERS_AEM_FRAGMENT_MAPPING,
     SpecialOffer.variantStyle,
 );
-registerVariant(
+registerLazyVariant(
     'simplified-pricing-express',
-    SimplifiedPricingExpress,
+    () =>
+        import('./express.js').then(
+            ({ SimplifiedPricingExpress }) => SimplifiedPricingExpress,
+        ),
     SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-    SimplifiedPricingExpress.variantStyle,
 );
-registerVariant(
+registerLazyVariant(
     'full-pricing-express',
-    FullPricingExpress,
+    () =>
+        import('./express.js').then(
+            ({ FullPricingExpress }) => FullPricingExpress,
+        ),
     FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
-    FullPricingExpress.variantStyle,
 );
 registerVariant('mini', Mini, MINI_AEM_FRAGMENT_MAPPING, Mini.variantStyle);
 registerVariant('image', Image, IMAGE_AEM_FRAGMENT_MAPPING, Image.variantStyle);
@@ -263,7 +287,7 @@ const applyStyleSheet = (card, style, state) => {
 
 const getVariantLayout = (card) => {
     const variantInfo = variantRegistry.get(card.variant);
-    if (!variantInfo) return undefined;
+    if (!variantInfo?.class) return undefined;
 
     const { class: VariantClass, style } = variantInfo;
     const state = variantState.get(card);

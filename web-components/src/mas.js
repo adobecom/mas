@@ -37,6 +37,15 @@ import {
     AHPromotedPlans,
 } from './variants/ah-promoted-plans.js';
 
+// Express variants load lazily from merch-card.js; mas.js (Studio, bundled
+// consumers) registers them eagerly so everything stays in one file.
+import {
+    FullPricingExpress,
+    FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+} from './variants/express.js';
+
 // Register dynamic variants
 registerVariant(
     'ccd-suggested',
@@ -61,4 +70,16 @@ registerVariant(
     AHPromotedPlans,
     AH_PROMOTED_PLANS_AEM_FRAGMENT_MAPPING,
     AHPromotedPlans.variantStyle,
+);
+registerVariant(
+    'simplified-pricing-express',
+    SimplifiedPricingExpress,
+    SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    SimplifiedPricingExpress.variantStyle,
+);
+registerVariant(
+    'full-pricing-express',
+    FullPricingExpress,
+    FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING,
+    FullPricingExpress.variantStyle,
 );

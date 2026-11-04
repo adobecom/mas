@@ -70,7 +70,7 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildLitComponent('merch-card'),
+    buildLitComponent('merch-card', [externalizeLazyVariantChunks()]),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -80,20 +80,39 @@ Promise.all([
     buildLitComponent('merch-mnemonic-list'),
     buildLitComponent('mas-mnemonic'),
     buildLitComponent('mas-compare-chart'),
+    buildLitComponent('merch-card-express', [], './src/variants/express.js'),
 ]).catch(() => process.exit(1));
 
-async function buildLitComponent(name) {
+async function buildLitComponent(name, plugins = [], entryPoint) {
     const { metafile } = await build({
         ...defaults,
-        entryPoints: [`./src/${name}.js`],
+        entryPoints: [entryPoint ?? `./src/${name}.js`],
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [rewriteImportsToLibsFolder(), ...plugins],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
     }
+}
+
+// Lazy variants (registerLazyVariant) are dynamically imported by
+// variants.js. In dist/merch-card.js they become runtime requests for a flat
+// sibling file, resolved against merch-card.js's own URL (/mas/libs/,
+// ?maslibs= branch and main aem.live all serve dist/ flat). mas.js keeps them
+// bundled.
+function externalizeLazyVariantChunks() {
+    return {
+        name: 'externalize-lazy-variant-chunks',
+        setup(build) {
+            build.onResolve({ filter: /\/express\.js$/ }, (args) =>
+                args.kind === 'dynamic-import'
+                    ? { path: './merch-card-express.js', external: true }
+                    : undefined,
+            );
+        },
+    };
 }
 
 function rewriteImportsToLibsFolder() {

@@ -1,0 +1,33 @@
+{
+    "path": "/content/dam/mas/test/fragment-full-pricing-express-lazy",
+    "name": "",
+    "title": "Lazy full pricing express card",
+    "id": "fragment-full-pricing-express-lazy",
+    "description": "Fixture for the lazily loaded express templates",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+    },
+    "fields": {
+        "variant": "full-pricing-express",
+        "mnemonicIcon": [],
+        "mnemonicAlt": [],
+        "mnemonicLink": [],
+        "cardTitle": "Lazy express card",
+        "cardName": "Lazy express card",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "description": {
+            "value": "<p>Express description</p>",
+            "mimeType": "text/html"
+        },
+        "ctas": {
+            "value": "<a data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-template=\"checkoutUrl\" data-analytics-id=\"buy-now\">Buy now</a>",
+            "mimeType": "text/html"
+        },
+        "variations": [],
+        "tags": [],
+        "pznTags": []
+    }
+}

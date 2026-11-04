@@ -1,5 +1,4 @@
 import { html, nothing } from 'lit';
-import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
 export class VariantLayout {
@@ -221,6 +220,8 @@ export class VariantLayout {
     }
 
     get aemFragmentMapping() {
-        return getFragmentMapping(this.card.variant);
+        // Read through the card so the layout does not import the variant
+        // registry, which would pull every template into lazy variant chunks.
+        return this.card.constructor.getFragmentMapping(this.card.variant);
     }
 }

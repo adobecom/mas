@@ -8,6 +8,7 @@ import {
     registerVariant,
     getFragmentMapping,
     getCollectionOptions,
+    loadVariant,
 } from './variants/variants.js';
 
 import './global.css.js';
@@ -310,6 +311,23 @@ export class MerchCard extends LitElement {
     }
 
     static getFragmentMapping = getFragmentMapping;
+
+    // Lazy variants (see registerLazyVariant) must have their layout class
+    // before the first render. Holding the update here keeps `updateComplete`,
+    // hydration and `checkReady()` waiting for it.
+    scheduleUpdate() {
+        const loading = loadVariant(this.variant);
+        if (!loading) return super.scheduleUpdate();
+        return loading.then(
+            () => this.scheduleUpdate(),
+            (error) => {
+                this.#log.error(
+                    `merch-card: variant ${this.variant} cannot be loaded: ${error.message}`,
+                );
+                return super.scheduleUpdate();
+            },
+        );
+    }
 
     firstUpdated() {
         this.variantLayout = getVariantLayout(this);

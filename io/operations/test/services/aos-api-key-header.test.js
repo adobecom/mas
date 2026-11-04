@@ -33,7 +33,6 @@ describe('AOSClient API key header', () => {
 
     it('sends one key value when resolving an offer selector', async () => {
         await client.resolveOfferSelector('selector-1', 'US');
-        expect(sentKeys.length).to.be.greaterThan(0);
-        expect(new Set(sentKeys)).to.deep.equal(new Set(['test-key']));
+        expect(sentKeys).to.deep.equal(['test-key']);
     });
 });

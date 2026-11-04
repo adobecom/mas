@@ -460,7 +460,7 @@ class MasFilterPanel extends LitElement {
                 data-filter-type="variation"
                 @sp-closed=${this.#discardPendingVariations}
             >
-                <sp-action-button slot="trigger" quiet aria-label=${VARIATION_FILTER_LABEL}>
+                <sp-action-button slot="trigger" aria-label=${VARIATION_FILTER_LABEL}>
                     ${VARIATION_FILTER_LABEL}
                     <sp-icon-chevron-down size="m" slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>

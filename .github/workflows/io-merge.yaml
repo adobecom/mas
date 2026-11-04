@@ -5,6 +5,7 @@ on:
         paths:
             - 'io/www/**'
             - 'price/**'
+            - 'checkout/**'
             - '.github/workflows/io-merge.yaml'
 
 jobs:

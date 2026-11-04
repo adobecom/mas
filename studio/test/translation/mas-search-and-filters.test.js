@@ -2754,6 +2754,15 @@ describe('MasSearchAndFilters', () => {
                 expect(el.createdByFilter).to.deep.equal(['jane@adobe.com']);
             });
 
+            it('selects filtered users regardless of principal name casing', async () => {
+                const el = await renderBaselineFilters();
+                el.createdByFilter = ['JANE@adobe.com'];
+                await el.updateComplete;
+
+                expect(el.shadowRoot.querySelector('mas-user-picker').selectedUsers.get()).to.deep.equal([users[0]]);
+                expect(el.createdByFilter).to.deep.equal(['JANE@adobe.com']);
+            });
+
             it('updates the created by filter from the user picker selection', async () => {
                 const el = await renderBaselineFilters();
                 el.shadowRoot.querySelector('mas-user-picker').selectedUsers.set([users[1]]);

@@ -539,13 +539,18 @@ export class Router extends EventTarget {
         });
     }
 
-    #isLinkActive({ page }) {
-        return !page || Store.page.value === page;
+    #isLinkActive({ page }, activePage = Store.page.value) {
+        return !page || activePage === page;
     }
 
+    /**
+     * Uses the page in the pending hash params, not Store.page, so a hash navigation that updates
+     * other linked stores before the page switch keeps the destination page's scoped params.
+     */
     #dropInactivePageScopedParams() {
+        const activePage = this.currentParams.get('page') ?? Store.page.value;
         for (const link of this.linkedStores) {
-            if (this.#isLinkActive(link)) continue;
+            if (this.#isLinkActive(link, activePage)) continue;
             for (const key of link.keysArray) this.currentParams.delete(`${link.hashKeyPrefix}${key}`);
         }
     }

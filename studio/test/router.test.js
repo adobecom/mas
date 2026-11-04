@@ -833,6 +833,25 @@ describe('Router', () => {
             expect(Store.baselines.filters.get().paCodes).to.equal('PA-1');
         });
 
+        it('keeps the baselines keys when hash navigation from another page changes the search path', async () => {
+            const listeners = {};
+            sandbox.stub(window, 'addEventListener').callsFake((type, listener) => {
+                listeners[type] = listener;
+            });
+            mockLocation.hash = '#page=content&path=acom';
+            router.start();
+
+            mockLocation.hash = '#baselines.paCodes=PA-1&baselines.query=PHSP&page=baselines&path=sandbox';
+            await listeners.hashchange({ preventDefault: () => {} });
+            await new Promise((resolve) => setTimeout(resolve, 100));
+
+            expect(Store.page.get()).to.equal(PAGE_NAMES.BASELINES);
+            expect(Store.baselines.search.get().query).to.equal('PHSP');
+            expect(Store.baselines.filters.get().paCodes).to.equal('PA-1');
+            expect(mockLocation.hash).to.include('baselines.query=PHSP');
+            expect(mockLocation.hash).to.include('baselines.paCodes=PA-1');
+        });
+
         it('does not write baselines filter changes made on another page', async () => {
             mockLocation.hash = '#page=content';
             router.start();

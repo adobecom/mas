@@ -10,6 +10,8 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import { InlinePrice } from '../inline-price.js';
+import { createMasElement } from '../mas-element.js';
 
 const VARIANT = 'pro';
 // syncHeights publishes these properties and the shadow styles consume them; the
@@ -126,7 +128,12 @@ export class Pro extends VariantLayout {
             await customElements.whenDefined('inline-price');
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
-            const legal = headingPrice.cloneNode(true);
+            // Safari's polyfill upgrades clones asynchronously; construct the price before calling its methods.
+            const legal = createMasElement(InlinePrice);
+            for (const { name, value } of headingPrice.attributes) {
+                legal.setAttribute(name, value);
+            }
+            legal.innerHTML = headingPrice.innerHTML;
             await headingPrice.onceSettled();
             if (!headingPrice?.options) return;
             // Per-unit stays on the pricing line (unlike plans); only tax and

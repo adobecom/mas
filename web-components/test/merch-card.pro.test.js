@@ -807,20 +807,31 @@ describe('pro fragment link-block override', () => {
 });
 
 describe('Pro.adjustLegal', () => {
+    const sandbox = sinon.createSandbox();
+    afterEach(() => sandbox.restore());
+
     function makeFixture(priceOverrides = {}) {
-        // The clone needs the listener: without it adjustLegal threw and its own
-        // catch swallowed it, so every assertion below ran against half a call.
-        const clone = {
-            setAttribute: sinon.spy(),
-            onceSettled: () => Promise.resolve(),
-            addEventListener: sinon.spy(),
-            dataset: {},
-        };
+        const clone = document.createElement('span', { is: 'inline-price' });
+        sandbox.stub(clone, 'onceSettled').resolves();
+        sandbox.spy(clone, 'setAttribute');
+        sandbox.spy(clone, 'addEventListener');
+        sandbox
+            .stub(document, 'createElement')
+            .callThrough()
+            .withArgs('span', { is: 'inline-price' })
+            .returns(clone);
         const insertBefore = sinon.spy();
         const price = {
+            attributes: [
+                { name: 'is', value: 'inline-price' },
+                { name: 'data-wcs-osi', value: 'test-osi' },
+                { name: 'data-template', value: 'price' },
+                { name: 'class', value: 'authored-price' },
+            ],
+            innerHTML: '<span class="price">Original price</span>',
             dataset: {},
             options: {},
-            cloneNode: () => clone,
+            cloneNode: sinon.stub().returns(document.createElement('span')),
             onceSettled: () => Promise.resolve(),
             parentNode: { insertBefore },
             nextSibling: 'next-sibling',
@@ -837,7 +848,7 @@ describe('Pro.adjustLegal', () => {
         return { layout, price, clone, insertBefore };
     }
 
-    it('clones the main price into a legal-template sibling — no authoring needed', async () => {
+    it('creates an upgraded legal-template sibling — no authoring needed', async () => {
         const { layout, price, clone, insertBefore } = makeFixture({
             options: { displayPerUnit: true, displayTax: true },
         });
@@ -851,6 +862,24 @@ describe('Pro.adjustLegal', () => {
         expect(price.dataset.displayTax).to.equal('false');
         expect(price.dataset.displayPerUnit).to.be.undefined;
         expect(clone.dataset.displayPerUnit).to.equal('false');
+    });
+
+    it('does not depend on synchronous clone upgrades in Safari', async () => {
+        const { layout, price, clone, insertBefore } = makeFixture();
+        const reapply = sandbox.stub(layout, 'adjustShortDescription');
+        expect(price.cloneNode().onceSettled).to.be.undefined;
+        price.cloneNode.resetHistory();
+
+        await layout.adjustLegal();
+
+        expect(price.cloneNode.called).to.be.false;
+        expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
+        expect(clone.onceSettled.calledOnce).to.be.true;
+        expect(clone.addEventListener.calledOnce).to.be.true;
+        expect(reapply.calledOnce).to.be.true;
+        expect(clone.dataset.wcsOsi).to.equal('test-osi');
+        expect(clone.className).to.equal('authored-price');
+        expect(clone.innerHTML).to.equal(price.innerHTML);
     });
 
     it('leaves disabled display options untouched on the main price', async () => {
@@ -883,7 +912,7 @@ describe('Pro.adjustLegal', () => {
         });
         await layout.adjustLegal();
         expect(insertBefore.called).to.be.false;
-        expect(clone.setAttribute.called).to.be.false;
+        expect(clone.dataset.template).to.equal('price');
     });
 
     it('moves the plan type onto the legal clone', async () => {

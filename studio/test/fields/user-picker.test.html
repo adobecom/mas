@@ -91,6 +91,56 @@
                         expect(checkbox).to.not.be.null;
                         expect(checkbox.innerText.trim()).to.equal('Alex Johnson');
                     });
+
+                    it('updates the selected count when users are checked before apply', async function () {
+                        const picker = await initUserPicker('createdBy1', this.test.title);
+                        picker.open = true;
+                        await picker.updateComplete;
+                        const footerText = () => picker.shadowRoot.querySelector('#footer span').textContent;
+                        expect(footerText()).to.equal('No users selected');
+
+                        const menuItems = picker.shadowRoot.querySelectorAll('sp-menu-item');
+                        menuItems[0].click();
+                        await picker.updateComplete;
+                        expect(footerText()).to.equal('1 user selected');
+
+                        menuItems[1].click();
+                        await picker.updateComplete;
+                        expect(footerText()).to.equal('2 users selected');
+                        expect(picker.selectedUsers.value).to.have.length(0);
+
+                        await picker.applySelection();
+                        expect(picker.selectedUsers.value.map(({ userPrincipalName }) => userPrincipalName)).to.have.members([
+                            'user3@example.com',
+                            'user2@example.com',
+                        ]);
+                    });
+
+                    it('clears the selected count on reset', async function () {
+                        const picker = await initUserPicker('createdBy1', this.test.title);
+                        picker.selectedUsers.set([mockUsers[0]]);
+                        picker.open = true;
+                        await picker.updateComplete;
+                        expect(picker.shadowRoot.querySelector('#footer span').textContent).to.equal('1 user selected');
+
+                        picker.resetSelection();
+                        await picker.updateComplete;
+                        expect(picker.shadowRoot.querySelector('#footer span').textContent).to.equal('No users selected');
+                        expect(picker.shadowRoot.querySelector('sp-checkbox[checked]')).to.be.null;
+                    });
+
+                    it('renders a quiet trigger by default', async function () {
+                        const picker = await initUserPicker('createdBy1', this.test.title);
+                        await picker.updateComplete;
+                        expect(picker.shadowRoot.querySelector('sp-action-button').hasAttribute('quiet')).to.be.true;
+                    });
+
+                    it('renders an outlined trigger when quiet is false', async function () {
+                        const picker = await initUserPicker('createdBy1', this.test.title);
+                        picker.quiet = false;
+                        await picker.updateComplete;
+                        expect(picker.shadowRoot.querySelector('sp-action-button').hasAttribute('quiet')).to.be.false;
+                    });
                 });
             });
         </script>

@@ -269,6 +269,7 @@ export const VARIATION_TYPES = {
 export const PZN_FOLDER = 'pzn';
 
 export const BASELINES_FOLDER = 'baselines';
+export const MAS_OFFERS_URL = 'https://www.adobe.com/mas/io/offers?api_key=CreativeCloud_v6_9&locale=en_US&id';
 export const BASELINE_SOURCE_LOCALE = 'en_US';
 
 export const PROMOTIONS_PATH_PREFIX = 'promotions/';
@@ -358,6 +359,8 @@ export const FILTER_TYPE = {
     PZN: 'pzn',
     TAG: 'tag',
     STATUS: 'status',
+    PRODUCT_ARRANGEMENT_CODE: 'productArrangementCode',
+    CREATED_BY: 'createdBy',
 };
 
 export const FRAGMENT_STATUS = {
@@ -381,6 +384,7 @@ export const TABLE_TYPE = {
     CARDS: 'cards',
     COLLECTIONS: 'collections',
     PLACEHOLDERS: 'placeholders',
+    BASELINES: 'baselines',
 };
 
 export const PLACEHOLDER_CTA_SURFACES = ['acom', 'acom-cc', 'acom-dc', 'express', 'sandbox', 'nala', 'brand-concierge'];

@@ -2,17 +2,19 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.j
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
-import { canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { isFeaturePageEnabled } from './mas-chat/features.js';
 
 const STORE_SEARCH_HASH_KEYS = ['path', 'query', 'region'];
 const STORE_SEARCH_HASH_DEFAULT = {};
+const BASELINES_HASH_LINK = { hashKeyPrefix: 'baselines.', page: PAGE_NAMES.BASELINES };
 
 // Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
-// (programmatic nav only) never runs — mapped to the per-surface permission gate for reaching them.
-// Both currently share settings access.
+// (programmatic nav only) never runs — mapped to the permission gate for reaching them.
 const RESTRICTED_PAGE_ACCESS = {
+    [PAGE_NAMES.BULK_PUBLISH]: canAccessBulkPublish,
+    [PAGE_NAMES.BULK_PUBLISH_EDITOR]: canAccessBulkPublish,
     [PAGE_NAMES.SETTINGS]: canAccessSettings,
     [PAGE_NAMES.SETTINGS_EDITOR]: canAccessSettings,
     [PAGE_NAMES.MASKS]: canAccessMasks,
@@ -51,7 +53,7 @@ export function promoHashIsSearchSync(previousHash, nextHash) {
         nextHash,
         PAGE_NAMES.PROMOTIONS_EDITOR,
         'promotionId',
-        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region', 'status']),
+        new Set(['query', 'path', 'tags', 'locale', 'personalizationFilterEnabled', 'region', 'status', 'variation']),
     );
 }
 
@@ -204,6 +206,15 @@ export class Router extends EventTarget {
                     shouldCheckUnsavedChanges: hasUnsavedChanges,
                 };
             }
+            case PAGE_NAMES.BULK_EDIT_EDITOR: {
+                const editor = document.querySelector('mas-bulk-edit-editor');
+                const hasUnsavedChanges = editor && editor.hasChanges;
+                return {
+                    editor,
+                    hasChanges: hasUnsavedChanges,
+                    shouldCheckUnsavedChanges: hasUnsavedChanges,
+                };
+            }
             case PAGE_NAMES.SETTINGS:
             case PAGE_NAMES.SETTINGS_EDITOR: {
                 const editor = document.querySelector('mas-settings');
@@ -277,7 +288,7 @@ export class Router extends EventTarget {
                     if (targetPage !== PAGE_NAMES.CONTENT) {
                         Store.fragments.list.data.set([]);
                         Store.search.set((prev) => ({ ...prev, query: undefined }));
-                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined }));
+                        Store.filters.set((prev) => ({ ...prev, tags: undefined, status: undefined, variation: undefined }));
                     }
                     if (
                         (Store.page.value === PAGE_NAMES.SETTINGS || Store.page.value === PAGE_NAMES.SETTINGS_EDITOR) &&
@@ -302,8 +313,11 @@ export class Router extends EventTarget {
                         Store.masks.editing.set(null);
                         Store.masks.editingName.set('');
                     }
-                    if (options.bulkPublishProjectId !== undefined) {
+                    if (targetPage === PAGE_NAMES.BULK_PUBLISH_EDITOR && options.bulkPublishProjectId !== undefined) {
                         Store.bulkPublishProjects.projectId.set(options.bulkPublishProjectId);
+                    }
+                    if (options.bulkEditProjectId !== undefined) {
+                        Store.bulkEditProjects.projectId.set(options.bulkEditProjectId);
                     }
                     if (options.translationProjectId !== undefined) {
                         Store.translationProjects.translationProjectId.set(options.translationProjectId);
@@ -410,15 +424,17 @@ export class Router extends EventTarget {
      * @param {boolean} isObject - Whether the store value is an object
      * @param {string[]} keysArray - The keys to sync
      * @param {any} defaultValue - The default value to use if the key is not in the hash
+     * @param {{ hashKeyPrefix?: string }} [options] - hashKeyPrefix maps store key `k` to hash key `${hashKeyPrefix}k`
      * @returns {boolean} Whether the store was updated
      */
-    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined) {
+    syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue = undefined, { hashKeyPrefix = '' } = {}) {
         this.currentParams ??= new URLSearchParams(this.#hashValue());
         let newValue = isObject ? structuredClone(currentValue) : currentValue;
 
         for (const key of keysArray) {
-            if (this.currentParams.has(key)) {
-                const value = this.currentParams.get(key);
+            const hashKey = `${hashKeyPrefix}${key}`;
+            if (this.currentParams.has(hashKey)) {
+                const value = this.currentParams.get(hashKey);
                 let parsedValue;
                 try {
                     parsedValue = JSON.parse(value);
@@ -453,31 +469,35 @@ export class Router extends EventTarget {
      * @param {ReactiveStore} store - The store to link
      * @param {string|string[]} keys - The key(s) to link
      * @param {any} defaultValue - The default value to use if the key is not in the hash
+     * @param {{ hashKeyPrefix?: string, page?: string }} [options]
+     *   hashKeyPrefix - maps store key `k` to hash key `${hashKeyPrefix}k`, avoiding collisions with other linked stores
+     *   page - links the store only while this page is active; its hash keys are dropped when another page is shown
      */
-    linkStoreToHash(store, keys, defaultValue) {
+    linkStoreToHash(store, keys, defaultValue, { hashKeyPrefix = '', page } = {}) {
         const getDefaultValue = defaultValueGetter(defaultValue);
         store.set(getDefaultValue());
         const keysArray = Array.isArray(keys) ? keys : [keys];
+        const link = { store, keysArray, defaultValue, hashKeyPrefix, page };
 
         // Store the link configuration for later use with popstate
-        this.linkedStores.push({
-            store,
-            keysArray,
-            defaultValue,
-        });
+        this.linkedStores.push(link);
 
         const newValue = store.get();
         const isObject = typeof newValue === 'object' && newValue !== null;
         // Initial sync from hash to store
-        this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue);
+        if (this.#isLinkActive(link)) {
+            this.syncStoreFromHash(store, newValue, isObject, keysArray, defaultValue, { hashKeyPrefix });
+        }
 
         const self = this;
         store.subscribe((value) => {
+            if (!self.#isLinkActive(link)) return;
             self.currentParams ??= new URLSearchParams(self.#hashValue());
 
-            for (const key of keysArray) {
+            for (const storeKey of keysArray) {
+                const key = `${hashKeyPrefix}${storeKey}`;
                 const hadParamBeforeUpdate = self.currentParams.has(key);
-                const storeValue = isObject ? value?.[key] : value;
+                const storeValue = isObject ? value?.[storeKey] : value;
 
                 if (Array.isArray(storeValue) && storeValue.length === 0) {
                     if (self.currentParams.has(key)) {
@@ -500,12 +520,13 @@ export class Router extends EventTarget {
                 }
 
                 const defaultValue = getDefaultValue();
-                const defaultValueToCompare = isObject ? defaultValue?.[key] : defaultValue;
+                const defaultValueToCompare = isObject ? defaultValue?.[storeKey] : defaultValue;
                 const currentParamValue = self.currentParams.get(key);
                 if (currentParamValue === String(defaultValueToCompare) && currentParamValue !== PAGE_NAMES.WELCOME) {
                     self.currentParams.delete(key);
                 }
             }
+            self.#dropInactivePageScopedParams();
             for (const [key, value] of self.currentParams.entries()) {
                 if (!value || value === '') {
                     self.currentParams.delete(key);
@@ -518,12 +539,28 @@ export class Router extends EventTarget {
         });
     }
 
+    #isLinkActive({ page }, activePage = Store.page.value) {
+        return !page || activePage === page;
+    }
+
+    /**
+     * Uses the page in the pending hash params, not Store.page, so a hash navigation that updates
+     * other linked stores before the page switch keeps the destination page's scoped params.
+     */
+    #dropInactivePageScopedParams() {
+        const activePage = this.currentParams.get('page') ?? Store.page.value;
+        for (const link of this.linkedStores) {
+            if (this.#isLinkActive(link, activePage)) continue;
+            for (const key of link.keysArray) this.currentParams.delete(`${link.hashKeyPrefix}${key}`);
+        }
+    }
+
     start() {
         this.currentParams = new URLSearchParams(this.#hashValue());
         const normalizedOnStart = this.#normalizeSettingsEditorRoute() || this.#normalizeMasksEditorRoute();
         this.linkStoreToHash(Store.page, 'page', PAGE_NAMES.WELCOME);
         this.linkStoreToHash(Store.search, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
-        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'status'], {
+        this.linkStoreToHash(Store.filters, ['locale', 'tags', 'personalizationFilterEnabled', 'status', 'variation'], {
             locale: 'en_US',
             personalizationFilterEnabled: false,
         });
@@ -535,9 +572,12 @@ export class Router extends EventTarget {
         this.linkStoreToHash(Store.promotions.promotionId, 'promotionId');
         this.linkStoreToHash(Store.translationProjects.translationProjectId, 'translationProjectId');
         this.linkStoreToHash(Store.bulkPublishProjects.projectId, 'bulkPublishProjectId');
+        this.linkStoreToHash(Store.bulkEditProjects.projectId, 'bulkEditProjectId');
         this.linkStoreToHash(Store.settings.fragmentId, 'fragmentId');
         this.linkStoreToHash(Store.productDetail.arrangementCode, 'arrangementCode');
         this.linkStoreToHash(Store.masks.editingName, 'maskName');
+        this.linkStoreToHash(Store.baselines.search, ['query'], {}, BASELINES_HASH_LINK);
+        this.linkStoreToHash(Store.baselines.filters, ['tags', 'paCodes', 'createdBy'], {}, BASELINES_HASH_LINK);
         const redirectedOnStart = this.#enforceRestrictedAccessFromParams();
         const normalizedLocaleRegionOnStart = this.#normalizeLocaleRegionFromHash();
         if (normalizedOnStart || redirectedOnStart || normalizedLocaleRegionOnStart) {
@@ -617,10 +657,12 @@ export class Router extends EventTarget {
             const normalizedLocaleRegion = this.#normalizeLocaleRegionFromHash();
 
             // Sync all linked stores from the current hash
-            this.linkedStores.forEach(({ store, keysArray, defaultValue }) => {
+            this.linkedStores.forEach((link) => {
+                if (!this.#isLinkActive(link)) return;
+                const { store, keysArray, defaultValue, hashKeyPrefix } = link;
                 const currentValue = store.get();
                 const isObject = typeof currentValue === 'object' && currentValue !== null;
-                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue);
+                this.syncStoreFromHash(store, currentValue, isObject, keysArray, defaultValue, { hashKeyPrefix });
             });
 
             this.#clearRedundantRegionOverride();
@@ -704,6 +746,10 @@ export class Router extends EventTarget {
         return page === PAGE_NAMES.OFFER_MAPPING;
     }
 
+    #isBulkPublishPage(page) {
+        return page === PAGE_NAMES.BULK_PUBLISH || page === PAGE_NAMES.BULK_PUBLISH_EDITOR;
+    }
+
     #syncSearchStoreFromHashParams() {
         const currentValue = Store.search.get();
         this.syncStoreFromHash(Store.search, currentValue, true, STORE_SEARCH_HASH_KEYS, STORE_SEARCH_HASH_DEFAULT);
@@ -711,6 +757,10 @@ export class Router extends EventTarget {
 
     #getAuthorizedPage(page) {
         if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
+        if (this.#isBulkPublishPage(page)) {
+            if (!Store.users.getMeta('loaded')) return page;
+            return canAccessBulkPublish() ? page : PAGE_NAMES.WELCOME;
+        }
         if (this.#isSettingsPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             if (canAccessSettings(Store.surface())) return page;
@@ -764,6 +814,10 @@ export class Router extends EventTarget {
         }
         this.#stopWatchingRestrictedAccessRoute();
         if (canAccess(Store.surface())) return false;
+        if (this.#isBulkPublishPage(this.currentParams.get('page'))) {
+            this.currentParams.delete('bulkPublishProjectId');
+            Store.bulkPublishProjects.projectId.set(null);
+        }
         this.currentParams.set('page', PAGE_NAMES.WELCOME);
         this.currentParams.delete('fragmentId');
         Store.page.set(PAGE_NAMES.WELCOME);

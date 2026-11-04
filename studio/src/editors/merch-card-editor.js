@@ -94,6 +94,9 @@ function checkoutOptionsProvider(element, options) {
     options.promotionCode = promoCode;
 }
 
+const CTA_MODIFICATION_WARNING =
+    'Changing these CTAs may affect the user experience on pages using this fragment. Removing or reordering CTAs may affect existing page references. Review the impact before publishing.';
+
 const VARIANT_RTE_MARKS = {
     [VARIANT_NAMES.MINI]: {
         description: {
@@ -104,13 +107,6 @@ const VARIANT_RTE_MARKS = {
 
 /** Basic format buttons allowed on FAQ's 3 answer fields (bold, italic, underline only). */
 const FAQ_ANSWER_FORMAT_MARKS = ['strong', 'em', 'underline'];
-
-/** Marquee/FAQ/Banner-Blade templates don't offer a "Send to translation?" toggle. */
-const HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY = new Set([
-    VARIANT_NAMES.MARQUEE,
-    VARIANT_NAMES.FAQ,
-    VARIANT_NAMES.BANNER_BLADE,
-]);
 
 class MerchCardEditor extends LitElement {
     static properties = {
@@ -464,6 +460,22 @@ class MerchCardEditor extends LitElement {
                 <sp-link href="#" class="field-status-restore-link" @click=${(e) => this.#fixCtaKeys(e)}
                     >Fix references</sp-link
                 >
+            </div>
+        `;
+    }
+
+    /** Warns that consuming pages reference these CTAs by position or key. Compares against the as-loaded
+     *  snapshot rather than the rte-field output, so add/edit/remove/reorder are all covered and the
+     *  editor's first-open normalization cannot trigger it. */
+    renderCtaModificationWarning() {
+        if (!HEADLESS_STYLE_CTA_VARIANTS.includes(this.getEffectiveFieldValue('variant'))) return nothing;
+        const initial = this.fragment?.initialValue?.fields?.find((field) => field.name === 'ctas')?.values?.[0] ?? '';
+        const current = this.fragment?.getFieldValue('ctas', 0) ?? '';
+        if (initial === current) return nothing;
+        return html`
+            <div class="field-status-indicator cta-modification-warning" role="status">
+                <sp-icon-alert class="field-status-icon"></sp-icon-alert>
+                <span class="field-status-label">${CTA_MODIFICATION_WARNING}</span>
             </div>
         `;
     }
@@ -1621,18 +1633,14 @@ class MerchCardEditor extends LitElement {
                             @input="${this.#handleFragmentDescriptionUpdate}"
                         ></sp-textfield>
                     </sp-field-group>
-                    ${HEADLESS_TEMPLATE_VARIANTS_WITHOUT_LOC_READY.has(variantValue)
-                        ? nothing
-                        : html`
-                              <sp-field-group id="fragment-locready-group">
-                                  <sp-field-label for="fragment-locready">Send to translation?</sp-field-label>
-                                  <sp-switch
-                                      id="fragment-locready"
-                                      ?checked="${form.locReady?.values[0]}"
-                                      @click="${this.#handleLocReady}"
-                                  ></sp-switch>
-                              </sp-field-group>
-                          `}
+                    <sp-field-group id="fragment-enable-baselines-group">
+                        <sp-field-label for="fragment-enable-baselines">Enable baselines</sp-field-label>
+                        <sp-switch
+                            id="fragment-enable-baselines"
+                            ?checked="${form.enableBaselines?.values[0]}"
+                            @click="${this.#handleEnableBaselines}"
+                        ></sp-switch>
+                    </sp-field-group>
                 </div>
                 ${this.#renderTitleField(form)}
                 <div class="two-column-grid">
@@ -2086,6 +2094,7 @@ class MerchCardEditor extends LitElement {
                         @change="${this.#handleFragmentUpdate}"
                     ></rte-field>
                     ${this.renderFieldStatusIndicator('ctas')} ${this.renderCtaKeyWarning()}
+                    ${this.renderCtaModificationWarning()}
                 </sp-field-group>
                 <div class="section-header-row">
                     <div class="section-title">Options and settings</div>
@@ -2175,9 +2184,9 @@ class MerchCardEditor extends LitElement {
         this.fragmentStore.updateFieldInternal('description', e.target.value);
     }
 
-    #handleLocReady() {
-        const value = !this.fragment.getField('locReady')?.values[0];
-        this.fragmentStore.updateField('locReady', [value]);
+    #handleEnableBaselines() {
+        const value = !this.fragment.getField('enableBaselines')?.values[0];
+        this.fragmentStore.updateField('enableBaselines', [value]);
     }
 
     #whatsIncludedRowIsEmpty(value) {

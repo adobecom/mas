@@ -1,0 +1,315 @@
+import { expect } from '@esm-bundle/chai';
+import sinon from 'sinon';
+import {
+    buildBaselineFolderPath,
+    buildBaselineTags,
+    createBaseline,
+    filterExistingTags,
+    getBaselineInfo,
+    getBaselinesPath,
+    loadBaselines,
+    prepareBaselineFolder,
+    resolveBaselineOffer,
+} from '../../src/baselines/baseline-model.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import Store from '../../src/store.js';
+import { COMPAT_VERSION, TAG_MERCH_CARD, TAG_MODEL_ID_MAPPING, BASELINE_NAME } from '../../src/constants.js';
+
+const FOLDER = '/content/dam/mas/sandbox/fr_FR/baselines/catalog/ccsn_direct_individual';
+
+const baseline = {
+    surface: 'sandbox',
+    locale: 'fr_FR',
+    template: 'catalog',
+    productArrangementCode: 'ccsn_direct_individual',
+    productCode: 'CCSN',
+};
+
+const TAGS = [
+    '/content/cq:tags/mas/product_code/ccsn',
+    '/content/cq:tags/mas/market_segments/com',
+    '/content/cq:tags/mas/product_arrangement_code/ccsn_direct_individual',
+];
+
+const notFoundError = () => Object.assign(new Error('Fragment not found'), { status: 404 });
+
+const createFragmentsApi = (getByPath) => ({
+    ensureFolderExists: sinon.stub().resolves(true),
+    getByPath,
+});
+
+describe('baseline-model', () => {
+    afterEach(() => {
+        Store.baselines.list.data.set([]);
+        Store.baselines.list.data.removeMeta('pendingProjects');
+        Store.baselines.list.data.removeMeta('loadedPath');
+        Store.baselines.list.loading.set(true);
+    });
+
+    it('builds the baseline folder path under <locale>/baselines/<template>/<PA code>', () => {
+        expect(buildBaselineFolderPath(baseline)).to.equal(FOLDER);
+    });
+
+    it('keeps COM baselines in the PA code folder', () => {
+        expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'COM' })).to.equal(FOLDER);
+    });
+
+    it('puts segment overrides in a lower-cased segment folder under the PA code', () => {
+        expect(buildBaselineFolderPath({ ...baseline, marketSegment: 'EDU' })).to.equal(`${FOLDER}/edu`);
+    });
+
+    it('ensures the baseline folder exists', async () => {
+        const fragmentsApi = createFragmentsApi(sinon.stub().rejects(notFoundError()));
+
+        await prepareBaselineFolder(fragmentsApi, baseline);
+
+        expect(fragmentsApi.ensureFolderExists.calledOnceWithExactly(FOLDER)).to.be.true;
+    });
+
+    it('reports a missing baseline with its folder', async () => {
+        const fragmentsApi = createFragmentsApi(sinon.stub().rejects(notFoundError()));
+
+        expect(await prepareBaselineFolder(fragmentsApi, baseline)).to.deep.equal({ folder: FOLDER, exists: false });
+    });
+
+    it('reports an existing baseline in the PA code and segment folder', async () => {
+        const getByPath = sinon.stub().resolves({ path: `${FOLDER}/${BASELINE_NAME}` });
+        const fragmentsApi = createFragmentsApi(getByPath);
+
+        expect(await prepareBaselineFolder(fragmentsApi, baseline)).to.deep.equal({ folder: FOLDER, exists: true });
+        expect(getByPath.firstCall.args[0]).to.equal(`${FOLDER}/${BASELINE_NAME}`);
+    });
+
+    it('propagates folder creation failures without checking the baseline', async () => {
+        const fragmentsApi = {
+            ensureFolderExists: sinon.stub().rejects(new Error('Forbidden')),
+            getByPath: sinon.stub(),
+        };
+
+        const error = await prepareBaselineFolder(fragmentsApi, baseline).catch((err) => err);
+
+        expect(error.message).to.equal('Forbidden');
+        expect(fragmentsApi.getByPath.called).to.be.false;
+    });
+
+    describe('buildBaselineTags', () => {
+        it('builds lower-cased product code, market segment and PA code tags', () => {
+            expect(
+                buildBaselineTags({ productCode: 'CCSN', marketSegment: 'EDU', productArrangementCode: 'PA-793' }),
+            ).to.deep.equal([
+                '/content/cq:tags/mas/product_code/ccsn',
+                '/content/cq:tags/mas/market_segments/edu',
+                '/content/cq:tags/mas/product_arrangement_code/pa-793',
+            ]);
+        });
+
+        it('defaults the market segment to com', () => {
+            expect(buildBaselineTags(baseline)).to.deep.equal(TAGS);
+        });
+
+        it('omits tags without a value', () => {
+            expect(buildBaselineTags({ productArrangementCode: 'PA-793' })).to.deep.equal([
+                '/content/cq:tags/mas/market_segments/com',
+                '/content/cq:tags/mas/product_arrangement_code/pa-793',
+            ]);
+        });
+    });
+
+    describe('filterExistingTags', () => {
+        it('keeps only the tags that exist in AEM', async () => {
+            const exists = sinon.stub().resolves(true);
+            exists.withArgs(TAGS[2]).resolves(false);
+
+            expect(await filterExistingTags({ exists }, TAGS)).to.deep.equal([TAGS[0], TAGS[1]]);
+        });
+    });
+
+    describe('resolveBaselineOffer', () => {
+        let service;
+
+        beforeEach(() => {
+            service = document.createElement('mas-commerce-service');
+            service.collectPriceOptions = sinon.stub().returns({});
+            service.resolveOfferSelectors = sinon.stub();
+            document.body.append(service);
+        });
+
+        afterEach(() => service.remove());
+
+        it('uses the PA code and segment carried by the offer without a lookup', async () => {
+            expect(
+                await resolveBaselineOffer('OSI', {
+                    productArrangementCode: 'PA-1',
+                    market_segments: ['EDU'],
+                    product_code: 'CCSN',
+                }),
+            ).to.deep.equal({ productArrangementCode: 'PA-1', marketSegment: 'EDU', productCode: 'CCSN' });
+            expect(service.resolveOfferSelectors.called).to.be.false;
+        });
+
+        it('resolves the PA code and segment from the offer selector', async () => {
+            service.resolveOfferSelectors.returns([
+                Promise.resolve([
+                    { productArrangementCode: 'PA-2', marketSegments: ['GOV'], productArrangement: { productCode: 'PHSP' } },
+                ]),
+            ]);
+
+            expect(await resolveBaselineOffer('OSI', {})).to.deep.equal({
+                productArrangementCode: 'PA-2',
+                marketSegment: 'GOV',
+                productCode: 'PHSP',
+            });
+            expect(service.collectPriceOptions.calledOnceWithExactly({ wcsOsi: 'OSI' })).to.be.true;
+        });
+
+        it('gives up when the lookup does not settle in time', async () => {
+            service.resolveOfferSelectors.returns([new Promise(() => {})]);
+
+            expect(await resolveBaselineOffer('OSI', {}, 10)).to.deep.equal({
+                productArrangementCode: undefined,
+                marketSegment: undefined,
+                productCode: undefined,
+            });
+        });
+    });
+
+    describe('createBaseline', () => {
+        const createRepository = (getByPath, exists = sinon.stub().resolves(true)) => ({
+            aem: { tags: { exists }, sites: { cf: { fragments: createFragmentsApi(getByPath) } } },
+            createFragment: sinon.stub().resolves({ id: 'baseline-id' }),
+        });
+
+        it('creates the baseline without the tags that do not exist', async () => {
+            const exists = sinon.stub().resolves(true);
+            exists.withArgs(TAGS[0]).resolves(false);
+            const repository = createRepository(sinon.stub().rejects(notFoundError()), exists);
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
+
+            expect(repository.createFragment.firstCall.args[0].tags).to.deep.equal([TAGS[1], TAGS[2]]);
+        });
+
+        it('does not create a baseline that already exists', async () => {
+            const repository = createRepository(sinon.stub().resolves({ path: `${FOLDER}/${BASELINE_NAME}` }));
+
+            expect(await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' })).to.deep.equal({
+                exists: true,
+            });
+            expect(repository.createFragment.called).to.be.false;
+        });
+
+        it('adds the created baseline to the baselines list', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+
+            await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
+
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['baseline-id']);
+        });
+
+        it('creates a tagged card in the baseline folder', async () => {
+            const repository = createRepository(sinon.stub().rejects(notFoundError()));
+
+            const result = await createBaseline(repository, { ...baseline, title: 'My baseline', osi: 'OSI' });
+
+            expect(result).to.deep.equal({ folder: FOLDER, fragment: { id: 'baseline-id' } });
+            expect(
+                repository.createFragment.calledOnceWithExactly({
+                    modelId: TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD],
+                    title: 'My baseline',
+                    name: BASELINE_NAME,
+                    parentPath: FOLDER,
+                    tags: TAGS,
+                    data: { osi: 'OSI', cardTitle: 'My baseline', variant: 'catalog', compatVersion: COMPAT_VERSION },
+                }),
+            ).to.be.true;
+        });
+    });
+
+    describe('getBaselinesPath', () => {
+        it('builds the baselines root of the surface and locale', () => {
+            expect(getBaselinesPath(baseline)).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+        });
+    });
+
+    describe('getBaselineInfo', () => {
+        const createFragment = (path, { variant = 'catalog', tags = [] } = {}) =>
+            new Fragment({ id: 'id', path, tags, fields: [{ name: 'variant', values: [variant] }] });
+
+        it('reads the template and PA code from the path and defaults the market segment to COM', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/baseline`))).to.deep.equal({
+                productCode: '',
+                productArrangementCode: 'ccsn_direct_individual',
+                marketSegment: 'COM',
+                template: 'catalog',
+            });
+        });
+
+        it('reads the market segment from the segment folder', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/edu/baseline`)).marketSegment).to.equal('EDU');
+        });
+
+        it('reads the product code from the product code tag', () => {
+            const fragment = createFragment(`${FOLDER}/baseline`, {
+                tags: [{ id: 'mas:market_segments/com' }, { id: 'mas:product_code/ccsn' }],
+            });
+
+            expect(getBaselineInfo(fragment).productCode).to.equal('CCSN');
+        });
+
+        it('prefers the variant field over the template folder', () => {
+            expect(getBaselineInfo(createFragment(`${FOLDER}/baseline`, { variant: 'plans' })).template).to.equal('plans');
+        });
+    });
+
+    describe('loadBaselines', () => {
+        it('does not search without a surface and clears the list', async () => {
+            const repository = { searchFragmentList: sinon.stub() };
+            Store.baselines.list.data.set([{ id: 'stale' }]);
+
+            expect(await loadBaselines(repository, { locale: 'fr_FR' })).to.be.false;
+            expect(repository.searchFragmentList.called).to.be.false;
+            expect(Store.baselines.list.data.get()).to.deep.equal([]);
+            expect(Store.baselines.list.loading.get()).to.be.false;
+        });
+
+        it('clears rows of the previous locale while the new one loads', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([{ id: 'a', path: `${FOLDER}/baseline`, fields: [] }]),
+            };
+            await loadBaselines(repository, baseline, new AbortController());
+
+            repository.searchFragmentList = sinon.stub().returns(new Promise(() => {}));
+            loadBaselines(repository, { ...baseline, locale: 'de_DE' }, new AbortController());
+
+            expect(Store.baselines.list.data.get()).to.deep.equal([]);
+            expect(Store.baselines.list.loading.get()).to.be.true;
+        });
+
+        it('keeps rows when reloading the same locale', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([{ id: 'a', path: `${FOLDER}/baseline`, fields: [] }]),
+            };
+            await loadBaselines(repository, baseline, new AbortController());
+
+            repository.searchFragmentList = sinon.stub().returns(new Promise(() => {}));
+            loadBaselines(repository, baseline, new AbortController());
+
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['a']);
+        });
+
+        it('loads only baseline fragments under the locale baselines folder', async () => {
+            const repository = {
+                searchFragmentList: sinon.stub().resolves([
+                    { id: 'a', path: `${FOLDER}/baseline`, fields: [] },
+                    { id: 'b', path: `${FOLDER}/pzn/other`, fields: [] },
+                ]),
+            };
+
+            expect(await loadBaselines(repository, baseline, new AbortController())).to.be.true;
+
+            expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/sandbox/fr_FR/baselines');
+            expect(Store.baselines.list.data.get().map((store) => store.id)).to.deep.equal(['a']);
+            expect(Store.baselines.list.loading.get()).to.be.false;
+        });
+    });
+});

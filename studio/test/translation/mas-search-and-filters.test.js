@@ -1,14 +1,18 @@
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
-import { fixture, fixtureCleanup } from '@open-wc/testing-helpers/pure';
+import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
 import { setItemsSelectionStore } from '../../src/common/items-selection-store.js';
-import { FILTER_TYPE, PAGE_NAMES } from '../../src/constants.js';
-import { stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { CARD_MODEL_PATH, FILTER_TYPE, MAS_OFFERS_URL, PAGE_NAMES, TABLE_TYPE } from '../../src/constants.js';
+import { Fragment } from '../../src/aem/fragment.js';
+import { ensureNamespaceTags } from '../../src/aem/tag-cache.js';
+import { asTagQueryResponse, emptyTagQuery, isAemTagQuery, stubAemTagQueryFetch } from '../helpers/aem-tag-fetch.js';
+import { resetProductArrangementCodes } from '../../src/common/utils/product-arrangement-codes.js';
 import { resetTagCache, seedTagCache } from '../helpers/tag-cache.js';
 import '../../src/swc.js';
 import '../../src/common/components/mas-search-and-filters.js';
+import '../../src/common/components/mas-select-items-table.js';
 
 const MAS_TAG_NAMESPACE = '/content/cq:tags/mas';
 const seedCustomTagTaxonomy = (titles = ['Accordion', 'Marquee', 'Test']) => {
@@ -114,6 +118,458 @@ describe('MasSearchAndFilters', () => {
             setItemsSelectionStore(Store.compareChart);
             expect(() => el.remove()).to.not.throw();
             expect(Store.promotions.displayCards.get()).to.deep.equal(Store.promotions.allCards.get());
+        });
+    });
+
+    describe('matchVariationsAndTags', () => {
+        const VARIATION_ID = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+        const cards = () => [
+            { id: 'parent', title: 'Parent', tags: [], groupedVariations: [{ id: VARIATION_ID, tags: [] }] },
+            { id: 'smb-card', title: 'Card B', tags: [{ id: 'mas:pzn/segment/smb', title: 'SMB' }] },
+            {
+                id: 'edu-parent',
+                title: 'Card C',
+                tags: [],
+                groupedVariations: [{ id: 'v2', fields: [{ name: 'pznTags', values: ['mas:pzn/segment/edu'] }] }],
+            },
+            { id: 'plain', title: 'Plain', tags: [] },
+        ];
+
+        const search = async (query, flag) => {
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set(cards());
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .matchVariationsAndTags=${flag}
+                    .searchQuery=${query}
+                ></mas-search-and-filters>`,
+            );
+            await el.updateComplete;
+            return Store.promotions.displayCards.get().map((card) => card.id);
+        };
+
+        it('finds the parent card of a grouped variation by id', async () => {
+            expect(await search(VARIATION_ID, true)).to.deep.equal(['parent']);
+        });
+
+        it('does not match variation ids without the flag', async () => {
+            expect(await search(VARIATION_ID, false)).to.deep.equal([]);
+        });
+
+        it('matches personalization tags case-insensitively', async () => {
+            expect(await search('SMB', true)).to.deep.equal(['smb-card']);
+            expect(await search('edu', true)).to.deep.equal(['edu-parent']);
+        });
+
+        it('does not match personalization tags without the flag', async () => {
+            expect(await search('edu', false)).to.deep.equal([]);
+        });
+
+        it('refilters the current personalization title search when tags finish loading', async () => {
+            let resolveTags;
+            const loading = ensureNamespaceTags(
+                MAS_TAG_NAMESPACE,
+                () =>
+                    new Promise((resolve) => {
+                        resolveTags = resolve;
+                    }),
+            );
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.search.set({});
+            Store.promotions.filters.set({ locale: 'en_US' });
+            Store.promotions.allCards.set(cards());
+            Store.promotions.displayCards.set([]);
+            const el = await fixture(
+                html`<mas-search-and-filters type="cards" .matchVariationsAndTags=${true}></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'education';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
+
+            resolveTags({ hits: [{ path: `${MAS_TAG_NAMESPACE}/pzn/segment/edu`, title: 'Education' }] });
+            await loading;
+            await el.updateComplete;
+
+            expect(Store.promotions.displayCards.get().map((card) => card.id)).to.deep.equal(['edu-parent']);
+        });
+    });
+
+    describe('offer picker', () => {
+        const options = [
+            { id: 'offer-1', label: 'CC_ALL_APPS' },
+            { id: 'offer-2', label: 'ACROBAT' },
+        ];
+
+        it('does not render the offer picker for a single available offer', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters type="cards" .offerFilterOptions=${[options[0]]}></mas-search-and-filters>
+            `);
+            expect(el.shadowRoot.querySelector('.offer-filter')).not.to.exist;
+        });
+
+        it('does not render the offer filter without available offers', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            expect(el.shadowRoot.querySelector('.offer-filter')).not.to.exist;
+        });
+
+        it('renders a single-choice picker with All offers selected', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValue=${'all'}
+                ></mas-search-and-filters>
+            `);
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            expect(picker).to.exist;
+            expect(picker.value).to.equal('all');
+            expect([...picker.querySelectorAll('sp-menu-item')].map((item) => item.value)).to.deep.equal([
+                'all',
+                'offer-1',
+                'offer-2',
+            ]);
+        });
+
+        it('emits the selected offer as a single value', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValue=${'offer-1'}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            picker.value = 'offer-2';
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(listener.calledOnce).to.be.true;
+            expect(listener.firstCall.args[0].detail.value).to.equal('offer-2');
+        });
+
+        it('emits All offers when it is selected', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValue=${'offer-1'}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+            const picker = el.shadowRoot.querySelector('sp-picker.offer-filter');
+            picker.value = 'all';
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+            expect(listener.firstCall.args[0].detail.value).to.equal('all');
+        });
+
+        it('clears the offer picker and notifies the consumer when filters are reset', async () => {
+            const el = await fixture(html`
+                <mas-search-and-filters
+                    type="cards"
+                    .offerFilterOptions=${options}
+                    .offerFilterValue=${'all'}
+                ></mas-search-and-filters>
+            `);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(el.offerFilterValue).to.equal('');
+            expect(listener.calledOnce).to.be.true;
+            expect(listener.firstCall.args[0].detail.value).to.equal('');
+            expect(el.shadowRoot.querySelector('sp-picker.offer-filter').value).to.equal('');
+        });
+
+        it('does not notify the offer consumer when no offer filter is selected', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+            const listener = sandbox.spy();
+            el.addEventListener('offer-filter-change', listener);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(listener.called).to.be.false;
+        });
+    });
+
+    describe('promotion variation matching', () => {
+        const variationId = '09f5c8af-4a7d-497b-a579-70d2f3794a2c';
+        const smbTag = 'mas:pzn/segment/smb';
+        let originalPromotionSearch;
+        let originalPromotionFilters;
+
+        beforeEach(() => {
+            originalPromotionSearch = Store.promotions.search.get();
+            originalPromotionFilters = Store.promotions.filters.get();
+            Store.promotions.search.set({});
+            Store.promotions.filters.set({ locale: 'en_US' });
+            setItemsSelectionStore(Store.promotions);
+            Store.promotions.allCards.set([
+                createMockFragment({
+                    id: 'parent',
+                    groupedVariations: [
+                        {
+                            id: variationId,
+                            fieldTags: [{ id: smbTag, title: 'Small and Medium Business' }],
+                            fields: [{ name: 'pznTags', values: [smbTag] }],
+                        },
+                    ],
+                }),
+                createMockFragment({ id: 'plain' }),
+            ]);
+        });
+
+        afterEach(() => {
+            fixtureCleanup();
+            Store.promotions.search.set(originalPromotionSearch);
+            Store.promotions.filters.set(originalPromotionFilters);
+            Store.promotions.allCards.set([]);
+            Store.promotions.displayCards.set([]);
+        });
+
+        const mountSearch = (enabled = true) =>
+            fixture(html`<mas-search-and-filters type="cards" .matchVariationsAndTags=${enabled}></mas-search-and-filters>`);
+
+        it('finds the parent of a grouped variation by UUID', async () => {
+            const el = await mountSearch();
+            el.searchQuery = variationId;
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('matches a grouped variation personalization tag case-insensitively', async () => {
+            const el = await mountSearch();
+            el.searchQuery = 'SMB';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('matches the title of a grouped variation personalization tag', async () => {
+            const el = await mountSearch();
+            el.searchQuery = 'small and medium';
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        it('applies the Personalization picker to grouped variation field tags', async () => {
+            const el = await mountSearch();
+            const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+            picker.value = ['/content/cq:tags/mas/pzn/segment/smb'];
+            picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+        });
+
+        describe('personalization selection during catalog refresh', () => {
+            const smbPath = '/content/cq:tags/mas/pzn/segment/smb';
+            const eduPath = '/content/cq:tags/mas/pzn/edu';
+
+            const mountPicker = async (selected = []) => {
+                seedTagCache(MAS_TAG_NAMESPACE, [
+                    [smbPath, { path: smbPath, name: 'smb', title: 'SMB' }],
+                    [eduPath, { path: eduPath, name: 'edu', title: 'EDU' }],
+                ]);
+                const el = await mountSearch();
+                el.pznFilter = selected;
+                await el.updateComplete;
+                const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+                await waitUntil(() => picker.ready);
+                await picker.updateComplete;
+                return { el, picker };
+            };
+
+            const toggleCheckbox = async (picker, path, checked) => {
+                const checkbox = picker.shadowRoot.querySelector(`sp-checkbox[value="${path}"]`);
+                checkbox.checked = checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await picker.updateComplete;
+            };
+
+            const refreshCards = async (el, picker, id = 'new-parent') => {
+                Store.promotions.allCards.set([...Store.promotions.allCards.get(), createMockFragment({ id })]);
+                await el.updateComplete;
+                await picker.updateComplete;
+            };
+
+            for (const checked of [true, false]) {
+                it(`preserves a pending ${checked ? 'check' : 'uncheck'} when new fragments arrive`, async () => {
+                    const { el, picker } = await mountPicker(checked ? [] : [smbTag]);
+                    await toggleCheckbox(picker, smbPath, checked);
+                    expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.equal(checked);
+
+                    await refreshCards(el, picker);
+
+                    expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.equal(checked);
+                    expect(Store.promotions.allCards.get().at(-1).id).to.equal('new-parent');
+                });
+            }
+
+            it('preserves multiple pending checks through repeated catalog updates', async () => {
+                const { el, picker } = await mountPicker();
+                await toggleCheckbox(picker, smbPath, true);
+                await refreshCards(el, picker, 'first-page');
+                await toggleCheckbox(picker, eduPath, true);
+                await refreshCards(el, picker, 'second-page');
+
+                expect(
+                    [...picker.shadowRoot.querySelectorAll('sp-checkbox[checked]')].map((checkbox) =>
+                        checkbox.getAttribute('value'),
+                    ),
+                ).to.have.members([smbPath, eduPath]);
+            });
+
+            it('preserves pending checks when the search text changes', async () => {
+                const { el, picker } = await mountPicker();
+                await toggleCheckbox(picker, smbPath, true);
+
+                el.searchQuery = 'plain';
+                await el.updateComplete;
+                await picker.updateComplete;
+
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.true;
+            });
+
+            for (const checked of [true, false]) {
+                it(`applies a pending ${checked ? 'check' : 'uncheck'} after a catalog refresh`, async () => {
+                    const { el, picker } = await mountPicker(checked ? [] : [smbTag]);
+                    await toggleCheckbox(picker, smbPath, checked);
+                    await refreshCards(el, picker);
+
+                    await picker.applySelection();
+                    await waitUntil(() => el.pznFilter.length === (checked ? 1 : 0));
+
+                    expect(el.pznFilter).to.deep.equal(checked ? [smbTag] : []);
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(
+                        checked ? ['parent'] : ['parent', 'plain', 'new-parent'],
+                    );
+                });
+            }
+
+            it('keeps applied personalization filtering active as additional fragments arrive', async () => {
+                const { el, picker } = await mountPicker([smbTag]);
+
+                await refreshCards(el, picker);
+
+                expect(el.pznFilter).to.deep.equal([smbTag]);
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.true;
+                expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['parent']);
+            });
+
+            it('still clears the picker when the user explicitly resets filters', async () => {
+                const { el, picker } = await mountPicker([smbTag]);
+
+                el.resetFilters();
+                await el.updateComplete;
+                await picker.updateComplete;
+
+                expect(el.pznFilter).to.deep.equal([]);
+                expect(picker.shadowRoot.querySelector(`sp-checkbox[value="${smbPath}"]`).checked).to.be.false;
+            });
+        });
+
+        it('matches personalization tag paths stored only in the pznTags field', async () => {
+            const el = await mountSearch();
+            Store.promotions.allCards.set([
+                createMockFragment({
+                    id: 'edu-parent',
+                    groupedVariations: [{ fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/pzn/segment/edu'] }] }],
+                }),
+            ]);
+            el.pznFilter = ['mas:pzn/segment/edu'];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['edu-parent']);
+        });
+
+        for (const fieldTags of [undefined, []]) {
+            it(`filters EDU through actual fragment and variation loading with fieldTags=${JSON.stringify(fieldTags)}`, async () => {
+                Store.promotions.allCards.set([]);
+                Store.fragments.list.data.set([]);
+                const el = await mountSearch();
+                const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="pzn"]');
+                picker.value = ['/content/cq:tags/mas/pzn/edu'];
+                picker.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                await el.updateComplete;
+                const parentPath = '/content/dam/mas/acom/en_US/cards/parent';
+                const variationPath = `${parentPath}/pzn/edu`;
+                const repository = {
+                    aem: {
+                        getFragmentByPath: sandbox.stub().resolves({
+                            id: variationId,
+                            path: variationPath,
+                            fieldTags,
+                            fields: [{ name: 'pznTags', values: ['/content/cq:tags/mas/pzn/edu'] }],
+                        }),
+                    },
+                };
+                const table = document.createElement('mas-select-items-table');
+                table.type = TABLE_TYPE.CARDS;
+                table.getDisplayName = (fragment) => fragment.path;
+                sandbox.stub(table, 'repository').get(() => repository);
+                await fixture(table);
+                try {
+                    Store.fragments.list.data.set([
+                        {
+                            value: new Fragment({
+                                id: 'edu-parent',
+                                path: parentPath,
+                                tags: [],
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [{ name: 'variations', values: [variationPath] }],
+                                references: [{ path: variationPath }],
+                            }),
+                        },
+                        {
+                            value: new Fragment({
+                                id: 'plain-parent',
+                                path: '/content/dam/mas/acom/en_US/cards/plain',
+                                tags: [],
+                                model: { path: CARD_MODEL_PATH },
+                                fields: [],
+                            }),
+                        },
+                    ]);
+                    await waitUntil(() => Store.promotions.allCards.get().length === 2 && !table.dataState.isProcessingCards);
+                    await el.updateComplete;
+                    await table.updateComplete;
+                    expect(repository.aem.getFragmentByPath.calledOnceWith(variationPath)).to.be.true;
+                    expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['edu-parent']);
+                    expect(table.shadowRoot.querySelectorAll('mas-collapsible-table-row')).to.have.lengthOf(1);
+                    expect(table.shadowRoot.querySelector('.skeleton-row')).not.to.exist;
+                } finally {
+                    table.remove();
+                    Store.fragments.list.data.set([]);
+                    Store.promotions.cardsByPaths.set(new Map());
+                    Store.promotions.groupedVariationsByParent.set(new Map());
+                    Store.promotions.groupedVariationsData.set(new Map());
+                }
+            });
+        }
+
+        it('keeps parent personalization tag matching when variation matching is enabled', async () => {
+            const el = await mountSearch();
+            Store.promotions.allCards.set([createMockFragment({ id: 'tagged-parent', tags: [{ id: smbTag }] })]);
+            el.pznFilter = [smbTag];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get().map(({ id }) => id)).to.deep.equal(['tagged-parent']);
+        });
+
+        it('does not match grouped variation tags in other pickers', async () => {
+            const el = await mountSearch(false);
+            el.pznFilter = [smbTag];
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
+        });
+
+        it('does not match grouped variation UUIDs in other pickers', async () => {
+            const el = await mountSearch(false);
+            el.searchQuery = variationId;
+            await el.updateComplete;
+            expect(Store.promotions.displayCards.get()).to.deep.equal([]);
         });
     });
 
@@ -301,6 +757,79 @@ describe('MasSearchAndFilters', () => {
             const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
             expect(el.statusFilter).to.deep.equal([]);
         });
+    });
+
+    describe('external product filter events', () => {
+        it('does not echo the initial product filter or subsequent parent updates', async () => {
+            const onChange = sandbox.spy();
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                    @product-filter-change=${onChange}
+                ></mas-search-and-filters>`,
+            );
+            expect(onChange.called).to.be.false;
+
+            el.productFilter = ['mas:product_code/illustrator'];
+            await el.updateComplete;
+
+            expect(onChange.called).to.be.false;
+            expect(Store.translationProjects.filters.get().tags).to.equal('mas:product_code/illustrator');
+        });
+
+        it('does not emit a product filter event for a programmatic reset', async () => {
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="cards"
+                    .externalProductFilter=${true}
+                    .productFilter=${['mas:product_code/photoshop']}
+                ></mas-search-and-filters>`,
+            );
+            const onChange = sandbox.spy();
+            el.addEventListener('product-filter-change', onChange);
+
+            el.resetFilters();
+            await el.updateComplete;
+
+            expect(el.productFilter).to.deep.equal([]);
+            expect(onChange.called).to.be.false;
+        });
+
+        for (const action of ['picker selection', 'chip deletion', 'Clear all']) {
+            it(`emits one product filter event for user ${action}`, async () => {
+                const el = await fixture(
+                    html`<mas-search-and-filters
+                        type="cards"
+                        .externalProductFilter=${true}
+                        .productFilter=${['mas:product_code/photoshop']}
+                    ></mas-search-and-filters>`,
+                );
+                el.productOptions = [{ id: 'mas:product_code/photoshop', title: 'Photoshop' }];
+                await el.updateComplete;
+                const onChange = sandbox.spy();
+                el.addEventListener('product-filter-change', onChange);
+
+                if (action === 'picker selection') {
+                    const picker = el.shadowRoot.querySelector('aem-tag-picker-field[top="product_code"]');
+                    picker.value = ['/content/cq:tags/mas/product_code/illustrator'];
+                    picker.dispatchEvent(new Event('change', { bubbles: true }));
+                } else if (action === 'chip deletion') {
+                    el.shadowRoot.querySelector('.applied-filters sp-tag').dispatchEvent(new CustomEvent('delete'));
+                } else {
+                    el.shadowRoot.querySelector('.applied-filters sp-action-button').click();
+                }
+                await el.updateComplete;
+
+                expect(onChange.calledOnce).to.be.true;
+                expect(onChange.firstCall.args[0].detail.value).to.deep.equal(
+                    action === 'picker selection' ? ['mas:product_code/illustrator'] : [],
+                );
+                expect(onChange.firstCall.args[0].bubbles).to.be.true;
+                expect(onChange.firstCall.args[0].composed).to.be.true;
+            });
+        }
     });
 
     describe('typeUppercased getter', () => {
@@ -950,6 +1479,7 @@ describe('MasSearchAndFilters', () => {
                 tags: 'mas:market_segments/com,mas:product_code/photoshop,mas:variant/plans',
                 personalizationFilterEnabled: true,
                 status: undefined,
+                variation: undefined,
             });
         });
 
@@ -1342,6 +1872,7 @@ describe('MasSearchAndFilters', () => {
                 tags: 'mas:product_code/photoshop',
                 personalizationFilterEnabled: true,
                 status: undefined,
+                variation: undefined,
             });
         });
     });
@@ -1872,6 +2403,396 @@ describe('MasSearchAndFilters', () => {
             tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
             await el.updateComplete;
             expect(el.workflowStepFilter).to.not.include('mas:workflow-step/email');
+        });
+    });
+    describe('baselines configuration', () => {
+        const BASELINE_FILTERS = [
+            FILTER_TYPE.MARKET_SEGMENT,
+            FILTER_TYPE.TEMPLATE,
+            FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE,
+            FILTER_TYPE.CREATED_BY,
+        ];
+        const offers = {
+            'PA-1': { fields: { name: 'Photoshop' } },
+            'PA-2': { fields: { name: 'Illustrator' } },
+        };
+        const baseline = (id, paCode, createdBy, tags = []) =>
+            createMockFragment({
+                id,
+                title: id,
+                path: `/content/dam/mas/acom/en_US/baselines/catalog/${paCode}/baseline`,
+                created: { by: createdBy },
+                tags,
+            });
+        const resolver = (fragment, filterType) =>
+            filterType === FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE ? [fragment.path.split('/').at(-2)] : undefined;
+        const renderBaselineFilters = (options = {}) =>
+            fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .filterValueResolver=${options.resolver ?? resolver}
+                    show-reset
+                ></mas-search-and-filters>`,
+            );
+        const displayedIds = () => Store.baselines.displayBaselines.get().map(({ id }) => id);
+
+        beforeEach(() => {
+            resetProductArrangementCodes();
+            window.fetch.callsFake(async (url) => {
+                if (url === MAS_OFFERS_URL) return new Response(JSON.stringify(offers), { status: 200 });
+                if (isAemTagQuery(url)) return asTagQueryResponse(emptyTagQuery);
+                throw new Error(`Unexpected fetch in test: ${url}`);
+            });
+            setItemsSelectionStore(Store.baselines);
+            Store.baselines.search.set({});
+            Store.baselines.filters.set({});
+            Store.baselines.list.loading.set(false);
+            Store.baselines.allBaselines.set([
+                baseline('a', 'PA-1', 'jane@adobe.com'),
+                baseline('b', 'PA-2', 'john@adobe.com', [{ id: 'mas:product_arrangement_code/pa-1' }]),
+            ]);
+            Store.baselines.displayBaselines.set([]);
+        });
+
+        afterEach(() => {
+            resetProductArrangementCodes();
+            Store.baselines.search.set({});
+            Store.baselines.filters.set({});
+            Store.baselines.allBaselines.set([]);
+            Store.baselines.displayBaselines.set([]);
+            Store.baselines.list.loading.set(true);
+        });
+
+        it('renders only the enabled filters, in order, plus the reset button', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            await el.updateComplete;
+
+            const filters = el.shadowRoot.querySelector('.filters');
+            expect(filters.querySelector('aem-tag-picker-field').getAttribute('label')).to.equal('Market Segment');
+            expect(
+                [...filters.querySelectorAll('overlay-trigger > sp-action-button')].map((button) => button.textContent.trim()),
+            ).to.deep.equal(['Template', 'Product Arrangement Code']);
+            expect(filters.querySelector('mas-user-picker')).to.exist;
+            expect(filters.querySelector('sp-action-button.reset-filters').textContent.trim()).to.equal('Reset Filters');
+            expect(filters.querySelectorAll('aem-tag-picker-field').length).to.equal(1);
+        });
+
+        it('keeps rendering every filter by default', async () => {
+            setItemsSelectionStore(Store.translationProjects);
+            const el = await fixture(html`<mas-search-and-filters type="cards"></mas-search-and-filters>`);
+
+            expect(
+                [...el.shadowRoot.querySelectorAll('aem-tag-picker-field')].map((f) => f.getAttribute('label')),
+            ).to.deep.equal([
+                'Offer Type',
+                'Plan Type',
+                'Workflow Step',
+                'Market Segment',
+                'Customer Segment',
+                'Product Code',
+                'Tag',
+                'Personalization',
+            ]);
+            expect(el.shadowRoot.querySelector('mas-user-picker')).to.not.exist;
+            expect(el.shadowRoot.querySelector('.reset-filters')).to.not.exist;
+        });
+
+        it('loads the product arrangement code options from the offers endpoint', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+
+            expect(el.productArrangementCodeOptions).to.deep.equal([
+                { id: 'PA-1', title: 'PA-1 — Photoshop' },
+                { id: 'PA-2', title: 'PA-2 — Illustrator' },
+            ]);
+        });
+
+        it('filters by product arrangement code using the resolved values', async () => {
+            const el = await renderBaselineFilters();
+            el.productArrangementCodeFilter = ['PA-2'];
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['b']);
+        });
+
+        it('falls back to product arrangement code tags without a resolver', async () => {
+            const el = await renderBaselineFilters({ resolver: () => undefined });
+            el.productArrangementCodeFilter = ['PA-1'];
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['b']);
+        });
+
+        it('filters by template using the resolved values when the variant field is missing', async () => {
+            const el = await renderBaselineFilters({
+                resolver: (fragment, filterType) =>
+                    filterType === FILTER_TYPE.TEMPLATE ? [fragment.id === 'a' ? 'catalog' : 'plans'] : undefined,
+            });
+            el.templateFilter = ['catalog'];
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('matches the search query against the product code tag', async () => {
+            Store.baselines.allBaselines.set([
+                baseline('a', 'PA-1', 'jane@adobe.com', ['mas:product_code/phsp']),
+                baseline('b', 'PA-2', 'john@adobe.com'),
+            ]);
+            const el = await renderBaselineFilters();
+            el.searchQuery = 'PHSP';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('matches the search query against the resolved search values', async () => {
+            Store.baselines.allBaselines.set([
+                createMockFragment({ id: 'a', title: 'a', path: '/content/dam/mas/ccd/en_US/baselines/plans/PA-1/x' }),
+                createMockFragment({ id: 'b', title: 'b', path: '/content/dam/mas/ccd/en_US/baselines/plans/PA-2/edu/x' }),
+            ]);
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .searchValuesResolver=${({ id }) => [id === 'a' ? 'COM' : 'EDU']}
+                ></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'com';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('ignores surrounding whitespace in the search query', async () => {
+            const el = await renderBaselineFilters();
+            el.searchQuery = '  pa-1  ';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('treats a whitespace-only search query as empty', async () => {
+            const el = await renderBaselineFilters();
+            el.searchQuery = '   ';
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a', 'b']);
+        });
+
+        it('filters by created by, case-insensitively', async () => {
+            const el = await renderBaselineFilters();
+            el.createdByFilter = ['JANE@adobe.com'];
+            await el.updateComplete;
+
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('narrows the searchable picker options by the popover search', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            el.openFilterPicker = FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE;
+            el.filterPickerSearch = 'illus';
+            await el.updateComplete;
+
+            const paPicker = el.shadowRoot.querySelectorAll('.filters > overlay-trigger')[1];
+            expect(
+                [...paPicker.querySelectorAll('sp-checkbox')].map((checkbox) => checkbox.getAttribute('value')),
+            ).to.deep.equal(['PA-2']);
+        });
+
+        it('writes the product arrangement code and created by filters to the slice', async () => {
+            const el = await renderBaselineFilters();
+            el.productArrangementCodeFilter = ['PA-1', 'PA-2'];
+            el.createdByFilter = ['jane@adobe.com'];
+            await el.updateComplete;
+
+            expect(Store.baselines.filters.get()).to.include({ paCodes: 'PA-1,PA-2', createdBy: 'jane@adobe.com' });
+        });
+
+        it('applies filters restored from the slice, e.g. on back navigation', async () => {
+            const el = await renderBaselineFilters();
+            Store.baselines.filters.set({ paCodes: 'PA-1', createdBy: 'jane@adobe.com' });
+            await el.updateComplete;
+
+            expect(el.productArrangementCodeFilter).to.deep.equal(['PA-1']);
+            expect(el.createdByFilter).to.deep.equal(['jane@adobe.com']);
+            expect(displayedIds()).to.deep.equal(['a']);
+        });
+
+        it('resets the search query and every filter', async () => {
+            Store.baselines.search.set({ query: 'baseline' });
+            Store.baselines.filters.set({ tags: 'mas:market_segments/edu', paCodes: 'PA-1', createdBy: 'jane@adobe.com' });
+            const el = await renderBaselineFilters();
+            el.searchQuery = 'baseline';
+            await el.updateComplete;
+
+            el.shadowRoot.querySelector('.reset-filters').click();
+            await el.updateComplete;
+
+            expect(el.marketSegmentFilter).to.deep.equal([]);
+            expect(el.productArrangementCodeFilter).to.deep.equal([]);
+            expect(el.createdByFilter).to.deep.equal([]);
+            expect(Store.baselines.search.get().query).to.be.undefined;
+            expect(Store.baselines.filters.get()).to.deep.equal({ tags: undefined });
+            expect(displayedIds()).to.deep.equal(['a', 'b']);
+        });
+
+        it('keeps the latest slice search and filters when leaving and returning to the page', async () => {
+            Store.baselines.search.set({ query: ' PA-1 ' });
+            Store.baselines.filters.set({ paCodes: 'PA-1' });
+            const el = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .filterValueResolver=${resolver}
+                    .searchQuery=${' PA-1 '}
+                ></mas-search-and-filters>`,
+            );
+            el.searchQuery = 'PA-2';
+            el.productArrangementCodeFilter = ['PA-2'];
+            await el.updateComplete;
+
+            el.remove();
+
+            expect(Store.baselines.search.get()).to.deep.equal({ query: 'PA-2' });
+            expect(Store.baselines.filters.get()).to.include({ paCodes: 'PA-2' });
+
+            const returned = await fixture(
+                html`<mas-search-and-filters
+                    type="baselines"
+                    .enabledFilters=${BASELINE_FILTERS}
+                    .filterValueResolver=${resolver}
+                    .searchQuery=${Store.baselines.search.get().query}
+                ></mas-search-and-filters>`,
+            );
+            await returned.updateComplete;
+
+            expect(returned.productArrangementCodeFilter).to.deep.equal(['PA-2']);
+            expect(displayedIds()).to.deep.equal(['b']);
+        });
+
+        it('hides the result count when hide-count is set', async () => {
+            const el = await fixture(html`<mas-search-and-filters type="baselines" hide-count></mas-search-and-filters>`);
+
+            expect(el.shadowRoot.querySelector('.result-count')).to.not.exist;
+        });
+
+        it('renders an outlined Created by trigger', async () => {
+            const el = await renderBaselineFilters();
+
+            expect(el.shadowRoot.querySelector('mas-user-picker').quiet).to.be.false;
+        });
+
+        it('reads the loading state from the baselines list', async () => {
+            const el = await renderBaselineFilters();
+            Store.baselines.list.loading.set(true);
+
+            expect(el.isLoading).to.be.true;
+            expect(el.isLoadingMore).to.be.false;
+        });
+
+        it('adds and removes product arrangement codes from the picker checkboxes', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            el.openFilterPicker = FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE;
+            await el.updateComplete;
+            const checkbox = () => el.shadowRoot.querySelector('.filters sp-checkbox[value="PA-1"]');
+
+            checkbox().checked = true;
+            checkbox().dispatchEvent(new Event('change'));
+            await el.updateComplete;
+            expect(el.productArrangementCodeFilter).to.deep.equal(['PA-1']);
+
+            checkbox().checked = false;
+            checkbox().dispatchEvent(new Event('change'));
+            await el.updateComplete;
+            expect(el.productArrangementCodeFilter).to.deep.equal([]);
+        });
+
+        it('tracks the open searchable picker and clears its search on open and close', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            await el.updateComplete;
+            const paTrigger = el.shadowRoot.querySelectorAll('.filters > overlay-trigger')[1];
+
+            el.filterPickerSearch = 'illus';
+            paTrigger.dispatchEvent(new Event('sp-opened'));
+            expect(el.openFilterPicker).to.equal(FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE);
+            expect(el.filterPickerSearch).to.equal('');
+
+            el.filterPickerSearch = 'photo';
+            paTrigger.dispatchEvent(new Event('sp-closed'));
+            expect(el.openFilterPicker).to.equal('');
+            expect(el.filterPickerSearch).to.equal('');
+        });
+
+        it('keeps another open picker when a different picker closes', async () => {
+            const el = await renderBaselineFilters();
+            await waitUntil(() => el.productArrangementCodeOptions.length);
+            await el.updateComplete;
+            el.openFilterPicker = FILTER_TYPE.TEMPLATE;
+
+            el.shadowRoot.querySelectorAll('.filters > overlay-trigger')[1].dispatchEvent(new Event('sp-closed'));
+
+            expect(el.openFilterPicker).to.equal(FILTER_TYPE.TEMPLATE);
+        });
+
+        it('removes applied product arrangement code and created by tags', async () => {
+            const el = await renderBaselineFilters();
+            el.productArrangementCodeFilter = ['PA-1', 'PA-2'];
+            el.createdByFilter = ['jane@adobe.com'];
+            await el.updateComplete;
+            const deleteTag = (value) => {
+                const tag = el.shadowRoot.querySelector('sp-tag');
+                tag.value = value;
+                tag.dispatchEvent(new CustomEvent('delete', { bubbles: true }));
+            };
+
+            deleteTag({ type: FILTER_TYPE.PRODUCT_ARRANGEMENT_CODE, id: 'PA-1' });
+            deleteTag({ type: FILTER_TYPE.CREATED_BY, id: 'jane@adobe.com' });
+            await el.updateComplete;
+
+            expect(el.productArrangementCodeFilter).to.deep.equal(['PA-2']);
+            expect(el.createdByFilter).to.deep.equal([]);
+        });
+
+        describe('created by user picker sync', () => {
+            const users = [
+                { userPrincipalName: 'jane@adobe.com', displayName: 'Jane Doe' },
+                { userPrincipalName: 'john@adobe.com', displayName: 'John Roe' },
+            ];
+
+            beforeEach(() => Store.users.set(users));
+            afterEach(() => Store.users.set([]));
+
+            it('selects the filtered users in the user picker', async () => {
+                const el = await renderBaselineFilters();
+                el.createdByFilter = ['jane@adobe.com'];
+                await el.updateComplete;
+
+                expect(el.shadowRoot.querySelector('mas-user-picker').selectedUsers.get()).to.deep.equal([users[0]]);
+                expect(el.createdByFilter).to.deep.equal(['jane@adobe.com']);
+            });
+
+            it('selects filtered users regardless of principal name casing', async () => {
+                const el = await renderBaselineFilters();
+                el.createdByFilter = ['JANE@adobe.com'];
+                await el.updateComplete;
+
+                expect(el.shadowRoot.querySelector('mas-user-picker').selectedUsers.get()).to.deep.equal([users[0]]);
+                expect(el.createdByFilter).to.deep.equal(['JANE@adobe.com']);
+            });
+
+            it('updates the created by filter from the user picker selection', async () => {
+                const el = await renderBaselineFilters();
+                el.shadowRoot.querySelector('mas-user-picker').selectedUsers.set([users[1]]);
+                await el.updateComplete;
+
+                expect(el.createdByFilter).to.deep.equal(['john@adobe.com']);
+            });
         });
     });
 });

@@ -1,4 +1,5 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+import { resolveCheckoutIntent } from '../../checkout/src/checkout.js';
 import {
     AUP_CHECKOUT_CLIENT_IDS,
     CheckoutWorkflowStep,
@@ -90,7 +91,7 @@ function getRequest(offers, options, hasUpgradeAction) {
         lang: new URL(applyPageLocaleToCheckoutUrl(localeUrl)).searchParams.get(
             'lang',
         ),
-        nr: 'stable',
+        nr: 'adobe-com-stable',
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
         items: offers
@@ -163,7 +164,7 @@ function getRequest(offers, options, hasUpgradeAction) {
         if (options[key] != null) params[key] = options[key];
     }
     return {
-        intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',
+        intent: resolveCheckoutIntent(offer),
         context,
         params,
         enableRenderIn: 'iframe',

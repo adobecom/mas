@@ -22,6 +22,13 @@ const testRunnerHtml = (testFramework) => `
 export default {
     browsers: [
         chromeLauncher({
+            // Background tabs otherwise suspend Spectrum's animation and keyboard lifecycle.
+            createPage: async ({ context }) => {
+                const page = await context.newPage();
+                const session = await page.createCDPSession();
+                await session.send('Emulation.setFocusEmulationEnabled', { enabled: true });
+                return page;
+            },
             launchOptions: {
                 args: ['--no-sandbox'],
                 headless: !headed,

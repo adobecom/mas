@@ -421,13 +421,14 @@ mas-content {
     --table-content-preview-flex-grow: 0.2;
     width: 100%;
     border-radius: 4px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     border: 1px solid var(--spectrum-gray-100);
     --spectrum-table-cell-background-color: transparent;
 }
 
 #content sp-table-body {
-    overflow: hidden;
+    overflow: visible;
 }
 
 #content #render,
@@ -935,6 +936,10 @@ sp-underlay + sp-dialog {
     /* Center vertically in viewport */
     top: 50% !important;
     transform: translateY(-50%);
+}
+
+.preview-popover.white-background {
+    background-color: #ffffff;
 }
 
 .preview-popover.position-left {

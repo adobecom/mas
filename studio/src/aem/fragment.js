@@ -1,6 +1,7 @@
 import {
     PATH_TOKENS,
     PZN_FOLDER,
+    BASELINES_FOLDER,
     TAG_PROMOTION_PREFIX,
     MAS_PRODUCT_CODE_PREFIX,
     STAGED,
@@ -470,6 +471,35 @@ export class Fragment {
      */
     static isGroupedVariationPath(path) {
         return path?.includes(`/${PZN_FOLDER}/`) ?? false;
+    }
+
+    /**
+     * Checks whether a path is under a baselines folder.
+     * @param {string} path
+     * @returns {boolean}
+     */
+    static isBaselinePath(path) {
+        return path?.includes(`/${BASELINES_FOLDER}/`) ?? false;
+    }
+
+    /**
+     * Checks whether a path must be excluded from fragment search results (grouped variations and baselines).
+     * @param {string} path
+     * @returns {boolean}
+     */
+    static isHiddenFromSearch(path) {
+        return Fragment.isGroupedVariationPath(path) || Fragment.isBaselinePath(path);
+    }
+
+    /**
+     * Checks whether a fragment was created by one of the given users (case-insensitive).
+     * @param {{ created?: { by?: string } }} fragment
+     * @param {string[]} userPrincipalNames
+     * @returns {boolean}
+     */
+    static isCreatedByAny(fragment, userPrincipalNames) {
+        const createdBy = fragment.created?.by?.toLowerCase();
+        return Boolean(createdBy) && userPrincipalNames.some((name) => name.toLowerCase() === createdBy);
     }
 
     /**

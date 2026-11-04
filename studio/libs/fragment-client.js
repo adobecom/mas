@@ -9,6 +9,7 @@ import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } 
 import { transformer as corrector } from '../../io/www/src/fragment/transformers/corrector.js';
 import { transformer as fetchFragment } from '../../io/www/src/fragment/transformers/fetchFragment.js';
 import { transformer as defaultLanguage } from '../../io/www/src/fragment/transformers/defaultLanguage.js';
+import { clearBaselineCache, transformer as offer } from '../../io/www/src/fragment/transformers/offer.js';
 import { clearDictionaryCache, getDictionary, transformer as replace } from '../../io/www/src/fragment/transformers/replace.js';
 import { clearSettingsCache, transformer as settings } from '../../io/www/src/fragment/transformers/settings.js';
 import { transformer as customize } from '../../io/www/src/fragment/transformers/customize.js';
@@ -20,7 +21,7 @@ import { loadConfiguration } from '../../io/www/src/fragment/utils/configuration
 import { clearPendingFetches, mark } from '../../io/www/src/fragment/utils/common.js';
 import { resolveTerritoryCountries } from '../../io/www/src/fragment/locales.js';
 
-const PIPELINE = [fetchFragment, defaultLanguage, promotions, mask, customize, settings, replace, corrector, wcs];
+const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, corrector, wcs];
 class LocaleStorageState {
     constructor() {        
     }
@@ -75,6 +76,7 @@ function clearCaches() {
     clearSettingsCache(true);
     clearPromoCache(true);
     clearOfferMappingCache(true);
+    clearBaselineCache(true);
     clearPendingFetches();
     Object.keys(window.localStorage)
         .filter((key) => key.startsWith('req-'))

@@ -1,4 +1,5 @@
 import { LitElement, css, html, nothing } from 'lit';
+import { pageContainerStyles } from '../common/styles/page-container-styles.css.js';
 import Store from '../store.js';
 import { PAGE_NAMES, QUICK_ACTION } from '../constants.js';
 import ReactiveController from '../reactivity/reactive-controller.js';
@@ -36,10 +37,11 @@ const getSettingDefaultValue = (definition) => {
 
 class MasSettings extends LitElement {
     static styles = css`
+        ${pageContainerStyles}
+
         :host {
             display: block;
             box-sizing: border-box;
-            padding: 32px;
             min-width: 1100px;
 
             --mod-table-border-radius: 0;
@@ -1396,8 +1398,10 @@ class MasSettings extends LitElement {
 
     render() {
         if (!canAccessSettings(Store.surface())) return nothing;
-        return html`${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this
-            .settingsEditorActionBarTemplate}${this.dialogTemplate}`;
+        return html`<div class="page-container">
+            ${this.headerTemplate}${this.tableTemplate}${this.settingsFormTemplate}${this.settingsEditorActionBarTemplate}${this
+                .dialogTemplate}
+        </div>`;
     }
 }
 

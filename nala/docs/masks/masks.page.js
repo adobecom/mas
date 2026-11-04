@@ -5,9 +5,17 @@ export default class MasksPage {
         this.btnUnMask = page.locator('#btnUnMask');
     }
 
-    card(fragmentId) {
+    standaloneCard(fragmentId) {
+        return this.cardParts(this.page.locator('#standalone'), fragmentId);
+    }
+
+    collectionCard(fragmentId) {
+        return this.cardParts(this.page.locator('#collection merch-card-collection'), fragmentId);
+    }
+
+    cardParts(scope, fragmentId) {
         const fragment = this.page.locator(`aem-fragment[fragment="${fragmentId}"]`);
-        const card = this.page.locator('merch-card').filter({ has: fragment });
+        const card = scope.locator('merch-card').filter({ has: fragment });
         return {
             card,
             badge: card.locator('[slot="badge"] merch-badge').or(card.locator('merch-badge')),

@@ -40,3 +40,9 @@ test('studio libs run the whole studio suite', () =>
 
 test('whole studio suite runs from the studio directory', () =>
     assert.equal(plan(['studio/libs/swc.js'], studioTests)[1].cwd, 'studio'));
+
+test('io/www installs its own deps and runs its suite', () =>
+    assert.deepEqual(
+        plan(['io/www/src/fragment/transformers/replace.js'], studioTests).map(({ argv, cwd }) => `${cwd}: ${argv.join(' ')}`),
+        ['io/www: npm ci', 'io/www: npm run test:ci'],
+    ));

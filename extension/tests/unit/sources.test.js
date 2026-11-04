@@ -226,6 +226,18 @@ test('a hidden responsive twin of shortDescription is deduped in favor of the sh
     assert.deepEqual(plain(shortDescriptions.map((e) => e.overlayId)), ['field-2']);
 });
 
+test('two badged instances of the same field each keep an entry with their own overlay id', async () => {
+    const page = homepage();
+    const twin = masField(F.stamps.shortDescription);
+    const { sources } = loadSources({
+        fields: [...page.fields, twin],
+        detected: [...page.detected, ['field-9', badged(twin, 'field')]],
+    });
+    const result = await sources.getSourcesFor('field-9');
+    const shortDescriptions = result.entries.filter((e) => e.field === 'shortDescription');
+    assert.deepEqual(plain(shortDescriptions.map((e) => e.overlayId)).sort(), ['field-2', 'field-9']);
+});
+
 test('the fetch carries the element locale, country and service config', async () => {
     const { sources, messages } = loadSources(homepage());
     await sources.getSourcesFor('field-2');

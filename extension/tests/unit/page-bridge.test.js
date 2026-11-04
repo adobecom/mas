@@ -28,25 +28,56 @@ function runInPage(pathname, globals = {}) {
 const AUTHORED = '4e3e071a-1111-4222-8333-444455556666';
 const GROUPED = '369630bd-47aa-4eeb-9660-0fa52158d910';
 
+const PAGE = 'https://www.stage.adobe.com';
+
+function script(name) {
+    return { name, initiatorType: 'script' };
+}
+
 test('finds the loaded Milo utils module among resource entries', () => {
     assert.equal(
-        findMiloUtilsUrl([
-            'https://www.stage.adobe.com/libs/blocks/merch/merch.js',
-            'https://www.stage.adobe.com/libs/utils/utils.js',
-        ]),
+        findMiloUtilsUrl(
+            [
+                script('https://www.stage.adobe.com/libs/blocks/merch/merch.js'),
+                script('https://www.stage.adobe.com/libs/utils/utils.js'),
+            ],
+            PAGE,
+        ),
         'https://www.stage.adobe.com/libs/utils/utils.js',
     );
 });
 
 test('finds the Milo utils module when it carries a query string', () => {
     assert.equal(
-        findMiloUtilsUrl(['https://www.stage.adobe.com/libs/utils/utils.js?v=1']),
+        findMiloUtilsUrl([script('https://www.stage.adobe.com/libs/utils/utils.js?v=1')], PAGE),
         'https://www.stage.adobe.com/libs/utils/utils.js?v=1',
     );
 });
 
+test('finds the Milo utils module served from a milolibs branch', () => {
+    const url = 'https://mwpw-1--milo--adobecom.aem.live/libs/utils/utils.js';
+    assert.equal(findMiloUtilsUrl([script(url)], 'https://main--cc--adobecom.aem.page'), url);
+});
+
 test('no Milo on the page yields no utils url', () => {
-    assert.equal(findMiloUtilsUrl(['https://example.com/app.js']), null);
+    assert.equal(findMiloUtilsUrl([script('https://example.com/app.js')], PAGE), null);
+});
+
+test('an image named like the Milo utils module is never imported', () => {
+    const entry = { name: 'https://www.stage.adobe.com/libs/utils/utils.js', initiatorType: 'img' };
+    assert.equal(findMiloUtilsUrl([entry], PAGE), null);
+});
+
+test('a utils module from an origin that is neither the page nor Milo is never imported', () => {
+    assert.equal(findMiloUtilsUrl([script('https://evil.example/libs/utils/utils.js')], PAGE), null);
+    assert.equal(findMiloUtilsUrl([script('https://evil.example/x--milo--adobecom.aem.live/libs/utils/utils.js')], PAGE), null);
+});
+
+test('a utils module over plain http is never imported', () => {
+    assert.equal(
+        findMiloUtilsUrl([script('http://www.stage.adobe.com/libs/utils/utils.js')], 'http://www.stage.adobe.com'),
+        null,
+    );
 });
 
 test('serializes per-field MEP swaps from the live homepage shape', () => {

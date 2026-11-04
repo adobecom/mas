@@ -32,6 +32,14 @@ test('a promo without a promotion tag is named after its promotions folder', () 
     assert.equal(v.promotionName, 'cci');
 });
 
+test('a promo variation of a grouped variation is a promo named after its promotions folder', () => {
+    const v = parser.classifyVariation({
+        path: '/content/dam/mas/acom/en_US/promotions/sale/card/pzn/edu',
+        fields: { pznTags: ['mas:pzn/edu', 'mas:pzn/country/us'] },
+    });
+    assert.deepEqual(v, { type: 'promo', audiences: [], promotionName: 'sale', legacy: false });
+});
+
 test('a non-default locale path is a legacy locale variation', () => {
     assert.deepEqual(parser.classifyVariation({ path: '/content/dam/mas/acom/fr_CA/card', fields: {} }), {
         type: 'locale',

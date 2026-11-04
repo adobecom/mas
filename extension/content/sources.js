@@ -128,21 +128,20 @@
         return `${field}|${requestedId ?? resolvedId ?? ''}|${variationId ?? ''}`;
     }
 
-    // Badged first, so the outline and mixed flag reach the badge; then a shown copy.
-    function twinRank({ overlayId, shown }) {
-        return (overlayId ? 2 : 0) + (shown ? 1 : 0);
-    }
-
-    // Adobe pages render hidden responsive twins: keep one element per field and fetch. A failed
-    // field renders nothing, so it is kept without a box.
+    // Adobe pages render hidden responsive twins: keep one unbadged element per field and fetch, a shown
+    // one first. Every badged element stays, since outlines reach a field through its overlay id. A
+    // failed field renders nothing, so it is kept without a box.
     function dedupeTwins(members) {
+        const badged = members.filter(({ overlayId }) => overlayId);
+        const badgedKeys = new Set(badged.map(({ stamps }) => twinKey(stamps)));
         const kept = new Map();
-        for (const member of members.filter(({ overlayId, shown, stamps }) => overlayId || shown || stamps.failed)) {
+        for (const member of members.filter(({ overlayId, shown, stamps }) => !overlayId && (shown || stamps.failed))) {
             const key = twinKey(member.stamps);
+            if (badgedKeys.has(key)) continue;
             const current = kept.get(key);
-            if (!current || twinRank(member) > twinRank(current)) kept.set(key, member);
+            if (!current || (member.shown && !current.shown)) kept.set(key, member);
         }
-        return [...kept.values()];
+        return [...badged, ...kept.values()];
     }
 
     function groupByKey(members) {

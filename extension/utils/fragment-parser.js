@@ -310,13 +310,7 @@ class FragmentParser {
         const promoTag = tagIds.find((id) => id.startsWith(PROMOTION_TAG_PREFIX));
         const base = { type: null, audiences: [], promotionName: null, legacy: false };
 
-        if (path.includes('/pzn/')) {
-            const audiences = tagIds
-                .filter((id) => id.startsWith(PZN_TAG_PREFIX) && !id.startsWith(PZN_COUNTRY_PREFIX))
-                .map((id) => id.slice(PZN_TAG_PREFIX.length));
-            return { ...base, type: 'grouped', audiences: [...new Set(audiences)] };
-        }
-
+        // A promo variation of a grouped variation lives under promotions/<name>/.../pzn/<audience>.
         if (path.includes('/promotions/') || promoTag) {
             // IO reads promo variations from a promotions/<name>/ folder named after the project's tag.
             const folderName = path.match(/\/promotions\/([^/]+)\//)?.[1] ?? null;
@@ -325,6 +319,13 @@ class FragmentParser {
                 type: 'promo',
                 promotionName: promoTag ? promoTag.slice(PROMOTION_TAG_PREFIX.length) : folderName,
             };
+        }
+
+        if (path.includes('/pzn/')) {
+            const audiences = tagIds
+                .filter((id) => id.startsWith(PZN_TAG_PREFIX) && !id.startsWith(PZN_COUNTRY_PREFIX))
+                .map((id) => id.slice(PZN_TAG_PREFIX.length));
+            return { ...base, type: 'grouped', audiences: [...new Set(audiences)] };
         }
 
         const pathMatch = path.match(/\/content\/dam\/mas\/([^/]+)\/([^/]+)\//);

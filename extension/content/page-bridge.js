@@ -1,10 +1,28 @@
 (() => {
-    const MILO_UTILS_PATTERN = /\/libs\/utils\/utils\.js(\?|$)/;
+    const MILO_UTILS_PATH = /\/libs\/utils\/utils\.js$/;
+    // Milo serves its libs from the page's own origin, www/stage, or a milolibs branch host.
+    const MILO_HOSTS = ['www.adobe.com', 'www.stage.adobe.com', 'milo.adobe.com'];
+    const MILO_BRANCH_HOST = /^[a-z0-9_-]+--milo--[a-z0-9_-]+\.(aem|hlx)\.(live|page)$/i;
+    const SCRIPT_INITIATORS = ['script', 'other'];
     const BRIDGE_SOURCE = 'mas-ext-page-bridge';
     const REQUEST_SOURCE = 'mas-ext';
 
-    function findMiloUtilsUrl(resourceNames) {
-        return resourceNames.find((name) => MILO_UTILS_PATTERN.test(name)) || null;
+    function isMiloUtilsUrl(name, pageOrigin) {
+        try {
+            const { protocol, origin, hostname, pathname } = new URL(name);
+            if (protocol !== 'https:' || !MILO_UTILS_PATH.test(pathname)) return false;
+            return origin === pageOrigin || MILO_HOSTS.includes(hostname) || MILO_BRANCH_HOST.test(hostname);
+        } catch {
+            return false;
+        }
+    }
+
+    // Resource Timing also lists images and stylesheets; only a script from a Milo origin may run in the page.
+    function findMiloUtilsUrl(entries, pageOrigin) {
+        const entry = entries.find(
+            ({ name, initiatorType }) => SCRIPT_INITIATORS.includes(initiatorType) && isMiloUtilsUrl(name, pageOrigin),
+        );
+        return entry?.name ?? null;
     }
 
     function serializeMepState(config) {
@@ -26,8 +44,7 @@
 
     async function readMepState() {
         try {
-            const names = performance.getEntriesByType('resource').map((entry) => entry.name);
-            const url = findMiloUtilsUrl(names);
+            const url = findMiloUtilsUrl(performance.getEntriesByType('resource'), location.origin);
             if (!url) return null;
             const utils = await import(url);
             return serializeMepState(utils.getConfig());

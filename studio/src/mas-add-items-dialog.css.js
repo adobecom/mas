@@ -40,6 +40,7 @@ export const styles = css`
     .search-row sp-search {
         flex: 1;
         max-width: 480px;
+        --mod-search-border-radius: 16px;
     }
 
     .result-count {

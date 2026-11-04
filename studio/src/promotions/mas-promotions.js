@@ -1,5 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles } from '../common/column-resize-controller.js';
 import Store from '../store.js';
 import { MasRepository } from '../mas-repository.js';
 import styles from './mas-promotions-css.js';
@@ -34,8 +37,32 @@ const ENVIRONMENT_FILTER_OPTIONS = [
     { value: 'test', label: 'Test' },
 ];
 
+const PROMOTION_COLUMNS = [
+    { key: 'title', label: 'Promotion' },
+    {
+        key: 'timeline',
+        label: 'Timeline',
+        sortable: true,
+    },
+    {
+        key: 'wf-status',
+        label: 'Workflow status',
+    },
+    {
+        key: 'status',
+        label: 'Status',
+    },
+    {
+        key: 'createdBy',
+        label: 'Owner',
+    },
+    { key: 'actions', label: 'Actions', align: 'center' },
+];
+
 class MasPromotions extends LitElement {
-    static styles = styles;
+    static styles = [styles, columnResizeStyles(PROMOTION_COLUMNS, { match: 'index' })];
+
+    columnResize = new ColumnResizeController(this);
 
     static properties = {
         filter: { type: String, state: true },
@@ -157,27 +184,6 @@ class MasPromotions extends LitElement {
     renderPromotionsTable() {
         const filteredPromotions = this.filteredPromotions;
 
-        const columns = [
-            { key: 'title', label: 'Promotion' },
-            {
-                key: 'timeline',
-                label: 'Timeline',
-                sortable: true,
-            },
-            {
-                key: 'wf-status',
-                label: 'Workflow status',
-            },
-            {
-                key: 'status',
-                label: 'Status',
-            },
-            {
-                key: 'createdBy',
-                label: 'Owner',
-            },
-            { key: 'actions', label: 'Actions', align: 'center' },
-        ];
         if (!filteredPromotions || filteredPromotions.length === 0) {
             return html`
                 <div class="no-promotions-message">
@@ -187,8 +193,15 @@ class MasPromotions extends LitElement {
         }
 
         return html`
-            <sp-table emphasized scroller @change=${this.updateTableSelection} class="promotions-table">
-                ${this.renderTableHeader(columns)}
+            <sp-table
+                emphasized
+                scroller
+                @change=${this.updateTableSelection}
+                class="promotions-table"
+                style=${styleMap(this.columnResize.tableStyle())}
+                data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+            >
+                ${this.renderTableHeader(PROMOTION_COLUMNS)}
                 <sp-table-body>
                     ${repeat(filteredPromotions, (promotion) => {
                         const promo = promotion.get();
@@ -368,7 +381,7 @@ class MasPromotions extends LitElement {
                                   ? 'text-align: center;'
                                   : ''}"
                         >
-                            ${label}
+                            ${label} ${this.columnResize.handle(key, label)}
                         </sp-table-head-cell>
                     `,
                 )}

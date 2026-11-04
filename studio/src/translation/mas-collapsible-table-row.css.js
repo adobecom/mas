@@ -24,6 +24,14 @@ export const styles = [
             box-sizing: border-box;
         }
 
+        :host([data-resized-columns]) {
+            min-width: max-content;
+        }
+
+        :host([data-resized-columns]) .top-level-row {
+            min-width: max-content;
+        }
+
         .loading-container--flex {
             padding: 10px;
             width: 100%;

@@ -1,5 +1,8 @@
 import { LitElement, html, nothing } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { styleMap } from 'lit/directives/style-map.js';
+import { ifDefined } from 'lit/directives/if-defined.js';
+import { ColumnResizeController, columnResizeStyles, resizedColumnRules } from '../column-resize-controller.js';
 import { styles } from './mas-select-items-table.css.js';
 import Store from '../../store.js';
 import StoreController from '../../reactivity/store-controller.js';
@@ -58,6 +61,7 @@ class MasSelectItemsTable extends LitElement {
     firstPageLoaded = new StoreController(this, Store.fragments.list.firstPageLoaded);
     #collectionsReadyUnsub = null;
     itemsSelection = new ItemsSelectionController(this);
+    columnResize = new ColumnResizeController(this);
 
     constructor() {
         super();
@@ -429,6 +433,8 @@ class MasSelectItemsTable extends LitElement {
                     (fragment) => fragment.path,
                     (fragment) =>
                         html`<mas-collapsible-table-row
+                            data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+                            .resizeCss=${this.#topLevelRowResizeCss}
                             .topLevelCard=${fragment}
                             .viewOnly=${this.viewOnly}
                             .viewOnlyTabs=${this.viewOnlyTabs}
@@ -515,6 +521,14 @@ class MasSelectItemsTable extends LitElement {
         }
     }
 
+    // Rows of cards live in their own shadow root, so they get their own copy of the width rules.
+    get #topLevelRowResizeCss() {
+        return resizedColumnRules(this.tableColumns, {
+            match: 'index',
+            scope: (key) => `:host([data-resized-columns~='${key}']) .top-level-row`,
+        });
+    }
+
     get #showScrollSentinel() {
         return this.viewOnly ? this.viewOnlyHasMore : this.hasMore.value;
     }
@@ -560,9 +574,17 @@ class MasSelectItemsTable extends LitElement {
         const showTable = !showEmpty && (showSkeleton || this.itemsToDisplay.length > 0);
 
         return html`
+            <style>
+                ${columnResizeStyles(this.tableColumns, { match: 'index' }).cssText}
+            </style>
             ${showEmpty ? html`<p>No items found.</p>` : nothing}
             ${showTable
-                ? html`<sp-table class="fragments-table item-table" emphasized>
+                ? html`<sp-table
+                      class="fragments-table item-table"
+                      emphasized
+                      style=${styleMap(this.columnResize.tableStyle())}
+                      data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+                  >
                       <sp-table-head>
                           ${repeat(
                               this.tableColumns,
@@ -586,6 +608,7 @@ class MasSelectItemsTable extends LitElement {
                                             @sorted=${(e) => this.#onSorted(e)}
                                         >
                                             ${column.label}
+                                            ${column.label ? this.columnResize.handle(column.key, column.label) : nothing}
                                         </sp-table-head-cell>`,
                           )}
                       </sp-table-head>

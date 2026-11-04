@@ -693,6 +693,44 @@ describe('MasSelectItemsTable', () => {
         });
     });
 
+    describe('column resizing', () => {
+        const press = (handle, key) =>
+            handle.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }));
+
+        it('has no handle on icon columns and one on every labelled column', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
+            const handles = [...el.shadowRoot.querySelectorAll('.column-resize-handle')];
+            expect(handles.map((h) => h.dataset.column)).to.deep.equal(['offer', 'path', 'fragmentTitle', 'offerId', 'status']);
+        });
+
+        it('applies a resized width to the header and to the card row cells', async () => {
+            const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);
+            setupCardsInStore([createMockCard('/path/card1', 'Card 1')]);
+            await el.updateComplete;
+            press(el.shadowRoot.querySelector('.column-resize-handle[data-column="path"]'), 'ArrowRight');
+            await el.updateComplete;
+            const row = el.shadowRoot.querySelector('mas-collapsible-table-row');
+            await row.updateComplete;
+            const width = `${el.columnResize.widths.get('path')}px`;
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-head-cell')[3]).width).to.equal(width);
+            expect(getComputedStyle(row.shadowRoot.querySelectorAll('.top-level-row > sp-table-cell')[3]).width).to.equal(
+                width,
+            );
+        });
+
+        it('applies a resized width to collection rows', async () => {
+            const el = await fixture(html`<mas-select-items-table type="collections"></mas-select-items-table>`);
+            setupCollectionsInStore([createMockCollection('/path/collection1', 'Collection 1')]);
+            await el.updateComplete;
+            press(el.shadowRoot.querySelector('.column-resize-handle[data-column="path"]'), 'ArrowRight');
+            await el.updateComplete;
+            const width = `${el.columnResize.widths.get('path')}px`;
+            expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-cell')[1]).width).to.equal(width);
+        });
+    });
+
     describe('rendering - cards table body', () => {
         it('should render card rows with correct data', async () => {
             const el = await fixture(html`<mas-select-items-table type="cards"></mas-select-items-table>`);

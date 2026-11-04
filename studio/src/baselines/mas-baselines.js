@@ -57,7 +57,7 @@ const resolveBaselineFilterValues = (fragment, filterType) => {
  */
 const resolveBaselineSearchValues = (fragment) => {
     const { productArrangementCode, marketSegment, template } = getBaselineInfo(fragment);
-    return [productArrangementCode, marketSegment, template];
+    return [productArrangementCode, marketSegment, template].filter(Boolean);
 };
 
 const PREVIEW_POSITION = { left: '50%', transform: 'translate(-50%, -50%)' };

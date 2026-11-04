@@ -46,6 +46,7 @@ describe('marquee variant', () => {
             'heading-xs': 'Title',
             'body-xs': 'Product description',
             'short-description': 'Short Description',
+            'callout-content': 'Callout text',
             prices: 'Product price',
             footer: 'CTAs',
         };

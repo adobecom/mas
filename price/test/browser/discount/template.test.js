@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { discount } from '../../../src/discount/index.js';
+import { discount, discountAmount } from '../../../src/discount/index.js';
 
 describe('discount template', () => {
     [
@@ -81,5 +81,47 @@ describe('discount template', () => {
                 priceWithoutDiscount: 100,
             }),
         ).to.equal('<span class="discount">3折</span>');
+    });
+
+    const htmlToText = (html) => {
+        const doc = new DOMParser().parseFromString(html, 'text/xml');
+        return doc.firstChild.textContent;
+    };
+
+    it('Generates discount amount markup', () => {
+        const context = {
+            country: 'US',
+            language: 'en',
+        };
+        const templateHtml = discountAmount(context, {
+            price: 27,
+            priceWithoutDiscount: 30,
+            formatString: '#0',
+            promotion: {
+                id: 'abc',
+                promotionCode: 'TEST-PROMO',
+                start: '2026-01-16T08:01:00.000Z',
+                end: '2226-01-16T08:01:00.000Z',
+                displaySummary: {
+                    amount: 50,
+                    duration: 'P3M',
+                    minProductQuantity: 1,
+                    outcomeType: 'PERCENTAGE_DISCOUNT',
+                },
+            },
+        });
+        expect(htmlToText(templateHtml)).to.equal('3');
+    });
+
+    it('shows amount 0 when price is correct, and the discount is not defined', () => {
+        const context = {
+            country: 'US',
+            language: 'en',
+        };
+        const templateHtml = discountAmount(context, {
+            price: 27,
+            formatString: '#0',
+        });
+        expect(htmlToText(templateHtml)).to.equal('0');
     });
 });

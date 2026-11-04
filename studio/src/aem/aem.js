@@ -536,6 +536,8 @@ class AEM {
      * @param {Array<Object>} fragments - Array of fragment objects
      * @param {Array<string>} publishReferencesWithStatus - Statuses to include references for
      * @returns {Promise<Array<Object>>} One publish response per batch
+     * @throws {Error} When a batch fails; `error.publishedFragments` lists fragments from batches that were already
+     * accepted, so callers can report partial success.
      */
     async publishFragments(fragments, publishReferencesWithStatus = []) {
         if (!fragments || fragments.length === 0) {
@@ -543,9 +545,14 @@ class AEM {
         }
         const results = [];
         for (let i = 0; i < fragments.length; i += PUBLISH_BATCH_SIZE) {
-            results.push(
-                await this.#publishFragmentsBatch(fragments.slice(i, i + PUBLISH_BATCH_SIZE), publishReferencesWithStatus),
-            );
+            try {
+                results.push(
+                    await this.#publishFragmentsBatch(fragments.slice(i, i + PUBLISH_BATCH_SIZE), publishReferencesWithStatus),
+                );
+            } catch (error) {
+                error.publishedFragments = fragments.slice(0, i);
+                throw error;
+            }
         }
         return results;
     }

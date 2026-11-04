@@ -230,6 +230,44 @@ describe('aem.js', () => {
             expect(bodies.map(({ paths }) => paths.length)).to.deep.equal([50, 13]);
             expect(bodies.map(({ ifMatch }) => ifMatch)).to.deep.equal(['e0', 'e50']);
         });
+
+        it('sends exactly 50 fragments in one request and 51 in two', async () => {
+            const sizes = [];
+            window.fetch = async (url, options) => {
+                sizes.push(JSON.parse(options.body).paths.length);
+                return { ok: true, json: async () => ({}) };
+            };
+            const make = (n) => Array.from({ length: n }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(make(50));
+            expect(sizes).to.deep.equal([50]);
+            sizes.length = 0;
+            await aem.publishFragments(make(51));
+            expect(sizes).to.deep.equal([50, 1]);
+        });
+
+        it('exposes fragments from completed batches when a later batch fails', async () => {
+            let call = 0;
+            window.fetch = async () => {
+                call += 1;
+                if (call === 2) return { ok: false, status: 500, statusText: 'Server Error' };
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            const error = await aem.publishFragments(fragments).catch((e) => e);
+
+            expect(error.message).to.include('500');
+            expect(error.publishedFragments).to.deep.equal(fragments.slice(0, 50));
+        });
+
+        it('exposes no published fragments when the first batch fails', async () => {
+            window.fetch = async () => ({ ok: false, status: 412, statusText: 'Precondition Failed' });
+
+            const error = await aem.publishFragments([{ path: '/p/0', etag: 'e0' }]).catch((e) => e);
+
+            expect(error.publishedFragments).to.deep.equal([]);
+        });
     });
 
     describe('method: saveFragment', () => {

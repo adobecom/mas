@@ -976,6 +976,97 @@ runTests(async () => {
         });
     });
 
+    describe('merch-card-collection first load with title based arrangement', () => {
+        let collection;
+
+        const allCards = () => [...collection.querySelectorAll('merch-card')];
+        const cardTitle = (card) => card.title ?? '';
+        // Titles are written by each card's own hydration, after the cards are appended.
+        const titledCards = () => allCards().filter(cardTitle);
+        const shownTitles = () =>
+            [...collection.children]
+                .filter(
+                    (child) =>
+                        child.tagName === 'MERCH-CARD' &&
+                        child.style.display !== 'none',
+                )
+                .map(cardTitle);
+        const compareTitles = (a, b) =>
+            a.localeCompare(b, 'en', { sensitivity: 'base' });
+
+        const load = async (hash) => {
+            document.location.hash = hash;
+            let render;
+            [collection, render] = prepareTemplate(
+                'collectionAutoblock',
+                false,
+            );
+            render();
+            await collection.checkReady();
+            for (let i = 0; i < 50 && titledCards().length === 0; i++) {
+                await delay(20);
+            }
+            await delay(100);
+        };
+
+        afterEach(() => {
+            collection?.remove();
+            document.location.hash = '';
+        });
+
+        it('orders cards alphabetically by their hydrated titles when sort is in the URL', async () => {
+            await load('#sort=alphabetical');
+
+            expect(titledCards().length).to.be.greaterThan(0);
+            const expected = allCards()
+                .map(cardTitle)
+                .sort(compareTitles)
+                .slice(0, collection.limit);
+            expect(shownTitles()).to.deep.equal(expected);
+        });
+
+        it('keeps only cards whose hydrated title matches the search in the URL', async () => {
+            await load('#search=photo');
+
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('photo'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+        });
+
+        it('applies a search and an alphabetical sort changed after the cards hydrated', async () => {
+            await load('');
+            expect(titledCards().length).to.be.greaterThan(0);
+
+            collection.sort = 'alphabetical';
+            await collection.updateComplete;
+            await delay(20);
+            expect(shownTitles()).to.deep.equal(
+                allCards()
+                    .map(cardTitle)
+                    .sort(compareTitles)
+                    .slice(0, collection.limit),
+            );
+
+            collection.search = 'heading';
+            await collection.updateComplete;
+            await delay(20);
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('heading'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+
+            collection.search = '';
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.resultCount).to.equal(allCards().length);
+        });
+    });
+
     describe('merch-card-collection failed card handling', () => {
         it('excludes failed cards from resultCount and keeps them hidden after update', async () => {
             const collection = document.createElement('merch-card-collection');

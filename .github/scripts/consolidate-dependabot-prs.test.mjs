@@ -8,6 +8,7 @@ import {
     consolidate,
     createBranchName,
     extractChangelogLink,
+    getChangedManifestPaths,
     mergePrHead,
     mergeRows,
     parseConsolidatedRows,
@@ -397,7 +398,7 @@ test('rebuildWebComponents builds and commits web-components output before push 
     assert.deepEqual(
         run.calls.map((call) => call.join(' ')),
         [
-            'npm ci',
+            'npm ci --ignore-scripts',
             'npm run build:bundle',
             'npm run build:docs',
             'git status --porcelain -- web-components/dist web-components/docs',
@@ -426,4 +427,9 @@ test('rebuildWebComponents skips the build when only io lockfiles changed and co
         false,
     );
     assert.ok(!unchanged.calls.some((call) => call[1] === 'commit'));
+});
+
+test('getChangedManifestPaths ignores web-components build output committed by a previous run', () => {
+    const run = () => 'package-lock.json\nweb-components/dist/mas.js\nweb-components/docs/index.html\nio/www/package.json\n';
+    assert.deepEqual(getChangedManifestPaths({ remote: 'upstream', run }), ['package-lock.json', 'io/www/package.json']);
 });

@@ -212,12 +212,16 @@ export function mergePrHead({ number, remote, run = runCommand, log = console.lo
     }
 }
 
+const WEB_COMPONENTS_BUILD_PATHS = ['web-components/dist', 'web-components/docs'];
+
+// Rebuilt web-components output committed by a previous run stays on a refreshed branch, so it is not a manifest change.
 export function getChangedManifestPaths({ remote, run = runCommand } = {}) {
     const stdout = run('git', ['diff', '--name-only', `${remote}/main...HEAD`]);
-    return stdout.split('\n').filter(Boolean);
+    return stdout
+        .split('\n')
+        .filter(Boolean)
+        .filter((path) => !WEB_COMPONENTS_BUILD_PATHS.some((dir) => path.startsWith(`${dir}/`)));
 }
-
-const WEB_COMPONENTS_BUILD_PATHS = ['web-components/dist', 'web-components/docs'];
 
 export function needsWebComponentsBuild(changedPaths) {
     return changedPaths.some((path) => path === 'package-lock.json' || path.startsWith('web-components/'));
@@ -227,7 +231,8 @@ export function needsWebComponentsBuild(changedPaths) {
 export function rebuildWebComponents({ branch, changedPaths, run = runCommand, log = console.log }) {
     if (!needsWebComponentsBuild(changedPaths)) return false;
     log('\nRebuilding web-components with the consolidated dependencies...');
-    run('npm', ['ci']);
+    // Merged third-party packages must not run install scripts on the maintainer's machine.
+    run('npm', ['ci', '--ignore-scripts']);
     run('npm', ['run', 'build:bundle'], { cwd: 'web-components' });
     run('npm', ['run', 'build:docs'], { cwd: 'web-components' });
     if (!run('git', ['status', '--porcelain', '--', ...WEB_COMPONENTS_BUILD_PATHS]).trim()) {

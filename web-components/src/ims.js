@@ -47,7 +47,7 @@ export function imsSignedIn(imsReadyPromise) {
 export function imsCountry() {
     const country = getImsCountryCookie();
     if (country)
-        Log.module('ims').debug('Got user country from cookie:', country);
+        Log.module('ims').debug('Got user country from cookie (heal test C):', country);
     return Promise.resolve(country);
 }
 

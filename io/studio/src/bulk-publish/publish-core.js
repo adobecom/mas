@@ -62,6 +62,7 @@ async function publishResolved(resolved, odinEndpoint, authToken, logger) {
 }
 
 function deriveIndexPaths(details) {
+    const attemptedPaths = new Set(details.map(({ path }) => path));
     const publishedPaths = new Set();
     for (const detail of details) {
         if (detail.status === STATUS.PUBLISHED) publishedPaths.add(detail.path);
@@ -71,7 +72,7 @@ function deriveIndexPaths(details) {
         const segmentIndex = path.indexOf(DICTIONARY_SEGMENT);
         if (segmentIndex === -1 || path.endsWith(INDEX_SUFFIX)) continue;
         const indexPath = path.slice(0, segmentIndex) + INDEX_SUFFIX;
-        if (!publishedPaths.has(indexPath)) indexPaths.add(indexPath);
+        if (!attemptedPaths.has(indexPath)) indexPaths.add(indexPath);
     }
     return Array.from(indexPaths);
 }

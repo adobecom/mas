@@ -45,13 +45,13 @@ async function publishChunk({
     return results;
 }
 
-async function replicateChunk({ chunk, odinEndpoint, authToken }) {
+async function replicatePath({ path, odinEndpoint, authToken }) {
     const response = await fetchOdin(odinEndpoint, '/libs/granite/csrf/token.json', authToken);
     const { token } = await response.json();
     await fetchOdin(odinEndpoint, '/bin/replicate', authToken, {
         method: 'POST',
         contentType: 'application/x-www-form-urlencoded',
-        body: new URLSearchParams([['cmd', 'Activate'], ...chunk.map((path) => ['path', path])]).toString(),
+        body: new URLSearchParams({ cmd: 'Activate', path }).toString(),
         csrfToken: token,
     });
 }
@@ -63,7 +63,7 @@ async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetri
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             if (replicate) {
-                await replicateChunk({ chunk, odinEndpoint, authToken });
+                await replicatePath({ path: chunk[0], odinEndpoint, authToken });
                 const retries = attempt - 1;
                 logger.info(JSON.stringify({ event: 'replicate-success', chunkSize: chunk.length, retries }));
                 return chunk.map((path) => ({ path, status: 'published', retries }));

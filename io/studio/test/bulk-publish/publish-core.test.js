@@ -132,6 +132,24 @@ describe('bulk-publish/publish-core.js — publishDictionaryIndexes', () => {
         expect(publishChunkStub).to.not.have.been.called;
     });
 
+    for (const status of ['failed', 'skipped']) {
+        it(`does not derive an explicitly selected ${status} index again after publishing a sibling entry`, async () => {
+            const indexPath = '/content/dam/mas/acom/en_US/dictionary/index';
+            const details = [
+                { path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' },
+                { path: indexPath, status },
+            ];
+
+            const results = await core.publishDictionaryIndexes(details, 'https://odin', 'token', logger);
+
+            expect([...details, ...results].filter(({ path }) => path === indexPath)).to.deep.equal([
+                { path: indexPath, status },
+            ]);
+            expect(fetchFragmentByPathStub).to.not.have.been.called;
+            expect(publishChunkStub).to.not.have.been.called;
+        });
+    }
+
     it('skips an index that is already published with no pending changes', async () => {
         fetchFragmentByPathStub.resolves({ fragment: { status: 'PUBLISHED' }, status: 200 });
         const details = [{ path: '/content/dam/mas/acom/en_US/dictionary/free', status: 'published' }];

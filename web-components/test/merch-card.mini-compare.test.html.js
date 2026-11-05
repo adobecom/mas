@@ -575,13 +575,13 @@ runTests(async () => {
             }
         });
 
-        it('disconnectedCallbackHook disconnects and nulls legalObserver', async () => {
+        it('destroyHook disconnects and nulls legalObserver', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
                 const variantLayout = card.variantLayout;
                 expect(variantLayout.legalObserver).to.not.be.null;
 
-                variantLayout.disconnectedCallbackHook();
+                variantLayout.destroyHook();
 
                 expect(variantLayout.legalObserver).to.be.null;
             } finally {
@@ -589,22 +589,23 @@ runTests(async () => {
             }
         });
 
-        it('connectedCallbackHook recovery restores legalObserver after card re-insertion', async () => {
+        it('keeps legalObserver across card re-insertion', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
                 const variantLayout = card.variantLayout;
+                const { legalObserver } = variantLayout;
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.removeChild(card);
                 await card.updateComplete;
 
-                expect(variantLayout.legalObserver).to.be.null;
+                expect(variantLayout.legalObserver).to.equal(legalObserver);
                 expect(variantLayout.legalAdjusted).to.be.true;
 
                 mount.appendChild(card);
                 await card.checkReady();
 
-                expect(variantLayout.legalObserver).to.not.be.null;
+                expect(variantLayout.legalObserver).to.equal(legalObserver);
             } finally {
                 mount.remove();
             }

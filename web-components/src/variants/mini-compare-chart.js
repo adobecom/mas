@@ -77,34 +77,25 @@ export class MiniCompareChart extends VariantLayout {
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
     }
 
-    connectedCallbackHook() {
+    initHook() {
         this.card.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
+    }
 
-        if (this.legalAdjusted && !this.legalObserver) {
-            const legal = this.card.querySelector(
-                '[is="inline-price"][data-template="legal"]',
-            );
-            if (legal) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-                this.legalElement = legal;
-                this.legalObserver = new MutationObserver(() =>
-                    this.adjustShortDescription(),
-                );
-                this.legalObserver.observe(legal, {
-                    childList: true,
-                    subtree: true,
-                });
-                this.adjustShortDescription();
-            } else {
-                this.legalAdjusted = false;
-            }
+    // The one-shot observer re-syncs row heights the first time the card is
+    // visible after it is (re)attached, which a moved card relies on.
+    connectedCallbackHook() {
+        // The legal price can be replaced while the card is detached; let
+        // adjustLegal rebuild it on the next update.
+        if (this.legalAdjusted && !this.card.contains(this.legalElement)) {
+            this.#releaseLegal();
+            this.legalAdjusted = false;
+        }
+        if (this.calloutListenersAdded) {
+            document.addEventListener('touchstart', this.handleCalloutTouch);
+            document.addEventListener('mouseover', this.handleCalloutMouse);
         }
 
         this.visibilityObserver = new IntersectionObserver(([entry]) => {
@@ -128,11 +119,14 @@ export class MiniCompareChart extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
-        this.card.removeEventListener(
-            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.updatePriceQuantity,
-        );
         this.visibilityObserver?.disconnect();
+        if (this.calloutListenersAdded) {
+            document.removeEventListener('touchstart', this.handleCalloutTouch);
+            document.removeEventListener('mouseover', this.handleCalloutMouse);
+        }
+    }
+
+    #releaseLegal() {
         this.legalObserver?.disconnect();
         this.legalObserver = null;
         if (this.legalElement && this.legalResolvedHandler) {
@@ -143,6 +137,15 @@ export class MiniCompareChart extends VariantLayout {
             this.legalResolvedHandler = null;
             this.legalElement = null;
         }
+    }
+
+    destroyHook() {
+        super.destroyHook();
+        this.card.removeEventListener(
+            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
+            this.updatePriceQuantity,
+        );
+        this.#releaseLegal();
         if (this.calloutListenersAdded) {
             document.removeEventListener('touchstart', this.handleCalloutTouch);
             document.removeEventListener('mouseover', this.handleCalloutMouse);

@@ -142,7 +142,7 @@ export class SimplifiedPricingExpress extends VariantLayout {
         }
     }
 
-    connectedCallbackHook() {
+    initHook() {
         if (!this.card || this.card.failed) {
             return;
         }
@@ -195,18 +195,24 @@ export class SimplifiedPricingExpress extends VariantLayout {
 
         updateExpandedState();
 
-        const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
         this.mediaQueryListener = () => {
             updateExpandedState();
         };
-        mediaQuery.addEventListener('change', this.mediaQueryListener);
+    }
+
+    connectedCallbackHook() {
+        if (!this.mediaQueryListener) return;
+        this.mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
+        this.mediaQuery.addEventListener('change', this.mediaQueryListener);
     }
 
     disconnectedCallbackHook() {
-        if (this.mediaQueryListener) {
-            const mediaQuery = window.matchMedia(MOBILE_LANDSCAPE);
-            mediaQuery.removeEventListener('change', this.mediaQueryListener);
-        }
+        this.mediaQuery?.removeEventListener('change', this.mediaQueryListener);
+        this.mediaQuery = null;
+    }
+
+    destroyHook() {
+        super.destroyHook();
         this.sizeObserver?.disconnect();
         this.sizeObserver = null;
     }

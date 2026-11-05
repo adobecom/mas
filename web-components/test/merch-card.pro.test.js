@@ -2266,7 +2266,7 @@ describe('pro resize handling', () => {
             const layout = new Pro(card);
             card.variantLayout = layout;
             const sync = sinon.stub(layout, 'syncHeights').resolves();
-            layout.connectedCallbackHook();
+            layout.initHook();
             const obs = observers[0];
             expect(
                 obs.observed.map(({ target }) => target),
@@ -2358,14 +2358,14 @@ describe('pro resize handling', () => {
         }
     });
 
-    it('does not observe again once the layout is disconnected', async () => {
+    it('does not observe again once the layout is destroyed', async () => {
         const { observers, restore } = installFakeObserver();
         try {
             card = await renderCard('<div slot="body-xs">desc</div>');
             const layout = card.variantLayout;
             const obs = observers[observers.length - 1];
             const observed = obs.observed.length;
-            card.remove();
+            layout.destroyHook();
             expect(obs.disconnected, 'observer cleaned up').to.be.true;
             layout.requestReflowCheck();
             expect(
@@ -2377,8 +2377,9 @@ describe('pro resize handling', () => {
         }
     });
 
-    it('disconnects its resize observer when the card is removed', async () => {
-        // A card torn down while still collapsed must clean up its observer.
+    it('keeps its resize observer when the card is moved and disconnects it when the layout is destroyed', async () => {
+        // The observer watches the card itself, so it moves with it; only a
+        // discarded layout must clean it up.
         const observers = [];
         const RealObserver = window.ResizeObserver;
         class FakeObserver {
@@ -2394,7 +2395,7 @@ describe('pro resize handling', () => {
         window.ResizeObserver = FakeObserver;
         try {
             card = await renderCard('<h3 slot="heading-xs">Title</h3>');
-            // connectedCallbackHook observes the card on connect.
+            // initHook observes the card once.
             expect(observers.length, 'observes on connect').to.be.greaterThan(
                 0,
             );
@@ -2402,7 +2403,13 @@ describe('pro resize handling', () => {
             card.remove();
             expect(
                 observers.some((o) => o.disconnected),
-                'observer cleaned up on remove',
+                'observer survives a removal',
+            ).to.be.false;
+
+            card.variantLayout.destroyHook();
+            expect(
+                observers.some((o) => o.disconnected),
+                'observer cleaned up when the layout is destroyed',
             ).to.be.true;
         } finally {
             window.ResizeObserver = RealObserver;

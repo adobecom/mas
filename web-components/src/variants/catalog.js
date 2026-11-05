@@ -215,7 +215,7 @@ export class Catalog extends VariantLayout {
         element.setAttribute('aria-expanded', value);
     }
 
-    connectedCallbackHook() {
+    initHook() {
         this.card.addEventListener('mouseenter', this.showActionMenuOnHover);
         this.card.addEventListener('mouseleave', this.toggleActionMenuFromCard);
         this.card.addEventListener('focusin', this.showActionMenuOnHover);
@@ -223,7 +223,7 @@ export class Catalog extends VariantLayout {
         this.card.addEventListener('keydown', this.handleKeyDown);
     }
 
-    disconnectedCallbackHook() {
+    destroyHook() {
         this.card.removeEventListener('mouseenter', this.showActionMenuOnHover);
         this.card.removeEventListener(
             'mouseleave',

@@ -261,12 +261,28 @@ export class VariantLayout {
         return element ? Math.round(this.boxOf(element).height) : 0;
     }
 
+    // Lifecycle, driven by merch-card:
+    // - initHook runs once per layout and wires what lives and moves with the
+    //   card: its own listeners and observers of the card or its children.
+    // - connectedCallbackHook / disconnectedCallbackHook run each time the card
+    //   enters or leaves the DOM, and only handle what lives outside the card
+    //   (window, document, media queries) plus pending timers.
+    // - destroyHook runs when the layout is discarded and releases what
+    //   initHook wired.
+    initHook() {
+        //nothing to do by default
+    }
+
     connectedCallbackHook() {
         //nothing to do by default
     }
 
     disconnectedCallbackHook() {
         //nothing to do by default
+    }
+
+    destroyHook() {
+        this.disconnectReflow();
     }
 
     syncHeights() {

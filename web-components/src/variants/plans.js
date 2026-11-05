@@ -374,12 +374,16 @@ export class Plans extends VariantLayout {
             'change',
             this.adaptForMedia,
         );
-        this.#syncObserver?.disconnect();
-        this.#syncObserver = null;
         if (this.#resizeFrame) {
             cancelAnimationFrame(this.#resizeFrame);
             this.#resizeFrame = null;
         }
+    }
+
+    destroyHook() {
+        super.destroyHook();
+        this.#syncObserver?.disconnect();
+        this.#syncObserver = null;
     }
 
     renderLayout() {

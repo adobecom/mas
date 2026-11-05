@@ -118,17 +118,9 @@ export class Product extends VariantLayout {
             ${this.secureLabelFooter}`;
     }
 
-    connectedCallbackHook() {
-        this.handleResize = () => {
-            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
-            this.#resizeFrame = requestAnimationFrame(() => {
-                this.#resizeFrame = null;
-                this.postCardUpdateHook();
-            });
-        };
+    initHook() {
         this.adjustShortDescriptionBound =
             this.adjustShortDescription.bind(this);
-        window.addEventListener('resize', this.handleResize);
         this.card.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
@@ -137,6 +129,17 @@ export class Product extends VariantLayout {
             EVENT_MAS_READY,
             this.adjustShortDescriptionBound,
         );
+    }
+
+    connectedCallbackHook() {
+        this.handleResize = () => {
+            if (this.#resizeFrame) cancelAnimationFrame(this.#resizeFrame);
+            this.#resizeFrame = requestAnimationFrame(() => {
+                this.#resizeFrame = null;
+                this.postCardUpdateHook();
+            });
+        };
+        window.addEventListener('resize', this.handleResize);
     }
 
     disconnectedCallbackHook() {
@@ -148,6 +151,9 @@ export class Product extends VariantLayout {
             cancelAnimationFrame(this.#resizeFrame);
             this.#resizeFrame = null;
         }
+    }
+
+    destroyHook() {
         this.card.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,

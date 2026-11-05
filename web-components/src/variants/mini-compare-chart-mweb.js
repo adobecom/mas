@@ -78,7 +78,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         this.updatePriceQuantity = this.updatePriceQuantity.bind(this);
     }
 
-    connectedCallbackHook() {
+    initHook() {
         this.card.addEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
@@ -88,6 +88,7 @@ export class MiniCompareChartMweb extends VariantLayout {
         // Guard on width — a list toggle changes height only and must not retrigger.
         this.#lastWidth = this.card.getBoundingClientRect().width;
         this.#resizeObserver = new ResizeObserver(() => {
+            if (!this.card.isConnected) return;
             const width = this.card.getBoundingClientRect().width;
             if (width === this.#lastWidth) return;
             this.#lastWidth = width;
@@ -101,11 +102,15 @@ export class MiniCompareChartMweb extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
+        clearTimeout(this.#resizeTimer);
+    }
+
+    destroyHook() {
+        super.destroyHook();
         this.card.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        clearTimeout(this.#resizeTimer);
         this.#resizeObserver?.disconnect();
         this.#resizeObserver = null;
         this.#syncObserver?.disconnect();

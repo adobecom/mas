@@ -502,17 +502,17 @@ runTests(async () => {
                 spy.restore();
             });
 
-            it('should disconnect the observer on disconnect', async () => {
+            it('should disconnect the observer when the layout is destroyed', async () => {
                 const card = document.querySelector(
                     'merch-card[variant="full-pricing-express"]',
                 );
                 await card.updateComplete;
                 const observer = card.variantLayout.sizeObserver;
                 const disconnectSpy = sinon.spy(observer, 'disconnect');
-                card.variantLayout.disconnectedCallbackHook();
+                card.variantLayout.destroyHook();
                 expect(disconnectSpy.called).to.be.true;
                 expect(card.variantLayout.sizeObserver).to.equal(null);
-                card.variantLayout.connectedCallbackHook();
+                card.variantLayout.initHook();
             });
 
             it('should apply flexbox to short-description for alignment', async () => {

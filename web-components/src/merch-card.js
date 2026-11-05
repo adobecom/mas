@@ -272,8 +272,10 @@ export class MerchCard extends LitElement {
     }
 
     #durationMarkName;
+    #initialized = false;
     #internalId; // internal unique card identifier
     #log;
+    #readyInterrupted = false;
     #service;
     #startMarkName;
     #resolveHydration;
@@ -311,16 +313,21 @@ export class MerchCard extends LitElement {
 
     static getFragmentMapping = getFragmentMapping;
 
-    firstUpdated() {
+    #attachVariantLayout() {
         this.variantLayout = getVariantLayout(this);
+        this.variantLayout?.initHook();
         this.variantLayout?.connectedCallbackHook();
+    }
+
+    firstUpdated() {
+        this.#attachVariantLayout();
     }
 
     willUpdate(changedProperties) {
         if (changedProperties.has('variant') || !this.variantLayout) {
             this.variantLayout?.disconnectedCallbackHook();
-            this.variantLayout = getVariantLayout(this);
-            this.variantLayout?.connectedCallbackHook();
+            this.variantLayout?.destroyHook();
+            this.#attachVariantLayout();
         }
     }
 
@@ -619,11 +626,16 @@ export class MerchCard extends LitElement {
         return this.textContent.match(new RegExp(text, 'i')) !== null;
     }
 
+    // The card listens to its own events, so those listeners are registered
+    // once and survive a move. Only what lives outside the card is torn down
+    // on disconnect and restored here.
     connectedCallback() {
         super.connectedCallback();
-        if (!this.#internalId) {
-            this.#internalId = idCounter++;
+        if (this.#initialized) {
+            this.#reconnect();
+            return;
         }
+        this.#internalId = idCounter++;
         if (!this.aemFragment) {
             this.#resolveHydration?.();
             this.#resolveHydration = undefined;
@@ -658,11 +670,27 @@ export class MerchCard extends LitElement {
         this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.addEventListener('change', this.changeHandler);
 
-        if (this.variantLayout) {
-            this.variantLayout.connectedCallbackHook();
-        }
+        // Set last so a connect that throws (no commerce service yet) is
+        // retried in full by the next one.
+        this.#initialized = true;
 
         if (!this.aemFragment) {
+            setTimeout(() => this.checkReady(), 0);
+        }
+    }
+
+    #reconnect() {
+        this.variantLayout?.connectedCallbackHook();
+        // The initial readiness check gave up because the card was detached
+        // before it could settle, so nothing else will complete it.
+        if (
+            (this.#readyInterrupted || this.#resolveHydration) &&
+            !this.aemFragment
+        ) {
+            this.#readyInterrupted = false;
+            this.#resolveHydration?.();
+            this.#resolveHydration = undefined;
+            performance.mark(this.#startMarkName);
             setTimeout(() => this.checkReady(), 0);
         }
     }
@@ -697,19 +725,6 @@ export class MerchCard extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.variantLayout?.disconnectedCallbackHook();
-
-        this.removeEventListener(
-            EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
-            this.handleQuantitySelection,
-        );
-        this.removeEventListener(EVENT_AEM_ERROR, this.handleAemFragmentEvents);
-        this.removeEventListener(EVENT_AEM_LOAD, this.handleAemFragmentEvents);
-        this.removeEventListener(EVENT_MAS_READY, this.handleMasReady);
-        this.removeEventListener('change', this.changeHandler);
-        this.removeEventListener(
-            EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-            this.handleAddonAndQuantityUpdate,
-        );
     }
 
     // custom methods
@@ -767,7 +782,10 @@ export class MerchCard extends LitElement {
     }
 
     async checkReady() {
-        if (!this.isConnected) return;
+        if (!this.isConnected) {
+            this.#readyInterrupted = true;
+            return;
+        }
         if (this.failed) return;
         if (this.#hydrationPromise) {
             await this.#hydrationPromise;
@@ -824,7 +842,10 @@ export class MerchCard extends LitElement {
         const result = await Promise.race([successPromise, timeoutPromise]);
         clearForegroundTimeout(timeoutId);
 
-        if (!this.isConnected) return;
+        if (!this.isConnected) {
+            this.#readyInterrupted = true;
+            return;
+        }
 
         const connectedMasElements = masElements.filter((el) => el.isConnected);
         const allResolved =

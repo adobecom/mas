@@ -190,7 +190,7 @@ export class FullPricingExpress extends VariantLayout {
         this.syncHeights();
     }
 
-    connectedCallbackHook() {
+    initHook() {
         if (!this.card || typeof ResizeObserver === 'undefined') return;
         this.lastSyncedKey = '';
         this.sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
@@ -199,7 +199,8 @@ export class FullPricingExpress extends VariantLayout {
         if (title) this.sizeObserver.observe(title);
     }
 
-    disconnectedCallbackHook() {
+    destroyHook() {
+        super.destroyHook();
         this.sizeObserver?.disconnect();
         this.sizeObserver = null;
     }

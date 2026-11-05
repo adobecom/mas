@@ -437,7 +437,7 @@ export class Pro extends VariantLayout {
         this.syncHeights();
     }
 
-    connectedCallbackHook() {
+    initHook() {
         if (!this.card) return;
         this.card.addEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
@@ -457,6 +457,11 @@ export class Pro extends VariantLayout {
     }
 
     disconnectedCallbackHook() {
+        this.#removeLicenseDocListener();
+    }
+
+    destroyHook() {
+        super.destroyHook();
         this.card?.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
@@ -466,7 +471,6 @@ export class Pro extends VariantLayout {
             this.#onPriceResolved,
         );
         this.#removeLicenseDocListener();
-        this.disconnectReflow();
         this.card?.removeEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,

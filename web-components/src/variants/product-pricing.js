@@ -181,7 +181,7 @@ export class ProductPricing extends VariantLayout {
         this.syncHeights();
     }
 
-    connectedCallbackHook() {
+    initHook() {
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
         this.observeReflow(
             this.card,
@@ -190,12 +190,12 @@ export class ProductPricing extends VariantLayout {
         );
     }
 
-    disconnectedCallbackHook() {
+    destroyHook() {
+        super.destroyHook();
         this.card.removeEventListener(
             EVENT_TYPE_RESOLVED,
             this.#onPriceResolved,
         );
-        this.disconnectReflow();
     }
 
     renderLayout() {

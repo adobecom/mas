@@ -287,9 +287,10 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
  * @param {{ aem: import('../aem/aem.js').AEM, loadPromotions: Function }} repository
  * @param {Object} sourcePromotion
  * @param {string} newPromoTagId
+ * @param {string} projectId
  * @returns {Promise<Array<{ path: string, error: Error }>>}
  */
-async function duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId) {
+async function duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId, projectId) {
     const { aem } = repository;
     const existingVariations = await promotionVariations.getAllAttachedPromoVariations(aem, sourcePromotion);
     const attachedFragmentPaths = sourcePromotion.getFieldValues?.('fragments') || [];
@@ -314,7 +315,7 @@ async function duplicateAttachedPromoVariations(repository, sourcePromotion, new
                 attachedFragmentPaths,
                 sourceFragment,
             );
-            void savePromotionVersion(repository, created);
+            void savePromotionVersion(repository, created, { projectId });
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });
@@ -355,7 +356,12 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     let failedVariations = [];
     if (duplicateVariations && newPromoTagId) {
         try {
-            failedVariations = await duplicateAttachedPromoVariations(repository, sourcePromotion, newPromoTagId);
+            failedVariations = await duplicateAttachedPromoVariations(
+                repository,
+                sourcePromotion,
+                newPromoTagId,
+                newPromotion.id,
+            );
         } catch (error) {
             console.error('Error cloning attached promo variations:', error);
             failedVariations = [{ path: 'attached promo variations', error }];

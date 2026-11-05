@@ -283,9 +283,11 @@ async function updateMetadata(context, name, initial, update) {
     fail(503, 'History metadata is busy; retry shortly');
 }
 
-async function reserveVersion(context, event) {
-    if (context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
+async function reserveVersion(context, event, exclusive = false) {
+    if (!exclusive && context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
+    let reserved = false;
     context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        reserved = false;
         if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
             fail(503, 'Invalid version numbering metadata');
         }
@@ -296,8 +298,15 @@ async function reserveVersion(context, event) {
         const version = ++ledger.lastVersion;
         if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
         ledger.entries[event.id] = { version, createdAt: event.createdAt };
+        reserved = true;
         return true;
     });
+    if (exclusive && !reserved) {
+        throw Object.assign(new Error('Restore already attempted; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
     return context.numbering.entries[event.id];
 }
 
@@ -611,16 +620,16 @@ async function writeDraft(context, item) {
     const { tags, ...content } = item.payload;
     let contentWritten = false;
     let tagsWritten = false;
-    let writing = false;
+    let writingFields;
     try {
         if (item.fields.some((field) => field !== '@tags')) {
-            writing = true;
+            writingFields = item.fields.filter((field) => field !== '@tags');
             await aem(context, `/${item.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'If-Match': item.expected },
                 body: JSON.stringify(content),
             });
-            writing = false;
+            writingFields = undefined;
             contentWritten = true;
             await confirmDraft(context, { ...item, fields: item.fields.filter((field) => field !== '@tags') });
         }
@@ -628,18 +637,19 @@ async function writeDraft(context, item) {
             const current = contentWritten ? await readTags(context, item.id) : item.tags;
             if (JSON.stringify(current.tags) !== JSON.stringify(item.tags.tags)) fail(409, 'Tags changed during restore');
             const wanted = tagIds(tags);
-            writing = true;
+            writingFields = ['@tags'];
             await aem(context, `/${item.id}/tags`, {
                 method: wanted.length ? 'PUT' : 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'If-Match': current.etag },
                 ...(wanted.length ? { body: JSON.stringify({ tags: wanted }) } : {}),
             });
-            writing = false;
+            writingFields = undefined;
             tagsWritten = true;
         }
         return await confirmDraft(context, item);
     } catch (error) {
-        error.partial = contentWritten || tagsWritten || (writing && (!error.statusCode || error.statusCode >= 500));
+        if (writingFields && (!error.statusCode || error.statusCode >= 500)) error.uncertainFields = writingFields;
+        error.partial = contentWritten || tagsWritten || Boolean(error.uncertainFields);
         throw error;
     }
 }
@@ -728,6 +738,7 @@ async function restore(context, params, source) {
     const beforeSnapshot = await historySnapshot(context, before);
     const guardKey = `${namespace(context, 'request')}${requestId(context)}`;
     const guard = { eventId: source.id, selections: params.selections, expected: params.expected, versionPending: true };
+    await reserveVersion(context, { id: requestId(context), createdAt: new Date().toISOString() }, true);
     await context.state.put(guardKey, bounded(guard), { ttl: RETENTION });
     const restored = [];
     const failures = [];
@@ -745,7 +756,11 @@ async function restore(context, params, source) {
             });
             if (error.partial) {
                 try {
-                    after.push((await readFragment(context, item.id)).fragment);
+                    after.push(
+                        error.uncertainFields
+                            ? await confirmDraft(context, { ...item, fields: error.uncertainFields })
+                            : (await readFragment(context, item.id)).fragment,
+                    );
                 } catch {
                     throw versionPending(restored, failures);
                 }
@@ -763,6 +778,10 @@ async function restore(context, params, source) {
             const changes = diff({ fragments: [plan[index].before] }, { fragments: [fragment] });
             if (changes.some((change) => !plan[index].fields.includes(change.field))) {
                 fail(409, 'Unrelated content changed before version capture');
+            }
+            const wanted = versionFieldValues({ ...plan[index].before, ...plan[index].payload });
+            if (changes.some((change) => JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null))) {
+                fail(409, 'Selected fields changed during restore');
             }
             return changes.length;
         });

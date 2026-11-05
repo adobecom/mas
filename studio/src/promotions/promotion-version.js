@@ -7,6 +7,7 @@ import { compareVersionValues, versionFieldValues } from '../../libs/fragment-ve
 import { getPromotionTagFromFragment, getPromoNameFromTag, isPromoVariationPath } from './promotion-model.js';
 
 const historyRequests = new Map();
+const pendingVersions = new Map();
 let historySession;
 
 function historyRequestKey(projectId, filters) {
@@ -55,6 +56,7 @@ async function callAction(action, { projectId, ...payload }) {
 
 /** Fetches fresh history while sharing identical requests that are still in flight. */
 export async function listPromotionHistory(projectId, filters = {}) {
+    while (pendingVersions.size) await Promise.all(pendingVersions.values());
     const key = historyRequestKey(projectId, filters);
     let entry = historyRequests.get(key);
     if (!entry) {
@@ -104,13 +106,12 @@ async function resolveProjectIds(repository, fragment) {
     return matches.map((project) => project.id);
 }
 
-export async function savePromotionVersion(repository, fragment, { beforeVersionId, action = 'create' } = {}) {
-    if (!canEditPromotions()) return;
+async function recordPromotionVersion(repository, fragment, { beforeVersionId, action = 'create', projectId } = {}) {
     clearPromotionHistoryRequests();
     try {
-        for (const projectId of await resolveProjectIds(repository, fragment)) {
+        for (const rootId of projectId ? [projectId] : await resolveProjectIds(repository, fragment)) {
             await callAction('record', {
-                projectId,
+                projectId: rootId,
                 targetId: fragment.id,
                 requestId: crypto.randomUUID(),
                 action,
@@ -123,6 +124,22 @@ export async function savePromotionVersion(repository, fragment, { beforeVersion
         showToast('Your content was saved, but its version could not be recorded. Review Version history.', 'warning');
     } finally {
         clearPromotionHistoryRequests();
+    }
+}
+
+/** Tracks background captures so later saves and history reads cannot overtake them. */
+export async function savePromotionVersion(repository, fragment, options = {}) {
+    if (!canEditPromotions()) return;
+    const previous = pendingVersions.get(fragment.id);
+    const pending = (async () => {
+        if (previous) await previous;
+        await recordPromotionVersion(repository, fragment, options);
+    })();
+    pendingVersions.set(fragment.id, pending);
+    try {
+        await pending;
+    } finally {
+        if (pendingVersions.get(fragment.id) === pending) pendingVersions.delete(fragment.id);
     }
 }
 
@@ -159,6 +176,8 @@ async function captureBeforeVersion(repository, fragment) {
 
 export async function withPromotionVersion(repository, fragment, write) {
     if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
+    const previous = pendingVersions.get(fragment.id);
+    if (previous) await previous;
     let beforeVersionId;
     if (fragment.id) {
         try {

@@ -1,5 +1,6 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
+import { waitUntil } from '@open-wc/testing-helpers/pure';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import { PROMOTION_MODEL_ID } from '../../src/constants.js';
@@ -220,6 +221,59 @@ describe('Promotion version capture', () => {
         await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
+    it('waits for the previous capture before saving the same fragment again', async () => {
+        let complete;
+        fetchStub.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        await withPromotionVersion(repository, project, sandbox.stub().resolves({ ...project, etag: '"first"' }));
+        const write = sandbox.stub().resolves({ ...project, etag: '"second"' });
+
+        const second = withPromotionVersion(repository, project, write);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const wroteBeforeCapture = write.called;
+        complete(new Response(JSON.stringify({ event: { id: 'first' } })));
+        await second;
+        await listPromotionHistory(project.id);
+
+        expect(wroteBeforeCapture).to.be.false;
+        expect(write.calledOnce).to.be.true;
+    });
+
+    it('waits for pending capture before loading the current version history', async () => {
+        let complete;
+        fetchStub.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
+        await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+
+        const listing = listPromotionHistory(project.id);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const readBeforeCapture = fetchStub.callCount > 1;
+        complete(new Response(JSON.stringify({ event: { id: 'version' } })));
+        await listing;
+
+        expect(readBeforeCapture).to.be.false;
+        expect(fetchStub.secondCall.args[0]).to.equal('https://studio.example/api/history-list');
+    });
+
+    it('records duplicated variations against their known project without competing list reloads', async () => {
+        Store.promotions.list.data.set([]);
+        const variation = {
+            id: 'first-variation',
+            path: '/content/dam/mas/acom/en_US/promotions/copy/card',
+        };
+        const toast = sandbox.spy(Events.toast, 'emit');
+
+        await Promise.all([
+            savePromotionVersion(repository, variation, { projectId: 'copied-project' }),
+            savePromotionVersion(repository, { ...variation, id: 'second-variation' }, { projectId: 'copied-project' }),
+        ]);
+
+        expect(repository.loadPromotions.called).to.be.false;
+        expect(fetchStub.getCalls().map((call) => JSON.parse(call.args[1].body).rootId)).to.deep.equal([
+            'copied-project',
+            'copied-project',
+        ]);
+        expect(toast.called).to.be.false;
+    });
+
     it('skips version capture for authors without a promotion group', async () => {
         Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-ACOM-EDITORS'] }]);
         const variation = { id: 'variation', path: '/content/dam/mas/acom/en_US/promotions/launch/card' };
@@ -249,7 +303,7 @@ describe('Promotion version capture', () => {
         const saved = { ...project, etag: '"saved"' };
 
         expect(await withPromotionVersion(repository, project, sandbox.stub().resolves(saved))).to.equal(saved);
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await waitUntil(() => toast.calledWithMatch({ variant: 'warning' }));
 
         expect(toast.calledWithMatch({ variant: 'warning' })).to.be.true;
         expect(sessionStorage.getItem('mas.pendingPromotionAudit')).to.be.null;

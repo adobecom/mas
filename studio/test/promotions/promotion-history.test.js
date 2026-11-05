@@ -982,7 +982,7 @@ describe('Promotion version history', () => {
         await element.updateComplete;
 
         expect(element.canRestore).to.be.false;
-        expect(root.textContent).to.include('Do not retry');
+        expect(root.textContent).to.include('Reload and review the content before retrying.');
     });
 
     it('reports a partial restore without claiming complete success', async () => {

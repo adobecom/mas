@@ -1018,6 +1018,100 @@ describe('Promotion project versions', () => {
         expect((await undo(event)).restored).to.deep.equal([PROJECT]);
     });
 
+    it("does not record another editor's selected-field values after an unconfirmed restore", async () => {
+        const { event } = await save();
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .callsFake(async (url, options) => {
+                fragments.set(PROJECT, { ...fragments.get(PROJECT), ...JSON.parse(options.body), title: 'Concurrent title' });
+                return response({});
+            });
+
+        const error = await expectError(undo(event), 409);
+
+        expect(error.message).to.equal('Selected fields changed during restore');
+        expect((await call('list')).events.map((entry) => entry.id)).to.deep.equal([event.id]);
+        expect((await expectError(undo(event), 409)).message).to.equal(error.message);
+        expect(fragments.get(PROJECT).title).to.equal('Concurrent title');
+    });
+
+    it('reconciles an accepted restore whose response was lost before recording its outcome', async () => {
+        const { event } = await save();
+        let pending;
+        let reads = 0;
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .callsFake(async (url, options) => {
+                pending = JSON.parse(options.body);
+                throw new Error('Connection lost after accepting the draft');
+            });
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match((options) => !options.method),
+            )
+            .callsFake(async () => {
+                if (pending && ++reads >= 3) fragments.set(PROJECT, { ...fragments.get(PROJECT), ...pending });
+                return response(fragments.get(PROJECT));
+            });
+
+        const result = await undo(event);
+
+        expect(result.event.changes[0]).to.include({ field: '@title', before: 'Saved', after: 'Project' });
+        expect((await call('list')).events.map((entry) => entry.action)).to.deep.equal(['restore', 'save']);
+        expect(writes()).to.have.length(1);
+    });
+
+    it('keeps an uncertain restore pending when the accepted draft is not yet visible', async () => {
+        const { event } = await save();
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .rejects(new Error('Connection lost'));
+
+        const error = await expectError(undo(event), 503);
+
+        expect(error.result.versionPending).to.equal(true);
+        expect((await expectError(undo(event), 409)).result.versionPending).to.equal(true);
+        expect(writes()).to.have.length(1);
+    });
+
+    it('claims a restore across concurrent requests before either can write the draft', async () => {
+        const { event } = await save();
+        let release;
+        const bothCaptured = new Promise((resolve) => (release = resolve));
+        let captures = 0;
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match.has('method', 'POST'),
+            )
+            .callsFake(async (url) => {
+                const versionId = remember();
+                if (++captures <= 2) {
+                    if (captures === 2) release();
+                    await bothCaptured;
+                }
+                return response({}, 201, null, { location: `${new URL(url).pathname}/${versionId}` });
+            });
+
+        const results = await Promise.allSettled([undo(event), undo(event)]);
+
+        expect(results.filter((result) => result.status === 'fulfilled')).to.have.length(1);
+        const rejected = results.find((result) => result.status === 'rejected');
+        expect(rejected.reason.statusCode).to.equal(409);
+        expect(writes()).to.have.length(1);
+        expect((await undo(event)).restored).to.deep.equal([PROJECT]);
+    });
+
     it('blocks replay disclosure when historical access has been revoked', async () => {
         const { event } = await save(VARIATION);
         await undo(event);

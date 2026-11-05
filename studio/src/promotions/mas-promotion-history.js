@@ -824,8 +824,7 @@ export class MasPromotionHistory extends LitElement {
             if (projectId !== this.projectId) return;
             if (error.details?.versionPending) {
                 this.expected = [];
-                this.operationError =
-                    'Some changes have already been restored, but the new version could not be recorded. Do not retry the restore; reload and review the current content first.';
+                this.operationError = 'Restore could not be confirmed. Reload and review the content before retrying.';
                 return;
             }
             const status = error.status ?? error.statusCode ?? error.response?.status;

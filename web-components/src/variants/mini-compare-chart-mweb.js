@@ -181,18 +181,13 @@ export class MiniCompareChartMweb extends VariantLayout {
             return;
 
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
+            options.displayPerUnit = false;
             options.displayPlanType = this.hasLegalDisclaimer
                 ? false
                 : (this.card?.settings?.displayPlanType ?? false);
             return;
         }
-        // For main price display (strikethrough and regular price)
-        // Disable perUnit display - it will be shown in legal price only
-        if (
-            element.dataset.template === 'strikethrough' ||
-            (element.dataset.template === 'price' &&
-                !element.closest?.('merch-card')?.settings?.displayAnnual)
-        ) {
+        if (element.dataset.template === 'strikethrough') {
             options.displayPerUnit = false;
         }
     }
@@ -354,13 +349,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                 legal,
                 'displayTax',
             );
-            keepInHeadingPriceForAnnual(
-                this.card,
-                headingPrice,
-                legal,
-                'displayPerUnit',
-            );
-
+            legal.dataset.displayPerUnit = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.slot = 'price-legal';
             this.card.append(legal);

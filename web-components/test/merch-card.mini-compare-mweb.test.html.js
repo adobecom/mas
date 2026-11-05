@@ -12,6 +12,7 @@ import { mockIms } from './mocks/ims.js';
 import { withWcs } from './mocks/wcs.js';
 import Media from '../src/media.js';
 import { hydrate } from '../src/hydrate.js';
+import { FF_DEFAULTS } from '../src/constants.js';
 
 // Deterministically control Media.isMobile without real viewport changes —
 // setViewport round-trips are slow/flaky under the full suite and can stall the
@@ -317,6 +318,7 @@ runTests(async () => {
             const legalOptions = {};
             variantLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
+            expect(legalOptions.displayPerUnit).to.equal(false);
 
             // Test strikethrough template branch
             const strikethroughElement = {
@@ -337,7 +339,7 @@ runTests(async () => {
             };
             const priceOptions = {};
             variantLayout.priceOptionsProvider(priceElement, priceOptions);
-            expect(priceOptions.displayPerUnit).to.equal(false);
+            expect(priceOptions.displayPerUnit).to.equal(undefined);
         });
 
         it('should return correct mainPrice and icons', async () => {
@@ -599,6 +601,82 @@ runTests(async () => {
                 await setViewport({ width: 1200, height: 1000 });
             }
         });
+
+        for (const displayAnnual of [false, true]) {
+            for (const displayPerUnit of [undefined, true, false]) {
+                it(`keeps per-license pricing inline (annual=${displayAnnual}, perUnit=${displayPerUnit})`, async () => {
+                    const card = document.createElement('merch-card');
+                    const service = document.querySelector(
+                        'mas-commerce-service',
+                    );
+                    const originalDefaults = service.featureFlags[FF_DEFAULTS];
+                    service.featureFlags[FF_DEFAULTS] = true;
+                    document.querySelector('main').append(card);
+                    try {
+                        const perUnitAttribute =
+                            displayPerUnit === undefined
+                                ? ''
+                                : `data-display-per-unit="${displayPerUnit}"`;
+                        await hydrate(
+                            {
+                                id: 'inline-team-price',
+                                fields: {
+                                    variant: 'mini-compare-chart-mweb',
+                                    cardTitle: 'Creative Cloud Pro for teams',
+                                    prices: `<span is="inline-price" data-template="strikethrough" data-wcs-osi="abm-team-mult"></span>
+                                        <span is="inline-price" data-template="price" data-display-recurrence="true"
+                                            ${perUnitAttribute} data-wcs-osi="abm-team-mult"></span>`,
+                                },
+                                settings: {
+                                    displayAnnual,
+                                    displayPlanType: true,
+                                },
+                            },
+                            card,
+                        );
+                        await card.checkReady();
+                        for (const width of [1200, 430]) {
+                            await setViewport({ width, height: 1000 });
+                            const mainPrice = card.variantLayout.mainPrice;
+                            await mainPrice.onceSettled();
+                            const units = card.querySelectorAll(
+                                '.price-unit-type:not(.disabled)',
+                            );
+                            expect(units.length).to.equal(
+                                displayPerUnit === false ? 0 : 1,
+                            );
+                            if (displayPerUnit === false) continue;
+                            const unit = units[0];
+                            expect(mainPrice.contains(unit)).to.equal(true);
+                            expect(unit.textContent.trim()).to.equal(
+                                'per license',
+                            );
+                            const price = unit.closest('.price');
+                            expect(getComputedStyle(unit).fontSize).to.equal(
+                                getComputedStyle(price).fontSize,
+                            );
+                            expect(getComputedStyle(unit).fontWeight).to.equal(
+                                getComputedStyle(price).fontWeight,
+                            );
+                            if (width === 1200) {
+                                expect(
+                                    unit.getBoundingClientRect().top,
+                                ).to.be.closeTo(
+                                    price
+                                        .querySelector('.price-recurrence')
+                                        .getBoundingClientRect().top,
+                                    1,
+                                );
+                            }
+                        }
+                    } finally {
+                        card.remove();
+                        service.featureFlags[FF_DEFAULTS] = originalDefaults;
+                        await setViewport({ width: 1200, height: 1000 });
+                    }
+                });
+            }
+        }
 
         it('aligns derived plan text with authored disclaimers and the following content', async () => {
             const container = document.createElement('div');

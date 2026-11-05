@@ -3333,6 +3333,11 @@ merch-card[variant^="plans"] [slot="heading-m"] p {
     line-height: var(--consonant-merch-card-body-xs-line-height);
 }
 
+merch-card[variant^='plans'] [slot="heading-m"] span[data-template="legal"] span[is="inline-price"][data-template] .price {
+   font-size: inherit;
+   line-height: inherit;
+}
+
 merch-card[variant^="plans"] [slot="heading-m"] span.price:not(.price-strikethrough):not(.price-promo-strikethrough):not(.price-legal) {
     font-size: var(--consonant-merch-card-heading-m-font-size);
     line-height: var(--consonant-merch-card-heading-m-line-height);
@@ -3442,7 +3447,7 @@ merch-card[variant^='plans'] span.price-legal::first-letter {
     text-transform: uppercase;
 }
 
-merch-card[variant^='plans'] span.price-legal .price-tax-inclusivity::before {
+merch-card[variant^='plans'] span.price-legal > .price-tax-inclusivity::before {
   content: initial;
 }
 
@@ -10165,7 +10170,7 @@ merch-card[variant="mini"] span.renewal-text {
                     </div>
                 `)}
         </div>
-    `}var Ui={cardName:{attribute:"name"},image:{tag:"picture",slot:"image"},backgrounds:{tag:"picture",slot:"backgrounds"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"p",slot:"short-description"},prices:{tag:"p",slot:"prices"},ctas:{slot:"footer",size:"m"}},Vo=[{slot:"image",label:"Image"},{slot:"backgrounds",label:"Background"},{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Product description"},{slot:"short-description",label:"Short Description"},{slot:"prices",label:"Product price"},{slot:"footer",label:"CTAs"}],et=class extends v{constructor(e){super(e);d(this,"toggleBackgroundsDetail",nr(()=>this.card));d(this,"refreshBackgroundsDetail",or(()=>this.card))}getGlobalCSS(){return le}renderLayout(){return Xr`
+    `}var Ui={cardName:{attribute:"name"},image:{tag:"picture",slot:"image"},backgrounds:{tag:"picture",slot:"backgrounds"},title:{tag:"p",slot:"heading-xs"},description:{tag:"div",slot:"body-xs"},shortDescription:{tag:"p",slot:"short-description"},callout:{tag:"div",slot:"callout-content"},prices:{tag:"p",slot:"prices"},ctas:{slot:"footer",size:"m"}},Vo=[{slot:"image",label:"Image"},{slot:"backgrounds",label:"Background"},{slot:"heading-xs",label:"Title"},{slot:"body-xs",label:"Product description"},{slot:"short-description",label:"Short Description"},{slot:"callout-content",label:"Callout text"},{slot:"prices",label:"Product price"},{slot:"footer",label:"CTAs"}],et=class extends v{constructor(e){super(e);d(this,"toggleBackgroundsDetail",nr(()=>this.card));d(this,"refreshBackgroundsDetail",or(()=>this.card))}getGlobalCSS(){return le}renderLayout(){return Xr`
             <div class="headless">
                 ${Vo.map(({slot:e,label:r})=>Xr`
                         <div class="headless-row">

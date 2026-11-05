@@ -7,16 +7,8 @@ import mockCollectionData from '../fragment/mocks/preview-collection.json' with 
 import expectedOutput from '../fragment/mocks/preview-expected-collection-output.json' with { type: 'json' };
 import mockCardFragment from '../fragment/mocks/preview-fragment.json' with { type: 'json' };
 import mockPlaceholders from '../fragment/mocks/preview-placeholders.json' with { type: 'json' };
-
-// Helper function to create mock Response objects
-function createResponse(status, data, statusText = 'OK') {
-    return Promise.resolve({
-        ok: status >= 200 && status < 300,
-        status,
-        statusText,
-        json: async () => data,
-    });
-}
+import { createResponse } from '../fragment/mocks/MockFetch.js';
+import { mark, measureTiming } from '../../src/fragment/utils/common.js';
 
 // Create a mock localStorage
 const storage = {};
@@ -108,6 +100,39 @@ describe('FragmentClient', () => {
             locale: 'en_US',
         });
         expect(result?.fields?.variant).to.equal('plans');
+    });
+
+    it('includes init fetch measurements in the returned preview context', async () => {
+        const context = await previewFragment(mockCardFragment.id, {
+            surface: 'sandbox',
+            locale: 'en_US',
+            fullContext: true,
+        });
+        expect(context.measures.some(({ label, duration }) => label === 'main-fetch-fragment' && Number(duration) >= 0)).to.be
+            .true;
+    });
+
+    it('shares transformer init measurements with the previewFragment caller', async () => {
+        const init = settingsTransformer.init;
+        const stub = sinon.stub(settingsTransformer, 'init').callsFake(async (context) => {
+            mark(context, 'test-settings-init');
+            measureTiming(context, 'test-settings-init');
+            return init(context);
+        });
+        const measures = [];
+        try {
+            const context = await previewFragment(mockCardFragment.id, {
+                surface: 'sandbox',
+                locale: 'en_US',
+                fullContext: true,
+                measures,
+            });
+            expect(context.status).to.equal(200);
+            expect(context.measures).to.equal(measures);
+            expect(measures.some(({ label }) => label === 'test-settings-init')).to.be.true;
+        } finally {
+            stub.restore();
+        }
     });
 
     it('should fetch and transform collection fragment for preview', async () => {
@@ -315,17 +340,101 @@ describe('FragmentClient', () => {
 
     it('clears caches on load when mas.cache=off is present in the URL', async () => {
         localStorageStub.setItem('dictionary-sandbox-en_US', 'stale-value');
+        localStorageStub.setItem('promotions-acom', 'stale-value');
+        localStorageStub.setItem('offer-mapping-acom', 'stale-value');
+        localStorageStub.setItem('promo-variations', 'stale-value');
+        localStorageStub.setItem('unrelated', 'keep');
         const previousLocation = globalThis.window.location;
         globalThis.window.location = { search: '?mas.cache=off' };
         try {
             await import(`../../../../studio/libs/fragment-client.js?cachebust=${Date.now()}-${Math.random()}`);
             expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+            expect(localStorageStub.getItem('promotions-acom')).to.be.null;
+            expect(localStorageStub.getItem('offer-mapping-acom')).to.be.null;
+            expect(localStorageStub.getItem('promo-variations')).to.be.null;
+            expect(localStorageStub.getItem('unrelated')).to.equal('keep');
         } finally {
             globalThis.window.location = previousLocation;
+            delete storage.unrelated;
         }
     });
 
+    it('cleans legacy entries before revision writes even when storage quota is exceeded', () => {
+        for (const key of ['promotions-acom', 'promotions-hydrated-proj-1', 'promo-variations', 'promo-variations-acom']) {
+            storage[key] = 'legacy';
+        }
+        storage['dictionary-sandbox-en_US'] = 'legacy';
+        storage['offer-mapping-acom'] = 'legacy';
+        storage.unrelated = 'keep';
+        const errorLog = sinon.stub(console, 'error');
+        localStorageStub.setItem.callsFake(() => {
+            expect(Object.keys(storage).some((key) => key.startsWith('promotions-') || key.startsWith('promo-variations'))).to
+                .be.false;
+            throw new DOMException('Storage full', 'QuotaExceededError');
+        });
+        try {
+            expect(() => clearCaches()).not.to.throw();
+            expect(localStorageStub.getItem('dictionary-sandbox-en_US')).to.be.null;
+            expect(localStorageStub.getItem('offer-mapping-acom')).to.be.null;
+            expect(localStorageStub.getItem('unrelated')).to.equal('keep');
+            expect(errorLog.callCount).to.equal(4);
+        } finally {
+            localStorageStub.setItem.callsFake((key, value) => {
+                storage[key] = value.toString();
+            });
+            errorLog.restore();
+            delete storage.unrelated;
+        }
+    });
+
+    it('resets the baselines preview cache on clearCaches', () => {
+        delete storage['mas-preview-cache-revision:baselines'];
+        clearCaches();
+        const revision = localStorageStub.getItem('mas-preview-cache-revision:baselines');
+        expect(revision).to.be.a('string');
+        clearCaches();
+        expect(localStorageStub.getItem('mas-preview-cache-revision:baselines')).to.not.equal(revision);
+    });
+
+    it('lists the fragment baselines of the card template when previewing a card with an offer', async () => {
+        const id = 'preview-card-with-offer';
+        const card = {
+            id,
+            path: '/content/dam/mas/sandbox/en_US/card-with-offer',
+            fields: [
+                { name: 'variant', type: 'text', multiple: false, values: ['plans'] },
+                { name: 'osi', type: 'text', multiple: false, values: ['some-osi'] },
+                { name: 'enableBaselines', type: 'boolean', multiple: false, values: [true] },
+            ],
+        };
+        fetchStub.withArgs(`${baseUrl}/${id}?references=all-hydrated`).returns(createResponse(200, card));
+        const result = await previewFragment(id, { surface: 'sandbox', locale: 'en_US' });
+        expect(result.fields.variant).to.equal('plans');
+        const urls = fetchStub.getCalls().map(({ args: [url] }) => url);
+        expect(urls.some((url) => url.includes('path=/content/dam/mas/sandbox/en_US/baselines/plans&'))).to.be.true;
+    });
+
     describe('previewStudioFragment', () => {
+        it('shares transformer init measurements with the previewStudioFragment caller', async () => {
+            const init = settingsTransformer.init;
+            const stub = sinon.stub(settingsTransformer, 'init').callsFake(async (context) => {
+                mark(context, 'test-studio-settings-init');
+                measureTiming(context, 'test-studio-settings-init');
+                return init(context);
+            });
+            const measures = [];
+            try {
+                const result = await previewStudioFragment(
+                    { ...mockCardFragment },
+                    { locale: 'en_US', surface: 'sandbox', measures },
+                );
+                expect(result).to.have.property('fields');
+                expect(measures.some(({ label }) => label === 'test-studio-settings-init')).to.be.true;
+            } finally {
+                stub.restore();
+            }
+        });
+
         it('returns processed body with api_key mas-studio', async () => {
             const body = { ...mockCardFragment };
             const result = await previewStudioFragment(body, { locale: 'en_US', surface: 'sandbox' });

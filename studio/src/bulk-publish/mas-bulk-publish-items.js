@@ -1,10 +1,11 @@
 import { LitElement, html, nothing } from 'lit';
 import { styles } from './mas-bulk-publish-items.css.js';
 import { STAGED } from '../constants.js';
+import { buildEditorHref, renderRowLinkOverlay } from '../common/utils/editor-link.js';
+import { itemTypeFromPath } from './bulk-publish-utils.js';
 
 const ERROR_LABELS = {
     'not-found': '404 - URL not found',
-    staged: 'Staged',
 };
 
 function emit(target, type, detail) {
@@ -33,7 +34,7 @@ class MasBulkPublishItems extends LitElement {
     }
 
     get errorCount() {
-        return this.items.filter((i) => i.status === 'error' && i.reason !== STAGED.NAME).length;
+        return this.items.filter((i) => i.status === 'error').length;
     }
 
     get urlLines() {
@@ -80,6 +81,9 @@ class MasBulkPublishItems extends LitElement {
     }
 
     itemHref(item) {
+        if (item.fragmentId && (item.type ?? itemTypeFromPath(item.path)) !== 'placeholder') {
+            return buildEditorHref({ id: item.fragmentId, path: item.path });
+        }
         const target = item.href ?? item.url;
         return /^https?:\/\//.test(target) ? target : null;
     }
@@ -87,6 +91,11 @@ class MasBulkPublishItems extends LitElement {
     renderStatusCell(item) {
         if (!item.status || item.status === 'pending') {
             return html`<span class="status-cell status-pending">Pending…</span>`;
+        }
+        if (item.staged) {
+            return html`<span class="status-cell">
+                <span class="status-staged">Staged</span>
+            </span>`;
         }
         if (item.status === 'valid') {
             return html`<span class="status-cell status-valid">
@@ -96,12 +105,6 @@ class MasBulkPublishItems extends LitElement {
         }
 
         const label = ERROR_LABELS[item.reason] ?? 'Invalid URL';
-        if (item.reason === STAGED.NAME) {
-            return html`<span class="status-cell">
-                <span class="status-staged">${label}</span>
-            </span>`;
-        }
-
         return html`<span class="status-cell status-error">
             <sp-icon-alert></sp-icon-alert>
             ${label}
@@ -139,14 +142,14 @@ class MasBulkPublishItems extends LitElement {
                           <span>${this.isPublished ? 'Modification' : 'Actions'}</span>
                       </div>
                       <ul>
-                          ${rows.map(
-                              (item) => html`
+                          ${rows.map((item) => {
+                              const href = this.itemHref(item);
+                              return html`
                                   <li data-testid="item-row">
-                                      ${this.itemHref(item)
-                                          ? html`<a href=${this.itemHref(item)} target="_blank" rel="noopener"
-                                                >${this.itemLabel(item)}</a
-                                            >`
+                                      ${href
+                                          ? html`<a href=${href} target="_blank" rel="noopener">${this.itemLabel(item)}</a>`
                                           : html`<span class="item-label">${this.itemLabel(item)}</span>`}
+                                      ${href ? renderRowLinkOverlay({ id: item.fragmentId }, { href }) : nothing}
                                       <span class="url-spacer"></span>
                                       ${this.renderStatusCell(item)}
                                       ${this.isPublished
@@ -164,8 +167,8 @@ class MasBulkPublishItems extends LitElement {
                                                 </sp-action-button>
                                             </span>`}
                                   </li>
-                              `,
-                          )}
+                              `;
+                          })}
                           <li class="footer-row" data-testid="items-footer">
                               <span class="footer-count">${rows.length} URL${rows.length !== 1 ? 's' : ''}</span>
                               <span class="url-spacer"></span>

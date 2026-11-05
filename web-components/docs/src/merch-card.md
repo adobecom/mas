@@ -10,6 +10,38 @@ A `merch-card` can be rendered using either static html markup or `aem-fragment`
 
 The CTAs styles depend on Spectrum CSS that must be provided by the consumer.
 
+For `headless`, `marquee`, and `banner-blade` fragments, the RTE link dialog
+persists CTA variants as link classes. Hydration uses those variants to render
+primary buttons, secondary buttons, and links in the fragment's authored order.
+Bold and italic remain text formatting, not CTA variant controls.
+New commerce CTAs default to Primary button; new web links default to Link.
+
+`<mas-field field="ctas">` hydrates the entire CTA group without requiring Milo
+button decoration. This applies to references from any source template, not only
+the headless-family templates that use the simplified Studio picker.
+Groups inherit the surrounding Milo block's button size,
+utility classes, and responsive action-area layout, retaining explicitly
+authored button sizes.
+
+Indexed fields, such as `ctas[1]` or `ctas[reference-key]`, use Studio variants
+by default, with the same sizing and utility-class handling as full groups. Page-authored
+bold/italic wrappers or a `feds-cta-wrapper` around an individual reference explicitly override that
+presentation: MAS preserves those wrappers, skips fragment styling, and lets
+Milo decorate the CTA. Existing formatted references keep their page-owned styles.
+An unformatted reference outside a `feds-cta-wrapper` inherits Studio, including when the stored variant is Link;
+absence of formatting does not override a Studio button to Link.
+Link references within a sentence remain inline; standalone references and buttons
+use the surrounding block's action-area layout.
+
+Individual Copy Field links do not add variant-derived emphasis, so newly copied
+references inherit subsequent Studio changes rather than creating a page override.
+
+For Studio-owned CTAs and previews, existing classless CTAs saved with
+`<strong>` or `<em>` wrappers retain their primary or secondary variant; an
+explicit variant always takes precedence. Studio converts that legacy encoding
+to link classes when the CTA field is edited. Change the fragment's variant to update
+inheriting references, or the page's CTA reference formatting to set an explicit override.
+
 Designs:
 
 **ACOM**: https://www.figma.com/design/tiEUQLJ1hVlosqwzAATVXZ/Cards-(Merch)?node-id=1086-17994&t=LeMR0vbaBoEKaKln-1
@@ -103,8 +135,8 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 | Name        | Description                                                                                                                                                                                           | Default Value | Required | Provider |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- | -------- |
 | `variant`   | Variant in terms design. Not required when used with an `aem-fragment`                                                                                                                                |               |          | mas.js   |
-| `consonant` | Uses Consonant for the footer CTA styles during hydration from an aem fragment                                                                                                                        | `false`       |          | mas.js   |
-| `spectrum`  | Uses Spectrum for the footer CTA styles during hydration from an aem fragment. (options: `css`, `swc`)                                                                                                | `css`         |          | mas.js   |
+| `consonant` | Uses Consonant for the CTA styles during hydration from an aem fragment. Wins over `spectrum`. If neither `consonant` nor `spectrum` is declared, hydration sets `consonant` for Consonant variants (e.g. `plans`, `product`, `brand-concierge-product`). | | | mas.js |
+| `spectrum` | Uses Spectrum for the CTA styles during hydration from an aem fragment (options: `css`, `swc`), even on Consonant variants, e.g. `spectrum="swc"` for isolated iframes. | `css` | | mas.js |
 | `size`      | card width; a card can span over 2 columns or entire row on a css grid `wide\|super-wide`                                                                                                             |               |          | mas.js   |
 | `daa-lh`    | Analytics identifier of a card. Value is coming from the 'PRODUCT_CODE' tag set on the card (for now manual authoring required, later will be tagged automatically). Sample values: 'ccsn' or 'phlt'. |               |          | mas.js   |
 

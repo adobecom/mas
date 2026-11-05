@@ -15,6 +15,8 @@ import CCDSliceSpec from '../specs/slice_edit_and_discard.spec.js';
 
 const { features } = CCDSliceSpec;
 
+test.use({ reuseEditor: true });
+
 test.describe('M@S Studio CCD Slice card test suite', () => {
     // @studio-slice-variant-change-to-suggested - Validate card variant change from slice to suggested
     test(`${features[0].name},${features[0].tags}`, async ({ page, baseURL }) => {
@@ -23,7 +25,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -82,7 +84,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();
@@ -120,7 +122,7 @@ test.describe('M@S Studio CCD Slice card test suite', () => {
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
             await expect(await editor.panel).toBeVisible();
             await expect(await studio.getCard(data.cardid)).toBeVisible();

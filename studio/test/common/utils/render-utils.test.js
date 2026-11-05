@@ -9,6 +9,7 @@ import {
     copyToClipboardWithToast,
     getItemTypeLabel,
     getItemTitle,
+    getOfferName,
     shouldIgnoreRowClickForSelection,
     getStudioFragmentDisplayPath,
     renderInheritedTagsNotice,
@@ -267,6 +268,22 @@ describe('render-utils', () => {
         });
     });
 
+    describe('getOfferName', () => {
+        it('returns the product code tag title', () => {
+            const item = {
+                tags: [
+                    { id: 'mas:plan_type/abm', title: 'ABM' },
+                    { id: 'mas:product_code/phsp', title: 'Photoshop' },
+                ],
+            };
+            expect(getOfferName(item)).to.equal('Photoshop');
+        });
+
+        it('returns an empty string without a product code tag', () => {
+            expect(getOfferName(null)).to.equal('');
+        });
+    });
+
     describe('getItemTitle', () => {
         it('returns dash for falsy item', () => {
             expect(getItemTitle(null)).to.equal('-');
@@ -309,12 +326,12 @@ describe('render-utils', () => {
             Store.promotions.itemPickerSurface.set(null);
         });
 
-        it('returns the prefixed studio path (authorPath) for the active surface', () => {
+        it('returns the studio path (authorPath) for the active surface', () => {
             Store.search.set({ ...Store.search.get(), path: 'acom' });
             Store.page.set('content');
             const fragment = mockCardFragment();
             expect(getStudioFragmentDisplayPath(fragment)).to.equal(generateLinkToUse(fragment, 'acom', 'content').authorPath);
-            expect(getStudioFragmentDisplayPath(fragment)).to.include('merch-card:');
+            expect(getStudioFragmentDisplayPath(fragment)).to.match(/^ACOM \/ merch-card/);
         });
 
         it('returns an empty string when no web component maps to the model', () => {

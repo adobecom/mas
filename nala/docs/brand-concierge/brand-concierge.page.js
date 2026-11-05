@@ -8,6 +8,6 @@ export default class MasBrandConcierge {
     }
 
     getStudioLink(id) {
-        return this.page.locator(`.commerce-item:has(aem-fragment[fragment="${id}"]) a.commerce-link`);
+        return this.page.locator(`.commerce-item:has(aem-fragment[fragment="${id}"]) a.commerce-link`).first();
     }
 }

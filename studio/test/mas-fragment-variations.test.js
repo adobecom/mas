@@ -1,7 +1,9 @@
-import { expect, fixture, html } from '@open-wc/testing';
+import { expect, fixture, html, waitUntil } from '@open-wc/testing';
 import sinon from 'sinon';
 import Store from '../src/store.js';
 import '../src/mas-fragment-variations.js';
+import '../src/swc.js';
+import '../src/mas-fragment-table.js';
 import { getGroupedVariationTagsValue, getPromotionCode } from '../src/editors/variation-utils.js';
 import { makeSearchStub } from './helpers/aem-tag-fetch.js';
 import { BASELINE_VARIATION } from '../src/constants.js';
@@ -65,6 +67,131 @@ describe('MasFragmentVariations', () => {
         it('returns empty string when promoCode field is missing', () => {
             const variation = createVariationFragment({ fields: [] });
             expect(getPromotionCode(variation)).to.equal('');
+        });
+    });
+
+    describe('promotion editor links', () => {
+        it('keeps untagged variation links available without loading promotion projects', async () => {
+            const loadPromotions = sandbox.stub().resolves();
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = {
+                ...createFragmentMock(),
+                listPromoVariations: () => [createVariationFragment()],
+            };
+            el.selectedTab = 'promotion';
+            await el.updateComplete;
+            const row = el.querySelector('mas-fragment-table');
+            await row.updateComplete;
+
+            expect(row.querySelector('.title a')).not.to.be.null;
+            expect(loadPromotions.called).to.be.false;
+        });
+
+        it('restores links after successfully loading an empty promotion project list', async () => {
+            const promoVariation = createVariationFragment({
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+            });
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = { ...createFragmentMock(), listPromoVariations: () => [promoVariation] };
+            el.selectedTab = 'promotion';
+
+            await waitUntil(() => el.querySelector('mas-fragment-table')?.querySelector('.title a'));
+            el.requestUpdate();
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
+        });
+
+        it('withholds promotion links until the project context finishes loading', async () => {
+            let completeLoad;
+            const promoVariation = createVariationFragment({
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+            });
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                await new Promise((resolve) => {
+                    completeLoad = resolve;
+                });
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/back-to-school' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = { ...createFragmentMock(), listPromoVariations: () => [promoVariation] };
+            el.selectedTab = 'promotion';
+            await el.updateComplete;
+            const row = el.querySelector('mas-fragment-table');
+            await row.updateComplete;
+
+            try {
+                expect(row.querySelector('a.fragment-editor-link')).to.be.null;
+                expect(row.querySelector('a.row-link-overlay')).to.be.null;
+                expect(row.querySelector('.title').textContent).to.include('Variation title');
+            } finally {
+                completeLoad();
+            }
+            await waitUntil(() => {
+                const link = row.querySelector('.title a');
+                return link && new URLSearchParams(new URL(link.href).hash.slice(1)).get('promotionId') === 'promo-project-1';
+            });
+        });
+
+        it('retries the context load on a later render after an unsuccessful initial load', async () => {
+            const promoVariation = createVariationFragment({
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+            });
+            const loadPromotions = sandbox.stub();
+            loadPromotions.onFirstCall().resolves();
+            loadPromotions.onSecondCall().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/back-to-school' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = { ...createFragmentMock(), listPromoVariations: () => [promoVariation] };
+            el.selectedTab = 'promotion';
+            await waitUntil(() => loadPromotions.calledOnce);
+            await el.updateComplete;
+
+            el.requestUpdate();
+
+            await waitUntil(() => el.querySelector('mas-fragment-table')?.editorLinkOptions.promotionId === 'promo-project-1');
+            expect(loadPromotions.calledTwice).to.be.true;
+        });
+
+        it('loads promotion projects once so rendered variation links include their promotion context', async () => {
+            const promoVariation = createVariationFragment({
+                path: '/content/dam/mas/sandbox/en_US/promotions/back-to-school/my-card',
+                tags: [{ id: 'mas:promotion/back-to-school' }],
+            });
+            const loadPromotions = sandbox.stub().callsFake(async () => {
+                Store.promotions.list.data.set([
+                    { get: () => ({ id: 'promo-project-1', tags: [{ id: 'mas:promotion/back-to-school' }] }) },
+                ]);
+                Store.promotions.list.data.setMeta('listFetched', true);
+            });
+            const el = await fixture(html`<mas-fragment-variations></mas-fragment-variations>`);
+            sandbox.stub(el, 'repository').get(() => ({ loadPromotions }));
+            el.fragment = { ...createFragmentMock(), listPromoVariations: () => [promoVariation] };
+
+            await waitUntil(
+                () => el.querySelector('mas-fragment-table')?.editorLinkOptions.promotionId === 'promo-project-1',
+                'The promotion variation link should include its project',
+            );
+            el.requestUpdate();
+            await el.updateComplete;
+
+            expect(loadPromotions.calledOnce).to.be.true;
         });
     });
 
@@ -326,7 +453,7 @@ describe('MasFragmentVariations', () => {
     });
 
     describe('editing grouped and locale variations', () => {
-        it('passes editFragmentStore to router when handleEdit is called', async () => {
+        it('navigates to the variation with its locale when handleEdit is called', async () => {
             const el = await fixture(
                 html`<mas-fragment-variations .fragment=${createFragmentMock()}></mas-fragment-variations>`,
             );
@@ -341,12 +468,7 @@ describe('MasFragmentVariations', () => {
 
             await el.handleEdit(editStore);
 
-            expect(
-                navigateSpy.calledOnceWith('variation-1', {
-                    locale: 'fr_FR',
-                    fragmentStore: editStore,
-                }),
-            ).to.be.true;
+            expect(navigateSpy.calledOnceWith('variation-1', { locale: 'fr_FR' })).to.be.true;
         });
 
         it('builds locale variation rows with a dedicated editFragmentStore', async () => {

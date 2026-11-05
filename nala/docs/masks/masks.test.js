@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../../libs/docs-test.js';
 import { features } from './masks.spec.js';
 import MasksPage from './masks.page.js';
 import { constructTestUrl } from '../../utils/commerce.js';
@@ -14,38 +14,48 @@ test.describe('MAS Docs Masks feature test suite', () => {
 
         await test.step('step-1: Load masks doc page and wait for cards', async () => {
             await page.goto(testPage);
-            await page.waitForLoadState('domcontentloaded');
-            await page.waitForSelector('merch-card[variant^="plans"]', { timeout: 30000 });
-            await page.waitForTimeout(3000);
-        });
-
-        await test.step('step-2: Click Mask button to apply nala-mask', async () => {
-            await masksPage.btnMask.click();
-            await page.waitForTimeout(3000);
-            // wait for all three cards to show the masked title
             for (const id of data.fragmentIds) {
-                await expect(masksPage.card(id).title).toContainText(data.mask.title, { timeout: 15000 });
+                const { title } = masksPage.standaloneCard(id);
+                await expect(title).toBeVisible();
             }
         });
 
-        await test.step('step-3: Verify all cards have masked badge', async () => {
+        await test.step('step-2: Verify every card of the masked collection renders masked on load', async () => {
             for (const id of data.fragmentIds) {
-                const { badge } = masksPage.card(id);
+                const { badge, title } = masksPage.collectionCard(id);
+                await expect(badge).toContainText(data.mask.badge, { timeout: 15000 });
+                const bgColor = await badge.getAttribute('background-color');
+                expect(bgColor).toMatch(/yellow/i);
+                await expect(title).toContainText(data.mask.title, { timeout: 15000 });
+            }
+        });
+
+        await test.step('step-3: Click Mask button to apply nala-mask', async () => {
+            await masksPage.btnMask.click();
+            // wait for all three cards to show the masked title
+            for (const id of data.fragmentIds) {
+                await expect(masksPage.standaloneCard(id).title).toContainText(data.mask.title, { timeout: 15000 });
+            }
+        });
+
+        await test.step('step-4: Verify all cards have masked badge', async () => {
+            for (const id of data.fragmentIds) {
+                const { badge } = masksPage.standaloneCard(id);
                 await expect(badge).toContainText(data.mask.badge);
                 const bgColor = await badge.getAttribute('background-color');
                 expect(bgColor).toMatch(/yellow/i);
             }
         });
 
-        await test.step('step-4: Verify all cards have masked title', async () => {
+        await test.step('step-5: Verify all cards have masked title', async () => {
             for (const id of data.fragmentIds) {
-                await expect(masksPage.card(id).title).toContainText(data.mask.title);
+                await expect(masksPage.standaloneCard(id).title).toContainText(data.mask.title);
             }
         });
 
-        await test.step('step-5: Verify third card has productName and firstLine placeholders replaced', async () => {
+        await test.step('step-6: Verify third card has productName and firstLine placeholders replaced', async () => {
             const thirdCardId = data.fragmentIds[2];
-            const { description, bodyM } = masksPage.card(thirdCardId);
+            const { description, bodyM } = masksPage.standaloneCard(thirdCardId);
             await expect(bodyM).toContainText(data.thirdCard.productName);
             await expect(description.locator('ul li').first()).toContainText(data.thirdCard.firstLine);
         });

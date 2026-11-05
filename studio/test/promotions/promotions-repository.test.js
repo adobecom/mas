@@ -33,6 +33,25 @@ describe('promotions-repository', () => {
     });
 
     describe('getPromotionProjectsForProbe', () => {
+        it('shares the initial load between concurrent callers instead of superseding the request', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            let completeLoad;
+            const loadPromotions = sandbox.stub().returns(
+                new Promise((resolve) => {
+                    completeLoad = resolve;
+                }),
+            );
+            const first = getPromotionProjectsForProbe(loadPromotions);
+            const second = getPromotionProjectsForProbe(loadPromotions);
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            Store.promotions.list.data.set([{ get: () => project }]);
+            completeLoad();
+
+            expect(await Promise.all([first, second])).to.deep.equal([[project], [project]]);
+            expect(loadPromotions.calledOnce).to.be.true;
+        });
+
         it('loads promotions when list was never fetched', async () => {
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');
@@ -52,6 +71,38 @@ describe('promotions-repository', () => {
 
             expect(loadPromotions.calledOnce).to.be.true;
             expect(projects).to.have.lengthOf(1);
+        });
+
+        it('supports a synchronous loader that populates the promotion store', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+
+            const projects = await getPromotionProjectsForProbe(() => {
+                Store.promotions.list.data.set([{ get: () => project }]);
+            });
+
+            expect(projects).to.deep.equal([project]);
+        });
+
+        it('allows another load after the initial request rejects', async () => {
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            const error = new Error('Promotions unavailable');
+            const loadPromotions = sandbox.stub().rejects(error);
+            let failure;
+            try {
+                await getPromotionProjectsForProbe(loadPromotions);
+            } catch (caught) {
+                failure = caught;
+            }
+            expect(failure).to.equal(error);
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            loadPromotions.callsFake(async () => {
+                Store.promotions.list.data.set([{ get: () => project }]);
+            });
+
+            expect(await getPromotionProjectsForProbe(loadPromotions)).to.deep.equal([project]);
         });
 
         it('does not load when promotions list was already fetched empty', async () => {
@@ -414,6 +465,50 @@ describe('promotions-repository', () => {
             const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var', () => Promise.resolve());
 
             expect(result.path).to.equal(parentPath);
+        });
+
+        it('resolves a promo variation of a grouped variation to the default card', async () => {
+            const groupedPath = '/content/dam/mas/sandbox/en_US/pac/pzn/edu';
+            const promoPath = '/content/dam/mas/sandbox/en_US/promotions/black-friday/pac/pzn/edu';
+            const defaultCard = {
+                id: 'default-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/default-card',
+                fields: [{ name: 'variations', values: [groupedPath] }],
+                references: [],
+            };
+            const fragmentsByPath = {
+                [groupedPath]: { id: 'grouped-id', path: groupedPath, references: [] },
+                [defaultCard.path]: defaultCard,
+            };
+            const fragmentsById = {
+                'promo-var': { id: 'promo-var', path: promoPath, tags: [{ id: 'mas:promotion/black-friday' }] },
+                [defaultCard.id]: defaultCard,
+            };
+            Store.promotions.list.data.set([
+                {
+                    get: () => ({
+                        tags: [{ id: 'mas:promotion/black-friday' }],
+                        getFieldValues: (name) => (name === 'fragments' ? [groupedPath] : []),
+                    }),
+                },
+            ]);
+            Store.promotions.list.loading.set(false);
+            const aem = {
+                sites: {
+                    cf: {
+                        fragments: {
+                            getById: sandbox.stub().callsFake(async (id) => fragmentsById[id] ?? null),
+                            getByPath: sandbox.stub().callsFake(async (path) => fragmentsByPath[path] ?? null),
+                            getReferencedBy: sandbox.stub().resolves({ parentReferences: [{ path: defaultCard.path }] }),
+                            search: makeSearchStub(),
+                        },
+                    },
+                },
+            };
+
+            const result = await resolveDefaultFragmentForPromoVariation(aem, promoPath, 'promo-var', () => Promise.resolve());
+
+            expect(result.path).to.equal(defaultCard.path);
         });
     });
 

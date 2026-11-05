@@ -12,6 +12,7 @@ merch-card-collection.product-pricing {
     max-width: 1920px;
     margin-inline: auto;
     gap: 8px;
+    --merch-card-collection-card-min-height: 286px;
 }
 
 /* Studio uses <merch-card-collection>; milo/preview wraps cards in
@@ -45,7 +46,7 @@ merch-card[variant="product-pricing"] {
     max-width: 474px;
     min-width: 261px;
     --product-frame-bg: #fff;
-    --product-frame-border: #dadada;
+    --product-frame-border: #ebebeb;
 }
 
 merch-card[variant="product-pricing"]:has([slot="badge"]) {
@@ -71,6 +72,7 @@ merch-card[variant="product-pricing"] [slot="heading-s"] {
     font-size: 18px;
     font-weight: 900;
     line-height: 18px;
+    letter-spacing: -0.2px;
     color: #000;
 }
 
@@ -128,13 +130,7 @@ merch-card[variant="product-pricing"] span[data-template="legal"] {
     color: #5c5c5c;
 }
 
-/* Figma stacks the legal block: per-unit on its own line, tax and plan type
-   below. The global leading nbsp would indent the line, so drop it. */
-merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-type:not(.disabled) {
-    display: block;
-}
-
-merch-card[variant="product-pricing"] span[data-template="legal"] .price-unit-type:not(.disabled)::before,
+/* The global leading nbsp would indent the legal line, so drop it. */
 merch-card[variant="product-pricing"] span[data-template="legal"] .price-tax-inclusivity:not(.disabled)::before {
     content: none;
 }
@@ -155,27 +151,32 @@ merch-card[variant="product-pricing"] [slot="short-description"] a.spectrum-Link
     color: inherit;
 }
 
+/* CTAs share a row while both labels fit on one line, else they stack. */
 merch-card[variant="product-pricing"] [slot="footer"] {
     display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
     gap: 4px;
     width: 100%;
 }
 
 merch-card[variant="product-pricing"] [slot="footer"] a {
-    flex: 1 0 0;
-    min-width: 0;
+    flex: 1 1 calc(50% - 2px);
+    /* One-line label width, capped at the footer: past half the row the CTAs
+       stack, past the whole row the label wraps. */
+    min-width: fit-content;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
     border-radius: 999px;
     min-height: 40px;
-    padding: 0 24px;
+    padding: 8px 24px;
     font-size: 14px;
     font-weight: 700;
     text-align: center;
     text-decoration: none;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     background: #3B63FB;
     color: #fff;
     border: none;
@@ -187,5 +188,9 @@ merch-card[variant="product-pricing"] [slot="footer"] a.outline {
     background: transparent;
     color: #000;
     border: 2px solid #000;
+}
+
+merch-card[variant="product-pricing"][stacked] [slot="footer"] a {
+    flex-basis: 100%;
 }
 `;

@@ -38,6 +38,7 @@ For production, the minimun attributes to set are: `wcs-api-key` and `lana-tags`
 
 | Name                     | Description                                                                                         | Default Value                    | Required |
 | ------------------------ | --------------------------------------------------------------------------------------------------- | -------------------------------- | -------- |
+| `aup-select`             | routes checkout links through the AUP SDK, see [AUP Select](checkout-link.html#aup-select). Can be set after activation (e.g. by Milo once Target settles): connected checkout links are refreshed | disabled | `false`  |
 | `allow-override`         | enables override of commerce env/landscape via query parameters(commerce.env/commerce.landscape)    |  `false`                         |  `false` |
 | `checkout-client-id`     | checkout client id                                                                                  |  `false`                         |  `false` |
 | `checkout-workflow-step` | default checkout workflow step                                                                      | `CheckoutWorkflowStep.EMAIL`     | `false`  |

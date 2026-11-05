@@ -1,4 +1,10 @@
-import { DESKTOP_UP, LARGE_DESKTOP, TABLET_UP, TABLET_DOWN } from './media.js';
+import {
+    DESKTOP_UP,
+    LARGE_DESKTOP,
+    TABLET_UP,
+    TABLET_DOWN,
+    MOBILE_LANDSCAPE,
+} from './media.js';
 
 const styles = document.createElement('style');
 
@@ -982,11 +988,13 @@ merch-card[border-color="spectrum-red-700-plans"] {
   border-color: var(--spectrum-red-700-plans);
 }
 
-@media (max-width: 600px) {
+@media screen and ${MOBILE_LANDSCAPE} {
+    merch-card [slot='short-description'] .icon-button.tooltip-left::before,
     merch-card [slot='callout-content'] .icon-button.tooltip-left::before {
         left: -30px;
     }
 
+    merch-card [slot='short-description'] .icon-button.tooltip-right::before,
     merch-card [slot='callout-content'] .icon-button.tooltip-right::before {
         left: unset;
         right: -20px;

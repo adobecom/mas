@@ -6,6 +6,7 @@ import {
     PAGE_NAMES,
     DICTIONARY_MODEL_PATH,
     BASELINE_VARIATION,
+    MAS_PRODUCT_CODE_PREFIX,
 } from '../../constants.js';
 import { Fragment } from '../../aem/fragment.js';
 import Store from '../../store.js';
@@ -16,7 +17,7 @@ import { getItemsSelectionStore } from '../items-selection-store.js';
 
 /**
  * Studio display path for an item-picker row's "Path" column: the same
- * `authorPath` (`<web-component>: <surface> / <name>`) the content table view shows,
+ * `authorPath` (`<surface> / <web-component> / <name>`) the content table view shows,
  * resolved against the active search surface and page.
  * @param {object} fragment - Fragment payload or Fragment instance
  * @returns {string}
@@ -226,6 +227,15 @@ export function getItemTitle(item, maxLength = 54) {
         return title.length > maxLength ? `${title.slice(0, maxLength)}...` : title;
     }
     return item.key || item.getFieldValue?.('key') || '-';
+}
+
+/**
+ * Offer name of a card: the title of its product code tag.
+ * @param {Object} item
+ * @returns {string}
+ */
+export function getOfferName(item) {
+    return item?.tags?.find(({ id }) => id?.startsWith(MAS_PRODUCT_CODE_PREFIX))?.title ?? '';
 }
 
 /**

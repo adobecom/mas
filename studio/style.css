@@ -937,6 +937,10 @@ sp-underlay + sp-dialog {
     transform: translateY(-50%);
 }
 
+.preview-popover.white-background {
+    background-color: #ffffff;
+}
+
 .preview-popover.position-left {
     left: var(--popover-position);
 }
@@ -1071,6 +1075,7 @@ mas-top-nav .left-section {
     display: flex;
     align-items: center;
     gap: 24px;
+    flex: 1 1 auto;
     min-width: 0;
 }
 
@@ -1097,7 +1102,9 @@ mas-top-nav .history-nav-button[disabled] {
     color: var(--spectrum-gray-500, #909090);
 }
 
+/* sp-breadcrumbs only re-checks overflow when its own box resizes; a content-sized box that collapsed never re-expands, so let it fill the free space. */
 mas-top-nav .nav-breadcrumbs {
+    flex: 1 1 auto;
     min-width: 0;
 }
 

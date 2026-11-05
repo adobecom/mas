@@ -41,6 +41,7 @@ const legalTemplate = (
         displayPerUnit = false,
         displayTax = false,
         displayPlanType = false,
+        customPlanTypeLabel,
         displayDot = true,
         planTypeCase,
         language,
@@ -85,22 +86,27 @@ const legalTemplate = (
     }
 
     let planTypeLabel = '';
-    if (toBoolean(displayPlanType) && planType) {
-        planTypeLabel = formatLiteral(
-            literals,
-            locale,
-            literalKeys.planTypeLabel,
-            {
-                planType,
-            },
-            logger,
-        );
-    }
-
-    if (planTypeLabel && planTypeCase) {
-        planTypeLabel =
-            (planTypeCase === 'lower' ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) +
-            planTypeLabel.slice(1);
+    if (toBoolean(displayPlanType)) {
+        if (customPlanTypeLabel) {
+            // Authored rich text (e.g. a card's Short Description) replaces the
+            // derived wording for any plan type and is rendered as is.
+            planTypeLabel = customPlanTypeLabel;
+        } else if (planType) {
+            planTypeLabel = formatLiteral(
+                literals,
+                locale,
+                literalKeys.planTypeLabel,
+                {
+                    planType,
+                },
+                logger,
+            );
+            if (planTypeLabel && planTypeCase) {
+                planTypeLabel =
+                    (planTypeCase === 'lower' ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) +
+                    planTypeLabel.slice(1);
+            }
+        }
     }
 
     let cssClass = cssClassNames.container;

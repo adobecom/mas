@@ -173,3 +173,46 @@ describe('formatting utilities', () => {
         });
     }
 });
+
+describe('legal template custom plan type label', () => {
+    const shortDescription =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const vat = { taxDisplay: 'TAX_INCLUSIVE_DETAILS', taxTerm: 'VAT', planType: 'ABM' };
+    const options = {
+        country: 'CH',
+        language: 'en',
+        displayTax: true,
+        displayPlanType: true,
+        literals: { taxInclusiveLabel: 'incl. VAT', planTypeLabel: 'Annual, billed monthly' },
+    };
+    const planTypeOf = (html) => html.match(/<span class="price-plan-type[^"]*">(.*?)<\/span><\/span>$/)[1];
+
+    it('renders the authored HTML as the plan type, after the dotted tax label', () => {
+        const actual = legalTemplate({ ...options, customPlanTypeLabel: shortDescription }, vat);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT\. <\/span>/);
+        assert.equal(planTypeOf(actual), shortDescription);
+        assert.doesNotMatch(actual, /Annual, billed monthly/);
+    });
+    it('renders it whatever the offer plan type', () => {
+        const actual = legalTemplate({ ...options, customPlanTypeLabel: shortDescription }, { ...vat, planType: undefined });
+        assert.equal(planTypeOf(actual), shortDescription);
+    });
+    it('keeps the authored casing', () => {
+        const actual = legalTemplate({ ...options, planTypeCase: 'upper', customPlanTypeLabel: '<em>fee applies</em>' }, vat);
+        assert.equal(planTypeOf(actual), '<em>fee applies</em>');
+    });
+    it('honors displayDot', () => {
+        const actual = legalTemplate({ ...options, displayDot: false, customPlanTypeLabel: shortDescription }, vat);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT<\/span>/);
+    });
+    it('is ignored when the plan type line is off', () => {
+        const actual = legalTemplate({ ...options, displayPlanType: false, customPlanTypeLabel: shortDescription }, vat);
+        assert.equal(actual, legalTemplate({ ...options, displayPlanType: false }, vat));
+        assert.doesNotMatch(actual, /Fee applies/);
+    });
+    it('falls back to the plan type literal when absent or empty', () => {
+        const literal = legalTemplate(options, vat);
+        assert.equal(planTypeOf(literal), 'Annual, billed monthly');
+        assert.equal(legalTemplate({ ...options, customPlanTypeLabel: '' }, vat), literal);
+    });
+});

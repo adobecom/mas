@@ -2,7 +2,6 @@ import { html, css, unsafeCSS, nothing } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart-mweb.css.js';
-import { keepInHeadingPriceForAnnual } from './mini-compare-chart.js';
 import Media, { DESKTOP_UP, TABLET_DOWN, TABLET_UP } from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
@@ -182,6 +181,7 @@ export class MiniCompareChartMweb extends VariantLayout {
 
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPerUnit = false;
+            options.displayTax = false;
             options.displayPlanType = this.hasLegalDisclaimer
                 ? false
                 : (this.card?.settings?.displayPlanType ?? false);
@@ -343,12 +343,7 @@ export class MiniCompareChartMweb extends VariantLayout {
             if (headingPrice.options.displayPlanType)
                 headingPrice.dataset.displayPlanType = 'false';
 
-            keepInHeadingPriceForAnnual(
-                this.card,
-                headingPrice,
-                legal,
-                'displayTax',
-            );
+            legal.dataset.displayTax = 'false';
             legal.dataset.displayPerUnit = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.slot = 'price-legal';

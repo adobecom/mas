@@ -13,6 +13,7 @@ import { withWcs } from './mocks/wcs.js';
 import Media from '../src/media.js';
 import { hydrate } from '../src/hydrate.js';
 import { FF_DEFAULTS } from '../src/constants.js';
+import priceLiterals from '../price-literals.json' with { type: 'json' };
 
 // Deterministically control Media.isMobile without real viewport changes —
 // setViewport round-trips are slow/flaky under the full suite and can stall the
@@ -319,6 +320,7 @@ runTests(async () => {
             variantLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
             expect(legalOptions.displayPerUnit).to.equal(false);
+            expect(legalOptions.displayTax).to.equal(false);
 
             // Test strikethrough template branch
             const strikethroughElement = {
@@ -668,6 +670,76 @@ runTests(async () => {
                                     1,
                                 );
                             }
+                        }
+                    } finally {
+                        card.remove();
+                        service.featureFlags[FF_DEFAULTS] = originalDefaults;
+                        await setViewport({ width: 1200, height: 1000 });
+                    }
+                });
+            }
+        }
+
+        for (const displayAnnual of [false, true]) {
+            for (const forceTaxExclusive of [false, true]) {
+                const label = forceTaxExclusive ? 'HT' : 'TTC';
+                it(`keeps French ${label} inline with the price (annual=${displayAnnual})`, async () => {
+                    const card = document.createElement('merch-card');
+                    const service = document.querySelector(
+                        'mas-commerce-service',
+                    );
+                    const originalDefaults = service.featureFlags[FF_DEFAULTS];
+                    service.featureFlags[FF_DEFAULTS] = true;
+                    document.querySelector('main').append(card);
+                    try {
+                        await hydrate(
+                            {
+                                id: 'inline-french-tax',
+                                fields: {
+                                    variant: 'mini-compare-chart-mweb',
+                                    cardTitle: 'Une seule application',
+                                    prices: `<span is="inline-price" data-template="price" data-wcs-osi="tax-exclusive-mult"
+                                        data-country="FR" data-language="fr" data-display-old-price="false"
+                                        data-display-recurrence="true" data-force-tax-exclusive="${forceTaxExclusive}"
+                                        ${forceTaxExclusive ? 'data-display-tax="true"' : ''}></span>`,
+                                },
+                                settings: {
+                                    displayAnnual,
+                                    displayPlanType: true,
+                                },
+                                priceLiterals: priceLiterals.data.find(
+                                    ({ lang }) => lang === 'fr',
+                                ),
+                            },
+                            card,
+                        );
+                        await card.checkReady();
+                        for (const width of [1200, 430]) {
+                            await setViewport({ width, height: 1000 });
+                            const mainPrice = card.variantLayout.mainPrice;
+                            await mainPrice.onceSettled();
+                            const taxes = card.querySelectorAll(
+                                '.price-tax-inclusivity:not(.disabled)',
+                            );
+                            expect(taxes.length).to.equal(1);
+                            const tax = taxes[0];
+                            expect(tax.textContent.trim()).to.equal(label);
+                            expect(mainPrice.contains(tax)).to.equal(true);
+                            const price = tax.closest('.price');
+                            expect(
+                                tax.getBoundingClientRect().top,
+                            ).to.be.closeTo(
+                                price
+                                    .querySelector('.price-recurrence')
+                                    .getBoundingClientRect().top,
+                                1,
+                            );
+                            expect(getComputedStyle(tax).fontSize).to.equal(
+                                getComputedStyle(price).fontSize,
+                            );
+                            expect(getComputedStyle(tax).fontWeight).to.equal(
+                                getComputedStyle(price).fontWeight,
+                            );
                         }
                     } finally {
                         card.remove();

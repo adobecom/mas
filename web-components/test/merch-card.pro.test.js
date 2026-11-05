@@ -1018,6 +1018,7 @@ describe('Pro.adjustLegal', () => {
         // main price would otherwise decide whether the description shows.
         const { layout, clone } = makeFixture();
         clone.dataset.displayPlanType = 'false';
+        layout.card.settings = { displayPlanType: true };
         const { querySelector } = layout.card;
         layout.card.querySelector = (sel) =>
             sel === '[slot="legal-text"]'
@@ -1286,9 +1287,7 @@ describe('pro short description plan type', () => {
             .null;
     });
 
-    it('shows the short description even when Show Plan type is off', async () => {
-        // Business cards on /acrobat/plans author a Short Description with the
-        // plan type line off; production shows it.
+    it('honors Show Plan type off even with a short description', async () => {
         card = await renderCard(
             '<p slot="heading-m"><span data-template="legal"></span></p>' +
                 `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
@@ -1297,8 +1296,8 @@ describe('pro short description plan type', () => {
         const options = legalOptionsFor(
             card.querySelector('[data-template="legal"]'),
         );
-        expect(options.displayPlanType).to.be.true;
-        expect(options.customPlanTypeLabel).to.equal(SHORT_DESCRIPTION);
+        expect(options.displayPlanType).to.be.false;
+        expect(options).to.not.have.property('customPlanTypeLabel');
     });
 
     it('keeps the Show Plan type setting without a short description', async () => {
@@ -1453,11 +1452,18 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
         );
     });
 
-    it('shows the short description when Show Plan type is off', async () => {
+    it('shows neither the short description nor a plan type when Show Plan type is off', async () => {
         const legal = await renderPricedCard(SHORT_DESCRIPTION, {
             displayPlanType: false,
         });
-        expectAuthoredLegal(legal);
+        expect(
+            card.querySelectorAll('[data-template="legal"]').length,
+        ).to.equal(1);
+        const planType =
+            legal.querySelector('.price-plan-type')?.textContent ?? '';
+        expect(planType).to.equal('');
+        expect(legal.textContent).to.not.include('Fee applies');
+        expect(legal.textContent).to.not.include(WCS_PLAN_TYPE);
     });
 
     it('shows the edited short description after a Studio re-hydration', async () => {

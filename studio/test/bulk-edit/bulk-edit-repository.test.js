@@ -68,7 +68,7 @@ describe('getBulkEditProjectsPath', () => {
 });
 
 describe('isValidBulkEditProjectTitle', () => {
-    for (const title of ['Spring sale-MWPW-123456', 'a-MWPW-1', 'Q3 promo - CC-MWPW-191299']) {
+    for (const title of ['Spring sale-MWPW-123456', 'a-MWPW-1', 'Q3 promo - CC-MWPW-191299', 'Spring sale-DOTCOM-123456']) {
         it(`accepts "${title}"`, () => {
             expect(isValidBulkEditProjectTitle(title)).to.be.true;
         });
@@ -82,6 +82,8 @@ describe('isValidBulkEditProjectTitle', () => {
         'Spring sale-MWPW-',
         'Spring sale-mwpw-1',
         'Sale-MWPW-12a',
+        'Spring sale-dotcom-1',
+        'Spring sale-JIRA-1',
     ]) {
         it(`rejects "${title}"`, () => {
             expect(isValidBulkEditProjectTitle(title)).to.be.false;

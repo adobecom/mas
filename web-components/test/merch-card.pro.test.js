@@ -9,6 +9,8 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
+import { mockFetch } from './mocks/fetch.js';
+import { withWcs } from './mocks/wcs.js';
 
 let Pro;
 
@@ -845,6 +847,7 @@ describe('Pro.adjustLegal', () => {
                     ? price
                     : null,
         };
+        layout.card.variantLayout = layout;
         return { layout, price, clone, insertBefore };
     }
 
@@ -866,7 +869,6 @@ describe('Pro.adjustLegal', () => {
 
     it('does not depend on synchronous clone upgrades in Safari', async () => {
         const { layout, price, clone, insertBefore } = makeFixture();
-        const reapply = sandbox.stub(layout, 'adjustShortDescription');
         expect(price.cloneNode().onceSettled).to.be.undefined;
         price.cloneNode.resetHistory();
 
@@ -875,8 +877,6 @@ describe('Pro.adjustLegal', () => {
         expect(price.cloneNode.called).to.be.false;
         expect(insertBefore.calledWith(clone, 'next-sibling')).to.be.true;
         expect(clone.onceSettled.calledOnce).to.be.true;
-        expect(clone.addEventListener.calledOnce).to.be.true;
-        expect(reapply.calledOnce).to.be.true;
         expect(clone.dataset.wcsOsi).to.equal('test-osi');
         expect(clone.className).to.equal('authored-price');
         expect(clone.innerHTML).to.equal(price.innerHTML);
@@ -968,17 +968,20 @@ describe('Pro.adjustLegal', () => {
         expect(price.dataset.displayPlanType).to.be.undefined;
     });
 
-    it('registers the override before waiting for the first legal price resolution', async () => {
-        const { layout, clone } = makeFixture();
-        const reapply = sandbox.stub(layout, 'adjustShortDescription');
-        clone.onceSettled.callsFake(async () => {
-            expect(clone.addEventListener.calledOnce).to.be.true;
-            clone.addEventListener.firstCall.args[1]();
+    it('does not add a legal price once merch-card replaced the layout', async () => {
+        let settle;
+        const settled = new Promise((resolve) => {
+            settle = resolve;
         });
-
-        await layout.adjustLegal();
-
-        expect(reapply.calledTwice).to.be.true;
+        const { layout, price, insertBefore } = makeFixture({
+            onceSettled: () => settled,
+        });
+        const adjustment = layout.adjustLegal();
+        layout.card.variantLayout = Object.create(Pro.prototype);
+        settle();
+        await adjustment;
+        expect(insertBefore.called).to.be.false;
+        expect(price.dataset.displayTax).to.be.undefined;
     });
 
     it('bails out when the price settles without options', async () => {
@@ -1010,27 +1013,25 @@ describe('Pro.adjustLegal', () => {
         expect(price.dataset.displayPlanType).to.equal('false');
     });
 
-    it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
-        // The clone re-renders on every resolve and wipes the injected text, so
-        // the handler has to stay bound to it.
+    it('drops a cloned plan type flag when a short description is authored', async () => {
+        // The dataset outranks priceOptionsProvider, so a flag copied from the
+        // main price would otherwise decide whether the description shows.
         const { layout, clone } = makeFixture();
-        const reapply = sinon.stub(layout, 'adjustShortDescription');
+        clone.dataset.displayPlanType = 'false';
+        const { querySelector } = layout.card;
+        layout.card.querySelector = (sel) =>
+            sel === '[slot="legal-text"]'
+                ? { textContent: 'Fee applies', innerHTML: 'Fee applies' }
+                : querySelector(sel);
         await layout.adjustLegal();
-        expect(reapply.called, 'applies the override once in place').to.be.true;
-        expect(clone.addEventListener.calledOnce).to.be.true;
-        const [eventName, handler] = clone.addEventListener.firstCall.args;
-        expect(eventName).to.equal(EVENT_TYPE_RESOLVED);
-        // The registered handler is what re-applies on later resolutions.
-        reapply.resetHistory();
-        handler();
-        expect(reapply.calledOnce, 'a re-resolve re-applies it').to.be.true;
+        expect('displayPlanType' in clone.dataset).to.be.false;
     });
 
-    it('keeps the handler it already registered', async () => {
+    it('keeps a cloned plan type flag without a short description', async () => {
         const { layout, clone } = makeFixture();
-        layout.legalResolvedHandler = () => {};
+        clone.dataset.displayPlanType = 'true';
         await layout.adjustLegal();
-        expect(clone.addEventListener.called).to.be.false;
+        expect(clone.dataset.displayPlanType).to.equal('true');
     });
 
     it('swallows a price that never settles so the rest of the update runs', async () => {
@@ -1256,150 +1257,252 @@ describe('pro whats-included toggle label', () => {
     });
 });
 
-describe('pro short description plan type override', () => {
+describe('pro short description plan type', () => {
     let card;
     afterEach(() => card?.remove());
 
-    // Mimics the legal price markup after it resolves with displayPlanType on.
-    const LEGAL_PRICE =
-        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-        '<span class="price price-legal"><span class="price-plan-type">Annual, billed monthly</span></span>' +
-        '</span></p>';
+    const SHORT_DESCRIPTION =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const legalOptionsFor = (legal) => {
+        const options = {};
+        card.variantLayout.priceOptionsProvider(legal, options);
+        return options;
+    };
 
-    it('replaces the derived plan type wording with the authored text', async () => {
+    it('hands the authored short description to the legal template as the plan type', async () => {
         card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+            '<p slot="heading-m"><span data-template="legal"></span></p>' +
+                `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
+            { settings: { displayPlanType: true } },
         );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
-        // The source element stays in the light DOM (so the override survives
-        // layout re-instantiation) but never projects — the shadow template
-        // has no legal-text slot.
+        expect(options.displayPlanType).to.be.true;
+        expect(options.customPlanTypeLabel).to.equal(SHORT_DESCRIPTION);
+        // The source element stays in the light DOM but never projects — the
+        // shadow template has no legal-text slot.
         expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
             .null;
     });
 
-    it('survives the variantLayout being replaced after first render', async () => {
+    it('shows the short description even when Show Plan type is off', async () => {
+        // Business cards on /acrobat/plans author a Short Description with the
+        // plan type line off; production shows it.
         card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+            '<p slot="heading-m"><span data-template="legal"></span></p>' +
+                `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
+            { settings: { displayPlanType: false } },
         );
-        // First instance applies the override...
-        card.variantLayout.adjustShortDescription();
-        // ...then merch-card swaps in a fresh layout and the legal price
-        // re-resolves with the derived wording.
-        card.querySelector('.price-plan-type').textContent =
-            'Annual, billed monthly';
-        const freshLayout = Object.create(Pro.prototype);
-        freshLayout.card = card;
-        freshLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
+        expect(options.displayPlanType).to.be.true;
+        expect(options.customPlanTypeLabel).to.equal(SHORT_DESCRIPTION);
     });
 
-    it('keeps the derived wording when no short description is authored', async () => {
-        card = await renderCard(LEGAL_PRICE);
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Annual, billed monthly',
+    it('keeps the Show Plan type setting without a short description', async () => {
+        card = await renderCard(
+            '<p slot="heading-m"><span data-template="legal"></span></p>' +
+                '<div slot="legal-text"> </div>',
+            { settings: { displayPlanType: true } },
         );
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
+        );
+        expect(options.displayPlanType).to.be.true;
+        expect(options).to.not.have.property('customPlanTypeLabel');
     });
 
-    it('renders nothing when the plan type line is off (no .price-plan-type)', async () => {
+    it('only overrides the legal price of the price block', async () => {
         card = await renderCard(
-            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-                '<span class="price price-legal"></span></span></p>' +
-                '<div slot="legal-text">Yearly, paid monthly</div>',
+            '<div slot="body-xs"><span data-template="legal"></span></div>' +
+                `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
         );
-        card.variantLayout.adjustShortDescription();
-        // No plan type span to override, and the source element itself never
-        // projects into the shadow DOM — the text appears nowhere.
-        expect(card.querySelector('.price-legal').textContent).to.equal('');
-        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
-            .null;
-    });
-
-    it('re-applies the override after the legal price re-resolves', async () => {
-        card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
-        card.variantLayout.adjustShortDescription();
-        // A re-resolve regenerates the price markup (derived wording returns).
-        card.querySelector('.price-plan-type').textContent =
-            'Annual, billed monthly';
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
-        );
+        expect(options.displayPlanType).to.be.false;
+        expect(options).to.not.have.property('customPlanTypeLabel');
     });
 });
 
-describe('pro short description tax spacing', () => {
+describe('pro short description rendered by the legal price (MWPW-214359)', () => {
+    const SHORT_DESCRIPTION =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const WCS_PLAN_TYPE = 'Annual, billed monthly';
+    let originalFetch;
     let card;
-    afterEach(() => card?.remove());
+    let written;
+    let observer;
 
-    // Legal price as it resolves on a VAT card where the plan type comes from
-    // the authored short description: tax label is set, plan-type span is empty,
-    // so the legal template never added its ". " separator (MWPW-198626).
-    const legalWithTax = (taxText) =>
-        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-        '<span class="price price-legal">' +
-        '<span class="price-unit-type disabled"></span>' +
-        `<span class="price-tax-inclusivity">${taxText}</span>` +
-        '<span class="price-plan-type disabled"></span>' +
-        '</span></span></p>';
+    before(async () => {
+        originalFetch = window.fetch;
+        document.querySelector('mas-commerce-service')?.remove();
+        await mockFetch(withWcs);
+        // en_GB so the legal line carries a tax label to separate.
+        const service = document.createElement('mas-commerce-service');
+        service.setAttribute('locale', 'en_GB');
+        document.head.appendChild(service);
+    });
 
-    it('inserts the ". " separator between the tax label and the injected plan type', async () => {
-        card = await renderCard(
-            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
-        );
-        card.variantLayout.adjustShortDescription();
-        // Matches the template's WCS path ("incl. VAT. Annual…") so injected and
-        // WCS-sourced plan types read identically.
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT. Annual, billed monthly',
+    after(() => {
+        window.fetch = originalFetch;
+        document.querySelector('mas-commerce-service')?.remove();
+        document.head.appendChild(
+            document.createElement('mas-commerce-service'),
         );
     });
 
-    it('does not double the separator when the tax label already ends in space', async () => {
-        card = await renderCard(
-            `${legalWithTax('incl. VAT. ')}<div slot="legal-text">Annual, billed monthly</div>`,
+    afterEach(() => {
+        observer?.disconnect();
+        card?.remove();
+    });
+
+    // Records every node ever written under the card, so a short-lived WCS
+    // plan type is caught even if a later write replaces it.
+    async function renderPricedCard(
+        legalText,
+        settings = { displayPlanType: true },
+    ) {
+        card = document.createElement('merch-card');
+        card.settings = settings;
+        card.setAttribute('variant', 'pro');
+        const legal = legalText
+            ? `<div slot="legal-text">${legalText}</div>`
+            : '';
+        card.innerHTML = `<p slot="heading-m"><span is="inline-price" data-template="price" data-wcs-osi="abm-mult" data-display-tax="true"></span></p>${legal}`;
+        written = [];
+        observer = new MutationObserver((records) => {
+            for (const { addedNodes } of records) {
+                for (const node of addedNodes) written.push(node.textContent);
+            }
+        });
+        observer.observe(card, { childList: true, subtree: true });
+        document.body.appendChild(card);
+        return settledLegal();
+    }
+
+    async function settledLegal() {
+        let legal;
+        for (let i = 0; i < 100 && !legal; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            legal = card.querySelector(
+                '[slot="heading-m"] [data-template="legal"]',
+            );
+        }
+        await legal.onceSettled();
+        return legal;
+    }
+
+    const expectAuthoredLegal = (legal) => {
+        expect(
+            card.querySelectorAll('[data-template="legal"]').length,
+        ).to.equal(1);
+        expect(legal.querySelectorAll('.price-plan-type').length).to.equal(1);
+        expect(legal.querySelector('.price-plan-type').innerHTML).to.equal(
+            SHORT_DESCRIPTION,
         );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'incl. VAT. Annual, billed monthly',
+        expect(
+            legal.querySelector('.price-plan-type .icon-button').dataset
+                .tooltip,
+        ).to.equal('Details');
+        const tax = legal.querySelector(
+            '.price-tax-inclusivity:not(.disabled)',
+        ).textContent;
+        expect(tax).to.match(/\. $/);
+        expect(legal.textContent.match(/Fee applies/g)).to.have.length(1);
+        expect(written.join('|')).to.not.include(WCS_PLAN_TYPE);
+    };
+
+    it('renders the short description in the first legal render', async () => {
+        expectAuthoredLegal(await renderPricedCard(SHORT_DESCRIPTION));
+    });
+
+    it('keeps it through a forced re-render of the legal price', async () => {
+        const legal = await renderPricedCard(SHORT_DESCRIPTION);
+        legal.requestUpdate(true);
+        await legal.onceSettled();
+        expectAuthoredLegal(legal);
+    });
+
+    it('keeps it when the rendered card is moved in the DOM', async () => {
+        // Milo's tabs and merch-card-collection re-attach rendered cards,
+        // which re-renders every price in them.
+        const legal = await renderPricedCard(SHORT_DESCRIPTION);
+        const host = document.createElement('div');
+        document.body.append(host);
+        const reRendered = new Promise((resolve) =>
+            legal.addEventListener(EVENT_TYPE_RESOLVED, resolve, {
+                once: true,
+            }),
+        );
+        host.append(card);
+        await reRendered;
+        expectAuthoredLegal(legal);
+        host.remove();
+    });
+
+    it('keeps the WCS plan type for cards without a short description', async () => {
+        const legal = await renderPricedCard();
+        expect(
+            card.querySelectorAll('[data-template="legal"]').length,
+        ).to.equal(1);
+        expect(legal.querySelector('.price-plan-type').textContent).to.equal(
+            WCS_PLAN_TYPE,
         );
     });
 
-    it('adds no separator when there is no tax label (e.g. en-US)', async () => {
-        const noTax =
-            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-            '<span class="price price-legal">' +
-            '<span class="price-unit-type disabled"></span>' +
-            '<span class="price-tax-inclusivity disabled"></span>' +
-            '<span class="price-plan-type disabled"></span>' +
-            '</span></span></p>';
-        card = await renderCard(
-            `${noTax}<div slot="legal-text">Annual, billed monthly</div>`,
-        );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'Annual, billed monthly',
-        );
+    it('shows the short description when Show Plan type is off', async () => {
+        const legal = await renderPricedCard(SHORT_DESCRIPTION, {
+            displayPlanType: false,
+        });
+        expectAuthoredLegal(legal);
     });
 
-    it('stays idempotent across repeated re-resolves (no accumulating spaces)', async () => {
-        card = await renderCard(
-            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+    it('shows the edited short description after a Studio re-hydration', async () => {
+        const { hydrate } = await import('../src/hydrate.js');
+        await renderPricedCard(SHORT_DESCRIPTION);
+        const edited =
+            '<em>Cancel anytime.</em> <span class="icon-button" data-tooltip="Details"></span>';
+        await hydrate(
+            {
+                id: 'pro-card',
+                settings: { displayPlanType: true },
+                fields: {
+                    variant: 'pro',
+                    prices: '<span is="inline-price" data-template="price" data-wcs-osi="abm-mult" data-display-tax="true"></span>',
+                    shortDescription: edited,
+                },
+            },
+            card,
         );
-        card.variantLayout.adjustShortDescription();
-        card.variantLayout.adjustShortDescription();
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT. Annual, billed monthly',
+        const legal = await settledLegal();
+        expect(
+            card.querySelectorAll('[data-template="legal"]').length,
+        ).to.equal(1);
+        expect(legal.querySelector('.price-plan-type').innerHTML).to.equal(
+            edited,
         );
+        expect(legal.textContent).to.not.include('Fee applies');
+    });
+
+    it('disconnects the layout merch-card replaces after the first render', async () => {
+        const connect = sinon.spy(Pro.prototype, 'connectedCallbackHook');
+        const disconnect = sinon.spy(Pro.prototype, 'disconnectedCallbackHook');
+        try {
+            await renderPricedCard(SHORT_DESCRIPTION);
+            const replaced = connect.thisValues.filter(
+                (layout) => layout !== card.variantLayout,
+            );
+            expect(replaced.length).to.be.above(0);
+            for (const layout of replaced) {
+                expect(disconnect.thisValues.includes(layout)).to.be.true;
+            }
+        } finally {
+            connect.restore();
+            disconnect.restore();
+        }
     });
 });
 
@@ -2273,7 +2376,7 @@ describe('pro resize handling', () => {
             // The surviving layout (card.variantLayout) owns the last observer.
             const obs = observers[observers.length - 1];
             expect(obs, 'observes on connect').to.exist;
-            obs.callback();
+            obs.callback([]);
             expect(resync.calledOnce, 'a reflow re-runs the sync').to.be.true;
         } finally {
             window.ResizeObserver = RealObserver;
@@ -2285,14 +2388,13 @@ describe('pro resize handling', () => {
         // (mount at 0 → width, or a font swap changing the description height)
         // re-syncs, while publishing the min-height (a top-card height change)
         // leaves the key unchanged and can't loop the observer.
-        const layout = Object.create(Pro.prototype);
         const rect = { width: 0, top: 0, height: 0 };
         let descHeight = 18;
         const desc = { getBoundingClientRect: () => ({ height: descHeight }) };
-        layout.card = {
+        const layout = new Pro({
             getBoundingClientRect: () => rect,
             querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
-        };
+        });
         const sync = sinon.stub(layout, 'syncHeights').resolves();
 
         layout.resyncOnReflow();
@@ -2309,6 +2411,163 @@ describe('pro resize handling', () => {
         layout.resyncOnReflow();
         expect(sync.calledTwice, 're-syncs when the description reflows').to.be
             .true;
+    });
+
+    // Reports a border-box size the way a ResizeObserver entry does.
+    const entry = (target, width, height) => ({
+        target,
+        borderBoxSize: [{ inlineSize: width, blockSize: height }],
+    });
+
+    const installFakeObserver = () => {
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
+        class FakeObserver {
+            observed = [];
+            unobserved = [];
+            constructor(callback) {
+                this.callback = callback;
+                observers.push(this);
+            }
+            observe(target, options) {
+                this.observed.push({ target, options });
+            }
+            unobserve(target) {
+                this.unobserved.push(target);
+            }
+            disconnect() {
+                this.disconnected = true;
+            }
+        }
+        window.ResizeObserver = FakeObserver;
+        return {
+            observers,
+            restore: () => (window.ResizeObserver = RealObserver),
+        };
+    };
+
+    it('keys on the sizes the observer reports instead of measuring the card and description', () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            const measured = sinon.spy(() => ({ width: 1, height: 1 }));
+            const desc = { getBoundingClientRect: measured };
+            const card = {
+                addEventListener: () => {},
+                getBoundingClientRect: measured,
+                querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+            };
+            const layout = new Pro(card);
+            card.variantLayout = layout;
+            const sync = sinon.stub(layout, 'syncHeights').resolves();
+            layout.connectedCallbackHook();
+            const obs = observers[0];
+            expect(
+                obs.observed.map(({ target }) => target),
+                'observes the card and the description',
+            ).to.deep.equal([card, desc]);
+            expect(
+                obs.observed.every(
+                    ({ options }) => options.box === 'border-box',
+                ),
+                'observes the border box, which getBoundingClientRect reports',
+            ).to.be.true;
+
+            obs.callback([entry(card, 300, 400), entry(desc, 300, 54)]);
+            expect(sync.calledOnce, 'syncs on the first report').to.be.true;
+
+            // The card has no new entry: its last reported width still counts.
+            obs.callback([entry(desc, 300, 72)]);
+            expect(sync.calledTwice, 'a description reflow re-syncs').to.be
+                .true;
+
+            obs.callback([entry(card, 300, 460)]);
+            expect(sync.calledTwice, 'a card height change is not a reflow').to
+                .be.true;
+
+            obs.callback([entry(card, 0, 0), entry(desc, 0, 0)]);
+            expect(sync.calledTwice, 'a hidden card is skipped').to.be.true;
+            expect(measured.called, 'no geometry read for either').to.be.false;
+        } finally {
+            restore();
+        }
+    });
+
+    it('asks for a fresh report on a price resolution instead of measuring', async () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            const obs = observers[observers.length - 1];
+            const measure = sinon.spy(
+                Element.prototype,
+                'getBoundingClientRect',
+            );
+            try {
+                card.querySelector('[slot="body-xs"]').dispatchEvent(
+                    new CustomEvent(EVENT_TYPE_RESOLVED, {
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+                expect(measure.called, 'nothing is measured mid-task').to.be
+                    .false;
+            } finally {
+                measure.restore();
+            }
+            expect(resync.called, 'the check waits for the frame').to.be.false;
+            expect(obs.unobserved, 'drops the card observation').to.deep.equal([
+                card,
+            ]);
+            const rearmed = obs.observed.at(-1);
+            expect(rearmed.target, 'observes the card again').to.equal(card);
+            expect(rearmed.options.box).to.equal('border-box');
+
+            obs.callback([entry(card, 300, 400)]);
+            expect(resync.calledOnce, 'the report runs the check').to.be.true;
+        } finally {
+            restore();
+        }
+    });
+
+    it('leaves measuring to the layout the card keeps', async () => {
+        // merch-card builds a layout before its first render and another in
+        // firstUpdated; the first one still holds an observer and a listener.
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            const obs = observers[observers.length - 1];
+            card.variantLayout = {};
+            obs.callback([entry(card, 300, 400)]);
+            layout.requestReflowCheck();
+            card.variantLayout = layout;
+            expect(resync.called, 'a replaced layout does not measure').to.be
+                .false;
+            expect(obs.unobserved, 'nor re-arms').to.be.empty;
+        } finally {
+            restore();
+        }
+    });
+
+    it('does not observe again once the layout is disconnected', async () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const obs = observers[observers.length - 1];
+            const observed = obs.observed.length;
+            card.remove();
+            expect(obs.disconnected, 'observer cleaned up').to.be.true;
+            layout.requestReflowCheck();
+            expect(
+                obs.observed.length,
+                'a late resolution is ignored',
+            ).to.equal(observed);
+        } finally {
+            restore();
+        }
     });
 
     it('disconnects its resize observer when the card is removed', async () => {

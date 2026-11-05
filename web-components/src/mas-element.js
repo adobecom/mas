@@ -23,7 +23,16 @@ const StateEventType = {
     [STATE_RESOLVED]: EVENT_TYPE_RESOLVED,
 };
 
+// Bumped when all placeholders must resolve their offers again. A detached
+// element misses that refresh, so it compares epochs when it reconnects.
+let offersEpoch = 0;
+
+export function invalidateMasElements() {
+    offersEpoch++;
+}
+
 export class MasElement {
+    #offersEpoch = 0;
     #service;
     changes = new Map();
     connected = false;
@@ -90,11 +99,23 @@ export class MasElement {
 
     /**
      * Triggers when this component is connected to DOM.
-     * Subscribes to the `ready` event of the commerce service,
-     * requests placeholder update.
+     * Requests placeholder update, unless the placeholder is already resolved
+     * and nothing that affects it changed while it was detached.
      */
     connectedCallback() {
-        this.#service = getService();
+        const service = getService();
+        const stale =
+            service !== this.#service || this.#offersEpoch !== offersEpoch;
+        this.#service = service;
+        if (
+            !stale &&
+            this.state === STATE_RESOLVED &&
+            !this.timer &&
+            !this.changes.size
+        ) {
+            this.connected = true;
+            return;
+        }
         this.requestUpdate(true);
     }
 
@@ -170,6 +191,7 @@ export class MasElement {
      */
     togglePending(options) {
         this.version++;
+        this.#offersEpoch = offersEpoch;
         if (options) this.options = options;
         this.state = STATE_PENDING;
         this.update();

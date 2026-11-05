@@ -11,6 +11,7 @@ import { Defaults } from './defaults.js';
 import { Ims } from './ims.js';
 import { getPriceLiterals } from './literals.js';
 import { Log } from './log.js';
+import { invalidateMasElements } from './mas-element.js';
 import { Price } from './price.js';
 import { getAupSelect, getSettings } from './settings.js';
 import { Wcs } from './wcs.js';
@@ -216,6 +217,7 @@ export class MasCommerceService extends HTMLElement {
 
     refreshOffers() {
         this.flushWcsCacheInternal();
+        invalidateMasElements();
         document
             .querySelectorAll(SELECTOR_MAS_ELEMENT)
             .forEach((el) => el.requestUpdate(true));

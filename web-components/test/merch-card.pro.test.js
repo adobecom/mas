@@ -1289,8 +1289,9 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
     });
 
     it('keeps it when the rendered card is moved in the DOM', async () => {
-        // Milo's tabs and merch-card-collection re-attach rendered cards,
-        // which re-renders every price in them.
+        // Milo's tabs and merch-card-collection re-attach rendered cards. A
+        // move alone leaves resolved prices alone; a render that follows it
+        // (a refresh of the offers) must still keep the authored text.
         const legal = await renderPricedCard(SHORT_DESCRIPTION);
         const host = document.createElement('div');
         document.body.append(host);
@@ -1300,6 +1301,7 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
             }),
         );
         host.append(card);
+        legal.requestUpdate(true);
         await reRendered;
         expectAuthoredLegal(legal);
         host.remove();

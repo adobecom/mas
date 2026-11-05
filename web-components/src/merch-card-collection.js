@@ -20,6 +20,7 @@ import {
     normalizeVariant,
     setForegroundTimeout,
     clearForegroundTimeout,
+    yieldToMain,
 } from './utils.js';
 import {
     matchesTagGroups,
@@ -30,6 +31,11 @@ import {
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
+// Cards are added to the page in batches of this size, giving the browser a
+// turn between batches. Each card connects, hydrates and builds its prices and
+// CTAs in the same task, so a batch of this size stays well under 50 ms on a
+// throttled CPU while the first batch still covers the first screen.
+const HYDRATION_BATCH_SIZE = 8;
 
 const VARIANT_CLASSES = {
     catalog: ['four-merch-cards'],
@@ -160,6 +166,7 @@ export class MerchCardCollection extends LitElement {
 
     #overrideMap = {};
     #logger;
+    #arrangementPending = false;
 
     // Resolved lazily: the host page loads mas.js/commerce.js separately, so
     // the service may not be registered or activated when this element connects.
@@ -227,10 +234,19 @@ export class MerchCardCollection extends LitElement {
         // changedProperties empty and must still re-arrange the cards.
         const arrangeCards =
             changedProperties.size === 0 ||
+            this.#arrangementPending ||
             CARD_ARRANGEMENT_PROPERTIES.some((property) =>
                 changedProperties.has(property),
             );
         if (!arrangeCards && !changedProperties.has('sidenav')) return;
+
+        // Cards are still being added; arranging the ones present would order
+        // and count a partial set. The pass after the last batch arranges all.
+        if (arrangeCards && this.hydrating) {
+            this.#arrangementPending = true;
+            return;
+        }
+        if (arrangeCards) this.#arrangementPending = false;
 
         const children = [...this.children].filter(
             (child) => child.tagName === 'MERCH-CARD' && !child.failed,
@@ -600,7 +616,40 @@ export class MerchCardCollection extends LitElement {
                 return false;
             };
 
-            for (const fragment of cards) {
+            // The collection classes lay the grid out, so they are in place
+            // before the first batch of cards is added.
+            let nmbOfColumns = '';
+            const variant = normalizeVariant(cards[0]?.fields?.variant);
+            this.variant = variant;
+            if (
+                variant === 'plans' &&
+                (cards.length === 2 || cards.length === 3) &&
+                !cards.some((card) => card.fields?.size?.includes('wide'))
+            ) {
+                nmbOfColumns =
+                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            } else if (
+                (variant === 'segment' || variant === 'product') &&
+                (cards.length === 2 || cards.length === 3)
+            ) {
+                nmbOfColumns =
+                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
+            } else if (
+                (variant === 'mini-compare-chart' ||
+                    variant === 'mini-compare-chart-mweb') &&
+                cards.length <= 2
+            ) {
+                nmbOfColumns = cards.length === 1 ? '' : 'TwoColumns';
+            }
+
+            if (variant) {
+                this.classList.add(
+                    'merch-card-collection',
+                    variant,
+                    ...(VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []),
+                );
+            }
+            for (const [index, fragment] of cards.entries()) {
                 const merchCard = document.createElement('merch-card');
                 const fragmentId =
                     this.#overrideMap[fragment.id] || fragment.id;
@@ -691,41 +740,18 @@ export class MerchCardCollection extends LitElement {
                 }
                 // Append card after all attributes are set (including data-default-card)
                 this.append(merchCard);
+                if (
+                    (index + 1) % HYDRATION_BATCH_SIZE === 0 &&
+                    index + 1 < cards.length
+                ) {
+                    await yieldToMain();
+                }
             }
 
-            let nmbOfColumns = '';
-            const variant = normalizeVariant(cards[0]?.fields?.variant);
-            this.variant = variant;
-            if (
-                variant === 'plans' &&
-                (cards.length === 2 || cards.length === 3) &&
-                !cards.some((card) => card.fields?.size?.includes('wide'))
-            ) {
-                nmbOfColumns =
-                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
-            } else if (
-                (variant === 'segment' || variant === 'product') &&
-                (cards.length === 2 || cards.length === 3)
-            ) {
-                nmbOfColumns =
-                    cards.length === 2 ? 'TwoColumns' : 'ThreeColumns';
-            } else if (
-                (variant === 'mini-compare-chart' ||
-                    variant === 'mini-compare-chart-mweb') &&
-                cards.length <= 2
-            ) {
-                nmbOfColumns = cards.length === 1 ? '' : 'TwoColumns';
-            }
-
-            if (variant) {
-                this.classList.add(
-                    'merch-card-collection',
-                    variant,
-                    ...(VARIANT_CLASSES[`${variant}${nmbOfColumns}`] || []),
-                );
-            }
             this.displayResult = true;
             this.hydrating = false;
+            // Arrangement requests that came in while cards were being added.
+            if (this.#arrangementPending) this.requestUpdate();
             aemFragment.remove();
             resolveHydration(true);
         });

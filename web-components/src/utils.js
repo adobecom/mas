@@ -13,6 +13,20 @@ export function debounce(func, delay) {
     };
 }
 
+/**
+ * Lets the browser run pending input, paint and other tasks before the caller
+ * continues. Uses `scheduler.yield()` where available, which resumes the
+ * caller ahead of other queued tasks, and a timer elsewhere. A hidden tab
+ * resumes at once: its timers are throttled to about one per second and no
+ * one is waiting for a frame.
+ * @returns {Promise<void>}
+ */
+export function yieldToMain() {
+    if (document.visibilityState === 'hidden') return Promise.resolve();
+    if (globalThis.scheduler?.yield) return globalThis.scheduler.yield();
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 export const getSlotText = (element, name) =>
     element?.querySelector(`[slot="${name}"]`)?.textContent?.trim();
 

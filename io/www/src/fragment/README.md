@@ -144,6 +144,24 @@ Baselines' own variations are ignored. Each customized fragment exposes `offerBa
 
 Nothing is requested twice, whatever the collection size: distinct offers are resolved in one WCS batch whose artifacts are reused by the `wcs` transformer (and always shipped in `body.wcs`). Fragment baselines are fetched in bulk, in parallel with WCS, with one (paginated) listing of `/content/dam/mas/<surface>/<locale>/baselines/<template>` per template used; offer baselines are fetched once per locale. Both are kept in a single-flight SWR cache (5 min TTL) shared by all fragments and requests, absence included.
 
+## Orion stage testing
+
+The optional fragment query parameter `serveLatest=true` requests latest offers
+from WCS configurations whose `env` is `stage`. Production WCS requests are
+unchanged. Both the offer transformer's early WCS lookup and final prefill use
+the same mode, reusing artifacts under `body.wcs["stage-latest"]` rather than
+`body.wcs.stage`. The existing OSI/country/language/promotion keys are unchanged.
+Direct render callers can select this cache with `environment: 'stage-latest'`.
+
+Latest requests use a separate request metadata/ETag key. The fragment URL
+contains `serveLatest=true`; the deployed CDN must retain this query parameter
+in its cache key and forward it to the action. Verify normal/latest cache
+isolation on stage and coordinate WCS cache expiry or purge when its
+`wcs.feature.enableServeLatest` flag changes.
+
+The offers sync does not fetch WCS pricing and is unchanged. The agent/flatten
+runtime continues using its production configuration and production prefill.
+
 ## configuration
 
 you can configure a few things via state with `aio app state put/del` command

@@ -3,6 +3,7 @@ import {
     EVENT_AEM_LOAD,
     EVENT_AEM_ERROR,
     EVENT_TYPE_READY,
+    Env,
     MARK_START_SUFFIX,
     MARK_DURATION_SUFFIX,
 } from './constants.js';
@@ -40,10 +41,11 @@ class FragmentCache {
      * Add fragment to cache
      * @param {Object} fragment fragment object.
      */
-    add(fragment, references = true) {
-        const missing = [fragment.id, fragment.fields?.originalId].filter(
-            (key) => key && !this.has(key),
-        );
+    add(fragment, references = true, cacheSuffix = '') {
+        const missing = [fragment.id, fragment.fields?.originalId]
+            .filter((key) => key)
+            .map((key) => `${key}${cacheSuffix}`)
+            .filter((key) => !this.has(key));
         if (!missing.length) return;
         missing.forEach((key) => this.set(key, fragment));
 
@@ -73,7 +75,7 @@ class FragmentCache {
                     ...fragment?.priceLiterals,
                     ...value.priceLiterals,
                 };
-                this.add(value, fragment);
+                this.add(value, true, cacheSuffix);
             }
         }
     }
@@ -198,8 +200,13 @@ export class AemFragment extends HTMLElement {
         ];
     }
 
+    get cacheSuffix() {
+        const settings = (this.#service ?? getService())?.settings;
+        return settings?.env === Env.STAGE && settings.orion ? '-orion' : '';
+    }
+
     cacheKey() {
-        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}`;
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}${this.cacheSuffix}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -239,6 +246,7 @@ export class AemFragment extends HTMLElement {
             return;
         }
         this.#preview = this.#service.settings?.preview;
+        this.#fetchInfo = cache.getFetchInfo(this.cacheKey());
         this.#log ??= this.#service.log.module(
             `${AEM_FRAGMENT_TAG_NAME}[${this.#fragmentId}]`,
         );
@@ -414,6 +422,10 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
+        if (this.cacheSuffix) {
+            endpoint += '&serveLatest=true';
+        }
+
         if (this.#mask) {
             endpoint += `&mask=${this.#mask}`;
         }
@@ -427,7 +439,7 @@ export class AemFragment extends HTMLElement {
         if (this.#mask || this.#pzn) {
             cache.set(this.cacheKey(), fragment);
         } else {
-            cache.add(fragment);
+            cache.add(fragment, true, this.cacheSuffix);
         }
         this.#rawData = fragment;
         return true;

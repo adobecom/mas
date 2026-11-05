@@ -5,6 +5,25 @@ import { MockState } from './mocks/MockState.js';
 const requestKey = async (params) => (await getRequestMetadata({ state: new MockState(), ...params })).requestKey;
 
 describe('request metadata key', () => {
+    it('keeps latest fragment response metadata apart from normal responses', async () => {
+        const params = { id: 'some-id', locale: 'en_US' };
+        const normal = await requestKey(params);
+        const latest = await requestKey({ ...params, serveLatest: 'true' });
+        expect(latest).to.equal(`${normal}-latest`);
+    });
+
+    it('uses the same latest key for boolean and query-string flags', async () => {
+        const params = { id: 'some-id', locale: 'en_US' };
+        expect(await requestKey({ ...params, serveLatest: true })).to.equal(
+            await requestKey({ ...params, serveLatest: 'true' }),
+        );
+    });
+
+    it('preserves the normal key when latest mode is disabled', async () => {
+        const params = { id: 'some-id', locale: 'en_US' };
+        expect(await requestKey({ ...params, serveLatest: 'false' })).to.equal(await requestKey(params));
+    });
+
     it('keys a fragment id request by id, locale & country', async () => {
         expect(await requestKey({ id: 'some-id', locale: 'fr_FR', country: 'CA' })).to.equal('req-some-id-fr_FR-CA');
     });

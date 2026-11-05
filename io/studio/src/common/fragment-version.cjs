@@ -1,4 +1,4 @@
-export function versionFieldValues(fragment) {
+function versionFieldValues(fragment) {
     if (!fragment) return new Map();
     return new Map([
         ['@title', fragment.title ?? ''],
@@ -8,7 +8,7 @@ export function versionFieldValues(fragment) {
     ]);
 }
 
-export function compareVersionValues(before, after, missingValue) {
+function compareVersionValues(before, after, missingValue) {
     const differences = [];
     for (const field of new Set([...before.keys(), ...after.keys()])) {
         const previous = before.has(field) ? before.get(field) : missingValue;
@@ -20,7 +20,7 @@ export function compareVersionValues(before, after, missingValue) {
     return differences;
 }
 
-export function restoreVersionFields(current, historical, fields) {
+function restoreVersionFields(current, historical, fields) {
     const selected = new Set(fields);
     const previous = new Map(historical.map((field) => [field.name, field]));
     const restored = current.map((field) =>
@@ -35,3 +35,5 @@ export function restoreVersionFields(current, historical, fields) {
     }
     return restored;
 }
+
+module.exports = { versionFieldValues, compareVersionValues, restoreVersionFields };

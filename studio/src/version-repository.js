@@ -1,5 +1,5 @@
 import Events from './events.js';
-import { restoreVersionFields } from './common/utils/fragment-version.js';
+import { restoreVersionFields } from '../libs/fragment-version.js';
 
 /**
  * Repository for version-related data operations.

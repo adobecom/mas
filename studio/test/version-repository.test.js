@@ -2,7 +2,7 @@ import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { VersionRepository } from '../src/version-repository.js';
 import Events from '../src/events.js';
-import { compareVersionValues, restoreVersionFields, versionFieldValues } from '../src/common/utils/fragment-version.js';
+import { compareVersionValues, restoreVersionFields, versionFieldValues } from '../libs/fragment-version.js';
 import { calculateDifferences } from '../src/utils/version-transformer.js';
 
 describe('shared fragment version operations', () => {

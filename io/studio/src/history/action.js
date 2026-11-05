@@ -1,7 +1,8 @@
 const { execute } = require('./service.js');
 
 const REQUEST_FIELDS = [
-    'projectId',
+    'scopeType',
+    'rootId',
     'action',
     'targetId',
     'completionEtag',

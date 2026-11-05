@@ -344,7 +344,7 @@ export class MasPromotionHistory extends LitElement {
     presentationChanges(event) {
         if (event.action !== 'create') return event.changes;
         const creations = (event.afterSnapshot?.fragments ?? []).filter(
-            (fragment) => fragment.id !== event.projectId && isPromoVariationPath(fragment.path),
+            (fragment) => fragment.id !== event.rootId && isPromoVariationPath(fragment.path),
         );
         return [
             ...event.changes.filter((change) => !creations.some((fragment) => fragment.id === change.fragmentId)),
@@ -735,7 +735,7 @@ export class MasPromotionHistory extends LitElement {
     }
 
     eventLabel(event) {
-        const project = (event.targetId ?? event.projectId) === event.projectId;
+        const project = (event.targetId ?? event.rootId) === event.rootId;
         const subject = project ? 'Project' : 'Promo variation';
         if (event.action === 'create') return `${subject} created`;
         if (event.action === 'restore') return 'Selected changes restored';

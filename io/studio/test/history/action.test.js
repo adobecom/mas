@@ -2,12 +2,12 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 
-describe('Promotion history web actions', () => {
+describe('History web actions', () => {
     let execute;
     let handle;
     beforeEach(() => {
         execute = sinon.stub().resolves({ events: [] });
-        ({ handle } = proxyquire('../../src/promo-history/action.js', { './service.js': { execute } }));
+        ({ handle } = proxyquire('../../src/history/action.js', { './service.js': { execute } }));
     });
 
     it('decodes JSON POST bodies without trusting caller authorization or endpoint overrides', async () => {
@@ -17,7 +17,8 @@ describe('Promotion history web actions', () => {
             __ow_headers: { authorization: 'Bearer original' },
             __ow_body: Buffer.from(
                 JSON.stringify({
-                    projectId: 'project',
+                    scopeType: 'promotion',
+                    rootId: 'root',
                     odinEndpoint: 'https://attacker.example.com',
                     __ow_headers: { authorization: 'Bearer forged' },
                 }),
@@ -26,7 +27,8 @@ describe('Promotion history web actions', () => {
         expect(result.statusCode).to.equal(200);
         expect(execute.firstCall.args[1].odinEndpoint).to.equal('https://configured.example.com');
         expect(execute.firstCall.args[1].__ow_headers.authorization).to.equal('Bearer original');
-        expect(execute.firstCall.args[1].projectId).to.equal('project');
+        expect(execute.firstCall.args[1].rootId).to.equal('root');
+        expect(execute.firstCall.args[1].scopeType).to.equal('promotion');
     });
 
     it('returns safe actionable service errors', async () => {

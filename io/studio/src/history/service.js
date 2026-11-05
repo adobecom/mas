@@ -4,8 +4,11 @@ const { Core } = require('@adobe/aio-sdk');
 const { init } = require('@adobe/aio-lib-state');
 const Files = require('@adobe/aio-lib-files');
 const { getBearerToken, isAllowed } = require('../../utils.js');
+const { versionFieldValues, compareVersionValues, restoreVersionFields } = require('../common/fragment-version.cjs');
+const { resolveScope } = require('./components/index.js');
+const { createVersion } = require('../common/aem-version.js');
 
-const logger = Core.Logger('promo-versions', { level: 'info' });
+const logger = Core.Logger('history', { level: 'info' });
 const RETENTION = 95 * 86400;
 const MAX_BYTES = 750000;
 const MAX_FRAGMENTS = 100;
@@ -14,49 +17,7 @@ const HISTORY_CONCURRENCY = 4;
 const INDEX_PAGE_SIZE = 100;
 const NUMBERING_RETRIES = 5;
 const NUMBERING_URL_TTL = 300;
-const PROJECT_MODEL = '/conf/mas/settings/dam/cfm/models/promotion';
-const RESTORE_GROUPS = new Set(['GRP-ODIN-MAS-ADMINS', 'GRP-ODIN-MAS-PROMO-POWERUSERS']);
-const RECORD_GROUPS = new Set([...RESTORE_GROUPS, 'GRP-ODIN-MAS-PROMO-EDITORS']);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
-const VARIATION_PATH = /^\/content\/dam\/mas\/[\w-]+\/[\w-]+\/promotions\//;
-
-function versionFieldValues(fragment) {
-    if (!fragment) return new Map();
-    return new Map([
-        ['@title', fragment.title ?? ''],
-        ['@description', fragment.description ?? ''],
-        ['@tags', fragment.tags ?? []],
-        ...(fragment.fields ?? []).map((field) => [field.name, field.values ?? null]),
-    ]);
-}
-
-function compareVersionValues(before, after, missingValue) {
-    const differences = [];
-    for (const field of new Set([...before.keys(), ...after.keys()])) {
-        const previous = before.has(field) ? before.get(field) : missingValue;
-        const next = after.has(field) ? after.get(field) : missingValue;
-        if (JSON.stringify(previous) !== JSON.stringify(next)) {
-            differences.push({ field, before: previous, after: next });
-        }
-    }
-    return differences;
-}
-
-function restoreVersionFields(current, historical, fields) {
-    const selected = new Set(fields);
-    const previous = new Map(historical.map((field) => [field.name, field]));
-    const restored = current.map((field) =>
-        selected.has(field.name) && previous.has(field.name)
-            ? { ...field, values: structuredClone(previous.get(field.name).values) }
-            : field,
-    );
-    for (const field of historical) {
-        if (selected.has(field.name) && !restored.some((item) => item.name === field.name)) {
-            restored.push(structuredClone(field));
-        }
-    }
-    return restored;
-}
 
 function fail(statusCode, message) {
     throw Object.assign(new Error(message), { statusCode });
@@ -117,24 +78,6 @@ async function authenticate(params) {
     return { token, user: { id, email: profile.email, ...(profile.name ? { name: profile.name } : {}) } };
 }
 
-async function authorizeWrite(state, email, operation) {
-    let users;
-    try {
-        const cached = await state.get('mas-users');
-        users = JSON.parse(cached?.value ?? 'null');
-    } catch {
-        fail(503, 'Promotion permissions are temporarily unavailable');
-    }
-    if (!Array.isArray(users)) fail(503, 'Promotion permissions are temporarily unavailable');
-    const user = users.find((entry) => entry.userPrincipalName?.toLowerCase() === email.toLowerCase());
-    const groups = user?.groups ?? [];
-    if (!Array.isArray(groups) || groups.some((group) => typeof group !== 'string')) {
-        fail(503, 'Promotion permissions are temporarily unavailable');
-    }
-    const permitted = operation === 'restore' ? RESTORE_GROUPS : RECORD_GROUPS;
-    if (!groups.some((group) => permitted.has(group.toUpperCase()))) fail(403, 'Promotion author membership required');
-}
-
 function endpoint(params) {
     let url;
     try {
@@ -185,39 +128,9 @@ async function readPath(context, path) {
     return fragment;
 }
 
-function assertProject(fragment) {
-    const model = fragment.model?.path ?? fragment.model?.id ?? fragment.modelId;
-    const decoded = model?.startsWith('/') ? model : Buffer.from(model ?? '', 'base64').toString();
-    if (decoded !== PROJECT_MODEL) fail(403, 'Not a promotion project');
-}
-
-function values(fragment, name) {
-    return fragment.fields?.find((field) => field.name === name)?.values ?? [];
-}
-
-function promotionNames(project) {
-    return [...values(project, 'tags'), ...(project.tags ?? [])]
-        .map((tag) => {
-            const raw = typeof tag === 'string' ? tag : (tag.id ?? tag.path ?? '');
-            return raw.replace(/^\/content\/cq:tags\/mas\//, 'mas:');
-        })
-        .filter((tag) => tag.startsWith('mas:promotion/'))
-        .map((tag) => tag.slice('mas:promotion/'.length))
-        .filter((name) => name && !name.split('/').some((part) => !part || part === '.' || part === '..'));
-}
-
-function ownVariation(project, fragment) {
-    return promotionNames(project).some(
-        (name) =>
-            VARIATION_PATH.test(fragment.path) && fragment.path.split('/').slice(6).join('/').startsWith(`promotions/${name}/`),
-    );
-}
-
 function assertTarget(context, fragment) {
     pathValue(fragment.path);
-    if (fragment.id !== context.projectId && !ownVariation(context.project, fragment)) {
-        fail(403, 'Target is outside this promotion project');
-    }
+    context.scope.assertTarget(context, fragment);
 }
 
 function references(fragment) {
@@ -250,21 +163,13 @@ async function readVersion(context, entry, retryDelays = []) {
     return { ...fragment, id: entry.id, path: entry.path };
 }
 
-function category(fragment, field) {
-    const model = fragment.model?.path ?? Buffer.from(fragment.model?.id ?? '', 'base64').toString();
-    if (model !== PROJECT_MODEL) return 'fragments';
-    if (['countries', 'geos'].includes(field)) return 'countries';
-    if (['offers', 'offer'].includes(field)) return 'offers';
-    return field === 'fragments' ? 'fragments' : 'general';
-}
-
 function diff(before, after) {
     const previous = new Map(before.fragments.map((fragment) => [fragment.id, fragment]));
     const current = new Map(after.fragments.map((fragment) => [fragment.id, fragment]));
     return [...new Set([...previous.keys(), ...current.keys()])].flatMap((id) => {
         const fragment = current.get(id) ?? previous.get(id);
         return compareVersionValues(versionFieldValues(previous.get(id)), versionFieldValues(current.get(id)), null).map(
-            (change) => ({ fragmentId: id, path: fragment.path, ...change, category: category(fragment, change.field) }),
+            (change) => ({ fragmentId: id, path: fragment.path, ...change }),
         );
     });
 }
@@ -272,31 +177,21 @@ function diff(before, after) {
 async function versionSnapshot(context, current) {
     const fragments = [];
     for (const fragment of current.fragments) {
-        const response = await aem(context, `/${identifier(fragment.id)}/versions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ comment: `Promotion version: ${context.requestId}` }),
-        });
-        const location = response.headers.get('location');
-        if (!location) fail(502, 'AEM did not return the created version');
-        const url = new URL(location, context.endpoint);
-        const prefix = `/adobe/sites/cf/fragments/${fragment.id}/versions/`;
-        if (
-            url.origin !== context.endpoint ||
-            !url.pathname.startsWith(prefix) ||
-            url.search ||
-            url.hash ||
-            url.username ||
-            url.password
-        ) {
-            fail(502, 'AEM returned an invalid version location');
-        }
-        let versionId;
-        try {
-            versionId = versionIdentifier(decodeURIComponent(url.pathname.slice(prefix.length)));
-        } catch {
-            fail(502, 'AEM returned an invalid version ID');
-        }
+        const versionId = await createVersion(
+            context.endpoint,
+            identifier(fragment.id),
+            undefined,
+            `Change-set: ${requestId(context)}`,
+            context.token,
+            {
+                strictLocation: true,
+                request: (endpoint, path, token, { contentType, ...options }) =>
+                    aem(context, path.slice('/adobe/sites/cf/fragments'.length), {
+                        ...options,
+                        headers: { 'Content-Type': contentType },
+                    }),
+            },
+        );
         const entry = { id: fragment.id, path: fragment.path, versionId };
         const historical = await readVersion(context, entry, [250, 500, 1000]);
         if (diff({ fragments: [fragment] }, { fragments: [historical] }).length) {
@@ -314,10 +209,7 @@ async function versionSnapshot(context, current) {
 }
 
 function inheritanceContext(context, current) {
-    const inheritanceUnavailable = current.fragments
-        .filter((fragment) => ownVariation(context.project, fragment))
-        .map((fragment) => ({ fragmentId: fragment.id, reason: 'outside-project' }));
-    return inheritanceUnavailable.length ? { inheritanceUnavailable } : {};
+    return context.scope.inheritanceMetadata(context, current);
 }
 
 async function historySnapshot(context, current) {
@@ -325,13 +217,13 @@ async function historySnapshot(context, current) {
 }
 
 function namespace(context, kind) {
-    return `promo-versions.${context.projectId}.${kind}.`;
+    return `history.${context.scopeType}.${context.rootId}.${kind}.`;
 }
 
 function requestId(context) {
     const hash = crypto
         .createHash('sha256')
-        .update(JSON.stringify([context.projectId, context.user.id, context.requestId]))
+        .update(JSON.stringify([context.scopeType, context.rootId, context.user.id, context.requestId]))
         .digest('hex');
     return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
@@ -346,7 +238,7 @@ async function metadataRequest(context, name, options = {}) {
     context.fileUrls ??= new Map();
     if (!context.fileUrls.has(name)) {
         context.files ??= await Files.init();
-        const url = await context.files.generatePresignURL(`private/promo-versions/${context.projectId}/${name}`, {
+        const url = await context.files.generatePresignURL(`private/history/${context.scopeType}/${context.rootId}/${name}`, {
             permissions: 'rw',
             expiryInSeconds: NUMBERING_URL_TTL,
             urlType: 'internal',
@@ -391,58 +283,22 @@ async function updateMetadata(context, name, initial, update) {
     fail(503, 'History metadata is busy; retry shortly');
 }
 
-async function initialNumberingEntries(context, event) {
-    const entries = [...(context.legacyEntries ?? (await readLegacyEntries(context)).map((entry) => entry.event))];
-    if (!entries.some((entry) => entry.id === event.id)) entries.push(event);
-    return entries.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-}
-
-function assignVersionNumbers(ledger, events) {
-    for (const event of events) {
-        if (Number.isSafeInteger(event.version) && event.version > 0) {
-            ledger.lastVersion = Math.max(ledger.lastVersion, event.version);
-        }
-    }
-    for (const event of events) {
-        if (ledger.entries[event.id]) continue;
-        const version = Number.isSafeInteger(event.version) && event.version > 0 ? event.version : ++ledger.lastVersion;
-        if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
-        ledger.entries[event.id] = { version, createdAt: event.createdAt };
-    }
-}
-
 async function reserveVersion(context, event) {
     if (context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
-    let existing;
-    context.numbering = await updateMetadata(
-        context,
-        'numbering.json',
-        { lastVersion: 0, entries: {} },
-        async (ledger, exists) => {
-            if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
-                fail(503, 'Invalid version numbering metadata');
-            }
-            ledger.entries = Object.fromEntries(
-                Object.entries(ledger.entries).filter(
-                    ([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000,
-                ),
-            );
-            if (ledger.entries[event.id]) return false;
-            if (!exists) existing ??= await initialNumberingEntries(context, event);
-            assignVersionNumbers(ledger, exists ? [event] : existing);
-            return true;
-        },
-    );
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
+            fail(503, 'Invalid version numbering metadata');
+        }
+        ledger.entries = Object.fromEntries(
+            Object.entries(ledger.entries).filter(([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000),
+        );
+        if (ledger.entries[event.id]) return false;
+        const version = ++ledger.lastVersion;
+        if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
+        ledger.entries[event.id] = { version, createdAt: event.createdAt };
+        return true;
+    });
     return context.numbering.entries[event.id];
-}
-
-async function numberedEntry(context, key, event) {
-    event ??= await readEntry(context, key);
-    if (!event || (Number.isSafeInteger(event.version) && event.version > 0)) return event;
-    const { version } = await reserveVersion(context, event);
-    const numbered = { ...event, version };
-    await context.state.put(key, bounded(numbered), { ttl: entryTtl(event) });
-    return numbered;
 }
 
 function entryTtl(event) {
@@ -461,7 +317,7 @@ function indexPosition(entry) {
     return `${entry.createdAt}|${entry.id}`;
 }
 
-async function indexEntries(context, events, ready = false) {
+async function indexEntries(context, events) {
     const pages = new Map();
     for (const { id, version, createdAt } of events) {
         const page = indexPage(version);
@@ -479,7 +335,7 @@ async function indexEntries(context, events, ready = false) {
             return changed;
         });
     }
-    context.index = await updateMetadata(context, 'index.json', { ready: false, pages: {} }, (value) => {
+    context.index = await updateMetadata(context, 'index.json', { pages: {} }, (value) => {
         const previous = JSON.stringify(value);
         value.pages = Object.fromEntries(
             Object.entries(value.pages).filter(
@@ -495,57 +351,13 @@ async function indexEntries(context, events, ready = false) {
                 if (position.localeCompare(range.oldest) < 0) range.oldest = position;
             }
         }
-        value.ready ||= ready;
         return JSON.stringify(value) !== previous;
     });
 }
 
-async function readLegacyEntries(context) {
-    const entryKeys = [];
-    for await (const { keys } of context.state.list({ match: `${namespace(context, 'entry')}*` })) {
-        for (const key of keys) {
-            const suffix = key.slice(namespace(context, 'entry').length);
-            const timestamp = /^(\d{13})\./.exec(suffix);
-            if (!timestamp || Number(timestamp[1]) >= Date.now() - RETENTION * 1000) entryKeys.push(key);
-        }
-    }
-    const entries = new Map();
-    for (let offset = 0; offset < entryKeys.length; offset += HISTORY_CONCURRENCY) {
-        const batch = await Promise.all(
-            entryKeys.slice(offset, offset + HISTORY_CONCURRENCY).map(async (key) => ({
-                key,
-                event: await readEntry(context, key),
-            })),
-        );
-        for (const { key, event } of batch) {
-            if (event && (!entries.has(event.id) || key === entryKey(context, event.id))) {
-                entries.set(event.id, { key, event });
-            }
-        }
-    }
-    return [...entries.values()].sort(
-        (a, b) => a.event.createdAt.localeCompare(b.event.createdAt) || a.event.id.localeCompare(b.event.id),
-    );
-}
-
-async function ensureHistoryIndex(context) {
+async function readHistoryIndex(context) {
     const stored = await readMetadata(context, 'index.json');
-    if (stored?.value.ready) {
-        context.index = stored.value;
-        return;
-    }
-    const entries = await readLegacyEntries(context);
-    context.legacyEntries = entries.map((entry) => entry.event);
-    const indexed = [];
-    for (const { key, event } of entries) {
-        const canonical = entryKey(context, event.id);
-        const numbered = await numberedEntry(context, canonical, event);
-        if (key !== canonical && numbered === event) {
-            await context.state.put(canonical, bounded(numbered), { ttl: entryTtl(numbered) });
-        }
-        indexed.push(numbered);
-    }
-    await indexEntries(context, indexed, true);
+    context.index = stored?.value ?? { pages: {} };
 }
 
 async function readIndexPage(context, page) {
@@ -593,7 +405,7 @@ async function* indexedEntries(context, before) {
 async function historyCursor(context, cursor) {
     const [createdAt, id, number, ...extra] = cursor.split('|');
     if (!UUID.test(id ?? '') || !Number.isFinite(Date.parse(createdAt)) || extra.length) fail(400, 'Invalid version cursor');
-    const version = number === undefined ? (await readEntry(context, entryKey(context, id)))?.version : Number(number);
+    const version = Number(number);
     if (!Number.isSafeInteger(version) || version < 1 || !context.index.pages[indexPage(version)]) {
         fail(400, 'Invalid version cursor');
     }
@@ -612,7 +424,7 @@ async function readEntry(context, key) {
 }
 
 async function findEntry(context, id) {
-    return numberedEntry(context, entryKey(context, id));
+    return readEntry(context, entryKey(context, id));
 }
 
 async function writeEntry(context, action, before, after, beforeSnapshot, afterSnapshot) {
@@ -621,10 +433,18 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
         createdAt: new Date().toISOString(),
         user: context.user,
         action,
-        projectId: context.projectId,
+        scopeType: context.scopeType,
+        rootId: context.rootId,
         targetId: context.target.id,
         targetPath: context.target.path,
-        changes: diff(before, after),
+        changes: diff(before, after).map((change) => ({
+            ...change,
+            category: context.scope.category(
+                after.fragments.find((fragment) => fragment.id === change.fragmentId) ??
+                    before.fragments.find((fragment) => fragment.id === change.fragmentId),
+                change.field,
+            ),
+        })),
         beforeSnapshot,
         afterSnapshot,
     };
@@ -638,14 +458,9 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
 
 async function authorizeEvent(context, event) {
     const unavailable = new Set();
-    const targets = [
-        ...event.beforeSnapshot.fragments,
-        ...event.afterSnapshot.fragments,
-        ...(event.beforeSnapshot.inheritance ?? []),
-        ...(event.afterSnapshot.inheritance ?? []),
-    ];
+    const targets = [...event.beforeSnapshot.fragments, ...event.afterSnapshot.fragments];
     for (const entry of targets) {
-        if (!entry.fragmentId) assertTarget(context, entry);
+        assertTarget(context, entry);
         const key = JSON.stringify([entry.id, entry.path, entry.versionId]);
         if (!context.access.has(key))
             context.access.set(
@@ -669,8 +484,7 @@ async function authorizeEvent(context, event) {
 }
 
 async function record(context, params) {
-    const target =
-        params.targetId === context.projectId ? context.project : (await readFragment(context, params.targetId)).fragment;
+    const target = params.targetId === context.rootId ? context.root : (await readFragment(context, params.targetId)).fragment;
     assertTarget(context, target);
     context.target = target;
     const { etag } = await readFragment(context, target.id);
@@ -723,7 +537,11 @@ async function list(context, params) {
             }
             const event = await findEntry(context, next.value.id);
             if (!event) continue;
-            const matches = !params.query || JSON.stringify(event).toLowerCase().includes(params.query.toLowerCase());
+            const searchable = [
+                event.user.name,
+                ...event.changes.flatMap(({ field, before, after }) => [field, before, after]),
+            ];
+            const matches = !params.query || JSON.stringify(searchable).toLowerCase().includes(params.query.toLowerCase());
             if (!currentEventId || matches) batch.push({ event, matches });
         }
         const authorized = await Promise.all(
@@ -905,7 +723,7 @@ async function restore(context, params, source) {
     if (!source.beforeSnapshot.fragments.length) fail(400, 'Creation cannot be undone');
     const plan = await restorePlan(context, params, source);
     if (!plan.length) return { unchanged: true, restored: [], failures: [] };
-    context.target = context.project;
+    context.target = context.root;
     const before = { fragments: plan.map((item) => item.before) };
     const beforeSnapshot = await historySnapshot(context, before);
     const guardKey = `${namespace(context, 'request')}${requestId(context)}`;
@@ -954,18 +772,7 @@ async function restore(context, params, source) {
             const changedBefore = { fragments: before.fragments.filter((fragment) => ids.has(fragment.id)) };
             const changedSnapshot = {
                 fragments: beforeSnapshot.fragments.filter((entry) => ids.has(entry.id)),
-                ...(beforeSnapshot.inheritance
-                    ? {
-                          inheritance: beforeSnapshot.inheritance.filter((entry) => ids.has(entry.fragmentId)),
-                      }
-                    : {}),
-                ...(beforeSnapshot.inheritanceUnavailable
-                    ? {
-                          inheritanceUnavailable: beforeSnapshot.inheritanceUnavailable.filter((entry) =>
-                              ids.has(entry.fragmentId),
-                          ),
-                      }
-                    : {}),
+                ...inheritanceContext(context, changedBefore),
             };
             result.event = await writeEntry(
                 context,
@@ -1005,7 +812,8 @@ async function restore(context, params, source) {
 async function execute(operation, params) {
     if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
     if (!['record', 'list', 'restore'].includes(operation)) fail(400, 'Unknown version operation');
-    identifier(params.projectId);
+    const scope = resolveScope(params.scopeType);
+    identifier(params.rootId);
     if (operation === 'record') {
         identifier(params.targetId);
         params = { ...params, action: params.action ?? 'save' };
@@ -1023,20 +831,22 @@ async function execute(operation, params) {
     const configuredEndpoint = endpoint(params);
     const identity = await authenticate(params);
     const state = await init();
-    if (operation !== 'list') await authorizeWrite(state, identity.user.email, operation);
+    if (operation !== 'list') await scope.authorizeWrite(state, identity.user.email, operation);
     const context = {
         ...identity,
         state,
         operation,
         endpoint: configuredEndpoint,
-        projectId: params.projectId,
+        scopeType: params.scopeType,
+        scope,
+        rootId: params.rootId,
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         access: new Map(),
         fragments: new Map(),
     };
-    context.project = (await readFragment(context, context.projectId)).fragment;
-    assertProject(context.project);
-    await ensureHistoryIndex(context);
+    context.root = (await readFragment(context, context.rootId)).fragment;
+    scope.assertRoot(context.root);
+    await readHistoryIndex(context);
     if (operation !== 'list') {
         const previous = await findEntry(context, requestId(context));
         if (previous && operation === 'record') {

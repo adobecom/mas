@@ -1,4 +1,4 @@
-import { compareVersionValues } from '../common/utils/fragment-version.js';
+import { compareVersionValues } from '../../libs/fragment-version.js';
 
 /**
  * Utilities for transforming version data between AEM format and internal format.

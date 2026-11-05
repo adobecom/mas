@@ -32,7 +32,8 @@ const version = {
     id: 'version-2',
     version: 2,
     action: 'save',
-    projectId: before.id,
+    scopeType: 'promotion',
+    rootId: before.id,
     targetId: before.id,
     createdAt: '2026-10-01T10:00:00Z',
     user: { id: 'author', email: 'author@adobe.com', name: 'Author' },
@@ -715,7 +716,7 @@ describe('Promotion version history', () => {
         let complete;
         client.listPromotionHistory.onFirstCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
         await mount(false);
-        const other = { ...version, id: 'other-version', projectId: 'other-project' };
+        const other = { ...version, id: 'other-version', rootId: 'other-project' };
         client.listPromotionHistory.onSecondCall().resolves({ events: [other], currentEventId: other.id });
 
         element.projectId = 'other-project';
@@ -908,10 +909,10 @@ describe('Promotion version history', () => {
         let complete;
         client.listPromotionHistory.onSecondCall().callsFake(() => new Promise((resolve) => (complete = resolve)));
         const pending = element.loadHistory(true);
-        const other = { ...version, id: 'other-version', projectId: 'other-project' };
+        const other = { ...version, id: 'other-version', rootId: 'other-project' };
         client.listPromotionHistory.onThirdCall().resolves({ events: [other], currentEventId: other.id });
 
-        element.projectId = other.projectId;
+        element.projectId = other.rootId;
         await waitUntil(() => element.currentEventId === other.id && !element.loading);
         complete({ events: [version], currentEventId: version.id, cursor: 'stale-cursor' });
         await pending;

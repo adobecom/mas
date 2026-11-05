@@ -3,6 +3,7 @@ import Events from '../events.js';
 import { PROMOTION_MODEL_ID } from '../constants.js';
 import { showToast } from '../utils.js';
 import { canEditPromotions } from '../groups.js';
+import { compareVersionValues, versionFieldValues } from '../../libs/fragment-version.js';
 import { getPromotionTagFromFragment, getPromoNameFromTag, isPromoVariationPath } from './promotion-model.js';
 
 const historyRequests = new Map();
@@ -32,15 +33,15 @@ export function clearPromotionHistoryRequests(projectId) {
 Events.fragmentSaved.subscribe(() => clearPromotionHistoryRequests());
 Store.profile.subscribe(() => clearPromotionHistoryRequests());
 
-async function callAction(action, payload) {
+async function callAction(action, { projectId, ...payload }) {
     const baseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
     const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
     if (!baseUrl) throw new Error('Studio I/O endpoint is not configured.');
     if (!token) throw new Error('Sign in to access promotion versions.');
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/promo-history-${action}`, {
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/history-${action}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, scopeType: 'promotion', rootId: projectId }),
     });
     const body = await response.json();
     if (!response.ok) {
@@ -125,12 +126,43 @@ export async function savePromotionVersion(repository, fragment, { beforeVersion
     }
 }
 
+async function captureBeforeVersion(repository, fragment) {
+    const fragments = repository.aem.sites.cf.fragments;
+    try {
+        const history = await fragments.getVersions(fragment.id, { limit: 50, sort: 'created:desc' });
+        const previous = history.items
+            .filter(
+                (version) =>
+                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - 95 * 86400000,
+            )
+            .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
+        if (previous) {
+            const [historical, current] = await Promise.all([
+                fragments.getVersion(fragment.id, previous.id),
+                fragments.getById(fragment.id),
+            ]);
+            if (
+                current.id === fragment.id &&
+                historical.id === current.id &&
+                historical.path === current.path &&
+                current.path === fragment.path &&
+                !compareVersionValues(versionFieldValues(historical), versionFieldValues(current), null).length
+            ) {
+                return previous.id;
+            }
+        }
+    } catch (error) {
+        console.error('Promotion previous-version reuse failed; capturing a new version:', error);
+    }
+    return fragments.createVersion(fragment.id);
+}
+
 export async function withPromotionVersion(repository, fragment, write) {
     if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
     let beforeVersionId;
     if (fragment.id) {
         try {
-            beforeVersionId = await repository.aem.sites.cf.fragments.createVersion(fragment.id);
+            beforeVersionId = await captureBeforeVersion(repository, fragment);
         } catch (error) {
             console.error('Promotion before-version capture failed:', error);
         }

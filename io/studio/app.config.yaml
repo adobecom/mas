@@ -13,8 +13,15 @@ application:
                     translationJobPayloadTtl: $TRANSLATION_JOB_PAYLOAD_TTL
                     translationProjectSummaryTtl: $TRANSLATION_PROJECT_SUMMARY_TTL
                 actions:
-                    promo-history-record:
-                        function: src/promo-history/record.js
+                    history-cleanup:
+                        function: src/history/cleanup.js
+                        runtime: nodejs:22
+                        limits:
+                            timeout: 300000
+                        annotations:
+                            final: true
+                    history-record:
+                        function: src/history/record.js
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
@@ -22,8 +29,8 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    promo-history-list:
-                        function: src/promo-history/list.js
+                    history-list:
+                        function: src/history/list.js
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
@@ -31,8 +38,8 @@ application:
                         annotations:
                             require-adobe-auth: false
                             final: true
-                    promo-history-restore:
-                        function: src/promo-history/restore.js
+                    history-restore:
+                        function: src/history/restore.js
                         web: 'yes'
                         runtime: nodejs:22
                         inputs:
@@ -266,11 +273,18 @@ application:
                             require-adobe-auth: false
                             final: true
                 triggers:
+                    history-cleanup-daily:
+                        feed: /whisk.system/alarms/alarm
+                        inputs:
+                            cron: '17 3 * * *'
                     fragment-usage-hourly:
                         feed: /whisk.system/alarms/alarm
                         inputs:
                             cron: '5 * * * *' # on the clock: every deploy recreates the feed, which restarts an interval alarm
                 rules:
+                    history-cleanup-rule:
+                        trigger: history-cleanup-daily
+                        action: history-cleanup
                     fragment-usage-rollup-rule:
                         trigger: fragment-usage-hourly
                         action: fragment-usage-rollup

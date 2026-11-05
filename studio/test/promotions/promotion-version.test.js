@@ -46,7 +46,18 @@ describe('Promotion version capture', () => {
             .stub(window, 'fetch')
             .callsFake(async () => new Response(JSON.stringify({ event: { id: 'version' }, events: [{ id: 'version' }] })));
         repository = {
-            aem: { sites: { cf: { fragments: { createVersion: sandbox.stub().resolves('before-version') } } } },
+            aem: {
+                sites: {
+                    cf: {
+                        fragments: {
+                            createVersion: sandbox.stub().resolves('before-version'),
+                            getVersions: sandbox.stub().resolves({ items: [] }),
+                            getVersion: sandbox.stub().resolves(project),
+                            getById: sandbox.stub().resolves(project),
+                        },
+                    },
+                },
+            },
             loadPromotions: sandbox.stub().resolves(),
         };
     });
@@ -74,12 +85,78 @@ describe('Promotion version capture', () => {
         expect(fetchStub.calledOnce).to.be.true;
         const payload = JSON.parse(fetchStub.firstCall.args[1].body);
         expect(payload).to.include({
-            projectId: project.id,
+            scopeType: 'promotion',
+            rootId: project.id,
             targetId: project.id,
             beforeVersionId: 'before-version',
             completionEtag: '"saved"',
         });
         expect(payload).not.to.have.property('phase');
+        expect(payload).not.to.have.property('projectId');
+    });
+
+    it('reuses a previous change-set version matching the persisted content rather than the edited fields', async () => {
+        repository.aem.sites.cf.fragments.getVersions.resolves({
+            items: [{ id: 'after-version', comment: 'Change-set: previous', created: new Date().toISOString() }],
+        });
+        const edited = { ...project, title: 'Unsaved title' };
+
+        await withPromotionVersion(repository, edited, sandbox.stub().resolves(edited));
+
+        expect(repository.aem.sites.cf.fragments.createVersion.called).to.be.false;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).beforeVersionId).to.equal('after-version');
+    });
+
+    it('creates a new before version when another editor changed the persisted content', async () => {
+        repository.aem.sites.cf.fragments.getVersions.resolves({
+            items: [{ id: 'after-version', comment: 'Change-set: previous', created: new Date().toISOString() }],
+        });
+        repository.aem.sites.cf.fragments.getById.resolves({ ...project, title: 'External edit' });
+
+        await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+
+        expect(repository.aem.sites.cf.fragments.createVersion.calledOnceWith(project.id)).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).beforeVersionId).to.equal('before-version');
+    });
+
+    it('does not reuse a historical version belonging to a different fragment path', async () => {
+        repository.aem.sites.cf.fragments.getVersions.resolves({
+            items: [{ id: 'after-version', comment: 'Change-set: previous', created: new Date().toISOString() }],
+        });
+        repository.aem.sites.cf.fragments.getVersion.resolves({ ...project, path: '/content/dam/mas/promotions/other' });
+
+        await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+
+        expect(repository.aem.sites.cf.fragments.createVersion.calledOnce).to.be.true;
+    });
+
+    it('does not reuse a change-set version outside the retained history', async () => {
+        repository.aem.sites.cf.fragments.getVersions.resolves({
+            items: [
+                {
+                    id: 'expired-version',
+                    comment: 'Change-set: previous',
+                    created: new Date(Date.now() - 96 * 86400000).toISOString(),
+                },
+            ],
+        });
+
+        await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+
+        expect(repository.aem.sites.cf.fragments.createVersion.calledOnce).to.be.true;
+        expect(repository.aem.sites.cf.fragments.getVersion.called).to.be.false;
+    });
+
+    it('falls back to a new before version when the previous native version is unavailable', async () => {
+        repository.aem.sites.cf.fragments.getVersions.resolves({
+            items: [{ id: 'after-version', comment: 'Change-set: previous', created: new Date().toISOString() }],
+        });
+        repository.aem.sites.cf.fragments.getVersion.rejects(new Error('Version no longer exists'));
+
+        await withPromotionVersion(repository, project, sandbox.stub().resolves(project));
+
+        expect(repository.aem.sites.cf.fragments.createVersion.calledOnce).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).beforeVersionId).to.equal('before-version');
     });
 
     it('records a new project only after its content is created', async () => {
@@ -188,7 +265,8 @@ describe('Promotion version capture', () => {
         await withPromotionVersion(repository, variation, sandbox.stub().resolves(variation));
 
         expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({
-            projectId: project.id,
+            scopeType: 'promotion',
+            rootId: project.id,
             targetId: variation.id,
             beforeVersionId: 'before-version',
         });
@@ -197,8 +275,12 @@ describe('Promotion version capture', () => {
     it('loads version history through the configured endpoint', async () => {
         await listPromotionHistory(project.id, { query: 'Title' });
 
-        expect(fetchStub.firstCall.args[0]).to.equal('https://studio.example/api/promo-history-list');
-        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.deep.equal({ projectId: project.id, query: 'Title' });
+        expect(fetchStub.firstCall.args[0]).to.equal('https://studio.example/api/history-list');
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.deep.equal({
+            scopeType: 'promotion',
+            rootId: project.id,
+            query: 'Title',
+        });
     });
 
     it('fetches fresh history after an earlier request completes', async () => {
@@ -382,7 +464,7 @@ describe('Promotion version capture', () => {
         await withPromotionVersion(repository, variation, sandbox.stub().resolves(variation));
         await new Promise((resolve) => setTimeout(resolve, 0));
 
-        expect(JSON.parse(fetchStub.firstCall.args[1].body).projectId).to.equal(newProject.id);
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).rootId).to.equal(newProject.id);
     });
 
     it('keeps actionable partial restore details on errors', async () => {

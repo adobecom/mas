@@ -96,10 +96,9 @@ export class Pro extends VariantLayout {
     // Active-descendant highlight; focus stays on the trigger (combobox model).
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
-    #sizeObserver = null;
     #onPriceResolved = () => {
         this.adjustLegal();
-        this.resyncOnReflow();
+        this.requestReflowCheck();
     };
     lastSyncKey = null;
 
@@ -116,10 +115,28 @@ export class Pro extends VariantLayout {
     }
 
     // Forwards the Show Plan type setting to the legal-template price (which
-    // renders the plan type line). Same pattern as plans/plans-v2.
+    // renders the plan type line). Same pattern as plans/plans-v2. An authored
+    // Short Description is rendered by the template itself as the plan type,
+    // whatever the setting, so every (re-)render of the legal price paints it in
+    // the same pass, never the derived WCS wording (MWPW-214359).
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
+        const label = this.customPlanTypeLabel;
+        if (label && element.closest('[slot="heading-m"]')) {
+            options.displayPlanType = true;
+            options.customPlanTypeLabel = label;
+            return;
+        }
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+    }
+
+    // The authored Short Description. Read [slot="legal-text"] in place (never
+    // detached): the shadow has no matching slot so it won't render, and
+    // merch-card swaps in a fresh layout per render.
+    get customPlanTypeLabel() {
+        const source = this.card?.querySelector('[slot="legal-text"]');
+        if (!source?.textContent?.trim()) return '';
+        return source.innerHTML.trim();
     }
 
     // Creates a legal-template sibling so tax/plan-type render off the main price.
@@ -131,9 +148,12 @@ export class Pro extends VariantLayout {
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
             await headingPrice.onceSettled();
+            // merch-card may have swapped in a fresh layout meanwhile; that one
+            // owns the legal price.
             if (
                 !headingPrice.options ||
                 this.legalAdjusted ||
+                this.card.variantLayout !== this ||
                 this.mainPrice !== headingPrice
             )
                 return;
@@ -151,49 +171,19 @@ export class Pro extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.dataset.displayPerUnit = 'false';
-            // Re-apply the override whenever the legal price re-resolves.
-            if (!this.legalResolvedHandler) {
-                this.legalResolvedHandler = () => this.adjustShortDescription();
-                legal.addEventListener(
-                    EVENT_TYPE_RESOLVED,
-                    this.legalResolvedHandler,
-                );
-            }
+            // The dataset outranks priceOptionsProvider; a plan type flag cloned
+            // from the main price must not hide the authored Short Description.
+            if (this.customPlanTypeLabel) delete legal.dataset.displayPlanType;
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,
             );
             this.legalAdjusted = true;
             await legal.onceSettled();
-            this.adjustShortDescription();
         } catch (error) {
             log.error(`Failed to initialize legal price: ${error.message}`, {
                 cardId: this.card.id,
             });
-        }
-    }
-
-    // Authored Short Description replaces the derived plan type wording. Read
-    // [slot="legal-text"] in place (never detached): the shadow has no matching
-    // slot so it won't render, and merch-card swaps in a fresh layout per render.
-    adjustShortDescription() {
-        const source = this.card.querySelector('[slot="legal-text"]');
-        const text = source?.textContent?.trim();
-        if (!text) return;
-        const legalPrice = this.card.querySelector(
-            '[slot="heading-m"] [data-template="legal"]',
-        );
-        const planType = legalPrice?.querySelector('.price-plan-type');
-        if (!planType) return;
-        planType.innerHTML = source.innerHTML;
-        // The legal template appends ". " between the tax label and plan type, but
-        // only when it rendered the plan type itself; we inject it, so add the same
-        // separator so injected and WCS-sourced lines read alike (MWPW-198626).
-        const tax = legalPrice.querySelector(
-            '.price-tax-inclusivity:not(.disabled)',
-        );
-        if (tax?.textContent && !/\s$/.test(tax.textContent)) {
-            tax.textContent += '. ';
         }
     }
 
@@ -282,7 +272,6 @@ export class Pro extends VariantLayout {
         if (!this.legalAdjusted) {
             await this.adjustLegal();
         }
-        this.adjustShortDescription();
         await super.postCardUpdateHook();
         // Line the white .top-card sections up across a row (desktop only).
         if (window.matchMedia('(min-width: 768px)').matches) this.syncHeights();
@@ -446,13 +435,10 @@ export class Pro extends VariantLayout {
     // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
     // A late price resolution adds the struck and legal rows after the first pass.
     resyncOnReflow() {
-        const width = this.card.getBoundingClientRect().width;
+        const width = this.boxOf(this.card).width;
         if (width <= 2) return;
         const height = (selector, root = this.card) =>
-            Math.round(
-                root?.querySelector(selector)?.getBoundingClientRect().height ||
-                    0,
-            );
+            this.heightOf(root?.querySelector(selector));
         // Measure inside the price block, never [slot="heading-m"] itself: the
         // reserve lands on its padding, so keying on that would feed back.
         const key = [
@@ -481,14 +467,13 @@ export class Pro extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        // A promo can swap the price without resizing either observed box, so the
-        // resize observer alone misses it. Price resolutions bubble here.
+        // A promo can swap the price without resizing either observed box, so a
+        // price resolution (it bubbles here) asks the observer for a fresh report.
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
-        if (typeof ResizeObserver === 'undefined') return;
-        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-        this.#sizeObserver.observe(this.card);
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        if (desc) this.#sizeObserver.observe(desc);
+        this.observeReflow(
+            this.card,
+            this.card.querySelector('[slot="body-xs"]'),
+        );
     }
 
     disconnectedCallbackHook() {
@@ -501,7 +486,7 @@ export class Pro extends VariantLayout {
             this.#onPriceResolved,
         );
         this.#removeLicenseDocListener();
-        this.#sizeObserver?.disconnect();
+        this.disconnectReflow();
         this.card?.removeEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,

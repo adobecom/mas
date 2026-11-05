@@ -3,6 +3,7 @@ import { AdapterError, LIMITS, parseRequest, projectResult, resolveOperation } f
 import { loadConfig } from './config.js';
 import { verifyIdentity } from './identity.js';
 import { callMasa } from './client.js';
+import { createGatewayToken } from './gateway-token.js';
 
 /** Build the Runtime boundary with injectable transport/clock for deterministic contract tests. */
 export function createHandler({
@@ -11,6 +12,7 @@ export function createHandler({
     logger = console.info,
     requestMs = LIMITS.requestMs,
 } = {}) {
+    const gatewayToken = createGatewayToken();
     return async (params) => {
         const requestId = randomUUID();
         const started = now();
@@ -60,7 +62,7 @@ export function createHandler({
             operationName = operation.input.operation;
             const signal = AbortSignal.timeout(requestMs);
             const identity = await verifyIdentity(requestHeaders, config, fetchImpl, signal);
-            const options = { fetchImpl, signal, now };
+            const options = { fetchImpl, signal, now, gatewayToken: await gatewayToken(config, fetchImpl, signal, now) };
             // Check the session binding before cancelling: ownership alone could refer to a legacy
             // session-less job or another session in the same conversation.
             if (operationName === 'investigation.cancel') {
@@ -107,7 +109,10 @@ export function createHandler({
     };
 }
 
+// One handler per warm container, so invocations share its cached gateway token.
+const handler = createHandler();
+
 /** Entry point for the separately enabled, raw-HTTP MASA Runtime action. */
 export async function main(params) {
-    return createHandler()(params);
+    return handler(params);
 }

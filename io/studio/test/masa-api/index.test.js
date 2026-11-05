@@ -27,7 +27,14 @@ const config = {
     MASA_STUDIO_ORIGINS: origin,
     MASA_IMS_ENVIRONMENT: 'prod',
     MASA_IMS_CLIENT_ID: 'mas-studio',
+    MASA_GATEWAY_IMS_ENVIRONMENT: 'stage',
+    MASA_GATEWAY_CLIENT_ID: 'masa-gateway-client',
+    MASA_GATEWAY_CLIENT_SECRET: 'test-gateway-secret-'.padEnd(40, 'y'),
+    MASA_GATEWAY_AUTH_CODE: 'test-permanent-code-'.padEnd(64, 'z'),
+    MASA_GATEWAY_API_KEY: 'test-gateway-api-key',
 };
+const gatewayToken = 'test-gateway-token-'.padEnd(64, 'g');
+const issued = (overrides = {}) => json({ access_token: gatewayToken, token_type: 'bearer', expires_in: 86400, ...overrides });
 const token = (overrides = {}) =>
     [
         'header',
@@ -108,6 +115,7 @@ let createHandler;
 function harness({
     backend = () => json({ formatVersion: 1, result: session() }),
     ims = () => json({ valid: true }),
+    imsToken = () => issued(),
     ...options
 } = {}) {
     const calls = [];
@@ -117,6 +125,7 @@ function harness({
         logger: (event) => logs.push(event),
         fetchImpl: async (url, init) => {
             calls.push({ url, init });
+            if (url.includes('/ims/token/')) return imsToken(url, init);
             return url.startsWith('https://ims-na1') ? ims(url, init) : backend(url, init);
         },
         ...options,
@@ -186,6 +195,11 @@ describe('Studio MASA Runtime adapter', function () {
             { MASA_READ_SURFACES: 'all' },
             { MASA_IMS_ENVIRONMENT: 'unknown' },
             { MASA_IDENTITY_PRIVATE_KEY_B64: Buffer.from(wrongKey).toString('base64') },
+            { MASA_GATEWAY_IMS_ENVIRONMENT: 'unknown' },
+            { MASA_GATEWAY_CLIENT_ID: '' },
+            { MASA_GATEWAY_CLIENT_SECRET: '' },
+            { MASA_GATEWAY_AUTH_CODE: '' },
+            { MASA_GATEWAY_API_KEY: '' },
         ]) {
             const h = harness();
             const response = await h.handler(params(undefined, override));
@@ -289,7 +303,7 @@ describe('Studio MASA Runtime adapter', function () {
         const h = harness();
         await h.handler(params());
         await h.handler(params());
-        const imsCalls = h.calls.filter(({ url }) => url.includes('/ims/'));
+        const imsCalls = h.calls.filter(({ url }) => url.includes('/ims/validate_token/'));
         assert.equal(imsCalls.length, 2);
         assert.equal(imsCalls[0].url, 'https://ims-na1.adobelogin.com/ims/validate_token/v1');
         assert.equal(imsCalls[0].init.headers.Authorization, `Bearer ${token()}`);
@@ -304,12 +318,82 @@ describe('Studio MASA Runtime adapter', function () {
         );
     });
 
-    it('sends the verified Studio IMS token for the iPaaS gateway and the service token for it to move', async () => {
+    it('authenticates to the iPaaS gateway as the Studio service and never forwards the user token', async () => {
         const h = harness();
         await h.handler(params());
         const { headers } = h.backendCalls()[0].init;
-        assert.equal(headers.Authorization, `Bearer ${token()}`);
+        assert.equal(headers.Authorization, `Bearer ${gatewayToken}`);
+        assert.equal(headers['X-Api-Key'], config.MASA_GATEWAY_API_KEY);
         assert.equal(headers['Target-Authorization'], `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
+        assert.equal(JSON.stringify(headers).includes(token()), false);
+    });
+
+    it('exchanges the gateway client permanent authorization code at its own IMS environment', async () => {
+        const h = harness();
+        await h.handler(params());
+        const [call] = h.calls.filter(({ url }) => url.includes('/ims/token/'));
+        assert.equal(call.url, 'https://ims-na1-stg1.adobelogin.com/ims/token/v3');
+        assert.equal(call.init.method, 'POST');
+        assert.equal(call.init.redirect, 'manual');
+        assert.deepEqual(Object.fromEntries(call.init.body), {
+            grant_type: 'authorization_code',
+            client_id: config.MASA_GATEWAY_CLIENT_ID,
+            client_secret: config.MASA_GATEWAY_CLIENT_SECRET,
+            code: config.MASA_GATEWAY_AUTH_CODE,
+        });
+    });
+
+    it('reuses the gateway token until five minutes before it expires', async () => {
+        let clock = timestamp;
+        const h = harness({ now: () => clock });
+        await h.handler(params());
+        clock += (86400 - 301) * 1000;
+        await h.handler(params());
+        clock += 2000;
+        await h.handler(params());
+        assert.equal(h.calls.filter(({ url }) => url.includes('/ims/token/')).length, 2);
+    });
+
+    it('fails closed before MASA when IMS does not issue a usable gateway token', async () => {
+        for (const imsToken of [
+            () => json({ error: 'invalid_grant' }, 400),
+            () => json({ access_token: gatewayToken, expires_in: 86400 }, 503),
+            () => json({ expires_in: 86400 }),
+            () => issued({ expires_in: 0 }),
+            () => {
+                throw new Error(config.MASA_GATEWAY_CLIENT_SECRET);
+            },
+        ]) {
+            const h = harness({ imsToken });
+            const response = await h.handler(params());
+            assert.equal(response.statusCode, 503);
+            assert.equal(response.body.error.code, 'masa-gateway-unavailable');
+            assert.equal(h.backendCalls().length, 0);
+            assert.equal(JSON.stringify([response, h.logs]).includes(config.MASA_GATEWAY_CLIENT_SECRET), false);
+        }
+    });
+
+    it('keeps the gateway token across warm Runtime invocations', async () => {
+        const { main } = await import('../../src/masa-api/index.js');
+        const tokenRequests = [];
+        const original = globalThis.fetch;
+        const info = console.info;
+        console.info = () => {};
+        globalThis.fetch = async (url) => {
+            if (url.includes('/ims/token/')) {
+                tokenRequests.push(url);
+                return issued();
+            }
+            return url.startsWith('https://ims-na1') ? json({ valid: true }) : json({ formatVersion: 1, result: session() });
+        };
+        try {
+            await main(params());
+            await main(params());
+        } finally {
+            globalThis.fetch = original;
+            console.info = info;
+        }
+        assert.equal(tokenRequests.length, 1);
     });
 
     it('rejects remotely invalid, wrong-client, wrong-type, sub-only and unadmitted identities before MASA', async () => {
@@ -521,6 +605,9 @@ describe('Studio MASA Runtime adapter', function () {
             config.MASA_IDENTITY_PRIVATE_KEY_B64,
             keys.privateKey.export({ type: 'pkcs8', format: 'pem' }),
             token(),
+            gatewayToken,
+            config.MASA_GATEWAY_CLIENT_SECRET,
+            config.MASA_GATEWAY_AUTH_CODE,
         ]) {
             const h = harness({ backend: () => json({ formatVersion: 1, result: session({ leak: secret }) }) });
             const response = await h.handler(params());

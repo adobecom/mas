@@ -71,9 +71,10 @@ export async function requestJson(url, options, fetchImpl, maxBytes) {
 
 /**
  * Sign the exact route/body/key with fresh replay protection for every attempt. The iPaaS gateway
- * validates the Studio IMS token, then moves Target-Authorization into MASA's Authorization header.
+ * validates the Studio service token and API key, then moves Target-Authorization into MASA's
+ * Authorization header.
  */
-export function signedHeaders(config, identity, operation, now) {
+export function signedHeaders(config, identity, operation, now, gatewayToken) {
     const iat = Math.floor(now / 1000);
     const claims = {
         iss: config.issuer,
@@ -94,7 +95,8 @@ export function signedHeaders(config, identity, operation, now) {
         .map((item) => Buffer.from(JSON.stringify(item)).toString('base64url'))
         .join('.');
     return {
-        Authorization: `Bearer ${identity.token}`,
+        Authorization: `Bearer ${gatewayToken}`,
+        'X-Api-Key': config.gateway.apiKey,
         'Target-Authorization': `Bearer ${config.serviceToken}`,
         'X-Masa-User-Assertion': `${encoded}.${sign(null, Buffer.from(encoded), config.privateKey).toString('base64url')}`,
         Accept: 'application/json',
@@ -104,14 +106,14 @@ export function signedHeaders(config, identity, operation, now) {
 }
 
 /** One bounded attempt: callers retain the key on ambiguous failure; the adapter never resubmits work automatically. */
-export async function callMasa(config, identity, operation, { fetchImpl, signal, now }) {
+export async function callMasa(config, identity, operation, { fetchImpl, signal, now, gatewayToken }) {
     let response;
     try {
         response = await requestJson(
             config.apiBaseUrl + operation.path,
             {
                 method: operation.method,
-                headers: signedHeaders(config, identity, operation, now()),
+                headers: signedHeaders(config, identity, operation, now(), gatewayToken),
                 signal,
                 ...(operation.method === 'POST' ? { body: operation.body } : {}),
             },
@@ -136,7 +138,7 @@ export async function callMasa(config, identity, operation, { fetchImpl, signal,
         ![200, 201, 202].includes(response.status) ||
         response.body?.formatVersion !== 1 ||
         !response.body.result ||
-        [...config.secrets, identity.token].some((secret) =>
+        [...config.secrets, identity.token, gatewayToken].some((secret) =>
             JSON.stringify(response.body).includes(JSON.stringify(secret).slice(1, -1)),
         )
     )

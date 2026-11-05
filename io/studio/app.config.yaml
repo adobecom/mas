@@ -148,6 +148,11 @@ application:
                             MASA_STUDIO_ORIGINS: $MASA_STUDIO_ORIGINS
                             MASA_IMS_ENVIRONMENT: $MASA_IMS_ENVIRONMENT
                             MASA_IMS_CLIENT_ID: $MASA_IMS_CLIENT_ID
+                            MASA_GATEWAY_IMS_ENVIRONMENT: $MASA_GATEWAY_IMS_ENVIRONMENT
+                            MASA_GATEWAY_CLIENT_ID: $MASA_GATEWAY_CLIENT_ID
+                            MASA_GATEWAY_CLIENT_SECRET: $MASA_GATEWAY_CLIENT_SECRET
+                            MASA_GATEWAY_AUTH_CODE: $MASA_GATEWAY_AUTH_CODE
+                            MASA_GATEWAY_API_KEY: $MASA_GATEWAY_API_KEY
                         annotations:
                             require-adobe-auth: false
                             final: true

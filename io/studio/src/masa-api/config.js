@@ -33,6 +33,16 @@ const apiBase = (value) => {
     return value;
 };
 
+const imsOrigin = (environment) => {
+    if (environment === 'prod') return 'https://ims-na1.adobelogin.com';
+    if (environment === 'stage') return 'https://ims-na1-stg1.adobelogin.com';
+    throw invalid();
+};
+const credential = (value, pattern) => {
+    if (typeof value !== 'string' || !pattern.test(value)) throw invalid();
+    return value;
+};
+
 /** Read immutable action inputs, never fields parsed from browser JSON. Empty enablement stays off. */
 export function loadConfig(params) {
     if (params.MASA_API_ENABLED !== 'true' && params.MASA_API_ENABLED !== true) return null;
@@ -42,7 +52,6 @@ export function loadConfig(params) {
             !validId(params.MASA_API_AUDIENCE) ||
             typeof params.MASA_API_SERVICE_TOKEN !== 'string' ||
             !/^[A-Za-z0-9_-]{43,256}$/.test(params.MASA_API_SERVICE_TOKEN) ||
-            !['prod', 'stage'].includes(params.MASA_IMS_ENVIRONMENT) ||
             typeof params.MASA_IMS_CLIENT_ID !== 'string' ||
             !/^[A-Za-z0-9_-]{1,200}$/.test(params.MASA_IMS_CLIENT_ID) ||
             typeof params.MASA_IDENTITY_PRIVATE_KEY_B64 !== 'string' ||
@@ -67,12 +76,23 @@ export function loadConfig(params) {
                 (value) => value !== 'all' && /^[a-z][a-z0-9-]{1,30}$/.test(value),
             ).sort(),
             studioOrigins: list(params.MASA_STUDIO_ORIGINS, 8, (value) => Boolean(origin(value, true))),
-            imsOrigin:
-                params.MASA_IMS_ENVIRONMENT === 'prod'
-                    ? 'https://ims-na1.adobelogin.com'
-                    : 'https://ims-na1-stg1.adobelogin.com',
+            imsOrigin: imsOrigin(params.MASA_IMS_ENVIRONMENT),
             imsClientId: params.MASA_IMS_CLIENT_ID,
-            secrets: [params.MASA_API_SERVICE_TOKEN, params.MASA_IDENTITY_PRIVATE_KEY_B64, pem.toString('utf8')],
+            // The gateway admits only IMS service tokens, so it never sees the Studio user's token.
+            gateway: {
+                imsOrigin: imsOrigin(params.MASA_GATEWAY_IMS_ENVIRONMENT),
+                clientId: credential(params.MASA_GATEWAY_CLIENT_ID, /^[A-Za-z0-9_-]{1,200}$/),
+                clientSecret: credential(params.MASA_GATEWAY_CLIENT_SECRET, /^[\x21-\x7e]{1,512}$/),
+                authCode: credential(params.MASA_GATEWAY_AUTH_CODE, /^[A-Za-z0-9_.-]{1,8192}$/),
+                apiKey: credential(params.MASA_GATEWAY_API_KEY, /^[A-Za-z0-9_-]{1,200}$/),
+            },
+            secrets: [
+                params.MASA_API_SERVICE_TOKEN,
+                params.MASA_IDENTITY_PRIVATE_KEY_B64,
+                pem.toString('utf8'),
+                params.MASA_GATEWAY_CLIENT_SECRET,
+                params.MASA_GATEWAY_AUTH_CODE,
+            ],
         };
     } catch {
         throw invalid();

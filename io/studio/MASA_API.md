@@ -20,10 +20,11 @@ The assertion binds the configured issuer/audience, conversation, shared interna
 HTTP method/path/body hash, idempotency key and a fresh nonce. MASA independently validates ownership
 and current admission. Cancellation first reads the job and checks its session binding.
 
-Controls reach MASA through the iPaaS API Gateway ([IPAASOPS-5173](https://jira.corp.adobe.com/browse/IPAASOPS-5173)).
-The adapter forwards the verified Studio IMS token in `Authorization` for the gateway's own IMS check and
-sends the service token in `Target-Authorization`. The gateway moves it into MASA's `Authorization`, so MASA
-never receives the user's IMS token. The gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and
+Controls reach MASA through the iPaaS API Gateway API `masa_studio_api` ([IPAASOPS-5173](https://jira.corp.adobe.com/browse/IPAASOPS-5173)),
+which admits only IMS service tokens. The adapter exchanges the gateway client's permanent authorization code for
+a service token, reuses it within a warm container until five minutes before it expires, and sends it in
+`Authorization` with the consumer key in `X-Api-Key`. The user's IMS token never leaves the action. MASA's
+service token goes in `Target-Authorization`, which the gateway moves into MASA's `Authorization`. The gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and
 `Content-Type` through unchanged, strip its route prefix so MASA receives `/v1/...`, and keep the body
 byte-for-byte, or the assertion fails.
 
@@ -51,6 +52,11 @@ and [OpenWhisk raw web actions](https://github.com/apache/openwhisk/blob/master/
 | `MASA_STUDIO_ORIGINS`                  | Exact browser origins, 1–8, also admitted by `STUDIO_API_MEDIA_ORIGINS`; HTTPS except HTTP localhost/127.0.0.1 for development |
 | `MASA_IMS_ENVIRONMENT`                 | `prod` or `stage`; match `STUDIO_API_MEDIA_IMS_ENVIRONMENT`                                                                    |
 | `MASA_IMS_CLIENT_ID`                   | Exact Studio IMS client; match `STUDIO_API_MEDIA_IMS_CLIENT_ID`                                                                |
+| `MASA_GATEWAY_IMS_ENVIRONMENT`         | `prod` or `stage`: the IMS that issues the gateway service token, independent of `MASA_IMS_ENVIRONMENT`                        |
+| `MASA_GATEWAY_CLIENT_ID`               | IMS service client on the gateway's client ID allowlist; its tokens must carry the `system` scope                              |
+| `MASA_GATEWAY_CLIENT_SECRET`           | That service client's secret                                                                                                   |
+| `MASA_GATEWAY_AUTH_CODE`               | That service client's permanent authorization code                                                                             |
+| `MASA_GATEWAY_API_KEY`                 | iPaaS consumer API key for the gateway environment                                                                             |
 
 Use separate stage and production credentials. The GitHub Apps' private keys are unrelated to this
 Ed25519 identity key. Never place the service token/private key in browser code, chat history, screenshots

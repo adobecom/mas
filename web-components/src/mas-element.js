@@ -90,8 +90,11 @@ export class MasElement {
     /**
      * Adds name/value of the updated attribute to the `changes` map,
      * requests placeholder update.
+     * Writing the value an attribute already has changes nothing to render, so
+     * it is ignored (the browser calls this on every write).
      */
-    attributeChangedCallback(name, _, value) {
+    attributeChangedCallback(name, oldValue, value) {
+        if (oldValue === value) return;
         this.changes.set(name, value);
         // Initiate update of the placeholder
         this.requestUpdate();
@@ -208,10 +211,11 @@ export class MasElement {
      * Restores previous state of the component if the `render` method returned `false`.
      */
     requestUpdate(force = false) {
+        // Batch consecutive updates: an update is already queued, which is
+        // every attribute after the first while a placeholder is upgraded.
+        if (this.timer) return;
         // eslint-disable-next-line react-hooks/rules-of-hooks
         if (!this.wrapperElement.isConnected || !getService()) return;
-        // Batch consecutive updates
-        if (this.timer) return;
         // Save current state to restore it if needed
         const { error, options, state, value, version } = this;
         // Inform `onceSettled` that `render` can follow soon

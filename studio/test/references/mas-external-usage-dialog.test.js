@@ -1,4 +1,4 @@
-import { expect, fixture, fixtureSync, html, oneEvent, waitUntil } from '@open-wc/testing';
+import { expect, fixture, fixtureSync, html, waitUntil } from '@open-wc/testing';
 import { sendKeys, setViewport } from '@web/test-runner-commands';
 import sinon from 'sinon';
 import '../../src/swc.js';
@@ -58,9 +58,10 @@ const visibleBoxOf = (element) =>
 async function closeFixture() {
     const overlay = document.querySelector('mas-external-usage-dialog')?.shadowRoot.querySelector('sp-overlay');
     if (!overlay?.open) return;
-    const closed = oneEvent(overlay, 'sp-closed');
+    // The update releases the focus trap and the overlay stack. Waiting for sp-closed would also wait
+    // out the close transition's animation frames, which a loaded CI runner can stall past the hook timeout.
     overlay.open = false;
-    await closed;
+    await overlay.updateComplete;
 }
 
 const pageLabels = (element) => [...element.shadowRoot.querySelectorAll('.page-url')].map((node) => node.textContent.trim());

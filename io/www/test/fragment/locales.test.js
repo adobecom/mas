@@ -445,13 +445,13 @@ describe('locales', function () {
             }
         });
 
-        it('should add only HK (not MO) to zh_TW regions on ccd and adobe-home', function () {
+        it('should add HK and MO to zh_TW regions on ccd and adobe-home', function () {
             for (const surface of ['ccd', 'adobe-home']) {
-                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK']);
+                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK', 'MO']);
                 const regionsOnly = getRegionLocales(surface, 'zh_TW', false).map((l) => getLocaleCode(l));
-                expect(regionsOnly, surface).to.deep.equal(['zh_HK']);
+                expect(regionsOnly, surface).to.deep.equal(['zh_HK', 'zh_MO']);
                 const withDefault = getRegionLocales(surface, 'zh_TW', true).map((l) => getLocaleCode(l));
-                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_TW']);
+                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
             }
         });
 
@@ -460,7 +460,7 @@ describe('locales', function () {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.not.equal('zh_CN');
                 expect(getDefaultLocaleCode(surface, 'zh_TW'), surface).to.equal('zh_TW');
                 expect(getDefaultLocaleCode(surface, 'zh_CN'), surface).to.equal('zh_CN');
-                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_TW');
             }
         });
 
@@ -644,6 +644,74 @@ describe('locales', function () {
                 const fixedCountry = restrictCountryToLocaleMarket('acom', locale, ingress);
                 const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
                 expect(resolveCommerceCountries('acom', locale, ingress)).to.deep.equal({ country: fixedCountry, wcsCountry });
+            }
+        });
+    });
+
+    describe('CCD and Adobe Home geo expansion (MWPW-214328)', function () {
+        const EN =
+            'AM AZ BB BD BH BS CY DZ GB GE GH IQ IS JM JO KE KG KZ LB LK MA MD MT MU NP OM PK RS TJ TM TN TT TZ UZ'.split(' ');
+        const ES = 'BO DO HN NI PA PY SV UY VE'.split(' ');
+        const TICKET_LOCALES = [...EN.map((c) => `en_${c}`), ...ES.map((c) => `es_${c}`), 'zh_HK', 'zh_MO'];
+        const surfaces = ['ccd', 'adobe-home'];
+
+        it('contains every ticket-listed locale exactly once', function () {
+            expect(TICKET_LOCALES).to.have.length(45);
+            for (const surface of surfaces) {
+                const listed = getSurfaceLocales(surface).map((l) => getLocaleCode(l));
+                const raw = getDefaultLocales(surface).flatMap(({ lang, country, regions = [] }) => [
+                    `${lang}_${country}`,
+                    ...regions.map((r) => `${lang}_${r}`),
+                ]);
+                for (const code of TICKET_LOCALES) {
+                    expect(
+                        listed.filter((c) => c === code),
+                        `${surface} ${code} listed`,
+                    ).to.have.length(1);
+                    expect(
+                        raw.filter((c) => c === code),
+                        `${surface} ${code} raw`,
+                    ).to.have.length(1);
+                    expect(isKnownLocale(code), `${surface} ${code}`).to.be.true;
+                }
+            }
+        });
+
+        it('resolves en_OM, en_BH, an es_ locale and a zh_ locale to well-formed entries', function () {
+            const expected = { en_OM: 'en_US', en_BH: 'en_US', es_BO: 'es_ES', zh_MO: 'zh_TW' };
+            for (const surface of surfaces) {
+                const reference = getDefaultLocale(surface, 'en_AE');
+                for (const [code, defaultCode] of Object.entries(expected)) {
+                    const entry = getDefaultLocale(surface, code);
+                    expect(entry.regions, `${surface} ${code}`).to.include(code.split('_')[1]);
+                    expect(Object.keys(entry), `${surface} ${code}`).to.deep.equal(Object.keys(reference));
+                    expect(entry.lang).to.be.a('string');
+                    expect(entry.country).to.be.a('string');
+                    expect(entry.regions.every((r) => typeof r === 'string')).to.be.true;
+                    expect(getDefaultLocaleCode(surface, code), `${surface} ${code}`).to.equal(defaultCode);
+                }
+                expect(resolveCommerceCountries(surface, 'en_US', 'OM')).to.deep.equal({ country: 'OM', wcsCountry: 'OM' });
+            }
+            expect(getCountryName('TN')).to.equal('Tunisia');
+            expect(getCountryFlag('TN')).to.equal('🇹🇳');
+        });
+
+        it('leaves pre-existing entries unchanged', function () {
+            for (const surface of surfaces) {
+                for (const code of ['en_AE', 'en_EG', 'en_KW', 'en_QA', 'en_SA']) {
+                    expect(getDefaultLocaleCode(surface, code), `${surface} ${code}`).to.equal('en_US');
+                }
+                const enRegions = getDefaultLocale(surface, 'en_US').regions;
+                expect(enRegions.slice(0, 5), surface).to.deep.equal(['AE', 'AU', 'BE', 'CA', 'EG']);
+                expect(enRegions, surface).to.have.length(23 + EN.length);
+            }
+            expect(getDefaultLocales('express').find((l) => l.lang === 'en' && l.country === 'GB').regions).to.be.undefined;
+        });
+
+        it('does not register a locale outside the ticket list (en_XX)', function () {
+            expect(isKnownLocale('en_XX')).to.be.false;
+            for (const surface of surfaces) {
+                expect(getDefaultLocale(surface, 'en_XX').country, surface).to.equal('US');
             }
         });
     });

@@ -289,9 +289,23 @@ describe('locales', function () {
             const acomDcResult = getDefaultLocales('acom-dc');
             expect(acomDcResult).to.deep.equal(acomResult);
         });
+
+        it('should share the CCD locale list with adobe-home', function () {
+            expect(getDefaultLocales('adobe-home')).to.equal(getDefaultLocales('ccd'));
+            expect(STUDIO_DEFAULT_LOCALES['adobe-home']).to.equal(STUDIO_DEFAULT_LOCALES.ccd);
+            expect(getDefaultLocaleCode('adobe-home', 'hi_IN')).to.equal('hi_IN');
+            expect(getSurfaceLocales('adobe-home').map(getLocaleCode)).to.include('hi_IN');
+        });
     });
 
     describe('getRegionLocales', function () {
+        it('should list en_GB as an en_US region on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getRegionLocales(surface, 'en_US', false).map(getLocaleCode)).to.include('en_GB');
+                expect(getDefaultLocaleCode(surface, 'en_GB')).to.equal('en_US');
+            }
+        });
+
         it('should return region locales for a default locale on a surface', function () {
             const result = getRegionLocales('acom', 'en_GB', true);
             expect(result).to.be.an('array');

@@ -590,12 +590,88 @@ runTests(async () => {
                             expect(
                                 emptySlot.parentElement.getBoundingClientRect()
                                     .height,
-                            ).to.equal(0);
+                            ).to.be.greaterThan(0);
                         }
                     }
                 }
             } finally {
                 disclaimer.innerHTML = originalHTML;
+                await setViewport({ width: 1200, height: 1000 });
+            }
+        });
+
+        it('aligns derived plan text with authored disclaimers and the following content', async () => {
+            const container = document.createElement('div');
+            container.className = 'two-merch-cards mini-compare-chart-mweb';
+            document.querySelector('main').append(container);
+            const cards = [
+                document.createElement('merch-card'),
+                document.createElement('merch-card'),
+            ];
+            container.append(...cards);
+            try {
+                await setViewport({ width: 1200, height: 1000 });
+                for (const [index, card] of cards.entries()) {
+                    await hydrate(
+                        {
+                            id: `aligned-legal-${index}`,
+                            fields: {
+                                variant: 'mini-compare-chart-mweb',
+                                cardTitle: 'Creative Cloud Pro',
+                                prices: '<span is="inline-price" data-template="price" data-display-recurrence="true" data-wcs-osi="abm"></span>',
+                                callout: index
+                                    ? '<p>Fee applies up to half your remaining annual commitment if you cancel after 14 days.</p>'
+                                    : '',
+                                promoText: '<p>Promotion</p>',
+                            },
+                            settings: { displayPlanType: true },
+                        },
+                        card,
+                    );
+                }
+                await Promise.all(cards.map((card) => card.checkReady()));
+                await delay(200);
+                cards[0].variantLayout.resetSyncedHeights();
+                cards[0].variantLayout.syncHeights();
+
+                const plan = cards[0].querySelector('.price-plan-type');
+                const authored = cards[1].querySelector(
+                    '[slot="callout-content"]',
+                );
+                expect(plan.textContent.trim()).not.to.equal('');
+                expect(plan.getBoundingClientRect().top).to.be.closeTo(
+                    authored.getBoundingClientRect().top,
+                    1,
+                );
+                expect(
+                    cards[0]
+                        .querySelector('[slot="promo-text"]')
+                        .getBoundingClientRect().top,
+                ).to.be.closeTo(
+                    cards[1]
+                        .querySelector('[slot="promo-text"]')
+                        .getBoundingClientRect().top,
+                    1,
+                );
+
+                await setViewport({ width: 430, height: 1000 });
+                await delay(200);
+                const offsets = cards.map((card, index) => {
+                    const text = index
+                        ? card.querySelector('[slot="callout-content"]')
+                        : card.querySelector('.price-plan-type');
+                    const price = card.querySelector(
+                        '[slot="heading-m-price"]',
+                    );
+                    const offset =
+                        text.getBoundingClientRect().top -
+                        price.getBoundingClientRect().bottom;
+                    expect(offset).to.be.at.least(-1);
+                    return offset;
+                });
+                expect(offsets[0]).to.be.closeTo(offsets[1], 1);
+            } finally {
+                container.remove();
                 await setViewport({ width: 1200, height: 1000 });
             }
         });

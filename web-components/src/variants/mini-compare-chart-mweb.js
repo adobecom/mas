@@ -162,7 +162,10 @@ export class MiniCompareChartMweb extends VariantLayout {
         this.syncRowHeights(
             slots.map((slot) => ({
                 name: slot,
-                getElement: (card) => card.querySelector(`[slot="${slot}"]`),
+                getElement: (card) =>
+                    slot === 'callout-content'
+                        ? card.shadowRoot.querySelector('.legal-disclaimer')
+                        : card.querySelector(`[slot="${slot}"]`),
             })),
         );
         this.adjustMiniCompareFooterRows();
@@ -171,7 +174,11 @@ export class MiniCompareChartMweb extends VariantLayout {
     priceOptionsProvider(element, options) {
         const mainPriceSlot =
             MINI_COMPARE_CHART_MWEB_AEM_FRAGMENT_MAPPING.prices.slot;
-        if (!element.closest(`[slot="${mainPriceSlot}"]`)) return;
+        if (
+            !element.closest(`[slot="${mainPriceSlot}"]`) &&
+            element.slot !== 'price-legal'
+        )
+            return;
 
         if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
             options.displayPlanType = this.hasLegalDisclaimer
@@ -355,10 +362,8 @@ export class MiniCompareChartMweb extends VariantLayout {
             );
 
             legal.setAttribute('data-template', 'legal');
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
+            legal.slot = 'price-legal';
+            this.card.append(legal);
             await legal.onceSettled();
         } catch {
             // Proceed with other adjustments
@@ -386,6 +391,7 @@ export class MiniCompareChartMweb extends VariantLayout {
                         <slot name="subtitle"></slot>
                         <slot name="heading-m-price"></slot>
                         <div class="legal-disclaimer">
+                            <slot name="price-legal"></slot>
                             <slot
                                 name="callout-content"
                                 ?hidden=${!this.hasLegalDisclaimer}

@@ -119,11 +119,16 @@ export const CSS = `
     padding: 0;
   }
 
+  merch-card[variant="mini-compare-chart-mweb"] [slot="price-legal"]:not(:has(.price-legal > :not(.disabled))) {
+    display: none;
+  }
+
   merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-recurrence {
     line-height: 1.4;
   }
 
   merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] .price-plan-type,
+  merch-card[variant="mini-compare-chart-mweb"] [slot="price-legal"] .price-plan-type,
   merch-card[variant="mini-compare-chart-mweb"] [slot="heading-m-price"] span[data-template="planType"] {
     text-transform: unset;
     display: block;

@@ -10,10 +10,11 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
-import { InlinePrice } from '../inline-price.js';
 import { createMasElement } from '../mas-element.js';
+import { Log } from '../log.js';
 
 const VARIANT = 'pro';
+const log = Log.module('merch-card/pro');
 // syncHeights publishes these properties and the shadow styles consume them; the
 // single definition keeps producer and consumer from diverging.
 const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
@@ -96,7 +97,10 @@ export class Pro extends VariantLayout {
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => {
+        this.adjustLegal();
+        this.resyncOnReflow();
+    };
     lastSyncKey = null;
 
     constructor(card) {
@@ -118,24 +122,27 @@ export class Pro extends VariantLayout {
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
 
-    // Clones the main price into a legal-template sibling (as plans/plans-v2) so
-    // tax/plan-type render on the clone, off the main price.
+    // Creates a legal-template sibling so tax/plan-type render off the main price.
     async adjustLegal() {
         if (this.legalAdjusted) return;
         try {
-            this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
-            // Safari's polyfill upgrades clones asynchronously; construct the price before calling its methods.
-            const legal = createMasElement(InlinePrice);
+            await headingPrice.onceSettled();
+            if (
+                !headingPrice.options ||
+                this.legalAdjusted ||
+                this.mainPrice !== headingPrice
+            )
+                return;
+            // Use the registered constructor: importing inline-price here can register it before Safari's polyfill.
+            const legal = createMasElement(customElements.get('inline-price'));
             for (const { name, value } of headingPrice.attributes) {
                 legal.setAttribute(name, value);
             }
             legal.innerHTML = headingPrice.innerHTML;
-            await headingPrice.onceSettled();
-            if (!headingPrice?.options) return;
             // Per-unit stays on the pricing line (unlike plans); only tax and
             // plan type move to the legal clone, which drops per-unit.
             if (headingPrice.options.displayTax)
@@ -144,11 +151,6 @@ export class Pro extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.dataset.displayPerUnit = 'false';
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
-            await legal.onceSettled();
             // Re-apply the override whenever the legal price re-resolves.
             if (!this.legalResolvedHandler) {
                 this.legalResolvedHandler = () => this.adjustShortDescription();
@@ -157,9 +159,17 @@ export class Pro extends VariantLayout {
                     this.legalResolvedHandler,
                 );
             }
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            this.legalAdjusted = true;
+            await legal.onceSettled();
             this.adjustShortDescription();
-        } catch {
-            // Proceed with the other post-update adjustments
+        } catch (error) {
+            log.error(`Failed to initialize legal price: ${error.message}`, {
+                cardId: this.card.id,
+            });
         }
     }
 

@@ -904,6 +904,83 @@ describe('Pro.adjustLegal', () => {
         expect(insertBefore.called).to.be.false;
     });
 
+    it('retries when hydration adds the main price after an early update', async () => {
+        const { layout, insertBefore } = makeFixture();
+        const hydratedQuery = layout.card.querySelector;
+        layout.card.querySelector = () => null;
+        await layout.adjustLegal();
+
+        layout.card.querySelector = hydratedQuery;
+        await layout.adjustLegal();
+
+        expect(insertBefore.calledOnce).to.be.true;
+    });
+
+    it('retries legal setup when a price resolves after the initial card update', async () => {
+        const card = await renderCard('');
+        try {
+            const adjust = sandbox
+                .stub(card.variantLayout, 'adjustLegal')
+                .resolves();
+            sandbox.stub(card.variantLayout, 'resyncOnReflow');
+            const price = document.createElement('span');
+            card.append(price);
+            price.dispatchEvent(
+                new CustomEvent(EVENT_TYPE_RESOLVED, { bubbles: true }),
+            );
+            expect(adjust.calledOnce).to.be.true;
+        } finally {
+            card.remove();
+        }
+    });
+
+    it('creates only one legal price when updates overlap while the main price settles', async () => {
+        let settle;
+        const settled = new Promise((resolve) => {
+            settle = resolve;
+        });
+        const { layout, insertBefore } = makeFixture({
+            onceSettled: () => settled,
+        });
+        const first = layout.adjustLegal();
+        const second = layout.adjustLegal();
+        settle();
+        await Promise.all([first, second]);
+        expect(insertBefore.calledOnce).to.be.true;
+    });
+
+    it('ignores a main price replaced during an asynchronous resolution', async () => {
+        let settle;
+        const settled = new Promise((resolve) => {
+            settle = resolve;
+        });
+        const { layout, price, insertBefore } = makeFixture({
+            onceSettled: () => {
+                layout.card.querySelector = () => null;
+                return settled;
+            },
+        });
+        const adjustment = layout.adjustLegal();
+        settle();
+        await adjustment;
+        expect(insertBefore.called).to.be.false;
+        expect(layout.legalAdjusted).not.to.be.true;
+        expect(price.dataset.displayPlanType).to.be.undefined;
+    });
+
+    it('registers the override before waiting for the first legal price resolution', async () => {
+        const { layout, clone } = makeFixture();
+        const reapply = sandbox.stub(layout, 'adjustShortDescription');
+        clone.onceSettled.callsFake(async () => {
+            expect(clone.addEventListener.calledOnce).to.be.true;
+            clone.addEventListener.firstCall.args[1]();
+        });
+
+        await layout.adjustLegal();
+
+        expect(reapply.calledTwice).to.be.true;
+    });
+
     it('bails out when the price settles without options', async () => {
         // onceSettled can resolve on a price WCS never priced; reading
         // .options off it would throw and lose the rest of the update.
@@ -912,7 +989,17 @@ describe('Pro.adjustLegal', () => {
         });
         await layout.adjustLegal();
         expect(insertBefore.called).to.be.false;
-        expect(clone.dataset.template).to.equal('price');
+        expect(clone.setAttribute.called).to.be.false;
+    });
+
+    it('can retry after an initial resolution without price options', async () => {
+        const { layout, price, insertBefore } = makeFixture({
+            options: undefined,
+        });
+        await layout.adjustLegal();
+        price.options = {};
+        await layout.adjustLegal();
+        expect(insertBefore.calledOnce).to.be.true;
     });
 
     it('moves the plan type onto the legal clone', async () => {

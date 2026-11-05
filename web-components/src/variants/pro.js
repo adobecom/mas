@@ -96,10 +96,9 @@ export class Pro extends VariantLayout {
     // Active-descendant highlight; focus stays on the trigger (combobox model).
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
-    #sizeObserver = null;
     #onPriceResolved = () => {
         this.adjustLegal();
-        this.resyncOnReflow();
+        this.requestReflowCheck();
     };
     lastSyncKey = null;
 
@@ -433,13 +432,10 @@ export class Pro extends VariantLayout {
     // Re-sync on a real reflow, keyed so our own writes can't loop the observer.
     // A late price resolution adds the struck and legal rows after the first pass.
     resyncOnReflow() {
-        const width = this.card.getBoundingClientRect().width;
+        const width = this.boxOf(this.card).width;
         if (width <= 2) return;
         const height = (selector, root = this.card) =>
-            Math.round(
-                root?.querySelector(selector)?.getBoundingClientRect().height ||
-                    0,
-            );
+            this.heightOf(root?.querySelector(selector));
         // Measure inside the price block, never [slot="heading-m"] itself: the
         // reserve lands on its padding, so keying on that would feed back.
         const key = [
@@ -468,14 +464,13 @@ export class Pro extends VariantLayout {
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
             this.updatePriceQuantity,
         );
-        // A promo can swap the price without resizing either observed box, so the
-        // resize observer alone misses it. Price resolutions bubble here.
+        // A promo can swap the price without resizing either observed box, so a
+        // price resolution (it bubbles here) asks the observer for a fresh report.
         this.card.addEventListener(EVENT_TYPE_RESOLVED, this.#onPriceResolved);
-        if (typeof ResizeObserver === 'undefined') return;
-        this.#sizeObserver = new ResizeObserver(() => this.resyncOnReflow());
-        this.#sizeObserver.observe(this.card);
-        const desc = this.card.querySelector('[slot="body-xs"]');
-        if (desc) this.#sizeObserver.observe(desc);
+        this.observeReflow(
+            this.card,
+            this.card.querySelector('[slot="body-xs"]'),
+        );
     }
 
     disconnectedCallbackHook() {
@@ -488,7 +483,7 @@ export class Pro extends VariantLayout {
             this.#onPriceResolved,
         );
         this.#removeLicenseDocListener();
-        this.#sizeObserver?.disconnect();
+        this.disconnectReflow();
         this.card?.removeEventListener(
             EVENT_MERCH_CARD_QUANTITY_CHANGE,
             this.#onModalQuantityChange,

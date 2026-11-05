@@ -2299,7 +2299,7 @@ describe('pro resize handling', () => {
             // The surviving layout (card.variantLayout) owns the last observer.
             const obs = observers[observers.length - 1];
             expect(obs, 'observes on connect').to.exist;
-            obs.callback();
+            obs.callback([]);
             expect(resync.calledOnce, 'a reflow re-runs the sync').to.be.true;
         } finally {
             window.ResizeObserver = RealObserver;
@@ -2311,14 +2311,13 @@ describe('pro resize handling', () => {
         // (mount at 0 → width, or a font swap changing the description height)
         // re-syncs, while publishing the min-height (a top-card height change)
         // leaves the key unchanged and can't loop the observer.
-        const layout = Object.create(Pro.prototype);
         const rect = { width: 0, top: 0, height: 0 };
         let descHeight = 18;
         const desc = { getBoundingClientRect: () => ({ height: descHeight }) };
-        layout.card = {
+        const layout = new Pro({
             getBoundingClientRect: () => rect,
             querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
-        };
+        });
         const sync = sinon.stub(layout, 'syncHeights').resolves();
 
         layout.resyncOnReflow();
@@ -2335,6 +2334,163 @@ describe('pro resize handling', () => {
         layout.resyncOnReflow();
         expect(sync.calledTwice, 're-syncs when the description reflows').to.be
             .true;
+    });
+
+    // Reports a border-box size the way a ResizeObserver entry does.
+    const entry = (target, width, height) => ({
+        target,
+        borderBoxSize: [{ inlineSize: width, blockSize: height }],
+    });
+
+    const installFakeObserver = () => {
+        const observers = [];
+        const RealObserver = window.ResizeObserver;
+        class FakeObserver {
+            observed = [];
+            unobserved = [];
+            constructor(callback) {
+                this.callback = callback;
+                observers.push(this);
+            }
+            observe(target, options) {
+                this.observed.push({ target, options });
+            }
+            unobserve(target) {
+                this.unobserved.push(target);
+            }
+            disconnect() {
+                this.disconnected = true;
+            }
+        }
+        window.ResizeObserver = FakeObserver;
+        return {
+            observers,
+            restore: () => (window.ResizeObserver = RealObserver),
+        };
+    };
+
+    it('keys on the sizes the observer reports instead of measuring the card and description', () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            const measured = sinon.spy(() => ({ width: 1, height: 1 }));
+            const desc = { getBoundingClientRect: measured };
+            const card = {
+                addEventListener: () => {},
+                getBoundingClientRect: measured,
+                querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+            };
+            const layout = new Pro(card);
+            card.variantLayout = layout;
+            const sync = sinon.stub(layout, 'syncHeights').resolves();
+            layout.connectedCallbackHook();
+            const obs = observers[0];
+            expect(
+                obs.observed.map(({ target }) => target),
+                'observes the card and the description',
+            ).to.deep.equal([card, desc]);
+            expect(
+                obs.observed.every(
+                    ({ options }) => options.box === 'border-box',
+                ),
+                'observes the border box, which getBoundingClientRect reports',
+            ).to.be.true;
+
+            obs.callback([entry(card, 300, 400), entry(desc, 300, 54)]);
+            expect(sync.calledOnce, 'syncs on the first report').to.be.true;
+
+            // The card has no new entry: its last reported width still counts.
+            obs.callback([entry(desc, 300, 72)]);
+            expect(sync.calledTwice, 'a description reflow re-syncs').to.be
+                .true;
+
+            obs.callback([entry(card, 300, 460)]);
+            expect(sync.calledTwice, 'a card height change is not a reflow').to
+                .be.true;
+
+            obs.callback([entry(card, 0, 0), entry(desc, 0, 0)]);
+            expect(sync.calledTwice, 'a hidden card is skipped').to.be.true;
+            expect(measured.called, 'no geometry read for either').to.be.false;
+        } finally {
+            restore();
+        }
+    });
+
+    it('asks for a fresh report on a price resolution instead of measuring', async () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            const obs = observers[observers.length - 1];
+            const measure = sinon.spy(
+                Element.prototype,
+                'getBoundingClientRect',
+            );
+            try {
+                card.querySelector('[slot="body-xs"]').dispatchEvent(
+                    new CustomEvent(EVENT_TYPE_RESOLVED, {
+                        bubbles: true,
+                        composed: true,
+                    }),
+                );
+                expect(measure.called, 'nothing is measured mid-task').to.be
+                    .false;
+            } finally {
+                measure.restore();
+            }
+            expect(resync.called, 'the check waits for the frame').to.be.false;
+            expect(obs.unobserved, 'drops the card observation').to.deep.equal([
+                card,
+            ]);
+            const rearmed = obs.observed.at(-1);
+            expect(rearmed.target, 'observes the card again').to.equal(card);
+            expect(rearmed.options.box).to.equal('border-box');
+
+            obs.callback([entry(card, 300, 400)]);
+            expect(resync.calledOnce, 'the report runs the check').to.be.true;
+        } finally {
+            restore();
+        }
+    });
+
+    it('leaves measuring to the layout the card keeps', async () => {
+        // merch-card builds a layout before its first render and another in
+        // firstUpdated; the first one still holds an observer and a listener.
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const resync = sinon.stub(layout, 'resyncOnReflow');
+            const obs = observers[observers.length - 1];
+            card.variantLayout = {};
+            obs.callback([entry(card, 300, 400)]);
+            layout.requestReflowCheck();
+            card.variantLayout = layout;
+            expect(resync.called, 'a replaced layout does not measure').to.be
+                .false;
+            expect(obs.unobserved, 'nor re-arms').to.be.empty;
+        } finally {
+            restore();
+        }
+    });
+
+    it('does not observe again once the layout is disconnected', async () => {
+        const { observers, restore } = installFakeObserver();
+        try {
+            card = await renderCard('<div slot="body-xs">desc</div>');
+            const layout = card.variantLayout;
+            const obs = observers[observers.length - 1];
+            const observed = obs.observed.length;
+            card.remove();
+            expect(obs.disconnected, 'observer cleaned up').to.be.true;
+            layout.requestReflowCheck();
+            expect(
+                obs.observed.length,
+                'a late resolution is ignored',
+            ).to.equal(observed);
+        } finally {
+            restore();
+        }
     });
 
     it('disconnects its resize observer when the card is removed', async () => {

@@ -107,6 +107,109 @@ describe('locales', function () {
         }
     });
 
+    describe('CCD & Adobe Home geo expansion (MWPW-214328)', function () {
+        const markets = [
+            [
+                'en',
+                'US',
+                [
+                    'AM',
+                    'AR',
+                    'AZ',
+                    'BB',
+                    'BD',
+                    'BH',
+                    'BS',
+                    'CY',
+                    'DZ',
+                    'GB',
+                    'GE',
+                    'GH',
+                    'IQ',
+                    'IS',
+                    'JM',
+                    'JO',
+                    'KE',
+                    'KG',
+                    'KZ',
+                    'LB',
+                    'LK',
+                    'MA',
+                    'MD',
+                    'MT',
+                    'MU',
+                    'NP',
+                    'OM',
+                    'PK',
+                    'RS',
+                    'TJ',
+                    'TM',
+                    'TN',
+                    'TT',
+                    'TZ',
+                    'UZ',
+                ],
+            ],
+            ['es', 'ES', ['BO', 'DO', 'HN', 'NI', 'PA', 'PY', 'SV', 'UY', 'VE']],
+            ['zh', 'TW', ['HK', 'MO']],
+        ];
+
+        for (const surface of ['ccd', 'adobe-home']) {
+            describe(surface, function () {
+                for (const [lang, defaultCountry, countries] of markets) {
+                    const defaultLocale = `${lang}_${defaultCountry}`;
+                    for (const country of countries) {
+                        const locale = `${lang}_${country}`;
+
+                        it(`registers ${locale} in the ${defaultLocale} family`, function () {
+                            const regions = getRegionLocales(surface, defaultLocale).map(getLocaleCode);
+                            expect(regions).to.include(locale);
+                            expect(getDefaultLocaleCode(surface, locale)).to.equal(defaultLocale);
+                            expect(isKnownLocale(locale)).to.be.true;
+                        });
+
+                        it(`uses ${country} for commerce on ${defaultLocale}`, function () {
+                            expect(resolveCommerceCountries(surface, defaultLocale, country)).to.deep.equal({
+                                country,
+                                wcsCountry: country,
+                            });
+                        });
+
+                        it(`selects the ${locale} placeholder overlay`, function () {
+                            expect(getPlaceholdersRegionLocale(surface, defaultLocale, country, defaultLocale)).to.equal(
+                                locale,
+                            );
+                        });
+                    }
+                }
+
+                it('has a display name for every country', function () {
+                    const unnamed = getSurfaceLocales(surface).filter(({ country }) => getCountryName(country) === country);
+                    expect(unnamed).to.deep.equal([]);
+                });
+
+                it('keeps Studio and backend locale mappings aligned', function () {
+                    expect(getDefaultLocales(surface)).to.deep.equal(STUDIO_DEFAULT_LOCALES[surface]);
+                });
+            });
+        }
+
+        it('serves adobe-home from the CCD locale list, including hi_IN', function () {
+            expect(getDefaultLocales('adobe-home')).to.equal(getDefaultLocales('ccd'));
+            expect(getDefaultLocaleCode('adobe-home', 'hi_IN')).to.equal('hi_IN');
+        });
+
+        it('treats en_GB as an en_US region on ccd, not a default locale', function () {
+            expect(getDefaultLocales('ccd').map(getLocaleCode)).to.not.include('en_GB');
+            expect(getDefaultLocaleCode('ccd', 'en_GB')).to.equal('en_US');
+        });
+
+        it('displays the country name and flag for TN', function () {
+            expect(getCountryName('TN')).to.equal('Tunisia');
+            expect(getCountryFlag('TN')).to.equal('🇹🇳');
+        });
+    });
+
     describe('placeholder resolution helpers', function () {
         it('PLACEHOLDERS_BASELINE_SURFACE is acom', function () {
             expect(PLACEHOLDERS_BASELINE_SURFACE).to.equal('acom');
@@ -445,22 +548,22 @@ describe('locales', function () {
             }
         });
 
-        it('should add only HK (not MO) to zh_TW regions on ccd and adobe-home', function () {
+        it('should add HK and MO to zh_TW regions on ccd and adobe-home', function () {
             for (const surface of ['ccd', 'adobe-home']) {
-                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK']);
+                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK', 'MO']);
                 const regionsOnly = getRegionLocales(surface, 'zh_TW', false).map((l) => getLocaleCode(l));
-                expect(regionsOnly, surface).to.deep.equal(['zh_HK']);
+                expect(regionsOnly, surface).to.deep.equal(['zh_HK', 'zh_MO']);
                 const withDefault = getRegionLocales(surface, 'zh_TW', true).map((l) => getLocaleCode(l));
-                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_TW']);
+                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
             }
         });
 
-        it('should no longer resolve zh_HK to zh_CN on ccd and adobe-home', function () {
+        it('should no longer resolve zh_HK or zh_MO to zh_CN on ccd and adobe-home', function () {
             for (const surface of ['ccd', 'adobe-home']) {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.not.equal('zh_CN');
                 expect(getDefaultLocaleCode(surface, 'zh_TW'), surface).to.equal('zh_TW');
                 expect(getDefaultLocaleCode(surface, 'zh_CN'), surface).to.equal('zh_CN');
-                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_TW');
             }
         });
 
@@ -604,7 +707,7 @@ describe('locales', function () {
             expect(restrictCountryToLocaleMarket('acom', 'en_PR', 'US')).to.equal('US');
         });
         it('does not throw and passes through for a locale unregistered on the given surface', () => {
-            expect(restrictCountryToLocaleMarket('adobe-home', 'en_GB', 'US')).to.equal('US');
+            expect(restrictCountryToLocaleMarket('adobe-home', 'ar_SA', 'US')).to.equal('US');
         });
         it('does not throw and passes through for an unregistered surface', () => {
             expect(restrictCountryToLocaleMarket(undefined, 'en_GB', 'US')).to.equal('US');

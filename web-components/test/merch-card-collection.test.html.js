@@ -904,6 +904,38 @@ runTests(async () => {
             expect(entries).to.deep.equal([]);
         });
 
+        it('syncs card sizes for a filter change that keeps the same cards in place', async () => {
+            cards.forEach((card, index) => {
+                card.filters.wide = { order: index + 1, size: 'wide' };
+            });
+            startLogging();
+            collection.filter = 'wide';
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            for (const card of cards) {
+                expect(card.size).to.equal('wide');
+            }
+        });
+
+        it('re-arranges cards on requestUpdate() batched with a resultCount write', async () => {
+            cards[0].filters.all.order = 9;
+            collection.resultCount = 99;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(childOrder()).to.deep.equal([
+                'Bravo',
+                'Charlie',
+                'Alpha',
+                'Delta',
+            ]);
+            expect(collection.resultCount).to.equal(4);
+        });
+
         it('re-arranges cards on requestUpdate() without a changed property', async () => {
             cards[0].filters.all.order = 9;
             collection.requestUpdate();

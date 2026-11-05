@@ -115,26 +115,25 @@ export class Pro extends VariantLayout {
     }
 
     // Forwards the Show Plan type setting to the legal-template price (which
-    // renders the plan type line). Same pattern as plans/plans-v2. An authored
-    // Short Description is rendered by the template itself as the plan type, so
-    // every (re-)render of the legal price paints it in the same pass, never
-    // the derived WCS wording (MWPW-214359).
+    // renders the plan type line). Same pattern as plans/plans-v2. When the line
+    // is on, an authored Short Description is rendered by the template itself as
+    // the plan type, so every (re-)render of the legal price paints it in the
+    // same pass, never the derived WCS wording (MWPW-214359).
     priceOptionsProvider(element, options) {
         if (element.dataset.template !== TEMPLATE_PRICE_LEGAL) return;
-        const shortDescription = this.shortDescription;
-        if (shortDescription && element.closest('[slot="heading-m"]')) {
-            options.displayPlanType = true;
-            options.customPlanTypeLabel = shortDescription;
-            return;
-        }
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
+        const label = this.customPlanTypeLabel;
+        if (label && element.closest('[slot="heading-m"]')) {
+            options.customPlanTypeLabel = label;
+        }
     }
 
-    // Read [slot="legal-text"] in place (never detached): the shadow has no
-    // matching slot so it won't render, and merch-card swaps in a fresh layout
-    // per render.
-    get shortDescription() {
-        const source = this.card?.querySelector('[slot="legal-text"]');
+    // The authored Short Description, when the Show Plan type line is on. Read
+    // [slot="legal-text"] in place (never detached): the shadow has no matching
+    // slot so it won't render, and merch-card swaps in a fresh layout per render.
+    get customPlanTypeLabel() {
+        if (!this.card?.settings?.displayPlanType) return '';
+        const source = this.card.querySelector('[slot="legal-text"]');
         if (!source?.textContent?.trim()) return '';
         return source.innerHTML.trim();
     }
@@ -148,9 +147,12 @@ export class Pro extends VariantLayout {
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
             await headingPrice.onceSettled();
+            // merch-card may have swapped in a fresh layout meanwhile; that one
+            // owns the legal price.
             if (
                 !headingPrice.options ||
                 this.legalAdjusted ||
+                this.card.variantLayout !== this ||
                 this.mainPrice !== headingPrice
             )
                 return;
@@ -170,7 +172,7 @@ export class Pro extends VariantLayout {
             legal.dataset.displayPerUnit = 'false';
             // The dataset outranks priceOptionsProvider; a plan type flag cloned
             // from the main price must not hide the authored Short Description.
-            if (this.shortDescription) delete legal.dataset.displayPlanType;
+            if (this.customPlanTypeLabel) delete legal.dataset.displayPlanType;
             headingPrice.parentNode.insertBefore(
                 legal,
                 headingPrice.nextSibling,

@@ -196,6 +196,14 @@ export class MerchCardCollection extends LitElement {
         this.firstChild?.variantLayout?.resizeHandler?.();
     }
 
+    // A bare requestUpdate() (tag group deeplink, literals, sidenav) asks for a
+    // re-arrangement, even when batched with a resultCount or hasMore write.
+    // Lit calls this from its constructor, before private fields exist.
+    requestUpdate(name, ...rest) {
+        if (name === undefined) this.arrangeRequested = true;
+        super.requestUpdate(name, ...rest);
+    }
+
     render() {
         return html` <slot></slot>
             ${this.footer}`;
@@ -220,13 +228,13 @@ export class MerchCardCollection extends LitElement {
     }
 
     updated(changedProperties) {
+        const arrangeRequested = this.arrangeRequested;
+        this.arrangeRequested = false;
         // cards are not added yet.
         if (!this.querySelector('merch-card')) return;
 
-        // requestUpdate() without a property (tag group deeplink) leaves
-        // changedProperties empty and must still re-arrange the cards.
         const arrangeCards =
-            changedProperties.size === 0 ||
+            arrangeRequested ||
             CARD_ARRANGEMENT_PROPERTIES.some((property) =>
                 changedProperties.has(property),
             );

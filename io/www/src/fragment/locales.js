@@ -283,6 +283,7 @@ const CCD = [
         regions: [
             'AE',
             'AM',
+            'AR',
             'AU',
             'AZ',
             'BB',

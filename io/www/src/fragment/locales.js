@@ -325,7 +325,7 @@ const CCD = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const EXPRESS = [
@@ -483,7 +483,7 @@ const ADOBE_HOME = [
     { lang: 'uk', country: 'UA' },
     { lang: 'vi', country: 'VN' },
     { lang: 'zh', country: 'CN' },
-    { lang: 'zh', country: 'TW' },
+    { lang: 'zh', country: 'TW', regions: ['HK'] },
 ];
 
 const COMMERCE = [

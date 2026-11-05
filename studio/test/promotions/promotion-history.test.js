@@ -196,6 +196,61 @@ describe('Promotion version history', () => {
         return promo;
     }
 
+    function savedPromoInheritanceVersion() {
+        const parent = {
+            id: 'default-card',
+            path: '/content/dam/mas/acom/en_US/photoshop',
+            title: 'Photoshop Individual',
+            modified: { at: '2026-10-01T08:00:00Z' },
+            fields: [
+                { name: 'variant', values: ['plans'] },
+                { name: 'ctas', values: ['Buy'], multiple: true },
+            ],
+        };
+        const promo = {
+            id: 'promo',
+            path: '/content/dam/mas/acom/en_US/promotions/sale/photoshop',
+            title: 'Photoshop promo',
+            tags: ['mas:promotion/sale'],
+            modified: { at: '2026-10-01T09:00:00Z' },
+            fields: [...parent.fields, { name: 'cardTitle', values: ['Old heading'] }],
+        };
+        const saved = {
+            ...promo,
+            fields: [
+                { name: 'variant', values: [] },
+                { name: 'ctas', values: [], multiple: true },
+                { name: 'cardTitle', values: ['New heading'] },
+            ],
+        };
+        const entry = {
+            ...version,
+            targetId: promo.id,
+            changes: promo.fields.map((field, index) => ({
+                fragmentId: promo.id,
+                path: promo.path,
+                field: field.name,
+                before: field.values,
+                after: saved.fields[index].values,
+                category: 'fragments',
+            })),
+            beforeSnapshot: {
+                fragments: [{ id: promo.id, path: promo.path, versionId: 'promo-before' }],
+                inheritanceUnavailable: [{ fragmentId: promo.id, reason: 'outside-project' }],
+            },
+            afterSnapshot: {
+                fragments: [{ id: promo.id, path: promo.path, versionId: 'promo-after' }],
+                inheritanceUnavailable: [{ fragmentId: promo.id, reason: 'outside-project' }],
+            },
+        };
+        getVersion.withArgs(promo.id, 'promo-before').resolves(promo);
+        getVersion.withArgs(promo.id, 'promo-after').resolves(saved);
+        getWithEtag.withArgs(promo.id).resolves({ ...saved, etag: '"promo"' });
+        getByPath.withArgs(parent.path).resolves(parent);
+        client.listPromotionHistory.resolves({ events: [entry], currentEventId: entry.id });
+        return { parent, promo, saved, entry };
+    }
+
     it('retains the saved author and timestamp on version cards', async () => {
         const root = await mount();
         const card = root.querySelector(`[data-event-id="${version.id}"]`);
@@ -287,6 +342,48 @@ describe('Promotion version history', () => {
         expect(root.querySelector('[data-field="promoCode"] .after').textContent).to.equal('INHERITED');
         expect(element.eligibleRows.some((row) => row.field === 'promoCode')).to.be.true;
     });
+
+    it('hides confirmed inheritance normalization while retaining the actual edited field and count', async () => {
+        savedPromoInheritanceVersion();
+
+        const root = await mount();
+
+        expect(element.rows.map((row) => row.field)).to.deep.equal(['cardTitle']);
+        expect(root.querySelector('.card-summary').textContent).to.include('1 change');
+        expect(element.selectedEvent.changes).to.have.length(3);
+    });
+
+    it('keeps an explicit multi-value clear visible instead of hiding it as inheritance', async () => {
+        const { saved, entry } = savedPromoInheritanceVersion();
+        saved.fields.find((field) => field.name === 'ctas').values = [''];
+        entry.changes.find((change) => change.field === 'ctas').after = [''];
+
+        await mount();
+
+        expect(element.rows.map((row) => row.field)).to.deep.equal(['ctas', 'cardTitle']);
+        expect(element.rows.find((row) => row.field === 'ctas').segments).to.deep.equal([{ kind: 'removed' }]);
+    });
+
+    it('keeps a genuine override reset visible when the inherited value differs', async () => {
+        const { parent } = savedPromoInheritanceVersion();
+        parent.fields = parent.fields.map((field) => (field.name === 'variant' ? { ...field, values: ['mini'] } : field));
+
+        await mount();
+
+        expect(element.rows.map((row) => row.field)).to.deep.equal(['variant', 'cardTitle']);
+    });
+
+    for (const modified of [{ at: '2026-10-01T09:30:00Z' }, undefined]) {
+        it(`preserves raw differences when the parent's historical values cannot be confirmed (${JSON.stringify(modified)})`, async () => {
+            const { parent } = savedPromoInheritanceVersion();
+            parent.modified = modified;
+
+            const root = await mount();
+
+            expect(element.rows.map((row) => row.field)).to.deep.equal(['variant', 'ctas', 'cardTitle']);
+            expect(root.textContent).not.to.include('Historical inheritance is unavailable');
+        });
+    }
 
     it('passes only the selected fields and viewed ETags to restore', async () => {
         const root = await mount();

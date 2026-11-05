@@ -360,6 +360,43 @@ export class MasPromotionHistory extends LitElement {
         ];
     }
 
+    async readInheritanceNormalizations(event, unavailableParents) {
+        const entries = (event.beforeSnapshot?.fragments ?? []).filter(
+            (entry) =>
+                unavailableParents.has(entry.id) &&
+                isPromoVariationPath(entry.path) &&
+                !Fragment.isGroupedVariationPath(entry.path) &&
+                event.changes.some(
+                    (change) => change.fragmentId === entry.id && !change.field.startsWith('@') && change.after?.length === 0,
+                ),
+        );
+        if (!entries.length) return new Map();
+        const fragments = await Promise.all(
+            entries.map(async (entry) => ({
+                ...(await this.readAem('getVersion', entry.id, entry.versionId)),
+                id: entry.id,
+                path: entry.path,
+            })),
+        );
+        const details = await this.readFragmentDetails(
+            { ...event, changes: event.changes.filter((change) => entries.some((entry) => entry.id === change.fragmentId)) },
+            fragments,
+        );
+        return new Map(
+            [...details.values()]
+                .filter(
+                    ({ fragment, parent }) =>
+                        parent &&
+                        Date.parse(parent.modified?.at) <=
+                            Math.min(Date.parse(fragment.modified?.at), Date.parse(event.createdAt)),
+                )
+                .map(({ fragment, parent }) => [
+                    fragment.id,
+                    new Fragment(fragment).prepareVariationForSave(new Fragment(parent)),
+                ]),
+        );
+    }
+
     async preparePresentation(event) {
         const changes = this.presentationChanges(event);
         const beforeManifest = event.beforeSnapshot;
@@ -370,14 +407,13 @@ export class MasPromotionHistory extends LitElement {
         );
         let beforeParents;
         let afterParents;
-        const comparisonWarning = unavailableParents.size
-            ? 'Historical inheritance is unavailable for some variations. Raw stored differences are shown for those variations.'
-            : '';
+        let normalizations;
         try {
             [beforeParents, afterParents] = await Promise.all([
                 this.readInheritance(beforeManifest),
                 this.readInheritance(event.afterSnapshot),
             ]);
+            normalizations = await this.readInheritanceNormalizations(event, unavailableParents);
         } catch {
             return {
                 ...event,
@@ -390,6 +426,13 @@ export class MasPromotionHistory extends LitElement {
             afterParents.delete(id);
         }
         const displayChanges = changes
+            .filter(
+                (change) =>
+                    change.field.startsWith('@') ||
+                    !normalizations.has(change.fragmentId) ||
+                    JSON.stringify(change.after) !==
+                        JSON.stringify(this.fieldValue(normalizations.get(change.fragmentId), change.field)),
+            )
             .map((change) => ({
                 ...change,
                 rawAfter: change.after,
@@ -402,7 +445,7 @@ export class MasPromotionHistory extends LitElement {
                     !beforeParents.has(change.fragmentId) ||
                     JSON.stringify(change.before) !== JSON.stringify(change.after),
             );
-        return { ...event, displayChanges, beforeParents, afterParents, comparisonWarning };
+        return { ...event, displayChanges, beforeParents, afterParents, comparisonWarning: '' };
     }
 
     effectiveValue(value, field, parent) {

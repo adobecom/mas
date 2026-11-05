@@ -9,6 +9,8 @@ import {
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
 } from '../src/constants.js';
+import { mockFetch } from './mocks/fetch.js';
+import { withWcs } from './mocks/wcs.js';
 
 let Pro;
 
@@ -1010,27 +1012,25 @@ describe('Pro.adjustLegal', () => {
         expect(price.dataset.displayPlanType).to.equal('false');
     });
 
-    it('subscribes the legal clone to re-resolves and re-applies the override', async () => {
-        // The clone re-renders on every resolve and wipes the injected text, so
-        // the handler has to stay bound to it.
+    it('drops a cloned plan type flag when a short description is authored', async () => {
+        // The dataset outranks priceOptionsProvider, so a flag copied from the
+        // main price would otherwise decide whether the description shows.
         const { layout, clone } = makeFixture();
-        const reapply = sinon.stub(layout, 'adjustShortDescription');
+        clone.dataset.displayPlanType = 'false';
+        const { querySelector } = layout.card;
+        layout.card.querySelector = (sel) =>
+            sel === '[slot="legal-text"]'
+                ? { textContent: 'Fee applies', innerHTML: 'Fee applies' }
+                : querySelector(sel);
         await layout.adjustLegal();
-        expect(reapply.called, 'applies the override once in place').to.be.true;
-        expect(clone.addEventListener.calledOnce).to.be.true;
-        const [eventName, handler] = clone.addEventListener.firstCall.args;
-        expect(eventName).to.equal(EVENT_TYPE_RESOLVED);
-        // The registered handler is what re-applies on later resolutions.
-        reapply.resetHistory();
-        handler();
-        expect(reapply.calledOnce, 'a re-resolve re-applies it').to.be.true;
+        expect(clone.dataset).to.not.have.property('displayPlanType');
     });
 
-    it('keeps the handler it already registered', async () => {
+    it('keeps a cloned plan type flag without a short description', async () => {
         const { layout, clone } = makeFixture();
-        layout.legalResolvedHandler = () => {};
+        clone.dataset.displayPlanType = 'true';
         await layout.adjustLegal();
-        expect(clone.addEventListener.called).to.be.false;
+        expect(clone.dataset.displayPlanType).to.equal('true');
     });
 
     it('swallows a price that never settles so the rest of the update runs', async () => {
@@ -1256,149 +1256,175 @@ describe('pro whats-included toggle label', () => {
     });
 });
 
-describe('pro short description plan type override', () => {
+describe('pro short description plan type', () => {
     let card;
     afterEach(() => card?.remove());
 
-    // Mimics the legal price markup after it resolves with displayPlanType on.
-    const LEGAL_PRICE =
-        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-        '<span class="price price-legal"><span class="price-plan-type">Annual, billed monthly</span></span>' +
-        '</span></p>';
+    const SHORT_DESCRIPTION =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const legalOptionsFor = (legal) => {
+        const options = {};
+        card.variantLayout.priceOptionsProvider(legal, options);
+        return options;
+    };
 
-    it('replaces the derived plan type wording with the authored text', async () => {
+    it('hands the authored short description to the legal template as the plan type', async () => {
         card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+            '<p slot="heading-m"><span data-template="legal"></span></p>' +
+                `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
+            { settings: { displayPlanType: false } },
         );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
-        // The source element stays in the light DOM (so the override survives
-        // layout re-instantiation) but never projects — the shadow template
-        // has no legal-text slot.
+        expect(options.displayPlanType).to.be.true;
+        expect(options.customPlanTypeLabel).to.equal(SHORT_DESCRIPTION);
+        // The source element stays in the light DOM but never projects — the
+        // shadow template has no legal-text slot.
         expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
             .null;
     });
 
-    it('survives the variantLayout being replaced after first render', async () => {
+    it('keeps the Show Plan type setting without a short description', async () => {
         card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+            '<p slot="heading-m"><span data-template="legal"></span></p>' +
+                '<div slot="legal-text"> </div>',
+            { settings: { displayPlanType: true } },
         );
-        // First instance applies the override...
-        card.variantLayout.adjustShortDescription();
-        // ...then merch-card swaps in a fresh layout and the legal price
-        // re-resolves with the derived wording.
-        card.querySelector('.price-plan-type').textContent =
-            'Annual, billed monthly';
-        const freshLayout = Object.create(Pro.prototype);
-        freshLayout.card = card;
-        freshLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
+        expect(options.displayPlanType).to.be.true;
+        expect(options).to.not.have.property('customPlanTypeLabel');
     });
 
-    it('keeps the derived wording when no short description is authored', async () => {
-        card = await renderCard(LEGAL_PRICE);
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Annual, billed monthly',
-        );
-    });
-
-    it('renders nothing when the plan type line is off (no .price-plan-type)', async () => {
+    it('only overrides the legal price of the price block', async () => {
         card = await renderCard(
-            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-                '<span class="price price-legal"></span></span></p>' +
-                '<div slot="legal-text">Yearly, paid monthly</div>',
+            '<div slot="body-xs"><span data-template="legal"></span></div>' +
+                `<div slot="legal-text">${SHORT_DESCRIPTION}</div>`,
         );
-        card.variantLayout.adjustShortDescription();
-        // No plan type span to override, and the source element itself never
-        // projects into the shadow DOM — the text appears nowhere.
-        expect(card.querySelector('.price-legal').textContent).to.equal('');
-        expect(card.querySelector('[slot="legal-text"]').assignedSlot).to.be
-            .null;
-    });
-
-    it('re-applies the override after the legal price re-resolves', async () => {
-        card = await renderCard(
-            `${LEGAL_PRICE}<div slot="legal-text">Yearly, paid monthly</div>`,
+        const options = legalOptionsFor(
+            card.querySelector('[data-template="legal"]'),
         );
-        card.variantLayout.adjustShortDescription();
-        // A re-resolve regenerates the price markup (derived wording returns).
-        card.querySelector('.price-plan-type').textContent =
-            'Annual, billed monthly';
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-plan-type').textContent).to.equal(
-            'Yearly, paid monthly',
-        );
+        expect(options.displayPlanType).to.be.false;
+        expect(options).to.not.have.property('customPlanTypeLabel');
     });
 });
 
-describe('pro short description tax spacing', () => {
+describe('pro short description rendered by the legal price (MWPW-214359)', () => {
+    const SHORT_DESCRIPTION =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const WCS_PLAN_TYPE = 'Annual, billed monthly';
+    let originalFetch;
     let card;
-    afterEach(() => card?.remove());
+    let written;
+    let observer;
 
-    // Legal price as it resolves on a VAT card where the plan type comes from
-    // the authored short description: tax label is set, plan-type span is empty,
-    // so the legal template never added its ". " separator (MWPW-198626).
-    const legalWithTax = (taxText) =>
-        '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-        '<span class="price price-legal">' +
-        '<span class="price-unit-type disabled"></span>' +
-        `<span class="price-tax-inclusivity">${taxText}</span>` +
-        '<span class="price-plan-type disabled"></span>' +
-        '</span></span></p>';
+    before(async () => {
+        originalFetch = window.fetch;
+        document.querySelector('mas-commerce-service')?.remove();
+        await mockFetch(withWcs);
+        // en_GB so the legal line carries a tax label to separate.
+        const service = document.createElement('mas-commerce-service');
+        service.setAttribute('locale', 'en_GB');
+        document.head.appendChild(service);
+    });
 
-    it('inserts the ". " separator between the tax label and the injected plan type', async () => {
-        card = await renderCard(
-            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
-        );
-        card.variantLayout.adjustShortDescription();
-        // Matches the template's WCS path ("incl. VAT. Annual…") so injected and
-        // WCS-sourced plan types read identically.
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT. Annual, billed monthly',
+    after(() => {
+        window.fetch = originalFetch;
+        document.querySelector('mas-commerce-service')?.remove();
+        document.head.appendChild(
+            document.createElement('mas-commerce-service'),
         );
     });
 
-    it('does not double the separator when the tax label already ends in space', async () => {
-        card = await renderCard(
-            `${legalWithTax('incl. VAT. ')}<div slot="legal-text">Annual, billed monthly</div>`,
-        );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'incl. VAT. Annual, billed monthly',
-        );
+    afterEach(() => {
+        observer?.disconnect();
+        card?.remove();
     });
 
-    it('adds no separator when there is no tax label (e.g. en-US)', async () => {
-        const noTax =
-            '<p slot="heading-m"><span is="inline-price" data-template="legal">' +
-            '<span class="price price-legal">' +
-            '<span class="price-unit-type disabled"></span>' +
-            '<span class="price-tax-inclusivity disabled"></span>' +
-            '<span class="price-plan-type disabled"></span>' +
-            '</span></span></p>';
-        card = await renderCard(
-            `${noTax}<div slot="legal-text">Annual, billed monthly</div>`,
+    // Records every node ever written under the card, so a short-lived WCS
+    // plan type is caught even if a later write replaces it.
+    async function renderPricedCard(legalText) {
+        card = document.createElement('merch-card');
+        card.settings = { displayPlanType: true };
+        card.setAttribute('variant', 'pro');
+        const legal = legalText
+            ? `<div slot="legal-text">${legalText}</div>`
+            : '';
+        card.innerHTML = `<p slot="heading-m"><span is="inline-price" data-template="price" data-wcs-osi="abm-mult" data-display-tax="true"></span></p>${legal}`;
+        written = [];
+        observer = new MutationObserver((records) => {
+            for (const { addedNodes } of records) {
+                for (const node of addedNodes) written.push(node.textContent);
+            }
+        });
+        observer.observe(card, { childList: true, subtree: true });
+        document.body.appendChild(card);
+        return settledLegal();
+    }
+
+    async function settledLegal() {
+        let legal;
+        for (let i = 0; i < 100 && !legal; i++) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            legal = card.querySelector(
+                '[slot="heading-m"] [data-template="legal"]',
+            );
+        }
+        await legal.onceSettled();
+        return legal;
+    }
+
+    const expectAuthoredLegal = (legal) => {
+        expect(legal.querySelectorAll('.price-plan-type').length).to.equal(1);
+        expect(legal.querySelector('.price-plan-type').innerHTML).to.equal(
+            SHORT_DESCRIPTION,
         );
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'Annual, billed monthly',
-        );
+        expect(
+            legal.querySelector('.price-plan-type .icon-button').dataset
+                .tooltip,
+        ).to.equal('Details');
+        const tax = legal.querySelector(
+            '.price-tax-inclusivity:not(.disabled)',
+        ).textContent;
+        expect(tax).to.match(/\. $/);
+        expect(legal.textContent.match(/Fee applies/g)).to.have.length(1);
+        expect(written.join('|')).to.not.include(WCS_PLAN_TYPE);
+    };
+
+    it('renders the short description in the first legal render', async () => {
+        expectAuthoredLegal(await renderPricedCard(SHORT_DESCRIPTION));
     });
 
-    it('stays idempotent across repeated re-resolves (no accumulating spaces)', async () => {
-        card = await renderCard(
-            `${legalWithTax('excl. VAT')}<div slot="legal-text">Annual, billed monthly</div>`,
+    it('keeps it through a forced re-render of the legal price', async () => {
+        const legal = await renderPricedCard(SHORT_DESCRIPTION);
+        legal.requestUpdate(true);
+        await legal.onceSettled();
+        expectAuthoredLegal(legal);
+    });
+
+    it('keeps it when the rendered card is moved in the DOM', async () => {
+        // Milo's tabs and merch-card-collection re-attach rendered cards,
+        // which re-renders every price in them.
+        const legal = await renderPricedCard(SHORT_DESCRIPTION);
+        const host = document.createElement('div');
+        document.body.append(host);
+        const reRendered = new Promise((resolve) =>
+            legal.addEventListener(EVENT_TYPE_RESOLVED, resolve, {
+                once: true,
+            }),
         );
-        card.variantLayout.adjustShortDescription();
-        card.variantLayout.adjustShortDescription();
-        card.variantLayout.adjustShortDescription();
-        expect(card.querySelector('.price-legal').textContent).to.equal(
-            'excl. VAT. Annual, billed monthly',
+        host.append(card);
+        await reRendered;
+        expectAuthoredLegal(legal);
+        host.remove();
+    });
+
+    it('keeps the WCS plan type for cards without a short description', async () => {
+        const legal = await renderPricedCard();
+        expect(legal.querySelector('.price-plan-type').textContent).to.equal(
+            WCS_PLAN_TYPE,
         );
     });
 });

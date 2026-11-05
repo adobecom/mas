@@ -86,12 +86,12 @@ function parseArgs(args) {
     const parsedParams = { ...defaultParams };
 
     args.forEach((arg) => {
-        if (arg.includes('=')) {
-            const [key, value] = arg.split('=');
-            parsedParams[key] = value;
-        } else if (arg.startsWith('-g') || arg.startsWith('--g')) {
+        if (arg.startsWith('-g') || arg.startsWith('--g')) {
             const value = arg.includes('=') ? arg.split('=')[1] : args[args.indexOf(arg) + 1];
             parsedParams.tag = value;
+        } else if (arg.includes('=')) {
+            const [key, value] = arg.split('=');
+            parsedParams[key] = value;
         } else if (arg.startsWith('@')) {
             parsedParams.tag += parsedParams.tag ? ` ${arg.substring(1)}` : arg.substring(1);
         } else if (arg.endsWith('.test.js')) {

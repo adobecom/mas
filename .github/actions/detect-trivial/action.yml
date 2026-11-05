@@ -1,9 +1,9 @@
 name: Detect trivial PR
 description: >
     Checks whether a PR only touches trivial paths (docs, .github/, .claude/,
-    gitignore/gitattributes). Changes to the Nala gate (run-nala.yml,
-    this action) are never trivial. Requires the repo to already be checked out with
-    fetch-depth: 0.
+    gitignore/gitattributes). Changes to the Nala gate (run-nala.yml, this
+    action, resolve-nala-status) are never trivial. Requires the repo to already
+    be checked out with fetch-depth: 0.
 
 inputs:
     base-ref:
@@ -26,7 +26,7 @@ runs:
           run: |
               TRIVIAL_PATTERN='^(\.github/|\.claude/|\.gitignore$|\.gitattributes$|(.*/)?[Rr][Ee][Aa][Dd][Mm][Ee]\.md$|cfmodels/)'
               # Changes to the Nala gate itself must run Nala, even though they live under .github/
-              GATE_PATTERN='^\.github/(workflows/run-nala\.yml$|actions/detect-trivial/)'
+              GATE_PATTERN='^\.github/(workflows/run-nala\.yml$|actions/(detect-trivial|resolve-nala-status)/)'
               git fetch origin "${BASE_REF}"
               CHANGED=$(git diff --name-only "origin/${BASE_REF}...HEAD")
               if [ -z "$CHANGED" ]; then

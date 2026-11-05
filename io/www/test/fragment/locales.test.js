@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { DEFAULT_LOCALES as STUDIO_DEFAULT_LOCALES } from '../../../studio/src/locales.js';
 import {
     getLocaleCode,
     getLocaleByCode,
@@ -16,11 +17,96 @@ import {
     geoCacheKey,
     resolveTerritoryCountries,
     restrictCountryToLocaleMarket,
+    resolveCommerceCountries,
     PLACEHOLDERS_BASELINE_SURFACE,
     getPlaceholdersRegionLocale,
 } from '../../src/fragment/locales.js';
 
 describe('locales', function () {
+    describe('Lingo Phase 5 ACOM markets', function () {
+        const markets = [
+            ['ar', 'SA', ['DZ', 'BH', 'IQ', 'JO', 'LB', 'MA', 'OM']],
+            ['el', 'GR', ['CY']],
+            ['en', 'US', ['BS', 'BD', 'BB', 'HR', 'IS', 'JM', 'MT', 'NP', 'PK', 'RS', 'LK', 'TT']],
+            ['es', 'ES', ['BO', 'DO', 'SV', 'HN', 'NI', 'PA', 'PY', 'TT', 'US', 'UY', 'VE']],
+            ['fr', 'FR', ['DZ', 'LB', 'MU', 'MA']],
+            ['pt', 'BR', ['MO']],
+            ['ro', 'RO', ['MD']],
+            ['ru', 'RU', ['AM', 'AZ', 'GE', 'KZ', 'KG', 'MD', 'TJ', 'TM', 'UZ']],
+            ['tr', 'TR', ['CY', 'DE']],
+            ['zh', 'TW', ['MO']],
+        ];
+
+        for (const surface of ['acom', 'acom-cc', 'acom-dc', 'acom-edu']) {
+            describe(surface, function () {
+                for (const [lang, defaultCountry, countries] of markets) {
+                    const defaultLocale = `${lang}_${defaultCountry}`;
+                    for (const country of countries) {
+                        const locale = `${lang}_${country}`;
+
+                        it(`registers ${locale} in the ${defaultLocale} family`, function () {
+                            const regions = getRegionLocales(surface, defaultLocale).map(getLocaleCode);
+                            expect(regions).to.include(locale);
+                            expect(getDefaultLocaleCode(surface, locale)).to.equal(defaultLocale);
+                        });
+
+                        it(`uses ${country} for commerce on ${defaultLocale}`, function () {
+                            expect(resolveCommerceCountries(surface, defaultLocale, country)).to.deep.equal({
+                                country,
+                                wcsCountry: country,
+                            });
+                        });
+
+                        it(`selects the ${locale} placeholder overlay`, function () {
+                            expect(getPlaceholdersRegionLocale(surface, defaultLocale, country, defaultLocale)).to.equal(
+                                locale,
+                            );
+                        });
+                    }
+                }
+
+                it('keeps Studio and backend locale mappings aligned', function () {
+                    expect(getDefaultLocales(surface)).to.deep.equal(STUDIO_DEFAULT_LOCALES[surface]);
+                });
+            });
+        }
+
+        const countries = [
+            ['BB', 'Barbados', '🇧🇧'],
+            ['BD', 'Bangladesh', '🇧🇩'],
+            ['BO', 'Bolivia', '🇧🇴'],
+            ['BS', 'Bahamas', '🇧🇸'],
+            ['CY', 'Cyprus', '🇨🇾'],
+            ['HN', 'Honduras', '🇭🇳'],
+            ['HR', 'Croatia', '🇭🇷'],
+            ['IS', 'Iceland', '🇮🇸'],
+            ['JM', 'Jamaica', '🇯🇲'],
+            ['LK', 'Sri Lanka', '🇱🇰'],
+            ['MO', 'Macau', '🇲🇴'],
+            ['MT', 'Malta', '🇲🇹'],
+            ['NI', 'Nicaragua', '🇳🇮'],
+            ['NP', 'Nepal', '🇳🇵'],
+            ['PA', 'Panama', '🇵🇦'],
+            ['PK', 'Pakistan', '🇵🇰'],
+            ['PY', 'Paraguay', '🇵🇾'],
+            ['RS', 'Serbia', '🇷🇸'],
+            ['SV', 'El Salvador', '🇸🇻'],
+            ['TT', 'Trinidad and Tobago', '🇹🇹'],
+            ['UY', 'Uruguay', '🇺🇾'],
+            ['VE', 'Venezuela', '🇻🇪'],
+        ];
+
+        for (const [country, name, flag] of countries) {
+            it(`displays the country name for ${country}`, function () {
+                expect(getCountryName(country)).to.equal(name);
+            });
+
+            it(`displays the country flag for ${country}`, function () {
+                expect(getCountryFlag(country)).to.equal(flag);
+            });
+        }
+    });
+
     describe('placeholder resolution helpers', function () {
         it('PLACEHOLDERS_BASELINE_SURFACE is acom', function () {
             expect(PLACEHOLDERS_BASELINE_SURFACE).to.equal('acom');
@@ -227,7 +313,7 @@ describe('locales', function () {
         it('should return region locales for a non default locale', function () {
             const result = getRegionLocales('acom', 'fr_LU', false);
             expect(result).to.be.an('array');
-            expect(result.length).to.be.equal(4);
+            expect(result.length).to.be.equal(8);
         });
 
         it('should return empty array if no regions', function () {
@@ -290,8 +376,8 @@ describe('locales', function () {
 
     describe('Chinese locales (HK as region under zh_TW)', function () {
         const allSurfacesWithZh = ['acom', 'sandbox', 'nala', 'ccd', 'express', 'adobe-home', 'commerce'];
-        const surfacesWithHKRegion = ['acom', 'sandbox', 'nala'];
-        const surfacesWithoutHKRegion = ['ccd', 'express', 'adobe-home', 'commerce'];
+        const surfacesWithHKRegion = ['acom', 'sandbox', 'nala', 'ccd', 'adobe-home'];
+        const surfacesWithoutHKRegion = ['express', 'commerce'];
 
         it('should not have zh_HK as a standalone default locale', function () {
             for (const surface of allSurfacesWithZh) {
@@ -301,7 +387,7 @@ describe('locales', function () {
             }
         });
 
-        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW only for acom/sandbox/nala', function () {
+        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW only for acom/sandbox/nala/ccd/adobe-home', function () {
             for (const surface of allSurfacesWithZh) {
                 const defaults = getDefaultLocales(surface);
                 const zhRows = defaults.filter((locale) => locale.lang === 'zh');
@@ -319,7 +405,7 @@ describe('locales', function () {
             }
         });
 
-        it('should expose zh_HK via getSurfaceLocales as a regional variant only for acom/sandbox/nala', function () {
+        it('should expose zh_HK via getSurfaceLocales as a regional variant only for acom/sandbox/nala/ccd/adobe-home', function () {
             for (const surface of surfacesWithHKRegion) {
                 const surfaceLocales = getSurfaceLocales(surface);
                 const codes = surfaceLocales.map((locale) => getLocaleCode(locale));
@@ -342,20 +428,45 @@ describe('locales', function () {
             }
         });
 
-        it('should list HK under getRegionLocales for zh_TW only for acom/sandbox/nala', function () {
+        it('should list HK and MO under getRegionLocales for zh_TW only for surfaces with an HK region', function () {
             const regionsOnly = getRegionLocales('sandbox', 'zh_TW', false);
-            expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK']);
+            expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_MO']);
             const withDefault = getRegionLocales('sandbox', 'zh_TW', true);
-            expect(withDefault.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_TW']);
+            expect(withDefault.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
             for (const surface of surfacesWithoutHKRegion) {
                 const result = getRegionLocales(surface, 'zh_TW', false);
                 expect(result.length, surface).to.equal(0);
             }
         });
 
-        it('should map zh_HK to zh_TW for acom/sandbox/nala', function () {
+        it('should map zh_HK to zh_TW for surfaces with an HK region', function () {
             for (const surface of surfacesWithHKRegion) {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_TW');
+            }
+        });
+
+        it('should add only HK (not MO) to zh_TW regions on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK']);
+                const regionsOnly = getRegionLocales(surface, 'zh_TW', false).map((l) => getLocaleCode(l));
+                expect(regionsOnly, surface).to.deep.equal(['zh_HK']);
+                const withDefault = getRegionLocales(surface, 'zh_TW', true).map((l) => getLocaleCode(l));
+                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_TW']);
+            }
+        });
+
+        it('should no longer resolve zh_HK to zh_CN on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.not.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_TW'), surface).to.equal('zh_TW');
+                expect(getDefaultLocaleCode(surface, 'zh_CN'), surface).to.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_CN');
+            }
+        });
+
+        it('should keep zh_HK resolving to zh_CN on express and commerce', function () {
+            for (const surface of surfacesWithoutHKRegion) {
+                expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_CN');
             }
         });
     });
@@ -500,6 +611,40 @@ describe('locales', function () {
         });
         it('does not throw on undefined locale', () => {
             expect(restrictCountryToLocaleMarket('acom', undefined, 'US')).to.equal('US');
+        });
+    });
+
+    describe('resolveCommerceCountries', () => {
+        // The pipeline splits territories at ingress (resolveTerritoryCountries in pipeline.js) before
+        // fetchFragment calls this, so an es_PR request already reaches it as PR; re-applying the split
+        // here is idempotent and lets the agent, which has no ingress step, share the same chain.
+        for (const [label, locale, country, expected] of [
+            ['es_PR without a country', 'es_PR', undefined, { country: 'PR', wcsCountry: 'US' }],
+            ['es_PR with US', 'es_PR', 'US', { country: 'PR', wcsCountry: 'US' }],
+            ['es_PR after the pipeline ingress split', 'es_PR', 'PR', { country: 'PR', wcsCountry: 'US' }],
+            ['en_GB with a country outside its market', 'en_GB', 'FR', { country: 'GB', wcsCountry: 'GB' }],
+            ['en_GB with a registered region', 'en_GB', 'AU', { country: 'AU', wcsCountry: 'AU' }],
+            ['a non-territory locale with its own country', 'fr_FR', 'FR', { country: 'FR', wcsCountry: 'FR' }],
+            ['a non-territory locale without a country', 'fr_FR', undefined, { country: undefined, wcsCountry: undefined }],
+        ]) {
+            it(`resolves ${label}`, () => {
+                expect(resolveCommerceCountries('acom', locale, country)).to.deep.equal(expected);
+            });
+        }
+
+        it('matches the pipeline ingress split followed by the previous fetchFragment chain', () => {
+            for (const [locale, country] of [
+                ['es_PR', undefined],
+                ['es_PR', 'US'],
+                ['en_GB', 'FR'],
+                ['fr_FR', 'DE'],
+                ['en_US', 'FR'],
+            ]) {
+                const ingress = resolveTerritoryCountries(locale, country).country;
+                const fixedCountry = restrictCountryToLocaleMarket('acom', locale, ingress);
+                const { wcsCountry } = resolveTerritoryCountries(locale, fixedCountry);
+                expect(resolveCommerceCountries('acom', locale, ingress)).to.deep.equal({ country: fixedCountry, wcsCountry });
+            }
         });
     });
 });

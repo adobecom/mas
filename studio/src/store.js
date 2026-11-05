@@ -10,6 +10,7 @@ import { EditorContextStore } from './reactivity/editor-context-store.js';
 import { SettingsStore } from './settings/settings-store.js';
 import { OfferMappingStore } from './offer-mapping/offer-mapping-store.js';
 import { MasksStore } from './masks/masks-store.js';
+import { VARIATION_FILTER, VARIATION_FILTER_OPTIONS } from './fragments/variation-filter.js';
 
 let editorContextInstance = null;
 
@@ -80,6 +81,9 @@ const Store = {
     selection: new ReactiveStore([]),
     page: new ReactiveStore(PAGE_NAMES.WELCOME, pageValidator),
     landscape: new ReactiveStore(WCS_LANDSCAPE_PUBLISHED, landscapeValidator),
+    productCatalog: {
+        search: new ReactiveStore(''),
+    },
     placeholders: {
         search: new ReactiveStore(''),
         list: {
@@ -104,6 +108,9 @@ const Store = {
     confirmDialogOptions: new ReactiveStore(null),
     showCloneDialog: new ReactiveStore(false),
     preview: new ReactiveStore(null, previewValidator),
+    productDetail: {
+        arrangementCode: new ReactiveStore(null),
+    },
     version: {
         fragmentId: new ReactiveStore(null),
     },
@@ -217,6 +224,14 @@ const Store = {
         showSelected: new ReactiveStore(false),
         projectType: new ReactiveStore(null),
     },
+    bulkEditProjects: {
+        list: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        inEdit: new ReactiveStore(null),
+        projectId: new ReactiveStore(null),
+    },
     bulkPublishProjects: {
         list: {
             data: new ReactiveStore([]),
@@ -251,6 +266,29 @@ const Store = {
     compareChart: {
         // Local search/filters for the editor's item picker, kept off the router
         // hash so the picker never dirties the URL.
+        search: new ReactiveStore({}),
+        filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
+        inEdit: new ReactiveStore(null),
+        allCards: new ReactiveStore([]),
+        cardsByPaths: new ReactiveStore(new Map()),
+        displayCards: new ReactiveStore([]),
+        selectedCards: new ReactiveStore([]),
+        offerDataCache: new Map(),
+        groupedVariationsByParent: new ReactiveStore(new Map()),
+        groupedVariationsData: new ReactiveStore(new Map()),
+        allCollections: new ReactiveStore([]),
+        collectionsByPaths: new ReactiveStore(new Map()),
+        displayCollections: new ReactiveStore([]),
+        selectedCollections: new ReactiveStore([]),
+        allPlaceholders: new ReactiveStore([]),
+        placeholdersByPaths: new ReactiveStore(new Map()),
+        displayPlaceholders: new ReactiveStore([]),
+        selectedPlaceholders: new ReactiveStore([]),
+        showSelected: new ReactiveStore(false),
+    },
+    // Local search/filters for merch-card-collection-editor's "Selected fragments" cards picker,
+    // kept off the router hash so the picker never dirties the URL.
+    collectionCards: {
         search: new ReactiveStore({}),
         filters: new ReactiveStore({ locale: 'en_US' }, filtersValidator),
         inEdit: new ReactiveStore(null),
@@ -306,6 +344,13 @@ function filtersValidator(value) {
         const cleaned = list.map((entry) => String(entry).trim().toUpperCase()).filter((entry) => validStatuses.has(entry));
         value.status = cleaned.length > 0 ? cleaned.join(',') : undefined;
     }
+
+    const variations = value.variation?.split(',') ?? [];
+    value.variation = variations.includes(VARIATION_FILTER.NONE)
+        ? VARIATION_FILTER.NONE
+        : VARIATION_FILTER_OPTIONS.filter((option) => variations.includes(option.id))
+              .map((option) => option.id)
+              .join(',') || undefined;
     return value;
 }
 
@@ -326,12 +371,18 @@ function pageValidator(value) {
         PAGE_NAMES.PROMOTIONS_EDITOR,
         PAGE_NAMES.TRANSLATIONS,
         PAGE_NAMES.TRANSLATION_EDITOR,
+        PAGE_NAMES.AI_ASSISTANT,
+        PAGE_NAMES.PRODUCT_CATALOG,
+        PAGE_NAMES.PRODUCT_DETAIL,
         PAGE_NAMES.BULK_PUBLISH,
         PAGE_NAMES.BULK_PUBLISH_EDITOR,
+        PAGE_NAMES.BULK_EDIT,
+        PAGE_NAMES.BULK_EDIT_EDITOR,
         PAGE_NAMES.ADVANCED_TOOLS,
         PAGE_NAMES.MASKS,
         PAGE_NAMES.MASKS_EDITOR,
         PAGE_NAMES.OFFER_MAPPING,
+        PAGE_NAMES.BASELINES,
     ];
     return validPages.includes(value) ? value : PAGE_NAMES.WELCOME;
 }
@@ -378,27 +429,6 @@ export function toggleSelection(id) {
     const selection = Store.selection.get();
     if (selection.includes(id)) Store.selection.set(selection.filter((selectedId) => selectedId !== id));
     else Store.selection.set([...selection, id]);
-}
-
-/**
- * Edit a fragment in the editor panel
- */
-export function editFragment(store, x = 0) {
-    const fragmentId = store.get().id;
-    const fragmentPath = store.get().path;
-    const storeFragments = Store.fragments.list.data.get();
-    const defaultInStore = storeFragments.includes(store);
-    const variationInStore = storeFragments.find((s) =>
-        s.get().references?.find((r) => r.id === fragmentId || (fragmentPath && r.path === fragmentPath)),
-    );
-    if (!defaultInStore && !variationInStore) {
-        Store.fragments.list.data.set((prev) => [store, ...prev]);
-    }
-    editorPanel()?.editFragment(store, x);
-}
-
-function editorPanel() {
-    return document.querySelector('editor-panel');
 }
 
 export default Store;

@@ -1,8 +1,10 @@
-import { test, expect, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
+import { test, expect, studio, editor, miloLibs, setTestPage } from '../../../libs/mas-test.js';
 import MerchCardEditorSpec from '../specs/merch-card-editor.spec.js';
 import MerchCardEditorPage from '../merch-card-editor.page.js';
 
 const { features } = MerchCardEditorSpec;
+
+test.use({ reuseEditor: true });
 
 test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', () => {
     let merchCardEditor;
@@ -18,7 +20,7 @@ test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', ()
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -38,14 +40,14 @@ test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', ()
         });
     });
 
-    // @studio-merch-card-editor-loc-ready-metadata-toggle — verify the metadata-section loc-ready toggle still renders and toggling persists locReady
+    // @studio-merch-card-editor-loc-ready-metadata-toggle — verify the "Send to translation?" toggle is removed from the editor
     test(`${features[1].name},${features[1].tags}`, async ({ page, baseURL }) => {
         const { data } = features[1];
         const testPage = `${baseURL}${features[1].path}${miloLibs}${features[1].browserParams}${data.cardid}`;
         setTestPage(testPage);
 
         await test.step('step-1: Go to MAS Studio fragment editor page', async () => {
-            await page.goto(testPage);
+            await studio.openPage(testPage);
             await page.waitForLoadState('domcontentloaded');
         });
 
@@ -54,17 +56,11 @@ test.describe('M@S Studio Merch Card Editor — Loc Ready toggle test suite', ()
             await expect(editor.variant).toBeVisible();
         });
 
-        await test.step('step-3: Verify metadata-section loc-ready toggle is rendered (AC-2)', async () => {
+        await test.step('step-3: Verify the loc-ready toggle is removed from the editor', async () => {
             await expect(merchCardEditor.editorPanel).toHaveCount(1);
-            await expect(merchCardEditor.metadataLocReadyLabel).toBeVisible();
-            await expect(merchCardEditor.metadataLocReadySwitch).toBeVisible();
-        });
-
-        await test.step('step-4: Toggle the metadata-section loc-ready switch and verify checked state flipped (AC-3)', async () => {
-            const before = await merchCardEditor.metadataLocReadySwitch.evaluate((el) => el.checked);
-            await merchCardEditor.metadataLocReadySwitch.click();
-            const after = await merchCardEditor.metadataLocReadySwitch.evaluate((el) => el.checked);
-            expect(after).toBe(!before);
+            await expect(merchCardEditor.metadataLocReadyLabel).toHaveCount(0);
+            await expect(merchCardEditor.metadataLocReadySwitch).toHaveCount(0);
+            await expect(merchCardEditor.merchCardEditor.getByText('Send to translation?')).toHaveCount(0);
         });
     });
 });

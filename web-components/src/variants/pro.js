@@ -10,8 +10,11 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { MOBILE_LANDSCAPE, TABLET_UP, C2_DESKTOP_UP } from '../media.js';
+import { createMasElement } from '../mas-element.js';
+import { Log } from '../log.js';
 
 const VARIANT = 'pro';
+const log = Log.module('merch-card/pro');
 // syncHeights publishes these properties and the shadow styles consume them; the
 // single definition keeps producer and consumer from diverging.
 const TOP_CARD_HEIGHT_PROP = `--consonant-merch-card-${VARIANT}-top-card-height`;
@@ -33,6 +36,19 @@ const STRIKE_RESERVE_PROP = `--consonant-merch-card-${VARIANT}-strike-reserve`;
 const STRIKE_SELECTOR =
     '[slot="heading-m"] :is(.price-strikethrough, .price-promo-strikethrough, [data-template="strikethrough"])';
 const SYNC_MIN_WIDTH = '(min-width: 768px)';
+// Both forms `replace` can leave behind: the bare key (key missing) or the raw token (no dictionary).
+const UNRESOLVED_TOGGLE_LABELS = [
+    'see-whats-included',
+    '{{see-whats-included}}',
+];
+
+// A hidden CTA has no box, so only visible ones count as wrapped.
+const hasWrappedCtas = (card) =>
+    new Set(
+        [...card.querySelectorAll('[slot="footer"] a, [slot="footer"] button')]
+            .filter((cta) => cta.getClientRects().length)
+            .map((cta) => Math.round(cta.getBoundingClientRect().top)),
+    ).size > 1;
 
 export const PRO_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },
@@ -81,7 +97,10 @@ export class Pro extends VariantLayout {
     licenseHighlightedIndex = 0;
     #licenseDocListenerBound = null;
     #sizeObserver = null;
-    #onPriceResolved = () => this.resyncOnReflow();
+    #onPriceResolved = () => {
+        this.adjustLegal();
+        this.resyncOnReflow();
+    };
     lastSyncKey = null;
 
     constructor(card) {
@@ -103,19 +122,27 @@ export class Pro extends VariantLayout {
         options.displayPlanType = this.card?.settings?.displayPlanType ?? false;
     }
 
-    // Clones the main price into a legal-template sibling (as plans/plans-v2) so
-    // tax/plan-type render on the clone, off the main price.
+    // Creates a legal-template sibling so tax/plan-type render off the main price.
     async adjustLegal() {
         if (this.legalAdjusted) return;
         try {
-            this.legalAdjusted = true;
             await this.card.updateComplete;
             await customElements.whenDefined('inline-price');
             const headingPrice = this.mainPrice;
             if (!headingPrice) return;
-            const legal = headingPrice.cloneNode(true);
             await headingPrice.onceSettled();
-            if (!headingPrice?.options) return;
+            if (
+                !headingPrice.options ||
+                this.legalAdjusted ||
+                this.mainPrice !== headingPrice
+            )
+                return;
+            // Use the registered constructor: importing inline-price here can register it before Safari's polyfill.
+            const legal = createMasElement(customElements.get('inline-price'));
+            for (const { name, value } of headingPrice.attributes) {
+                legal.setAttribute(name, value);
+            }
+            legal.innerHTML = headingPrice.innerHTML;
             // Per-unit stays on the pricing line (unlike plans); only tax and
             // plan type move to the legal clone, which drops per-unit.
             if (headingPrice.options.displayTax)
@@ -124,11 +151,6 @@ export class Pro extends VariantLayout {
                 headingPrice.dataset.displayPlanType = 'false';
             legal.setAttribute('data-template', 'legal');
             legal.dataset.displayPerUnit = 'false';
-            headingPrice.parentNode.insertBefore(
-                legal,
-                headingPrice.nextSibling,
-            );
-            await legal.onceSettled();
             // Re-apply the override whenever the legal price re-resolves.
             if (!this.legalResolvedHandler) {
                 this.legalResolvedHandler = () => this.adjustShortDescription();
@@ -137,9 +159,17 @@ export class Pro extends VariantLayout {
                     this.legalResolvedHandler,
                 );
             }
+            headingPrice.parentNode.insertBefore(
+                legal,
+                headingPrice.nextSibling,
+            );
+            this.legalAdjusted = true;
+            await legal.onceSettled();
             this.adjustShortDescription();
-        } catch {
-            // Proceed with the other post-update adjustments
+        } catch (error) {
+            log.error(`Failed to initialize legal price: ${error.message}`, {
+                cardId: this.card.id,
+            });
         }
     }
 
@@ -176,12 +206,14 @@ export class Pro extends VariantLayout {
     }
 
     get whatsIncludedToggleLabel() {
-        // Authored as a leading <p class="whats-included-label">; English
-        // fallback covers fragments authored before the label existed.
+        const authored = this.card
+            .querySelector('[slot="whats-included"] .whats-included-label')
+            ?.textContent.trim();
+        const localized = this.card.placeholders?.whatsIncludedToggleLabel;
         return (
-            this.card
-                .querySelector('[slot="whats-included"] .whats-included-label')
-                ?.textContent.trim() || "See what's included:"
+            authored ||
+            (!UNRESOLVED_TOGGLE_LABELS.includes(localized) && localized) ||
+            ''
         );
     }
 
@@ -257,8 +289,9 @@ export class Pro extends VariantLayout {
     }
 
     // pro/edu only: the authored whats-included leading paragraph is the panel
-    // title; promote it and inject the server-resolved (already localized)
-    // sub-label + disclaimer strings published on the card's `placeholders` map
+    // title, styled big but promotional copy rather than a heading. Restyle it
+    // and inject the server-resolved (already localized) "What's included"
+    // heading + disclaimer strings published on the card's `placeholders` map
     // (settings.js -> replace transformer -> here). Idempotent via the
     // `.whats-included-title` guard so re-renders don't double-apply.
     adjustEduWhatsIncluded() {
@@ -267,23 +300,27 @@ export class Pro extends VariantLayout {
         if (!slot || slot.querySelector('.whats-included-title')) return;
         const authoredTitle = slot.querySelector('.whats-included-label');
         if (!authoredTitle) return;
-        const title = document.createElement('h4');
+        const title = document.createElement('p');
         title.className = 'whats-included-title';
         title.innerHTML = authoredTitle.innerHTML;
         authoredTitle.replaceWith(title);
         const { whatsIncludedLabel, eduDisclaimer } =
             this.card.placeholders ?? {};
-        const label = document.createElement('p');
+        // A blank label stays a paragraph so the panel never gets an empty
+        // heading.
+        const label = document.createElement(
+            whatsIncludedLabel?.trim() ? 'h4' : 'p',
+        );
         label.className = 'whats-included-label';
         label.textContent = whatsIncludedLabel ?? '';
         title.after(label);
-        slot.querySelectorAll('.section h4:not(.whats-included-title)').forEach(
-            (h4) => {
-                const row = document.createElement('p');
-                row.innerHTML = h4.innerHTML;
-                h4.replaceWith(row);
-            },
-        );
+        // :scope keeps page wrappers (Milo's div.section) from matching the
+        // label above.
+        slot.querySelectorAll(':scope .section h4').forEach((h4) => {
+            const row = document.createElement('p');
+            row.innerHTML = h4.innerHTML;
+            h4.replaceWith(row);
+        });
         if (eduDisclaimer) {
             const disclaimer = document.createElement('div');
             disclaimer.className = 'whats-included-disclaimer';
@@ -359,6 +396,9 @@ export class Pro extends VariantLayout {
             row.forEach((card) => this.clearSyncedHeights(card));
             // A lone card has nothing to match, so it keeps its natural height.
             if (row.length < 2) continue;
+            // A wrapped CTA stacks every card in the row so the buttons line up.
+            const stack = row.some(hasWrappedCtas);
+            row.forEach((card) => card.toggleAttribute('stacked', stack));
             // Reserve first — it grows the price block everything below measures.
             // A per-card shortfall covers short, wrapped and missing strikes alike.
             const strikes = row.map((card) =>
@@ -397,6 +437,7 @@ export class Pro extends VariantLayout {
     }
 
     clearSyncedHeights(card) {
+        card.removeAttribute('stacked');
         card.style.removeProperty(TOP_CARD_HEIGHT_PROP);
         card.style.removeProperty(STRIKE_RESERVE_PROP);
         SYNCED_BANDS.forEach((band) => card.style.removeProperty(band.prop));
@@ -500,7 +541,10 @@ export class Pro extends VariantLayout {
     // placeholders, resolved per locale). No "|" → unchanged for every quantity;
     // pluralization is never derived in code (appending "s" breaks most locales).
     licenseLabel(count) {
-        const title = this.quantitySelectEl?.getAttribute('title') || 'License';
+        const title =
+            this.quantitySelectEl?.getAttribute('title') ||
+            this.card.placeholders?.licenseLabel ||
+            '';
         const [singular, plural] = title.split('|').map((s) => s.trim());
         return Number(count) === 1 ? singular : plural || singular;
     }
@@ -686,15 +730,26 @@ export class Pro extends VariantLayout {
         const current = this.currentLicenseValue;
         const open = !!this.licenseOpen;
         const label = this.licenseLabel(Number(current));
+        // The card title tells each card's dropdown apart. The title lives in
+        // light DOM, so a hidden copy in this shadow root is what gets referenced.
+        const product = this.card.title;
+        const labelledBy = product
+            ? 'license-select-product license-select-label'
+            : 'license-select-label';
         return html`
             <div class="license-select" ?data-open=${open}>
+                ${product
+                    ? html`<span id="license-select-product" hidden
+                          >${product}</span
+                      >`
+                    : nothing}
                 <div
                     class="license-select-trigger"
                     role="combobox"
                     tabindex="0"
                     aria-expanded=${open ? 'true' : 'false'}
                     aria-controls="license-popover"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-activedescendant=${open
                         ? `license-option-${this.licenseHighlightedIndex}`
                         : nothing}
@@ -718,7 +773,7 @@ export class Pro extends VariantLayout {
                     id="license-popover"
                     class="license-select-popover"
                     role="listbox"
-                    aria-labelledby="license-select-label"
+                    aria-labelledby=${labelledBy}
                     aria-multiselectable="false"
                     tabindex="-1"
                     ?hidden=${!open}
@@ -867,6 +922,10 @@ export class Pro extends VariantLayout {
                 --consonant-merch-card-pro-bg-subtle,
                 #f8f8f8
             );
+            /* selected license option: S2A blue-900 with white text, 4.8:1
+               against both the option and the text (3.9:1 on the dark popover) */
+            --consonant-merch-card-pro-control-selected-bg: #3b63fb;
+            --consonant-merch-card-pro-control-selected-text: #fff;
             --secure-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='currentColor'%3E%3Cpath d='M9 9.2C9 8.64844 8.55156 8.2 8 8.2C7.44844 8.2 7 8.64844 7 9.2C7 9.52207 7.16289 9.7959 7.4 9.9789V10.6C7.4 10.9312 7.66875 11.2 8 11.2C8.33125 11.2 8.6 10.9312 8.6 10.6V9.9789C8.83711 9.7959 9 9.52207 9 9.2Z'/%3E%3Cpath d='M12 5.62031V5.2C12 2.99453 10.2055 1.2 8 1.2C5.79453 1.2 4 2.99453 4 5.2V5.62031C3.10274 5.72129 2.4 6.47637 2.4 7.4V12.6C2.4 13.5922 3.20782 14.4 4.2 14.4H11.8C12.7922 14.4 13.6 13.5922 13.6 12.6V7.4C13.6 6.47637 12.8973 5.72129 12 5.62031ZM8 2.4C9.54375 2.4 10.8 3.65625 10.8 5.2V5.6H5.2V5.2C5.2 3.65625 6.45625 2.4 8 2.4ZM12.4 12.6C12.4 12.9305 12.1305 13.2 11.8 13.2H4.2C3.86953 13.2 3.6 12.9305 3.6 12.6V7.4C3.6 7.06953 3.86953 6.8 4.2 6.8H11.8C12.1305 6.8 12.4 7.06953 12.4 7.4V12.6Z'/%3E%3C/svg%3E");
         }
 
@@ -1010,6 +1069,8 @@ export class Pro extends VariantLayout {
 
         :host([variant='pro']) footer ::slotted([slot='footer']) {
             display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
             gap: 8px;
             flex: 1;
         }
@@ -1275,9 +1336,16 @@ export class Pro extends VariantLayout {
         }
 
         :host([variant='pro']) .license-select-option:hover,
-        :host([variant='pro']) .license-select-option.highlighted,
-        :host([variant='pro']) .license-select-option.selected {
+        :host([variant='pro']) .license-select-option.highlighted {
             background: var(--consonant-merch-card-pro-control-hover-bg);
+        }
+
+        /* The selected option has to stand out from the rest at 3:1, not just
+           from the white popover by a shade (WCAG 1.4.11). After :hover so a
+           hovered selected row stays blue. */
+        :host([variant='pro']) .license-select-option.selected {
+            background: var(--consonant-merch-card-pro-control-selected-bg);
+            color: var(--consonant-merch-card-pro-control-selected-text);
         }
 
         /* Focus stays on the trigger, so the highlighted option needs its own
@@ -1285,6 +1353,15 @@ export class Pro extends VariantLayout {
         :host([variant='pro']) .license-select-option.highlighted {
             outline: 2px solid #1473e6;
             outline-offset: -2px;
+        }
+
+        /* The blue ring disappears on the blue selected row, so draw it white
+           and inset it to keep blue on both sides. */
+        :host([variant='pro']) .license-select-option.selected.highlighted {
+            outline-color: var(
+                --consonant-merch-card-pro-control-selected-text
+            );
+            outline-offset: -4px;
         }
 
         :host([variant='pro']) .callout {

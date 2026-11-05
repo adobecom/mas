@@ -1,0 +1,383 @@
+{
+    "ar": {
+        "recurrenceLabel": "/الشهر",
+        "recurrenceAriaLabel": "كل شهر",
+        "perUnitLabel": "لكل ترخيص",
+        "perUnitAriaLabel": "لكل ترخيص",
+        "taxExclusiveLabel": "باستثناء ضريبة",
+        "taxInclusiveLabel": "بالضريبة",
+        "alternativePriceAriaLabel": "أو بدلاً من ذلك بقيمة US$10.00",
+        "strikethroughAriaLabel": "بشكل منتظم بقيمة US$20.00"
+    },
+    "bg": {
+        "recurrenceLabel": "/мес.",
+        "recurrenceAriaLabel": "на месец",
+        "perUnitLabel": "на лиценз",
+        "perUnitAriaLabel": "на лиценз",
+        "taxExclusiveLabel": "без ДДС",
+        "taxInclusiveLabel": "вкл. ДДС",
+        "alternativePriceAriaLabel": "Алтернативно на US$10.00",
+        "strikethroughAriaLabel": "Редовно на US$20.00"
+    },
+    "cs": {
+        "recurrenceLabel": "/měsíc",
+        "recurrenceAriaLabel": "za měsíc",
+        "perUnitLabel": "za licenci",
+        "perUnitAriaLabel": "za licenci",
+        "taxExclusiveLabel": "bez DPH",
+        "taxInclusiveLabel": "včetně DPH",
+        "alternativePriceAriaLabel": "Případně za US$10.00",
+        "strikethroughAriaLabel": "Pravidelně za US$20.00"
+    },
+    "da": {
+        "recurrenceLabel": "/md",
+        "recurrenceAriaLabel": "pr. måned",
+        "perUnitLabel": "pr. licens",
+        "perUnitAriaLabel": "pr. licens",
+        "taxExclusiveLabel": "ekskl. moms",
+        "taxInclusiveLabel": "inkl. moms",
+        "alternativePriceAriaLabel": "Alternativt til US$10.00",
+        "strikethroughAriaLabel": "Normalpris US$20.00"
+    },
+    "de": {
+        "recurrenceLabel": "/Monat",
+        "recurrenceAriaLabel": "pro Monat",
+        "perUnitLabel": "pro Lizenz",
+        "perUnitAriaLabel": "pro Lizenz",
+        "taxExclusiveLabel": "exkl. MwSt.",
+        "taxInclusiveLabel": "inkl. MwSt.",
+        "alternativePriceAriaLabel": "Alternativ: US$10.00",
+        "strikethroughAriaLabel": "Regulär: US$20.00"
+    },
+    "en": {
+        "recurrenceLabel": "/mo",
+        "recurrenceAriaLabel": "per month",
+        "perUnitLabel": "per license",
+        "perUnitAriaLabel": "per license",
+        "taxExclusiveLabel": "excl. VAT",
+        "taxInclusiveLabel": "incl. VAT",
+        "alternativePriceAriaLabel": "Alternatively at US$10.00",
+        "strikethroughAriaLabel": "Regularly at US$20.00"
+    },
+    "et": {
+        "recurrenceLabel": "kuus",
+        "recurrenceAriaLabel": "kuus",
+        "perUnitLabel": "litsentsi kohta",
+        "perUnitAriaLabel": "litsentsi kohta",
+        "taxExclusiveLabel": "käibemaksuta",
+        "taxInclusiveLabel": "käibemaksuga",
+        "alternativePriceAriaLabel": "Teise võimalusena hinnaga US$10.00",
+        "strikethroughAriaLabel": "Tavahind US$20.00"
+    },
+    "fi": {
+        "recurrenceLabel": "/kk",
+        "recurrenceAriaLabel": "kuukausittain",
+        "perUnitLabel": "käyttöoikeutta kohti",
+        "perUnitAriaLabel": "käyttöoikeutta kohti",
+        "taxExclusiveLabel": "ilman ALV:tä",
+        "taxInclusiveLabel": "sis. ALV:n",
+        "alternativePriceAriaLabel": "Vaihtoehtoisesti hintaan US$10.00",
+        "strikethroughAriaLabel": "Säännöllisesti hintaan US$20.00"
+    },
+    "fr": {
+        "recurrenceLabel": "/mois",
+        "recurrenceAriaLabel": "par mois",
+        "perUnitLabel": "par licence",
+        "perUnitAriaLabel": "par licence",
+        "taxExclusiveLabel": "HT",
+        "taxInclusiveLabel": "TTC",
+        "alternativePriceAriaLabel": "Autre prix US$10.00",
+        "strikethroughAriaLabel": "Prix habituel US$20.00"
+    },
+    "he": {
+        "recurrenceLabel": "/חודש",
+        "recurrenceAriaLabel": "לחודש",
+        "perUnitLabel": "לרישיון",
+        "perUnitAriaLabel": "לרישיון",
+        "taxExclusiveLabel": "excl. VAT",
+        "taxInclusiveLabel": "incl. VAT",
+        "alternativePriceAriaLabel": "לחלופין ב-US$10.00",
+        "strikethroughAriaLabel": "באופן קבוע ב-US$20.00"
+    },
+    "hu": {
+        "recurrenceLabel": "/hó",
+        "recurrenceAriaLabel": "havonta",
+        "perUnitLabel": "licencenként",
+        "perUnitAriaLabel": "licencenként",
+        "taxExclusiveLabel": "áfa nélkül",
+        "taxInclusiveLabel": "áfával",
+        "alternativePriceAriaLabel": "Másik lehetőség: US$10.00",
+        "strikethroughAriaLabel": "Általában US$20.00 áron"
+    },
+    "it": {
+        "recurrenceLabel": "/mese",
+        "recurrenceAriaLabel": "al mese",
+        "perUnitLabel": "per licenza",
+        "perUnitAriaLabel": "per licenza",
+        "taxExclusiveLabel": "escl. IVA",
+        "taxInclusiveLabel": "incl. IVA",
+        "alternativePriceAriaLabel": "In alternativa a US$10.00",
+        "strikethroughAriaLabel": "Regolarmente a US$20.00"
+    },
+    "ja": {
+        "recurrenceLabel": "/月",
+        "recurrenceAriaLabel": "毎月",
+        "perUnitLabel": "ライセンスごと",
+        "perUnitAriaLabel": "ライセンスごと",
+        "taxExclusiveLabel": "（VAT 別）",
+        "taxInclusiveLabel": "（VAT 込）",
+        "alternativePriceAriaLabel": "特別価格 : US$10.00",
+        "strikethroughAriaLabel": "通常価格 : US$20.00"
+    },
+    "ko": {
+        "recurrenceLabel": "/월",
+        "recurrenceAriaLabel": "월간",
+        "perUnitLabel": "(라이선스당)",
+        "perUnitAriaLabel": "라이선스당",
+        "taxExclusiveLabel": "(부가세 별도)",
+        "taxInclusiveLabel": "(부가세 포함)",
+        "alternativePriceAriaLabel": "또는 US$10.00에",
+        "strikethroughAriaLabel": "정가 US$20.00"
+    },
+    "lt": {
+        "recurrenceLabel": " per mėn.",
+        "recurrenceAriaLabel": "per mėn.",
+        "perUnitLabel": "už licenciją",
+        "perUnitAriaLabel": "už licenciją",
+        "taxExclusiveLabel": "be PVM",
+        "taxInclusiveLabel": "su PVM",
+        "alternativePriceAriaLabel": "Arba už US$10.00",
+        "strikethroughAriaLabel": "Normaliai už US$20.00"
+    },
+    "lv": {
+        "recurrenceLabel": "mēnesī",
+        "recurrenceAriaLabel": "mēnesī",
+        "perUnitLabel": "vienai licencei",
+        "perUnitAriaLabel": "vienai licencei",
+        "taxExclusiveLabel": "bez PVN",
+        "taxInclusiveLabel": "ar PVN",
+        "alternativePriceAriaLabel": "Alternatīvi par US$10.00",
+        "strikethroughAriaLabel": "Regulāri par US$20.00"
+    },
+    "nb": {
+        "recurrenceLabel": "/mnd.",
+        "recurrenceAriaLabel": "per måned",
+        "perUnitLabel": "per lisens",
+        "perUnitAriaLabel": "per lisens",
+        "taxExclusiveLabel": "uten moms",
+        "taxInclusiveLabel": "inkl. moms",
+        "alternativePriceAriaLabel": "Alternativt til US$10.00",
+        "strikethroughAriaLabel": "Regelmessig til US$20.00"
+    },
+    "nl": {
+        "recurrenceLabel": "/mnd",
+        "recurrenceAriaLabel": "per maand",
+        "perUnitLabel": "per licentie",
+        "perUnitAriaLabel": "per licentie",
+        "taxExclusiveLabel": "excl. btw",
+        "taxInclusiveLabel": "incl. btw",
+        "alternativePriceAriaLabel": "Nu US$10.00",
+        "strikethroughAriaLabel": "Normaal US$20.00"
+    },
+    "pl": {
+        "recurrenceLabel": " / mies.",
+        "recurrenceAriaLabel": " / miesiąc",
+        "perUnitLabel": "za licencję",
+        "perUnitAriaLabel": "za licencję",
+        "taxExclusiveLabel": "bez VAT",
+        "taxInclusiveLabel": "w tym VAT",
+        "alternativePriceAriaLabel": "Lub za US$10.00",
+        "strikethroughAriaLabel": "Cena zwykła: US$20.00"
+    },
+    "pt": {
+        "recurrenceLabel": "/mês",
+        "recurrenceAriaLabel": "por mês",
+        "perUnitLabel": "por licença",
+        "perUnitAriaLabel": "por licença",
+        "taxExclusiveLabel": "IVA não incluso",
+        "taxInclusiveLabel": "IVA incluso",
+        "alternativePriceAriaLabel": "Ou a US$10.00",
+        "strikethroughAriaLabel": "Preço normal: US$20.00"
+    },
+    "ro": {
+        "recurrenceLabel": "/lună",
+        "recurrenceAriaLabel": "pe lună",
+        "perUnitLabel": "pe licență",
+        "perUnitAriaLabel": "pe licență",
+        "taxExclusiveLabel": "fără TVA",
+        "taxInclusiveLabel": "cu TVA",
+        "alternativePriceAriaLabel": "Alternativ, la US$10.00",
+        "strikethroughAriaLabel": "În mod normal, la US$20.00"
+    },
+    "ru": {
+        "recurrenceLabel": "/мес.",
+        "recurrenceAriaLabel": "в месяц",
+        "perUnitLabel": "за лицензию",
+        "perUnitAriaLabel": "за лицензию",
+        "taxExclusiveLabel": "искл. НДС",
+        "taxInclusiveLabel": "вкл. НДС",
+        "alternativePriceAriaLabel": "Альтернативный вариант за US$10.00",
+        "strikethroughAriaLabel": "Регулярно по цене US$20.00"
+    },
+    "sk": {
+        "recurrenceLabel": "/mesiac",
+        "recurrenceAriaLabel": "za mesiac",
+        "perUnitLabel": "za licenciu",
+        "perUnitAriaLabel": "za licenciu",
+        "taxExclusiveLabel": "bez DPH",
+        "taxInclusiveLabel": "vrátane DPH",
+        "alternativePriceAriaLabel": "Prípadne za US$10.00",
+        "strikethroughAriaLabel": "Pravidelne za US$20.00"
+    },
+    "sl": {
+        "recurrenceLabel": "/mesec",
+        "recurrenceAriaLabel": "na mesec",
+        "perUnitLabel": "na licenco",
+        "perUnitAriaLabel": "na licenco",
+        "taxExclusiveLabel": "brez DDV-ja",
+        "taxInclusiveLabel": "z DDV-jem",
+        "alternativePriceAriaLabel": "Druga možnost je: US$10.00",
+        "strikethroughAriaLabel": "Redno po US$20.00"
+    },
+    "sv": {
+        "recurrenceLabel": "/mån",
+        "recurrenceAriaLabel": "per månad",
+        "perUnitLabel": "per licens",
+        "perUnitAriaLabel": "per licens",
+        "taxExclusiveLabel": "exkl. moms",
+        "taxInclusiveLabel": "inkl. moms",
+        "alternativePriceAriaLabel": "Alternativt för US$10.00",
+        "strikethroughAriaLabel": "Normalpris US$20.00"
+    },
+    "tr": {
+        "recurrenceLabel": "/ay",
+        "recurrenceAriaLabel": "(aylık)",
+        "perUnitLabel": "(lisans başına)",
+        "perUnitAriaLabel": "(lisans başına)",
+        "taxExclusiveLabel": "KDV hariç",
+        "taxInclusiveLabel": "KDV dahil",
+        "alternativePriceAriaLabel": "Ya da US$10.00",
+        "strikethroughAriaLabel": "Standart fiyat: US$20.00"
+    },
+    "uk": {
+        "recurrenceLabel": "/міс.",
+        "recurrenceAriaLabel": "на місяць",
+        "perUnitLabel": "за ліцензію",
+        "perUnitAriaLabel": "за ліцензію",
+        "taxExclusiveLabel": "без урахування ПДВ",
+        "taxInclusiveLabel": "з ПДВ",
+        "alternativePriceAriaLabel": "Або за US$10.00",
+        "strikethroughAriaLabel": "Звичайна ціна US$20.00"
+    },
+    "zh-hans": {
+        "recurrenceLabel": "/月",
+        "recurrenceAriaLabel": "每月",
+        "perUnitLabel": "每个许可证",
+        "perUnitAriaLabel": "每个许可证",
+        "taxExclusiveLabel": "excl. VAT",
+        "taxInclusiveLabel": "incl. VAT",
+        "alternativePriceAriaLabel": "或定价 US$10.00",
+        "strikethroughAriaLabel": "正常价 US$20.00"
+    },
+    "zh-hant": {
+        "recurrenceLabel": "/月",
+        "recurrenceAriaLabel": "每月",
+        "perUnitLabel": "每個授權",
+        "perUnitAriaLabel": "每個授權",
+        "taxExclusiveLabel": "不含稅",
+        "taxInclusiveLabel": "含稅",
+        "alternativePriceAriaLabel": "或者在 US$10.00",
+        "strikethroughAriaLabel": "標準價格為 US$20.00",
+        "discountLabel": "6.5折"
+    },
+    "es": {
+        "recurrenceLabel": "/mes",
+        "recurrenceAriaLabel": "al mes",
+        "perUnitLabel": "por licencia",
+        "perUnitAriaLabel": "por licencia",
+        "taxExclusiveLabel": "sin IVA",
+        "taxInclusiveLabel": "IVA incluido",
+        "alternativePriceAriaLabel": "Alternativamente por US$10.00",
+        "strikethroughAriaLabel": "Normalmente a US$20.00"
+    },
+    "in": {
+        "recurrenceLabel": "/bulan",
+        "recurrenceAriaLabel": "per bulan",
+        "perUnitLabel": "per lisensi",
+        "perUnitAriaLabel": "per lisensi",
+        "taxExclusiveLabel": "sebelum PPN",
+        "taxInclusiveLabel": "termasuk PPN",
+        "alternativePriceAriaLabel": "Atau seharga US$10.00",
+        "strikethroughAriaLabel": "Normalnya seharga US$20.00"
+    },
+    "vi": {
+        "recurrenceLabel": "/tháng",
+        "recurrenceAriaLabel": "mỗi tháng",
+        "perUnitLabel": "mỗi giấy phép",
+        "perUnitAriaLabel": "mỗi giấy phép",
+        "taxExclusiveLabel": "chưa bao gồm VAT",
+        "taxInclusiveLabel": "gồm VAT",
+        "alternativePriceAriaLabel": "Giá ưu đãi US$10.00",
+        "strikethroughAriaLabel": "Giá thông thường US$20.00"
+    },
+    "th": {
+        "recurrenceLabel": "/เดือน",
+        "recurrenceAriaLabel": "ต่อเดือน",
+        "perUnitLabel": "ต่อสิทธิ์การใช้งาน",
+        "perUnitAriaLabel": "ต่อสิทธิ์การใช้งาน",
+        "taxExclusiveLabel": "ไม่รวม VAT",
+        "taxInclusiveLabel": "รวม VAT",
+        "alternativePriceAriaLabel": "ราคาพิเศษ US$10.00",
+        "strikethroughAriaLabel": "ราคาปกติ US$20.00"
+    },
+    "el": {
+        "recurrenceLabel": "/μήνα",
+        "recurrenceAriaLabel": "κάθε μήνα",
+        "perUnitLabel": "ανά άδεια χρήσης",
+        "perUnitAriaLabel": "ανά άδεια χρήσης",
+        "taxExclusiveLabel": "εξαιρ. ΦΠΑ",
+        "taxInclusiveLabel": "συμπερ. ΦΠΑ",
+        "alternativePriceAriaLabel": "Διαφορετικά, US$10.00",
+        "strikethroughAriaLabel": "Κανονική τιμή US$20.00"
+    },
+    "fil": {
+        "recurrenceLabel": "/buwan",
+        "recurrenceAriaLabel": "per buwan",
+        "perUnitLabel": "kada lisensya",
+        "perUnitAriaLabel": "kada lisensya",
+        "taxExclusiveLabel": "hindi kasama ang VAT",
+        "taxInclusiveLabel": "kasama ang VAT",
+        "alternativePriceAriaLabel": "Alternatibong nasa halagang US$10.00",
+        "strikethroughAriaLabel": "Regular na nasa halagang US$20.00"
+    },
+    "ms": {
+        "recurrenceLabel": "/bulan",
+        "recurrenceAriaLabel": "per bulan",
+        "perUnitLabel": "setiap lesen",
+        "perUnitAriaLabel": "setiap lesen",
+        "taxExclusiveLabel": "kecuali VAT",
+        "taxInclusiveLabel": "termasuk VAT",
+        "alternativePriceAriaLabel": "Secara alternatif pada US$10.00",
+        "strikethroughAriaLabel": "Biasanya pada US$20.00"
+    },
+    "hi": {
+        "recurrenceLabel": "/माह",
+        "recurrenceAriaLabel": "per माह",
+        "perUnitLabel": "प्रति लाइसेंस",
+        "perUnitAriaLabel": "प्रति लाइसेंस",
+        "taxExclusiveLabel": "VAT अतिरिक्त",
+        "taxInclusiveLabel": "VAT सहित",
+        "alternativePriceAriaLabel": "वैकल्पिक रूप से इस पर US$10.00",
+        "strikethroughAriaLabel": "नियमित रूप से इस पर US$20.00"
+    },
+    "iw": {
+        "recurrenceLabel": "/חודש",
+        "recurrenceAriaLabel": "לחודש",
+        "perUnitLabel": "לרישיון",
+        "perUnitAriaLabel": "לרישיון",
+        "taxExclusiveLabel": "ללא מע\"מ",
+        "taxInclusiveLabel": "כולל מע\"מ",
+        "alternativePriceAriaLabel": "לחלופין ב-US$10.00",
+        "strikethroughAriaLabel": "באופן קבוע ב-US$20.00"
+    }
+}

@@ -16,7 +16,8 @@ import { FragmentStore } from '../reactivity/fragment-store.js';
 import { getFromFragmentCache } from '../mas-repository.js';
 import '../mas-quick-actions.js';
 import '../mas-add-items-dialog.js';
-import '../translation/mas-translation-languages.js';
+import '../common/components/mas-region-picker.js';
+import { getLocalePickerItems } from '../locales.js';
 import './mas-bulk-publish-items.js';
 import './mas-bulk-publish-locales.js';
 import './mas-bulk-publish-success-banner.js';
@@ -1071,11 +1072,15 @@ class MasBulkPublishEditor extends LitElement {
                       @cancel=${this.closeLocalesPicker}
                       @close=${this.closeLocalesPicker}
                   >
-                      <mas-translation-languages
-                          .targetStore=${Store.bulkPublishProjects}
-                          include-source
-                          include-regional
-                      ></mas-translation-languages>
+                      <mas-region-picker
+                          .store=${Store.bulkPublishProjects.targetLocales}
+                          .items=${getLocalePickerItems(Store.search.value.path, {
+                              includeSource: true,
+                              includeRegional: true,
+                          })}
+                          noun="language"
+                          search-placeholder="Search locale"
+                      ></mas-region-picker>
                   </sp-dialog-wrapper>`
                 : nothing}
             ${this.discardDialogOpen

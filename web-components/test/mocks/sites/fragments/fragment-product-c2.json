@@ -1,0 +1,72 @@
+{
+    "path": "/content/dam/mas/test/fragment-product-c2",
+    "name": "",
+    "title": "Test Product-C2 Card",
+    "id": "fragment-product-c2",
+    "description": "Test Product-C2 Card",
+    "model": {
+        "id": "L2NvbmYvbWFzL3NldHRpbmdzL2RhbS9jZm0vbW9kZWxzL2NhcmQ"
+    },
+    "fields": {
+        "variant": "product-c2",
+        "osi": "1KfaN_o5h4Gvmvh_QwfK7KB7xGPpNpsTXsdhqpJUT5Y",
+        "mnemonicIcon": [],
+        "mnemonicAlt": [],
+        "mnemonicLink": [],
+        "badge": {
+            "mimeType": "text/html"
+        },
+        "trialBadge": {
+            "mimeType": "text/html"
+        },
+        "backgroundColor": "gray",
+        "cardName": "Product-C2 card",
+        "subtitle": "Adobe Acrobat Pro + AI Assistant Plus",
+        "prices": {
+            "value": "<p><span is=\"inline-price\" data-template=\"price\" data-wcs-osi=\"abm\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "shortDescription": {
+            "value": "<p>Fee applies of half your remaining annual commitment if you cancel more than 14 days after your free trial ends. <span class=\"icon-button\" tabindex=\"0\" role=\"button\" data-tooltip=\"Lalala some tooltip\"></span></p>",
+            "mimeType": "text/html"
+        },
+        "description": {
+            "value": "<p><strong>Some test price for AI Assistant Plus.</strong> Monthly plans also available.</p>",
+            "mimeType": "text/html"
+        },
+        "callout": {
+            "mimeType": "text/html"
+        },
+        "showPlanType": true,
+        "ctas": {
+            "value": "<p><a data-checkout-workflow=\"UCv3\" data-wcs-osi=\"abm\" data-quantity=\"true\" data-template=\"checkoutUrl\" data-analytics-id=\"free-trial\" data-key=\"aommhpctkz\">Free trial</a> <a class=\"primary-outline\" href=\"https://www.adobe.com/acrobat/plans.html\" data-key=\"gwza5qrkn8\" target=\"_blank\" data-analytics-id=\"see-all-plans-and-pricing\">See all plans</a></p>",
+            "mimeType": "text/html"
+        },
+        "variations": [],
+        "tags": [
+            "mas:offer_type/base",
+            "mas:plan_type/abm",
+            "mas:customer_segment/individual",
+            "mas:product_code/ilst",
+            "mas:market_segments/com"
+        ],
+        "pznTags": [],
+        "compatVersion": 1,
+        "features": {
+            "value": [],
+            "mimeType": "text/plain"
+        },
+        "variables": [],
+        "customFields": {
+            "value": [],
+            "mimeType": "text/html"
+        },
+        "customFieldLabels": [],
+        "image": {
+            "mimeType": "text/plain"
+        },
+        "backgrounds": {
+            "mimeType": "text/plain"
+        }
+    }
+}

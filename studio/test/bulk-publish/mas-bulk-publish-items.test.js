@@ -2,6 +2,26 @@ import { fixture, html, expect, oneEvent } from '@open-wc/testing';
 import '../../src/bulk-publish/mas-bulk-publish-items.js';
 
 describe('mas-bulk-publish-items', () => {
+    it('prevents plain-click navigation on the full-row overlay', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items
+                .items=${[{ fragmentId: 'card-id', url: 'https://mas.adobe.com/' }]}
+            ></mas-bulk-publish-items>
+        `);
+        const link = el.shadowRoot.querySelector('a.row-link-overlay');
+        const event = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
+        let defaultPrevented;
+        link.addEventListener('click', () => {
+            defaultPrevented = event.defaultPrevented;
+            event.preventDefault();
+        });
+
+        link.dispatchEvent(event);
+
+        expect(defaultPrevented).to.be.true;
+        expect(link.hasAttribute('target')).to.be.false;
+    });
+
     it('renders sp-textfield in empty state', async () => {
         const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
         expect(el.shadowRoot.querySelector('sp-textfield[multiline]')).to.exist;
@@ -67,6 +87,67 @@ describe('mas-bulk-publish-items', () => {
         expect(link).to.exist;
         expect(link.getAttribute('href')).to.equal('https://mas.adobe.com/studio.html#query=1');
     });
+
+    for (const { name, type, url, href, expected } of [
+        {
+            name: 'preserves the resolved placeholder link',
+            type: 'placeholder',
+            url: '/content/dam/mas/sandbox/en_US/dictionary/test',
+            href: 'https://mas.adobe.com/studio.html#page=content&content-type=placeholder&search=placeholder-id',
+            expected: 'https://mas.adobe.com/studio.html#page=content&content-type=placeholder&search=placeholder-id',
+        },
+        {
+            name: 'preserves the pasted placeholder URL when no resolved href exists',
+            type: 'placeholder',
+            url: 'https://mas.adobe.com/studio.html#page=content&content-type=placeholder&search=placeholder-id',
+            expected: 'https://mas.adobe.com/studio.html#page=content&content-type=placeholder&search=placeholder-id',
+        },
+        {
+            name: 'preserves the placeholder link when the dictionary path identifies its type',
+            url: '/content/dam/mas/sandbox/en_US/dictionary/test',
+            href: 'https://mas.adobe.com/studio.html#page=placeholders&search=placeholder-id',
+            expected: 'https://mas.adobe.com/studio.html#page=placeholders&search=placeholder-id',
+        },
+    ]) {
+        it(name, async () => {
+            const el = await fixture(html`
+                <mas-bulk-publish-items
+                    .items=${[
+                        {
+                            fragmentId: 'placeholder-id',
+                            path: '/content/dam/mas/sandbox/en_US/dictionary/test',
+                            type,
+                            url,
+                            href,
+                            status: 'valid',
+                        },
+                    ]}
+                ></mas-bulk-publish-items>
+            `);
+            const links = el.shadowRoot.querySelectorAll('[data-testid="item-row"] a');
+            expect(links).to.have.lengthOf(2);
+            for (const link of links) {
+                expect(link.getAttribute('href')).to.equal(expected);
+            }
+        });
+    }
+
+    for (const type of ['fragment', 'collection']) {
+        it(`keeps the editor deep link for a ${type}`, async () => {
+            const el = await fixture(html`
+                <mas-bulk-publish-items
+                    .items=${[{ fragmentId: 'card-id', type, url: 'https://mas.adobe.com/studio.html#query=card-id' }]}
+                ></mas-bulk-publish-items>
+            `);
+            const links = el.shadowRoot.querySelectorAll('[data-testid="item-row"] a');
+            expect(links).to.have.lengthOf(2);
+            for (const link of links) {
+                const params = new URLSearchParams(new URL(link.href).hash.slice(1));
+                expect(params.get('page')).to.equal('fragment-editor');
+                expect(params.get('fragmentId')).to.equal('card-id');
+            }
+        });
+    }
 
     it('renders plain text instead of a broken link when no resolved href exists', async () => {
         const el = await fixture(html`

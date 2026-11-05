@@ -1,15 +1,17 @@
 import { html, LitElement, nothing } from 'lit';
 import { EVENT_INPUT } from '../constants.js';
-import { QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
+import { DEFAULT_LICENSE_TITLE, QUANTITY_SELECT_TAG } from '../common/fields/quantity-select.js';
 
 const QUANTITY_EMPTY = `<${QUANTITY_SELECT_TAG}/>`;
-const QUANTITY_NOT_EMPTY = `<${QUANTITY_SELECT_TAG} title="" min="1" max="10" step="1"></${QUANTITY_SELECT_TAG}>`;
+const quantityNotEmpty = (title) =>
+    `<${QUANTITY_SELECT_TAG} title="${title}" min="1" max="10" step="1"></${QUANTITY_SELECT_TAG}>`;
 
 export class QuantitySelectSettingsField extends LitElement {
     static properties = {
         id: { type: String },
         label: { type: String },
         value: { type: String },
+        splitTitle: { type: Boolean },
         settingsDefaults: { type: String },
         indicatorTemplate: { attribute: false },
         fieldIndicatorTemplate: { attribute: false },
@@ -21,6 +23,7 @@ export class QuantitySelectSettingsField extends LitElement {
         this.id = '';
         this.label = '';
         this.value = '';
+        this.splitTitle = false;
         this.settingsDefaults = '';
         this.indicatorTemplate = nothing;
         this.fieldIndicatorTemplate = nothing;
@@ -32,7 +35,7 @@ export class QuantitySelectSettingsField extends LitElement {
     }
 
     #handleToggle(e) {
-        this.value = e.target.checked ? QUANTITY_NOT_EMPTY : QUANTITY_EMPTY;
+        this.value = e.target.checked ? quantityNotEmpty(this.splitTitle ? DEFAULT_LICENSE_TITLE : '') : QUANTITY_EMPTY;
         this.handleQuantityFieldChange({
             detail: {
                 value: this.value,
@@ -59,6 +62,7 @@ export class QuantitySelectSettingsField extends LitElement {
         return html`
             <quantity-select-field
                 .value=${this.value}
+                .splitTitle=${this.splitTitle}
                 @change=${this.handleQuantityFieldChange}
                 .fieldIndicatorTemplate=${this.fieldIndicatorTemplate}
             ></quantity-select-field>

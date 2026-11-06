@@ -16,6 +16,8 @@ export class MasChatInput extends LitElement {
         message: { type: String },
         inputLocked: { type: Boolean, attribute: 'input-locked' },
         autoSendOnSelect: { type: Boolean },
+        imagesEnabled: { type: Boolean },
+        images: { type: Array },
     };
 
     constructor() {
@@ -26,6 +28,8 @@ export class MasChatInput extends LitElement {
         this.message = '';
         this.inputLocked = false;
         this.autoSendOnSelect = false;
+        this.imagesEnabled = false;
+        this.images = [];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
@@ -231,6 +235,17 @@ export class MasChatInput extends LitElement {
         rteField.editorView.dispatch(rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size));
     }
 
+    handleChooseImages(event) {
+        const files = [...event.target.files];
+        event.target.value = '';
+        if (!files.length) return;
+        this.dispatchEvent(new CustomEvent('attach-images', { detail: { files }, bubbles: true, composed: true }));
+    }
+
+    handleRemoveImage(id) {
+        this.dispatchEvent(new CustomEvent('remove-image', { detail: { id }, bubbles: true, composed: true }));
+    }
+
     handleOsiSelect() {
         openOfferSelectorTool(this, null);
     }
@@ -255,6 +270,29 @@ export class MasChatInput extends LitElement {
                           </div>
                       `
                     : nothing}
+                ${this.images.length
+                    ? html`
+                          <div class="image-previews">
+                              ${this.images.map(
+                                  (image) => html`
+                                      <figure class="image-preview">
+                                          ${image.preview ? html`<img src=${image.preview} alt=${image.name} />` : nothing}
+                                          <figcaption>${image.name}</figcaption>
+                                          <sp-action-button
+                                              quiet
+                                              size="xs"
+                                              ?disabled=${this.disabled}
+                                              @click=${() => this.handleRemoveImage(image.id)}
+                                              title="Remove image"
+                                          >
+                                              <sp-icon-close slot="icon"></sp-icon-close>
+                                          </sp-action-button>
+                                      </figure>
+                                  `,
+                              )}
+                          </div>
+                      `
+                    : nothing}
                 <div class="input-row">
                     <div class="rte-wrapper">
                         <rte-field
@@ -270,6 +308,29 @@ export class MasChatInput extends LitElement {
                         </rte-field>
                     </div>
                     <div class="input-actions">
+                        ${this.imagesEnabled
+                            ? html`
+                                  <input
+                                      class="file-input"
+                                      type="file"
+                                      aria-label="Attach image"
+                                      multiple
+                                      accept="image/png,image/jpeg,image/gif,image/webp"
+                                      hidden
+                                      ?disabled=${this.disabled || this.images.length >= 3}
+                                      @change=${this.handleChooseImages}
+                                  />
+                                  <sp-action-button
+                                      quiet
+                                      size="s"
+                                      @click=${() => this.querySelector('.file-input').click()}
+                                      ?disabled=${this.disabled || this.images.length >= 3}
+                                      title="Attach image"
+                                  >
+                                      <sp-icon-attach slot="icon"></sp-icon-attach>
+                                  </sp-action-button>
+                              `
+                            : nothing}
                         ${!this.selectedOsi
                             ? html`
                                   <sp-action-button

@@ -3,7 +3,7 @@
 `MerchAtScaleStudio/masa-api` connects Studio to the shared read-only MASA backend using short JSON
 controls. It creates/renews/ends sessions, submits/polls/cancels investigations and obtains upload/download
 grants. It is disabled unless `MASA_API_ENABLED=true`, and normal `core`/`assistant` deployments exclude it.
-The same Studio PR adds the investigation UI. Until a workspace configures the adapter, Investigate answers `masa-not-configured`.
+The same Studio PR answers Studio Chat questions with MASA. Until a workspace configures the adapter, those questions get Studio's labelled built-in answer.
 
 The rollout plan is [mas-agent #127](https://github.com/adobecom/mas-agent/pull/127). The matching session
 and binary-transfer contracts shipped in [#139](https://github.com/adobecom/mas-agent/pull/139) and
@@ -128,23 +128,39 @@ Saved state contains no IMS tokens, transfer grants, binary files or blob/downlo
 
 ## Studio experience and local verification
 
-The existing assistant gains an explicit **Chat / Investigate** switch. Chat retains its current question, search, confirmation
-and release-card paths; Investigate submits read-only jobs to MASA. MASA owns findings and evidence.
-Studio renders results and opens matching card IDs through its existing editor route. It never interprets
-an investigation finding as an authoring command.
+Studio Chat is one conversation; there is no separate Investigate view. Every message still goes to `ai-chat`
+first, after the deterministic card-search router. While MASA is available for the page, the request carries
+`masa: true` and `ai-chat` may return a question as the `ASK_MASA` intent instead of answering it. Studio then
+submits it as a read-only MASA investigation for that conversation and shows "MASA is working on it", with
+cancellation, in the thread; the finding, evidence, card links, CSV downloads and PNG previews replace it.
+Card search never goes to MASA, and MASA's own card search is not used. Release creation, guided flows,
+confirmations and search keep their fast path: the message box stays enabled while MASA works. A second MASA
+question in the same conversation is not sent while one is running; the thread says "MASA is still answering
+the previous question." and offers "Cancel it". MASA owns findings and evidence. Studio renders results and
+opens matching card IDs through its existing editor route. It never interprets a finding as an authoring command.
 
-Investigate supports three PNG/JPEG/GIF/WebP images of up to 5 MB each, queued/running progress,
-cancellation, complete finding text, evidence, card links, CSV downloads and PNG previews. Follow-ups
-include up to three complete recent findings when they fit the 6,000-character context and control-body
-budget. The UI discloses omitted context; it does not truncate displayed findings. Oversized questions
-are rejected with an editable error. Downloads verify byte count and SHA-256 before exposing a blob.
+When MASA cannot answer, Studio asks `ai-chat` again with `masa: false` and shows that answer under "Answered
+from Studio's built-in knowledge, MASA unavailable", with "Ask MASA again". A network failure,
+`caller-not-allowed`, `surface-not-allowed`, `investigations-disabled`, `masa-disabled`, `masa-not-configured`
+or `studio-origin-denied` is remembered for the page session, so later questions are not offered to MASA
+and every plain built-in answer carries the same label (clarifying questions, missing-detail prompts,
+searches and other Studio action results do not); "Ask MASA again" clears that memory and asks the question again. Busy,
+rate-limited and timed-out answers are not remembered. Invalid or oversized questions are shown as an error on the question and do not fall back. A
+cancelled question stays cancelled.
 
-While the investigation view is visible, it polls no faster than ten seconds and renews an idle session
-at most once per minute. It honors longer server Retry-After intervals and warns within two minutes of
-expiry, with an explicit renewal action. Hiding the tab or closing the drawer stops foreground polling
-and renewal; it does not cancel accepted backend work. Reload revalidates the saved lease and resumes
-pending jobs. Previously loaded files are not restored from browser storage; their names remain as
-unavailable placeholders. Backend expiry still controls transfer access.
+Each question carries the Studio path, locale and fragment ID, the most recent conversation turns that fit,
+and up to three complete recent findings when they fit the 6,000-character context and control-body budget.
+The UI discloses omitted context; it does not truncate displayed findings. Downloads verify byte count and
+SHA-256 before exposing a blob.
+
+While an answer is pending, Studio polls it no faster than ten seconds. While the conversation holds an active
+lease, Studio renews an idle session at most once per minute and, above the message box, warns within two
+minutes of expiry with an explicit renewal action. It honors longer server Retry-After intervals. Hiding the
+tab or closing the drawer stops foreground polling and renewal; it does not cancel accepted backend work, and
+an answer that lands after a switch or a reopened drawer is shown in its own conversation. Reload resumes
+pending jobs; a question whose answer a reload cut off offers "Ask MASA again". Previously
+loaded files are not restored from browser storage; their names remain as unavailable placeholders. Backend
+expiry still controls transfer access.
 
 Ending a session clears file memory and revokes object URLs. Deleting a conversation or explicitly
 signing out first ends its known server sessions; a failed end keeps the conversation/credentials so the
@@ -157,7 +173,7 @@ To test the UI without credentials or deployments, run from `studio`:
 npx web-test-runner --config web-test-runner.config.mjs --files 'test/mas-chat/investigation.test.html' --watch
 ```
 
-The HTML test page contains labelled, inspectable start/running/completed/expired/busy scenarios.
+The HTML test page contains labelled, inspectable running/completed/expired/fallback scenarios.
 A [fixture screenshot](../../studio/test/mas-chat/masa-investigations.png) is included for review.
 Append `?demo` when opening it through a local server with npm module resolution to inspect the fixtures
 without starting assertions. It uses simulated responses and sends no live MASA or Slack traffic.
@@ -171,7 +187,6 @@ For file transfers, set the media origin in `studio.html`:
 The media origin must exactly match `MASA_MEDIA_BASE_URL`, without a trailing slash. Controls use the
 existing `io-base-url` environment and `/masa-api.http`. A mismatched media destination is rejected
 before IMS credentials are sent. Leave it empty until the stage deployment gate below.
-No synchronous card-search cutover or automatic routing of ordinary chat questions is included.
 
 ## Limits and remaining rollout gates
 

@@ -87,6 +87,7 @@ function sanitizeData(raw) {
 export class ChatSessionManager {
     constructor() {
         this.debounceTimers = new Map();
+        this.pendingUpdates = new Map();
         this.memoryData = structuredClone(DEFAULT_DATA);
         this.storageAvailable = true;
     }
@@ -188,12 +189,20 @@ export class ChatSessionManager {
             clearTimeout(this.debounceTimers.get(sessionId));
         }
 
-        const timer = setTimeout(() => {
-            this.updateSession(sessionId, updates);
-            this.debounceTimers.delete(sessionId);
-        }, DEBOUNCE_DELAY);
+        const timer = setTimeout(() => this.flushSession(sessionId), DEBOUNCE_DELAY);
 
         this.debounceTimers.set(sessionId, timer);
+        this.pendingUpdates.set(sessionId, updates);
+    }
+
+    /** Writes a session's debounced update now, so a direct update made next is not overwritten by it later. */
+    flushSession(sessionId) {
+        if (!this.debounceTimers.has(sessionId)) return;
+        clearTimeout(this.debounceTimers.get(sessionId));
+        this.debounceTimers.delete(sessionId);
+        const updates = this.pendingUpdates.get(sessionId);
+        this.pendingUpdates.delete(sessionId);
+        this.updateSession(sessionId, updates);
     }
 
     deleteSession(sessionId) {
@@ -207,6 +216,7 @@ export class ChatSessionManager {
             clearTimeout(this.debounceTimers.get(sessionId));
             this.debounceTimers.delete(sessionId);
         }
+        this.pendingUpdates.delete(sessionId);
 
         delete data.sessions[sessionId];
 

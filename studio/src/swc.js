@@ -24,6 +24,7 @@ import '@spectrum-web-components/icons-workflow/icons/sp-icon-alert.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-asterisk.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-apps.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-archive.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-attach.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-aspect-ratio.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-bell.js';
 import '@spectrum-web-components/icons-workflow/icons/sp-icon-bookmark.js';

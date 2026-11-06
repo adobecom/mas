@@ -8,7 +8,7 @@
  * envelope schema-guaranteed tool arguments instead of regex-parsed JSON.
  */
 
-import { INTENTS, META_INTENTS } from './intent-registry.js';
+import { INTENTS, getMetaIntents } from './intent-registry.js';
 
 export const ENVELOPE_TOOL_NAME = 'emit_envelope';
 export const SEARCH_TOOL_NAME = 'emit_search';
@@ -18,18 +18,25 @@ export const ENVELOPE_TOOL_CHOICE = { type: 'tool', name: ENVELOPE_TOOL_NAME };
 /** Offer the envelope + typed search tools and let the model pick one. */
 export const ROUTING_TOOL_CHOICE = { type: 'any' };
 
-export function buildEnvelopeTool() {
+export function buildEnvelopeTool({ masa = false } = {}) {
     // Card search has its own typed tool (emit_search). Keeping search_cards out
     // of the envelope enum forces the model to the typed schema for any card
     // search, so a template or variation type can never land in a freeform slot.
-    const intentNames = [...INTENTS.map((intent) => intent.name).filter((name) => name !== 'search_cards'), ...META_INTENTS];
+    const intentNames = [
+        ...INTENTS.map((intent) => intent.name).filter((name) => name !== 'search_cards'),
+        ...getMetaIntents({ masa }),
+    ];
     return {
         name: ENVELOPE_TOOL_NAME,
         description:
-            'Return your routing decision for this turn as an intent envelope. Call exactly once per turn. ' +
-            'Pick the single registered intent that matches the user request; use ASK_USER for clarifications, ' +
-            'answers to questions, and anything that is not an operation. ' +
-            'To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.',
+            `Return your routing decision for this turn as an intent envelope. Call exactly once per turn. ` +
+            `Pick the single registered intent that matches the user request; use ASK_USER for clarifications, ` +
+            `answers to questions, and anything that is not an operation. ` +
+            `To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.${
+                masa
+                    ? ' Use ASK_MASA, with empty slots and no user_message, for questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting. Use ASK_USER only to ask for missing details.'
+                    : ''
+            }`,
         input_schema: {
             type: 'object',
             properties: {

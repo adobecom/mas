@@ -24,9 +24,6 @@
                 border-radius: 12px;
                 padding: 16px;
             }
-            mas-chat-investigation {
-                max-height: none;
-            }
             #interactive {
                 max-width: 600px;
             }
@@ -43,10 +40,10 @@
         <script type="module">
             import { expect } from '@esm-bundle/chai';
             import sinon from 'sinon';
-            import { html, render } from 'lit';
+            import { html, nothing, render } from 'lit';
             import '../../src/swc.js';
-            import '../../src/mas-chat-investigation.js';
-            import '../../src/mas-chat.js';
+            import '../../src/mas-chat-masa-answer.js';
+            import '../../src/mas-chat-masa-session.js';
             import '../../src/mas-top-nav.js';
             import sessionManager from '../../src/services/chat-session-manager.js';
             import {
@@ -125,25 +122,39 @@
                 });
 
             const demos = [
-                ['Start an investigation', controller()],
                 ['Running — progress and cancellation', controller({ history: [record('running')] })],
                 ['Completed — findings, card and CSV', controller({ history: [record()] })],
                 ['Expired — text remains, files unavailable', controller({ history: [record()] })],
-                ['Capacity limit — wait before retry', controller()],
+                ['MASA unavailable — labelled fallback', controller()],
             ];
-            demos[1][1].session = { ...lease(), activeInvestigations: 1 };
-            demos[1][1].records[0].files = [];
-            demos[1][1].records[0].progress = { probeResults: 2 };
-            demos[2][1].updateJob(job('completed'));
-            demos[3][1].session = { ...lease(), status: 'expired' };
-            demos[4][1].fail(new MasaClientError('capacity-exhausted', 'MASA is busy. Try again shortly.', 429, 30));
+            demos[0][1].session = { ...lease(), activeInvestigations: 1 };
+            demos[0][1].records[0].files = [];
+            demos[0][1].records[0].progress = { probeResults: 2 };
+            demos[1][1].updateJob(job('completed'));
+            demos[2][1].session = { ...lease(), status: 'expired' };
+            const fallback = { content: 'Compare the offer selector before publishing.' };
             for (const [, demo] of demos) demo.attach = () => () => {};
             render(
                 demos.map(
                     ([title, demo]) =>
                         html`<div class="scenario">
                             <h2>${title}</h2>
-                            <mas-chat-investigation .controller=${demo}></mas-chat-investigation>
+                            <mas-chat-masa-session .controller=${demo}></mas-chat-masa-session>
+                            ${demo.records.map(
+                                (item) =>
+                                    html`<mas-chat-masa-answer
+                                        .controller=${demo}
+                                        .recordId=${item.id}
+                                        .question=${item.question}
+                                    ></mas-chat-masa-answer>`,
+                            )}
+                            ${demo.records.length
+                                ? nothing
+                                : html`<mas-chat-masa-answer
+                                      .controller=${demo}
+                                      .question=${record().question}
+                                      .fallback=${fallback}
+                                  ></mas-chat-masa-answer>`}
                         </div>`,
                 ),
                 document.querySelector('#scenarios'),
@@ -157,7 +168,6 @@
                     let storage;
                     let clockNow;
                     let saved;
-                    let host;
                     const calls = [];
                     beforeEach(() => {
                         storage = useIsolatedChatSessionStorage();
@@ -176,8 +186,6 @@
                         };
                     });
                     afterEach(() => {
-                        host?.remove();
-                        host = null;
                         clearTimeout(current.expiryTimer);
                         clearInterval(current.timer);
                         current.clearMedia();
@@ -185,14 +193,23 @@
                         sinon.restore();
                         storage.restore();
                     });
+                    function textOf(parts) {
+                        return parts.map((part) => part.shadowRoot.textContent).join(' ');
+                    }
                     async function mount() {
-                        render(
-                            html`<mas-chat-investigation .controller=${current}></mas-chat-investigation>`,
-                            document.querySelector('#interactive'),
+                        const answers = current.records.map(
+                            (item) =>
+                                html`<mas-chat-masa-answer
+                                    .controller=${current}
+                                    .recordId=${item.id}
+                                    .question=${item.question}
+                                ></mas-chat-masa-answer>`,
                         );
-                        const element = document.querySelector('#interactive mas-chat-investigation');
-                        await element.updateComplete;
-                        return element;
+                        const host = document.querySelector('#interactive');
+                        render(html`<mas-chat-masa-session .controller=${current}></mas-chat-masa-session>${answers}`, host);
+                        const parts = [...host.children];
+                        await Promise.all(parts.map((part) => part.updateComplete));
+                        return parts;
                     }
                     async function signOutFromNav() {
                         const originalIMS = window.adobeIMS;
@@ -205,36 +222,17 @@
                         }
                         return signOut;
                     }
-                    it('keeps Chat and release confirmations available when switching views', async () => {
-                        host = document.createElement('mas-chat');
-                        document.querySelector('#interactive').append(host);
-                        await host.updateComplete;
-                        expect(host.querySelector('mas-chat-investigation')).to.equal(null);
-                        const composer = host.querySelector('mas-chat-input');
-                        host.selectedReleaseOsi = 'selected-offer';
-                        host.investigationMode = true;
-                        await host.updateComplete;
-                        expect(host.querySelector('mas-chat-investigation')).to.not.equal(null);
-                        host.investigationMode = false;
-                        await host.updateComplete;
-                        expect(host.querySelector('mas-chat-input')).to.equal(composer);
-                        const send = sinon.stub(host, 'handleSendMessage').resolves();
-                        host.handleConfirmationAction({ detail: { action: 'confirm', selectedVariants: ['catalog'] } });
-                        expect(send.firstCall.args[0].detail.context).to.include({
-                            intentHint: 'release',
-                            osi: 'selected-offer',
-                        });
-                    });
                     it('shows progress, read-only findings, card links and file controls', async () => {
                         current.records = [record()];
                         current.updateJob(job('completed'));
-                        const element = await mount();
-                        const root = element.shadowRoot;
-                        expect(root.textContent).to.contain('Author and publish snapshots differ');
-                        expect(root.textContent).to.contain('Prepare download');
+                        const parts = await mount();
+                        const text = textOf(parts);
+                        expect(text).to.contain('Author and publish snapshots differ');
+                        expect(text).to.contain('Prepare download');
                         const event = sinon.spy();
-                        element.addEventListener('open-card', event);
-                        [...root.querySelectorAll('sp-action-button')]
+                        document.querySelector('#interactive').addEventListener('open-card', event, { once: true });
+                        parts
+                            .flatMap((part) => [...part.shadowRoot.querySelectorAll('sp-action-button')])
                             .find((button) => button.textContent === 'Open in Studio')
                             .click();
                         expect(event.firstCall.args[0].detail.fragment.id).to.equal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
@@ -341,8 +339,8 @@
                     it('drawer detach does not cancel accepted work', async () => {
                         current.records = [record('running')];
                         current.pollAfter = now + 100000;
-                        const element = await mount();
-                        element.remove();
+                        const parts = await mount();
+                        for (const part of parts) part.remove();
                         expect(calls).to.have.length(0);
                         expect(current.foreground).to.equal(0);
                         expect(current.records[0].status).to.equal('running');
@@ -409,27 +407,15 @@
                         expect(current.images).to.have.length(0);
                         expect(current.downloads.size).to.equal(0);
                         expect(current.records[0].text).to.contain('Photoshop');
-                        const element = await mount();
-                        expect(element.shadowRoot.textContent).to.contain('earlier view are unavailable');
+                        expect(textOf(await mount())).to.contain('earlier view are unavailable');
                     });
                     it('does not revive uploaded files from saved text history', async () => {
                         current.records = investigationHistory([{ ...record(), artifacts: result().artifacts }]);
                         current.session = lease();
-                        const element = await mount();
-                        expect(element.shadowRoot.textContent).to.contain('earlier view are unavailable');
-                        expect(element.shadowRoot.querySelector('img')).to.equal(null);
+                        const parts = await mount();
+                        expect(textOf(parts)).to.contain('earlier view are unavailable');
+                        expect(parts.some((part) => part.shadowRoot.querySelector('img'))).to.equal(false);
                     });
-                    it('renders near-expiry renewal and busy retry guidance', async () => {
-                        current.session = { ...lease(), expiresAt: new Date(now + 60000).toISOString() };
-                        current.fail(new MasaClientError('capacity-exhausted', 'MASA is busy', 429, 30));
-                        const element = await mount();
-                        const text = element.shadowRoot.textContent;
-                        expect(text)
-                            .to.contain('about to expire')
-                            .and.to.contain('Keep session active')
-                            .and.to.contain('Retry in 30 seconds');
-                    });
-
                     it('revokes known leases before explicit sign-out, and keeps credentials on failure', async () => {
                         const chat = sessionManager.createSession();
                         const owned = getInvestigationSession(chat.id);

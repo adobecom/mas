@@ -26,8 +26,8 @@ describe('ai-chat/tool-definitions', () => {
     it('enumerates every registered intent and meta intent except search_cards', () => {
         const tool = buildEnvelopeTool();
         const enumValues = tool.input_schema.properties.intent.enum;
-        // search_cards is intentionally excluded — the typed emit_search tool owns card search.
-        expect(enumValues).to.have.length(INTENTS.length + META_INTENTS.length - 1);
+        // search_cards is excluded (the typed emit_search tool owns card search); ASK_MASA needs masa: true.
+        expect(enumValues).to.have.length(INTENTS.length + META_INTENTS.length - 2);
         expect(enumValues).to.not.include('search_cards');
         expect(enumValues).to.include('release_create.set_commitment');
         expect(enumValues).to.include('ASK_USER');
@@ -54,5 +54,14 @@ describe('ai-chat/tool-definitions', () => {
 
     it('is byte-stable across calls so the request prefix stays cacheable', () => {
         expect(JSON.stringify(buildEnvelopeTool())).to.equal(JSON.stringify(buildEnvelopeTool()));
+    });
+
+    it('offers ASK_MASA only when MASA is available', () => {
+        const without = buildEnvelopeTool().input_schema.properties.intent.enum;
+        expect(without).to.not.include('ASK_MASA');
+        const withMasa = buildEnvelopeTool({ masa: true });
+        expect(withMasa.input_schema.properties.intent.enum).to.include('ASK_MASA');
+        expect(withMasa.description).to.include('ASK_MASA');
+        expect(buildEnvelopeTool().description).to.not.include('ASK_MASA');
     });
 });

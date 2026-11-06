@@ -1,4 +1,4 @@
-import { INTENTS, META_INTENTS, getFlow } from './intent-registry.js';
+import { INTENTS, getMetaIntents, getFlow } from './intent-registry.js';
 
 const ENVELOPE_CONTRACT = `
 OUTPUT: call the \`emit_envelope\` tool exactly once. Its schema, sent with this
@@ -23,8 +23,11 @@ Three structural rules you MUST follow:
 3. When the user uses a MUTATION verb (update, change, set, modify, edit, replace, delete, publish, unpublish, create, add, copy, duplicate, rename, tag, link), pick the corresponding mutation intent — NOT a search intent — even if "cards" or "fragments" appears as the object of the verb.
 `;
 
-const ASK_USER_BLOCK = `
-Meta intents available at any time: ${META_INTENTS.join(', ')}.
+const ASK_MASA_RULE =
+    'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA.';
+
+const askUserBlock = (masa) => `
+Meta intents available at any time: ${getMetaIntents({ masa }).join(', ')}.
 
 - ASK_USER — use when intent or slots are unclear. Set \`clarification_question\` to a short, specific question.
 - ABORT — cancel the current flow.
@@ -89,7 +92,8 @@ function intentBlock(intent) {
  * emit_envelope tool schema travels in the same request, so the prompt names
  * the tool rather than restating its field list.
  */
-export function buildPrompt() {
+export function buildPrompt(options) {
+    const masa = options?.masa === true;
     const intentsList = INTENTS.map(intentBlock).join('\n');
 
     return `You are MASA, the MAS Studio AI assistant. You answer questions about Merch at Scale (cards, offers, collections, translations, releases, placeholders) AND perform the registered operations below — you are one assistant that does both.
@@ -102,7 +106,7 @@ Answer as practical how-to guidance for using MAS Studio (which page, which step
 
 REGISTERED INTENTS:
 ${intentsList}
-${ASK_USER_BLOCK}
+${askUserBlock(masa)}${masa ? `\n${ASK_MASA_RULE}\n` : ''}
 ${CARD_SEARCH_GUIDE}
 ${SLOT_VOCABULARIES}
 ${ENVELOPE_CONTRACT}

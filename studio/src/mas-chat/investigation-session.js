@@ -74,6 +74,11 @@ export class InvestigationSession extends EventTarget {
         return this.session?.status === 'ended' ? null : this.session?.id;
     }
 
+    /** True while a submission is in flight or any job is queued or running. */
+    get isBusy() {
+        return Boolean(this.pending) || this.records.some(running);
+    }
+
     notify() {
         this.save(investigationHistory(this.records), {
             sessionId: this.leaseId ?? this.restoreId,
@@ -273,6 +278,12 @@ export class InvestigationSession extends EventTarget {
             this.notify();
             await this.completeSubmission();
         });
+    }
+
+    /** Drop a submission nobody is waiting for, so it cannot be retried later or keep the session busy. */
+    discardPending() {
+        this.pending = null;
+        this.notify();
     }
 
     submissionFields({ sessionId, idempotencyKey, question, context, attachmentIds, limitedContext }) {
@@ -492,4 +503,17 @@ export async function endConversationInvestigations(conversationId) {
 /** Explicit Studio sign-out waits for lease revocation; ordinary drawer/tab closure does not cancel work. */
 export async function endAllInvestigations() {
     for (const { id } of sessionManager.listSessions()) await endConversationInvestigations(id);
+}
+
+/** Free other conversations' unused leases so a new one fits under MASA's per-user session cap. */
+export async function endIdleSessions(exceptConversationId) {
+    let ended = 0;
+    for (const { id } of sessionManager.listSessions()) {
+        if (id === exceptConversationId) continue;
+        const session = getInvestigationSession(id);
+        if (!session.leaseId || session.isBusy) continue;
+        await endConversationInvestigations(id);
+        ended++;
+    }
+    return ended;
 }

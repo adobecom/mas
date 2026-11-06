@@ -5,11 +5,15 @@ import './mas-operation-result.js';
 import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
+import './mas-chat-masa-answer.js';
 import { parseMarkdown } from './utils/markdown-parser.js';
 import { masaAvatar } from './img/masa-avatar.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 import { prepareTextReveal } from './utils/text-reveal.js';
 import Store from './store.js';
+
+/** The message shows the answer text itself; the MASA answer element adds only its label and action. */
+const BUILT_IN_NOTICE = Object.freeze({ content: '' });
 
 /**
  * Chat Message Component
@@ -366,8 +370,36 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
+    renderMasaAnswer() {
+        const { role, conversationId, question, recordId, fallback, failure } = this.message;
+        return html`
+            <div class="chat-message chat-message-${role}">
+                <div class="message-card">
+                    <mas-chat-masa-answer
+                        .conversationId=${conversationId}
+                        .question=${question}
+                        .recordId=${recordId}
+                        .fallback=${fallback}
+                        .failure=${failure}
+                    ></mas-chat-masa-answer>
+                </div>
+            </div>
+        `;
+    }
+
+    /** An answer given while MASA is unavailable says so and offers "Ask MASA again". */
+    renderBuiltInNotice() {
+        const { conversationId, question } = this.message.builtIn;
+        return html`<mas-chat-masa-answer
+            .conversationId=${conversationId}
+            .question=${question}
+            .fallback=${BUILT_IN_NOTICE}
+        ></mas-chat-masa-answer>`;
+    }
+
     render() {
         if (!this.message) return nothing;
+        if (this.message.type === 'masa') return this.renderMasaAnswer();
 
         const {
             role,
@@ -467,6 +499,7 @@ export class MasChatMessage extends LitElement {
                                               ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
                                               : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
                                       </div>
+                                      ${this.message.builtIn ? this.renderBuiltInNotice() : nothing}
                                       ${this.showSuggestions
                                           ? html`<mas-prompt-suggestions></mas-prompt-suggestions>`
                                           : nothing}

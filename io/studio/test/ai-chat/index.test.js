@@ -684,4 +684,50 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.operationParams.tags).to.equal(undefined);
         });
     });
+
+    describe('ASK_MASA hand-off', () => {
+        const askMasa = () => toolResponse({ intent: 'ASK_MASA', slots: {}, confidence: 'high' });
+
+        it('never hands card search to MASA', async () => {
+            sendStub.resolves({
+                success: true,
+                message: null,
+                toolUse: { name: 'emit_search', input: { query: 'photoshop', surface: 'acom' } },
+                usage: { inputTokens: 1, outputTokens: 1 },
+            });
+            const messages = [
+                'find photoshop cards in acom',
+                'show me plans cards for en_US',
+                '0123456789abcdef0123456789ABCDEF',
+                'F2F0A049-4B13-4592-9A1C-A0E6C962E21B',
+                'AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE',
+            ];
+            for (const message of messages) {
+                const result = await main(makeParams({ message, masa: true }));
+                expect(result.body.envelope?.intent, message).to.not.equal('ASK_MASA');
+            }
+        });
+
+        it('returns ASK_MASA without an answer when the model hands off', async () => {
+            sendStub.resolves(askMasa());
+            const result = await main(makeParams({ message: 'why is my price wrong in Milo?', masa: true }));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            expect(result.body.message || '').to.equal('');
+        });
+
+        it('offers ASK_MASA to the model only when the request carries masa', async () => {
+            sendStub.resolves(askMasa());
+            await main(makeParams({ message: 'why is my price wrong in Milo?', masa: true }));
+            const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
+            expect(offered).to.include('ASK_MASA');
+        });
+
+        it('drops a model ASK_MASA when the request did not offer MASA', async () => {
+            sendStub.resolves(askMasa());
+            const result = await main(makeParams({ message: 'why is my price wrong in Milo?' }));
+            expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
+            expect(sendStub.callCount).to.equal(2);
+        });
+    });
 });

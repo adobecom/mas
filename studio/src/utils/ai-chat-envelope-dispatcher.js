@@ -18,7 +18,7 @@
  * throws, the caller catches and re-runs the old switch.
  */
 
-export const META_INTENTS = new Set(['ASK_USER', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR']);
+export const META_INTENTS = new Set(['ASK_USER', 'ASK_MASA', 'ABORT', 'START_OVER', 'SHOW_HELP', 'REPORT_ERROR']);
 
 /**
  * Intents whose tool_target is null in the registry. These have UI-side or

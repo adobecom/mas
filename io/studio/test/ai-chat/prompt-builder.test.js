@@ -20,6 +20,13 @@ describe('prompt-builder', () => {
         expect(prompt).to.include('ASK_USER');
     });
 
+    it('routes knowledge questions to ASK_MASA when MASA is available', () => {
+        expect(buildPrompt({ masa: true })).to.include(
+            'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA.',
+        );
+        expect(buildPrompt()).to.not.include('ASK_MASA');
+    });
+
     it('states an empty required-slot list rather than omitting it', () => {
         const prompt = buildPrompt({});
         // The long "no required slots" filler is gone, but the fact itself is

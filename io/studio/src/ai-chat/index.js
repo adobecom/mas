@@ -509,6 +509,8 @@ async function main(params) {
     }
 
     const { conversationHistory = [], context = null, intentHint = null, requestType = null } = params;
+    // Only a literal true offers ASK_MASA; anything else keeps today's behavior.
+    const masa = params.masa === true;
     // Pasted Studio card links carry the fragment UUID in their hash; the
     // UUID is what every downstream identifier path understands.
     const message = replaceStudioLinksWithFragmentIds(params.message);
@@ -550,7 +552,7 @@ async function main(params) {
     // code bug or an active flow where the shortcut is illegal — the normal
     // LLM path is the safe degradation, never a malformed envelope.
     const bypassEnvelopeValid = (envelope) => {
-        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, ...provenance });
+        const validation = validateEnvelope(envelope, { flow: params.context?.flow ?? null, masa, ...provenance });
         if (!validation.ok) {
             console.log(
                 JSON.stringify({
@@ -613,7 +615,7 @@ async function main(params) {
             !params.context?.flow?.active &&
             !inferGuidedFlowFromHistory(conversationHistory);
         let toolOptions = nativeEnvelopeEligible
-            ? { thinking, tools: [buildEnvelopeTool(), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
+            ? { thinking, tools: [buildEnvelopeTool({ masa }), buildSearchTool()], toolChoice: ROUTING_TOOL_CHOICE }
             : { thinking };
 
         // Deterministic identifier shortcut: when the user message is a bare
@@ -823,7 +825,7 @@ async function main(params) {
 
         let registryPrompt = null;
         try {
-            registryPrompt = buildPrompt();
+            registryPrompt = buildPrompt({ masa });
             console.log(
                 JSON.stringify({
                     phase: 'shadow-prompt',
@@ -889,7 +891,7 @@ async function main(params) {
         if (nativeEnvelopeEligible && (response.toolUse || !response.message)) {
             const flow = params.context?.flow ?? null;
             let usage = response.usage;
-            let validation = validateEnvelope(extractToolEnvelope(response), { flow, ...provenance });
+            let validation = validateEnvelope(extractToolEnvelope(response), { flow, masa, ...provenance });
             let retried = false;
             let rejectedRaw = null;
 
@@ -914,7 +916,7 @@ async function main(params) {
                 logUsageMetric(retryResponse, params, foundryClient.modelId);
                 if (retryResponse.success) {
                     usage = retryResponse.usage;
-                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, ...provenance });
+                    const retryValidation = validateEnvelope(extractToolEnvelope(retryResponse), { flow, masa, ...provenance });
                     if (retryValidation.ok) {
                         validation = retryValidation;
                     } else {
@@ -1473,7 +1475,11 @@ function logShadowValidation(foundryResponse, params, provenance) {
         const message = foundryResponse?.message;
         if (typeof message !== 'string') return null;
         const maybeEnvelope = tryExtractEnvelopeFromLLMText(message);
-        const validation = validateEnvelope(maybeEnvelope, { flow: params?.context?.flow ?? null, ...provenance });
+        const validation = validateEnvelope(maybeEnvelope, {
+            flow: params?.context?.flow ?? null,
+            masa: params?.masa === true,
+            ...provenance,
+        });
         console.log(
             JSON.stringify({
                 phase: 'shadow-validation',

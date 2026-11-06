@@ -1,4 +1,4 @@
-import { SLOT_VALIDATORS, META_INTENTS, getIntent, getNextIntentsForFlowStep } from './intent-registry.js';
+import { SLOT_VALIDATORS, getMetaIntents, getIntent, getNextIntentsForFlowStep } from './intent-registry.js';
 
 const ALLOWED_CONFIDENCES = new Set(['high', 'medium', 'low']);
 
@@ -178,7 +178,8 @@ export function validateEnvelope(raw, context = {}) {
     if (typeof intent !== 'string') return fail('intent-missing', 'Could you say that again?');
     if (!ALLOWED_CONFIDENCES.has(confidence)) return fail('bad-confidence', 'Could you say that again?');
 
-    const isMeta = META_INTENTS.includes(intent);
+    const metaIntents = getMetaIntents({ masa: context.masa === true });
+    const isMeta = metaIntents.includes(intent);
     const registered = getIntent(intent);
     if (!isMeta && !registered) {
         return fail('intent-not-in-registry', `I don't support "${intent}" yet. Try rephrasing.`, { attempted: intent });
@@ -233,7 +234,7 @@ export function validateEnvelope(raw, context = {}) {
 
     if (context.flow?.active) {
         const legal = getNextIntentsForFlowStep(context.flow.active, context.flow.step) || [];
-        const allowed = new Set([...legal, ...META_INTENTS]);
+        const allowed = new Set([...legal, ...metaIntents]);
         if (!allowed.has(intent)) {
             return fail('flow-step-illegal', `You're in the middle of ${context.flow.active}. Continue, or cancel?`, {
                 flow: context.flow,

@@ -1,3 +1,4 @@
+import zlib from 'zlib';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
@@ -57,8 +58,10 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR', 'res-some-en-us-fragment-fr_FR']);
+        const stored = JSON.parse(state.store['res-some-en-us-fragment-fr_FR']);
+        expect(stored.hash).to.equal(EXPECTED_BODY_HASH);
+        expect(JSON.parse(zlib.brotliDecompressSync(Buffer.from(stored.body, 'base64')))).to.deep.equal(result.body);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
@@ -117,8 +120,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA', 'res-some-en-us-fragment-fr_CA']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
@@ -148,8 +150,10 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA');
+        expect(Object.keys(state.store)).to.have.members([
+            'req-some-en-us-fragment-fr_FR-CA',
+            'res-some-en-us-fragment-fr_FR-CA',
+        ]);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');

@@ -1,6 +1,18 @@
 import { createTimeoutPromise, mark, measureTiming, VALID_PARAMETER_VALUE_REGEX } from './utils/common.js';
-import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
-import { getApiKeySurface, loadConfiguration, resetCache, validateApiKey } from './utils/configuration.js';
+import {
+    clearRequestCaches,
+    extractContextFromMetadata,
+    getRequestMetadata,
+    getStoredResponse,
+    storeRequestMetadata,
+} from './utils/cache.js';
+import {
+    getApiKeySurface,
+    loadConfiguration,
+    resetCache as resetConfiguration,
+    validateApiKey,
+} from './utils/configuration.js';
+import { getMemoryStats } from './utils/swr-cache.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -20,6 +32,34 @@ import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+}
+
+const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toString('base64') : undefined);
+
+const toMB = (bytes) => Math.round(bytes / 1024 / 1024);
+
+function memoryUsage() {
+    const { entries, bytes } = getMemoryStats();
+    const { rss, heapUsed } = process.memoryUsage();
+    return `memory: cache entries=${entries} cache=${toMB(bytes)}MB rss=${toMB(rss)}MB heap=${toMB(heapUsed)}MB`;
+}
+
+function resetCache() {
+    resetConfiguration();
+    clearRequestCaches();
+}
+
+/** 200 (or 304 when not modified since `If-Modified-Since`) response for an already encoded body. */
+function successResponse(context, { id, hash, lastModified, body }) {
+    const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
+    const notModified = ifModifiedSince && lastModified.getTime() <= new Date(ifModifiedSince).getTime();
+    return {
+        statusCode: notModified ? 304 : 200,
+        id,
+        headers: { ETag: hash, 'Last-Modified': lastModified.toUTCString() },
+        body: notModified ? undefined : body,
+        encoded: true,
+    };
 }
 
 const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
@@ -104,14 +144,15 @@ async function main(params) {
         ...RESPONSE_HEADERS,
         'Cache-Control': cacheControl,
     };
-    returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
+    if (!returnValue.encoded) returnValue.body = encode(returnValue.body);
+    delete returnValue.encoded;
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
     const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
     const measures = context.measures
         .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
         .join('|');
-    log(`timings (time and duration) region: ${region}: ${measures}`, context);
+    log(`timings (time and duration) region: ${region}: ${measures} ${memoryUsage()}`, context);
     log(
         `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
         context,
@@ -169,7 +210,13 @@ async function mainProcess(context) {
     // The request cache key is captured once, here — before that restriction happens — so the read
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
-    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
+    const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
+    const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
+    if (storedBody) {
+        log(`serving stored response for ${requestKey}`, context);
+        const { hash, lastModified } = cachedMetadata;
+        return successResponse(context, { hash, lastModified: new Date(lastModified), body: storedBody });
+    }
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
@@ -205,37 +252,15 @@ async function mainProcess(context) {
         measureTiming(context, transformer.name);
     }
     context.loggedTransformer = 'pipeline';
-    const returnValue = {
-        statusCode: context.status,
-        id: context.body?.id,
-    };
-    let responseBody = undefined;
-    if (context.status == 200) {
-        responseBody = JSON.stringify(context.body, null, 0);
-        logDebug(() => `response body: ${responseBody}`, context);
-        const hash = calculateHash(responseBody);
-        const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash);
-        // Check If-Modified-Since header
-        const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
-        if (ifModifiedSince) {
-            const modifiedSince = new Date(ifModifiedSince);
-            if (lastModified.getTime() <= modifiedSince.getTime()) {
-                returnValue.statusCode = 304;
-                responseBody = undefined;
-            }
-        }
-        returnValue.headers = {
-            ...returnValue.headers,
-            ETag: `${hash}`,
-            'Last-Modified': lastModified.toUTCString(),
-        };
-    } else {
-        responseBody = JSON.stringify({
-            message: context.message,
-        });
+    if (context.status != 200) {
+        return { statusCode: context.status, body: JSON.stringify({ message: context.message }) };
     }
-    returnValue.body = responseBody;
-    return returnValue;
+    const responseBody = JSON.stringify(context.body, null, 0);
+    logDebug(() => `response body: ${responseBody}`, context);
+    const hash = calculateHash(responseBody);
+    const body = encode(responseBody);
+    const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse });
+    return successResponse(context, { id: context.body?.id, hash, lastModified, body });
 }
 
 export { main, resetCache, PIPELINE };

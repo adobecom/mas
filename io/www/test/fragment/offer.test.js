@@ -598,7 +598,8 @@ describe('offer transformer', () => {
             expect(failed.body.references['card-3'].value.offerBaselineId).to.be.undefined;
             expect(failed.body.references['card-2'].value.fragmentBaselineId).to.equal('fragment-baseline-id');
             fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(200, { [PA]: OFFER_BASELINE }));
-            const { body } = await getFragment({ id: 'collection-id', locale: 'en_US' });
+            // a new request key, as the stored response would otherwise be served
+            const { body } = await getFragment({ id: 'collection-id', locale: 'en_US', country: 'CA' });
             expect(body.references['card-3'].value.offerBaselineId).to.equal('offer-baseline-id');
         });
     });

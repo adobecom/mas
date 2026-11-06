@@ -1,5 +1,5 @@
 import { VariantLayout } from './variant-layout';
-import { html, css, nothing } from 'lit';
+import { html, nothing } from 'lit';
 import { CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
@@ -8,6 +8,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
 import { getOuterHeight } from '../utils.js';
+import { css } from '../css.js';
 
 export const PLANS_AEM_FRAGMENT_MAPPING = {
     cardName: { attribute: 'name' },

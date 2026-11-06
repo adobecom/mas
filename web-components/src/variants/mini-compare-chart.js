@@ -1,14 +1,15 @@
-import { html, css, unsafeCSS } from 'lit';
+import { html } from 'lit';
 import { createTag } from '../utils.js';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './mini-compare-chart.css.js';
-import Media, { DESKTOP_UP, TABLET_DOWN } from '../media.js';
+import Media from '../media.js';
 import {
     SELECTOR_MAS_INLINE_PRICE,
     EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
     EVENT_TYPE_RESOLVED,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
+import { css } from '../css.js';
 
 const FOOTER_ROW_MIN_HEIGHT = 32; // as per the XD.
 
@@ -922,17 +923,7 @@ export class MiniCompareChart extends VariantLayout {
             color: #505050;
         }
 
-        @media screen and ${unsafeCSS(TABLET_DOWN)} {
-            [class*'-merch-cards']
-                :host([variant='mini-compare-chart'])
-                footer {
-                flex-direction: column;
-                align-items: stretch;
-                text-align: center;
-            }
-        }
-
-        @media screen and ${unsafeCSS(DESKTOP_UP)} {
+        @media screen and (--desktop-up) {
             :host([variant='mini-compare-chart']) footer {
                 padding: var(--consonant-merch-spacing-xs)
                     var(--consonant-merch-spacing-s)

@@ -1,6 +1,7 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { build } from 'esbuild';
+import { cssLoader } from './css-loader.mjs';
 
 const outfolder = './dist';
 
@@ -13,6 +14,7 @@ const defaults = {
     sourcemap: process.argv.includes('sourcemap'),
     platform: 'browser',
     target: ['es2020'],
+    plugins: [cssLoader()],
 };
 
 // Read the price-literals.js file content
@@ -46,7 +48,6 @@ await build({
     ...defaults,
     entryPoints: ['./src/mas.js'],
     outfile: './dist/mas.js',
-    plugins: [],
     banner: {
         js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
     },
@@ -58,20 +59,20 @@ Promise.all([
         ...defaults,
         stdin: { contents: '' },
         inject: ['./src/merch-offer.js', './src/merch-offer-select.js'],
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [cssLoader(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-offer-select.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/merch-card-collection.js'],
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [cssLoader(), rewriteImportsToLibsFolder()],
         outfile: `${outfolder}/merch-card-collection.js`,
     }),
     build({
         ...defaults,
         entryPoints: ['./src/sidenav/merch-sidenav.js'],
         outfile: `${outfolder}/merch-sidenav.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [cssLoader(), rewriteImportsToLibsFolder()],
     }),
     build({
         ...defaults,
@@ -100,7 +101,7 @@ async function buildLitComponent(name) {
         external: ['lit'],
         metafile: false,
         outfile: `${outfolder}/${name}.js`,
-        plugins: [rewriteImportsToLibsFolder()],
+        plugins: [cssLoader(), rewriteImportsToLibsFolder()],
     });
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
@@ -114,7 +115,11 @@ async function buildMerchCard() {
         entryPoints: ['./src/merch-card.js'],
         external: ['lit'],
         outfile,
-        plugins: [rewriteImportsToLibsFolder(), importFromCommerce()],
+        plugins: [
+            cssLoader(),
+            rewriteImportsToLibsFolder(),
+            importFromCommerce(),
+        ],
     });
     const imported = [
         ...readFileSync(outfile, 'utf-8').matchAll(

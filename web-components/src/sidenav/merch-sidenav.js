@@ -1,10 +1,11 @@
-import { html, css, LitElement, nothing } from 'lit';
+import { html, LitElement, nothing, unsafeCSS } from 'lit';
 import { MatchMediaController } from '@spectrum-web-components/reactive-controllers/src/MatchMedia.js';
 import '../merch-search.js';
 import './merch-sidenav-list.js';
 import './merch-sidenav-checkbox-group.js';
 import { SPECTRUM_MOBILE_LANDSCAPE, TABLET_DOWN } from '../media.js';
 import { EVENT_MERCH_SIDENAV_SELECT } from '../constants.js';
+import { css } from '../css.js';
 
 const SEARCH_SIZE = {
     catalog: 'l',
@@ -166,7 +167,7 @@ export class MerchSideNav extends LitElement {
         document.querySelector('body')?.classList.add('merch-modal');
     }
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             --merch-sidenav-padding: 16px;
             --merch-sidenav-collection-gap: 30px;
@@ -361,7 +362,7 @@ export class MerchSideNav extends LitElement {
             font-size: var(--merch-sidenav-modal-close-font-size);
             line-height: var(--merch-sidenav-modal-close-line-height);
         }
-    `;
+    `);
 }
 
 customElements.define('merch-sidenav', MerchSideNav);

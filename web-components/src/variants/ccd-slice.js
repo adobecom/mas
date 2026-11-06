@@ -1,6 +1,7 @@
 import { VariantLayout } from './variant-layout.js';
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { CSS } from './ccd-slice.css.js';
+import { css } from '../css.js';
 
 export const CCD_SLICE_AEM_FRAGMENT_MAPPING = {
     backgroundImage: { tag: 'div', slot: 'image' },
@@ -86,17 +87,6 @@ export class CCDSlice extends VariantLayout {
             flex: 1 0 0;
         }
 
-        :host([variant='ccd-slice'])
-            ::slotted([slot='body-s'])
-            ::slotted(a:not(.con-button)) {
-            font-size: var(--consonant-merch-card-body-xxs-font-size);
-            font-style: normal;
-            font-weight: 400;
-            line-height: var(--consonant-merch-card-body-xxs-line-height);
-            text-decoration-line: underline;
-            color: var(--spectrum-gray-800, var(--merch-color-grey-80));
-        }
-
         :host([variant='ccd-slice']) ::slotted([slot='image']) {
             display: flex;
             justify-content: center;
@@ -108,13 +98,6 @@ export class CCDSlice extends VariantLayout {
             padding: 15px;
             align-self: center;
             padding-inline-start: 0;
-        }
-
-        :host([variant='ccd-slice']) ::slotted([slot='image']) img {
-            overflow: hidden;
-            border-radius: 50%;
-            width: inherit;
-            height: inherit;
         }
 
         :host([variant='ccd-slice']) div[class$='-badge'] {

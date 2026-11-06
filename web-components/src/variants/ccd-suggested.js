@@ -1,6 +1,7 @@
-import { html, css } from 'lit';
+import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './ccd-suggested.css.js';
+import { css } from '../css.js';
 
 export const CCD_SUGGESTED_AEM_FRAGMENT_MAPPING = {
     backgroundImage: { attribute: 'background-image' },
@@ -21,12 +22,8 @@ export class CCDSuggested extends VariantLayout {
 
     get stripStyle() {
         if (!this.card.backgroundImage) return '';
-        return `
-            background: url("${this.card.backgroundImage}");
-        background-size: auto 100%;
-        background-repeat: no-repeat;
-        background-position: ${this.card.dir === 'ltr' ? 'left' : 'right'};
-        `;
+        const position = this.card.dir === 'ltr' ? 'left' : 'right';
+        return `background:url("${this.card.backgroundImage}");background-size:auto 100%;background-repeat:no-repeat;background-position:${position}`;
     }
 
     renderLayout() {

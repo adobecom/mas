@@ -1,0 +1,12 @@
+/* Breakpoints for every css`` template under src/. The CSS loader
+   (css-loader.mjs) appends this file before minifying, inlines the queries, and
+   fails the build if they don't match the constants in media.js, which JS
+   matchMedia uses. */
+@custom-media --spectrum-mobile-landscape (max-width: 700px);
+@custom-media --mobile-landscape (max-width: 767px);
+@custom-media --tablet-down (max-width: 1199px);
+@custom-media --tablet-up (min-width: 768px);
+@custom-media --desktop-up (min-width: 1200px);
+@custom-media --large-desktop (min-width: 1600px);
+@custom-media --c2-desktop-up (min-width: 1280px);
+@custom-media --xl-desktop-up (min-width: 1440px);

@@ -4,22 +4,12 @@ import { fixture } from '@open-wc/testing-helpers/pure';
 
 import '../../src/swc.js';
 import '../../src/fields/rte-field-item.js';
-import '../../src/mas-confirm-dialog.js';
 import '../../../web-components/src/mas-commerce-service.js';
 import { mockFetch } from '../../../web-components/test/mocks/fetch.js';
 import { withWcs } from '../../../web-components/test/mocks/wcs.js';
 import Store from '../../src/store.js';
 
 import { spTheme, delay } from '../utils.js';
-
-/** Resolves the currently pending confirmation() promise (see mas-confirm-dialog.js). */
-async function resolveConfirmDialog(result) {
-    const confirmEl = document.createElement('mas-confirm-dialog');
-    document.body.append(confirmEl);
-    confirmEl.handleDialogAction(result);
-    confirmEl.remove();
-    await delay(0);
-}
 
 async function ensureCommerceSettings() {
     await customElements.whenDefined('mas-commerce-service');
@@ -106,21 +96,23 @@ describe('MasRteFieldItem', () => {
     });
 
     describe('label locking', () => {
-        it('locks the label field once an external label value arrives', async () => {
+        const readonly = (el) => el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly');
+
+        it('locks the label of a saved field', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" saved></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            expect(readonly(el)).to.be.true;
+        });
+
+        it('keeps the label editable on a field added since the last save', async () => {
             const el = await fixture(html`<mas-rte-field-item label="Custom 1"></mas-rte-field-item>`, {
                 parentNode: spTheme(),
             });
-            const labelField = el.shadowRoot.querySelector('sp-textfield');
-            expect(labelField.hasAttribute('readonly')).to.be.true;
+            expect(readonly(el)).to.be.false;
         });
 
-        it('does not lock the label field when no label is set', async () => {
-            const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });
-            const labelField = el.shadowRoot.querySelector('sp-textfield');
-            expect(labelField.hasAttribute('readonly')).to.be.false;
-        });
-
-        it('locks the label after the user types one in and dispatches change', async () => {
+        it('keeps a typed label editable until the field is saved', async () => {
             const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });
             const labelField = el.shadowRoot.querySelector('sp-textfield');
 
@@ -137,61 +129,51 @@ describe('MasRteFieldItem', () => {
 
             expect(el.label).to.equal('New label');
             expect(changeCount).to.equal(1);
-            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly')).to.be.true;
+            expect(readonly(el)).to.be.false;
         });
 
-        it('unlocks the label after confirming the rename warning, then refocuses it', async () => {
-            const el = await fixture(html`<mas-rte-field-item label="Custom 1"></mas-rte-field-item>`, {
+        it('lets a saved field without a label be named', async () => {
+            const el = await fixture(html`<mas-rte-field-item saved></mas-rte-field-item>`, { parentNode: spTheme() });
+            expect(readonly(el)).to.be.false;
+        });
+
+        it('keeps a locked label read-only on click and never offers a rename', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" saved></mas-rte-field-item>`, {
                 parentNode: spTheme(),
             });
-            const labelField = el.shadowRoot.querySelector('sp-textfield');
-            expect(labelField.hasAttribute('readonly')).to.be.true;
 
-            labelField.click();
+            el.shadowRoot.querySelector('sp-textfield').click();
             await delay(0);
-
-            expect(Store.confirmDialogOptions.get()).to.not.equal(null);
-            expect(Store.confirmDialogOptions.get().title).to.equal('Rename custom field');
-            expect(Store.confirmDialogOptions.get().content).to.include('Custom 1');
-
-            await resolveConfirmDialog(true);
             await el.updateComplete;
 
-            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly')).to.be.false;
-        });
-
-        it('stays locked when the rename warning is cancelled', async () => {
-            const el = await fixture(html`<mas-rte-field-item label="Custom 1"></mas-rte-field-item>`, {
-                parentNode: spTheme(),
-            });
-            const labelField = el.shadowRoot.querySelector('sp-textfield');
-
-            labelField.click();
-            await delay(0);
-            await resolveConfirmDialog(false);
-            await el.updateComplete;
-
-            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('readonly')).to.be.true;
-        });
-
-        it('clicking the label field while unlocked does nothing', async () => {
-            const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });
-            const labelField = el.shadowRoot.querySelector('sp-textfield');
-            labelField.click();
-            await delay(0);
             expect(Store.confirmDialogOptions.get()).to.equal(null);
+            expect(readonly(el)).to.be.true;
         });
     });
 
     describe('delete', () => {
-        it('dispatches delete-field when the delete button is clicked', async () => {
-            const el = await fixture(html`<mas-rte-field-item></mas-rte-field-item>`, { parentNode: spTheme() });
+        it('dispatches delete-field when the delete button of a new field is clicked', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1"></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
             let fired = false;
             el.addEventListener('delete-field', () => {
                 fired = true;
             });
             el.shadowRoot.querySelector('.delete-btn').click();
             expect(fired).to.be.true;
+        });
+
+        it('hides the delete button on a saved field', async () => {
+            const el = await fixture(html`<mas-rte-field-item label="Custom 1" saved></mas-rte-field-item>`, {
+                parentNode: spTheme(),
+            });
+            expect(el.shadowRoot.querySelector('.delete-btn')).to.be.null;
+        });
+
+        it('hides the delete button on a saved field without a label', async () => {
+            const el = await fixture(html`<mas-rte-field-item saved></mas-rte-field-item>`, { parentNode: spTheme() });
+            expect(el.shadowRoot.querySelector('.delete-btn')).to.be.null;
         });
     });
 

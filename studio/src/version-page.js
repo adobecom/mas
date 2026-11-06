@@ -63,7 +63,7 @@ class VersionPage extends LitElement {
         mnemonicAlt: { label: 'Mnemonic alt', visible: false },
         mnemonicLink: { label: 'Mnemonic link', visible: false },
         backgroundImageAltText: { label: 'Background image alt text', visible: false },
-        cardName: { label: 'Card name', visible: false },
+        cardName: { label: 'Deep linking name', visible: false },
         cardTitleLink: { label: 'Card title link', visible: false },
         shortDescription: { label: 'Short description', visible: false },
         promoCode: { label: 'Promo code', visible: false },

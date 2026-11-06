@@ -45,6 +45,8 @@ class CardDetector {
         this.idleHandle = null;
         this.elementIds = new WeakMap();
         this.elementCounter = 0;
+        this.resizeObserver = null;
+        this.hiddenElements = new Map();
     }
 
     onCardDetected(callback) {
@@ -53,9 +55,15 @@ class CardDetector {
     }
 
     initialize() {
-        this.pageLocale = this.getPageLocale();
         this.detectExistingCards();
         this.startObserving();
+    }
+
+    // Milo adds mas-commerce-service after this script starts, so only its locale is kept;
+    // until it appears, the URL or en_US fallback is read again on every call.
+    currentLocale() {
+        this.pageLocale ??= this.localeFromCommerceService();
+        return this.pageLocale ?? this.getPageLocale();
     }
 
     getPageLocale() {
@@ -81,6 +89,14 @@ class CardDetector {
             masIOUrl: commerceService.getAttribute('mas-io-url') || undefined,
             wcsApiKey: commerceService.getAttribute('wcs-api-key') || undefined,
         };
+    }
+
+    // Mirrors MAS settings: the mas.preview URL parameter wins over the service's preview attribute. In
+    // preview the page renders draft content, which published IO, where the extension reads, may not have.
+    isMasPreview() {
+        const param = new URLSearchParams(window.location.search).get('mas.preview');
+        const value = param ?? document.querySelector('mas-commerce-service')?.getAttribute('preview');
+        return value != null && value !== 'off' && value !== 'false';
     }
 
     localeFromCommerceService() {
@@ -176,12 +192,18 @@ class CardDetector {
         }
     }
 
+    // Every mutation inside an element queues it again; duplicates would fill the maxCards budget
+    // and drop the later mutation that finally shows it, so each element waits in the queue once.
+    queueElement(element) {
+        if (!this.pendingCards.includes(element)) this.pendingCards.push(element);
+    }
+
     startObserving() {
         const enqueue = (node) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
             if (node.nodeType !== Node.ELEMENT_NODE) return;
-            if (node.matches?.(SELECTOR_DETECTABLE)) this.pendingCards.push(node);
-            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.pendingCards.push(c));
+            if (node.matches?.(SELECTOR_DETECTABLE)) this.queueElement(node);
+            node.querySelectorAll?.(SELECTOR_DETECTABLE).forEach((c) => this.queueElement(c));
         };
 
         // A mas-field renders its content asynchronously, and a text-only field (a title,
@@ -190,7 +212,7 @@ class CardDetector {
         const enqueueFieldOwner = (target) => {
             if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
             const owner = target?.closest?.(SELECTOR_MAS_FIELD);
-            if (owner && !this.elementIds.has(owner)) this.pendingCards.push(owner);
+            if (owner && !this.elementIds.has(owner)) this.queueElement(owner);
         };
 
         this.observer = new MutationObserver((mutations) => {
@@ -234,6 +256,39 @@ class CardDetector {
         });
     }
 
+    // An element checked while hidden (an inactive slide, another breakpoint's twin) is shown later by a
+    // class or media-query change, which no childList mutation reports; its layout box resizing does.
+    retryWhenShown(element, anchor = element) {
+        const box = this.layoutBox(anchor);
+        // A laid-out box means the element is only empty so far; its content mutation retries it.
+        if (this.hasBox(box)) return;
+        this.resizeObserver ??= new ResizeObserver((entries) => this.requeueShown(entries));
+        if (!this.hiddenElements.has(box)) {
+            this.hiddenElements.set(box, new Set());
+            this.resizeObserver.observe(box);
+        }
+        this.hiddenElements.get(box).add(element);
+    }
+
+    requeueShown(entries) {
+        for (const { target } of entries) {
+            if (!this.hasBox(target)) continue;
+            this.resizeObserver.unobserve(target);
+            this.hiddenElements.get(target).forEach((element) => this.queueElement(element));
+            this.hiddenElements.delete(target);
+        }
+        if (this.pendingCards.length) this.scheduleProcessing();
+    }
+
+    // ResizeObserver reports nothing for inline or display:contents elements, so watch the nearest box.
+    layoutBox(element) {
+        let box = element;
+        while (box.parentElement && ['inline', 'contents'].includes(getComputedStyle(box).display)) {
+            box = box.parentElement;
+        }
+        return box;
+    }
+
     async processCard(cardElement) {
         const aemFragment = cardElement.querySelector('aem-fragment');
         const fragmentId = aemFragment?.getAttribute('fragment');
@@ -253,9 +308,12 @@ class CardDetector {
 
         // A hidden responsive twin shares this fragment id; skip it so the visible copy is the one
         // stored for this fragment rather than losing the dedupe race to an invisible element.
-        if (!this.hasBox(cardElement)) return;
+        if (!this.hasBox(cardElement)) {
+            this.retryWhenShown(cardElement);
+            return;
+        }
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
         const rawVariant = cardElement.variant || cardElement.getAttribute('variant');
         const variant = rawVariant || (elementType === 'collection' ? 'collection' : 'unknown');
@@ -348,14 +406,17 @@ class CardDetector {
         const osi = element.getAttribute('data-wcs-osi');
         if (!osi) return;
 
-        if (!this.hasBox(element)) return;
+        if (!this.hasBox(element)) {
+            this.retryWhenShown(element);
+            return;
+        }
 
         if (this.detectedCards.size >= this.maxCards) return;
 
         const id = `${elementType}-${++this.elementCounter}`;
         this.elementIds.set(element, id);
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const promotion = this.readPromotion(element, elementType);
 
         const displayText = (element.textContent || '').trim();
@@ -381,6 +442,14 @@ class CardDetector {
     }
 
     /**
+     * mas-field is display:contents, so it has no box of its own to anchor a badge to; it renders
+     * through its content span, or the commerce element it hosts.
+     */
+    fieldAnchor(element) {
+        return element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || element.querySelector(SELECTOR_BARE_ELEMENT) || element;
+    }
+
+    /**
      * Records a <mas-field>, whatever it renders. A title or description is a plain
      * content field; a price or CTA field owns the commerce element inside it, so that
      * element is skipped in processBareElement and the whole field gets a single badge.
@@ -396,17 +465,18 @@ class CardDetector {
         if (this.detectedCards.size >= this.maxCards) return;
 
         const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
-        // mas-field is display:contents, so it has no box of its own to anchor a badge to; use its
-        // rendered content span (or the commerce element it hosts). A field in a hidden responsive
-        // variant renders a zero-size content span, so skip it until it has a box -- a later mutation
-        // re-queues the field -- rather than badging an invisible duplicate.
-        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
-        if (!this.hasBox(anchorElement)) return;
+        // A field in a hidden responsive variant renders a zero-size content span, so skip it until it
+        // has a box rather than badging an invisible duplicate.
+        const anchorElement = this.fieldAnchor(element);
+        if (!this.hasBox(anchorElement)) {
+            this.retryWhenShown(element, anchorElement);
+            return;
+        }
 
         const id = `field-${++this.elementCounter}`;
         this.elementIds.set(element, id);
 
-        const localeInfo = this.pageLocale || this.getPageLocale();
+        const localeInfo = this.currentLocale();
         const fieldName = element.getAttribute('field') || 'field';
         const displayText = (element.textContent || '').trim();
 

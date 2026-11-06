@@ -81,9 +81,7 @@ class CardOverlay {
         const isField = cardData.elementType === 'field';
         // Set for cards, and for anything mas-field rendered; null for a standalone offer.
         const sourceFragmentId = cardData.sourceFragmentId;
-        const headerLabel = isCollection
-            ? `Collection: ${this.escapeHtml(cardData.cardName)}`
-            : this.escapeHtml(cardData.cardName);
+        const headerLabel = this.escapeHtml(this.panelTitle(cardData));
         const promotion = !isCollection && window.MASPromo ? window.MASPromo.readElementPromotion(cardData.element) : null;
         const idFields = [];
         if (isBareElement) idFields.push({ label: 'OSI', value: cardData.osi });
@@ -148,8 +146,9 @@ class CardOverlay {
                 ? ''
                 : `
         <hr class="mas-ext-divider"/>
-        <section class="mas-ext-section mas-ext-section-variation" style="display:none">
-          <h4 class="mas-ext-section-title">Variation info</h4>
+        <section class="mas-ext-section mas-ext-section-variation" hidden>
+          <h4 class="mas-ext-section-title">Content sources</h4>
+          <div class="mas-ext-sources-content"></div>
           <div class="mas-ext-variation-content">
             <div class="mas-ext-loading">Loading variation data…</div>
           </div>
@@ -175,6 +174,10 @@ class CardOverlay {
           ${icons.get('Refresh', 'S')}
           <span>Refresh</span>
         </button>
+        <button class="mas-ext-btn mas-ext-btn-secondary mas-ext-history-btn">
+          ${icons.get('History', 'S')}
+          <span>History</span>
+        </button>
         <button class="mas-ext-btn mas-ext-btn-accent mas-ext-edit-btn">
           ${icons.get('Edit', 'S')}
           <span>Edit in Studio</span>
@@ -199,6 +202,7 @@ class CardOverlay {
         });
 
         this.positionPanel(panel, cardData.anchorElement);
+        this.keepWheelInside(panel);
         document.body.appendChild(panel);
 
         const overlayData = this.overlays.get(cardData.fragmentId);
@@ -217,6 +221,9 @@ class CardOverlay {
                 elementType: cardData.elementType,
             });
         });
+
+        const historyBtn = panel.querySelector('.mas-ext-history-btn');
+        historyBtn.addEventListener('click', () => window.MASStudioLinker.openVersionHistory(sourceFragmentId));
 
         const refreshBtn = panel.querySelector('.mas-ext-refresh-btn');
         refreshBtn.addEventListener('click', () => this.refreshFragmentData(cardData.fragmentId));
@@ -294,8 +301,13 @@ class CardOverlay {
         const sourceFragmentId = cardData?.sourceFragmentId;
         if (!sourceFragmentId) return;
 
-        const contentDiv = overlayData.panel.querySelector('[data-section="details"] .mas-ext-section-content');
         const key = this.cacheKey(sourceFragmentId, cardData?.locale, cardData?.country);
+
+        if (window.MASSources) {
+            window.MASSources.getSourcesFor(fragmentId)
+                .then((result) => this.renderContentSources(fragmentId, result))
+                .catch(() => {});
+        }
 
         if (this.fragmentDataCache.has(key)) {
             const cachedData = this.fragmentDataCache.get(key);
@@ -315,16 +327,18 @@ class CardOverlay {
                     ...window.MASCardDetector.getServiceConfig(),
                 },
                 (response) => {
-                    if (chrome.runtime.lastError) return;
+                    if (chrome.runtime.lastError) {
+                        this.clearVariationLoading(overlayData);
+                        return;
+                    }
                     if (response && response.success && response.data) {
                         this.fragmentDataCache.set(key, response.data);
                         this.updateBasicInfoPath(fragmentId, response.data.path);
                         this.renderVariationInfo(fragmentId, response.data, cardData?.locale);
                         this.renderFragmentDetails(fragmentId, response.data);
                     } else {
-                        this.updateBasicInfoPath(fragmentId, null);
-                        const message = this.formatFragmentError(response?.error);
-                        contentDiv.innerHTML = `<div class="mas-ext-error">${this.escapeHtml(message)}</div>`;
+                        const preview = window.MASCardDetector.isMasPreview();
+                        this.renderFragmentError(fragmentId, this.formatFragmentError(response, preview));
                     }
                 },
             );
@@ -333,6 +347,12 @@ class CardOverlay {
                 throw err;
             }
         }
+    }
+
+    // No variation data is coming, so the placeholder must not linger under the content sources.
+    clearVariationLoading(overlayData) {
+        const variationContent = overlayData.panel.querySelector('.mas-ext-variation-content');
+        if (variationContent) variationContent.innerHTML = '';
     }
 
     renderPromotionField(promotion) {
@@ -357,16 +377,38 @@ class CardOverlay {
           </div>`;
     }
 
-    formatFragmentError(code) {
+    // IO's 404 tells a fragment missing in this language from one missing altogether; on a page in MAS
+    // preview, a fragment missing from published IO is a draft the page reads from preview content.
+    formatFragmentError(response, preview = false) {
+        const miss = response?.miss;
+        if (miss?.kind === 'missing-locale') return `No ${miss.locale} copy of this fragment.`;
+        if (miss?.kind === 'not-found') {
+            return preview
+                ? 'Not published — this page shows preview content (mas.preview). The extension reads published IO.'
+                : 'Not found — the fragment does not exist or is not published.';
+        }
         const map = {
             invalid_fragment_id: 'Invalid fragment ID.',
             invalid_locale: 'Invalid locale.',
             invalid_country: 'Invalid country.',
             fetch_failed: 'Could not fetch fragment data.',
-            'Fragment not found.': 'Fragment not found for this locale.',
         };
+        const code = response?.error;
         if (!code) return 'Could not load fragment data.';
         return map[code] || code;
+    }
+
+    // The details section starts collapsed, so the reason also goes under Basic info, where it is seen.
+    renderFragmentError(fragmentId, message) {
+        const overlayData = this.overlays.get(fragmentId);
+        if (!overlayData?.panel) return;
+        const { panel } = overlayData;
+        this.updateBasicInfoPath(fragmentId, null);
+        this.clearVariationLoading(overlayData);
+        const html = `<div class="mas-ext-notice">${this.escapeHtml(message)}</div>`;
+        panel.querySelector('.mas-ext-section-basic')?.insertAdjacentHTML('beforeend', html);
+        const details = panel.querySelector('[data-section="details"] .mas-ext-section-content');
+        if (details) details.innerHTML = `<div class="mas-ext-error">${this.escapeHtml(message)}</div>`;
     }
 
     renderFragmentDetails(fragmentId, fragmentData) {
@@ -507,16 +549,88 @@ class CardOverlay {
         }
     }
 
-    renderVariationBucket(title, entries, labelFor) {
+    sourceClass(source) {
+        return window.MASSourceLegend.SOURCES.includes(source) ? source : 'unknown';
+    }
+
+    // The background looks a promotion up by its variation folder name, else by the title IO stamped.
+    promotionDataAttrs({ name, title }) {
+        return [
+            name && `data-promotion-name="${this.escapeAttr(name)}"`,
+            title && `data-promotion-title="${this.escapeAttr(title)}"`,
+        ]
+            .filter(Boolean)
+            .join(' ');
+    }
+
+    sourceLinksHtml(entry) {
+        const links = [];
+        if (entry.supplierId) {
+            links.push(`<a href="#" class="mas-ext-src-link" data-fragment-id="${this.escapeAttr(entry.supplierId)}">Open</a>`);
+        }
+        if (entry.promotion) {
+            links.push(`<a href="#" class="mas-ext-src-link" ${this.promotionDataAttrs(entry.promotion)}>Promo project</a>`);
+        }
+        return links.length ? `<span class="mas-ext-src-links">${links.join('')}</span>` : '';
+    }
+
+    // Rendered Studio links carry their target in data attributes (see MASStudioLinker.openLink).
+    bindStudioLinks(container, selector) {
+        container.querySelectorAll(selector).forEach((link) => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.MASStudioLinker.openLink(link.dataset);
+            });
+        });
+    }
+
+    contentSourcesHtml(result) {
+        const entries = result?.entries || [];
+        if (entries.length === 0) return '';
+        const warning = result.mixed ? '<div class="mas-ext-src-warning">This card mixes sources</div>' : '';
+        const rows = entries
+            .map((entry) => {
+                const focus = entry.field === result.focusField ? ' mas-ext-src-focus' : '';
+                return `
+      <div class="mas-ext-src-row${focus}">
+        <span class="mas-ext-src-field">${this.escapeHtml(entry.field)}</span>
+        <span class="mas-ext-src-chip mas-ext-src-${this.sourceClass(entry.source)}">${this.escapeHtml(entry.label)}</span>
+        ${this.sourceLinksHtml(entry)}
+        <span class="mas-ext-src-reason">${this.escapeHtml(entry.reason)}</span>
+      </div>`;
+            })
+            .join('');
+        return `${warning}<div class="mas-ext-src-table">${rows}</div>${window.MASSourceLegend.renderSourceLegend()}`;
+    }
+
+    renderContentSources(overlayId, result) {
+        const overlayData = this.overlays.get(overlayId);
+        if (!overlayData || !overlayData.panel) return;
+
+        const html = this.contentSourcesHtml(result);
+        if (!html) return;
+
+        const variationSection = overlayData.panel.querySelector('.mas-ext-section-variation');
+        const sourcesDiv = overlayData.panel.querySelector('.mas-ext-sources-content');
+        if (!variationSection || !sourcesDiv) return;
+
+        sourcesDiv.innerHTML = html;
+        this.bindStudioLinks(sourcesDiv, '.mas-ext-src-link');
+        variationSection.hidden = false;
+    }
+
+    renderVariationBucket(title, entries, labelFor, extraFor = () => '') {
         const rows = entries
             .map(
                 (v) => `
-      <a href="#" class="mas-ext-variation-link"
-         data-locale="${this.escapeAttr(v.locale)}"
-         data-surface="${this.escapeAttr(v.surface)}"
-         data-id="${this.escapeAttr(v.id || '')}">
-        ${labelFor(v)}
-      </a>
+      <span class="mas-ext-variation-item">
+        <a href="#" class="mas-ext-variation-link"
+           data-locale="${this.escapeAttr(v.locale)}"
+           data-surface="${this.escapeAttr(v.surface)}"
+           data-id="${this.escapeAttr(v.id || '')}">
+          ${labelFor(v)}
+        </a>${extraFor(v)}
+      </span>
     `,
             )
             .join('');
@@ -537,7 +651,7 @@ class CardOverlay {
 
         const variationInfo = window.MASFragmentParser.parseVariationInfo(fragmentData, requestedLocale);
 
-        variationSection.style.display = 'block';
+        variationSection.hidden = false;
 
         if (!variationInfo.locale) {
             contentDiv.innerHTML = `
@@ -554,31 +668,30 @@ class CardOverlay {
         let html = `
       <div class="mas-ext-field">
         <label>Locale:</label>
-        <span class="mas-ext-value">${this.escapeHtml(localeName)} (${variationInfo.locale})</span>
+        <span class="mas-ext-value">${this.escapeHtml(localeName)} (${this.escapeHtml(variationInfo.locale)})</span>
       </div>
     `;
 
-        if (variationInfo.isVariation) {
-            const parentLocaleName = window.MASFragmentParser.getLocaleDisplayName(variationInfo.localeDefaultLocale);
-            html += `
+        const typeLabel = window.MASFragmentParser.summarizeVariationInfo(variationInfo).typeLabel;
+        html += `
         <div class="mas-ext-field">
           <label>Type:</label>
-          <span class="mas-ext-value mas-ext-variation-badge">Locale Variation</span>
+          <span class="mas-ext-value mas-ext-variation-badge">${this.escapeHtml(typeLabel)}</span>
         </div>
+      `;
+
+        // Only a regional-locale fragment has a locale-default parent; grouped and promo variations
+        // at the default locale have none.
+        if (variationInfo.localeDefaultLocale) {
+            const parentLocaleName = window.MASFragmentParser.getLocaleDisplayName(variationInfo.localeDefaultLocale);
+            html += `
         <div class="mas-ext-field">
           <label>Parent:</label>
           <span class="mas-ext-value">
             <a href="#" class="mas-ext-parent-link" data-locale="${this.escapeAttr(variationInfo.localeDefaultLocale)}" data-surface="${this.escapeAttr(variationInfo.surface)}">
-              ${this.escapeHtml(parentLocaleName)} (${variationInfo.localeDefaultLocale}) →
+              ${this.escapeHtml(parentLocaleName)} (${this.escapeHtml(variationInfo.localeDefaultLocale)}) →
             </a>
           </span>
-        </div>
-      `;
-        } else {
-            html += `
-        <div class="mas-ext-field">
-          <label>Type:</label>
-          <span class="mas-ext-value mas-ext-locale-default-badge">Locale Default</span>
         </div>
       `;
         }
@@ -592,8 +705,14 @@ class CardOverlay {
         }
 
         if (buckets.promo && buckets.promo.length > 0) {
-            html += this.renderVariationBucket('Promotional variations', buckets.promo, (v) =>
-                this.escapeHtml(v.promotionName || v.name || 'Promotion'),
+            html += this.renderVariationBucket(
+                'Promotional variations',
+                buckets.promo,
+                (v) => this.escapeHtml(v.promotionName || v.name || 'Promotion'),
+                (v) =>
+                    v.promotionName
+                        ? `<a href="#" class="mas-ext-promo-project-link" ${this.promotionDataAttrs({ name: v.promotionName })}>project</a>`
+                        : '',
             );
         }
 
@@ -605,6 +724,7 @@ class CardOverlay {
         }
 
         contentDiv.innerHTML = html;
+        this.bindStudioLinks(contentDiv, '.mas-ext-promo-project-link');
 
         const parentLink = contentDiv.querySelector('.mas-ext-parent-link');
         if (parentLink) {
@@ -679,9 +799,23 @@ class CardOverlay {
         if (overlayData.panel) {
             const header = overlayData.panel.querySelector('.mas-ext-panel-header h3');
             if (header) {
-                header.textContent = cardName;
+                header.textContent = this.panelTitle(overlayData.cardData);
             }
         }
+    }
+
+    // Some pages (the adobe.com homepage) turn every wheel event that reaches them into a page scroll, so
+    // the panel keeps its wheel events and scrolls its own body.
+    keepWheelInside(element) {
+        element.addEventListener('wheel', (event) => event.stopPropagation(), { passive: true });
+    }
+
+    // Sibling fields share their card's name, so a field, price or CTA panel also names its own role.
+    panelTitle({ cardName, elementType, variant }) {
+        if (elementType === 'collection') return `Collection: ${cardName}`;
+        if (!['field', 'price', 'cta'].includes(elementType)) return cardName;
+        const role = elementType === 'field' ? variant : elementType;
+        return role && role !== cardName ? `${cardName} · ${role}` : cardName;
     }
 
     updateBadgeVariant(fragmentId, variant) {
@@ -751,11 +885,25 @@ class CardOverlay {
         });
     }
 
+    markMixed(overlayId, mixed) {
+        const badge = this.overlays.get(overlayId)?.badge;
+        if (!badge) return;
+        badge.classList.toggle('mas-ext-badge-mixed', !!mixed);
+        if (mixed) {
+            badge.setAttribute('aria-label', 'This card mixes content sources');
+        } else {
+            badge.removeAttribute('aria-label');
+        }
+    }
+
     applyTheme(isDark) {
         const themeClass = 'spectrum spectrum--express spectrum--medium spectrum--' + (isDark ? 'dark' : 'light');
         this.overlays.forEach(({ badge, panel }) => {
             if (badge) {
-                badge.className = themeClass + ' mas-ext-badge';
+                badge.className =
+                    themeClass +
+                    ' mas-ext-badge' +
+                    (badge.classList.contains('mas-ext-badge-mixed') ? ' mas-ext-badge-mixed' : '');
             }
             if (panel) {
                 panel.className = themeClass + ' mas-ext-panel';

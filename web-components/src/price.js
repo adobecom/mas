@@ -1,5 +1,5 @@
 import { Defaults } from './defaults.js';
-import { buildPriceHTML as renderPrice } from '../../price/src/index.js';
+import { buildPriceHTML as renderPrice } from '../../price/src/price.js';
 
 import {
     omitProperties,

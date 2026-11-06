@@ -312,6 +312,7 @@ export class MerchCard extends LitElement {
     static getFragmentMapping = getFragmentMapping;
 
     firstUpdated() {
+        this.variantLayout?.disconnectedCallbackHook();
         this.variantLayout = getVariantLayout(this);
         this.variantLayout?.connectedCallbackHook();
     }

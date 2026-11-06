@@ -23,6 +23,8 @@ export const tableHeaderBaseStyles = css`
 
     .item-table sp-table-head-cell {
         align-content: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .item-table sp-table-head-cell:first-of-type {
@@ -44,7 +46,7 @@ export const tableColumnIconStyles = css`
     .table-icon-cell {
         display: flex;
         align-items: center;
-        flex: 0;
+        flex: 0 0 auto;
     }
 
     .table-icon-cell--chevron {
@@ -98,6 +100,25 @@ export const tableCellBaseStyles = css`
     sp-table-cell {
         display: flex;
         align-items: center;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    sp-table-cell.title overlay-trigger {
+        min-width: 0;
+    }
+
+    .title-clamp {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .action-cell {
+        display: flex;
+        justify-content: center;
+        --system-action-button-background-color-default: transparent;
     }
 
     .status-cell {

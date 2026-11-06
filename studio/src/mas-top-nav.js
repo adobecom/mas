@@ -158,6 +158,10 @@ class MasTopNav extends LitElement {
         return this.page.value === PAGE_NAMES.WELCOME;
     }
 
+    get isBaselinesPage() {
+        return this.page.value === PAGE_NAMES.BASELINES;
+    }
+
     get isFragmentEditorPage() {
         return this.page.value === PAGE_NAMES.FRAGMENT_EDITOR;
     }
@@ -222,7 +226,7 @@ class MasTopNav extends LitElement {
     }
 
     get isLocalePickerDisabled() {
-        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage) {
+        if (this.isWelcomePage || this.isContentPage || this.isPlaceholdersPage || this.isBaselinesPage) {
             return false;
         }
         if (this.isFragmentEditorPage) {

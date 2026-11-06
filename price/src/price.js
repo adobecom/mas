@@ -5,7 +5,7 @@ import {
     createPromoPriceWithAnnualTemplate,
 } from './price/template.js';
 import { legalTemplate } from './price/legal.js';
-import { discount } from './discount.js';
+import { discount, discountAmount } from './discount.js';
 
 const price = createPriceTemplate();
 const pricePromo = createPromoPriceTemplate();
@@ -41,6 +41,9 @@ export function buildPriceHTML(offers, options, { logger = console } = {}) {
     switch (options.template) {
         case 'discount':
             method = discount;
+            break;
+        case 'discount-amount':
+            method = discountAmount;
             break;
         case 'strikethrough':
             method = priceStrikethrough;

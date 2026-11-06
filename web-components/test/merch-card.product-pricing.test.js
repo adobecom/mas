@@ -7,6 +7,7 @@ import {
 // mas.js first to break the circular dep between variant-layout and variants
 import '../src/mas.js';
 import '../src/merch-card-collection.js';
+import { hydrate } from '../src/hydrate.js';
 import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 
 let ProductPricing;
@@ -487,7 +488,7 @@ describe('ProductPricing price row collapse', () => {
         const card = document.createElement('merch-card');
         card.setAttribute('variant', 'product-pricing');
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="body-xs">Copy</div>
             ${withPrice ? '<p slot="heading-xs">US$9.99/mo</p>' : ''}
             <div slot="footer"><a href="#">Buy</a></div>`;
@@ -541,7 +542,7 @@ describe('ProductPricing row alignment', () => {
         wrap.innerHTML = cardsHtml
             .map(
                 (inner) => `<merch-card variant="product-pricing">
-                    <h3 slot="heading-s">Title</h3>${inner}</merch-card>`,
+                    <h2 slot="heading-s">Title</h2>${inner}</merch-card>`,
             )
             .join('');
         document.body.appendChild(wrap);
@@ -691,7 +692,7 @@ describe('ProductPricing CTAs', () => {
         card.setAttribute('variant', 'product-pricing');
         card.style.width = width;
         card.innerHTML = `
-            <h3 slot="heading-s">Title</h3>
+            <h2 slot="heading-s">Title</h2>
             <div slot="footer">
                 ${links(labels)}
             </div>`;
@@ -743,6 +744,35 @@ describe('ProductPricing CTAs', () => {
             const link = card.querySelector('[slot="footer"] a');
             expect(link.scrollWidth).to.be.at.most(link.clientWidth);
             expect(link.offsetHeight).to.be.above(40);
+        } finally {
+            card.remove();
+        }
+    });
+});
+
+describe('ProductPricing hydrated title', () => {
+    before(() => initMasCommerceService());
+    after(() => removeMasCommerceService());
+
+    it('renders the title as an h2 in slot heading-s', async () => {
+        const card = document.createElement('merch-card');
+        document.body.appendChild(card);
+        try {
+            await hydrate(
+                {
+                    id: 'product-pricing-title',
+                    fields: {
+                        variant: 'product-pricing',
+                        cardTitle: 'Photoshop',
+                    },
+                },
+                card,
+            );
+            const title = card.querySelector('[slot="heading-s"]');
+            expect(title).to.exist;
+            expect(title.tagName).to.equal('H2');
+            expect(title.textContent).to.equal('Photoshop');
+            expect(card.querySelector('h3[slot="heading-s"]')).to.be.null;
         } finally {
             card.remove();
         }

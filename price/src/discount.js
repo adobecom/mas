@@ -1,5 +1,5 @@
 import { isPositiveFiniteNumber } from './helpers.js';
-import { defaultLiterals, formatLiteral, literalKeys as templateLiteralKeys } from './price/template.js';
+import { defaultLiterals, formatLiteral, literalKeys as templateLiteralKeys, createPriceTemplate } from './price/template.js';
 
 const literalKeys = {
     ...templateLiteralKeys,
@@ -50,6 +50,25 @@ const createDiscountTemplate = () => (context, value) => {
     return `<span class="discount">${text}</span>`;
 };
 
-const discount = createDiscountTemplate();
+const createDiscountAmountTemplate = () => (context, value, attributes) => {
+    const { price, priceWithoutDiscount } = value;
+    const hasDiscount =
+        isPositiveFiniteNumber(price) && isPositiveFiniteNumber(priceWithoutDiscount) && priceWithoutDiscount > price;
+    const discountAmount = hasDiscount ? priceWithoutDiscount - price : 0;
+    return createPriceTemplate()(
+        context,
+        {
+            ...value,
+            price: discountAmount,
+            priceWithoutDiscount: undefined,
+            priceInfo: undefined,
+            promotion: undefined,
+        },
+        attributes,
+    );
+};
 
-export { discount };
+const discount = createDiscountTemplate();
+const discountAmount = createDiscountAmountTemplate();
+
+export { discount, discountAmount };

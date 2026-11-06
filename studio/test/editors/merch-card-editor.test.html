@@ -327,6 +327,31 @@
                         Store.editor.resetChanges();
                     });
 
+                    it('authors localized legal disclaimers in the mini compare mweb Callout field', async () => {
+                        const disclaimer = '<p>{{mini-legal-disclaimer}}</p>';
+                        await setupTestEnvironment(
+                            {
+                                isVariation: false,
+                                variant: [VARIANT_NAMES.MINI_COMPARE_CHART_MWEB],
+                            },
+                            'mweb-legal',
+                        );
+                        fragmentStore.updateField('callout', [disclaimer]);
+                        await editor.updateComplete;
+                        const group = editor.querySelector('sp-field-group#callout');
+                        expect(getComputedStyle(group).display).not.to.equal('none');
+                        expect(group.querySelector('sp-field-label').textContent.trim()).to.equal('Legal Disclaimer');
+                        const field = group.querySelector('rte-field');
+                        expect(field.value).to.equal(disclaimer);
+
+                        for (const value of ['<p>Aucun remboursement apr\u00e8s 14 jours.</p>', '']) {
+                            field.value = value;
+                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                            await editor.updateComplete;
+                            expect(fragmentStore.get().getFieldValue('callout')).to.equal(value);
+                        }
+                    });
+
                     it('removes inherited mnemonic and restores it via override indicator', async () => {
                         await setupTestEnvironment();
                         expect(editor.getFieldState('mnemonicIcon')).to.equal('inherited');

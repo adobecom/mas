@@ -74,6 +74,38 @@ describe('pipeline end to end', () => {
         });
     });
 
+    it('should log a cache miss with its timings, then cache hits with their status', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        const summary = (prefix) =>
+            output
+                .getCalls()
+                .map(({ args }) => args[0])
+                .filter((line) => line.includes(prefix));
+        try {
+            await getFragment(request);
+            await getFragment(request);
+            await getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } });
+        } finally {
+            output.restore();
+        }
+        const [miss, ...others] = summary('cache miss');
+        expect(others).to.be.empty;
+        expect(miss).to.match(
+            /cache miss req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| timings \(time and duration\) .*main-fetch-fragment t:.* \| memory: /,
+        );
+        const hits = summary('cache hit');
+        expect(hits).to.have.lengthOf(2);
+        expect(hits[0]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| memory: /);
+        expect(hits[1]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /);
+        expect(hits[1]).not.to.include('timings');
+    });
+
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
             fetchStub,

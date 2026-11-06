@@ -36,12 +36,19 @@ function calculateHash(body) {
 
 const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toString('base64') : undefined);
 
-const toMB = (bytes) => Math.round(bytes / 1024 / 1024);
+const MB = 1024 * 1024;
+const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `${(bytes / MB).toFixed(1)}MB`);
 
+// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB | caches 6.1MB of 256.0MB in 548 entries:
+// response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
 function memoryUsage() {
-    const { entries, bytes } = getMemoryStats();
-    const { rss, heapUsed } = process.memoryUsage();
-    return `memory: cache entries=${entries} cache=${toMB(bytes)}MB rss=${toMB(rss)}MB heap=${toMB(heapUsed)}MB`;
+    const { entries, bytes, maxBytes, caches } = getMemoryStats();
+    const { rss, heapUsed, heapTotal } = process.memoryUsage();
+    const perCache = Object.entries(caches)
+        .sort(([, a], [, b]) => b.bytes - a.bytes)
+        .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries})`)
+        .join(', ');
+    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(bytes)} of ${formatSize(maxBytes)} in ${entries} entries: ${perCache}`;
 }
 
 function resetCache() {
@@ -138,6 +145,9 @@ async function main(params) {
     }
     mark(context, 'end');
     context.loggedTransformer = 'pipeline';
+    const { cache, requestKey } = returnValue;
+    delete returnValue.cache;
+    delete returnValue.requestKey;
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -148,15 +158,21 @@ async function main(params) {
     delete returnValue.encoded;
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
-    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
+    const { duration } = measureTiming(context, 'pipeline', 'start');
+    const { statusCode } = returnValue;
+    if (cache === 'hit') {
+        log(`cache hit ${requestKey} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
+        return returnValue;
+    }
     const measures = context.measures
         .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
         .join('|');
-    log(`timings (time and duration) region: ${region}: ${measures} ${memoryUsage()}`, context);
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
-        context,
-    );
+    const timings = `timings (time and duration) region: ${region}: ${measures} | ${memoryUsage()}`;
+    if (cache === 'miss') {
+        log(`cache miss ${requestKey} -> ${statusCode} in ${duration}ms | ${timings}`, context);
+        return returnValue;
+    }
+    log(`pipeline completed: ${context.id} ${context.locale} -> ${statusCode} in ${duration}ms | ${timings}`, context);
     return returnValue;
 }
 
@@ -213,9 +229,9 @@ async function mainProcess(context) {
     const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
     const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
     if (storedBody) {
-        log(`serving stored response for ${requestKey}`, context);
         const { hash, lastModified } = cachedMetadata;
-        return successResponse(context, { hash, lastModified: new Date(lastModified), body: storedBody });
+        const response = successResponse(context, { hash, lastModified: new Date(lastModified), body: storedBody });
+        return { ...response, cache: 'hit', requestKey };
     }
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
@@ -260,7 +276,8 @@ async function mainProcess(context) {
     const hash = calculateHash(responseBody);
     const body = encode(responseBody);
     const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse });
-    return successResponse(context, { id: context.body?.id, hash, lastModified, body });
+    const response = successResponse(context, { id: context.body?.id, hash, lastModified, body });
+    return { ...response, cache: 'miss', requestKey };
 }
 
 export { main, resetCache, PIPELINE };

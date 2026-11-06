@@ -19,7 +19,7 @@ export const features = [
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
     },
     {
-        tcid: '2',
+        tcid: '1',
         name: '@MAS-Product-C2-Gray',
         path: DOCS_GALLERY_PATH.PRODUCT_C2,
         data: {
@@ -34,4 +34,56 @@ export const features = [
         },
         tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
     },
+    {
+        tcid: '2',
+        name: '@MAS-Product-C2-Free-Trial-Swap',
+        path: DOCS_GALLERY_PATH.PRODUCT_C2,
+        data: {
+            id: '35b7378b-835d-48ba-b512-d7576a778018',
+            variant: 'product-c2',
+            cta1: 'Buy now',
+            cta1osi: 'DoxdYhmzyH0AqIwr548Ncf-z9zJBApWUmYJ2xPlXtj4',
+            cta1osiReplaced: 'ZkzpBUVUK3DEJRmBY1YmsxfKCMLUCLud3KybRG8QxY0',
+        },
+        tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
+    },    
+    {
+        tcid: '3',
+        name: '@MAS-Product-C2-Free-Trial-Select-Swap',
+        path: DOCS_GALLERY_PATH.PRODUCT_C2,
+        data: {
+            id: '86b36f8f-88b0-46e3-b5ba-e00d9bf9e7e1',
+            variant: 'product-c2',
+            cta1: 'Select',
+            cta1osi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
+        },
+        tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
+    },    
+    {
+        tcid: '4',
+        name: '@MAS-Product-C2-Free-Trial-BuyNow-Swap',
+        path: DOCS_GALLERY_PATH.PRODUCT_C2,
+        data: {
+            id: '15e25603-a153-4333-9c8a-f2d314baa0bc',
+            variant: 'product-c2',
+            cta1: 'Buy now',
+            cta1osi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
+        },
+        tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
+    },    
+    {
+        tcid: '5',
+        name: '@MAS-Product-C2-Free-Trial-SaveNow-Swap',
+        path: DOCS_GALLERY_PATH.PRODUCT_C2,
+        data: {
+            id: 'c4ff396b-e300-49fd-95f2-5ed86a0908ec',
+            variant: 'product-c2',
+            cta1: 'Buy now',
+            cta1osi: 'DoxdYhmzyH0AqIwr548Ncf-z9zJBApWUmYJ2xPlXtj4',
+            cta1osiReplaced: 'ZkzpBUVUK3DEJRmBY1YmsxfKCMLUCLud3KybRG8QxY0',            
+            cta2: 'Save now',
+            cta2osi: 'nt2DKD5H3TYag-Annag-QdKb8Q1flZmdJaojt5JeU7Y',
+        },
+        tags: '@mas-docs @mas-product-c2 @commerce @smoke @regression @milo',
+    },    
 ];

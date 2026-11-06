@@ -1,6 +1,6 @@
-// merch-card.js ships no templates: pages load a template bundle next to it
-// (templates/<bundle>.js, picked by Milo from the page URL). This file loads
-// merch-card.js alone on purpose.
+// merch-card.js ships only the headless family: pages load a template bundle
+// next to it (templates/<bundle>.js, picked by Milo from the page URL). This
+// file loads merch-card.js alone on purpose.
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import '../src/merch-card.js';
@@ -25,8 +25,12 @@ const defineTemplate =
     });
 
 describe('merch-card templates', () => {
-    it('ships no templates in merch-card.js', () => {
-        for (const name of ['pro', 'plans', 'catalog', 'fries', 'headless']) {
+    it('ships only the headless family in merch-card.js', () => {
+        // The global nav uses headless cards on every page.
+        for (const name of ['headless', 'marquee', 'faq', 'banner-blade']) {
+            expect(MerchCard.getTemplate(name), name).to.exist;
+        }
+        for (const name of ['pro', 'plans', 'catalog', 'fries', 'mini']) {
             expect(MerchCard.getTemplate(name), name).to.be.undefined;
             expect(MerchCard.getFragmentMapping(name), name).to.be.undefined;
         }
@@ -120,7 +124,7 @@ describe('merch-card templates', () => {
             clock.tick(TEMPLATE_LOAD_TIMEOUT);
             const error = await waiting.catch((e) => e);
             expect(error.message).to.include(`template "${name}"`);
-            expect(error.message).to.include('Milo merch.js');
+            expect(error.message).to.include('MERCH_CARD_TEMPLATE_RULES');
         });
 
         it('waits again after a timeout, and resolves if it registers later', async () => {

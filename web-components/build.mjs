@@ -54,10 +54,11 @@ await build({
 });
 
 // Template bundles. A page loads merch-card.js and, in parallel, the bundle its
-// URL rule names (Milo libs/blocks/merch/merch.js). A template can be in several
-// bundles. Keep src/templates/README.md in sync.
+// URL rule names (MERCH_CARD_TEMPLATE_RULES in Milo libs/utils/utils.js). A template can be in several
+// bundles. The headless family is in merch-card.js itself, not in a bundle.
+// Keep src/templates/README.md in sync.
 const TEMPLATE_BUNDLES = {
-    dc: ['pro'],
+    dc: ['pro', 'compare-chart-column'],
     catalog: ['catalog'],
     cc: [
         'plans',
@@ -72,7 +73,6 @@ const TEMPLATE_BUNDLES = {
         'mini-compare-chart-mweb',
         'image',
         'media',
-        'headless',
         'compare-chart-column',
         'inline-heading',
     ],

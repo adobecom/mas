@@ -11,6 +11,7 @@ import {
     registerTemplates,
     whenTemplate,
 } from './template-registry.js';
+import { define as defineHeadless } from './templates/headless.js';
 
 import './global.css.js';
 import './merch-badge.js';
@@ -1514,5 +1515,9 @@ export class MerchCard extends HTMLElement {
         );
     }
 }
+
+// The headless family (headless, marquee, faq, banner-blade) ships here rather
+// than in a bundle: the global nav uses headless cards on every page.
+registerTemplates(defineHeadless);
 
 customElements.define(MERCH_CARD, MerchCard);

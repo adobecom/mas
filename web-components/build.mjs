@@ -1,4 +1,5 @@
 import { writeFileSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { build } from 'esbuild';
 
 const outfolder = './dist';
@@ -32,6 +33,13 @@ const { metafile } = await build({
     },
 });
 writeFileSync(`commerce.json`, JSON.stringify(metafile));
+
+// merch-card.js imports these modules from ./commerce.js instead of bundling
+// its own copies, so the page loads and runs one instance of each.
+const commerceModules = new Set(
+    Object.keys(metafile.inputs).map((file) => resolve(file)),
+);
+const commerceExports = metafile.outputs['dist/commerce.js'].exports;
 
 // mas.js
 await build({
@@ -70,7 +78,7 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
     }),
-    buildLitComponent('merch-card'),
+    buildMerchCard(),
     buildLitComponent('merch-card-collection'),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-quantity-select'),
@@ -80,7 +88,10 @@ Promise.all([
     buildLitComponent('merch-mnemonic-list'),
     buildLitComponent('mas-mnemonic'),
     buildLitComponent('mas-compare-chart'),
-]).catch(() => process.exit(1));
+]).catch((error) => {
+    console.error(error.message);
+    process.exit(1);
+});
 
 async function buildLitComponent(name) {
     const { metafile } = await build({
@@ -94,6 +105,52 @@ async function buildLitComponent(name) {
     if (metafile) {
         writeFileSync(`${outfolder}/${name}.json`, JSON.stringify(metafile));
     }
+}
+
+async function buildMerchCard() {
+    const outfile = `${outfolder}/merch-card.js`;
+    await build({
+        ...defaults,
+        entryPoints: ['./src/merch-card.js'],
+        external: ['lit'],
+        outfile,
+        plugins: [rewriteImportsToLibsFolder(), importFromCommerce()],
+    });
+    const imported = [
+        ...readFileSync(outfile, 'utf-8').matchAll(
+            /import\s*\{([^}]*)\}\s*from\s*"\.\/commerce\.js"/g,
+        ),
+    ].flatMap(([, names]) =>
+        names.split(',').map((name) => name.trim().split(/\s+as\s+/)[0]),
+    );
+    const missing = [...new Set(imported)].filter(
+        (name) => !commerceExports.includes(name),
+    );
+    if (missing.length) {
+        throw new Error(
+            `merch-card.js imports ${missing.join(', ')} from ./commerce.js: export them from src/commerce.js`,
+        );
+    }
+}
+
+function importFromCommerce() {
+    return {
+        name: 'import-from-commerce',
+        setup(build) {
+            build.onResolve({ filter: /.*/ }, async (args) => {
+                if (args.kind === 'entry-point' || args.pluginData?.resolved)
+                    return;
+                const { path } = await build.resolve(args.path, {
+                    kind: args.kind,
+                    importer: args.importer,
+                    resolveDir: args.resolveDir,
+                    pluginData: { resolved: true },
+                });
+                if (!commerceModules.has(path)) return;
+                return { path: './commerce.js', external: true };
+            });
+        },
+    };
 }
 
 function rewriteImportsToLibsFolder() {

@@ -1,7 +1,11 @@
-import { css, html, LitElement } from 'lit';
+import { css, html, LitElement, nothing } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
+import { fieldStatusStyles } from '../common/fields/field-status.css.js';
 import '../mas-mnemonic-modal.js';
+
+/** Item state of a visual inherited from a baseline (other states are the variation ones, e.g. `overridden`). */
+export const BASELINE_FIELD_STATE = 'baseline';
 
 class MnemonicField extends LitElement {
     static get properties() {
@@ -12,82 +16,86 @@ class MnemonicField extends LitElement {
             modalOpen: { type: Boolean, state: true },
             iconLibrary: { type: Boolean, state: true },
             variant: { type: String },
+            fieldState: { type: String, attribute: 'data-field-state' },
         };
     }
 
-    static styles = css`
-        :host {
-            display: block;
-        }
+    static styles = [
+        fieldStatusStyles,
+        css`
+            :host {
+                display: block;
+            }
 
-        .mnemonic-preview {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 10px;
-            min-height: 48px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-        }
+            .mnemonic-preview {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                border: 1px solid var(--spectrum-gray-300);
+                border-radius: 10px;
+                min-height: 48px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+            }
 
-        .icon-preview {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            .icon-preview {
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        .icon-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+            .icon-preview img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
 
-        .icon-placeholder {
-            width: 32px;
-            height: 32px;
-            background: var(--spectrum-gray-200);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--spectrum-gray-600);
-        }
+            .icon-placeholder {
+                width: 32px;
+                height: 32px;
+                background: var(--spectrum-gray-200);
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--spectrum-gray-600);
+            }
 
-        .mnemonic-info {
-            flex: 1;
-            min-width: 0;
-        }
+            .mnemonic-info {
+                flex: 1;
+                min-width: 0;
+            }
 
-        .mnemonic-info .value {
-            font-size: 14px;
-            color: var(--spectrum-gray-900);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+            .mnemonic-info .value {
+                font-size: 14px;
+                color: var(--spectrum-gray-900);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-        .mnemonic-info .empty {
-            color: var(--spectrum-gray-500);
-            font-style: italic;
-        }
+            .mnemonic-info .empty {
+                color: var(--spectrum-gray-500);
+                font-style: italic;
+            }
 
-        .action-menu {
-            margin-left: auto;
-        }
+            .action-menu {
+                margin-left: auto;
+            }
 
-        .icon-library.mnemonic-preview {
-            cursor: pointer;
-            min-height: unset;
-        }
+            .icon-library.mnemonic-preview {
+                cursor: pointer;
+                min-height: unset;
+            }
 
-        :host([data-field-state='overridden']) .mnemonic-preview {
-            border: 2px solid var(--spectrum-blue-400);
-            background-color: var(--spectrum-blue-100);
-        }
-    `;
+            :host([data-field-state='overridden']) .mnemonic-preview {
+                border: 2px solid var(--spectrum-blue-400);
+                background-color: var(--spectrum-blue-100);
+            }
+        `,
+    ];
 
     constructor() {
         super();
@@ -155,6 +163,7 @@ class MnemonicField extends LitElement {
         this.alt = alt;
         this.link = link;
         this.modalOpen = false;
+        this.#blurFocusedElement();
 
         this.dispatchEvent(
             new CustomEvent(EVENT_CHANGE, {
@@ -210,6 +219,36 @@ class MnemonicField extends LitElement {
         }
     }
 
+    /** The parent multifield skips re-rendering while focus is inside a field, which would keep this field's state stale. */
+    #blurFocusedElement() {
+        let element = this.shadowRoot.activeElement;
+        while (element?.shadowRoot?.activeElement) element = element.shadowRoot.activeElement;
+        element?.blur();
+    }
+
+    #handleRestoreClick(event) {
+        event.preventDefault();
+        event.currentTarget.blur();
+        this.dispatchEvent(new CustomEvent('restore-field', { bubbles: true, composed: true }));
+    }
+
+    get fieldStatusIndicator() {
+        if (this.fieldState === BASELINE_FIELD_STATE) {
+            return html`<div class="field-status-indicator field-status-indicator--baseline">
+                <span class="field-status-label">From baseline</span>
+            </div>`;
+        }
+        if (this.fieldState !== 'overridden') return nothing;
+        return html`<div class="field-status-indicator">
+            <sp-icon-unlink class="field-status-icon"></sp-icon-unlink>
+            <span class="field-status-label">Overridden.</span>
+            <a href="#" class="field-status-restore-link" @click=${this.#handleRestoreClick}
+                ><span class="field-status-restore-link-prefix" aria-hidden="true">Overridden. </span>
+                <span class="field-status-restore-link-text">Click to restore.</span></a
+            >
+        </div>`;
+    }
+
     render() {
         return html`
             <div class="mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}" @click="${this.#handleMenuChange}">
@@ -250,6 +289,7 @@ class MnemonicField extends LitElement {
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>
+            ${this.fieldStatusIndicator}
         `;
     }
 }

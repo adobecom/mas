@@ -6,7 +6,8 @@ export const EXPLICIT_EMPTY_SENTINEL = '<explicit_empty/>';
 
 /**
  * Fields that may store the explicit_empty sentinel as a persisted override: optional card fields an author can keep empty
- * when a parent (locale default fragment or baseline) has a value.
+ * when a parent (locale default fragment or baseline) has a value. `cardTitle`, `description`, `prices` & `ctas` where the
+ * card template requires them only on cards inheriting from baselines (see Studio `isTemplateRequiredField`).
  */
 const EXPLICIT_EMPTY_ALLOWED_FIELDS = [
     'badge',
@@ -23,6 +24,10 @@ const EXPLICIT_EMPTY_ALLOWED_FIELDS = [
     'cardTitleLink',
     'backgroundImage',
     'backgroundImageAltText',
+    'cardTitle',
+    'description',
+    'prices',
+    'ctas',
 ];
 
 /** Whether a field is allowed to store the explicit_empty sentinel. */

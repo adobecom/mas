@@ -21,7 +21,7 @@ import { getOfferBaseline } from '../../../io/www/src/fragment/transformers/offe
 import { MERGE_CONFIG, NON_INHERITED_FIELDS } from '../../../io/www/src/fragment/transformers/customize.js';
 import { normalizeExplicitEmptyInFields } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
-const DEFAULT_MARKET_SEGMENT = 'com';
+export const DEFAULT_MARKET_SEGMENT = 'com';
 const MARKET_SEGMENTS_TAG_ROOT = '/content/cq:tags/mas/market_segments';
 const PRODUCT_ARRANGEMENT_CODE_TAG_ROOT = '/content/cq:tags/mas/product_arrangement_code';
 const LOADED_PATH_META = 'loadedPath';
@@ -42,6 +42,19 @@ export const buildBaselineFolderPath = ({ surface, locale, template, productArra
     const folder = `${getBaselinesPath({ surface, locale })}/${template}/${productArrangementCode}`;
     const segment = marketSegment?.toLowerCase();
     return segment && segment !== DEFAULT_MARKET_SEGMENT ? `${folder}/${segment}` : folder;
+};
+
+const BASELINE_PATH = new RegExp(
+    `/${BASELINES_FOLDER}/(?<template>[^/]+)/(?<productArrangementCode>[^/]+)(?:/(?<marketSegment>[^/]+))?/[^/]+$`,
+);
+
+/**
+ * Template, PA code & market segment override (`undefined` for the default segment) of a baseline fragment path, the
+ * inverse of `buildBaselineFolderPath`; `null` for any other path.
+ */
+export const parseBaselinePath = (path) => {
+    const groups = path?.match(BASELINE_PATH)?.groups;
+    return groups ? { ...groups } : null;
 };
 
 /**
@@ -166,7 +179,7 @@ const toAuthorFragment = ({ fields, ...offerBaseline }) => ({
 /**
  * Baselines a card would inherit from (ADR CONT-0005), looked up like the `offer` transformer does: in the default locale
  * of the card locale, for the PA code & market segment of its offer and its template. `null` without offer, template or
- * PA code; each missing baseline is `null`.
+ * PA code; each missing baseline is `null`. Also returns the PA code & market segment they were looked up with.
  */
 export async function findCardBaselines(fragmentsApi, { surface, locale, osi, template }) {
     const defaultLocale = getDefaultLocaleCode(surface, locale);
@@ -181,7 +194,13 @@ export async function findCardBaselines(fragmentsApi, { surface, locale, osi, te
         getFragmentByPathOrNull(fragmentsApi, templatePath),
         segmentPath === templatePath ? null : getFragmentByPathOrNull(fragmentsApi, segmentPath),
     ]);
-    return { offerBaseline: offerBaseline ? toAuthorFragment(offerBaseline) : null, fragmentBaseline, fragmentSegmentBaseline };
+    return {
+        productArrangementCode,
+        marketSegment,
+        offerBaseline: offerBaseline ? toAuthorFragment(offerBaseline) : null,
+        fragmentBaseline,
+        fragmentSegmentBaseline,
+    };
 }
 
 /**

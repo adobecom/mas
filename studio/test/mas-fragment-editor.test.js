@@ -1564,6 +1564,21 @@ describe('MasFragmentEditor', () => {
             });
         }
 
+        it('does not save a card with empty required fields', async () => {
+            const fragment = new Fragment({ id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields: [] });
+            el.inEdit.value = { get: () => fragment };
+            mockRepo.saveFragment = sandbox.stub().resolves(fragment);
+            sandbox
+                .stub(el, 'querySelector')
+                .callsFake((selector) => (selector === 'merch-card-editor' ? { emptyRequiredFields: ['Title'] } : null));
+            const toast = sandbox.spy(Events.toast, 'emit');
+
+            await el.saveFragment();
+
+            expect(mockRepo.saveFragment.called).to.be.false;
+            expect(toast.calledWithMatch({ content: 'Fill in the required fields: Title.', variant: 'negative' })).to.be.true;
+        });
+
         it('rejects deleting a promo variation through a direct editor link for promo editors', async () => {
             Store.users.set([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
             const fragment = new Fragment({
@@ -2335,6 +2350,61 @@ describe('MasFragmentEditor', () => {
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
             const header = el.localeVariationHeader;
             expect(header).to.not.equal(nothing);
+        });
+
+        describe('baseline header', () => {
+            const showBaseline = (path) => {
+                const fragment = new Fragment({
+                    id: 'baseline-id',
+                    path,
+                    model: { path: CARD_MODEL_PATH },
+                    tags: [],
+                    fields: [],
+                });
+                el.inEdit.value = { get: () => fragment };
+                sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            };
+            const details = (template) => {
+                const container = document.createElement('div');
+                render(template, container);
+                const banner = container.querySelector('.baseline-banner');
+                return {
+                    badge: banner.querySelector('sp-badge[variant="positive"]').textContent.trim(),
+                    details: Object.fromEntries(
+                        [...banner.querySelectorAll('.baseline-banner-details > div')].map((row) => [
+                            row.querySelector('dt').textContent.trim(),
+                            row.querySelector('dd').textContent.trim(),
+                        ]),
+                    ),
+                };
+            };
+
+            it('marks a baseline with its template and PA code above the form and the preview', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/baseline');
+
+                for (const header of [el.localeVariationHeader, el.previewVariationHeader]) {
+                    expect(details(header)).to.deep.equal({
+                        badge: 'Baseline',
+                        details: { Template: 'Plans', 'PA code': 'ccsn_direct_individual', 'Market segment': 'COM' },
+                    });
+                }
+            });
+
+            it('marks the market segment of a segment baseline', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/plans/ccsn_direct_individual/edu/baseline');
+
+                expect(details(el.previewVariationHeader).details).to.deep.equal({
+                    Template: 'Plans',
+                    'PA code': 'ccsn_direct_individual',
+                    'Market segment': 'EDU',
+                });
+            });
+
+            it('shows an unknown template as is', () => {
+                showBaseline('/content/dam/mas/sandbox/en_US/baselines/custom-template/PA-1/baseline');
+
+                expect(details(el.previewVariationHeader).details.Template).to.equal('custom-template');
+            });
         });
 
         it('renders promo variation header in preview for promo paths', () => {

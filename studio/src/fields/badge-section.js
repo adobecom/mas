@@ -57,7 +57,7 @@ class BadgeSection extends LitElement {
         osi: { type: String },
         showIcon: { type: Boolean, attribute: 'show-icon' },
         showColors: { type: Boolean, attribute: 'show-colors' },
-        isVariation: { type: Boolean, attribute: 'is-variation' },
+        fromBaseline: { type: Object },
         fieldStates: { type: Object },
     };
 
@@ -71,7 +71,7 @@ class BadgeSection extends LitElement {
         this.osi = '';
         this.showIcon = false;
         this.showColors = false;
-        this.isVariation = false;
+        this.fromBaseline = {};
         this.fieldStates = {};
     }
 
@@ -104,7 +104,6 @@ class BadgeSection extends LitElement {
     }
 
     #overrideIndicator(component) {
-        if (!this.isVariation || this.fieldStates?.[component] !== 'overridden') return nothing;
         return html`
             <div class="field-status-indicator">
                 <sp-icon-unlink class="field-status-icon"></sp-icon-unlink>
@@ -121,6 +120,14 @@ class BadgeSection extends LitElement {
                 >
             </div>
         `;
+    }
+
+    #statusIndicator(component) {
+        if (this.fieldStates?.[component] === 'overridden') return this.#overrideIndicator(component);
+        if (!this.fromBaseline?.[component]) return nothing;
+        return html`<div class="field-status-indicator field-status-indicator--baseline">
+            <span class="field-status-label">From baseline</span>
+        </div>`;
     }
 
     #colorPickerValue(color) {
@@ -161,7 +168,7 @@ class BadgeSection extends LitElement {
                         `,
                     )}
                 </sp-picker>
-                ${this.#overrideIndicator(component)}
+                ${this.#statusIndicator(component)}
             </sp-field-group>
         `;
     }
@@ -184,7 +191,7 @@ class BadgeSection extends LitElement {
                         .value="${text}"
                         @change=${(e) => this.#emit({ text: e.target.value }, e)}
                     ></rte-field>
-                    ${this.#overrideIndicator('text')}
+                    ${this.#statusIndicator('text')}
                 </sp-field-group>
                 ${
                     this.showIcon
@@ -198,7 +205,7 @@ class BadgeSection extends LitElement {
                                       style="display: ${text ? 'block' : 'none'};"
                                       @change=${(e) => this.#emit({ icon: e.detail.icon }, e)}
                                   ></mas-mnemonic-field>
-                                  ${this.#overrideIndicator('icon')}
+                                  ${this.#statusIndicator('icon')}
                               </sp-field-group>
                           `
                         : nothing

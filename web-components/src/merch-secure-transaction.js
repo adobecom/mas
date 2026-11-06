@@ -1,6 +1,6 @@
 // NOTE: this component should NOT be used in spectrum-free components like merch-card
 
-import { LitElement, html } from 'lit';
+import { LitElement, html, unsafeCSS } from 'lit';
 
 import { styles } from './merch-secure-transaction.css.js';
 
@@ -13,7 +13,7 @@ export default class MerchSecureTransaction extends LitElement {
         tooltipText: { attribute: 'tooltip', type: String },
     };
 
-    static styles = [styles];
+    static styles = [unsafeCSS(styles)];
 
     constructor() {
         super();

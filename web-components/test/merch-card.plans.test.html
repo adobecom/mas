@@ -286,8 +286,8 @@
                             getTemplateContent('plans-without-heading-m');
                         container.append(masCommerceService, plansCard);
                         await plansCard.checkReady();
-                        expect(plansCard.variantLayout.headingM).to.be.null;
-                        expect(plansCard.variantLayout.mainPrice).to.be
+                        expect(plansCard.templateLayout.headingM).to.be.null;
+                        expect(plansCard.templateLayout.mainPrice).to.be
                             .undefined;
                     });
                     it('should render legal price for plans-education-with-body-prices', async () => {
@@ -320,7 +320,7 @@
                             width: 200,
                             top: 0,
                         });
-                        photoshop.variantLayout.syncHeights();
+                        photoshop.templateLayout.syncHeights();
                         photoshop.getBoundingClientRect = orig;
 
                         const cssVar = photoshop.style.getPropertyValue(
@@ -347,7 +347,7 @@
                             width: 200,
                             top: 0,
                         });
-                        photoshop.variantLayout.syncHeights();
+                        photoshop.templateLayout.syncHeights();
                         photoshop.getBoundingClientRect = orig;
 
                         // Container var must be removed; per-card var must be set instead
@@ -368,7 +368,7 @@
                         await photoshop.checkReady();
 
                         // Stub getContainer to return null
-                        const layout = photoshop.variantLayout;
+                        const layout = photoshop.templateLayout;
                         const origGetContainer =
                             layout.getContainer.bind(layout);
                         layout.getContainer = () => null;
@@ -385,10 +385,10 @@
                         const [masCommerceService, photoshop] =
                             getTemplateContent('photoshop');
                         container.append(masCommerceService, photoshop);
-                        // Wait for LitElement's first update so variantLayout is set
+                        // Wait for LitElement's first update so templateLayout is set
                         await photoshop.updateComplete;
 
-                        const layout = photoshop.variantLayout;
+                        const layout = photoshop.templateLayout;
                         expect(layout.resizeHandler).to.be.a('function');
 
                         let syncCalled = false;
@@ -414,7 +414,7 @@
                         container.append(masCommerceService, photoshop);
                         await photoshop.updateComplete;
 
-                        const layout = photoshop.variantLayout;
+                        const layout = photoshop.templateLayout;
                         let syncCount = 0;
                         layout.syncHeights = () => {
                             syncCount++;

@@ -6,6 +6,9 @@ export { Commitment, Term } from '../../price/src/constants.js';
  */
 export const NAMESPACE = 'merch';
 export const MERCH_CARD_LOAD_TIMEOUT = 20000;
+
+// How long a card waits for its template's bundle to register it.
+export const TEMPLATE_LOAD_TIMEOUT = 5000;
 /**
  * This CSS class name is used to:
  * - show only selected offer on a card connected to a subscription panel

@@ -1,8 +1,8 @@
 import { expect } from '@esm-bundle/chai';
 import '../src/mas.js';
 import { hydrate } from '../src/hydrate.js';
-import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
-import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
+import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/templates/compare-chart-column.js';
+import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/templates/mini-compare-chart.js';
 
 const mockMerchCard = () => {
     const merchCard = document.createElement('div');
@@ -26,7 +26,7 @@ describe('compare-chart-column hydrate callout slot', () => {
 
     beforeEach(() => {
         merchCard = mockMerchCard();
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING,
         };
     });

@@ -1,6 +1,7 @@
-import { html, LitElement, css } from 'lit';
+import { html, LitElement, unsafeCSS } from 'lit';
 import { deeplink, pushStateFromComponent } from '../deeplink.js';
 import { createTag } from '../utils.js';
+import { css } from '../css.js';
 
 export class MerchSidenavCheckboxGroup extends LitElement {
     static properties = {
@@ -11,7 +12,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
         value: { type: String },
     };
 
-    static styles = css`
+    static styles = unsafeCSS(css`
         :host {
             display: block;
             contain: content;
@@ -24,7 +25,7 @@ export class MerchSidenavCheckboxGroup extends LitElement {
             display: flex;
             flex-direction: column;
         }
-    `;
+    `);
 
     constructor() {
         super();

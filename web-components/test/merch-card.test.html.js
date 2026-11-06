@@ -178,12 +178,12 @@ runTests(async () => {
             expect(plansVariantSheet).to.not.equal(segmentVariantSheet);
         });
 
-        it('should have variantLayout property set on card', async () => {
+        it('should have templateLayout property set on card', async () => {
             const plansCard = document.querySelector(
                 'merch-card[variant="plans"]',
             );
-            expect(plansCard.variantLayout).to.exist;
-            expect(plansCard.variantLayout.card).to.equal(plansCard);
+            expect(plansCard.templateLayout).to.exist;
+            expect(plansCard.templateLayout.card).to.equal(plansCard);
         });
 
         it('should dispplay callout info tooltip in the right position', async () => {

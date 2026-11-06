@@ -1,5 +1,4 @@
-import { css, unsafeCSS } from 'lit';
-import { DESKTOP_UP, TABLET_UP } from './media.js';
+import { css } from './css.js';
 
 export const styles = css`
     :host {
@@ -257,28 +256,20 @@ export const styles = css`
     ::slotted([slot='price']) {
         color: var(--consonant-merch-card-price-color);
     }
+
+    /* Tablet */
+    @media screen and (--tablet-up) {
+        :host([size='wide']),
+        :host([size='super-wide']) {
+            width: 100%;
+            grid-column: 1 / -1;
+        }
+    }
+
+    /* Laptop */
+    @media screen and (--desktop-up) {
+        :host([size='wide']) {
+            grid-column: span 2;
+        }
+    }
 `;
-
-export const sizeStyles = () => {
-    const styles = [
-        css`
-            /* Tablet */
-            @media screen and ${unsafeCSS(TABLET_UP)} {
-                :host([size='wide']),
-                :host([size='super-wide']) {
-                    width: 100%;
-                    grid-column: 1 / -1;
-                }
-            }
-
-            /* Laptop */
-            @media screen and ${unsafeCSS(DESKTOP_UP)} {
-                :host([size='wide']) {
-                    grid-column: span 2;
-                }
-            }
-        `,
-    ];
-
-    return styles;
-};

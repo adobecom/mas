@@ -10,7 +10,7 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ Product } = await import('../src/variants/product.js'));
+    Product = customElements.get('merch-card').getTemplate('product').class;
 });
 
 // ── Product.adjustShortDescription ───────────────────────────────────────────

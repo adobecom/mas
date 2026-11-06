@@ -22,7 +22,7 @@ async function renderCard(variant, innerHTML, attrs = {}) {
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
     await card.updateComplete;
-    // firstUpdated swaps in a fresh variantLayout after the first render;
+    // firstUpdated swaps in a fresh templateLayout after the first render;
     // re-render so the shadow DOM reflects it (real cards re-render on
     // hydration anyway).
     card.requestUpdate();

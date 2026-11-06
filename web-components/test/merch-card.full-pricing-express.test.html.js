@@ -480,7 +480,7 @@ runTests(async () => {
                     'merch-card[variant="full-pricing-express"]',
                 );
                 await card.updateComplete;
-                expect(card.variantLayout.sizeObserver).to.be.an.instanceof(
+                expect(card.templateLayout.sizeObserver).to.be.an.instanceof(
                     ResizeObserver,
                 );
             });
@@ -490,13 +490,13 @@ runTests(async () => {
                     'merch-card[variant="full-pricing-express"]',
                 );
                 await card.updateComplete;
-                const spy = sinon.spy(card.variantLayout, 'syncHeights');
-                card.variantLayout.lastSyncedKey = '';
+                const spy = sinon.spy(card.templateLayout, 'syncHeights');
+                card.templateLayout.lastSyncedKey = '';
                 const title = card.querySelector(
-                    card.variantLayout.headingSelector,
+                    card.templateLayout.headingSelector,
                 );
                 title.style.minHeight = '200px';
-                card.variantLayout.resyncOnReflow();
+                card.templateLayout.resyncOnReflow();
                 expect(spy.called).to.be.true;
                 title.style.minHeight = '';
                 spy.restore();
@@ -507,12 +507,12 @@ runTests(async () => {
                     'merch-card[variant="full-pricing-express"]',
                 );
                 await card.updateComplete;
-                const observer = card.variantLayout.sizeObserver;
+                const observer = card.templateLayout.sizeObserver;
                 const disconnectSpy = sinon.spy(observer, 'disconnect');
-                card.variantLayout.disconnectedCallbackHook();
+                card.templateLayout.disconnectedCallbackHook();
                 expect(disconnectSpy.called).to.be.true;
-                expect(card.variantLayout.sizeObserver).to.equal(null);
-                card.variantLayout.connectedCallbackHook();
+                expect(card.templateLayout.sizeObserver).to.equal(null);
+                card.templateLayout.connectedCallbackHook();
             });
 
             it('should apply flexbox to short-description for alignment', async () => {

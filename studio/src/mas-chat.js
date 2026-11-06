@@ -74,6 +74,21 @@ const MASA_CANCEL = 'masa-cancel';
 /** Shown on a MASA message whose answer an earlier page left unfinished. */
 const MASA_INTERRUPTED_MESSAGE = 'The answer was interrupted before it arrived.';
 
+/** What an earlier ASK_MASA hand-off reads as when ai-chat cannot offer ASK_MASA. */
+const MASA_HAND_OFF_NOTE = 'Handed this question to MASA.';
+
+/**
+ * With MASA not offered, ai-chat rejects an ASK_MASA envelope the model copies
+ * from the history, so earlier hand-offs are sent as a plain note instead.
+ */
+function withoutMasaHandOffs(history) {
+    return history.map((turn) =>
+        turn.role === 'assistant' && typeof turn.content === 'string' && /"intent":\s*"ASK_MASA"/.test(turn.content)
+            ? { ...turn, content: MASA_HAND_OFF_NOTE }
+            : turn,
+    );
+}
+
 /** Every connected chat; closing and reopening the drawer creates a new one. */
 const connectedChats = new Set();
 
@@ -1581,6 +1596,9 @@ export class MasChat extends LitElement {
 
         const aioBaseURL = AI_CHAT_BASE_URL;
         const actionUrl = `${aioBaseURL}/ai-chat`;
+        const request = { masa: isMasaAvailable(), ...params };
+        if (!request.masa && request.conversationHistory)
+            request.conversationHistory = withoutMasaHandOffs(request.conversationHistory);
 
         let response;
         try {
@@ -1591,7 +1609,7 @@ export class MasChat extends LitElement {
                     Authorization: `Bearer ${accessTokenObj.token}`,
                     'x-api-key': window.adobeIMS?.adobeIdData?.client_id || '',
                 },
-                body: JSON.stringify({ masa: isMasaAvailable(), ...params }),
+                body: JSON.stringify(request),
                 signal: detached
                     ? composeChatRequestSignal(CHAT_REQUEST_TIMEOUT_MS)
                     : composeChatRequestSignal(

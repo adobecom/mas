@@ -320,7 +320,8 @@ function runMockLlm() {
             continue;
         }
         const mockEnvelope = expectedEnvelopeFromCase(c);
-        const result = validateEnvelope(mockEnvelope, c.context || {});
+        // A case with masa: true is asked the way Studio asks when MASA is offered.
+        const result = validateEnvelope(mockEnvelope, { ...(c.context || {}), masa: c.masa === true });
 
         const expectedIntent = acceptedIntents(c)[0];
 
@@ -404,6 +405,7 @@ async function runLiveLlm() {
         // The frontend forwards intentHint on every turn of a guided flow;
         // without it the turn re-classifies and drifts out of the flow.
         if (c.intent_hint) body.intentHint = c.intent_hint;
+        if (c.masa === true) body.masa = true;
 
         let data;
         let status;

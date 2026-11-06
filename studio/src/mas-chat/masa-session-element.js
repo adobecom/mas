@@ -21,8 +21,7 @@ export class MasaSessionElement extends LitElement {
     }
 
     get blocked() {
-        const controller = this.activeController;
-        return controller.busy || controller.ending || controller.now() < controller.retryAt;
+        return this.activeController.blocked;
     }
 
     connectedCallback() {

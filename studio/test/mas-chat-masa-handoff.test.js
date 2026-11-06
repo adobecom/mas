@@ -106,6 +106,46 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(offered).to.deep.equal([true, false, false]);
     });
 
+    describe('earlier MASA hand-offs in the history', () => {
+        const handOff = { role: 'assistant', content: JSON.stringify({ ...askMasaEnvelope.envelope, user_message: null }) };
+        const history = [{ role: 'user', content: QUESTION }, handOff, { role: 'user', content: HOW_TO }];
+        let fetch;
+
+        beforeEach(() => {
+            ai.restore();
+            fetch = sinon
+                .stub(window, 'fetch')
+                .callsFake(async () => new Response(JSON.stringify({ type: 'message', message: 'ok' }), { status: 200 }));
+        });
+
+        const sentHistory = () => JSON.parse(fetch.lastCall.args[1].body).conversationHistory;
+
+        it('are sent as they are while MASA is offered', async () => {
+            await el.callAIChatAction({ message: 'hi', conversationHistory: history });
+            expect(sentHistory()).to.deep.equal(history);
+        });
+
+        for (const [when, offMasa] of [
+            ['for a built-in answer', () => el.callAIChatAction({ message: 'hi', conversationHistory: history, masa: false })],
+            [
+                'once MASA is remembered unavailable',
+                () => {
+                    rememberFailure(new MasaClientError('connection-unavailable', 'Offline'));
+                    return el.callAIChatAction({ message: 'hi', conversationHistory: history });
+                },
+            ],
+        ]) {
+            it(`become plain notes ${when}, so the model cannot copy ASK_MASA`, async () => {
+                await offMasa();
+                const sent = sentHistory();
+                expect(JSON.stringify(sent)).to.not.contain('ASK_MASA');
+                expect(sent.map((turn) => turn.role)).to.deep.equal(['user', 'assistant', 'user']);
+                expect(sent[1].content).to.be.a('string').that.is.not.empty;
+                expect(sent[2]).to.deep.equal(history[2]);
+            });
+        }
+    });
+
     it('does not let a new turn cancel a detached request', async () => {
         ai.restore();
         const signals = [];

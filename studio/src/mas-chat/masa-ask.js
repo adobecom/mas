@@ -3,6 +3,7 @@ import { endIdleSessions, getInvestigationSession } from './investigation-sessio
 
 const CONTEXT_LIMIT = 4000;
 const running = (record) => ['queued', 'running'].includes(record.status);
+const busyError = () => new MasaClientError('masa-conversation-busy', 'MASA is still answering the previous question.');
 
 /** Text of a thread message as MASA should see it, or null when it carries nothing to share. */
 function turnLabel(message, conversationId) {
@@ -40,7 +41,15 @@ function discardIfAnswered(session, error) {
     if (error.status !== 0) session.discardPending();
 }
 
+/**
+ * attach() starts a restore or renewal at once in a visible tab, and perform()
+ * skips while busy, so wait it out; nothing may await between the wait and the
+ * submission, or the tick's next task takes the session first. A submission
+ * that cannot run keeps any saved pending one.
+ */
 async function submitOnce(session, question, context) {
+    while (session.busy) await session.inFlight;
+    if (session.blocked) throw session.error ?? busyError();
     const count = session.records.length;
     try {
         if (session.pending?.question === question) await session.retrySubmission();
@@ -53,8 +62,7 @@ async function submitOnce(session, question, context) {
         throw error;
     }
     if (session.records.length > count) return session.records.at(-1);
-    const error =
-        session.error ?? new MasaClientError('masa-conversation-busy', 'MASA is still answering the previous question.');
+    const error = session.error ?? busyError();
     discardIfAnswered(session, error);
     throw error;
 }
@@ -75,8 +83,7 @@ function settled(session, id) {
 /** Submit one question to the conversation's MASA session and resolve with its completed record. */
 export async function askMasa({ conversationId, question, context, onRecord }) {
     const session = getInvestigationSession(conversationId);
-    if (session.records.some(running))
-        throw new MasaClientError('masa-conversation-busy', 'MASA is still answering the previous question.');
+    if (session.records.some(running)) throw busyError();
     const detach = session.attach();
     try {
         let accepted;

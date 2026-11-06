@@ -30,11 +30,14 @@ export function buildEnvelopeTool({ masa = false } = {}) {
         name: ENVELOPE_TOOL_NAME,
         description:
             `Return your routing decision for this turn as an intent envelope. Call exactly once per turn. ` +
-            `Pick the single registered intent that matches the user request; use ASK_USER for clarifications, ` +
-            `answers to questions, and anything that is not an operation. ` +
+            `Pick the single registered intent that matches the user request; use ASK_USER for ${
+                masa
+                    ? 'clarifications and off-topic replies. '
+                    : 'clarifications, answers to questions, and anything that is not an operation. '
+            }` +
             `To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.${
                 masa
-                    ? ' Use ASK_MASA, with empty slots and no user_message, for questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting. Use ASK_USER only to ask for missing details.'
+                    ? ' Use ASK_MASA, with empty slots and no user_message, for how-to questions and questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting; never answer them in user_message.'
                     : ''
             }`,
         input_schema: {
@@ -69,7 +72,9 @@ export function buildEnvelopeTool({ masa = false } = {}) {
                 },
                 user_message: {
                     type: ['string', 'null'],
-                    description: 'Conversational reply shown to the user — documentation answers, confirmations, help text.',
+                    description: masa
+                        ? 'Conversational reply shown to the user — confirmations, help text, off-topic replies. Null for ASK_MASA.'
+                        : 'Conversational reply shown to the user — documentation answers, confirmations, help text.',
                 },
             },
             required: ['intent', 'slots', 'confidence'],

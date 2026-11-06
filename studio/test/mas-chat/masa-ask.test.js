@@ -206,6 +206,51 @@ describe('askMasa', () => {
             expect(ended.map((call) => call.args[0])).to.deep.equal([idle]);
         });
 
+        const ended = () =>
+            control
+                .getCalls()
+                .filter((call) => call.args[1] === 'session.end')
+                .map((call) => call.args[2].sessionId);
+
+        it('frees a lease known only from storage, as after a reload', async () => {
+            const stored = sessionManager.createSession();
+            ids.push(stored.id);
+            sessionManager.updateSession(stored.id, { investigationState: { sessionId: 'ses_stored' } });
+            const target = open('target');
+            sandbox.stub(sessionManager, 'listSessions').returns([{ id: stored.id }, { id: target }]);
+            let creates = 0;
+            control.callsFake(async (conversation, operation) => {
+                if (operation === 'session.create' && conversation === target && creates++ === 0) throw capacity();
+                if (operation.startsWith('session.')) return { result: lease(), retryAfter: 10 };
+                return { result: job('queued'), retryAfter: 10 };
+            });
+            complete(target);
+            const record = await askMasa({ conversationId: target, question: 'Why?', context: '' });
+            expect(record.status).to.equal('completed');
+            expect(ended()).to.deep.equal(['ses_stored']);
+        });
+
+        it('keeps freeing idle sessions past one that fails to end', async () => {
+            const failing = open('failing');
+            const idle = open('idle');
+            const target = open('target');
+            sandbox.stub(sessionManager, 'listSessions').returns([{ id: failing }, { id: idle }, { id: target }]);
+            getInvestigationSession(failing).session = { ...lease(), id: 'ses_failing' };
+            getInvestigationSession(idle).session = { ...lease(), id: 'ses_idle' };
+            let creates = 0;
+            control.callsFake(async (conversation, operation, fields) => {
+                if (operation === 'session.create' && conversation === target && creates++ === 0) throw capacity();
+                if (operation === 'session.end' && fields.sessionId === 'ses_failing')
+                    throw new MasaClientError('service-busy', '', 503, 5);
+                if (operation.startsWith('session.')) return { result: lease(), retryAfter: 10 };
+                return { result: job('queued'), retryAfter: 10 };
+            });
+            complete(target);
+            const record = await askMasa({ conversationId: target, question: 'Why?', context: '' });
+            expect(record.status).to.equal('completed');
+            expect(ended()).to.deep.equal(['ses_failing', 'ses_idle']);
+        });
+
         it('falls back after a second session-capacity', async () => {
             const target = open('target');
             sandbox.stub(sessionManager, 'listSessions').returns([{ id: target }]);
@@ -218,6 +263,69 @@ describe('askMasa', () => {
             expect(error.code).to.equal('session-capacity');
             expect(control.getCalls().some((call) => call.args[1] === 'session.end')).to.be.false;
         });
+    });
+});
+
+/** attach() ticks at once in a visible tab, so a restore or renewal can be in flight when the question is submitted. */
+describe('askMasa in a visible tab', () => {
+    let storage;
+    let sandbox;
+    let control;
+    let ids;
+
+    beforeEach(() => {
+        storage = useIsolatedChatSessionStorage();
+        sandbox = sinon.createSandbox();
+        ids = [];
+        control = sandbox.stub(MasaClient.prototype, 'control').callsFake(async (conversation, operation) => {
+            if (operation.startsWith('session.')) return { result: lease(), retryAfter: 10 };
+            return { result: job('completed'), retryAfter: 10 };
+        });
+    });
+
+    afterEach(async () => {
+        for (const id of ids) await endConversationInvestigations(id).catch(() => {});
+        sandbox.restore();
+        storage.restore();
+    });
+
+    const reloaded = (investigationState) => {
+        const { id } = sessionManager.createSession();
+        ids.push(id);
+        sessionManager.updateSession(id, { investigationState });
+        return id;
+    };
+    const operations = () => control.getCalls().map((call) => call.args[1]);
+
+    it('submits after the restore that attaching starts', async () => {
+        const conversationId = reloaded({ sessionId: sid });
+        const record = await askMasa({ conversationId, question: 'Why?', context: '' });
+        expect(record.status).to.equal('completed');
+        expect(operations()).to.include('investigation.submit');
+    });
+
+    it('submits after the renewal that attaching starts', async () => {
+        const conversationId = reloaded({});
+        const session = getInvestigationSession(conversationId);
+        session.session = lease();
+        session.renewedAt = Date.now() - 60000;
+        const record = await askMasa({ conversationId, question: 'Why?', context: '' });
+        expect(record.status).to.equal('completed');
+        expect(operations()).to.deep.equal(['session.renew', 'investigation.submit']);
+    });
+
+    it('keeps a reload-saved submission when MASA asks Studio to wait', async () => {
+        const conversationId = reloaded({
+            sessionId: sid,
+            pending: { sessionId: sid, idempotencyKey: 'saved-key', question: 'First?', context: '', attachmentIds: [] },
+        });
+        control.callsFake(async () => {
+            throw new MasaClientError('request-rate-limit', 'Slow down', 429, 30);
+        });
+        let error;
+        await askMasa({ conversationId, question: 'Something else?', context: '' }).catch((e) => (error = e));
+        expect(error.code).to.equal('request-rate-limit');
+        expect(getInvestigationSession(conversationId).pending.idempotencyKey).to.equal('saved-key');
     });
 });
 

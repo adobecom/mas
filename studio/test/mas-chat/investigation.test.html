@@ -499,16 +499,29 @@
                         expect(current.images).to.have.length(1);
                         expect(JSON.stringify(saved)).not.to.contain('only-in-memory');
                     });
-                    it('recovers the same session creation key after reload and an uncertain creation response', async () => {
+                    it('keeps the session creation key after an uncertain creation response', async () => {
                         sinon.stub(current.client, 'control').rejects(new MasaClientError('connection-unavailable', 'Offline'));
                         await current.submit('Question', '');
-                        const key = saved.state.createKey;
-                        expect(key).to.be.a('string');
-                        const restored = controller({ state: saved.state });
+                        expect(saved.state.createKey).to.be.a('string');
+                    });
+                    it('ends a reloaded conversation whose session MASA never confirmed without creating one', async () => {
+                        sinon.stub(current.client, 'control').rejects(new MasaClientError('connection-unavailable', 'Offline'));
+                        await current.submit('Question', '');
+                        let restoredState;
+                        const restored = controller({ state: saved.state, save: (history, state) => (restoredState = state) });
                         const control = sinon.spy(restored.client, 'control');
                         await restored.end();
-                        expect(control.firstCall.args[2]).to.deep.equal({ idempotencyKey: key });
-                        expect(control.secondCall.args[1]).to.equal('session.end');
+                        expect(control.called).to.equal(false);
+                        expect(restoredState.createKey).to.equal(null);
+                    });
+                    it('ends at once after a session creation MASA never confirmed', async () => {
+                        const control = sinon
+                            .stub(current.client, 'control')
+                            .rejects(new MasaClientError('connection-unavailable', 'Offline', 0, 5));
+                        await current.submit('Question', '');
+                        await current.end();
+                        expect(control.callCount).to.equal(1);
+                        expect(saved.state.createKey).to.equal(null);
                     });
                     it('does not renew or poll while the tab is hidden', async () => {
                         current.session = lease();

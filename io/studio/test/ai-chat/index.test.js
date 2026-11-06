@@ -93,16 +93,6 @@ describe('ai-chat/index main handler', () => {
             expect(sendStub.called).to.equal(false);
         });
 
-        it('routes a quoted title search straight to search_cards with titleSearch', async () => {
-            const result = await main(makeParams({ message: 'show cards titled "Photoshop Pro plan"' }));
-            expect(result.statusCode).to.equal(200);
-            expect(result.body.operationName).to.equal('search_cards');
-            expect(result.body.operationParams.query).to.equal('Photoshop Pro plan');
-            expect(result.body.operationParams.titleSearch).to.equal(true);
-            expect(result.body.envelope.intent).to.equal('search_cards');
-            expect(sendStub.called).to.equal(false);
-        });
-
         it('routes a bare 32-hex offer id to get_offer_by_id inside a release turn', async () => {
             const offerId = '0123456789abcdef0123456789ABCDEF';
             const result = await main(
@@ -721,6 +711,25 @@ describe('ai-chat/index main handler', () => {
             await main(makeParams({ message: 'why is my price wrong in Milo?', masa: true }));
             const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
             expect(offered).to.include('ASK_MASA');
+        });
+
+        it('does not turn a troubleshooting question into a title search', async () => {
+            sendStub.resolves(askMasa());
+            const message =
+                'I created a group variation for FR so that the merch card has a green "recommended" banner. The mas fragment has returned from loc and I have published the Fr English and the Fr French mas fragments. I can see the changes on preview ( https://main--da-cc--adobecom.aem.page/fr/creativecloud/photography ) but not on live (using the same browser just another tab) https://www.adobe.com/fr/creativecloud/photography.html . Here is the FR fragment https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=acom-cc&query=e2b050a0-d726-4961-8956-0c73f849cbe4 fragment id 6c830ea6-9996-4743-8d44-87b197835b4f Please let me know what I\'m missing so that the offer appears on France';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(sendStub.called).to.equal(true);
+            expect(result.body.operationName).to.equal(undefined);
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
+            expect(offered).to.include('ASK_MASA');
+        });
+
+        it('leaves quoted text with a colon to the model', async () => {
+            sendStub.resolves(textResponse('Searching.'));
+            const result = await main(makeParams({ message: 'find cards with "Plans: Individual"', masa: true }));
+            expect(sendStub.called).to.equal(true);
+            expect(result.body.operationName).to.equal(undefined);
         });
 
         it('drops a model ASK_MASA when the request did not offer MASA', async () => {

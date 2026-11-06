@@ -657,57 +657,6 @@ async function main(params) {
 
         const searchIntent = /\b(find|show|search|which|get|look\s*up|cards?)\b/i.test(message);
 
-        // Abstain from the deterministic title-search bypass when the message starts with a
-        // mutation verb. Otherwise the colon-or-quote fallback regex on the next branch matches
-        // possessive apostrophes ("the card's description to say: …") and captures the wrong
-        // span — routing a mutation request to a title search using gibberish as the query.
-        const mutationVerb =
-            /\b(?:edit|change|update|modify|set|replace|rename|delete|remove|publish|unpublish|create|add|copy|duplicate|tag|link)\b/i.test(
-                message,
-            );
-
-        // Deterministic title search: detect "fragment title" or "title" followed by a quoted or
-        // colon-containing title string. Bypass the LLM entirely.
-        if (searchIntent && !mutationVerb) {
-            const titleMatch =
-                message.match(
-                    /(?:fragment\s+title|cards?\s+(?:named|with\s+title|titled))\s+[""']?([^""']+?)[""']?\s*(?:in\s+(?:all\s+locales?|\w+))?$/i,
-                ) || message.match(/[""']([^""']+:[^""']+)[""']/);
-            if (titleMatch) {
-                const titleQuery = titleMatch[1].trim();
-                const wantsAllLocales = /\ball\s+locales?\b/i.test(message);
-                console.log(`[Backend] Deterministic title search bypass: "${titleQuery}" allLocales=${wantsAllLocales}`);
-                const titleSearchBody = {
-                    type: 'studio_operation',
-                    operationName: 'search_cards',
-                    operationParams: { query: titleQuery, titleSearch: true, ...(wantsAllLocales ? { locale: 'all' } : {}) },
-                    message: `Searching for all cards with title "${titleQuery}"${wantsAllLocales ? ' across all locales' : ''}...`,
-                    confirmationRequired: false,
-                    conversationHistory: [...conversationHistory, { role: 'user', content: message }],
-                };
-                titleSearchBody.envelope = {
-                    intent: 'search_cards',
-                    slots: {
-                        query: titleQuery,
-                        surface: enrichedContext?.surface ?? null,
-                        titleSearch: true,
-                        locale: wantsAllLocales ? 'all' : (enrichedContext?.locale ?? null),
-                    },
-                    confidence: 'high',
-                    missing_slots: [],
-                    clarification_question: null,
-                    user_message: null,
-                };
-                if (bypassEnvelopeValid(titleSearchBody.envelope)) {
-                    return {
-                        statusCode: 200,
-                        headers: { ...getResponseHeaders() },
-                        body: titleSearchBody,
-                    };
-                }
-            }
-        }
-
         if (releaseIntent || searchIntent) {
             const trimmed = (message || '').trim();
             const bareOfferId = /^(?:(?:offer\s*id|osi|selected\s*offer)\s*[:=]\s*)?([a-fA-F0-9]{32})$/i.exec(trimmed);

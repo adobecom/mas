@@ -79,6 +79,11 @@ export class InvestigationSession extends EventTarget {
         return Boolean(this.pending) || this.records.some(running);
     }
 
+    /** True while perform() would skip a task: another task runs, the session is ending, or MASA asked Studio to wait. */
+    get blocked() {
+        return this.busy || this.ending || this.now() < this.retryAt;
+    }
+
     notify() {
         this.save(investigationHistory(this.records), {
             sessionId: this.leaseId ?? this.restoreId,
@@ -89,7 +94,7 @@ export class InvestigationSession extends EventTarget {
     }
 
     async perform(task) {
-        if (this.busy || this.ending || this.now() < this.retryAt) return;
+        if (this.blocked) return;
         this.busy = true;
         this.error = null;
         this.notify();
@@ -411,6 +416,12 @@ export class InvestigationSession extends EventTarget {
         });
     }
 
+    /**
+     * End every lease this conversation knows. A session.create MASA never
+     * confirmed is not retried: an unreachable MASA (prod has no masa-api)
+     * would then block sign-out and delete for good, and a lease it did
+     * create expires on MASA's idle timeout.
+     */
     async end() {
         this.ending = true;
         this.epoch++;
@@ -418,11 +429,10 @@ export class InvestigationSession extends EventTarget {
         this.notify();
         try {
             await this.inFlight;
-            if (this.now() < this.retryAt) throw this.error;
-            if (this.createKey) await this.ensureSession();
             const ids = new Set(
                 [this.leaseId, this.restoreId, ...this.records.filter(running).map((item) => item.sessionId)].filter(Boolean),
             );
+            if (ids.size && this.now() < this.retryAt) throw this.error;
             for (const sessionId of ids) {
                 try {
                     await this.client.control(this.conversationId, 'session.end', { sessionId });
@@ -434,6 +444,7 @@ export class InvestigationSession extends EventTarget {
             this.clearMedia();
             this.pending = null;
             this.restoreId = null;
+            this.createKey = null;
             if (this.session) this.session = { ...this.session, status: 'ended' };
             for (const record of this.records.filter(running)) record.status = 'cancelled';
             this.error = null;
@@ -505,15 +516,23 @@ export async function endAllInvestigations() {
     for (const { id } of sessionManager.listSessions()) await endConversationInvestigations(id);
 }
 
-/** Free other conversations' unused leases so a new one fits under MASA's per-user session cap. */
+/**
+ * Free other conversations' unused leases so a new one fits under MASA's
+ * per-user session cap. A lease known only from storage (after a reload)
+ * counts; one that fails to end is skipped. Resolves with the number ended.
+ */
 export async function endIdleSessions(exceptConversationId) {
     let ended = 0;
     for (const { id } of sessionManager.listSessions()) {
         if (id === exceptConversationId) continue;
         const session = getInvestigationSession(id);
-        if (!session.leaseId || session.isBusy) continue;
-        await endConversationInvestigations(id);
-        ended++;
+        if (!(session.leaseId ?? session.restoreId) || session.isBusy) continue;
+        try {
+            await endConversationInvestigations(id);
+            ended++;
+        } catch (error) {
+            if (!(error instanceof MasaClientError)) throw error;
+        }
     }
     return ended;
 }

@@ -156,16 +156,18 @@ SHA-256 before exposing a blob.
 While an answer is pending, Studio polls it no faster than ten seconds. While the conversation holds an active
 lease, Studio renews an idle session at most once per minute and, above the message box, warns within two
 minutes of expiry with an explicit renewal action. It honors longer server Retry-After intervals. Hiding the
-tab or closing the drawer stops foreground polling and renewal; it does not cancel accepted backend work, and
-an answer that lands after a switch or a reopened drawer is shown in its own conversation. Reload resumes
+tab pauses polling and renewal. Closing the drawer stops renewal, but a question that is still being answered
+keeps polling until its answer lands. Neither cancels accepted backend work, and an answer that lands after a
+switch or a reopened drawer is shown in its own conversation. Reload resumes
 pending jobs; a question whose answer a reload cut off offers "Ask MASA again". Previously
 loaded files are not restored from browser storage; their names remain as unavailable placeholders. Backend
 expiry still controls transfer access.
 
 Ending a session clears file memory and revokes object URLs. Deleting a conversation or explicitly
 signing out first ends its known server sessions; a failed end keeps the conversation/credentials so the
-user can retry. Closing the browser or external IMS expiry cannot send a guaranteed end request; the
-server lease timeout provides cleanup. Findings remain available as saved text after file expiry.
+user can retry. A session MASA never confirmed creating (for example where `masa-api` is not deployed) is not
+created again just to end it, so it never blocks sign-out or deletion. Closing the browser or external IMS
+expiry cannot send a guaranteed end request; the server lease timeout provides cleanup. Findings remain available as saved text after file expiry.
 
 To test the UI without credentials or deployments, run from `studio`:
 
@@ -174,7 +176,6 @@ npx web-test-runner --config web-test-runner.config.mjs --files 'test/mas-chat/i
 ```
 
 The HTML test page contains labelled, inspectable running/completed/expired/fallback scenarios.
-A [fixture screenshot](../../studio/test/mas-chat/masa-investigations.png) is included for review.
 Append `?demo` when opening it through a local server with npm module resolution to inspect the fixtures
 without starting assertions. It uses simulated responses and sends no live MASA or Slack traffic.
 

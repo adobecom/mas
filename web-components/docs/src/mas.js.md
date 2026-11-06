@@ -94,6 +94,12 @@ are stored under the `stage-latest` WCS cache namespace; normal `stage` and `pro
 caches are unchanged. Browser fragment caches, including references and collections,
 are also isolated from normal mode.
 
+Browser previews (`mas.preview=on`) forward the same flag to early WCS lookups
+and final prefill. Each in-flight fragment request retains its original cache
+namespace. If the mode changes before it completes, the fragment reloads in the
+current mode before publishing data or prefilling WCS. Stale fallback data is
+reused only within the same fragment cache key.
+
 WCS must enable `wcs.feature.enableServeLatest` on stage. MAS treats offers
 returned in latest mode as Orion offers and does not classify them by ID or date.
 

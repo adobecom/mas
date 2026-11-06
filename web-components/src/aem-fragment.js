@@ -165,6 +165,7 @@ export class AemFragment extends HTMLElement {
     #log;
 
     #rawData = null;
+    #rawDataCacheKey;
     #data = null;
     #service = null;
 
@@ -205,8 +206,8 @@ export class AemFragment extends HTMLElement {
         return settings?.env === Env.STAGE && settings.orion ? '-orion' : '';
     }
 
-    cacheKey() {
-        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}${this.cacheSuffix}`;
+    cacheKey(cacheSuffix = this.cacheSuffix) {
+        return `${this.#fragmentId}${this.#pzn ? `-p_${this.#pzn}` : ''}${this.#mask ? `-m_${this.#mask}` : ''}${cacheSuffix}`;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -272,13 +273,13 @@ export class AemFragment extends HTMLElement {
      * @param {string} endpoint url to fetch fragment from
      * @returns {Promise<Object>} the raw fragment item
      */
-    async #getFragment(endpoint) {
+    async #getFragment(endpoint, cacheKey, cacheSuffix) {
         this.#fetchCount++;
-        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${this.cacheKey()}:${this.#fetchCount}`;
+        const markPrefix = `${AEM_FRAGMENT_TAG_NAME}:${cacheKey}:${this.#fetchCount}`;
         const startMarkName = `${markPrefix}${MARK_START_SUFFIX}`;
         const measureName = `${markPrefix}${MARK_DURATION_SUFFIX}`;
         if (this.#preview) {
-            const preview = await this.generatePreview();
+            const preview = await this.generatePreview(cacheSuffix);
             if (preview.status === 200) {
                 return preview.body;
             } else {
@@ -315,7 +316,7 @@ export class AemFragment extends HTMLElement {
                 performance.measure(measureName, startMarkName),
             );
             this.#fetchInfo.retryCount = e.retryCount;
-            if (this.#rawData) {
+            if (this.#rawData && this.#rawDataCacheKey === cacheKey) {
                 this.#fetchInfo.stale = true;
                 this.#log.error(`Serving stale data`, this.#fetchInfo);
                 return this.#rawData;
@@ -395,11 +396,15 @@ export class AemFragment extends HTMLElement {
     }
 
     async #fetchData() {
+        const cacheSuffix = this.cacheSuffix;
+        const cacheKey = this.cacheKey(cacheSuffix);
+        this.#fetchInfo = cache.getFetchInfo(cacheKey);
         this.classList.remove('error');
         this.#data = null;
-        let fragment = cache.get(this.cacheKey());
+        let fragment = cache.get(cacheKey);
         if (fragment) {
             this.#rawData = fragment;
+            this.#rawDataCacheKey = cacheKey;
             return true;
         }
         const {
@@ -422,7 +427,7 @@ export class AemFragment extends HTMLElement {
             endpoint += `&instant=${instant}`;
         }
 
-        if (this.cacheSuffix) {
+        if (cacheSuffix) {
             endpoint += '&serveLatest=true';
         }
 
@@ -434,14 +439,27 @@ export class AemFragment extends HTMLElement {
             endpoint += `&pzn=${this.#pzn}`;
         }
 
-        fragment = await this.#getFragment(endpoint);
+        try {
+            fragment = await this.#getFragment(endpoint, cacheKey, cacheSuffix);
+        } catch (error) {
+            if (cacheKey === this.cacheKey()) throw error;
+            this.#log.error(error.message, this.#fetchInfo);
+            return this.#fetchData();
+        }
+        if (this.#preview && cacheKey !== this.cacheKey()) {
+            return this.#fetchData();
+        }
         fragment.fields.originalId ??= this.#fragmentId;
         if (this.#mask || this.#pzn) {
-            cache.set(this.cacheKey(), fragment);
+            cache.set(cacheKey, fragment);
         } else {
-            cache.add(fragment, true, this.cacheSuffix);
+            cache.add(fragment, true, cacheSuffix);
+        }
+        if (cacheKey !== this.cacheKey()) {
+            return this.#fetchData();
         }
         this.#rawData = fragment;
+        this.#rawDataCacheKey = cacheKey;
         return true;
     }
 
@@ -453,6 +471,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get data() {
+        if (this.#rawDataCacheKey !== this.cacheKey()) return null;
         if (this.#data) return this.#data;
         if (this.#author) {
             this.transformAuthorData();
@@ -463,7 +482,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get rawData() {
-        return this.#rawData;
+        return this.#rawDataCacheKey === this.cacheKey() ? this.#rawData : null;
     }
 
     transformAuthorData() {
@@ -565,13 +584,13 @@ export class AemFragment extends HTMLElement {
         return `${baseUrl}/studio/libs/fragment-client.js`;
     }
 
-    async generatePreview() {
+    async generatePreview(cacheSuffix = this.cacheSuffix) {
         const fragmentClientUrl = this.getFragmentClientUrl();
-        const { previewFragment } = await import(fragmentClientUrl);
         const defaultOptions = {
             locale: this.#service.settings.locale,
             apiKey: this.#service.settings.wcsApiKey,
             fullContext: true,
+            ...(cacheSuffix ? { serveLatest: true } : {}),
         };
         const instant =
             new URLSearchParams(window.location.search).get('instant') ??
@@ -582,6 +601,7 @@ export class AemFragment extends HTMLElement {
             ...(this.#mask != null ? { mask: this.#mask } : {}),
             ...(this.#pzn != null ? { pzn: this.#pzn } : {}),
         };
+        const { previewFragment } = await import(fragmentClientUrl);
         const data = await previewFragment(this.#fragmentId, options);
         return data;
     }

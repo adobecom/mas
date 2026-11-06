@@ -4,6 +4,8 @@ import {
     removeMasCommerceService,
 } from './utilities.js';
 import sinon from 'sinon';
+import { waitUntil } from '@open-wc/testing';
+import { EVENT_AEM_LOAD, EVENT_AEM_ERROR } from '../src/constants.js';
 import '../src/mas-commerce-service.js';
 import '../src/aem-fragment.js';
 
@@ -39,6 +41,13 @@ describe('Orion fragment requests and cache isolation', () => {
                         originalId: 'requested-id',
                         title: latest ? 'Orion' : 'Legacy',
                     },
+                    wcs: {
+                        [latest ? 'stage-latest' : 'stage']: {
+                            'test-osi-gb': [
+                                { offerId: latest ? 'latest' : 'legacy' },
+                            ],
+                        },
+                    },
                     references: {
                         'child-id': {
                             type: 'content-fragment',
@@ -62,13 +71,54 @@ describe('Orion fragment requests and cache isolation', () => {
         window.history.replaceState({}, '', href);
     });
 
-    const load = async (id = 'requested-id') => {
+    const startLoad = (id = 'requested-id', attributes = {}) => {
         const fragment = document.createElement('aem-fragment');
+        for (const [name, value] of Object.entries(attributes)) {
+            fragment.setAttribute(name, value);
+        }
         fragment.setAttribute('fragment', id);
         fragments.push(fragment);
         document.body.append(fragment);
+        return fragment;
+    };
+
+    const load = async (id = 'requested-id') => {
+        const fragment = startLoad(id);
         await fragment.updateComplete;
         return fragment;
+    };
+
+    const switchMode = (mode) => {
+        window.history.replaceState(
+            {},
+            '',
+            `${baseHref}?commerce.env=stage&mas.orion=${mode}`,
+        );
+        service.activate();
+    };
+
+    const deferFirstResponse = () => {
+        let resolve;
+        fetchStub.onFirstCall().returns(
+            new Promise((release) => {
+                resolve = release;
+            }),
+        );
+        return (mode, status = 200) =>
+            resolve(
+                new Response(
+                    JSON.stringify({
+                        id: 'requested-id',
+                        fields: { title: mode === 'on' ? 'Orion' : 'Legacy' },
+                        wcs: {
+                            [mode === 'on' ? 'stage-latest' : 'stage']: {
+                                'test-osi-gb': [{ offerId: mode }],
+                            },
+                        },
+                    }),
+                    { status },
+                ),
+            );
     };
 
     it('forwards latest mode to the fragment URL', async () => {
@@ -114,6 +164,117 @@ describe('Orion fragment requests and cache isolation', () => {
                 otherMode === 'on' ? 'Orion' : 'Legacy',
             );
             expect(fetchStub.callCount).to.equal(2);
+        });
+
+        for (const attributes of [
+            {},
+            { pzn: 'segment' },
+            { mask: 'mask-id' },
+        ]) {
+            it(`keeps an in-flight Orion ${firstMode} response in its original namespace with ${JSON.stringify(attributes)}`, async () => {
+                switchMode(firstMode);
+                const release = deferFirstResponse();
+                const fragment = startLoad('requested-id', attributes);
+                const originalKey = fragment.cacheKey();
+                await waitUntil(() => fetchStub.calledOnce);
+
+                switchMode(firstMode === 'on' ? 'off' : 'on');
+                release(firstMode);
+                await fragment.updateComplete;
+
+                expect(cache.get(originalKey).fields.title).to.equal(
+                    firstMode === 'on' ? 'Orion' : 'Legacy',
+                );
+                expect(cache.get(fragment.cacheKey()).fields.title).to.equal(
+                    firstMode === 'on' ? 'Legacy' : 'Orion',
+                );
+            });
+        }
+
+        it(`publishes only current-mode data when Orion ${firstMode} changes during a request`, async () => {
+            switchMode(firstMode);
+            const release = deferFirstResponse();
+            const fragment = startLoad();
+            const loaded = sinon.spy();
+            fragment.addEventListener(EVENT_AEM_LOAD, loaded);
+            await waitUntil(() => fetchStub.calledOnce);
+
+            switchMode(firstMode === 'on' ? 'off' : 'on');
+            const prefill = sinon.spy(service, 'prefillWcsCache');
+            release(firstMode);
+            await fragment.updateComplete;
+
+            expect(
+                loaded
+                    .getCalls()
+                    .map(({ args: [event] }) => event.detail.fields.title),
+            ).to.deep.equal([firstMode === 'on' ? 'Legacy' : 'Orion']);
+            expect(fragment.data.fields.title).to.equal(
+                firstMode === 'on' ? 'Legacy' : 'Orion',
+            );
+            expect(prefill.calledOnce).to.be.true;
+            expect(prefill.firstCall.args[0]).not.to.have.property(
+                firstMode === 'on' ? 'stage-latest' : 'stage',
+            );
+            prefill.restore();
+        });
+
+        it(`retries the current mode when an obsolete Orion ${firstMode} request fails`, async () => {
+            switchMode(firstMode);
+            const release = deferFirstResponse();
+            const fragment = startLoad();
+            await waitUntil(() => fetchStub.calledOnce);
+
+            switchMode(firstMode === 'on' ? 'off' : 'on');
+            release(firstMode, 404);
+            await fragment.updateComplete;
+
+            expect(fragment.data.fields.title).to.equal(
+                firstMode === 'on' ? 'Legacy' : 'Orion',
+            );
+            expect(fragment.classList.contains('error')).to.be.false;
+        });
+
+        it(`hides already-loaded Orion ${firstMode} data after switching modes`, async () => {
+            switchMode(firstMode);
+            const fragment = await load();
+
+            switchMode(firstMode === 'on' ? 'off' : 'on');
+
+            expect(fragment.rawData).to.be.null;
+            expect(fragment.data).to.be.null;
+        });
+
+        it(`uses the current namespace after waiting for an Orion ${firstMode} cache entry`, async () => {
+            switchMode(firstMode);
+            const fragment = startLoad('requested-id', { loading: 'cache' });
+            const originalKey = fragment.cacheKey();
+
+            switchMode(firstMode === 'on' ? 'off' : 'on');
+            cache.set(originalKey, {
+                id: 'requested-id',
+                fields: { title: 'Obsolete cached data' },
+            });
+            await waitUntil(() => fetchStub.calledOnce);
+            await fragment.updateComplete;
+
+            expect(fragment.data.fields.title).to.equal(
+                firstMode === 'on' ? 'Legacy' : 'Orion',
+            );
+        });
+
+        it(`does not serve Orion ${firstMode} data as stale fallback after switching modes`, async () => {
+            switchMode(firstMode);
+            const fragment = await load();
+            const failed = sinon.spy();
+            fragment.addEventListener(EVENT_AEM_ERROR, failed);
+            switchMode(firstMode === 'on' ? 'off' : 'on');
+            fetchStub.callsFake(
+                async () => new Response('Not Found', { status: 404 }),
+            );
+
+            expect(await fragment.refresh()).to.be.false;
+            expect(failed.calledOnce).to.be.true;
         });
     }
 

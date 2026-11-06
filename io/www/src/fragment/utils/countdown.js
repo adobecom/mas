@@ -13,6 +13,12 @@ export const supportsCountdown = (variant) => ['pro', 'bizpro'].includes(variant
 export const COUNTDOWN_UNITS = ['day', 'hour', 'minute'];
 
 /**
+ * Countdown dates are wall-clock times: AEM stores them with a zone, but each browser must read them
+ * in its own time zone, like Milo's countdown timer, so the zone is dropped.
+ */
+export const countdownLocalTime = (date) => date.replace(/(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/i, '');
+
+/**
  * What `replace` resolves `{{countdown-<unit>}}` to: the unit's singular and plural dictionary entries
  * in a tag the browser can find and choose from, once it knows the count.
  */

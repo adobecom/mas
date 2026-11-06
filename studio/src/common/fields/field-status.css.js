@@ -15,6 +15,10 @@ export const fieldStatusStyles = css`
         color: var(--spectrum-red-800, #d31510);
     }
 
+    .field-status-indicator--baseline {
+        color: var(--spectrum-green-900, #0a5c3a);
+    }
+
     .field-status-icon {
         color: inherit;
         flex: none;

@@ -376,24 +376,103 @@
                         expect(picker.querySelectorAll('.color-swatch').length).to.equal(BADGE_COLORS.length);
                     });
 
-                    it('does not show an override indicator when not a variation', async () => {
+                    it('does not show a status indicator when nothing is inherited', async () => {
                         const el = await mount(
                             html`<badge-section
                                 show-colors
                                 .value=${'Badge'}
                                 .colors=${BADGE_COLORS}
-                                .fieldStates=${{ text: 'overridden' }}
+                                .fieldStates=${{ text: 'no-parent' }}
                             ></badge-section>`,
                         );
                         await el.updateComplete;
                         expect(el.querySelector('.field-status-indicator')).to.be.null;
                     });
 
+                    it('shows From baseline under the badge text inherited from the baseline', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                .fromBaseline=${{ text: true }}
+                                .value=${'Badge'}
+                                .fieldStates=${{ text: 'inherited' }}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        const indicator = el.querySelector('sp-field-group#badge .field-status-indicator--baseline');
+                        expect(indicator.textContent.trim()).to.equal('From baseline');
+                    });
+
+                    it('shows the restore link instead of From baseline once the badge text is overridden', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                .fromBaseline=${{ text: true }}
+                                .value=${''}
+                                .fieldStates=${{ text: 'overridden' }}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        expect(el.querySelector('.field-status-indicator--baseline')).to.be.null;
+                        expect(el.querySelector('sp-field-group#badge .field-status-restore-link').textContent).to.include(
+                            'Click to restore',
+                        );
+                    });
+
+                    it('shows From baseline under badge colors inherited from the baseline', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                show-colors
+                                .value=${'<merch-badge background-color="spectrum-yellow-300-plans" border-color="spectrum-gray-700-plans">Badge</merch-badge>'}
+                                .colors=${BADGE_COLORS}
+                                .borderColors=${BADGE_COLORS}
+                                .fromBaseline=${{ bgColor: true, borderColor: true }}
+                                .fieldStates=${{ text: 'inherited', bgColor: 'inherited', borderColor: 'inherited' }}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        expect(el.querySelector('sp-field-group#badge .field-status-indicator')).to.be.null;
+                        for (const id of ['badgeColor', 'badgeBorderColor']) {
+                            const indicator = el.querySelector(`sp-field-group#${id} .field-status-indicator--baseline`);
+                            expect(indicator.textContent.trim()).to.equal('From baseline');
+                        }
+                    });
+
+                    it('shows the restore link instead of From baseline once a badge color is overridden', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                show-colors
+                                .value=${'<merch-badge border-color="spectrum-gray-700-plans">Badge</merch-badge>'}
+                                .colors=${BADGE_COLORS}
+                                .borderColors=${BADGE_COLORS}
+                                .fromBaseline=${{ borderColor: true }}
+                                .fieldStates=${{ bgColor: 'overridden', borderColor: 'inherited' }}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        expect(el.querySelector('sp-field-group#badgeColor .field-status-indicator--baseline')).to.be.null;
+                        expect(el.querySelector('sp-field-group#badgeColor .field-status-restore-link').textContent).to.include(
+                            'Click to restore',
+                        );
+                        expect(el.querySelector('sp-field-group#badgeBorderColor .field-status-indicator--baseline')).to.exist;
+                    });
+
+                    it('shows From baseline under the badge icon inherited from the baseline', async () => {
+                        const el = await mount(
+                            html`<badge-section
+                                show-icon
+                                .value=${'Badge'}
+                                .fromBaseline=${{ icon: true }}
+                                .fieldStates=${{ icon: 'inherited' }}
+                            ></badge-section>`,
+                        );
+                        await el.updateComplete;
+                        const indicator = el.querySelector('sp-field-group#badgeIcon .field-status-indicator--baseline');
+                        expect(indicator.textContent.trim()).to.equal('From baseline');
+                    });
+
                     it('fires a restore event from the override indicator when a component is overridden', async () => {
                         const el = await mount(
                             html`<badge-section
                                 show-colors
-                                is-variation
                                 field="badge"
                                 .value=${'Badge'}
                                 .colors=${BADGE_COLORS}

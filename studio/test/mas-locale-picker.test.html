@@ -282,6 +282,28 @@
                             const filtered = el.getFilteredLocales();
                             expect(filtered.every((loc) => loc.lang === 'de')).to.be.true;
                         });
+
+                        it('should not propagate search change events to the menu', async function () {
+                            const el = initElementFromTemplate('searchEnabled', this.test.title);
+                            await el.updateComplete;
+
+                            const menu = el.shadowRoot.querySelector('sp-menu');
+                            let menuChangeCount = 0;
+                            menu.addEventListener('change', () => menuChangeCount++);
+                            el.shadowRoot.querySelector('sp-search').dispatchEvent(new Event('change', { bubbles: true }));
+
+                            expect(menuChangeCount).to.equal(0);
+                        });
+
+                        it('should prevent native form submission from the search field', async function () {
+                            const el = initElementFromTemplate('searchEnabled', this.test.title);
+                            await el.updateComplete;
+
+                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                            el.shadowRoot.querySelector('sp-search').dispatchEvent(submitEvent);
+
+                            expect(submitEvent.defaultPrevented).to.be.true;
+                        });
                     });
 
                     describe('Disabled state', () => {

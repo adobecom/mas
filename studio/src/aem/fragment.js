@@ -19,6 +19,7 @@ import {
     parentValuesHaveContent,
     toPersistedExplicitEmptyValues,
 } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+import { getVariantConfig } from '../../../io/studio/src/ai-chat/variant-configs.js';
 
 /**
  * Values of a field as shown in the editor: a stored explicit_empty sentinel reads as empty, whatever the field.
@@ -41,20 +42,33 @@ function isExplicitEmptyVariationValue(ownValues, parentValues) {
 }
 
 /**
+ * Whether the card template requires the field (AI chat variant configs, where `title` is the card title): without
+ * baselines a required field is never kept empty, clearing it inherits again.
+ * @param {string} variant
+ * @param {string} fieldName
+ * @returns {boolean}
+ */
+export function isTemplateRequiredField(variant, fieldName) {
+    const requiredFields = getVariantConfig(variant)?.requiredFields ?? [];
+    return requiredFields.includes(fieldName === 'cardTitle' ? 'title' : fieldName);
+}
+
+/**
  * Maps UI empty input (`['']`) to persisted sentinel when clearing inherited variation content.
  * @param {Array} encodedValues
  * @param {Fragment|null} parentFragment
  * @param {Array} parentValues
  * @param {string} fieldName
  * @param {boolean} isMultiple
+ * @param {boolean} inheritsWhenCleared - whether clearing the field inherits again instead of keeping it empty
  * @returns {Array}
  */
-function resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple) {
+function resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple, inheritsWhenCleared) {
     const isSingleEmptyString = encodedValues.length === 1 && encodedValues[0] === '';
     if (!parentFragment || !isSingleEmptyString || !parentValuesHaveContent(parentValues)) {
         return encodedValues;
     }
-    if (!isExplicitEmptyField(fieldName) || isMultiple) {
+    if (!isExplicitEmptyField(fieldName) || isMultiple || inheritsWhenCleared) {
         return encodedValues;
     }
     return toPersistedExplicitEmptyValues();
@@ -241,7 +255,16 @@ export class Fragment {
         const parentValues = parentField?.values || [];
 
         let encodedValues = value.map((entry) => (typeof entry === 'string' ? entry.normalize('NFC') : entry));
-        encodedValues = resolveVariationStoredValues(encodedValues, parentFragment, parentValues, fieldName, isMultiple);
+        const variant = this.getFieldValue('variant') || parentFragment?.getFieldValue('variant');
+        const baselinesEnabled = this.getFieldValue('enableBaselines') === true;
+        encodedValues = resolveVariationStoredValues(
+            encodedValues,
+            parentFragment,
+            parentValues,
+            fieldName,
+            isMultiple,
+            !baselinesEnabled && isTemplateRequiredField(variant, fieldName),
+        );
         if (!isExplicitEmptyField(fieldName)) {
             if (fieldValuesArePersistedExplicitEmpty(encodedValues)) {
                 encodedValues = isMultiple ? [] : [''];
@@ -259,7 +282,7 @@ export class Fragment {
             parentValuesHaveContent(parentValues);
 
         // For variations: if values match parent exactly, reset to inherited state
-        if (parentFragment) {
+        if (parentField) {
             const valuesMatchParent =
                 encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
 

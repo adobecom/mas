@@ -3,7 +3,8 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
-import { mergeParentFields } from '../aem/variation-utils.js';
+import { cachedInheritanceParent, mergeParentFields, variationFieldShouldInheritParent } from '../aem/variation-utils.js';
+import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 export class SourceFragmentStore extends FragmentStore {
     /** @type {PreviewFragmentStore} */
@@ -14,6 +15,11 @@ export class SourceFragmentStore extends FragmentStore {
 
     /** @type {boolean} Flag to skip variation detection on next editor init (set after copy) */
     skipVariationDetection = false;
+
+    /** @type {Fragment | null} merged baselines filling the empty fields of the preview */
+    baselineParent = null;
+
+    #inheritanceParent = cachedInheritanceParent();
 
     /**
      * @param {Fragment} sourceFragment - The raw fragment data (for editing)
@@ -28,19 +34,52 @@ export class SourceFragmentStore extends FragmentStore {
 
     set(value) {
         super.set(value);
-        if (this.parentFragment) {
-            const previewData = createPreviewDataWithParent(value, this.parentFragment);
-            this.previewStore.set(previewData);
-        } else {
-            this.previewStore.set(value);
-        }
+        this.previewStore.set(this.#previewData(value));
+    }
+
+    /**
+     * The fragment empty fields inherit from: the variation parent filled with the baselines, if any.
+     * @returns {Fragment | null}
+     */
+    get inheritanceParent() {
+        return this.#inheritanceParent(this.parentFragment, this.baselineParent);
+    }
+
+    /**
+     * Preview data built from the source: empty fields filled with the variation parent, then the baselines.
+     * Built from the source only, as the resolved preview no longer tells inherited fields from explicitly emptied ones.
+     * @param {Fragment | object} value
+     * @returns {object}
+     */
+    #previewData(value) {
+        if (!this.parentFragment && !this.baselineParent) return value;
+        const previewData = this.parentFragment
+            ? createPreviewDataWithParent(value, this.parentFragment)
+            : structuredClone(value);
+        if (this.baselineParent) mergeParentFields(previewData, this.baselineParent, this.#arraysToMerge);
+        return previewData;
+    }
+
+    /** Array fields the card template appends to the baseline values instead of overriding them (delivery `deepMerge`). */
+    get #arraysToMerge() {
+        return MERGE_CONFIG[this.value.getFieldValue('variant')]?.arraysToMerge ?? [];
+    }
+
+    /** Values of a field for the preview: the baseline values when the field inherits them, or the card values after them. */
+    #previewValues(name, values) {
+        const baselineValues = this.baselineParent?.getFieldValues(name) ?? [];
+        const isMultiple = this.value.getField(name)?.multiple === true;
+        if (!baselineValues.length) return values;
+        if (variationFieldShouldInheritParent(values, isMultiple)) return [...baselineValues];
+        return this.#arraysToMerge.includes(name) ? [...baselineValues, ...values] : values;
     }
 
     updateField(name, value) {
-        const result = this.value.updateField(name, value, this.parentFragment);
+        const result = this.value.updateField(name, value, this.inheritanceParent);
         if (result) {
             this.notify();
-            this.previewStore.updateField(name, value);
+            const values = result === 'reset' ? value : this.value.getFieldValues(name);
+            this.previewStore.updateField(name, this.#previewValues(name, values));
         }
         return result;
     }
@@ -54,25 +93,13 @@ export class SourceFragmentStore extends FragmentStore {
     refreshFrom(value) {
         this.value.refreshFrom(value);
         this.notify();
-        // For variations, restore preview with parent-merged values
-        if (this.parentFragment) {
-            const previewData = createPreviewDataWithParent(this.value, this.parentFragment);
-            this.previewStore.refreshFrom(previewData);
-        } else {
-            this.previewStore.refreshFrom(structuredClone(value));
-        }
+        this.previewStore.refreshFrom(this.#previewData(this.value));
     }
 
     discardChanges() {
         this.value.discardChanges();
         this.notify();
-        // For variations, restore preview with parent-merged values
-        if (this.parentFragment) {
-            const previewData = createPreviewDataWithParent(this.value, this.parentFragment);
-            this.previewStore.refreshFrom(previewData);
-        } else {
-            this.previewStore.refreshFrom(structuredClone(this.value));
-        }
+        this.previewStore.refreshFrom(this.#previewData(this.value));
     }
 
     resetFieldToParent(fieldName) {
@@ -81,9 +108,9 @@ export class SourceFragmentStore extends FragmentStore {
             this.notify();
             if (this.parentFragment) {
                 const parentValues = this.parentFragment.getField(fieldName)?.values ?? [];
-                this.previewStore.updateField(fieldName, parentValues);
+                this.previewStore.updateField(fieldName, this.#previewValues(fieldName, parentValues));
             } else {
-                this.previewStore.refreshFrom(structuredClone(this.value));
+                this.previewStore.refreshFrom(this.#previewData(this.value));
             }
         }
         return success;
@@ -102,12 +129,9 @@ export class SourceFragmentStore extends FragmentStore {
      * @param {Fragment | null} baselineParent
      */
     setBaselineParent(baselineParent) {
-        if (this.previewStore.baselineParent === baselineParent) return;
-        this.previewStore.baselineParent = baselineParent;
-        const previewData = this.parentFragment
-            ? createPreviewDataWithParent(this.value, this.parentFragment)
-            : structuredClone(this.value);
-        this.previewStore.refreshFrom(previewData);
+        if (this.baselineParent === baselineParent) return;
+        this.baselineParent = baselineParent;
+        this.previewStore.refreshFrom(this.#previewData(this.value));
     }
 
     refreshAemFragment() {

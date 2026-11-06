@@ -290,78 +290,80 @@ class MasBulkEdit extends LitElement {
         const isLoading = this.loading.value && !(this.list.value || []).length;
         const showEmpty = !isLoading && projects.length === 0;
         return html`
-            <header>
-                <h1>Bulk edits</h1>
-            </header>
-            ${this.duplicatePending
-                ? html`<mas-bulk-publish-duplicate-dialog
-                      open
-                      .proposedTitle=${this.duplicatePending.proposedTitle}
-                      @duplicate-confirmed=${this.handleDuplicateConfirmed}
-                      @duplicate-cancelled=${() => {
-                          if (!this.duplicating) this.duplicatePending = null;
-                      }}
-                  ></mas-bulk-publish-duplicate-dialog>`
-                : nothing}
-            ${this.deletePending
-                ? html`<mas-bulk-publish-delete-dialog
-                      open
-                      .projectTitle=${this.deletePending.title}
-                      @delete-confirmed=${this.handleDeleteConfirmed}
-                      @delete-cancelled=${this.handleDeleteCancel}
-                  ></mas-bulk-publish-delete-dialog>`
-                : nothing}
-            <sp-tabs quiet selected="find-and-replace" aria-label="Bulk edits">
-                <sp-tab value="find-and-replace" label="Find and replace">Find and replace</sp-tab>
-                <sp-tab value="update-offer" label="Update offer" disabled>Update offer</sp-tab>
-                <sp-tab-panel value="find-and-replace">
-                    <div class="project-toolbar">
-                        <sp-search
-                            size="m"
-                            label="Search find and replace projects"
-                            placeholder="Search"
-                            data-testid="project-search"
-                            .value=${this.searchQuery}
-                            @input=${this.handleSearch}
-                            @change=${this.handleSearch}
-                        ></sp-search>
-                        ${isLoading
-                            ? nothing
-                            : html`<span class="result-count" data-testid="result-count" role="status"
-                                  >${projects.length} result(s)</span
-                              >`}
-                        <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
-                            <sp-icon-add slot="icon"></sp-icon-add>
-                            Create project
-                        </sp-button>
-                    </div>
-                    ${showEmpty
-                        ? this.searchQuery.trim()
-                            ? html`<p class="empty" data-testid="no-results">No projects match your search.</p>`
-                            : html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
-                        : html`
-                              <sp-table
-                                  emphasized
-                                  class="item-table"
-                                  style=${styleMap(this.columnResize.tableStyle())}
-                                  data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
-                              >
-                                  <sp-table-head>
-                                      ${BULK_EDIT_COLUMNS.map(
-                                          ({ key, label }) => html`
-                                              <sp-table-head-cell>
-                                                  ${label} ${this.columnResize.handle(key, label)}
-                                              </sp-table-head-cell>
-                                          `,
-                                      )}
-                                  </sp-table-head>
-                                  <sp-table-body>
-                                      ${isLoading ? renderSkeletonRows(5) : projects.map((p) => this.renderRow(p))}
-                                  </sp-table-body>
-                              </sp-table>
-                          `}
-                </sp-tab-panel>
-            </sp-tabs>
+            <div class="page-container">
+                <header>
+                    <h1>Bulk edits</h1>
+                </header>
+                ${this.duplicatePending
+                    ? html`<mas-bulk-publish-duplicate-dialog
+                          open
+                          .proposedTitle=${this.duplicatePending.proposedTitle}
+                          @duplicate-confirmed=${this.handleDuplicateConfirmed}
+                          @duplicate-cancelled=${() => {
+                              if (!this.duplicating) this.duplicatePending = null;
+                          }}
+                      ></mas-bulk-publish-duplicate-dialog>`
+                    : nothing}
+                ${this.deletePending
+                    ? html`<mas-bulk-publish-delete-dialog
+                          open
+                          .projectTitle=${this.deletePending.title}
+                          @delete-confirmed=${this.handleDeleteConfirmed}
+                          @delete-cancelled=${this.handleDeleteCancel}
+                      ></mas-bulk-publish-delete-dialog>`
+                    : nothing}
+                <sp-tabs quiet selected="find-and-replace" aria-label="Bulk edits">
+                    <sp-tab value="find-and-replace" label="Find and replace">Find and replace</sp-tab>
+                    <sp-tab value="update-offer" label="Update offer" disabled>Update offer</sp-tab>
+                    <sp-tab-panel value="find-and-replace">
+                        <div class="project-toolbar">
+                            <sp-search
+                                size="m"
+                                label="Search find and replace projects"
+                                placeholder="Search"
+                                data-testid="project-search"
+                                .value=${this.searchQuery}
+                                @input=${this.handleSearch}
+                                @change=${this.handleSearch}
+                            ></sp-search>
+                            ${isLoading
+                                ? nothing
+                                : html`<span class="result-count" data-testid="result-count" role="status"
+                                      >${projects.length} result(s)</span
+                                  >`}
+                            <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
+                                <sp-icon-add slot="icon"></sp-icon-add>
+                                Create project
+                            </sp-button>
+                        </div>
+                        ${showEmpty
+                            ? this.searchQuery.trim()
+                                ? html`<p class="empty" data-testid="no-results">No projects match your search.</p>`
+                                : html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
+                            : html`
+                                  <sp-table
+                                      emphasized
+                                      class="item-table"
+                                      style=${styleMap(this.columnResize.tableStyle())}
+                                      data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+                                  >
+                                      <sp-table-head>
+                                          ${BULK_EDIT_COLUMNS.map(
+                                              ({ key, label }) => html`
+                                                  <sp-table-head-cell>
+                                                      ${label} ${this.columnResize.handle(key, label)}
+                                                  </sp-table-head-cell>
+                                              `,
+                                          )}
+                                      </sp-table-head>
+                                      <sp-table-body>
+                                          ${isLoading ? renderSkeletonRows(5) : projects.map((p) => this.renderRow(p))}
+                                      </sp-table-body>
+                                  </sp-table>
+                              `}
+                    </sp-tab-panel>
+                </sp-tabs>
+            </div>
         `;
     }
 }

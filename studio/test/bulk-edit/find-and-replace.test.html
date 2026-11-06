@@ -62,6 +62,33 @@
                             expect(projects.shadowRoot.querySelector('[data-testid="create-btn"]').variant).to.equal('accent');
                         });
 
+                        it('matches Bulk publish padding and insets the heading, toolbar and table by 32px', async () => {
+                            await import('../../src/bulk-publish/mas-bulk-publish.js');
+                            const publish = document.createElement('mas-bulk-publish');
+                            document.body.append(publish);
+                            await publish.updateComplete;
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const root = projects.shadowRoot;
+                            const container = root.querySelector('.page-container');
+                            const reference = publish.shadowRoot.querySelector('.page-container');
+                            expect(getComputedStyle(container).padding).to.equal(getComputedStyle(reference).padding);
+                            expect(getComputedStyle(container).padding).to.equal('32px');
+                            await waitUntil(() => root.querySelector('.item-table').getBoundingClientRect().width > 0);
+                            const hostBounds = projects.getBoundingClientRect();
+                            for (const selector of ['h1', 'sp-tabs', '[data-testid="project-search"]', '.item-table']) {
+                                expect(root.querySelector(selector).getBoundingClientRect().left - hostBounds.left).to.equal(
+                                    32,
+                                );
+                            }
+                            expect(root.querySelector('h1').getBoundingClientRect().top - hostBounds.top).to.equal(32);
+                            expect(
+                                hostBounds.right -
+                                    root.querySelector('[data-testid="create-btn"]').getBoundingClientRect().right,
+                            ).to.equal(32);
+                            publish.remove();
+                        });
+
                         it('keeps Find and replace selected when the unimplemented Update offer tab is clicked', async () => {
                             const projects = document.querySelector('#projects');
                             await projects.updateComplete;

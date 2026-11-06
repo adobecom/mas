@@ -9,6 +9,8 @@ const {
     toRelativeAssetUrl,
     setForegroundTimeout,
     clearForegroundTimeout,
+    escapeHTML,
+    setShadowMarkup,
 } = await import('../src/utils.js');
 
 describe('function "paramsToHash"', () => {
@@ -340,5 +342,52 @@ describe('function "setForegroundTimeout"', () => {
         setVisibility('visible');
         await sleep(120);
         expect(fired, 'fires after the page is shown again').to.be.true;
+    });
+});
+
+describe('function "escapeHTML"', () => {
+    it('escapes the characters that can open a tag or an attribute', () => {
+        expect(escapeHTML(`<img src=x onerror="a('b')">&`)).to.equal(
+            '&lt;img src=x onerror=&quot;a(&#39;b&#39;)&quot;&gt;&amp;',
+        );
+    });
+
+    it('escapes ampersands once', () => {
+        expect(escapeHTML('&amp;')).to.equal('&amp;amp;');
+    });
+
+    it('turns null and undefined into an empty string', () => {
+        expect(escapeHTML(null)).to.equal('');
+        expect(escapeHTML(undefined)).to.equal('');
+    });
+
+    it('stringifies numbers and leaves plain text alone', () => {
+        expect(escapeHTML(3)).to.equal('3');
+        expect(escapeHTML('Photoshop 2025')).to.equal('Photoshop 2025');
+    });
+});
+
+describe('function "setShadowMarkup"', () => {
+    let host;
+    beforeEach(() => {
+        host = document.createElement('div');
+        host.attachShadow({ mode: 'open' });
+    });
+
+    it('replaces what it rendered before', () => {
+        setShadowMarkup(host.shadowRoot, '<p id="a">one</p>');
+        setShadowMarkup(host.shadowRoot, '<p id="b">two</p>');
+        expect(host.shadowRoot.querySelector('#a')).to.be.null;
+        expect(host.shadowRoot.querySelector('#b').textContent).to.equal('two');
+    });
+
+    it('keeps nodes other code added to the shadow root', () => {
+        setShadowMarkup(host.shadowRoot, '<p id="a">one</p>');
+        const style = document.createElement('style');
+        host.shadowRoot.append(style);
+        setShadowMarkup(host.shadowRoot, '<p id="b">two</p>');
+        setShadowMarkup(host.shadowRoot, '');
+        expect(style.parentNode).to.equal(host.shadowRoot);
+        expect(host.shadowRoot.querySelector('#b')).to.be.null;
     });
 });

@@ -12,12 +12,12 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ Product } = await import('../src/variants/product.js'));
-    ({ Plans } = await import('../src/variants/plans.js'));
-    ({ PlansV2 } = await import('../src/variants/plans-v2.js'));
-    ({ MiniCompareChart } = await import(
-        '../src/variants/mini-compare-chart.js'
-    ));
+    Product = customElements.get('merch-card').getTemplate('product').class;
+    Plans = customElements.get('merch-card').getTemplate('plans').class;
+    PlansV2 = customElements.get('merch-card').getTemplate('plans-v2').class;
+    MiniCompareChart = customElements
+        .get('merch-card')
+        .getTemplate('mini-compare-chart').class;
 });
 
 // ── Product ───────────────────────────────────────────────────────────────────

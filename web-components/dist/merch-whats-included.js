@@ -1,51 +1,6 @@
-var r=Object.defineProperty;var d=(t,e,s)=>e in t?r(t,e,{enumerable:!0,configurable:!0,writable:!0,value:s}):t[e]=s;var o=(t,e,s)=>d(t,typeof e!="symbol"?e+"":e,s);import{html as l,css as h,LitElement as a,nothing as n}from"./lit-all.min.js";var i=class extends a{updated(){this.hideSeeMoreEls()}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((e,s)=>{s>=5&&(e.style.display=this.showAll?"flex":"none")})}constructor(){super(),this.showAll=!1,this.mobileRows=this.mobileRows===void 0?5:this.mobileRows}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}render(){return l`<slot name="heading"></slot>
-            <slot name="contentBullets"></slot>
-            ${!this.isMobile||!this.bulletsAdded?l`<slot name="content"></slot>`:n}
-            ${this.isMobile&&this.rows.length>this.mobileRows&&!this.bulletsAdded?l`<div @click=${this.toggle} class="see-more">
+var M=Object.defineProperty;var S=t=>{throw TypeError(t)};var g=(t,o,e)=>o in t?M(t,o,{enumerable:!0,configurable:!0,writable:!0,value:e}):t[o]=e;var _=(t,o,e)=>g(t,typeof o!="symbol"?o+"":o,e),A=(t,o,e)=>o.has(t)||S("Cannot "+e);var r=(t,o,e)=>(A(t,o,"read from private field"),e?e.call(t):o.get(t)),s=(t,o,e)=>o.has(t)?S("Cannot add the same private member more than once"):o instanceof WeakSet?o.add(t):o.set(t,e),c=(t,o,e,n)=>(A(t,o,"write to private field"),n?n.call(t,e):o.set(t,e),e),T=(t,o,e)=>(A(t,o,"access private method"),e);var w='span[is="inline-price"][data-wcs-osi]',O='a[is="checkout-link"][data-wcs-osi],button[is="checkout-button"][data-wcs-osi]';var I='a[is="upt-link"]',P=`${w},${O},${I}`;var D=Object.freeze({SEGMENTATION:"segmentation",BUNDLE:"bundle",COMMITMENT:"commitment",RECOMMENDATION:"recommendation",EMAIL:"email",PAYMENT:"payment",CHANGE_PLAN_TEAM_PLANS:"change-plan/team-upgrade/plans",CHANGE_PLAN_TEAM_PAYMENT:"change-plan/team-upgrade/payment"});var H=Object.freeze({STAGE:"STAGE",PRODUCTION:"PRODUCTION",LOCAL:"LOCAL"});var R=new WeakMap;function f(t,o){let e=R.get(t),n=[...t.childNodes].filter(E=>!e?.has(E));t.innerHTML=o,R.set(t,new Set(t.childNodes)),t.append(...n)}var d,i,p,u,m,l,N,x,a=class extends HTMLElement{constructor(){super();s(this,l);s(this,d);s(this,i,!1);s(this,p);s(this,u);s(this,m,new Promise(e=>{c(this,u,e)}));this.attachShadow({mode:"open"}),this.shadowRoot.adoptedStyleSheets=[C],this.showAll=!1,this.toggle=this.toggle.bind(this),this.requestUpdate()}get heading(){return this.getAttribute("heading")??void 0}set heading(e){e==null?this.removeAttribute("heading"):this.setAttribute("heading",e)}get mobileRows(){let e=this.getAttribute("mobilerows");return e===null?5:Number(e)}set mobileRows(e){e==null?this.removeAttribute("mobilerows"):this.setAttribute("mobilerows",e)}connectedCallback(){for(let e of["heading","mobileRows"]){if(!Object.hasOwn(this,e))continue;let n=this[e];delete this[e],this[e]=n}r(this,u).call(this)}attributeChangedCallback(e,n,E){n!==E&&this.requestUpdate()}requestUpdate(){r(this,i)||(c(this,i,!0),c(this,p,T(this,l,N).call(this)))}get updateComplete(){return r(this,p).then(()=>r(this,i)?this.updateComplete:!0)}hideSeeMoreEls(){this.isMobile&&this.rows.forEach((e,n)=>{n>=5&&(e.style.display=this.showAll?"flex":"none")})}toggle(){this.showAll=!this.showAll,this.dispatchEvent(new CustomEvent("hide-see-more-elements",{bubbles:!0,composed:!0})),this.requestUpdate()}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll('[slot="content"] merch-mnemonic-list')}get bulletsAdded(){return!!this.querySelector('[slot="contentBullets"] merch-mnemonic-list')}};d=new WeakMap,i=new WeakMap,p=new WeakMap,u=new WeakMap,m=new WeakMap,l=new WeakSet,N=async function(){return await r(this,m),c(this,i,!1),T(this,l,x).call(this),this.hideSeeMoreEls(),!0},x=function(){let{isMobile:e,bulletsAdded:n}=this,E=!e||!n?'<slot name="content"></slot>':"",L=e&&this.rows.length>this.mobileRows&&!n?`<div class="see-more">
                       ${this.showAll?"- See less":"+ See more"}
-                  </div>`:n}`}get isMobile(){return window.matchMedia("(max-width: 767px)").matches}get rows(){return this.querySelectorAll('[slot="content"] merch-mnemonic-list')}get bulletsAdded(){return!!this.querySelector('[slot="contentBullets"] merch-mnemonic-list')}};o(i,"styles",h`
-        :host {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            overflow: hidden;
-            box-sizing: border-box;
-            row-gap: 10px;
-        }
-
-        :host([has-bullets]) {
-            flex-direction: column;
-            align-items: start;
-        }
-
-        ::slotted([slot='heading']) {
-            font-size: 14px;
-            font-weight: 700;
-            margin-right: 16px;
-        }
-
-        ::slotted([slot='heading']:empty) {
-            display: none;
-        }
-
-        ::slotted([slot='content']) {
-            display: contents;
-        }
-
-        ::slotted([slot='contentBullets']) {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 5px 0;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .see-more {
-            font-size: 14px;
-            text-decoration: underline;
-            color: var(--link-color-dark);
-        }
-    `),o(i,"properties",{heading:{type:String,attribute:!0},mobileRows:{type:Number,attribute:!0}});customElements.define("merch-whats-included",i);export{i as MerchWhatsIncluded};
+                  </div>`:"",h=`<slot name="heading"></slot>
+            <slot name="contentBullets"></slot>
+            ${E}
+            ${L}`;h!==r(this,d)&&(c(this,d,h),f(this.shadowRoot,h),this.shadowRoot.querySelector(".see-more")?.addEventListener("click",this.toggle))},_(a,"styles",":host{box-sizing:border-box;flex-wrap:wrap;align-items:center;row-gap:10px;display:flex;overflow:hidden}:host([has-bullets]){flex-direction:column;align-items:start}::slotted([slot=heading]){margin-right:16px;font-size:14px;font-weight:700}::slotted([slot=heading]:empty){display:none}::slotted([slot=content]){display:contents}::slotted([slot=contentBullets]){flex-direction:column;gap:10px;margin:5px 0;display:flex}.hidden{display:none}.see-more{color:var(--link-color-dark);font-size:14px;text-decoration:underline}"),_(a,"observedAttributes",["heading","mobilerows"]);var C=new CSSStyleSheet;C.replaceSync(a.styles);customElements.define("merch-whats-included",a);export{a as MerchWhatsIncluded};

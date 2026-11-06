@@ -21,7 +21,7 @@ runTests(async () => {
             const miniCompareChart = document.querySelector(
                 'merch-card[variant="mini-compare-chart"]',
             );
-            miniCompareChart?.variantLayout?.removeEmptyRows();
+            miniCompareChart?.templateLayout?.removeEmptyRows();
             expect(true, 'removing empty lines do not fail').to.be.true; // TODO improve the assertion
         });
     });

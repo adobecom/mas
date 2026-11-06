@@ -24,7 +24,7 @@ runTests(async () => {
             await card.checkReady();
 
             // postCardUpdateHook on mobile calls removeEmptyRows
-            card.variantLayout?.removeEmptyRows();
+            card.templateLayout?.removeEmptyRows();
             expect(true, 'removing empty rows does not fail').to.be.true;
 
             // Verify empty rows are removed
@@ -91,7 +91,7 @@ runTests(async () => {
 
             const bodyXs = card.querySelector('[slot="body-xs"]');
             // setupToggle is idempotent
-            card.variantLayout.setupToggle();
+            card.templateLayout.setupToggle();
             const titles = bodyXs.querySelectorAll('.footer-rows-title');
             expect(titles.length).to.equal(1);
         });

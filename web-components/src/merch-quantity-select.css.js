@@ -1,4 +1,4 @@
-import { css } from 'lit';
+import { css } from './css.js';
 
 export const styles = css`
     :host {

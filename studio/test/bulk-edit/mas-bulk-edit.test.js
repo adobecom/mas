@@ -47,6 +47,60 @@ describe('mas-bulk-edit (overview)', () => {
         expect(tabs.querySelector('sp-tab-panel[value="update-offer"]')).to.not.exist;
     });
 
+    it('filters project names case-insensitively and restores every row when search is cleared', async () => {
+        Store.bulkEditProjects.list.data.set([
+            makeProjectStore({ id: 'school', title: 'Replace school-MWPW-1' }),
+            makeProjectStore({ id: 'spelling', title: 'Spelling fix-MWPW-2' }),
+        ]);
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        const search = el.shadowRoot.querySelector('[data-testid="project-search"]');
+        expect(el.shadowRoot.querySelector('[data-testid="result-count"]').textContent.trim()).to.equal('2 result(s)');
+        search.value = ' SCHOOL ';
+        search.dispatchEvent(new Event('input'));
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(1);
+        expect(el.shadowRoot.querySelector('.project-name').textContent).to.include('Replace school-MWPW-1');
+        expect(el.shadowRoot.querySelector('[data-testid="result-count"]').textContent.trim()).to.equal('1 result(s)');
+        expect(Store.bulkEditProjects.list.data.get()).to.have.lengthOf(2);
+        search.value = '';
+        search.dispatchEvent(new Event('change'));
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(2);
+    });
+
+    it('shows a distinct no-match state while keeping Create project available', async () => {
+        Store.bulkEditProjects.list.data.set([makeProjectStore()]);
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        el.searchQuery = 'missing';
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('[data-testid="empty"]')).to.not.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="no-results"]').textContent).to.equal(
+            'No projects match your search.',
+        );
+        expect(el.shadowRoot.querySelector('[data-testid="result-count"]').textContent.trim()).to.equal('0 result(s)');
+        expect(el.shadowRoot.querySelector('[data-testid="create-btn"]')).to.exist;
+    });
+
+    it('preserves the query when the project list refreshes and recalculates matching rows', async () => {
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        el.searchQuery = 'school';
+        await el.updateComplete;
+        Store.bulkEditProjects.list.data.set([makeProjectStore({ title: 'Replace school-MWPW-1' })]);
+        await el.updateComplete;
+        expect(el.searchQuery).to.equal('school');
+        expect(el.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(1);
+    });
+
+    it('shows loading skeletons rather than a no-match state before projects arrive', async () => {
+        Store.bulkEditProjects.list.loading.set(true);
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        el.searchQuery = 'school';
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('.skeleton-table-cell')).to.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="no-results"]')).to.not.exist;
+        expect(el.shadowRoot.querySelector('[data-testid="result-count"]')).to.not.exist;
+    });
+
     it('offers Edit, Revert, Duplicate and Delete with Revert disabled for the UI-only release', async () => {
         Store.bulkEditProjects.list.data.set([makeProjectStore()]);
         const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);

@@ -24,6 +24,7 @@ import {
     untrackPendingProject,
 } from '../common/utils/project-list-utils.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
+import { filterBySearchQuery, handleSearchInput } from '../common/utils/selectable-list.js';
 import '../bulk-publish/mas-bulk-publish-delete-dialog.js';
 import '../bulk-publish/mas-bulk-publish-duplicate-dialog.js';
 
@@ -57,12 +58,37 @@ class MasBulkEdit extends LitElement {
 
             sp-tab-panel {
                 padding-top: 20px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            sp-tab-panel[selected] {
+                display: block;
             }
 
             .project-toolbar {
                 display: flex;
-                justify-content: flex-end;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 12px;
                 margin-bottom: 20px;
+            }
+
+            .project-toolbar sp-search {
+                flex: 0 1 350px;
+                min-width: 160px;
+                max-width: 100%;
+                --mod-search-border-radius: 16px;
+            }
+
+            .result-count {
+                font-size: 12px;
+                color: var(--spectrum-gray-700, #505050);
+                white-space: nowrap;
+            }
+
+            .project-toolbar sp-button {
+                margin-left: auto;
             }
         `,
     ];
@@ -73,7 +99,10 @@ class MasBulkEdit extends LitElement {
         deletePending: { state: true },
         duplicatePending: { state: true },
         duplicating: { state: true },
+        searchQuery: { state: true },
     };
+
+    filteredProjects = [];
 
     list = new StoreController(this, Store.bulkEditProjects.list.data);
     loading = new StoreController(this, Store.bulkEditProjects.list.loading);
@@ -85,6 +114,7 @@ class MasBulkEdit extends LitElement {
         this.deletePending = null;
         this.duplicatePending = null;
         this.duplicating = false;
+        this.searchQuery = '';
     }
 
     connectedCallback() {
@@ -95,6 +125,16 @@ class MasBulkEdit extends LitElement {
     disconnectedCallback() {
         super.disconnectedCallback();
         this.#abortController?.abort();
+    }
+
+    willUpdate() {
+        this.filteredProjects = filterBySearchQuery(this.list.value || [], this.searchQuery.trim(), (projectStore) => {
+            return getProjectField(projectStore.get(), 'title', '') || 'Untitled project';
+        });
+    }
+
+    handleSearch(event) {
+        this.searchQuery = handleSearchInput(event);
     }
 
     get repository() {
@@ -246,8 +286,8 @@ class MasBulkEdit extends LitElement {
     }
 
     render() {
-        const projects = this.list.value || [];
-        const isLoading = this.loading.value && projects.length === 0;
+        const projects = this.filteredProjects;
+        const isLoading = this.loading.value && !(this.list.value || []).length;
         const showEmpty = !isLoading && projects.length === 0;
         return html`
             <header>
@@ -276,13 +316,29 @@ class MasBulkEdit extends LitElement {
                 <sp-tab value="update-offer" label="Update offer" disabled>Update offer</sp-tab>
                 <sp-tab-panel value="find-and-replace">
                     <div class="project-toolbar">
+                        <sp-search
+                            size="m"
+                            label="Search find and replace projects"
+                            placeholder="Search"
+                            data-testid="project-search"
+                            .value=${this.searchQuery}
+                            @input=${this.handleSearch}
+                            @change=${this.handleSearch}
+                        ></sp-search>
+                        ${isLoading
+                            ? nothing
+                            : html`<span class="result-count" data-testid="result-count" role="status"
+                                  >${projects.length} result(s)</span
+                              >`}
                         <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
                             <sp-icon-add slot="icon"></sp-icon-add>
                             Create project
                         </sp-button>
                     </div>
                     ${showEmpty
-                        ? html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
+                        ? this.searchQuery.trim()
+                            ? html`<p class="empty" data-testid="no-results">No projects match your search.</p>`
+                            : html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
                         : html`
                               <sp-table
                                   emphasized

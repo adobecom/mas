@@ -27,6 +27,7 @@
         </sp-theme>
         <script type="module">
             import { expect } from '@esm-bundle/chai';
+            import { waitUntil } from '@open-wc/testing';
             import '@adobecom/mas';
             import Store from '../../src/store.js';
             import { Fragment } from '../../src/aem/fragment.js';
@@ -73,6 +74,27 @@
                             expect(tabs.selected).to.equal('find-and-replace');
                             expect(tabs.querySelector('sp-tab-panel[value="find-and-replace"]').selected).to.be.true;
                             expect(projects.shadowRoot.querySelector('[data-testid="project-row"]')).to.exist;
+                        });
+
+                        it('places search and its result count to the left of Create project and filters the list', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const root = projects.shadowRoot;
+                            const search = root.querySelector('[data-testid="project-search"]');
+                            const count = root.querySelector('[data-testid="result-count"]');
+                            const create = root.querySelector('[data-testid="create-btn"]');
+                            await waitUntil(() => count.getBoundingClientRect().width > 0);
+                            expect(search.getBoundingClientRect().right).to.be.at.most(count.getBoundingClientRect().left);
+                            expect(count.getBoundingClientRect().right).to.be.at.most(create.getBoundingClientRect().left);
+                            expect(search.getBoundingClientRect().top).to.be.closeTo(create.getBoundingClientRect().top, 5);
+                            search.value = 'missing project';
+                            search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await projects.updateComplete;
+                            expect(root.querySelector('[data-testid="no-results"]')).to.exist;
+                            search.value = '';
+                            search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await projects.updateComplete;
+                            expect(root.querySelector('[data-testid="project-row"]')).to.exist;
                         });
 
                         it('shows the empty editor with the design controls and no results', async () => {

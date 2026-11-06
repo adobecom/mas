@@ -28,8 +28,7 @@ const CHECKOUT_STYLE_PATTERN = /(accent|primary|secondary)(-(outline|link))?/;
 export const ANALYTICS_TAG = 'mas:product_code/';
 export const ANALYTICS_LINK_ATTR = 'daa-ll';
 export const ANALYTICS_SECTION_ATTR = 'daa-lh';
-// CTAs that lead to purchase; keep identical to the list in mas-field.js.
-const QUALIFYING_CTA_ANALYTICS_IDS = new Set(['buy-now', 'select']);
+const QUALIFYING_CTA_ANALYTICS_IDS = ['buy-now', 'select'];
 const SPECTRUM_BUTTON_SIZES = ['XL', 'L', 'M', 'S'];
 const TEXT_TRUNCATE_SUFFIX = '...';
 
@@ -1006,7 +1005,7 @@ export async function processCTAs(
               )
             : allCtaLinks;
         const qualifyingCtaExists = filteredLinks.some((c) =>
-            QUALIFYING_CTA_ANALYTICS_IDS.has(c.dataset.analyticsId),
+            QUALIFYING_CTA_ANALYTICS_IDS.includes(c.dataset.analyticsId),
         );
         const ctas = filteredLinks.map((cta) =>
             transformLinkToButton(cta, merchCard, aemFragmentMapping, true),
@@ -1124,7 +1123,7 @@ export async function processCTAs(
                 });
                 const buyNowCta = ctas.find((c) => {
                     const checkout = getCtaSource(c);
-                    return QUALIFYING_CTA_ANALYTICS_IDS.has(
+                    return QUALIFYING_CTA_ANALYTICS_IDS.includes(
                         checkout.dataset.analyticsId,
                     );
                 });

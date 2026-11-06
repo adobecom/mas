@@ -128,7 +128,7 @@ function fetchOfferBaselines(context, locale) {
  * `/content/dam/mas/offers/<locale>/baselines/<pa>/baseline`, falling back to en_US, with its fields mapped to card
  * fields.
  */
-async function getOfferBaseline(context, productArrangementCode) {
+export async function getOfferBaseline(context, productArrangementCode) {
     const offerBaseline = (await fetchOfferBaselines(context, context.defaultLocale))?.[productArrangementCode];
     return offerBaseline && { ...offerBaseline, fields: toCardFields(offerBaseline.fields) };
 }

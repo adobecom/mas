@@ -476,22 +476,60 @@ function adaptReferencesTree(referencesTree, customizedRoot, variationReferences
 }
 
 /**
- * Baseline fragments only provide defaults: their own variations are never resolved.
+ * Card identity & system fields: a card never takes them from a baseline. `variant` is not one of them: a baseline layer
+ * served as main body inherits it from a lower layer.
+ */
+export const NON_INHERITED_FIELDS = new Set([
+    'osi',
+    'tags',
+    'pznTags',
+    'variations',
+    'enableBaselines',
+    'locReady',
+    'compatVersion',
+    'originalId',
+]);
+
+const isEmptyEntry = (entry) => [undefined, null, ''].includes(entry?.value ?? entry);
+
+/**
+ * Same as `hasContent` in Studio's baseline model, which previews the layering: a field is empty when none of its entries
+ * holds a value (`''`, `null`, `[]`, `['']`, `{ value: '' }`).
+ */
+const isEmptyFieldValue = (value) => [value].flat().every(isEmptyEntry);
+
+/**
+ * Baseline fragments only provide defaults: their own variations are never resolved, their card-own fields are ignored
+ * and their empty fields inherit from lower layers, like the card's.
  */
 function prepareBaseline(baseline) {
-    const { variations, ...fields } = baseline.fields;
     // explicit empty sentinels must survive layering to override lower layers, they are normalized once merged
+    const fields = Object.fromEntries(
+        Object.entries(baseline.fields).filter(([name, value]) => !NON_INHERITED_FIELDS.has(name) && !isEmptyFieldValue(value)),
+    );
     return { ...skimFragmentFromReferences(baseline), fields };
 }
 
 /**
- * An offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Unset
- * icons are delivered as `[]`, which merging skips: they don't count.
+ * an offer baseline's `mnemonicAlt` describes its own icon: both are dropped when a higher layer sets its own icons. Empty
+ * icons (`[]`, `['']`) don't count.
  */
 function withOfferIcon(offerBaseline, higherLayers) {
-    if (!higherLayers.some(({ fields }) => fields.mnemonicIcon?.length)) return offerBaseline;
+    if (higherLayers.every(({ fields }) => isEmptyFieldValue(fields.mnemonicIcon))) return offerBaseline;
     const { mnemonicIcon, mnemonicAlt, ...fields } = offerBaseline.fields;
     return { ...offerBaseline, fields };
+}
+
+/**
+ * Odin leaves out empty text fields: such fields inherit from the baselines
+ * providing them, only the explicit_empty sentinel clears a baseline value.
+ */
+function withoutInheritedEmptyFields(fragment, baselines) {
+    const provided = new Set(baselines.flatMap(({ fields }) => Object.keys(fields)));
+    const fields = Object.fromEntries(
+        Object.entries(fragment.fields).filter(([name, value]) => !provided.has(name) || !isEmptyFieldValue(value)),
+    );
+    return { ...fragment, fields };
 }
 
 /**
@@ -507,7 +545,9 @@ function applyBaselines(fragment, { baselines }) {
         fragmentSegmentBaseline,
     ].filter((baseline) => baseline && baseline.id !== fragment.id);
     if (!layers.length) return fragment;
-    const merged = deepMerge(fragment, ...layers.map(prepareBaseline), fragment);
+    const preparedLayers = layers.map(prepareBaseline);
+    const card = withoutInheritedEmptyFields(fragment, preparedLayers);
+    const merged = deepMerge(card, ...preparedLayers, card);
     if (offerBaseline) merged.offerBaselineId = offerBaseline.id;
     if (fragmentBaseline) merged.fragmentBaselineId = fragmentBaseline.id;
     if (fragmentSegmentBaseline) merged.fragmentSegmentBaselineId = fragmentSegmentBaseline.id;
@@ -672,4 +712,4 @@ export const transformer = {
     name: 'customize',
     process: customize,
 };
-export { deepMerge };
+export { deepMerge, MERGE_CONFIG };

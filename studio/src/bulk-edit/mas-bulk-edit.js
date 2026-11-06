@@ -6,15 +6,26 @@ import Store from '../store.js';
 import StoreController from '../reactivity/store-controller.js';
 import router from '../router.js';
 import { BULK_EDIT_STATUS, PAGE_NAMES } from '../constants.js';
+import { showToast } from '../utils.js';
+import { Fragment } from '../aem/fragment.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
+import {
+    buildBulkEditProjectPayload,
+    isBulkEditProjectTitleTaken,
+    isValidBulkEditProjectTitle,
+    loadBulkEditProjects,
+} from './bulk-edit-repository.js';
 import { styles } from '../bulk-publish/mas-bulk-publish.css.js';
 import {
     formatProjectDate,
     getProjectField,
     renderSkeletonRows,
+    trackPendingProject,
     untrackPendingProject,
 } from '../common/utils/project-list-utils.js';
 import { renderEditorLink, renderRowLinkOverlay } from '../common/utils/editor-link.js';
 import '../bulk-publish/mas-bulk-publish-delete-dialog.js';
+import '../bulk-publish/mas-bulk-publish-duplicate-dialog.js';
 
 const STATUS_VARIANT = {
     [BULK_EDIT_STATUS.DRAFT]: { label: 'Draft', className: 'draft' },
@@ -42,14 +53,30 @@ class MasBulkEdit extends LitElement {
 
     static properties = {
         deletePending: { state: true },
+        duplicatePending: { state: true },
+        duplicating: { state: true },
     };
 
     list = new StoreController(this, Store.bulkEditProjects.list.data);
     loading = new StoreController(this, Store.bulkEditProjects.list.loading);
 
+    #abortController = null;
+
     constructor() {
         super();
         this.deletePending = null;
+        this.duplicatePending = null;
+        this.duplicating = false;
+    }
+
+    connectedCallback() {
+        super.connectedCallback();
+        this.#abortController = new AbortController();
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        this.#abortController?.abort();
     }
 
     get repository() {
@@ -90,6 +117,55 @@ class MasBulkEdit extends LitElement {
         Store.bulkEditProjects.list.data.set(current.filter((s) => s !== projectStore));
     }
 
+    openDuplicateDialog(projectStore) {
+        const title = getProjectField(projectStore.get(), 'title', 'Untitled project');
+        const proposedTitle = title.replace(/-((?:MWPW|DOTCOM)-\d+)$/, ' (Copy)-$1');
+        this.duplicatePending = { projectStore, proposedTitle };
+    }
+
+    async handleDuplicateConfirmed(event) {
+        if (this.duplicating) return;
+        const { projectStore } = this.duplicatePending;
+        const title = event.detail.title.trim();
+        if (!isValidBulkEditProjectTitle(title)) {
+            showToast('Title must follow the format [project title]-MWPW|DOTCOM-[Jira number].', 'negative');
+            return;
+        }
+        const { signal } = this.#abortController;
+        const payload = buildBulkEditProjectPayload({ title, status: BULK_EDIT_STATUS.DRAFT });
+        this.duplicating = true;
+        try {
+            if (!(await loadBulkEditProjects(this.repository, this.#abortController))) return;
+            if (isBulkEditProjectTitleTaken(title)) {
+                showToast('A project with this title already exists.', 'negative');
+                return;
+            }
+            const source = projectStore.get();
+            const configurationFields = new Set([
+                'searchTerm',
+                'replaceTerm',
+                'fieldNames',
+                'items',
+                'fragments',
+                'collections',
+                'placeholders',
+                'locales',
+            ]);
+            payload.fields.push(...source.fields.filter((field) => configurationFields.has(field.name)));
+            const raw = await this.repository.createFragment(payload, false);
+            if (!raw) return;
+            trackPendingProject(Store.bulkEditProjects.list.data, new FragmentStore(new Fragment(raw)));
+            this.duplicatePending = null;
+            if (!signal.aborted) this.openProject({ get: () => raw });
+            showToast('Project duplicated successfully.', 'positive');
+        } catch (err) {
+            console.error('Failed to duplicate find and replace project:', err);
+            showToast('Failed to duplicate the project.', 'negative');
+        } finally {
+            this.duplicating = false;
+        }
+    }
+
     renderStatus(status) {
         const variant = STATUS_VARIANT[status] ?? STATUS_VARIANT[BULK_EDIT_STATUS.DRAFT];
         return html`
@@ -111,6 +187,14 @@ class MasBulkEdit extends LitElement {
                         <sp-menu-item @click=${() => this.openProject(projectStore)}>
                             <sp-icon-edit slot="icon"></sp-icon-edit>
                             Edit
+                        </sp-menu-item>
+                        <sp-menu-item disabled title="Revert will be available with find and replace execution.">
+                            <sp-icon-undo slot="icon"></sp-icon-undo>
+                            Revert
+                        </sp-menu-item>
+                        <sp-menu-item ?disabled=${this.duplicating} @click=${() => this.openDuplicateDialog(projectStore)}>
+                            <sp-icon-duplicate slot="icon"></sp-icon-duplicate>
+                            Duplicate
                         </sp-menu-item>
                         <sp-menu-item @click=${() => this.openDeleteDialog(projectStore)}>
                             <sp-icon-delete slot="icon"></sp-icon-delete>
@@ -150,7 +234,7 @@ class MasBulkEdit extends LitElement {
         return html`
             <header>
                 <div class="header-row">
-                    <h1>Bulk edits</h1>
+                    <h1>Find and replace</h1>
                     <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
                         <sp-icon-add slot="icon"></sp-icon-add>
                         Create project
@@ -158,6 +242,16 @@ class MasBulkEdit extends LitElement {
                 </div>
                 <sp-divider size="s"></sp-divider>
             </header>
+            ${this.duplicatePending
+                ? html`<mas-bulk-publish-duplicate-dialog
+                      open
+                      .proposedTitle=${this.duplicatePending.proposedTitle}
+                      @duplicate-confirmed=${this.handleDuplicateConfirmed}
+                      @duplicate-cancelled=${() => {
+                          if (!this.duplicating) this.duplicatePending = null;
+                      }}
+                  ></mas-bulk-publish-duplicate-dialog>`
+                : nothing}
             ${this.deletePending
                 ? html`<mas-bulk-publish-delete-dialog
                       open
@@ -167,7 +261,7 @@ class MasBulkEdit extends LitElement {
                   ></mas-bulk-publish-delete-dialog>`
                 : nothing}
             ${showEmpty
-                ? html`<p class="empty" data-testid="empty">No bulk edit projects yet.</p>`
+                ? html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
                 : html`
                       <sp-table
                           emphasized

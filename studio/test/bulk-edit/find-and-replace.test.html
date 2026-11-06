@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Find and replace UI preview</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <script src="../../src/swc.js" type="module"></script>
+        <style>
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+            }
+            h2 {
+                margin: 24px 32px;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <h2>Project list with actions and Create project</h2>
+            <mas-bulk-edit id="projects"></mas-bulk-edit>
+            <h2>New project: design controls and empty fragments table</h2>
+            <mas-bulk-edit-editor id="editor"></mas-bulk-edit-editor>
+        </sp-theme>
+        <script type="module">
+            import { expect } from '@esm-bundle/chai';
+            import '@adobecom/mas';
+            import Store from '../../src/store.js';
+            import { Fragment } from '../../src/aem/fragment.js';
+            import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+            import '../../src/bulk-edit/mas-bulk-edit.js';
+            import '../../src/bulk-edit/mas-bulk-edit-editor.js';
+
+            Store.bulkEditProjects.projectId.set(null);
+            Store.bulkEditProjects.list.loading.set(false);
+            Store.bulkEditProjects.list.data.set([
+                new FragmentStore(
+                    new Fragment({
+                        id: 'preview-project',
+                        path: '/content/dam/mas/bulk-edit-projects/sandbox/preview',
+                        fields: [
+                            { name: 'title', values: ['Replace school with university-MWPW-191345'] },
+                            { name: 'status', values: ['Draft'] },
+                        ],
+                        created: { fullName: 'Example author', at: '2026-11-02T16:00:00Z' },
+                    }),
+                ),
+            ]);
+
+            if (window.__WTR_CONFIG__) {
+                const { runTests } = await import('@web/test-runner-mocha');
+                runTests(() => {
+                    describe('Find and replace visual UI', () => {
+                        it('shows a populated project list with the blue Create project button', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            expect(projects.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(1);
+                            expect(projects.shadowRoot.querySelector('[data-testid="create-btn"]').variant).to.equal('accent');
+                        });
+
+                        it('shows the empty editor with the design controls and no results', async () => {
+                            const editor = document.querySelector('#editor');
+                            await editor.updateComplete;
+                            expect(editor.shadowRoot.querySelector('#find-text')).to.exist;
+                            expect(editor.shadowRoot.querySelector('#replace-text')).to.exist;
+                            expect(editor.shadowRoot.querySelector('#search-in')).to.exist;
+                            expect(editor.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+                            expect(
+                                [...editor.shadowRoot.querySelectorAll('.file-actions sp-button')].every(
+                                    (button) => button.disabled,
+                                ),
+                            ).to.be.true;
+                            expect(editor.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal(
+                                'No search queries entered yet',
+                            );
+                        });
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>

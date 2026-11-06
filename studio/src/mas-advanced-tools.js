@@ -164,6 +164,10 @@ class MasAdvancedTools extends LitElement {
         router.navigateToPage(PAGE_NAMES.BULK_PUBLISH)();
     };
 
+    openBulkEdit = () => {
+        router.navigateToPage(PAGE_NAMES.BULK_EDIT)();
+    };
+
     openSettings = () => {
         router.navigateToPage(PAGE_NAMES.SETTINGS)();
     };
@@ -230,11 +234,17 @@ class MasAdvancedTools extends LitElement {
 
     get bulkEditCard() {
         return html`
-            <a class="tool-card" role="button" aria-disabled="true" tabindex="-1">
+            <a
+                class="tool-card"
+                role="button"
+                tabindex="0"
+                @click=${this.openBulkEdit}
+                @keydown=${this.handleKeyActivate(this.openBulkEdit)}
+            >
                 <span class="tool-card-icon" aria-hidden="true"> ${bulkEditIcon} </span>
                 <div class="tool-card-text">
-                    <span class="tool-card-title">Bulk edits</span>
-                    <span class="tool-card-description">Update titles, prices, and OSIs across multiple items.</span>
+                    <span class="tool-card-title">Find and replace</span>
+                    <span class="tool-card-description">Find and replace text across multiple fragments.</span>
                 </div>
                 ${this.arrowIcon}
             </a>

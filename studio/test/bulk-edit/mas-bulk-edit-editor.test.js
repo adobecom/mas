@@ -56,9 +56,50 @@ describe('mas-bulk-edit-editor', () => {
     it('renders an empty create form when no project id is set', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
         expect(el.isNewProject).to.be.true;
-        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Create bulk edits project');
+        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Create new find and replace project');
         expect(el.disabledActions.has(QUICK_ACTION.DELETE)).to.be.true;
         expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
+    });
+
+    it('renders the design controls and an empty fragments table without running a search', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        expect(el.shadowRoot.querySelector('#find-text')).to.exist;
+        expect(el.shadowRoot.querySelector('#replace-text')).to.exist;
+        expect(el.shadowRoot.querySelector('#search-in').value).to.equal('everywhere');
+        expect(el.shadowRoot.querySelector('sp-checkbox').checked).to.be.false;
+        expect(el.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal('No search queries entered yet');
+        expect(el.shadowRoot.querySelectorAll('sp-table-head-cell')).to.have.lengthOf(5);
+        expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+        expect(
+            [...el.shadowRoot.querySelectorAll('.file-actions sp-button')].every((button) => button.hasAttribute('disabled')),
+        ).to.be.true;
+    });
+
+    it('lets authors preview search inputs without enabling project save or showing fake results', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const find = el.shadowRoot.querySelector('#find-text');
+        find.value = 'school';
+        find.dispatchEvent(new Event('input'));
+        const replace = el.shadowRoot.querySelector('#replace-text');
+        replace.value = 'university';
+        replace.dispatchEvent(new Event('input'));
+        const checkbox = el.shadowRoot.querySelector('sp-checkbox');
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change'));
+        await el.updateComplete;
+        expect(el.findText).to.equal('school');
+        expect(el.replaceText).to.equal('university');
+        expect(el.matchCase).to.be.true;
+        expect(el.hasChanges).to.be.false;
+        expect(el.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal('Search is not available yet');
+        expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+        expect(el.shadowRoot.querySelector('.preview-notice').textContent).to.include('Only the project name is saved');
+    });
+
+    it('returns to all projects using the back button', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        el.shadowRoot.querySelector('.back-link').click();
+        expect(navigate.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
     });
 
     it('exposes the title format hint as a labelled button with a focusable tooltip', async () => {

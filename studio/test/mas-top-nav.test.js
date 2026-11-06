@@ -162,7 +162,7 @@ describe('MasTopNav', () => {
             Store.bulkEditProjects.inEdit.value = null;
             Store.bulkEditProjects.projectId.value = null;
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
-            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Create project');
+            expect(el.bulkEditEditorBreadcrumbLabel).to.equal('Create new find and replace project');
         });
     });
 
@@ -173,9 +173,24 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
 
-            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Bulk edits']);
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Find and replace']);
             breadcrumbs[0].click();
             expect(navigateStub.calledWith(PAGE_NAMES.ADVANCED_TOOLS)).to.be.true;
+        });
+        it('renders find and replace editor breadcrumbs with a link back to projects', async () => {
+            Store.page.value = PAGE_NAMES.BULK_EDIT_EDITOR;
+            Store.bulkEditProjects.inEdit.value = null;
+            Store.bulkEditProjects.projectId.value = null;
+            const navigateStub = sandbox.stub(router, 'navigateToPage').returns(() => {});
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal([
+                'Advanced tools',
+                'Find and replace',
+                'Create new find and replace project',
+            ]);
+            breadcrumbs[1].click();
+            expect(navigateStub.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
         });
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {
             Store.page.value = PAGE_NAMES.FRAGMENT_EDITOR;

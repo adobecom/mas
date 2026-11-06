@@ -32,6 +32,10 @@ class MasBulkEditEditor extends LitElement {
         loadFailed: { state: true },
         saving: { state: true },
         deleteDialogOpen: { state: true },
+        findText: { state: true },
+        replaceText: { state: true },
+        searchIn: { state: true },
+        matchCase: { state: true },
     };
 
     inEdit = new StoreController(this, Store.bulkEditProjects.inEdit);
@@ -46,6 +50,10 @@ class MasBulkEditEditor extends LitElement {
         this.loadFailed = false;
         this.saving = false;
         this.deleteDialogOpen = false;
+        this.findText = '';
+        this.replaceText = '';
+        this.searchIn = 'everywhere';
+        this.matchCase = false;
     }
 
     get repository() {
@@ -208,12 +216,95 @@ class MasBulkEditEditor extends LitElement {
         </div>`;
     }
 
+    get searchForm() {
+        return html`
+            <div class="search-row">
+                <div class="field">
+                    <sp-field-label for="find-text">Find</sp-field-label>
+                    <sp-textfield
+                        id="find-text"
+                        placeholder="Enter word or phrase"
+                        .value=${this.findText}
+                        @input=${(event) => (this.findText = event.target.value)}
+                    ></sp-textfield>
+                    <sp-checkbox .checked=${this.matchCase} @change=${(event) => (this.matchCase = event.target.checked)}
+                        >Match case</sp-checkbox
+                    >
+                </div>
+                <div class="field">
+                    <sp-field-label for="search-in">Search in</sp-field-label>
+                    <sp-picker
+                        id="search-in"
+                        label="Search in"
+                        .value=${this.searchIn}
+                        @change=${(event) => (this.searchIn = event.target.value)}
+                    >
+                        <sp-menu-item value="everywhere">Everywhere</sp-menu-item>
+                    </sp-picker>
+                </div>
+                <span class="replace-arrow" aria-hidden="true">&#8594;</span>
+                <div class="field">
+                    <sp-field-label for="replace-text">Replace</sp-field-label>
+                    <sp-textfield
+                        id="replace-text"
+                        placeholder="Enter word or phrase"
+                        .value=${this.replaceText}
+                        @input=${(event) => (this.replaceText = event.target.value)}
+                    ></sp-textfield>
+                </div>
+                <div class="file-actions">
+                    <sp-button variant="secondary" disabled>
+                        <sp-icon-upload-to-cloud slot="icon"></sp-icon-upload-to-cloud>
+                        Upload file
+                    </sp-button>
+                    <sp-button variant="secondary" disabled>
+                        <sp-icon-download slot="icon"></sp-icon-download>
+                        Download report
+                    </sp-button>
+                </div>
+            </div>
+            <sp-help-text class="preview-notice">
+                UI preview only: search, replacement, and file actions are not available yet. Only the project name is saved.
+            </sp-help-text>
+        `;
+    }
+
+    get fragmentsTable() {
+        return html`
+            <section class="fragments-table" aria-label="Fragments">
+                <sp-table>
+                    <sp-table-head>
+                        <sp-table-head-cell>Offer</sp-table-head-cell>
+                        <sp-table-head-cell>Fragment title</sp-table-head-cell>
+                        <sp-table-head-cell>Offer ID</sp-table-head-cell>
+                        <sp-table-head-cell>Offer type</sp-table-head-cell>
+                        <sp-table-head-cell>Path</sp-table-head-cell>
+                    </sp-table-head>
+                    <sp-table-body></sp-table-body>
+                </sp-table>
+                <sp-illustrated-message>
+                    <sp-icon-cloud size="xxl"></sp-icon-cloud>
+                    <h2 slot="heading">${this.findText ? 'Search is not available yet' : 'No search queries entered yet'}</h2>
+                    <p slot="description">
+                        ${this.findText
+                            ? 'Fragment search and selection will be available in the next step.'
+                            : 'Enter a word or phrase in the fields above to find matching fragments once search is available.'}
+                    </p>
+                </sp-illustrated-message>
+            </section>
+        `;
+    }
+
     render() {
         if (this.loading) return html`<sp-progress-circle label="Loading project" indeterminate></sp-progress-circle>`;
         if (this.loadFailed) return this.loadErrorView;
         return html`
+            <sp-action-button quiet class="back-link" @click=${() => router.navigateToPage(PAGE_NAMES.BULK_EDIT)()}>
+                &#8592; All find and replace projects
+            </sp-action-button>
             <header>
-                <h1>${this.isNewProject ? 'Create bulk edits project' : 'Edit project'}</h1>
+                <h1>${this.isNewProject ? 'Create new find and replace project' : 'Edit find and replace project'}</h1>
+                <sp-status-light variant="neutral">${this.project?.get().getFieldValue('status') || 'Draft'}</sp-status-light>
             </header>
             <div class="card">
                 <div class="label-row">
@@ -234,7 +325,9 @@ class MasBulkEditEditor extends LitElement {
                 >
                     <sp-help-text slot="negative-help-text" data-testid="title-error">${this.titleError}</sp-help-text>
                 </sp-textfield>
+                ${this.searchForm}
             </div>
+            ${this.fragmentsTable}
             <mas-quick-actions
                 drag-handle-style="bar"
                 .actions=${[QUICK_ACTION.SAVE, QUICK_ACTION.DELETE]}

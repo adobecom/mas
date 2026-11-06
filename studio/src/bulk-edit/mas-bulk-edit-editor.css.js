@@ -51,6 +51,104 @@ export const styles = css`
 
     sp-textfield {
         width: 100%;
-        max-width: 480px;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: var(--spectrum-blue-700, #1473e6);
+    }
+
+    .search-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .field {
+        flex: 1;
+        min-width: 160px;
+    }
+
+    sp-picker {
+        width: 100%;
+    }
+
+    .replace-arrow,
+    .file-actions {
+        padding-top: 30px;
+    }
+
+    .file-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-left: auto;
+    }
+
+    .preview-notice {
+        margin-top: 12px;
+    }
+
+    .fragments-table {
+        border: 1px solid var(--spectrum-gray-200, #eaeaea);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 40px;
+    }
+
+    sp-table {
+        width: 100%;
+    }
+
+    sp-illustrated-message {
+        --mod-illustrated-message-heading-max-inline-size: 100%;
+        --mod-illustrated-message-description-max-inline-size: 100%;
+        min-height: 300px;
+        padding: 32px;
+        box-sizing: border-box;
+    }
+
+    sp-illustrated-message h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    sp-illustrated-message p {
+        margin: 0;
+        font-size: 12px;
+    }
+
+    sp-icon-cloud {
+        width: 48px;
+        height: 48px;
+    }
+
+    @media (max-width: 700px) {
+        :host {
+            padding-inline: 16px;
+        }
+
+        header {
+            align-items: flex-start;
+        }
+
+        .replace-arrow {
+            display: none;
+        }
+
+        .file-actions {
+            padding-top: 0;
+        }
+
+        .fragments-table {
+            overflow-x: auto;
+        }
+
+        sp-table {
+            min-width: 600px;
+        }
     }
 `;

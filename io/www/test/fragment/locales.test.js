@@ -289,9 +289,23 @@ describe('locales', function () {
             const acomDcResult = getDefaultLocales('acom-dc');
             expect(acomDcResult).to.deep.equal(acomResult);
         });
+
+        it('should share the CCD locale list with adobe-home', function () {
+            expect(getDefaultLocales('adobe-home')).to.equal(getDefaultLocales('ccd'));
+            expect(STUDIO_DEFAULT_LOCALES['adobe-home']).to.equal(STUDIO_DEFAULT_LOCALES.ccd);
+            expect(getDefaultLocaleCode('adobe-home', 'hi_IN')).to.equal('hi_IN');
+            expect(getSurfaceLocales('adobe-home').map(getLocaleCode)).to.include('hi_IN');
+        });
     });
 
     describe('getRegionLocales', function () {
+        it('should list en_GB as an en_US region on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getRegionLocales(surface, 'en_US', false).map(getLocaleCode)).to.include('en_GB');
+                expect(getDefaultLocaleCode(surface, 'en_GB')).to.equal('en_US');
+            }
+        });
+
         it('should return region locales for a default locale on a surface', function () {
             const result = getRegionLocales('acom', 'en_GB', true);
             expect(result).to.be.an('array');
@@ -445,13 +459,13 @@ describe('locales', function () {
             }
         });
 
-        it('should add only HK (not MO) to zh_TW regions on ccd and adobe-home', function () {
+        it('should add HK and MO to zh_TW regions on ccd and adobe-home', function () {
             for (const surface of ['ccd', 'adobe-home']) {
-                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK']);
+                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK', 'MO']);
                 const regionsOnly = getRegionLocales(surface, 'zh_TW', false).map((l) => getLocaleCode(l));
-                expect(regionsOnly, surface).to.deep.equal(['zh_HK']);
+                expect(regionsOnly, surface).to.deep.equal(['zh_HK', 'zh_MO']);
                 const withDefault = getRegionLocales(surface, 'zh_TW', true).map((l) => getLocaleCode(l));
-                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_TW']);
+                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
             }
         });
 
@@ -460,7 +474,7 @@ describe('locales', function () {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.not.equal('zh_CN');
                 expect(getDefaultLocaleCode(surface, 'zh_TW'), surface).to.equal('zh_TW');
                 expect(getDefaultLocaleCode(surface, 'zh_CN'), surface).to.equal('zh_CN');
-                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_TW');
             }
         });
 

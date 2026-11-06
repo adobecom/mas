@@ -38,6 +38,7 @@ import {
     printMeasure,
     setForegroundTimeout,
     clearForegroundTimeout,
+    setShadowMarkup,
 } from './utils.js';
 import { toPromotionCodes } from './utilities.js';
 import { hostOsi } from './plan-type-text.js';
@@ -684,8 +685,14 @@ export class MerchCard extends HTMLElement {
         const markup = visible ? (this.variantLayout.renderLayout() ?? '') : '';
         if (markup === this.#markup) return;
         this.#markup = markup;
-        this.shadowRoot.innerHTML = markup;
+        setShadowMarkup(this.shadowRoot, markup);
         if (visible) this.variantLayout.bindEvents?.(this.shadowRoot);
+    }
+
+    // A variant that patched the shadow DOM in place records the markup it now
+    // matches, so the next update doesn't rewrite the nodes (and drop focus).
+    syncRenderedMarkup() {
+        this.#markup = this.variantLayout?.renderLayout() ?? '';
     }
 
     get theme() {
@@ -948,6 +955,8 @@ export class MerchCard extends HTMLElement {
     connectedCallback() {
         this.#upgradeProperties();
         this.#resolveConnected();
+        // Updates while detached or hidden render nothing; draw again now.
+        if (this.#markup === '') this.requestUpdate();
         if (!this.#internalId) {
             this.#internalId = idCounter++;
         }

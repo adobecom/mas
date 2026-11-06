@@ -1,4 +1,5 @@
 import { css } from './css.js';
+import { setShadowMarkup } from './utils.js';
 
 export class MerchWhatsIncluded extends HTMLElement {
     static styles = css`
@@ -158,7 +159,7 @@ export class MerchWhatsIncluded extends HTMLElement {
             ${seeMore}`;
         if (markup === this.#markup) return;
         this.#markup = markup;
-        this.shadowRoot.innerHTML = markup;
+        setShadowMarkup(this.shadowRoot, markup);
         this.shadowRoot
             .querySelector('.see-more')
             ?.addEventListener('click', this.toggle);

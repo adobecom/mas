@@ -1,5 +1,5 @@
 import { styles } from './merch-quantity-select.css.js';
-import { debounce, escapeHTML } from './utils.js';
+import { debounce, escapeHTML, setShadowMarkup } from './utils.js';
 
 import { ARROW_DOWN, ARROW_UP, ENTER, TAB } from './focus.js';
 import {
@@ -431,7 +431,9 @@ export class MerchQuantitySelect extends HTMLElement {
     }
 
     #build() {
-        this.shadowRoot.innerHTML = `
+        setShadowMarkup(
+            this.shadowRoot,
+            `
             <div class="label" id="qsLabel"></div>
             <div class="text-field">
                 <input
@@ -456,7 +458,8 @@ export class MerchQuantitySelect extends HTMLElement {
                     tabindex="-1"
                 ></div>
             </div>
-        `;
+        `,
+        );
         const input = this.shadowRoot.querySelector('input');
         input.addEventListener('keydown', (e) => this.handleKeydown(e));
         input.addEventListener('keyup', (e) => this.handleKeyupDebounced(e));
@@ -490,7 +493,7 @@ export class MerchQuantitySelect extends HTMLElement {
             this.#built = false;
             this.#itemsMarkup = undefined;
             this.#renderedValue = undefined;
-            this.shadowRoot.innerHTML = '';
+            setShadowMarkup(this.shadowRoot, '');
             return;
         }
         if (!this.#built) {

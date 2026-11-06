@@ -60,6 +60,7 @@ export {
     isMobileOrTablet,
     printMeasure,
     setForegroundTimeout,
+    setShadowMarkup,
     toRelativeAssetUrl,
 } from './utils.js';
 export { createMasElement } from './mas-element.js';

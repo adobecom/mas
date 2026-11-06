@@ -400,3 +400,20 @@ export function escapeHTML(value) {
         (char) => HTML_ESCAPES[char],
     );
 }
+
+const renderedNodes = new WeakMap();
+
+/**
+ * Replaces the markup a component rendered into its shadow root, keeping the
+ * nodes other code added to it (for example Milo's MEP combo appends a style
+ * and a subtitle), which a plain innerHTML assignment would drop.
+ * @param {ShadowRoot} root
+ * @param {string} markup
+ */
+export function setShadowMarkup(root, markup) {
+    const own = renderedNodes.get(root);
+    const foreign = [...root.childNodes].filter((node) => !own?.has(node));
+    root.innerHTML = markup;
+    renderedNodes.set(root, new Set(root.childNodes));
+    root.append(...foreign);
+}

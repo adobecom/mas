@@ -3249,3 +3249,61 @@ describe('pro CTAs', () => {
         }
     });
 });
+
+describe('pro card shadow DOM upkeep', () => {
+    let card;
+    afterEach(() => card?.remove());
+
+    const OPTIONS =
+        '<div slot="quantity-select"><merch-quantity-select title="License|Licenses" min="1" max="5" step="1" default-value="1"></merch-quantity-select></div>';
+
+    it('renders again when reattached after a change made while detached', async () => {
+        card = await renderCard(OPTIONS);
+        card.remove();
+        card.setAttribute('badge-text', 'New');
+        await card.updateComplete;
+        expect(card.shadowRoot.children.length).to.equal(0);
+        document.body.appendChild(card);
+        await card.updateComplete;
+        expect(card.shadowRoot.children.length).to.be.above(0);
+    });
+
+    it('keeps nodes added to the shadow root across renders', async () => {
+        card = await renderCard(OPTIONS);
+        const injected = document.createElement('style');
+        injected.className = 'card-subtitle-injected';
+        card.shadowRoot.append(injected);
+        const before = card.shadowRoot.querySelector('.license-select');
+        card.querySelector('merch-quantity-select').setAttribute('max', '8');
+        card.requestUpdate();
+        await card.updateComplete;
+        expect(card.shadowRoot.querySelector('.license-select')).to.not.equal(
+            before,
+        );
+        expect(injected.parentNode).to.equal(card.shadowRoot);
+    });
+
+    it('keeps the license trigger and its focus when the card re-renders while the popover is open', async () => {
+        card = await renderCard(OPTIONS);
+        const trigger = card.shadowRoot.querySelector(
+            '.license-select-trigger',
+        );
+        trigger.click();
+        trigger.focus();
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select')
+                .hasAttribute('data-open'),
+        ).to.be.true;
+        card.requestUpdate();
+        await card.updateComplete;
+        const after = card.shadowRoot.querySelector('.license-select-trigger');
+        expect(after).to.equal(trigger);
+        expect(card.shadowRoot.activeElement).to.equal(trigger);
+        expect(
+            card.shadowRoot
+                .querySelector('.license-select')
+                .hasAttribute('data-open'),
+        ).to.be.true;
+    });
+});

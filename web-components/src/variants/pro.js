@@ -749,6 +749,7 @@ export class Pro extends VariantLayout {
                     opt === current ? 'true' : 'false',
                 );
             });
+        this.card.syncRenderedMarkup();
     }
 
     #syncExpandedDom() {
@@ -760,6 +761,7 @@ export class Pro extends VariantLayout {
         );
         const zone = root?.querySelector('.features-zone');
         if (zone) zone.hidden = !expanded;
+        this.card.syncRenderedMarkup();
     }
 
     bindEvents(root) {

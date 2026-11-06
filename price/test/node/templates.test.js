@@ -25,6 +25,7 @@ import {
     currencyIsFirstChar,
 } from '../../src/price/utilities.js';
 import { buildPriceHTML } from '../../src/price.js';
+import { legalTemplate } from '../../src/price/legal.js';
 import { discount } from '../../src/discount.js';
 import { Commitment, Term } from '../../src/constants.js';
 import { baseOffer, promotion, priceInfo, instant } from '../fixtures/cases.js';
@@ -47,22 +48,29 @@ describe('legacy ICU golden literals', () => {
 describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };
-    for (const [name, templateOptions] of Object.entries({
-        price: {},
-        pricePromo: { promotionCode: 'PROMO' },
-        priceOptical: { template: 'optical' },
-        priceStrikethrough: { template: 'strikethrough' },
-        pricePromoStrikethrough: { template: 'promo-strikethrough' },
-        priceAnnual: { template: 'annual' },
-        priceAlternative: { alternativePrice: true },
-        priceOpticalAlternative: { template: 'optical', alternativePrice: true },
-        priceWithAnnual: { displayAnnual: true },
-        pricePromoWithAnnual: { displayAnnual: true, promotionCode: 'PROMO' },
-        legal: { template: 'legal' },
+    for (const [name, [templateOptions, template]] of Object.entries({
+        price: [{}, createPriceTemplate()],
+        pricePromo: [{ promotionCode: 'PROMO' }, createPromoPriceTemplate()],
+        priceOptical: [{ template: 'optical' }, createPriceTemplate({ displayOptical: true })],
+        priceStrikethrough: [{ template: 'strikethrough' }, createPriceTemplate({ displayStrikethrough: true })],
+        pricePromoStrikethrough: [
+            { template: 'promo-strikethrough' },
+            createPriceTemplate({ displayPromoStrikethrough: true }),
+        ],
+        priceAnnual: [{ template: 'annual' }, createPriceTemplate({ displayAnnual: true })],
+        priceAlternative: [{ alternativePrice: true }, createPriceTemplate({ isAlternativePrice: true })],
+        priceOpticalAlternative: [
+            { template: 'optical', alternativePrice: true },
+            createPriceTemplate({ displayOptical: true, isAlternativePrice: true }),
+        ],
+        priceWithAnnual: [{ displayAnnual: true }, createPriceWithAnnualTemplate()],
+        pricePromoWithAnnual: [{ displayAnnual: true, promotionCode: 'PROMO' }, createPromoPriceWithAnnualTemplate()],
+        legal: [{ template: 'legal' }, legalTemplate],
     })) {
-        it(`${name} renders without a browser environment`, () => {
+        it(`dispatches ${name} to its exact template HTML without a browser environment`, () => {
             const offer = templateOptions.promotionCode ? { ...baseOffer, promotion } : baseOffer;
-            assert.match(buildPriceHTML([offer], { ...options, ...templateOptions }), /^<span class="price/);
+            const context = { ...options, ...templateOptions };
+            assert.equal(buildPriceHTML([offer], context), template(context, { ...offer, ...offer.priceDetails }));
         });
     }
     for (const [name, factory] of Object.entries({

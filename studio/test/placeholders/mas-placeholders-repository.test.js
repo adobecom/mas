@@ -237,7 +237,10 @@ describe('mas-placeholders-repository', () => {
             expect(payload.fields[0].values).to.deep.equal(['/parent/index']);
             expect(payload.fields[1].values).to.deep.equal([]);
             expect(repo.publishFragment.called).to.be.true;
-            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([{ skipReferenceDiagnosis: true }, false]);
+            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([
+                { skipReferenceDiagnosis: true, replicate: true },
+                false,
+            ]);
             expect(result).to.equal(createdFragment);
 
             repo.publishFragment.resetHistory();
@@ -434,7 +437,10 @@ describe('mas-placeholders-repository', () => {
             const savedFragment = repo.aem.sites.cf.fragments.save.firstCall.args[0];
             expect(savedFragment.getField('entries').values).to.deep.equal([placeholder.path]);
             expect(repo.publishFragment.calledOnce).to.be.true;
-            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([{ skipReferenceDiagnosis: true }, false]);
+            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([
+                { skipReferenceDiagnosis: true, replicate: true },
+                false,
+            ]);
         });
 
         it('returns false when the index fragment is missing', async () => {
@@ -465,7 +471,10 @@ describe('mas-placeholders-repository', () => {
             const savedFragment = repo.aem.sites.cf.fragments.save.firstCall.args[0];
             expect(savedFragment.getField('entries').values).to.deep.equal(['/keep']);
             expect(repo.publishFragment.calledOnce).to.be.true;
-            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([{ skipReferenceDiagnosis: true }, false]);
+            expect(repo.publishFragment.firstCall.args.slice(1)).to.deep.equal([
+                { skipReferenceDiagnosis: true, replicate: true },
+                false,
+            ]);
         });
 
         it('returns false when the index fragment is missing', async () => {
@@ -562,7 +571,7 @@ describe('mas-placeholders-repository', () => {
         const placeholderPath = `${dictPath('acom')}/save-today`;
         const expectedIndexPath = `${dictPath('acom')}/index`;
 
-        it('publishes the placeholder then republishes the index with no references', async () => {
+        it('publishes the placeholder normally then directly replicates the index', async () => {
             const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
             repo.aem.sites.cf.fragments.getByPath.resolves(createFragment({ id: 'index-id', path: expectedIndexPath }));
 
@@ -572,7 +581,29 @@ describe('mas-placeholders-repository', () => {
             expect(repo.publishFragment.callCount).to.equal(2);
             expect(repo.publishFragment.firstCall.args[0]).to.equal(placeholder);
             expect(repo.publishFragment.secondCall.args[0].path).to.equal(expectedIndexPath);
-            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([{ skipReferenceDiagnosis: true }, false]);
+            expect(repo.publishFragment.secondCall.args.slice(1)).to.deep.equal([
+                { skipReferenceDiagnosis: true, replicate: true },
+                false,
+            ]);
+        });
+
+        it('preserves missing and cross-locale entries when publishing the index', async () => {
+            const placeholder = createFragment({ id: 'ph-id', path: placeholderPath });
+            const entries = [placeholderPath, `${dictPath('acom')}/missing`, `${dictPath('acom', 'fr_FR')}/other-locale`];
+            repo.aem.sites.cf.fragments.getByPath.resolves(
+                createFragment({
+                    id: 'index-id',
+                    path: expectedIndexPath,
+                    fields: [{ name: 'entries', type: 'content-fragment', multiple: true, values: entries }],
+                }),
+            );
+
+            const result = await publishPlaceholder(placeholder);
+
+            expect(result).to.be.true;
+            expect(repo.publishFragment.secondCall.args[0].getField('entries').values).to.deep.equal(entries);
+            expect(repo.publishFragment.secondCall.args[1].replicate).to.be.true;
+            expect(repo.aem.sites.cf.fragments.save.called).to.be.false;
         });
 
         it('bails out and skips the index publish when the placeholder publish fails', async () => {

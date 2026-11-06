@@ -2446,6 +2446,111 @@
                                 });
                             });
 
+                            describe('settings', () => {
+                                const withBaselineSettings = (editor, fields) => {
+                                    const baseline = new Fragment({ fields });
+                                    editor.baselinesController.parent = baseline;
+                                    editor.fragmentStore.setBaselineParent(baseline);
+                                    return editor;
+                                };
+                                const indicator = (editor, fieldName) => {
+                                    const container = document.createElement('div');
+                                    render(editor.renderSettingOverrideIndicator(fieldName), container);
+                                    return container;
+                                };
+
+                                it('marks a setting the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.false;
+                                    expect(indicator(editor, 'showPlanType').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks a setting switched away from the baseline value as overridden', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showPlanType', ['false']);
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                                    const button = indicator(editor, 'showPlanType').querySelector(
+                                        '.setting-override-indicator',
+                                    );
+                                    expect(button.getAttribute('title')).to.equal(
+                                        'Overridden. Click to restore baseline value',
+                                    );
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('inherits from the baseline again when the setting is switched back to the baseline value', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showPlanType', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showPlanType', ['false']);
+                                    editor.fragmentStore.updateField('showPlanType', ['true']);
+                                    expect(editor.hasExplicitSettingOverride('showPlanType')).to.be.false;
+                                    expect(indicator(editor, 'showPlanType').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('restores the baseline value of an overridden setting', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'showSecureLabel', values: ['true'] },
+                                    ]);
+                                    editor.fragmentStore.updateField('showSecureLabel', ['false']);
+                                    indicator(editor, 'showSecureLabel').querySelector('.setting-override-indicator').click();
+                                    expect(editor.hasExplicitSettingOverride('showSecureLabel')).to.be.false;
+                                    expect(editor.getEffectiveSettingValue('showSecureLabel')).to.equal('true');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('marks an addon the card does not set as inherited from the baseline', () => {
+                                    const editor = withBaselineSettings(makeBaselineCard([]), [
+                                        { name: 'addon', values: ['addon1'] },
+                                    ]);
+                                    expect(indicator(editor, 'addon').textContent.trim()).to.equal('From baseline');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('compares quantity selector subfields with the baseline', () => {
+                                    const baselineQuantity =
+                                        '<merch-quantity-select title="Seats" min="1" step="1"></merch-quantity-select>';
+                                    const editor = withBaselineSettings(
+                                        makeBaselineCard([
+                                            {
+                                                name: 'quantitySelect',
+                                                values: [
+                                                    '<merch-quantity-select title="Seats" min="5" step="1"></merch-quantity-select>',
+                                                ],
+                                            },
+                                        ]),
+                                        [{ name: 'quantitySelect', values: [baselineQuantity] }],
+                                    );
+                                    const subfield = (field) => {
+                                        const container = document.createElement('div');
+                                        render(editor.renderQuantitySelectSettingOverrideIndicator(field), container);
+                                        return container.querySelector('.setting-override-indicator');
+                                    };
+                                    expect(subfield('title')).to.be.null;
+                                    expect(subfield('min')).to.exist;
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+
+                                it('keeps the global settings comparison when the baselines do not set the setting', () => {
+                                    const editor = withBaselineSettings(
+                                        makeBaselineCard([{ name: 'showPlanType', values: ['false'] }]),
+                                        [{ name: 'subtitle', values: ['Baseline subtitle'] }],
+                                    );
+                                    expect(editor.isSettingOverridden('showPlanType')).to.be.true;
+                                    const button = indicator(editor, 'showPlanType').querySelector(
+                                        '.setting-override-indicator',
+                                    );
+                                    expect(button.getAttribute('title')).to.equal('Restore setting to default');
+                                    editor.fragmentStore.previewStore.dispose();
+                                });
+                            });
+
                             describe('visuals', () => {
                                 const baselineVisuals = () =>
                                     new Fragment({

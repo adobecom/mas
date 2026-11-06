@@ -391,12 +391,14 @@ class MasTopNav extends LitElement {
         if (this.page.value === PAGE_NAMES.BULK_EDIT) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
                 { label: 'Find and replace' },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
+                { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
                 { label: 'Find and replace', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
                 { label: this.bulkEditEditorBreadcrumbLabel },
             ];

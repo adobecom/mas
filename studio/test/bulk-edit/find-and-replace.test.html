@@ -61,6 +61,20 @@
                             expect(projects.shadowRoot.querySelector('[data-testid="create-btn"]').variant).to.equal('accent');
                         });
 
+                        it('keeps Find and replace selected when the unimplemented Update offer tab is clicked', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const tabs = projects.shadowRoot.querySelector('sp-tabs');
+                            await tabs.updateComplete;
+                            const updateOffer = tabs.querySelector('sp-tab[value="update-offer"]');
+                            expect(updateOffer.disabled).to.be.true;
+                            updateOffer.click();
+                            await tabs.updateComplete;
+                            expect(tabs.selected).to.equal('find-and-replace');
+                            expect(tabs.querySelector('sp-tab-panel[value="find-and-replace"]').selected).to.be.true;
+                            expect(projects.shadowRoot.querySelector('[data-testid="project-row"]')).to.exist;
+                        });
+
                         it('shows the empty editor with the design controls and no results', async () => {
                             const editor = document.querySelector('#editor');
                             await editor.updateComplete;

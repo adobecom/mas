@@ -173,7 +173,11 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
 
-            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal(['Advanced tools', 'Find and replace']);
+            expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal([
+                'Advanced tools',
+                'Bulk edits',
+                'Find and replace',
+            ]);
             breadcrumbs[0].click();
             expect(navigateStub.calledWith(PAGE_NAMES.ADVANCED_TOOLS)).to.be.true;
         });
@@ -186,10 +190,11 @@ describe('MasTopNav', () => {
             const breadcrumbs = [...el.querySelectorAll('.nav-breadcrumbs sp-breadcrumb-item')];
             expect(breadcrumbs.map((item) => item.textContent.trim())).to.deep.equal([
                 'Advanced tools',
+                'Bulk edits',
                 'Find and replace',
                 'Create new find and replace project',
             ]);
-            breadcrumbs[1].click();
+            breadcrumbs[2].click();
             expect(navigateStub.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
         });
         it('should render fragment editor breadcrumbs and navigate to content from first crumb', async () => {

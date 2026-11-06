@@ -1,4 +1,4 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, css, nothing } from 'lit';
 import { styleMap } from 'lit/directives/style-map.js';
 import { ifDefined } from 'lit/directives/if-defined.js';
 import { ColumnResizeController, columnResizeStyles } from '../common/column-resize-controller.js';
@@ -47,7 +47,25 @@ const BULK_EDIT_COLUMNS = [
 ];
 
 class MasBulkEdit extends LitElement {
-    static styles = [...styles, columnResizeStyles(BULK_EDIT_COLUMNS, { match: 'index' })];
+    static styles = [
+        ...styles,
+        columnResizeStyles(BULK_EDIT_COLUMNS, { match: 'index' }),
+        css`
+            sp-tabs {
+                width: 100%;
+            }
+
+            sp-tab-panel {
+                padding-top: 20px;
+            }
+
+            .project-toolbar {
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 20px;
+            }
+        `,
+    ];
 
     columnResize = new ColumnResizeController(this);
 
@@ -233,14 +251,7 @@ class MasBulkEdit extends LitElement {
         const showEmpty = !isLoading && projects.length === 0;
         return html`
             <header>
-                <div class="header-row">
-                    <h1>Find and replace</h1>
-                    <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
-                        <sp-icon-add slot="icon"></sp-icon-add>
-                        Create project
-                    </sp-button>
-                </div>
-                <sp-divider size="s"></sp-divider>
+                <h1>Bulk edits</h1>
             </header>
             ${this.duplicatePending
                 ? html`<mas-bulk-publish-duplicate-dialog
@@ -260,29 +271,41 @@ class MasBulkEdit extends LitElement {
                       @delete-cancelled=${this.handleDeleteCancel}
                   ></mas-bulk-publish-delete-dialog>`
                 : nothing}
-            ${showEmpty
-                ? html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
-                : html`
-                      <sp-table
-                          emphasized
-                          class="item-table"
-                          style=${styleMap(this.columnResize.tableStyle())}
-                          data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
-                      >
-                          <sp-table-head>
-                              ${BULK_EDIT_COLUMNS.map(
-                                  ({ key, label }) => html`
-                                      <sp-table-head-cell>
-                                          ${label} ${this.columnResize.handle(key, label)}
-                                      </sp-table-head-cell>
-                                  `,
-                              )}
-                          </sp-table-head>
-                          <sp-table-body>
-                              ${isLoading ? renderSkeletonRows(5) : projects.map((p) => this.renderRow(p))}
-                          </sp-table-body>
-                      </sp-table>
-                  `}
+            <sp-tabs quiet selected="find-and-replace" aria-label="Bulk edits">
+                <sp-tab value="find-and-replace" label="Find and replace">Find and replace</sp-tab>
+                <sp-tab value="update-offer" label="Update offer" disabled>Update offer</sp-tab>
+                <sp-tab-panel value="find-and-replace">
+                    <div class="project-toolbar">
+                        <sp-button variant="accent" data-testid="create-btn" @click=${this.onCreate}>
+                            <sp-icon-add slot="icon"></sp-icon-add>
+                            Create project
+                        </sp-button>
+                    </div>
+                    ${showEmpty
+                        ? html`<p class="empty" data-testid="empty">No find and replace projects yet.</p>`
+                        : html`
+                              <sp-table
+                                  emphasized
+                                  class="item-table"
+                                  style=${styleMap(this.columnResize.tableStyle())}
+                                  data-resized-columns=${ifDefined(this.columnResize.resizedColumns)}
+                              >
+                                  <sp-table-head>
+                                      ${BULK_EDIT_COLUMNS.map(
+                                          ({ key, label }) => html`
+                                              <sp-table-head-cell>
+                                                  ${label} ${this.columnResize.handle(key, label)}
+                                              </sp-table-head-cell>
+                                          `,
+                                      )}
+                                  </sp-table-head>
+                                  <sp-table-body>
+                                      ${isLoading ? renderSkeletonRows(5) : projects.map((p) => this.renderRow(p))}
+                                  </sp-table-body>
+                              </sp-table>
+                          `}
+                </sp-tab-panel>
+            </sp-tabs>
         `;
     }
 }

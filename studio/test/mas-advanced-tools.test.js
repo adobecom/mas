@@ -9,7 +9,7 @@ describe('mas-advanced-tools', () => {
 
     const bulkEditCard = (el) =>
         [...el.shadowRoot.querySelectorAll('.tool-card')].find(
-            (card) => card.querySelector('.tool-card-title').textContent === 'Find and replace',
+            (card) => card.querySelector('.tool-card-title').textContent === 'Bulk edits',
         );
 
     beforeEach(() => {
@@ -20,14 +20,20 @@ describe('mas-advanced-tools', () => {
         sinon.restore();
     });
 
-    it('renders the find and replace card with its icon', async () => {
+    it('renders the original bulk edits card with its icon and description', async () => {
         const el = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
         const card = bulkEditCard(el);
         expect(card).to.exist;
         expect(card.querySelector('.tool-card-icon svg')).to.exist;
+        expect(card.querySelector('.tool-card-description').textContent).to.equal(
+            'Update titles, prices, and OSIs across multiple items.',
+        );
+        expect(
+            [...el.shadowRoot.querySelectorAll('.tool-card-title')].some((title) => title.textContent === 'Find and replace'),
+        ).to.be.false;
     });
 
-    it('renders the find and replace card as keyboard accessible', async () => {
+    it('renders the bulk edits card as keyboard accessible', async () => {
         const el = await fixture(html`<mas-advanced-tools></mas-advanced-tools>`);
         const card = bulkEditCard(el);
         expect(card.hasAttribute('aria-disabled')).to.be.false;

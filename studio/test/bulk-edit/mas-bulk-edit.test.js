@@ -30,8 +30,21 @@ describe('mas-bulk-edit (overview)', () => {
     it('renders empty state when list is empty', async () => {
         const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
         expect(el.shadowRoot.querySelector('[data-testid="empty"]')).to.exist;
-        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Find and replace');
+        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Bulk edits');
         expect(el.shadowRoot.querySelector('[data-testid="create-btn"]').getAttribute('variant')).to.equal('accent');
+    });
+
+    it('places the project list in Find and replace and leaves Update offer disabled with no content', async () => {
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        const tabs = el.shadowRoot.querySelector('sp-tabs');
+        expect(tabs.getAttribute('selected')).to.equal('find-and-replace');
+        expect([...tabs.querySelectorAll('sp-tab')].map((tab) => tab.getAttribute('label'))).to.deep.equal([
+            'Find and replace',
+            'Update offer',
+        ]);
+        expect(tabs.querySelector('sp-tab[value="update-offer"]').hasAttribute('disabled')).to.be.true;
+        expect(tabs.querySelector('sp-tab-panel[value="find-and-replace"] [data-testid="create-btn"]')).to.exist;
+        expect(tabs.querySelector('sp-tab-panel[value="update-offer"]')).to.not.exist;
     });
 
     it('offers Edit, Revert, Duplicate and Delete with Revert disabled for the UI-only release', async () => {

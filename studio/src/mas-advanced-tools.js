@@ -243,8 +243,8 @@ class MasAdvancedTools extends LitElement {
             >
                 <span class="tool-card-icon" aria-hidden="true"> ${bulkEditIcon} </span>
                 <div class="tool-card-text">
-                    <span class="tool-card-title">Find and replace</span>
-                    <span class="tool-card-description">Find and replace text across multiple fragments.</span>
+                    <span class="tool-card-title">Bulk edits</span>
+                    <span class="tool-card-description">Update titles, prices, and OSIs across multiple items.</span>
                 </div>
                 ${this.arrowIcon}
             </a>

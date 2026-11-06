@@ -24,7 +24,7 @@ export default {
             '**/node_modules/**',
             'src/bodyScrollLock.js', // todo
             'src/merch-whats-included.js', // on hold
-            'src/variants/plans-v2.js', // @TODO by LL team
+            'src/templates/plans-v2.js', // @TODO by LL team
         ],
         threshold: {
             // TODO bump to 100%

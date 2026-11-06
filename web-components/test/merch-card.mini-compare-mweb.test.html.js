@@ -71,9 +71,9 @@ runTests(async () => {
             expect(secureLabelEl).to.exist;
 
             // Verify getGlobalCSS was called (constructor inserts variant style)
-            const variantLayout = card1.variantLayout;
-            expect(variantLayout).to.exist;
-            expect(variantLayout.getGlobalCSS()).to.be.a('string');
+            const templateLayout = card1.templateLayout;
+            expect(templateLayout).to.exist;
+            expect(templateLayout.getGlobalCSS()).to.be.a('string');
 
             // adjustMiniCompareBodySlots: slot heights should be synced
             const slotNames = [
@@ -109,19 +109,19 @@ runTests(async () => {
             await delay(200);
 
             const card1 = cards[0];
-            const variantLayout = card1.variantLayout;
-            variantLayout.syncHeights();
+            const templateLayout = card1.templateLayout;
+            templateLayout.syncHeights();
 
             // getRowMinHeightPropertyName should return the expected CSS var name
-            expect(variantLayout.getRowMinHeightPropertyName(1)).to.equal(
+            expect(templateLayout.getRowMinHeightPropertyName(1)).to.equal(
                 '--consonant-merch-card-footer-row-1-min-height',
             );
-            expect(variantLayout.getRowMinHeightPropertyName(2)).to.equal(
+            expect(templateLayout.getRowMinHeightPropertyName(2)).to.equal(
                 '--consonant-merch-card-footer-row-2-min-height',
             );
 
             // adjustMiniCompareFooterRows should have set CSS vars on the container
-            const layoutContainer = variantLayout.getContainer();
+            const layoutContainer = templateLayout.getContainer();
             const row1MinHeight = layoutContainer.style.getPropertyValue(
                 '--consonant-merch-card-footer-row-1-min-height',
             );
@@ -144,7 +144,7 @@ runTests(async () => {
             });
             expect(emptyRowsBefore.length).to.equal(1);
 
-            card.variantLayout.removeEmptyRows();
+            card.templateLayout.removeEmptyRows();
 
             const rowsAfter = card.querySelectorAll('.footer-row-cell');
             const emptyRowsAfter = [...rowsAfter].filter((row) => {
@@ -161,11 +161,11 @@ runTests(async () => {
             await card.checkReady();
             await delay(100);
 
-            const variantLayout = card.variantLayout;
-            const mainPrice = variantLayout.mainPrice;
+            const templateLayout = card.templateLayout;
+            const mainPrice = templateLayout.mainPrice;
 
             // updatePriceQuantity should be a function
-            expect(variantLayout.updatePriceQuantity).to.be.a('function');
+            expect(templateLayout.updatePriceQuantity).to.be.a('function');
 
             if (mainPrice) {
                 // Simulate quantity selector change
@@ -180,8 +180,8 @@ runTests(async () => {
             }
 
             // updatePriceQuantity with no mainPrice or no detail should not throw
-            variantLayout.updatePriceQuantity({ detail: null });
-            variantLayout.updatePriceQuantity({});
+            templateLayout.updatePriceQuantity({ detail: null });
+            templateLayout.updatePriceQuantity({});
         });
 
         it('should display the seat dropdown and carry the selected quantity to checkout', async () => {
@@ -210,7 +210,9 @@ runTests(async () => {
             await selector.updateComplete;
 
             expect(selector.selectedValue).to.equal(5);
-            expect(card.variantLayout.mainPrice.dataset.quantity).to.equal('5');
+            expect(card.templateLayout.mainPrice.dataset.quantity).to.equal(
+                '5',
+            );
             expect(card.checkoutLinks).to.have.length(1);
             expect(card.checkoutLinks[0].dataset.quantity).to.equal('5');
         });
@@ -220,7 +222,7 @@ runTests(async () => {
             await card.checkReady();
             await delay(100);
 
-            const variantLayout = card.variantLayout;
+            const templateLayout = card.templateLayout;
 
             const parent = document.createElement('div');
             // Test legal template branch
@@ -229,7 +231,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const legalOptions = {};
-            variantLayout.priceOptionsProvider(legalElement, legalOptions);
+            templateLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
 
             // Test strikethrough template branch
@@ -238,7 +240,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const strikethroughOptions = {};
-            variantLayout.priceOptionsProvider(
+            templateLayout.priceOptionsProvider(
                 strikethroughElement,
                 strikethroughOptions,
             );
@@ -250,7 +252,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const priceOptions = {};
-            variantLayout.priceOptionsProvider(priceElement, priceOptions);
+            templateLayout.priceOptionsProvider(priceElement, priceOptions);
             expect(priceOptions.displayPerUnit).to.equal(false);
         });
 
@@ -259,23 +261,23 @@ runTests(async () => {
             await card1.checkReady();
             await delay(100);
 
-            const variantLayout1 = card1.variantLayout;
+            const templateLayout1 = card1.templateLayout;
 
             // mainPrice should return the inline-price element with data-template="price"
-            const mainPrice = variantLayout1.mainPrice;
+            const mainPrice = templateLayout1.mainPrice;
             expect(mainPrice).to.exist;
             expect(mainPrice.dataset.template).to.equal('price');
 
             // icons: card1 has icons slot and an id, should return html template
-            const icons1 = variantLayout1.icons;
+            const icons1 = templateLayout1.icons;
             expect(icons1).to.not.be.undefined;
 
             // Card without icons slot and without id should return nothing
             const card2 = document.querySelector('#card-mweb-2');
             await card2.checkReady();
-            const variantLayout2 = card2.variantLayout;
+            const templateLayout2 = card2.templateLayout;
             // card2 has id so icons should still render
-            expect(variantLayout2.icons).to.not.be.undefined;
+            expect(templateLayout2.icons).to.not.be.undefined;
         });
 
         it('[desktop] creates a hidden toggle button and shows the list via CSS', async () => {
@@ -309,7 +311,7 @@ runTests(async () => {
             await card.checkReady();
             await delay(200);
 
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const container = layout.getContainer();
 
             try {
@@ -354,7 +356,7 @@ runTests(async () => {
             await card.checkReady();
             await delay(200);
 
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const bodyXs = card.querySelector('[slot="body-xs"]');
             const titleDiv = bodyXs.querySelector('.footer-rows-title');
             const list = bodyXs.querySelector('ul.checkmark-copy-container');
@@ -389,7 +391,7 @@ runTests(async () => {
             await card.checkReady();
             await delay(200);
 
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const titleDiv = card.querySelector('.footer-rows-title');
 
             try {
@@ -409,7 +411,7 @@ runTests(async () => {
             await card.checkReady();
             await delay(100);
 
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const container = layout.getContainer();
 
             layout.disconnectedCallbackHook();

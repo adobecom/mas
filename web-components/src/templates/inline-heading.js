@@ -1,0 +1,97 @@
+import { css } from '../css.js';
+
+const CSS = css`
+    :root {
+        --consonant-merch-card-inline-heading-width: 300px;
+    }
+
+    .one-merch-card.inline-heading,
+    .two-merch-cards.inline-heading,
+    .three-merch-cards.inline-heading,
+    .four-merch-cards.inline-heading,
+    .one-merch-card:has(merch-card[variant='inline-heading']),
+    .two-merch-cards:has(merch-card[variant='inline-heading']),
+    .three-merch-cards:has(merch-card[variant='inline-heading']),
+    .four-merch-cards:has(merch-card[variant='inline-heading']) {
+        grid-template-columns: var(--consonant-merch-card-inline-heading-width);
+    }
+
+    /* Sections inside tabs/fragments that don't receive the .inline-heading class.
+   Make .content wrapper transparent so the section grid applies directly to cards. */
+    .one-merch-card:has(merch-card[variant='inline-heading']) .content,
+    .two-merch-cards:has(merch-card[variant='inline-heading']) .content,
+    .three-merch-cards:has(merch-card[variant='inline-heading']) .content,
+    .four-merch-cards:has(merch-card[variant='inline-heading']) .content {
+        display: contents;
+    }
+
+    @media screen and (--tablet-up) {
+        .two-merch-cards.inline-heading,
+        .three-merch-cards.inline-heading,
+        .four-merch-cards.inline-heading,
+        .two-merch-cards:has(merch-card[variant='inline-heading']),
+        .three-merch-cards:has(merch-card[variant='inline-heading']),
+        .four-merch-cards:has(merch-card[variant='inline-heading']) {
+            grid-template-columns: repeat(
+                2,
+                var(--consonant-merch-card-inline-heading-width)
+            );
+        }
+    }
+
+    @media screen and (--desktop-up) {
+        :root {
+            --consonant-merch-card-inline-heading-width: 378px;
+        }
+
+        .three-merch-cards.inline-heading,
+        .four-merch-cards.inline-heading,
+        .three-merch-cards:has(merch-card[variant='inline-heading']),
+        .four-merch-cards:has(merch-card[variant='inline-heading']) {
+            grid-template-columns: repeat(
+                3,
+                var(--consonant-merch-card-inline-heading-width)
+            );
+        }
+    }
+
+    @media screen and (--large-desktop) {
+        .four-merch-cards.inline-heading,
+        .four-merch-cards:has(merch-card[variant='inline-heading']) {
+            grid-template-columns: repeat(
+                4,
+                var(--consonant-merch-card-inline-heading-width)
+            );
+        }
+    }
+`;
+
+export function define({ TemplateLayout }) {
+    class InlineHeading extends TemplateLayout {
+        constructor(card) {
+            super(card);
+        }
+
+        getGlobalCSS() {
+            return CSS;
+        }
+
+        renderLayout() {
+            return ` ${this.badge}
+            <div class="body">
+                <div class="top-section">
+                    <slot name="icons"></slot>
+                    <slot name="heading-xs"></slot>
+                </div>
+                <slot name="body-xs"></slot>
+            </div>
+            ${!this.card.customHr ? `<hr />` : ''} ${this.secureLabelFooter}`;
+        }
+    }
+    return {
+        'inline-heading': {
+            class: InlineHeading,
+            style: InlineHeading.templateStyle,
+        },
+    };
+}

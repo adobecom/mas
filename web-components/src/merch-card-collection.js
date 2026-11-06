@@ -393,7 +393,7 @@ export class MerchCardCollection extends HTMLElement {
     }
 
     resizeHandler() {
-        this.firstChild?.variantLayout?.resizeHandler?.();
+        this.firstChild?.templateLayout?.resizeHandler?.();
     }
 
     #renderFooter() {
@@ -790,6 +790,18 @@ export class MerchCardCollection extends HTMLElement {
             }
 
             const { cards, hierarchy } = this.data;
+
+            // Default-child support and the collection options come from the
+            // templates, whose bundle may still be loading. A template the page
+            // never loads fails its own cards; the rest of the collection renders.
+            const templateNames = new Set(
+                cards.map((card) => normalizeVariant(card.fields?.variant)),
+            );
+            await Promise.allSettled(
+                [...templateNames].map((name) =>
+                    this.#merchCardElement?.whenTemplate(name),
+                ),
+            );
 
             const rootDefaultChild =
                 hierarchy.length === 0 && event.detail.fields?.defaultchild

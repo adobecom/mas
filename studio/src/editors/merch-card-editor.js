@@ -2,7 +2,7 @@ import { html, LitElement, nothing } from 'lit';
 import '../fields/multifield.js';
 import '../fields/included-field.js';
 import '../fields/icon-picker-field.js';
-import { BASELINE_FIELD_STATE } from '../fields/mnemonic-field.js';
+import { BASELINE_FIELD_STATE } from '../common/fields/item-status.js';
 import '../aem/aem-tag-picker-field.js';
 import '../promotions/mas-promo-variation-geos.js';
 import { isPromoVariationPath } from '../promotions/promotion-model.js';
@@ -1029,16 +1029,6 @@ class MerchCardEditor extends LitElement {
 
     firstUpdated() {}
 
-    get whatsIncludedElement() {
-        const whatsIncludedHtml = this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '';
-
-        if (!whatsIncludedHtml) return undefined;
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(whatsIncludedHtml, 'text/html');
-        return doc.querySelector('merch-whats-included');
-    }
-
     get whatsIncludedDividerFromMarkup() {
         return parseWhatsIncludedDivider(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0)).divider;
     }
@@ -1108,18 +1098,17 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('variant') === VARIANT_NAMES.PRO;
     }
 
-    get whatsIncluded() {
-        if (this.#isProWhatsIncluded) {
-            return parseProWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0) || '');
-        }
-        const label = this.whatsIncludedElement?.querySelector('[slot="heading"]')?.textContent || '';
+    #parseWhatsIncluded(html) {
+        if (this.#isProWhatsIncluded) return parseProWhatsIncluded(html || '');
+        const element = new DOMParser().parseFromString(html || '', 'text/html').querySelector('merch-whats-included');
+        const label = element?.querySelector('[slot="heading"]')?.textContent || '';
         const values = [];
-        this.whatsIncludedElement?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listEl) => {
+        element?.querySelectorAll('[slot="content"] merch-mnemonic-list').forEach((listEl) => {
             values.push(this.getWhatsIncludedProps(listEl));
         });
 
         const bullets = [];
-        this.whatsIncludedElement?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
+        element?.querySelectorAll('[slot="contentBullets"] merch-mnemonic-list').forEach((listEl) => {
             const props = this.getWhatsIncludedProps(listEl, false);
             if (props.icon) {
                 bullets.push(props);
@@ -1142,6 +1131,57 @@ class MerchCardEditor extends LitElement {
             values,
             bullets,
         };
+    }
+
+    get whatsIncluded() {
+        return this.#parseWhatsIncluded(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0));
+    }
+
+    get parentWhatsIncluded() {
+        if (this.getFieldState(WHAT_IS_INCLUDED) === 'no-parent') return { label: '', values: [], bullets: [] };
+        return this.#parseWhatsIncluded(this.inheritanceParent.getFieldValue(WHAT_IS_INCLUDED, 0));
+    }
+
+    /** What's included with a `fieldState` on each bullet/application compared with the parent's item at the same position. */
+    get whatsIncludedItems() {
+        const own = this.whatsIncluded;
+        const parent = this.parentWhatsIncluded;
+        const inheritedState = this.isInheritedFromBaseline(WHAT_IS_INCLUDED) ? BASELINE_FIELD_STATE : 'inherited';
+        const withStates = (items, parentItems) =>
+            items.map((item, index) => {
+                if (!parentItems.length) return item;
+                return { ...item, fieldState: deepEquals(item, parentItems[index]) ? inheritedState : 'overridden' };
+            });
+        return {
+            ...own,
+            values: withStates(own.values, parent.values),
+            bullets: withStates(own.bullets, parent.bullets),
+        };
+    }
+
+    getWhatsIncludedLabelState() {
+        if (this.getFieldState(WHAT_IS_INCLUDED) === 'no-parent') return 'no-parent';
+        return this.whatsIncluded.label === this.parentWhatsIncluded.label ? 'inherited' : 'overridden';
+    }
+
+    renderWhatsIncludedLabelStatusIndicator() {
+        if (this.getWhatsIncludedLabelState() === 'overridden') {
+            return this.#renderOverrideIndicatorLink(() =>
+                this.#restoreWhatsIncludedPart({ label: this.parentWhatsIncluded.label }),
+            );
+        }
+        if (!this.whatsIncluded.label || !this.isInheritedFromBaseline(WHAT_IS_INCLUDED)) return nothing;
+        return this.fromBaselineIndicator;
+    }
+
+    /** Section-level restore, for overrides no item or label shows (e.g. removed or cleared items). */
+    renderWhatsIncludedStatusIndicator() {
+        if (this.getFieldState(WHAT_IS_INCLUDED) !== 'overridden') return nothing;
+        if (this.getWhatsIncludedLabelState() === 'overridden') return nothing;
+        const { values, bullets } = this.whatsIncludedItems;
+        if ([...values, ...bullets].some(({ fieldState }) => fieldState === 'overridden')) return nothing;
+        if (this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') === 'overridden') return nothing;
+        return this.#renderOverrideIndicatorLink(() => this.resetFieldToParent(WHAT_IS_INCLUDED));
     }
 
     #toMnemonics(valuesOf) {
@@ -1427,6 +1467,7 @@ class MerchCardEditor extends LitElement {
         const form = this.getFormWithInheritance();
         const backgroundsUrls = parseBackgroundsUrls(form.backgrounds?.values?.[0] ?? '');
         const variantValue = this.getEffectiveFieldValue('variant');
+        const whatsIncludedItems = this.whatsIncludedItems;
         const skeletonDisplay = this.fieldsReady ? 'none' : 'block';
         const formDisplay = this.fieldsReady ? 'block' : 'none';
         return html`
@@ -1842,31 +1883,32 @@ class MerchCardEditor extends LitElement {
                 ${variantValue === VARIANT_NAMES.PRO ? this.#renderAddonStylePicker() : this.#renderAddonBackgroundPicker(form)}
                 <sp-field-group class="toggle" id="whatsIncluded">
                     <div class="section-title">What's included</div>
-                    ${this.#renderWhatsIncludedLabel()}
+                    ${this.#renderWhatsIncludedLabel()} ${this.renderWhatsIncludedLabelStatusIndicator()}
                     <mas-multifield
                         button-label="Add bullet"
-                        data-field-state="bullet"
                         .variant="${this.getEffectiveFieldValue('variant')}"
-                        .value="${this.whatsIncluded.bullets}"
+                        .value="${whatsIncludedItems.bullets}"
                         @change="${(e) => this.#updateWhatsIncluded(e, true)}"
                         @input="${(e) => this.#updateWhatsIncluded(e, true)}"
+                        @restore-field="${(e) => this.#restoreWhatsIncludedItem(e, 'bullets')}"
                     >
                         <template>
-                            <mas-included-field></mas-included-field>
+                            <mas-included-field iconlibrary></mas-included-field>
                         </template>
                     </mas-multifield>
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
-                        .value="${this.whatsIncluded.values}"
+                        .value="${whatsIncludedItems.values}"
                         @change="${(e) => this.#updateWhatsIncluded(e, false)}"
                         @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @restore-field="${(e) => this.#restoreWhatsIncludedItem(e, 'values')}"
                     >
                         <template>
                             <mas-included-field></mas-included-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('whatsIncluded')}
+                    ${this.renderWhatsIncludedStatusIndicator()}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="whatsIncludedIconPicker">
                     <div class="section-title">What's included</div>
@@ -1882,15 +1924,16 @@ class MerchCardEditor extends LitElement {
                     <mas-multifield
                         button-label="Add application"
                         data-field-state="${this.getFieldState('whatsIncluded')}"
-                        .value="${this.whatsIncluded.values}"
+                        .value="${whatsIncludedItems.values}"
                         @change="${(e) => this.#updateWhatsIncluded(e, false)}"
                         @input="${(e) => this.#updateWhatsIncluded(e, false)}"
+                        @restore-field="${(e) => this.#restoreWhatsIncludedItem(e, 'values')}"
                     >
                         <template>
                             <mas-icon-picker-field></mas-icon-picker-field>
                         </template>
                     </mas-multifield>
-                    ${this.renderFieldStatusIndicator('whatsIncluded')}
+                    ${this.renderWhatsIncludedStatusIndicator()}
                 </sp-field-group>
                 <sp-field-group class="toggle" id="footerRows">
                     <div class="section-title">Footer rows</div>
@@ -2446,7 +2489,7 @@ class MerchCardEditor extends LitElement {
     }
 
     #renderWhatsIncludedLabel() {
-        const state = this.getFieldState('whatsIncluded');
+        const state = this.getWhatsIncludedLabelState();
         if (this.#whatsIncludedLabelIsRich)
             return html`<rte-field
                 id="whatsIncludedLabel"
@@ -2466,46 +2509,58 @@ class MerchCardEditor extends LitElement {
     }
 
     #updateWhatsIncluded(event, isBullet) {
+        const fromMultifield = Array.isArray(event.target.value);
+        // pro only uses the bullet multifield (sections) and the label textfield (toggle copy);
+        // the "Add application" multifield has no pro equivalent, so ignore its events.
+        if (this.#isProWhatsIncluded && fromMultifield && !isBullet) return;
+        const { label, values, bullets } = this.whatsIncluded;
+        if (!fromMultifield) {
+            this.#saveWhatsIncluded({ label: event.target.value, values, bullets });
+            return;
+        }
+        const items = event.target.value.map(({ icon, alt, link }) => ({ icon, alt, link }));
+        this.#saveWhatsIncluded(isBullet ? { label, values, bullets: items } : { label, values: items, bullets });
+    }
+
+    #saveWhatsIncluded({ label, values, bullets }) {
         if (this.#isProWhatsIncluded) {
-            // pro only uses the bullet multifield (sections) and the
-            // label textfield (toggle copy); the "Add application" multifield
-            // has no pro equivalent, so ignore its events.
-            const fromMultifield = Array.isArray(event.target.value);
-            if (fromMultifield && !isBullet) return;
             const isEdu = this.#whatsIncludedLabelIsRich;
-            const bullets = fromMultifield ? event.target.value : this.whatsIncluded.bullets;
-            const rawLabel = fromMultifield ? this.whatsIncluded.label : event.target.value;
             // Non-edu is plain text only: flatten any rich (edu) markup so a
             // size switch or a bullet edit can never escape a live OST label.
-            const label = isEdu ? rawLabel : htmlToText(rawLabel);
-            const html = serializeProWhatsIncluded(bullets, label, isEdu);
+            const html = serializeProWhatsIncluded(bullets, isEdu ? label : htmlToText(label), isEdu);
             this.fragmentStore.updateField(WHAT_IS_INCLUDED, [html]);
             return;
         }
-        let label = '';
-        let values = [];
-        let bullets = [];
-        if (Array.isArray(event.target.value)) {
-            event.target.value.forEach(({ icon, alt, link }) => {
-                if (isBullet) {
-                    bullets.push({ icon, alt, link });
-                } else {
-                    values.push({ icon, alt, link });
-                }
-            });
-            label = this.whatsIncluded.label;
-            if (isBullet) {
-                values = this.whatsIncluded.values;
-            } else {
-                bullets = this.whatsIncluded.bullets;
-            }
-        } else {
-            label = event.target.value;
-            values = this.whatsIncluded.values;
-            bullets = this.whatsIncluded.bullets;
-        }
         const element = this.createIncludedElement(label, values, bullets, this.whatsIncludedDividerFromMarkup);
         this.fragmentStore.updateField(WHAT_IS_INCLUDED, [element?.outerHTML || '']);
+    }
+
+    /** Restores part of What's included from the parent; once nothing differs any more the field inherits again. */
+    async #restoreWhatsIncludedPart(changes) {
+        const { label, values, bullets } = { ...this.whatsIncluded, ...changes };
+        const parent = this.parentWhatsIncluded;
+        const matchesParent =
+            deepEquals({ label, values, bullets }, { label: parent.label, values: parent.values, bullets: parent.bullets }) &&
+            this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider') !== 'overridden';
+        if (matchesParent) {
+            await this.resetFieldToParent(WHAT_IS_INCLUDED);
+            return;
+        }
+        this.#saveWhatsIncluded({ label, values, bullets });
+        this.#showRestoredToast(WHAT_IS_INCLUDED);
+    }
+
+    #restoreWhatsIncludedItem(event, listName) {
+        event.stopPropagation();
+        const field = event
+            .composedPath()
+            .find((element) => ['mas-included-field', 'mas-icon-picker-field'].includes(element.localName));
+        const index = event.currentTarget.getFieldIndex(field);
+        const parentItem = this.parentWhatsIncluded[listName][index];
+        const items = [...this.whatsIncluded[listName]];
+        if (parentItem) items[index] = parentItem;
+        else items.splice(index, 1);
+        this.#restoreWhatsIncludedPart({ [listName]: items });
     }
 
     get customFieldValues() {

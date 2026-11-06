@@ -1,11 +1,9 @@
-import { css, html, LitElement, nothing } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { fieldStatusStyles } from '../common/fields/field-status.css.js';
+import { itemStatusIndicator } from '../common/fields/item-status.js';
 import '../mas-mnemonic-modal.js';
-
-/** Item state of a visual inherited from a baseline (other states are the variation ones, e.g. `overridden`). */
-export const BASELINE_FIELD_STATE = 'baseline';
 
 class MnemonicField extends LitElement {
     static get properties() {
@@ -226,29 +224,6 @@ class MnemonicField extends LitElement {
         element?.blur();
     }
 
-    #handleRestoreClick(event) {
-        event.preventDefault();
-        event.currentTarget.blur();
-        this.dispatchEvent(new CustomEvent('restore-field', { bubbles: true, composed: true }));
-    }
-
-    get fieldStatusIndicator() {
-        if (this.fieldState === BASELINE_FIELD_STATE) {
-            return html`<div class="field-status-indicator field-status-indicator--baseline">
-                <span class="field-status-label">From baseline</span>
-            </div>`;
-        }
-        if (this.fieldState !== 'overridden') return nothing;
-        return html`<div class="field-status-indicator">
-            <sp-icon-unlink class="field-status-icon"></sp-icon-unlink>
-            <span class="field-status-label">Overridden.</span>
-            <a href="#" class="field-status-restore-link" @click=${this.#handleRestoreClick}
-                ><span class="field-status-restore-link-prefix" aria-hidden="true">Overridden. </span>
-                <span class="field-status-restore-link-text">Click to restore.</span></a
-            >
-        </div>`;
-    }
-
     render() {
         return html`
             <div class="mnemonic-preview ${this.iconLibrary ? 'icon-library' : ''}" @click="${this.#handleMenuChange}">
@@ -289,7 +264,7 @@ class MnemonicField extends LitElement {
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-mnemonic-modal>
-            ${this.fieldStatusIndicator}
+            ${itemStatusIndicator(this.fieldState)}
         `;
     }
 }

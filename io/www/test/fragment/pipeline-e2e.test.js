@@ -824,6 +824,8 @@ describe('pipeline end to end', () => {
     describe('countdown timer from a promo variation', () => {
         const CDT_START = '2001-12-12T12:12:00Z';
         const CDT_END = '2027-12-12T12:12:00Z';
+        const CDT_START_LOCAL = '2001-12-12T12:12:00';
+        const CDT_END_LOCAL = '2027-12-12T12:12:00';
         const CARD_OSI = 'PpnQ-UmW9NBwZwXlFw79zw2JybhvwIUwMTDYiIlu5qI';
         const VARIATION_DESCRIPTION =
             '<p>Buy creative for only <span is="inline-price" data-quantity="true" data-template="price" ' +
@@ -906,8 +908,8 @@ describe('pipeline end to end', () => {
             expect(result.body.variationId).to.equal('promo-var-cdt');
             expect(result.body.promoProject).to.equal('NalaEvergreen');
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         // The `countdown-timer` link is supplied by a dictionary placeholder, so it only exists once
@@ -941,8 +943,8 @@ describe('pipeline end to end', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         it('exposes nothing when the promo project only defines one of the two dates', async () => {

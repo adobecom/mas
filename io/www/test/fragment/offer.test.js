@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import zlib from 'zlib';
 import { main as action, resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
+import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import {
     clearBaselineCache,
     offersUrl,
@@ -116,6 +117,7 @@ describe('offer transformer', () => {
         state = new MockState();
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake(() => createResponse(404, { detail: 'Not Found' }, 'Not Found'));
         clearSettingsCache();
+        clearPromoCache();
         clearBaselineCache();
         resetCache();
     });
@@ -508,7 +510,7 @@ describe('offer transformer', () => {
             id: 'collection-id',
             path: '/content/dam/mas/sandbox/en_US/my-collection',
             model: { id: COLLECTION_MODEL_ID },
-            fields: { enableBaselines: true, cards: ['card-1', 'card-2', 'card-3', 'card-4'] },
+            fields: { enableBaselines: true, cards: ['card-1', 'card-2', 'card-3', 'card-4', 'missing-card'] },
             references: {
                 'card-1': card('card-1', { variant: 'plans', osi: OSI, cardTitle: 'own title' }),
                 'card-2': card('card-2', { variant: 'plans', osi: OSI }),
@@ -562,6 +564,75 @@ describe('offer transformer', () => {
             expect(callsTo(offersUrl('en_US'))).to.have.length(1);
         });
 
+        it('prefetches baseline offers for cards introduced by the selected collection promo', async () => {
+            const collection = {
+                ...COLLECTION,
+                fields: { enableBaselines: true, cards: ['card-1'] },
+                references: { 'card-1': COLLECTION.references['card-1'] },
+                referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+            };
+            const variation = {
+                id: 'promo-collection',
+                path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-collection',
+                model: { id: COLLECTION_MODEL_ID },
+                fields: { cards: ['promo-card'] },
+            };
+            fetchStub.withArgs(`${ODIN}/collection-id?references=all-hydrated`).returns(createResponse(200, collection));
+            fetchStub.withArgs(listing('/content/dam/mas/promotions')).returns(
+                createResponse(200, {
+                    items: [
+                        {
+                            id: 'proj-1',
+                            path: '/content/dam/mas/promotions/black-friday',
+                            fields: {
+                                surfaces: ['sandbox'],
+                                startDate: '2020-01-01T00:00:00Z',
+                                endDate: '2099-12-31T23:59:59Z',
+                                tags: ['mas:promotion/black-friday'],
+                            },
+                        },
+                    ],
+                }),
+            );
+            fetchStub.withArgs(`${ODIN}/proj-1?references=all-hydrated`).returns(
+                createResponse(200, {
+                    fields: { fragments: [collection.id], promoCode: 'PROMO10', offers: [], title: null },
+                    references: {
+                        [collection.id]: {
+                            type: 'content-fragment',
+                            value: { id: collection.id, path: collection.path, fields: {} },
+                        },
+                    },
+                }),
+            );
+            fetchStub
+                .withArgs(listing('/content/dam/mas/sandbox/en_US/promotions/black-friday'))
+                .returns(createResponse(200, { items: [variation] }));
+            fetchStub.withArgs(`${ODIN}/${variation.id}?references=all-hydrated`).returns(
+                createResponse(200, {
+                    ...variation,
+                    references: {
+                        'promo-card': card('promo-card', {
+                            variant: 'mini',
+                            osi: OTHER_OSI,
+                            promoCode: 'COLLECTION-PROMO',
+                            prices: `<span data-wcs-osi="${OTHER_OSI}"></span>`,
+                        }),
+                    },
+                    referencesTree: [{ fieldName: 'cards', identifier: 'promo-card', referencesTree: [] }],
+                }),
+            );
+
+            const { statusCode, body } = await getFragment({ id: collection.id, locale: 'en_US' });
+
+            expect(statusCode).to.equal(200);
+            expect(body.references).to.have.all.keys('promo-card');
+            expect(body.references['promo-card'].value.offerBaselineId).to.equal(OFFER_BASELINE.id);
+            expect(wcsCalls()).to.have.length(0);
+            expect(wcsCalls(OTHER_OSI)).to.have.length(1);
+            expect(body.wcs.prod).to.have.all.keys(`${OTHER_OSI}-us-mult-collection-promo`);
+        });
+
         it('looks up baselines of cards a variation brings, even without references tree entry', async () => {
             const collection = {
                 ...COLLECTION,
@@ -585,11 +656,61 @@ describe('offer transformer', () => {
                 ],
             };
             fetchStub.withArgs(`${ODIN}/collection-id?references=all-hydrated`).returns(createResponse(200, collection));
-            const { statusCode } = await getFragment({ id: 'collection-id', locale: 'en_US' });
+            const { statusCode } = await getFragment({ id: 'collection-id', locale: 'en_BE' });
             expect(statusCode).to.equal(200);
             expect(callsTo(MINI_LISTING)).to.have.length(1);
             expect(callsTo(listing(PLANS_FOLDER))).to.have.length(1);
         });
+
+        for (const [country, pzn, expectedCalls] of [
+            ['US', undefined, 0],
+            ['BE', undefined, 1],
+            ['US', 'country/BE', 0],
+        ]) {
+            it(`only prefetches offers from the matching grouped collection for ${country}${pzn ? ' with invalid pzn' : ''}`, async () => {
+                const collection = {
+                    ...COLLECTION,
+                    fields: { enableBaselines: true, cards: ['card-1'], variations: ['grouped'] },
+                    references: {
+                        'card-1': COLLECTION.references['card-1'],
+                        'card-5': card('card-5', {
+                            variant: 'mini',
+                            osi: OTHER_OSI,
+                            promoCode: 'GROUPED-PROMO',
+                        }),
+                        nested: {
+                            type: 'content-fragment',
+                            value: {
+                                id: 'nested',
+                                path: '/content/dam/mas/sandbox/en_US/nested',
+                                fields: { cards: ['card-5'] },
+                            },
+                        },
+                        grouped: {
+                            type: 'content-fragment',
+                            value: {
+                                id: 'grouped',
+                                path: '/content/dam/mas/sandbox/en_US/my-collection/pzn/be',
+                                fields: {
+                                    cards: ['card-1'],
+                                    collections: ['nested'],
+                                    pznTags: ['mas:pzn/country/BE'],
+                                },
+                            },
+                        },
+                    },
+                    referencesTree: [{ fieldName: 'cards', identifier: 'card-1', referencesTree: [] }],
+                };
+                fetchStub.withArgs(`${ODIN}/collection-id?references=all-hydrated`).returns(createResponse(200, collection));
+
+                const { statusCode, body } = await getFragment({ id: 'collection-id', locale: 'en_US', country, pzn });
+
+                expect(statusCode).to.equal(200);
+                expect(wcsCalls(OTHER_OSI)).to.have.length(expectedCalls);
+                expect(callsTo(MINI_LISTING)).to.have.length(expectedCalls);
+                expect(Object.keys(body.wcs.prod).filter((key) => key.includes('grouped-promo'))).to.have.length(expectedCalls);
+            });
+        }
 
         it('retries offer baselines that failed to load on the next request', async () => {
             fetchStub.withArgs(offersUrl('en_US')).returns(createResponse(500, { detail: 'boom' }, 'Internal Server Error'));

@@ -1,14 +1,17 @@
-import { CARD_MODEL_ID, fetch } from '../utils/common.js';
+import { CARD_MODEL_ID, fetch, VALID_PARAMETER_VALUE_REGEX } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 import { MAS_ROOT, odinFolder, PATH_TOKENS } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { getDefaultLocaleCode, resolveCommerceCountries } from '../locales.js';
 import { computeRegionLocale } from './defaultLanguage.js';
 import { computeWcsCaches, createWcsContext, tokenKey, wcsCacheKey } from './wcs.js';
+import { adaptReferencesTree, mergeVariations, selectPromoProjectForFragment } from './customize.js';
+import { transformer as promotionsTransformer } from './promotions.js';
 import { transformBody } from '../utils/odinSchemaTransform.js';
+import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
-const TRAVERSED_FIELDS = ['cards', 'collections', 'variations'];
+const TRAVERSED_FIELDS = ['cards', 'collections'];
 // every offer baseline of a locale (en_US fallback included), as served by the `offers` action behind the CDN. The bare
 // `id` parameter is only there for www.adobe.com/mas/io to accept the request, to be removed with WPS-36294
 const OFFERS_URL = 'https://www.adobe.com/mas/io/offers';
@@ -183,32 +186,53 @@ export async function resolveOfferInfos(initContext) {
 
 /**
  * Root fragment (whose osi & template can be overridden by the `offer` & `template` parameters) and every card /
- * collection of its references tree, including those a (e.g. regional) variation brings, with the offer token & template
- * their baselines are looked up with. Each fragment is collected once.
+ * collection of its active references tree, with the offer token & template their baselines are looked up with.
+ * Each fragment is collected once.
  */
-function collectTargets({ body, offer, template }) {
-    const targets = [{ fragment: body, osi: offer ?? body.fields?.osi, template: template ?? body.fields?.variant }];
+function collectTargets(context) {
+    const { body, offer, template, pzn } = context;
+    const variationContext = {
+        ...context,
+        isRegionLocale: context.regionLocale !== context.defaultLocale,
+        references: body.references,
+    };
+    if (
+        pzn &&
+        String(pzn)
+            .split(',')
+            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
+    ) {
+        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
+        variationContext.pzn = undefined;
+    }
+    const resolve = ({ id, path, model, fields }, tree = []) => {
+        const root = { id, path, model, fields };
+        const { references, referencesTree, ...fragment } = mergeVariations(
+            root,
+            variationContext,
+            selectPromoProjectForFragment(root, variationContext),
+        );
+        if (references) variationContext.references = { ...references, ...variationContext.references };
+        fragment.fields = normalizeExplicitEmptyInFields(fragment.fields);
+        return { fragment, referencesTree: adaptReferencesTree(tree, fragment, referencesTree) };
+    };
+    const { fragment: root, referencesTree: rootTree } = resolve(body, body.referencesTree);
+    const targets = [{ fragment: root, osi: offer ?? root.fields?.osi, template: template ?? root.fields?.variant }];
     const visited = new Set([body.id]);
-    // a (e.g. regional) variation may list cards & collections that have no entry in the references tree
-    const entriesOf = (fragment, tree = []) => [
-        ...tree,
-        ...TRAVERSED_FIELDS.flatMap((fieldName) =>
-            (fragment?.fields?.[fieldName] ?? []).map((identifier) => ({ fieldName, identifier })),
-        ),
-    ];
     const visit = (entries) => {
         for (const { fieldName, identifier, referencesTree } of entries) {
             if (!TRAVERSED_FIELDS.includes(fieldName) || visited.has(identifier)) continue;
             visited.add(identifier);
-            const fragment = body.references?.[identifier]?.value;
-            if (!fragment) continue;
-            if (fieldName !== 'variations' && fragment.model?.id === CARD_MODEL_ID) {
+            const reference = variationContext.references?.[identifier]?.value;
+            if (!reference) continue;
+            const { fragment, referencesTree: childTree } = resolve(reference, referencesTree);
+            if (fragment.model?.id === CARD_MODEL_ID) {
                 targets.push({ fragment, osi: fragment.fields?.osi, template: fragment.fields?.variant });
             }
-            visit(entriesOf(fragment, referencesTree));
+            visit(childTree);
         }
     };
-    visit(entriesOf(body, body.referencesTree));
+    visit(rootTree);
     return targets
         .filter(({ osi, template }) => osi && template)
         .map((target) => ({ ...target, token: offerToken(target.fragment, target.osi) }));
@@ -226,18 +250,19 @@ async function init(initContext) {
     const { promises } = initContext;
     const fragmentInfos = await promises.defaultLanguage;
     if (fragmentInfos?.status != 200) return null;
-    const { body, defaultLocale, regionLocale, surface } = fragmentInfos;
+    const { body, defaultLocale, surface } = fragmentInfos;
     if (initContext.id && body.fields?.enableBaselines !== true) {
         logDebug(() => 'baselines are not enabled on the requested fragment', initContext);
         return null;
     }
-    const { wcsCountry, wcsPrefetch: prefetched } = await promises.requestInfos;
-    const targets = collectTargets({ ...initContext, body });
+    const { country, wcsCountry, wcsPrefetch: prefetched } = await promises.requestInfos;
+    const context = { ...initContext, ...fragmentInfos, country, wcsCountry };
+    const { promoProjects } = await promotionsTransformer.process(context);
+    const targets = collectTargets({ ...context, promoProjects });
     if (!targets.length) {
         logDebug(() => 'no offer & template to look baselines up with', initContext);
         return null;
     }
-    const context = { ...initContext, wcsCountry, regionLocale, defaultLocale };
     const tokens = [...new Map(targets.map(({ token }) => [tokenKey(token), token])).values()];
     // one listing per template, while offers are resolved
     const fragmentBaselines = Object.fromEntries(

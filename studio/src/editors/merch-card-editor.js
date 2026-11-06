@@ -64,6 +64,20 @@ const REQUIRED_FIELD_MESSAGE = 'This field is required.';
 const REQUIRED_FIELD_LABELS = { cardTitle: 'Title', description: 'Description', prices: 'Prices', ctas: 'CTAs' };
 const SILENT_BASELINE_FIELDS = new Set(['cardName']);
 
+export const parseWhatsIncludedDivider = (html) => ({
+    divider:
+        new DOMParser()
+            .parseFromString(html || '', 'text/html')
+            .querySelector('merch-whats-included')
+            ?.getAttribute('whats-included-divider-color')
+            ?.trim() || '',
+});
+
+const parseAddonBackground = (html) => {
+    const element = new DOMParser().parseFromString(html || '', 'text/html').body.firstElementChild;
+    return { background: element?.localName === ADDON_TAG ? element.getAttribute('background') || '' : '' };
+};
+
 function isEditorPriceElement(element) {
     if (element.closest('#preview-wrapper')) return true;
     const host = element.getRootNode()?.host;
@@ -456,9 +470,7 @@ class MerchCardEditor extends LitElement {
 
     async resetFieldToParent(fieldName) {
         const success = this.fragmentStore.resetFieldToParent(fieldName);
-        if (success) {
-            showToast(`Field restored to ${this.isInheritedFromBaseline(fieldName) ? 'baseline' : 'parent'} value`, 'positive');
-        }
+        if (success) this.#showRestoredToast(fieldName);
         return success;
     }
 
@@ -551,40 +563,26 @@ class MerchCardEditor extends LitElement {
     }
 
     isAddonBgOverridden() {
-        if (this.effectiveIsVariation) {
-            const settingsValue = this.globalSettingsDefaults[ADDON];
-            const currentValue = this.fragment.getField(ADDON)?.values[0];
-            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
-            let parentBg;
-            if (this.isAddonWebComponent(parentValue)) {
-                parentBg = this.getAddonElement(parentValue).getAttribute('background');
-            }
-            if (this.isAddonWebComponent(currentValue)) {
-                const currentBg = this.getAddonElement(currentValue).getAttribute('background');
-                return !!currentBg && currentBg !== parentBg;
-            }
-        }
-
-        return false;
+        return (
+            this.getComponentState(ADDON, parseAddonBackground, 'background', this.globalSettingsDefaults[ADDON]) ===
+            'overridden'
+        );
     }
 
     renderAddonBgFieldStatusIndicator() {
-        if (this.effectiveIsVariation) {
-            const settingsValue = this.globalSettingsDefaults[ADDON];
-            const currentValue = this.fragment.getField(ADDON)?.values[0];
-            const parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
+        return this.renderComponentStatusIndicator(
+            ADDON,
+            parseAddonBackground,
+            'background',
+            () => this.#restoreAddonBackground(),
+            this.globalSettingsDefaults[ADDON],
+        );
+    }
 
-            let currentBg;
-            let parentBg;
-            if (this.isAddonWebComponent(currentValue)) {
-                currentBg = this.getAddonElement(currentValue).getAttribute('background');
-            }
-            if (this.isAddonWebComponent(parentValue)) {
-                parentBg = this.getAddonElement(parentValue).getAttribute('background');
-            }
-            if (currentBg === parentBg) return nothing;
-        }
-        return this.renderFieldStatusIndicator(ADDON);
+    #restoreAddonBackground() {
+        const parentHtml = this.inheritanceParent.getFieldValue(ADDON, 0) || this.globalSettingsDefaults[ADDON];
+        this.#setAddonBackground(parseAddonBackground(parentHtml).background);
+        this.#showRestoredToast(ADDON);
     }
 
     renderValidationBanner() {
@@ -1031,9 +1029,13 @@ class MerchCardEditor extends LitElement {
     }
 
     get whatsIncludedDividerFromMarkup() {
-        const el = this.whatsIncludedElement;
-        const v = el?.getAttribute('whats-included-divider-color')?.trim();
-        return v || '';
+        return parseWhatsIncludedDivider(this.getEffectiveFieldValue(WHAT_IS_INCLUDED, 0)).divider;
+    }
+
+    #restoreWhatsIncludedDivider() {
+        const parentHtml = this.inheritanceParent.getFieldValue(WHAT_IS_INCLUDED, 0) || '';
+        this.#persistWhatsIncludedDividerColor(parseWhatsIncludedDivider(parentHtml).divider);
+        this.#showRestoredToast(WHAT_IS_INCLUDED);
     }
 
     /** Persists divider token on `<merch-whats-included whats-included-divider-color>` inside the whatsIncluded field HTML. */
@@ -1938,7 +1940,7 @@ class MerchCardEditor extends LitElement {
                                           >`
                                         : nothing}
                               </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('desktop')}
+                              ${this.renderBackgroundStatusIndicator('desktop')}
 
                               <sp-field-label for="background-tablet">Background Tablet</sp-field-label>
                               <sp-textfield
@@ -1960,7 +1962,7 @@ class MerchCardEditor extends LitElement {
                                           >`
                                         : nothing}
                               </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('tablet')}
+                              ${this.renderBackgroundStatusIndicator('tablet')}
 
                               <sp-field-label for="background-mobile">Background Mobile</sp-field-label>
                               <sp-textfield
@@ -1982,7 +1984,7 @@ class MerchCardEditor extends LitElement {
                                           >`
                                         : nothing}
                               </sp-textfield>
-                              ${this.#renderBackgroundStatusIndicator('mobile')}
+                              ${this.renderBackgroundStatusIndicator('mobile')}
                           </sp-field-group>
                       `
                     : nothing}
@@ -2817,15 +2819,33 @@ class MerchCardEditor extends LitElement {
         return this.getEffectiveFieldValue('trialBadge', 0) || '';
     }
 
-    #getCompositeComponentState(fieldName, parser, component, getOwnHtml) {
+    /** State of one part (`component`) of an HTML field, compared with the same part of the parent's value.
+     *  `fallbackHtml` stands in for an empty value on both sides (e.g. the global settings default). */
+    getComponentState(fieldName, parser, component, fallbackHtml = '') {
         if (this.getFieldState(fieldName) === 'no-parent') return 'no-parent';
-        const ownHtml = getOwnHtml ? getOwnHtml() : this.fragment?.getFieldValue(fieldName, 0) || '';
-        const parentHtml = this.inheritanceParent.getFieldValue(fieldName, 0) || '';
-        const ownParsed = parser(ownHtml);
-        const parentParsed = parser(parentHtml);
-        const ownValue = ownParsed[component];
-        const parentValue = parentParsed[component];
+        const ownValue = parser(this.getEffectiveFieldValue(fieldName, 0) || fallbackHtml)[component];
+        const parentValue = parser(this.inheritanceParent.getFieldValue(fieldName, 0) || fallbackHtml)[component];
         return ownValue === parentValue ? 'inherited' : 'overridden';
+    }
+
+    isComponentFromBaseline(fieldName, parser, component) {
+        return (
+            this.getComponentState(fieldName, parser, component) === 'inherited' &&
+            Boolean(parser(this.getEffectiveFieldValue(fieldName, 0) || '')[component]) &&
+            this.isInheritedFromBaseline(fieldName)
+        );
+    }
+
+    renderComponentStatusIndicator(fieldName, parser, component, restore, fallbackHtml = '') {
+        if (this.getComponentState(fieldName, parser, component, fallbackHtml) === 'overridden') {
+            return this.#renderOverrideIndicatorLink(restore);
+        }
+        if (!this.isComponentFromBaseline(fieldName, parser, component)) return nothing;
+        return this.fromBaselineIndicator;
+    }
+
+    #showRestoredToast(fieldName) {
+        showToast(`Field restored to ${this.isInheritedFromBaseline(fieldName) ? 'baseline' : 'parent'} value`, 'positive');
     }
 
     #getQuantitySelectValue(component, field, parentValues, currentValues) {
@@ -2855,34 +2875,21 @@ class MerchCardEditor extends LitElement {
     }
 
     getBadgeComponentState(fieldName, component) {
-        return this.#getCompositeComponentState(
-            fieldName,
-            parseBadgeHtml,
-            component,
-            () => this.getEffectiveFieldValue(fieldName, 0) || '',
-        );
+        return this.getComponentState(fieldName, parseBadgeHtml, component);
     }
 
     #getColorPickerFieldState(dataField) {
         if (dataField === 'whatsIncludedDividerColor') {
-            return this.getFieldState(WHAT_IS_INCLUDED);
+            return this.getComponentState(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider');
         }
         return this.getFieldState(dataField);
-    }
-
-    isBadgeComponentFromBaseline(fieldName, component) {
-        return (
-            this.getBadgeComponentState(fieldName, component) === 'inherited' &&
-            Boolean(parseBadgeHtml(this.getEffectiveFieldValue(fieldName, 0) || '')[component]) &&
-            this.isInheritedFromBaseline(fieldName)
-        );
     }
 
     getBadgeFromBaseline(fieldName) {
         return Object.fromEntries(
             ['text', 'icon', 'bgColor', 'borderColor'].map((component) => [
                 component,
-                this.isBadgeComponentFromBaseline(fieldName, component),
+                this.isComponentFromBaseline(fieldName, parseBadgeHtml, component),
             ]),
         );
     }
@@ -2900,7 +2907,7 @@ class MerchCardEditor extends LitElement {
             variant: this.supportsBadgeColors ? this.getEffectiveFieldValue('variant') : undefined,
         });
         this.fragmentStore.updateField(fieldName, [value]);
-        showToast(`Field restored to ${this.isInheritedFromBaseline(fieldName) ? 'baseline' : 'parent'} value`, 'positive');
+        this.#showRestoredToast(fieldName);
     }
 
     #displayTrialBadgeColorFields(text) {
@@ -3067,7 +3074,7 @@ class MerchCardEditor extends LitElement {
     }
 
     get #parentBackgroundsHtml() {
-        return this.localeDefaultFragment?.getFieldValue?.('backgrounds') ?? '';
+        return this.inheritanceParent?.getFieldValue('backgrounds') ?? '';
     }
 
     #getOwnBackgroundsUrls() {
@@ -3128,7 +3135,7 @@ class MerchCardEditor extends LitElement {
      *  platform resolves that back to the parent — so an empty own value must report
      *  'inherited', not get compared against the parent as if it were real content. */
     #getBackgroundBreakpointState(key) {
-        if (!this.effectiveIsVariation) return 'no-parent';
+        if (this.getFieldState('backgrounds') === 'no-parent') return 'no-parent';
         return resolveBackgroundBreakpointState(key, this.#ownBackgroundsHtml, this.#parentBackgroundsHtml);
     }
 
@@ -3149,13 +3156,16 @@ class MerchCardEditor extends LitElement {
         }
         this.backgroundsDimensionsInvalid = { ...this.backgroundsDimensionsInvalid, [key]: false };
         this.#commitBackgroundsHtml(buildBackgroundsHtml(current, dimensions));
-        showToast('Field restored to parent value', 'positive');
+        this.#showRestoredToast('backgrounds');
     }
 
-    #renderBackgroundStatusIndicator(key) {
-        if (!this.effectiveIsVariation) return nothing;
-        if (this.#getBackgroundBreakpointState(key) !== 'overridden') return nothing;
-        return this.#renderOverrideIndicatorLink(() => this.#resetBackgroundBreakpointToParent(key));
+    renderBackgroundStatusIndicator(key) {
+        const state = this.#getBackgroundBreakpointState(key);
+        if (state === 'overridden')
+            return this.#renderOverrideIndicatorLink(() => this.#resetBackgroundBreakpointToParent(key));
+        if (state === 'no-parent' || !parseBackgroundsUrls(this.#parentBackgroundsHtml)[key]) return nothing;
+        if (!this.isInheritedFromBaseline('backgrounds')) return nothing;
+        return this.fromBaselineIndicator;
     }
 
     static #ADDON_DEFAULT = 'transparent';
@@ -3164,11 +3174,7 @@ class MerchCardEditor extends LitElement {
     static #ADDON_GREY = '#dadada';
 
     #getAddonBackground(addonHtml) {
-        if (!addonHtml) return undefined;
-        const temp = document.createElement('div');
-        temp.innerHTML = addonHtml;
-        const first = temp.firstElementChild;
-        return first?.tagName?.toLowerCase() === ADDON_TAG ? first.getAttribute('background') || undefined : undefined;
+        return parseAddonBackground(addonHtml).background || undefined;
     }
 
     // Shared by every "which merch-addon[background] value is authored"
@@ -3183,13 +3189,7 @@ class MerchCardEditor extends LitElement {
         const first = temp.firstElementChild;
         const innerContent = first?.tagName?.toLowerCase() === ADDON_TAG ? first.innerHTML : addonHtml;
         const newAddonHtml = bgValue ? `<merch-addon background="${bgValue}">${innerContent}</merch-addon>` : innerContent;
-        const fragment = this.fragmentStore.get();
-        if (newAddonHtml === addonHtmlSettings) {
-            fragment.updateField(ADDON, ['']);
-        } else {
-            fragment.updateField(ADDON, [newAddonHtml]);
-        }
-        this.fragmentStore.set(fragment);
+        this.fragmentStore.updateField(ADDON, [newAddonHtml === addonHtmlSettings ? '' : newAddonHtml]);
     }
 
     #renderAddonBackgroundPicker(form) {
@@ -3388,7 +3388,11 @@ class MerchCardEditor extends LitElement {
                         `,
                     )}
                 </sp-picker>
-                ${this.renderFieldStatusIndicator(dataField)}
+                ${isDividerField
+                    ? this.renderComponentStatusIndicator(WHAT_IS_INCLUDED, parseWhatsIncludedDivider, 'divider', () =>
+                          this.#restoreWhatsIncludedDivider(),
+                      )
+                    : this.renderFieldStatusIndicator(dataField)}
             </sp-field-group>
         `;
     }

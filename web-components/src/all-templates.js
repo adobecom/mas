@@ -1,5 +1,6 @@
 // Every template, for mas.js (CCD, Adobe Home, Studio) and unit tests. Pages
 // load a bundle of templates instead (templates/<bundle>.js, see build.mjs).
+// The headless family comes with merch-card.js.
 import { registerTemplates } from './template-registry.js';
 import { define as ahPromotedPlans } from './templates/ah-promoted-plans.js';
 import { define as ahTryBuyWidget } from './templates/ah-try-buy-widget.js';
@@ -10,7 +11,6 @@ import { define as ccdSuggested } from './templates/ccd-suggested.js';
 import { define as compareChartColumn } from './templates/compare-chart-column.js';
 import { define as fries } from './templates/fries.js';
 import { define as fullPricingExpress } from './templates/full-pricing-express.js';
-import { define as headless } from './templates/headless.js';
 import { define as image } from './templates/image.js';
 import { define as inlineHeading } from './templates/inline-heading.js';
 import { define as media } from './templates/media.js';
@@ -37,7 +37,6 @@ for (const define of [
     compareChartColumn,
     fries,
     fullPricingExpress,
-    headless,
     image,
     inlineHeading,
     media,

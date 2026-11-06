@@ -62,7 +62,7 @@ export function whenTemplate(name) {
                 pending.delete(name);
                 reject(
                     new Error(
-                        `template "${name}" is not loaded on ${window.location.pathname}: add it to this page's bundle in the Milo merch.js template rules`,
+                        `template "${name}" is not loaded on ${window.location.pathname}: add it to this page's bundle (MERCH_CARD_TEMPLATE_RULES in Milo libs/utils/utils.js)`,
                     ),
                 );
             }, TEMPLATE_LOAD_TIMEOUT);

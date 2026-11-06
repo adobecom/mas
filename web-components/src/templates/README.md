@@ -8,7 +8,8 @@ styles. This folder holds every template and is the reference for which page loa
 
 ## How templates load
 
-`merch-card.js` contains no templates. Milo (`libs/blocks/merch/merch.js`) matches the page URL against the rules below.
+`merch-card.js` contains one family of templates: headless, marquee, faq and banner-blade (`headless.js`), because
+the global nav uses headless cards on every page. Every other template comes in a bundle. Milo (`MERCH_CARD_TEMPLATE_RULES` in `libs/utils/utils.js`) matches the page URL against the rules below.
 It loads `merch-card.js` and the matching bundle in parallel, so no request waits on another before the first card
 renders.
 
@@ -37,21 +38,22 @@ bundles (`ccd`, `ah`, `bc`, `aup`) are built so those apps can switch to `merch-
 
 ## Bundles
 
-A bundle is a build output (`dist/templates/<bundle>.js`) that registers a group of templates. A template can belong to
+A bundle is a build output (`dist/templates/<bundle>.js`) that registers a group of templates. The headless family is
+not in any bundle; it is in `merch-card.js`. A template can belong to
 several bundles: a page loads one bundle, and if two loaded bundles register the same template, the first registration
 wins.
 
-| Bundle    | Used by                          | Templates                                                                                                                                                                                                                                                   |
-| --------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dc`      | Acrobat plans                    | pro                                                                                                                                                                                                                                                         |
-| `catalog` | Catalog                          | catalog                                                                                                                                                                                                                                                     |
-| `cc`      | Creative Cloud and product pages | plans, plans-students, plans-education, plans-v2, pro, segment, special-offers, product, product-c2, product-pricing, mini-compare-chart, mini-compare-chart-mweb, image, media, headless, compare-chart-column, marquee, faq, banner-blade, inline-heading |
-| `firefly` | Firefly                          | pro                                                                                                                                                                                                                                                         |
-| `express` | Express                          | simplified-pricing-express, full-pricing-express, compare-chart-column                                                                                                                                                                                      |
-| `ah`      | Adobe Home (opt-in)              | ah-try-buy-widget, ah-promoted-plans, mini                                                                                                                                                                                                                  |
-| `ccd`     | Creative Cloud Desktop (opt-in)  | ccd-slice, ccd-suggested, mini                                                                                                                                                                                                                              |
-| `bc`      | Brand Concierge (opt-in)         | brand-concierge-product                                                                                                                                                                                                                                     |
-| `aup`     | Commerce (opt-in)                | fries                                                                                                                                                                                                                                                       |
+| Bundle    | Used by                          | Templates                                                                                                                                                                                                             |
+| --------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dc`      | Acrobat plans                    | pro, compare-chart-column                                                                                                                                                                                             |
+| `catalog` | Catalog                          | catalog                                                                                                                                                                                                               |
+| `cc`      | Creative Cloud and product pages | plans, plans-students, plans-education, plans-v2, pro, segment, special-offers, product, product-c2, product-pricing, mini-compare-chart, mini-compare-chart-mweb, image, media, compare-chart-column, inline-heading |
+| `firefly` | Firefly                          | pro                                                                                                                                                                                                                   |
+| `express` | Express                          | simplified-pricing-express, full-pricing-express, compare-chart-column                                                                                                                                                |
+| `ah`      | Adobe Home (opt-in)              | ah-try-buy-widget, ah-promoted-plans, mini                                                                                                                                                                            |
+| `ccd`     | Creative Cloud Desktop (opt-in)  | ccd-slice, ccd-suggested, mini                                                                                                                                                                                        |
+| `bc`      | Brand Concierge (opt-in)         | brand-concierge-product                                                                                                                                                                                               |
+| `aup`     | Commerce (opt-in)                | fries                                                                                                                                                                                                                 |
 
 ## Templates
 
@@ -61,19 +63,19 @@ Surfaces are where Studio lets authors pick the template (`studio/src/editors/va
 | -------------------------- | -------------------------- | -------------------------------------------------- | --------------- |
 | ah-promoted-plans          | Promoted Plans             | Adobe Home                                         | ah              |
 | ah-try-buy-widget          | Try Buy Widget             | Adobe Home                                         | ah              |
-| banner-blade               | Banner/Blade               | acom, acom-cc, acom-dc, sandbox, nala              | cc              |
+| banner-blade               | Banner/Blade               | acom, acom-cc, acom-dc, sandbox, nala              | merch-card.js   |
 | brand-concierge-product    | Brand Concierge Product    | Brand Concierge                                    | bc              |
 | catalog                    | Catalog                    | acom                                               | catalog         |
 | ccd-slice                  | Slice                      | CCD                                                | ccd             |
 | ccd-suggested              | Suggested                  | CCD                                                | ccd             |
-| compare-chart-column       | Compare Chart Column       | acom, acom-cc, acom-dc, Express                    | cc, express     |
-| faq                        | FAQ                        | acom, acom-cc, acom-dc, sandbox, nala              | cc              |
+| compare-chart-column       | Compare Chart Column       | acom, acom-cc, acom-dc, Express                    | dc, cc, express |
+| faq                        | FAQ                        | acom, acom-cc, acom-dc, sandbox, nala              | merch-card.js   |
 | fries                      | Fries                      | Commerce                                           | aup             |
 | full-pricing-express       | Full Pricing Express       | Express                                            | express         |
-| headless                   | Headless                   | acom, acom-cc, acom-dc, acom-edu, genuine, sandbox | cc              |
+| headless                   | Headless                   | acom, acom-cc, acom-dc, acom-edu, genuine, sandbox | merch-card.js   |
 | image                      | Image                      | acom-cc, acom-dc                                   | cc              |
 | inline-heading             | (not authorable in Studio) | Milo markup only                                   | cc              |
-| marquee                    | Marquee                    | acom, acom-cc, acom-dc, sandbox, nala              | cc              |
+| marquee                    | Marquee                    | acom, acom-cc, acom-dc, sandbox, nala              | merch-card.js   |
 | media                      | Media                      | acom                                               | cc              |
 | mini                       | Mini                       | CCD, Adobe Home                                    | ah, ccd         |
 | mini-compare-chart         | Mini Compare Chart         | acom-cc, acom-dc, acom-edu                         | cc              |
@@ -199,6 +201,6 @@ calls `MerchCard.registerTemplates(define)` for each. `mas.js` and the unit test
 
 1. Create `<template>.js` in this folder and add it to `src/all-templates.js` and `test/templates.test.js`.
 2. Add it to the bundles that need it in `build.mjs`. If a page needs a new bundle, add the bundle here and its rule
-   in Milo `merch.js`.
+   in Milo `libs/utils/utils.js` (`MERCH_CARD_TEMPLATE_RULES`).
 3. Add it to Studio's template picker (`studio/src/editors/variant-picker.js`) with its surfaces.
 4. Add tests, update this README (tables above), and run perf-ab on a page that uses it.

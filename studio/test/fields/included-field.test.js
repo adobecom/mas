@@ -203,7 +203,7 @@ describe('Included field', () => {
 
     it('renders library icons in the spectrum system for the pro variant', async () => {
         const el = await fixture(
-            html`<mas-included-field data-field-state="bullet" icon="sp-icon-lock" variant="pro"></mas-included-field>`,
+            html`<mas-included-field iconlibrary icon="sp-icon-lock" variant="pro"></mas-included-field>`,
             { parentNode: spTheme() },
         );
 
@@ -254,5 +254,29 @@ describe('Included field', () => {
         await el.updateComplete;
         const valueEl = el.shadowRoot.querySelector('.included-info .value');
         expect(valueEl.querySelector('.icon-button')).to.exist;
+    });
+
+    it('shows From baseline under an item inherited from the baseline', async () => {
+        const el = await fixture(
+            html`<mas-included-field data-field-state="baseline" icon="sp-icon-lock"></mas-included-field>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        const indicator = el.shadowRoot.querySelector('.field-status-indicator--baseline');
+        expect(indicator.textContent.trim()).to.equal('From baseline');
+    });
+
+    it('fires restore-field from the override link of an overridden item', async () => {
+        const el = await fixture(
+            html`<mas-included-field data-field-state="overridden" icon="sp-icon-lock"></mas-included-field>`,
+            {
+                parentNode: spTheme(),
+            },
+        );
+        const listener = oneEvent(el, 'restore-field');
+        el.shadowRoot.querySelector('.field-status-restore-link').click();
+        const event = await listener;
+        expect(event.composed).to.be.true;
     });
 });

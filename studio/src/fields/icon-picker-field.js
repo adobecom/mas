@@ -3,6 +3,8 @@ import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { EVENT_CHANGE } from '../constants.js';
 import { renderSpIcon } from '../constants/icon-library.js';
 import { VARIANT_NAMES } from '../editors/variant-picker.js';
+import { fieldStatusStyles } from '../common/fields/field-status.css.js';
+import { itemStatusIndicator } from '../common/fields/item-status.js';
 import '../mas-icon-picker-modal.js';
 
 class IconPickerField extends LitElement {
@@ -13,88 +15,92 @@ class IconPickerField extends LitElement {
             link: { type: String, reflect: true },
             variant: { type: String, reflect: true },
             modalOpen: { type: Boolean, state: true },
+            fieldState: { type: String, attribute: 'data-field-state' },
         };
     }
 
-    static styles = css`
-        :host {
-            display: block;
-        }
+    static styles = [
+        fieldStatusStyles,
+        css`
+            :host {
+                display: block;
+            }
 
-        .included-preview {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px;
-            border: 1px solid var(--spectrum-gray-300);
-            border-radius: 8px;
-            min-height: 48px;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-        }
+            .included-preview {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                border: 1px solid var(--spectrum-gray-300);
+                border-radius: 8px;
+                min-height: 48px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+            }
 
-        .icon-preview {
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            .icon-preview {
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
 
-        .icon-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
+            .icon-preview img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
 
-        .icon-placeholder {
-            width: 32px;
-            height: 32px;
-            background: var(--spectrum-gray-200);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--spectrum-gray-600);
-        }
+            .icon-placeholder {
+                width: 32px;
+                height: 32px;
+                background: var(--spectrum-gray-200);
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--spectrum-gray-600);
+            }
 
-        .included-info {
-            flex: 1;
-            min-width: 0;
-        }
+            .included-info {
+                flex: 1;
+                min-width: 0;
+            }
 
-        .included-info .value {
-            font-size: 14px;
-            color: var(--spectrum-gray-900);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+            .included-info .value {
+                font-size: 14px;
+                color: var(--spectrum-gray-900);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-        .included-info .empty {
-            color: var(--spectrum-gray-500);
-            font-style: italic;
-        }
+            .included-info .empty {
+                color: var(--spectrum-gray-500);
+                font-style: italic;
+            }
 
-        .action-menu {
-            margin-left: auto;
-        }
+            .action-menu {
+                margin-left: auto;
+            }
 
-        :host([data-field-state='overridden']) .included-preview {
-            border: 2px solid var(--spectrum-blue-400);
-            background-color: var(--spectrum-blue-100);
-        }
+            :host([data-field-state='overridden']) .included-preview {
+                border: 2px solid var(--spectrum-blue-400);
+                background-color: var(--spectrum-blue-100);
+            }
 
-        .value .icon-button {
-            display: inline-flex;
-            min-width: 14px;
-            min-height: 14px;
-            vertical-align: middle;
-            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
-            background-size: 14px;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-    `;
+            .value .icon-button {
+                display: inline-flex;
+                min-width: 14px;
+                min-height: 14px;
+                vertical-align: middle;
+                background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="14" width="14"><path d="M7 .778A6.222 6.222 0 1 0 13.222 7 6.222 6.222 0 0 0 7 .778zM6.883 2.45a1.057 1.057 0 0 1 1.113.998q.003.05.001.1a1.036 1.036 0 0 1-1.114 1.114A1.052 1.052 0 0 1 5.77 3.547 1.057 1.057 0 0 1 6.784 2.45q.05-.002.1.001zm1.673 8.05a.389.389 0 0 1-.39.389H5.834a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h.388V7h-.389a.389.389 0 0 1-.389-.389v-.778a.389.389 0 0 1 .39-.389h1.555a.389.389 0 0 1 .389.39v3.5h.389a.389.389 0 0 1 .389.388z"/></svg>');
+                background-size: 14px;
+                background-repeat: no-repeat;
+                background-position: center;
+            }
+        `,
+    ];
 
     constructor() {
         super();
@@ -275,6 +281,7 @@ class IconPickerField extends LitElement {
                 @modal-close=${this.#handleModalClose}
                 @save=${this.#handleModalSave}
             ></mas-icon-picker-modal>
+            ${itemStatusIndicator(this.fieldState)}
         `;
     }
 }

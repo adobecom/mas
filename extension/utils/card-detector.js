@@ -40,16 +40,25 @@ class CardDetector {
         this.observer = null;
         this.pageLocale = null;
         this.onCardDetectedCallbacks = [];
+        this.onCardUpdatedCallbacks = [];
         this.maxCards = 200;
         this.pendingCards = [];
         this.idleHandle = null;
         this.elementIds = new WeakMap();
         this.elementCounter = 0;
+        this.visibilityObserver = null;
+        this.visibilityCandidates = new WeakMap();
     }
 
     onCardDetected(callback) {
         if (typeof callback !== 'function') return;
         this.onCardDetectedCallbacks.push(callback);
+    }
+
+    /** Fires when a recorded card is re-anchored to a different element, so overlays reposition. */
+    onCardUpdated(callback) {
+        if (typeof callback !== 'function') return;
+        this.onCardUpdatedCallbacks.push(callback);
     }
 
     initialize() {
@@ -186,11 +195,14 @@ class CardDetector {
 
         // A mas-field renders its content asynchronously, and a text-only field (a title,
         // say) adds no element node the walk above would match. Re-queue the owning field
-        // on any mutation inside it so it is picked up once its fragment resolves.
+        // on any mutation inside it so it is picked up once its fragment resolves, and so a
+        // field already recorded re-anchors when a re-render replaces its content element.
         const enqueueFieldOwner = (target) => {
-            if (this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
             const owner = target?.closest?.(SELECTOR_MAS_FIELD);
-            if (owner && !this.elementIds.has(owner)) this.pendingCards.push(owner);
+            if (!owner || this.pendingCards.includes(owner)) return;
+            const isNew = !this.elementIds.has(owner);
+            if (isNew && this.detectedCards.size + this.pendingCards.length >= this.maxCards) return;
+            this.pendingCards.push(owner);
         };
 
         this.observer = new MutationObserver((mutations) => {
@@ -243,17 +255,30 @@ class CardDetector {
             return;
         }
 
-        if (this.detectedCards.has(fragmentId)) {
-            return;
-        }
+        const existing = this.detectedCards.get(fragmentId);
+        if (existing?.element === cardElement) return;
 
         if (cardElement.updateComplete) {
             await cardElement.updateComplete;
         }
 
         // A hidden responsive twin shares this fragment id; skip it so the visible copy is the one
-        // stored for this fragment rather than losing the dedupe race to an invisible element.
-        if (!this.hasBox(cardElement)) return;
+        // stored for this fragment rather than losing the dedupe race to an invisible element, and
+        // watch it so it is re-evaluated once a breakpoint or class change gives it a box.
+        if (!this.hasBox(cardElement)) {
+            this.deferUntilVisible(cardElement);
+            return;
+        }
+
+        if (existing) {
+            // One record per fragment: when the recorded twin is the one now hidden, the record
+            // follows this visible twin and the hidden one is watched for the flip back.
+            if (this.hasBox(existing.anchorElement)) return;
+            const hiddenTwin = existing.element;
+            this.rebindAnchor(existing, cardElement, cardElement);
+            this.deferUntilVisible(hiddenTwin);
+            return;
+        }
 
         const localeInfo = this.pageLocale || this.getPageLocale();
         const elementType = cardElement.tagName === 'MERCH-CARD-COLLECTION' ? 'collection' : 'card';
@@ -292,6 +317,47 @@ class CardDetector {
                 console.error('Card-detected callback error:', err);
             }
         }
+    }
+
+    dispatchCardUpdatedEvent(cardData) {
+        for (const cb of this.onCardUpdatedCallbacks) {
+            try {
+                cb(cardData);
+            } catch (err) {
+                console.error('Card-updated callback error:', err);
+            }
+        }
+    }
+
+    /** Points a recorded card at a different live element, keeping its id and fragment data. */
+    rebindAnchor(cardData, element, anchorElement) {
+        cardData.element = element;
+        cardData.anchorElement = anchorElement;
+        cardData.boundingRect = anchorElement.getBoundingClientRect();
+        this.dispatchCardUpdatedEvent(cardData);
+    }
+
+    /**
+     * Watches a candidate that currently renders no box (a responsive twin hidden at this
+     * breakpoint, a block hidden by a class) and re-queues it for detection once its box appears.
+     * `box` is the element whose size to watch when the candidate itself never has one
+     * (a display:contents mas-field is watched through its content element).
+     */
+    deferUntilVisible(element, box = element) {
+        if (typeof ResizeObserver !== 'function') return;
+        if (!this.visibilityObserver) {
+            this.visibilityObserver = new ResizeObserver((entries) => {
+                for (const { target } of entries) {
+                    if (!this.hasBox(target)) continue;
+                    this.visibilityObserver.unobserve(target);
+                    const candidate = this.visibilityCandidates.get(target) || target;
+                    if (!this.pendingCards.includes(candidate)) this.pendingCards.push(candidate);
+                }
+                if (this.pendingCards.length) this.scheduleProcessing();
+            });
+        }
+        this.visibilityCandidates.set(box, element);
+        this.visibilityObserver.observe(box);
     }
 
     readPromotion(cardElement, elementType) {
@@ -348,7 +414,10 @@ class CardDetector {
         const osi = element.getAttribute('data-wcs-osi');
         if (!osi) return;
 
-        if (!this.hasBox(element)) return;
+        if (!this.hasBox(element)) {
+            this.deferUntilVisible(element);
+            return;
+        }
 
         if (this.detectedCards.size >= this.maxCards) return;
 
@@ -386,7 +455,10 @@ class CardDetector {
      * element is skipped in processBareElement and the whole field gets a single badge.
      */
     processMasField(element) {
-        if (this.elementIds.has(element)) return;
+        if (this.elementIds.has(element)) {
+            this.refreshFieldAnchor(element);
+            return;
+        }
         if (this.isInsideCard(element)) return;
 
         // Absent until the backing fragment resolves; a later mutation retries.
@@ -396,12 +468,13 @@ class CardDetector {
         if (this.detectedCards.size >= this.maxCards) return;
 
         const commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT);
-        // mas-field is display:contents, so it has no box of its own to anchor a badge to; use its
-        // rendered content span (or the commerce element it hosts). A field in a hidden responsive
-        // variant renders a zero-size content span, so skip it until it has a box -- a later mutation
-        // re-queues the field -- rather than badging an invisible duplicate.
-        const anchorElement = element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
-        if (!this.hasBox(anchorElement)) return;
+        // A field in a hidden responsive variant renders a zero-size content element, so it is
+        // watched rather than badged as an invisible duplicate.
+        const anchorElement = this.resolveFieldAnchor(element, commerceChild);
+        if (!this.hasBox(anchorElement)) {
+            this.deferUntilVisible(element, anchorElement);
+            return;
+        }
 
         const id = `field-${++this.elementCounter}`;
         this.elementIds.set(element, id);
@@ -429,6 +502,26 @@ class CardDetector {
 
         this.detectedCards.set(id, elementData);
         this.dispatchCardDetectedEvent(elementData);
+    }
+
+    /**
+     * mas-field is display:contents, so it has no box of its own to anchor a badge to; use its
+     * rendered content element (or the commerce element it hosts).
+     */
+    resolveFieldAnchor(element, commerceChild = element.querySelector(SELECTOR_BARE_ELEMENT)) {
+        return element.querySelector(SELECTOR_MAS_FIELD_CONTENT) || commerceChild || element;
+    }
+
+    /**
+     * A re-render replaces a field's content element (an image field installs a fresh <picture>),
+     * leaving the recorded anchor detached with a zero-size box. Point the record at the live one.
+     */
+    refreshFieldAnchor(element) {
+        const cardData = this.detectedCards.get(this.elementIds.get(element));
+        if (!cardData) return;
+        const anchorElement = this.resolveFieldAnchor(element);
+        if (anchorElement === cardData.anchorElement || !this.hasBox(anchorElement)) return;
+        this.rebindAnchor(cardData, element, anchorElement);
     }
 
     getAllCards() {
@@ -504,6 +597,10 @@ class CardDetector {
     destroy() {
         if (this.observer) {
             this.observer.disconnect();
+        }
+        if (this.visibilityObserver) {
+            this.visibilityObserver.disconnect();
+            this.visibilityObserver = null;
         }
         this.detectedCards.clear();
     }

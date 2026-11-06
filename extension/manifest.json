@@ -1,13 +1,13 @@
 {
     "manifest_version": 3,
     "name": "Merch @ Scale Display",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Detect, inspect, and edit content from Merch At Scale Studio in any page",
     "content_security_policy": {
-        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://mas.adobe.com https://www.adobe.com https://www.stage.adobe.com;"
+        "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'none'; connect-src https://www.adobe.com https://www.stage.adobe.com;"
     },
-    "permissions": ["storage", "tabs"],
-    "host_permissions": ["https://mas.adobe.com/*", "https://www.adobe.com/*", "https://www.stage.adobe.com/*"],
+    "permissions": ["storage", "activeTab"],
+    "host_permissions": ["https://www.adobe.com/*", "https://www.stage.adobe.com/*"],
     "background": {
         "service_worker": "background.js"
     },
@@ -41,11 +41,5 @@
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
-    },
-    "web_accessible_resources": [
-        {
-            "resources": ["content/content.css"],
-            "matches": ["https://*.adobe.com/*", "https://*.aem.page/*", "https://*.aem.live/*"]
-        }
-    ]
+    }
 }

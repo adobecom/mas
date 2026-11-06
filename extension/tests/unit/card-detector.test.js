@@ -526,3 +526,211 @@ test('highlightCard does nothing when no ancestor renders a box', () => {
     assert.doesNotThrow(() => d.highlightCard('x'));
     assert.equal(anchor.scrolled, false);
 });
+
+// A ResizeObserver stand-in: records observed targets and lets a test report a new box for one.
+function fakeResizeObserver() {
+    const instances = [];
+    class FakeResizeObserver {
+        constructor(callback) {
+            this.callback = callback;
+            this.targets = new Set();
+            this.disconnected = false;
+            instances.push(this);
+        }
+        observe(target) {
+            this.targets.add(target);
+        }
+        unobserve(target) {
+            this.targets.delete(target);
+        }
+        disconnect() {
+            this.disconnected = true;
+            this.targets.clear();
+        }
+        resize(target) {
+            this.callback([{ target }], this);
+        }
+    }
+    return { FakeResizeObserver, instances };
+}
+
+function withResizeObserver(run) {
+    const { FakeResizeObserver, instances } = fakeResizeObserver();
+    global.ResizeObserver = FakeResizeObserver;
+    return Promise.resolve(run(instances)).finally(() => {
+        delete global.ResizeObserver;
+    });
+}
+
+const settle = () => new Promise((resolve) => setTimeout(resolve, 40));
+
+test('processCard records a hidden card once it gains a box', () =>
+    withResizeObserver(async (observers) => {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        let visible = false;
+        const card = fakeCard({ fragmentId: 'late' });
+        card.getBoundingClientRect = () => (visible ? VISIBLE_BOX : HIDDEN_BOX);
+        await d.processCard(card);
+        assert.equal(d.detectedCards.size, 0);
+        assert.ok(observers[0].targets.has(card));
+        visible = true;
+        observers[0].resize(card);
+        await settle();
+        assert.equal(d.detectedCards.size, 1);
+        assert.equal(d.detectedCards.get('late').element, card);
+        assert.equal(observers[0].targets.has(card), false);
+    }));
+
+test('processCard leaves a hidden card unobserved when ResizeObserver is unavailable', async () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    await d.processCard(fakeCard({ fragmentId: 'x', visible: false }));
+    assert.equal(d.detectedCards.size, 0);
+    assert.equal(d.visibilityObserver, null);
+});
+
+test('processCard rebinds a fragment to the twin that became visible when the recorded twin lost its box', () =>
+    withResizeObserver(async (observers) => {
+        // A breakpoint flip hides the desktop copy and shows the mobile copy of the same fragment;
+        // the one record for that fragment must follow the visible copy, without a duplicate.
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        let desktopVisible = true;
+        const desktop = fakeCard({ fragmentId: 'dup', name: 'Desktop' });
+        desktop.getBoundingClientRect = () => (desktopVisible ? VISIBLE_BOX : HIDDEN_BOX);
+        const mobile = fakeCard({ fragmentId: 'dup', name: 'Mobile' });
+        mobile.getBoundingClientRect = () => (desktopVisible ? HIDDEN_BOX : VISIBLE_BOX);
+        const updated = [];
+        d.onCardUpdated((data) => updated.push(data));
+        await d.processCard(desktop);
+        await d.processCard(mobile);
+        assert.equal(d.detectedCards.get('dup').anchorElement, desktop);
+        desktopVisible = false;
+        observers[0].resize(mobile);
+        await settle();
+        assert.equal(d.detectedCards.size, 1);
+        assert.equal(d.detectedCards.get('dup').anchorElement, mobile);
+        assert.equal(d.detectedCards.get('dup').element, mobile);
+        assert.equal(updated.length, 1);
+        assert.ok(observers[0].targets.has(desktop), 'the hidden twin is watched for the flip back');
+    }));
+
+test('processCard keeps the recorded twin when a hidden duplicate is re-evaluated while it still has a box', () =>
+    withResizeObserver(async (observers) => {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        const desktop = fakeCard({ fragmentId: 'dup', name: 'Desktop' });
+        const mobile = fakeCard({ fragmentId: 'dup', name: 'Mobile', visible: false });
+        const updated = [];
+        d.onCardUpdated((data) => updated.push(data));
+        await d.processCard(desktop);
+        await d.processCard(mobile);
+        observers[0].resize(mobile);
+        await settle();
+        assert.equal(d.detectedCards.get('dup').anchorElement, desktop);
+        assert.equal(updated.length, 0);
+    }));
+
+test('processBareElement records a hidden price once it gains a box', () =>
+    withResizeObserver(async (observers) => {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        let visible = false;
+        const price = fakeBareElement({ is: 'inline-price', osi: 'abc123' });
+        price.getBoundingClientRect = () => (visible ? VISIBLE_BOX : HIDDEN_BOX);
+        d.processBareElement(price);
+        assert.equal(d.detectedCards.size, 0);
+        visible = true;
+        observers[0].resize(price);
+        await settle();
+        assert.equal(d.detectedCards.size, 1);
+    }));
+
+test('processMasField watches the content span of a hidden field and records the field once it gains a box', () =>
+    withResizeObserver(async (observers) => {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        let visible = false;
+        const contentSpan = { getBoundingClientRect: () => (visible ? VISIBLE_BOX : HIDDEN_BOX) };
+        const field = fakeMasField({ fragmentId: 'frag-7', contentSpan });
+        d.processMasField(field);
+        assert.equal(d.detectedCards.size, 0);
+        assert.ok(observers[0].targets.has(contentSpan));
+        visible = true;
+        observers[0].resize(contentSpan);
+        await settle();
+        assert.equal(d.detectedCards.size, 1);
+        assert.equal(d.detectedCards.values().next().value.element, field);
+    }));
+
+test('processMasField refreshes a recorded field anchor after its content element is replaced', () => {
+    // mas-field swaps its content element on a re-render (an image field installs a new
+    // <picture>), so the badge must follow the live element rather than the detached one.
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const oldSpan = { getBoundingClientRect: () => VISIBLE_BOX };
+    const field = fakeMasField({ fragmentId: 'frag-7', contentSpan: oldSpan });
+    const updated = [];
+    d.onCardUpdated((data) => updated.push(data));
+    d.processMasField(field);
+    const [[id, record]] = d.detectedCards.entries();
+    const newSpan = { getBoundingClientRect: () => VISIBLE_BOX };
+    field.querySelector = (selector) => (selector.includes('mas-field-content') ? newSpan : null);
+    d.processMasField(field);
+    assert.equal(d.detectedCards.size, 1);
+    assert.equal(d.detectedCards.get(id), record);
+    assert.equal(record.anchorElement, newSpan);
+    assert.equal(updated.length, 1);
+    assert.equal(updated[0], record);
+});
+
+test('processMasField leaves a recorded field untouched when its content element is unchanged', () => {
+    const d = new CardDetector();
+    d.pageLocale = { locale: 'en_US', country: 'US' };
+    const field = fakeMasField({ fragmentId: 'frag-7' });
+    const updated = [];
+    d.onCardUpdated((data) => updated.push(data));
+    d.processMasField(field);
+    d.processMasField(field);
+    assert.equal(updated.length, 0);
+});
+
+test('a mutation inside a recorded mas-field re-queues it so its anchor is refreshed', () => {
+    const observers = [];
+    global.MutationObserver = class {
+        constructor(callback) {
+            this.callback = callback;
+            observers.push(this);
+        }
+        observe() {}
+        disconnect() {}
+    };
+    global.Node = { ELEMENT_NODE: 1 };
+    global.document.body = {};
+    try {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        const field = fakeMasField({ fragmentId: 'frag-7' });
+        d.processMasField(field);
+        d.scheduleProcessing = () => {};
+        d.startObserving();
+        observers[0].callback([{ addedNodes: [], target: { closest: () => field } }]);
+        assert.ok(d.pendingCards.includes(field));
+        observers[0].callback([{ addedNodes: [], target: { closest: () => field } }]);
+        assert.equal(d.pendingCards.filter((el) => el === field).length, 1);
+    } finally {
+        delete global.MutationObserver;
+        delete global.Node;
+        delete global.document.body;
+    }
+});
+
+test('destroy disconnects the visibility observer', () =>
+    withResizeObserver(async (observers) => {
+        const d = new CardDetector();
+        d.pageLocale = { locale: 'en_US', country: 'US' };
+        await d.processCard(fakeCard({ fragmentId: 'x', visible: false }));
+        d.destroy();
+        assert.equal(observers[0].disconnected, true);
+    }));

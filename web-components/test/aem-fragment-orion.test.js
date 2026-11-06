@@ -109,7 +109,10 @@ describe('Orion fragment requests and cache isolation', () => {
                 new Response(
                     JSON.stringify({
                         id: 'requested-id',
-                        fields: { title: mode === 'on' ? 'Orion' : 'Legacy' },
+                        fields: {
+                            originalId: 'requested-id',
+                            title: mode === 'on' ? 'Orion' : 'Legacy',
+                        },
                         wcs: {
                             [mode === 'on' ? 'stage-latest' : 'stage']: {
                                 'test-osi-gb': [{ offerId: mode }],
@@ -275,6 +278,65 @@ describe('Orion fragment requests and cache isolation', () => {
 
             expect(await fragment.refresh()).to.be.false;
             expect(failed.calledOnce).to.be.true;
+        });
+    }
+
+    for (const [attribute, value] of [
+        ['fragment', 'other-id'],
+        ['mask', 'mask-id'],
+        ['pzn', 'segment'],
+    ]) {
+        for (const [env, mode] of [
+            ['prod', 'on'],
+            ['stage', 'off'],
+            ['stage', 'on'],
+        ]) {
+            it(`preserves loaded data after changing ${attribute} without changing the ${env}/${mode} namespace`, async () => {
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?commerce.env=${env}&mas.orion=${mode}`,
+                );
+                service.activate();
+                const fragment = await load();
+                const data = fragment.data;
+                const rawData = fragment.rawData;
+
+                fragment.setAttribute(attribute, value);
+
+                expect(fragment.data).to.equal(data);
+                expect(fragment.rawData).to.equal(rawData);
+            });
+        }
+
+        for (const mode of ['on', 'off']) {
+            it(`does not refetch after changing ${attribute} during an Orion ${mode} request without a mode change`, async () => {
+                switchMode(mode);
+                const release = deferFirstResponse();
+                const fragment = startLoad();
+                const requestKey = fragment.cacheKey();
+                await waitUntil(() => fetchStub.calledOnce);
+
+                fragment.setAttribute(attribute, value);
+                release(mode);
+                await fragment.updateComplete;
+
+                expect(fetchStub.calledOnce).to.be.true;
+                expect(fragment.rawData).to.equal(cache.get(requestKey));
+            });
+        }
+
+        it(`preserves normal-mode stale fallback after changing ${attribute}`, async () => {
+            switchMode('off');
+            const fragment = await load();
+            const rawData = fragment.rawData;
+            fragment.setAttribute(attribute, value);
+            fetchStub.callsFake(
+                async () => new Response('Not Found', { status: 404 }),
+            );
+
+            expect(await fragment.refresh()).to.be.true;
+            expect(fragment.rawData).to.equal(rawData);
         });
     }
 

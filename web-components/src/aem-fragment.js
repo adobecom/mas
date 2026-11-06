@@ -165,7 +165,7 @@ export class AemFragment extends HTMLElement {
     #log;
 
     #rawData = null;
-    #rawDataCacheKey;
+    #rawDataCacheSuffix = '';
     #data = null;
     #service = null;
 
@@ -316,7 +316,7 @@ export class AemFragment extends HTMLElement {
                 performance.measure(measureName, startMarkName),
             );
             this.#fetchInfo.retryCount = e.retryCount;
-            if (this.#rawData && this.#rawDataCacheKey === cacheKey) {
+            if (this.#rawData && this.#rawDataCacheSuffix === cacheSuffix) {
                 this.#fetchInfo.stale = true;
                 this.#log.error(`Serving stale data`, this.#fetchInfo);
                 return this.#rawData;
@@ -404,7 +404,7 @@ export class AemFragment extends HTMLElement {
         let fragment = cache.get(cacheKey);
         if (fragment) {
             this.#rawData = fragment;
-            this.#rawDataCacheKey = cacheKey;
+            this.#rawDataCacheSuffix = cacheSuffix;
             return true;
         }
         const {
@@ -442,11 +442,11 @@ export class AemFragment extends HTMLElement {
         try {
             fragment = await this.#getFragment(endpoint, cacheKey, cacheSuffix);
         } catch (error) {
-            if (cacheKey === this.cacheKey()) throw error;
+            if (cacheSuffix === this.cacheSuffix) throw error;
             this.#log.error(error.message, this.#fetchInfo);
             return this.#fetchData();
         }
-        if (this.#preview && cacheKey !== this.cacheKey()) {
+        if (this.#preview && cacheSuffix !== this.cacheSuffix) {
             return this.#fetchData();
         }
         fragment.fields.originalId ??= this.#fragmentId;
@@ -455,11 +455,11 @@ export class AemFragment extends HTMLElement {
         } else {
             cache.add(fragment, true, cacheSuffix);
         }
-        if (cacheKey !== this.cacheKey()) {
+        if (cacheSuffix !== this.cacheSuffix) {
             return this.#fetchData();
         }
         this.#rawData = fragment;
-        this.#rawDataCacheKey = cacheKey;
+        this.#rawDataCacheSuffix = cacheSuffix;
         return true;
     }
 
@@ -471,7 +471,7 @@ export class AemFragment extends HTMLElement {
     }
 
     get data() {
-        if (this.#rawDataCacheKey !== this.cacheKey()) return null;
+        if (this.#rawDataCacheSuffix !== this.cacheSuffix) return null;
         if (this.#data) return this.#data;
         if (this.#author) {
             this.transformAuthorData();
@@ -482,7 +482,9 @@ export class AemFragment extends HTMLElement {
     }
 
     get rawData() {
-        return this.#rawDataCacheKey === this.cacheKey() ? this.#rawData : null;
+        return this.#rawDataCacheSuffix === this.cacheSuffix
+            ? this.#rawData
+            : null;
     }
 
     transformAuthorData() {

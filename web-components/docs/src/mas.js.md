@@ -98,7 +98,8 @@ Browser previews (`mas.preview=on`) forward the same flag to early WCS lookups
 and final prefill. Each in-flight fragment request retains its original cache
 namespace. If the mode changes before it completes, the fragment reloads in the
 current mode before publishing data or prefilling WCS. Stale fallback data is
-reused only within the same fragment cache key.
+reused only within the same normal/latest namespace. Changes to fragment ID,
+mask, or personalization alone retain the existing fragment lifecycle.
 
 WCS must enable `wcs.feature.enableServeLatest` on stage. MAS treats offers
 returned in latest mode as Orion offers and does not classify them by ID or date.

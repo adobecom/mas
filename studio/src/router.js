@@ -2,7 +2,7 @@ import { PAGE_NAMES, SORT_COLUMNS, WCS_LANDSCAPE_PUBLISHED } from './constants.j
 import Store from './store.js';
 import { isPromotionItemSelectionDirty, isPromotionOffersSelectionDirty } from './promotions/promotion-editor-utils.js';
 import { debounce } from './utils.js';
-import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping } from './groups.js';
+import { canAccessBulkPublish, canAccessSettings, canAccessMasks, canAccessOfferMapping, isMasAdmin } from './groups.js';
 import { getDefaultLocaleCode } from '../../io/www/src/fragment/locales.js';
 import { isFeaturePageEnabled } from './mas-chat/features.js';
 
@@ -12,6 +12,7 @@ const STORE_SEARCH_HASH_DEFAULT = {};
 // Pages that require access authorization on direct hash/URL navigation, where #getAuthorizedPage
 // (programmatic nav only) never runs — mapped to the permission gate for reaching them.
 const RESTRICTED_PAGE_ACCESS = {
+    [PAGE_NAMES.MASA_DASHBOARD]: isMasAdmin,
     [PAGE_NAMES.BULK_PUBLISH]: canAccessBulkPublish,
     [PAGE_NAMES.BULK_PUBLISH_EDITOR]: canAccessBulkPublish,
     [PAGE_NAMES.SETTINGS]: canAccessSettings,
@@ -729,6 +730,10 @@ export class Router extends EventTarget {
 
     #getAuthorizedPage(page) {
         if (!isFeaturePageEnabled(page)) return PAGE_NAMES.WELCOME;
+        if (page === PAGE_NAMES.MASA_DASHBOARD) {
+            if (!Store.users.getMeta('loaded')) return page;
+            return isMasAdmin() ? page : PAGE_NAMES.WELCOME;
+        }
         if (this.#isBulkPublishPage(page)) {
             if (!Store.users.getMeta('loaded')) return page;
             return canAccessBulkPublish() ? page : PAGE_NAMES.WELCOME;

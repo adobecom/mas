@@ -12,7 +12,9 @@ import { EVENT_TYPE_RESOLVED, TEMPLATE_PRICE_LEGAL } from '../src/constants.js';
 let ProductPricing;
 
 before(async () => {
-    ({ ProductPricing } = await import('../src/variants/product-pricing.js'));
+    ProductPricing = customElements
+        .get('merch-card')
+        .getTemplate('product-pricing').class;
 });
 
 describe('ProductPricing.resyncOnReflow', () => {
@@ -86,7 +88,7 @@ describe('ProductPricing.resyncOnReflow', () => {
                 querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
             };
             const layout = new ProductPricing(card);
-            card.variantLayout = layout;
+            card.templateLayout = layout;
             const sync = sinon.stub(layout, 'syncHeights');
             layout.connectedCallbackHook();
             const entry = (target, width, height) => ({
@@ -141,7 +143,7 @@ describe('ProductPricing.syncHeights across a collection', () => {
             },
             __styles: styles,
         };
-        card.variantLayout = { card };
+        card.templateLayout = { card };
         return card;
     };
 
@@ -268,7 +270,7 @@ describe('ProductPricing reflow wiring', () => {
                 },
             };
             const layout = new ProductPricing(card);
-            card.variantLayout = layout;
+            card.templateLayout = layout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
 
             layout.connectedCallbackHook();
@@ -556,7 +558,7 @@ describe('ProductPricing price row collapse', () => {
             <div slot="footer"><a href="#">Buy</a></div>`;
         document.body.appendChild(card);
         await card.updateComplete;
-        card.variantLayout.flagPriceRow();
+        card.templateLayout.flagPriceRow();
         await card.updateComplete;
         return card;
     };
@@ -610,7 +612,7 @@ describe('ProductPricing row alignment', () => {
         document.body.appendChild(wrap);
         const cards = [...wrap.children];
         await Promise.all(cards.map((c) => c.updateComplete));
-        cards.forEach((c) => c.variantLayout.syncHeights());
+        cards.forEach((c) => c.templateLayout.syncHeights());
         await Promise.all(cards.map((c) => c.updateComplete));
         return { wrap, cards };
     };
@@ -695,7 +697,7 @@ describe('ProductPricing row alignment', () => {
         try {
             expect(cards[1].hasAttribute('stacked')).to.be.true;
             cards[0].heightSync = false;
-            cards[0].variantLayout.syncHeights();
+            cards[0].templateLayout.syncHeights();
             expect(cards[1].hasAttribute('stacked')).to.be.true;
         } finally {
             wrap.remove();
@@ -710,7 +712,7 @@ describe('ProductPricing row alignment', () => {
         const mm = sinon.stub(window, 'matchMedia').returns({ matches: false });
         try {
             expect(cards[0].hasAttribute('stacked')).to.be.true;
-            cards[0].variantLayout.syncHeights();
+            cards[0].templateLayout.syncHeights();
             expect(cards[0].hasAttribute('stacked')).to.be.false;
             expect(
                 cards[0].style.getPropertyValue(

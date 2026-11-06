@@ -23,19 +23,19 @@ before(async () => {
         );
     }
     await customElements.whenDefined('merch-card');
-    ({ Pro } = await import('../src/variants/pro.js'));
+    Pro = customElements.get('merch-card').getTemplate('pro').class;
 });
 
 describe('pro styles', () => {
     it('reads the height properties syncHeights publishes', async () => {
         const { TOP_CARD_HEIGHT_PROP, SYNCED_BANDS, STRIKE_RESERVE_PROP } =
-            await import('../src/variants/pro.js');
-        expect(Pro.variantStyle).to.be.a('string');
+            await import('../src/templates/pro.js');
+        expect(Pro.templateStyle).to.be.a('string');
         for (const prop of [
             TOP_CARD_HEIGHT_PROP,
             ...SYNCED_BANDS.map(({ prop }) => prop),
         ]) {
-            expect(Pro.variantStyle).to.include(`var(${prop}`);
+            expect(Pro.templateStyle).to.include(`var(${prop}`);
         }
         expect(Pro.prototype.getGlobalCSS()).to.include(
             `var(${STRIKE_RESERVE_PROP}`,
@@ -50,8 +50,8 @@ async function renderCard(innerHTML, props) {
     card.innerHTML = innerHTML;
     document.body.appendChild(card);
     await card.updateComplete;
-    // firstUpdated swaps in a fresh variantLayout after the first render;
-    // re-render so the shadow DOM event listeners bind to card.variantLayout
+    // firstUpdated swaps in a fresh templateLayout after the first render;
+    // re-render so the shadow DOM event listeners bind to card.templateLayout
     // (real cards re-render on hydration anyway).
     card.requestUpdate();
     await card.updateComplete;
@@ -248,7 +248,7 @@ describe('pro add-on slot', () => {
         card = await renderCard(
             '<merch-addon slot="addon"><p>Add AI</p></merch-addon>',
         );
-        expect(card.variantLayout.hasAddOn).to.be.true;
+        expect(card.templateLayout.hasAddOn).to.be.true;
         expect(card.shadowRoot.querySelector('slot[name="addon"]')).to.exist;
         expect(card.shadowRoot.querySelector('slot[name="add-on"]')).to.not
             .exist;
@@ -386,7 +386,7 @@ describe('pro plan type', () => {
 
     it('exposes planType in the AEM fragment mapping so the editor shows the toggle', async () => {
         const { PRO_AEM_FRAGMENT_MAPPING } = await import(
-            '../src/variants/pro.js'
+            '../src/templates/pro.js'
         );
         expect(PRO_AEM_FRAGMENT_MAPPING.planType).to.be.true;
     });
@@ -396,14 +396,14 @@ describe('pro plan type', () => {
         card.settings = { displayPlanType: true };
 
         const legalOptions = {};
-        card.variantLayout.priceOptionsProvider(
+        card.templateLayout.priceOptionsProvider(
             { dataset: { template: 'legal' } },
             legalOptions,
         );
         expect(legalOptions.displayPlanType).to.be.true;
 
         const priceOptions = {};
-        card.variantLayout.priceOptionsProvider(
+        card.templateLayout.priceOptionsProvider(
             { dataset: { template: 'price' } },
             priceOptions,
         );
@@ -414,7 +414,7 @@ describe('pro plan type', () => {
         card = await renderCard('<h3 slot="heading-xs">Title</h3>');
         card.settings = undefined;
         const options = {};
-        card.variantLayout.priceOptionsProvider(
+        card.templateLayout.priceOptionsProvider(
             { dataset: { template: 'legal' } },
             options,
         );
@@ -425,7 +425,7 @@ describe('pro plan type', () => {
 describe('pro appearance mapping', () => {
     it('maps Theme and Size selections to existing fragment fields', async () => {
         const { PRO_AEM_FRAGMENT_MAPPING } = await import(
-            '../src/variants/pro.js'
+            '../src/templates/pro.js'
         );
 
         expect(PRO_AEM_FRAGMENT_MAPPING.backgroundColor).to.deep.equal({
@@ -688,7 +688,7 @@ describe('pro edu heading semantics', () => {
             whatsIncludedLabel: "What's included:",
             eduDisclaimer: 'Eligibility required.',
         });
-        card.variantLayout.adjustEduWhatsIncluded();
+        card.templateLayout.adjustEduWhatsIncluded();
         card.requestUpdate();
         await card.updateComplete;
         const slot = card.querySelector('[slot="whats-included"]');
@@ -741,7 +741,7 @@ describe('pro edu disclaimer', () => {
 
     it('maps eduDisclaimer to the edu-disclaimer slot', async () => {
         const { PRO_AEM_FRAGMENT_MAPPING } = await import(
-            '../src/variants/pro.js'
+            '../src/templates/pro.js'
         );
         expect(PRO_AEM_FRAGMENT_MAPPING.eduDisclaimer).to.deep.equal({
             tag: 'div',
@@ -753,7 +753,7 @@ describe('pro edu disclaimer', () => {
         card = await renderCard(
             '<div slot="edu-disclaimer">Students and teachers only.</div>',
         );
-        expect(card.variantLayout.hasEduDisclaimer).to.be.true;
+        expect(card.templateLayout.hasEduDisclaimer).to.be.true;
         expect(card.shadowRoot.querySelector('slot[name="edu-disclaimer"]')).to
             .exist;
     });
@@ -864,7 +864,7 @@ describe('Pro.adjustLegal', () => {
                     ? price
                     : null,
         };
-        layout.card.variantLayout = layout;
+        layout.card.templateLayout = layout;
         return { layout, price, clone, insertBefore };
     }
 
@@ -937,9 +937,9 @@ describe('Pro.adjustLegal', () => {
         const card = await renderCard('');
         try {
             const adjust = sandbox
-                .stub(card.variantLayout, 'adjustLegal')
+                .stub(card.templateLayout, 'adjustLegal')
                 .resolves();
-            sandbox.stub(card.variantLayout, 'resyncOnReflow');
+            sandbox.stub(card.templateLayout, 'resyncOnReflow');
             const price = document.createElement('span');
             card.append(price);
             price.dispatchEvent(
@@ -994,7 +994,7 @@ describe('Pro.adjustLegal', () => {
             onceSettled: () => settled,
         });
         const adjustment = layout.adjustLegal();
-        layout.card.variantLayout = Object.create(Pro.prototype);
+        layout.card.templateLayout = Object.create(Pro.prototype);
         settle();
         await adjustment;
         expect(insertBefore.called).to.be.false;
@@ -1072,7 +1072,7 @@ describe('pro license-zone gating', () => {
         card = await renderCard(
             '<div slot="quantity-select"><merch-quantity-select></merch-quantity-select></div>',
         );
-        expect(card.variantLayout.hasQuantitySelect).to.be.false;
+        expect(card.templateLayout.hasQuantitySelect).to.be.false;
         expect(card.shadowRoot.querySelector('.license-zone')).to.not.exist;
     });
 
@@ -1080,7 +1080,7 @@ describe('pro license-zone gating', () => {
         card = await renderCard(
             '<div slot="quantity-select"><merch-quantity-select title="License" min="1" max="10" step="1"></merch-quantity-select></div>',
         );
-        expect(card.variantLayout.hasQuantitySelect).to.be.true;
+        expect(card.templateLayout.hasQuantitySelect).to.be.true;
         expect(card.shadowRoot.querySelector('.license-zone')).to.exist;
     });
 
@@ -1148,10 +1148,10 @@ describe('pro license dropdown accessible name', () => {
 
     it('follows the visible singular and plural label', async () => {
         const card = await render('<h3 slot="heading-xs">Photoshop</h3>');
-        card.variantLayout.selectLicenseQty('5');
+        card.templateLayout.selectLicenseQty('5');
         await card.updateComplete;
         expect(triggerName(card)).to.equal('Photoshop Licenses');
-        card.variantLayout.selectLicenseQty('1');
+        card.templateLayout.selectLicenseQty('1');
         await card.updateComplete;
         expect(triggerName(card)).to.equal('Photoshop License');
     });
@@ -1282,7 +1282,7 @@ describe('pro short description plan type', () => {
         '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
     const legalOptionsFor = (legal) => {
         const options = {};
-        card.variantLayout.priceOptionsProvider(legal, options);
+        card.templateLayout.priceOptionsProvider(legal, options);
         return options;
     };
 
@@ -1514,7 +1514,7 @@ describe('pro short description rendered by the legal price (MWPW-214359)', () =
             card.variant = 'pro';
             await card.updateComplete;
             const replaced = connect.thisValues.filter(
-                (layout) => layout !== card.variantLayout,
+                (layout) => layout !== card.templateLayout,
             );
             expect(replaced.length).to.be.above(0);
             for (const layout of replaced) {
@@ -2306,14 +2306,14 @@ describe('pro license options from the authored selector', () => {
     const QS = (attrs) =>
         `<div slot="quantity-select"><merch-quantity-select title="License|Licenses" ${attrs}></merch-quantity-select></div>`;
 
-    const options = () => card.variantLayout.licenseOptions;
+    const options = () => card.templateLayout.licenseOptions;
 
     it('renders no selector for a negative step instead of hanging', async () => {
         // A negative step counts away from max forever — reading this getter
         // used to hang the browser. The real selector stops below step 1 too.
         card = await renderCard(QS('min="1" max="5" step="-1"'));
         expect(options()).to.be.null;
-        expect(card.variantLayout.hasLicenseSelector).to.be.false;
+        expect(card.templateLayout.hasLicenseSelector).to.be.false;
         expect(card.shadowRoot.querySelector('.license-select-trigger')).to.be
             .null;
     });
@@ -2392,9 +2392,9 @@ describe('pro resize handling', () => {
         window.ResizeObserver = FakeObserver;
         try {
             card = await renderCard('<div slot="body-xs">desc</div>');
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
-            // The surviving layout (card.variantLayout) owns the last observer.
+            // The surviving layout (card.templateLayout) owns the last observer.
             const obs = observers[observers.length - 1];
             expect(obs, 'observes on connect').to.exist;
             obs.callback([]);
@@ -2478,7 +2478,7 @@ describe('pro resize handling', () => {
                 querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
             };
             const layout = new Pro(card);
-            card.variantLayout = layout;
+            card.templateLayout = layout;
             const sync = sinon.stub(layout, 'syncHeights').resolves();
             layout.connectedCallbackHook();
             const obs = observers[0];
@@ -2517,7 +2517,7 @@ describe('pro resize handling', () => {
         const { observers, restore } = installFakeObserver();
         try {
             card = await renderCard('<div slot="body-xs">desc</div>');
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
             const obs = observers[observers.length - 1];
             const measure = sinon.spy(
@@ -2557,13 +2557,13 @@ describe('pro resize handling', () => {
         const { observers, restore } = installFakeObserver();
         try {
             card = await renderCard('<div slot="body-xs">desc</div>');
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
             const obs = observers[observers.length - 1];
-            card.variantLayout = {};
+            card.templateLayout = {};
             obs.callback([entry(card, 300, 400)]);
             layout.requestReflowCheck();
-            card.variantLayout = layout;
+            card.templateLayout = layout;
             expect(resync.called, 'a replaced layout does not measure').to.be
                 .false;
             expect(obs.unobserved, 'nor re-arms').to.be.empty;
@@ -2576,7 +2576,7 @@ describe('pro resize handling', () => {
         const { observers, restore } = installFakeObserver();
         try {
             card = await renderCard('<div slot="body-xs">desc</div>');
-            const layout = card.variantLayout;
+            const layout = card.templateLayout;
             const obs = observers[observers.length - 1];
             const observed = obs.observed.length;
             card.remove();
@@ -2676,7 +2676,7 @@ describe('pro resize handling', () => {
                 },
                 __styles: styles,
             };
-            card.variantLayout = { card };
+            card.templateLayout = { card };
             return card;
         };
         // Row A (offsetTop 0): 200 & 260 → max 260. Row B (offsetTop 500): a
@@ -2746,7 +2746,7 @@ describe('pro resize handling', () => {
                 getPropertyValue: (k) => styles[k] ?? '',
             },
         };
-        card.variantLayout = { card };
+        card.templateLayout = { card };
 
         const layout = Object.create(Pro.prototype);
         layout.card = card;
@@ -2812,7 +2812,7 @@ describe('pro resize handling', () => {
             },
             __styles: styles,
         };
-        card.variantLayout = { card };
+        card.templateLayout = { card };
         return card;
     };
 
@@ -3067,9 +3067,9 @@ describe('pro quantity selector repricing', () => {
 
     it('pushes the selected quantity onto the main price on a selector change', async () => {
         card = await renderCard(PRICE + QS);
-        const variantLayout = card.variantLayout;
-        expect(variantLayout.updatePriceQuantity).to.be.a('function');
-        const mainPrice = variantLayout.mainPrice;
+        const templateLayout = card.templateLayout;
+        expect(templateLayout.updatePriceQuantity).to.be.a('function');
+        const mainPrice = templateLayout.mainPrice;
         expect(mainPrice, 'price must resolve in slot heading-m').to.exist;
 
         card.dispatchEvent(
@@ -3174,7 +3174,7 @@ describe('pro CTAs', () => {
         );
         const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
-            await cards[0].variantLayout.syncHeights();
+            await cards[0].templateLayout.syncHeights();
             cards.forEach(
                 (card) => expect(card.hasAttribute('stacked')).to.be.false,
             );
@@ -3194,7 +3194,7 @@ describe('pro CTAs', () => {
         );
         const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
-            await cards[0].variantLayout.syncHeights();
+            await cards[0].templateLayout.syncHeights();
             cards.forEach(
                 (card) => expect(card.hasAttribute('stacked')).to.be.false,
             );
@@ -3214,7 +3214,7 @@ describe('pro CTAs', () => {
         );
         const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
-            await cards[0].variantLayout.syncHeights();
+            await cards[0].templateLayout.syncHeights();
             cards.forEach((card) => {
                 expect(card.hasAttribute('stacked')).to.be.true;
                 const [a, b] = rects(card);
@@ -3236,10 +3236,10 @@ describe('pro CTAs', () => {
         );
         const mm = sinon.stub(window, 'matchMedia').returns({ matches: true });
         try {
-            await cards[0].variantLayout.syncHeights();
+            await cards[0].templateLayout.syncHeights();
             expect(cards[0].hasAttribute('stacked')).to.be.true;
             mm.returns({ matches: false });
-            await cards[0].variantLayout.syncHeights();
+            await cards[0].templateLayout.syncHeights();
             cards.forEach(
                 (card) => expect(card.hasAttribute('stacked')).to.be.false,
             );

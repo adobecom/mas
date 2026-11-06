@@ -45,6 +45,7 @@ export {
     SELECTOR_MAS_CHECKOUT_LINK,
     SELECTOR_MAS_ELEMENT,
     SELECTOR_MAS_INLINE_PRICE,
+    TEMPLATE_LOAD_TIMEOUT,
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
 } from './constants.js';
@@ -58,6 +59,7 @@ export {
     getService,
     hydrateHeadlessCta,
     isMobileOrTablet,
+    keepInHeadingPriceForAnnual,
     printMeasure,
     setForegroundTimeout,
     setShadowMarkup,

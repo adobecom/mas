@@ -17,7 +17,7 @@ import {
     rewriteImageUrlsForProd,
     sanitizePictureMarkup,
 } from './image-markup.js';
-import { getFragmentMapping } from './variants/variants.js';
+import { getFragmentMapping, whenTemplate } from './template-registry.js';
 import { setForegroundTimeout, clearForegroundTimeout } from './utils.js';
 
 const DEFAULT_BADGE_COLOR = '#000000';
@@ -1228,6 +1228,8 @@ export async function hydrate(fragment, merchCard) {
     const { variant } = fields;
     if (!variant)
         throw new Error(`hydrate: no template found in payload ${id}`);
+    // Rejects when no bundle on this page has the template; the card then fails.
+    await whenTemplate(variant);
     cleanup(merchCard);
     merchCard.compatVersion = fields.compatVersion;
     merchCard.contextPromotionCode = fields.promoCode;
@@ -1250,7 +1252,7 @@ export async function hydrate(fragment, merchCard) {
     await merchCard.updateComplete;
 
     const mapping =
-        merchCard.variantLayout?.aemFragmentMapping ??
+        merchCard.templateLayout?.aemFragmentMapping ??
         getFragmentMapping(variant);
     if (!mapping)
         throw new Error(`hydrate: variant mapping not found for ${id}`);

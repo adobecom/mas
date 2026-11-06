@@ -53,8 +53,47 @@ await build({
     },
 });
 
+// Template bundles. A page loads merch-card.js and, in parallel, the bundle its
+// URL rule names (MERCH_CARD_TEMPLATE_RULES in Milo libs/utils/utils.js). A template can be in several
+// bundles. The headless family is in merch-card.js itself, not in a bundle.
+// Keep src/templates/README.md in sync.
+const TEMPLATE_BUNDLES = {
+    dc: ['pro', 'compare-chart-column'],
+    catalog: ['catalog'],
+    cc: [
+        'plans',
+        'plans-v2',
+        'pro',
+        'segment',
+        'special-offers',
+        'product',
+        'product-c2',
+        'product-pricing',
+        'mini-compare-chart',
+        'mini-compare-chart-mweb',
+        'image',
+        'media',
+        'compare-chart-column',
+        'inline-heading',
+    ],
+    firefly: ['pro'],
+    express: [
+        'simplified-pricing-express',
+        'full-pricing-express',
+        'compare-chart-column',
+    ],
+    // Apps that load mas.js today; built for when they opt in.
+    ah: ['ah-try-buy-widget', 'ah-promoted-plans', 'mini'],
+    ccd: ['ccd-slice', 'ccd-suggested', 'mini'],
+    bc: ['brand-concierge-product'],
+    aup: ['fries'],
+};
+
 // web components
 Promise.all([
+    ...Object.entries(TEMPLATE_BUNDLES).map(([bundle, files]) =>
+        buildTemplateBundle(bundle, files),
+    ),
     build({
         ...defaults,
         stdin: { contents: '' },
@@ -134,6 +173,49 @@ async function buildMerchCard() {
             `merch-card.js imports ${missing.join(', ')} from ./commerce.js: export them from src/commerce.js`,
         );
     }
+}
+
+// A bundle registers its template files once merch-card is defined, so it can
+// load before or after merch-card.js. Template files import nothing: merch-card
+// injects their dependencies (src/template-deps.js).
+async function buildTemplateBundle(bundle, files) {
+    const imports = files.map(
+        (file, index) =>
+            `import { define as t${index} } from './src/templates/${file}.js';`,
+    );
+    const defines = files.map((_, index) => `t${index}`).join(', ');
+    await build({
+        ...defaults,
+        stdin: {
+            contents: `${imports.join('\n')}
+customElements.whenDefined('merch-card').then((MerchCard) => {
+    for (const define of [${defines}]) MerchCard.registerTemplates(define);
+});`,
+            resolveDir: '.',
+            sourcefile: `templates/${bundle}.js`,
+        },
+        outfile: `${outfolder}/templates/${bundle}.js`,
+        plugins: [cssLoader(), templatesImportNothing(bundle)],
+    });
+}
+
+function templatesImportNothing(bundle) {
+    return {
+        name: 'templates-import-nothing',
+        setup(build) {
+            const entry = resolve(`templates/${bundle}.js`);
+            build.onResolve({ filter: /.*/ }, ({ path, importer }) => {
+                if (importer === entry) return;
+                return {
+                    errors: [
+                        {
+                            text: `${importer} imports ${path}: template files must not import; add what they need to src/template-deps.js`,
+                        },
+                    ],
+                };
+            });
+        },
+    };
 }
 
 function importFromCommerce() {

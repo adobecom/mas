@@ -55,9 +55,9 @@
             import '../src/mas.js';
             // Loaded dynamically (not statically) to avoid the
             // variant-layout <-> variants circular-dep deadlock, as in pro.test.js.
-            const { BrandConciergeProduct } = await import(
-                '../src/variants/brand-concierge-product.js'
-            );
+            const BrandConciergeProduct = customElements
+                .get('merch-card')
+                .getTemplate('brand-concierge-product').class;
 
             runTests(async () => {
                 mockIms();
@@ -149,7 +149,7 @@
                             container.append(masCommerceService, card);
                             await card.checkReady();
                             await card.updateComplete;
-                            await card.variantLayout.adjustLegal();
+                            await card.templateLayout.adjustLegal();
                             const heading = card.querySelector(
                                 '[slot="heading-xs"]',
                             );

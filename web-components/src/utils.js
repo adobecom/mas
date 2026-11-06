@@ -417,3 +417,20 @@ export function setShadowMarkup(root, markup) {
     renderedNodes.set(root, new Set(root.childNodes));
     root.append(...foreign);
 }
+
+/**
+ * Shows the tax or term on the heading price only, or on the legal price when
+ * the card displays annual prices (mini-compare-chart templates).
+ */
+export function keepInHeadingPriceForAnnual(
+    card,
+    headingPrice,
+    legalPrice,
+    optionParam,
+) {
+    if (card.settings?.displayAnnual && headingPrice?.options[optionParam]) {
+        legalPrice.dataset[optionParam] = 'false';
+    } else if (headingPrice?.options[optionParam]) {
+        headingPrice.dataset[optionParam] = 'false';
+    }
+}

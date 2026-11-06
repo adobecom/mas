@@ -32,17 +32,17 @@ import {
     splitParagraphListItems,
 } from '../src/hydrate.js';
 import { normalizeVariant } from '../src/utils.js';
-import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/variants/ccd-slice.js';
+import { CCD_SLICE_AEM_FRAGMENT_MAPPING } from '../src/templates/ccd-slice.js';
 
 import { mockFetch } from './mocks/fetch.js';
 import { withWcs } from './mocks/wcs.js';
 import { delay } from './utils.js';
-import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/variants/plans.js';
-import { MARQUEE_AEM_FRAGMENT_MAPPING } from '../src/variants/marquee.js';
-import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/variants/mini-compare-chart.js';
-import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/variants/compare-chart-column.js';
-import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/full-pricing-express.js';
-import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/variants/simplified-pricing-express.js';
+import { PLANS_AEM_FRAGMENT_MAPPING } from '../src/templates/plans.js';
+import { MARQUEE_AEM_FRAGMENT_MAPPING } from '../src/templates/headless.js';
+import { MINI_COMPARE_CHART_AEM_FRAGMENT_MAPPING } from '../src/templates/mini-compare-chart.js';
+import { COMPARE_CHART_COLUMN_AEM_FRAGMENT_MAPPING } from '../src/templates/compare-chart-column.js';
+import { FULL_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/templates/full-pricing-express.js';
+import { SIMPLIFIED_PRICING_EXPRESS_AEM_FRAGMENT_MAPPING } from '../src/templates/simplified-pricing-express.js';
 import { COMPAT_VERSION_GLOBAL_PROMO_CODE } from '../src/compat-version.js';
 
 function getFooterElement(merchCard) {
@@ -1094,7 +1094,7 @@ describe('hydrate', () => {
                 secureLabel: 'Secure Label',
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
@@ -1120,7 +1120,7 @@ describe('hydrate', () => {
                 secureLabel: 'Secure Label',
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
@@ -1146,7 +1146,7 @@ describe('hydrate', () => {
                 secureLabel: 'Secure Label',
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
@@ -1261,7 +1261,7 @@ describe('hydrate', () => {
                 mnemonicLink: [],
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
@@ -1278,7 +1278,7 @@ describe('hydrate', () => {
                 mnemonicLink: [],
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);
@@ -1295,7 +1295,7 @@ describe('hydrate', () => {
                 mnemonicLink: [],
             },
         };
-        merchCard.variantLayout = {
+        merchCard.templateLayout = {
             aemFragmentMapping: CCD_SLICE_AEM_FRAGMENT_MAPPING,
         };
         await hydrate(fragment, merchCard);

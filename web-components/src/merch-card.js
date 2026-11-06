@@ -3,11 +3,15 @@ import './merch-icon.js';
 import './merch-gradient.js';
 import './merch-addon.js';
 import {
-    getVariantLayout,
-    registerVariant,
-    getFragmentMapping,
     getCollectionOptions,
-} from './variants/variants.js';
+    getFragmentMapping,
+    getTemplate,
+    getTemplateLayout,
+    registerTemplate,
+    registerTemplates,
+    whenTemplate,
+} from './template-registry.js';
+import { define as defineHeadless } from './templates/headless.js';
 
 import './global.css.js';
 import './merch-badge.js';
@@ -31,7 +35,6 @@ import {
     MERCH_CARD_LOAD_TIMEOUT,
     TEMPLATE_PRICE_LEGAL,
 } from './constants.js';
-import { VariantLayout } from './variants/variant-layout.js';
 import { hydrate, ANALYTICS_SECTION_ATTR } from './hydrate.js';
 import {
     getService,
@@ -75,9 +78,9 @@ function priceOptionsProvider(element, options) {
     if (card.aemFragment) {
         options[FF_DEFAULTS] = true;
     }
-    card.variantLayout?.priceOptionsProvider?.(element, options);
+    card.templateLayout?.priceOptionsProvider?.(element, options);
     if (element.dataset.template === TEMPLATE_PRICE_LEGAL) {
-        options.displayDot ??= card.variantLayout?.legalDisplayDot ?? true;
+        options.displayDot ??= card.templateLayout?.legalDisplayDot ?? true;
     }
     applyDisplayAnnualDefault(card, options);
 }
@@ -137,6 +140,7 @@ const ATTRIBUTES = {
     id: 'id',
     name: 'name',
     variant: 'variant',
+    template: 'template',
     size: 'size',
     badgeColor: 'badge-color',
     borderColor: 'border-color',
@@ -227,7 +231,15 @@ export class MerchCard extends HTMLElement {
 
     static styles = styles;
 
-    static registerVariant = registerVariant;
+    // Template bundles (templates/<bundle>.js) find these through
+    // customElements.whenDefined('merch-card').
+    static registerTemplate = registerTemplate;
+
+    static registerTemplates = registerTemplates;
+
+    static getTemplate = getTemplate;
+
+    static whenTemplate = whenTemplate;
 
     static getCollectionOptions = getCollectionOptions;
 
@@ -299,9 +311,9 @@ export class MerchCard extends HTMLElement {
     merchOffer;
     addonOffers;
     /**
-     * @type {VariantLayout}
+     * @type {TemplateLayout}
      */
-    variantLayout;
+    templateLayout;
 
     constructor() {
         super();
@@ -332,12 +344,22 @@ export class MerchCard extends HTMLElement {
         setStringAttribute(this, 'name', value);
     }
 
+    // `template` is the name we use; `variant` (the AEM field and older markup)
+    // is kept as a copy of it, so page CSS selecting [variant] keeps working.
+    get template() {
+        return this.getAttribute('template') ?? this.getAttribute('variant');
+    }
+
+    set template(value) {
+        setStringAttribute(this, 'template', value);
+    }
+
     get variant() {
-        return this.getAttribute('variant');
+        return this.template;
     }
 
     set variant(value) {
-        setStringAttribute(this, 'variant', value);
+        this.template = value;
     }
 
     get size() {
@@ -601,6 +623,13 @@ export class MerchCard extends HTMLElement {
             this.#stockOfferOsis = parseStockOfferOsis(value);
         } else if (property === 'heightSync') {
             this.#heightSync = value !== null;
+        } else if (property === 'template' || property === 'variant') {
+            const copy = property === 'template' ? 'variant' : 'template';
+            if (this.getAttribute(copy) !== value) {
+                setStringAttribute(this, copy, value);
+            }
+            this.requestUpdate('template');
+            return;
         }
         this.requestUpdate(property);
     }
@@ -645,10 +674,11 @@ export class MerchCard extends HTMLElement {
         if (changed.has('types') && !this.hasAttribute('types')) {
             this.setAttribute('types', '');
         }
-        if (changed.has('variant') || !this.variantLayout) {
-            this.variantLayout?.disconnectedCallbackHook();
-            this.variantLayout = getVariantLayout(this);
-            this.variantLayout?.connectedCallbackHook();
+        if (changed.has('template') || !this.templateLayout) {
+            this.templateLayout?.disconnectedCallbackHook();
+            this.templateLayout = getTemplateLayout(this);
+            this.templateLayout?.connectedCallbackHook();
+            if (!this.templateLayout && this.template) this.#waitForTemplate();
         }
         this.#render();
         if (
@@ -670,29 +700,52 @@ export class MerchCard extends HTMLElement {
             );
         }
         try {
-            this.variantLayoutPromise =
-                this.variantLayout?.postCardUpdateHook(changed);
+            this.templateLayoutPromise =
+                this.templateLayout?.postCardUpdateHook(changed);
         } catch (e) {
             this.#fail(`Error in postCardUpdateHook: ${e.message}`, {}, false);
         }
     }
 
+    #awaitedTemplate;
+
+    // The template's bundle may still be loading, or not be on this page at all.
+    #waitForTemplate() {
+        const { template } = this;
+        if (this.#awaitedTemplate === template) return;
+        this.#awaitedTemplate = template;
+        whenTemplate(template).then(
+            () => {
+                if (this.template !== template) return;
+                this.#awaitedTemplate = undefined;
+                this.requestUpdate('template');
+            },
+            (error) => {
+                if (this.template !== template) return;
+                this.#awaitedTemplate = undefined;
+                this.#fail(error.message);
+            },
+        );
+    }
+
     #render() {
         const visible =
             this.isConnected &&
-            this.variantLayout &&
+            this.templateLayout &&
             this.style.display !== 'none';
-        const markup = visible ? (this.variantLayout.renderLayout() ?? '') : '';
+        const markup = visible
+            ? (this.templateLayout.renderLayout() ?? '')
+            : '';
         if (markup === this.#markup) return;
         this.#markup = markup;
         setShadowMarkup(this.shadowRoot, markup);
-        if (visible) this.variantLayout.bindEvents?.(this.shadowRoot);
+        if (visible) this.templateLayout.bindEvents?.(this.shadowRoot);
     }
 
     // A variant that patched the shadow DOM in place records the markup it now
     // matches, so the next update doesn't rewrite the nodes (and drop focus).
     syncRenderedMarkup() {
-        this.#markup = this.variantLayout?.renderLayout() ?? '';
+        this.#markup = this.templateLayout?.renderLayout() ?? '';
     }
 
     get theme() {
@@ -819,7 +872,7 @@ export class MerchCard extends HTMLElement {
     }
 
     toggleAddon(merchAddon) {
-        this.variantLayout?.toggleAddon?.(merchAddon);
+        this.templateLayout?.toggleAddon?.(merchAddon);
         const allLinks = [
             ...this.checkoutLinks,
             ...(this.activeDescriptionLinks ?? []),
@@ -856,7 +909,7 @@ export class MerchCard extends HTMLElement {
 
     get titleElement() {
         return this.querySelector(
-            this.variantLayout?.headingSelector || '.card-heading',
+            this.templateLayout?.headingSelector || '.card-heading',
         );
     }
 
@@ -937,7 +990,7 @@ export class MerchCard extends HTMLElement {
     additionalModalTriggers() {
         if (!this.settings?.additionalModalTriggers) return;
 
-        const mapping = this.variantLayout.aemFragmentMapping.title;
+        const mapping = this.templateLayout.aemFragmentMapping.title;
         this.makeElementModalTrigger(mapping?.tag, mapping?.slot);
         this.makeElementModalTrigger('merch-icon', 'icons');
     }
@@ -994,8 +1047,8 @@ export class MerchCard extends HTMLElement {
         this.addEventListener(EVENT_MAS_READY, this.handleMasReady);
         this.addEventListener('change', this.changeHandler);
 
-        if (this.variantLayout) {
-            this.variantLayout.connectedCallbackHook();
+        if (this.templateLayout) {
+            this.templateLayout.connectedCallbackHook();
         }
 
         if (!this.aemFragment) {
@@ -1031,7 +1084,7 @@ export class MerchCard extends HTMLElement {
     }
 
     disconnectedCallback() {
-        this.variantLayout?.disconnectedCallbackHook();
+        this.templateLayout?.disconnectedCallbackHook();
 
         this.removeEventListener(
             EVENT_MERCH_QUANTITY_SELECTOR_CHANGE,
@@ -1114,9 +1167,9 @@ export class MerchCard extends HTMLElement {
             }
             this.#hydrationPromise = undefined;
         }
-        if (this.variantLayoutPromise) {
-            await this.variantLayoutPromise;
-            this.variantLayoutPromise = undefined;
+        if (this.templateLayoutPromise) {
+            await this.templateLayoutPromise;
+            this.templateLayoutPromise = undefined;
         }
         let timeoutId;
         const timeoutPromise = new Promise((resolve) => {
@@ -1462,5 +1515,9 @@ export class MerchCard extends HTMLElement {
         );
     }
 }
+
+// The headless family (headless, marquee, faq, banner-blade) ships here rather
+// than in a bundle: the global nav uses headless cards on every page.
+registerTemplates(defineHeadless);
 
 customElements.define(MERCH_CARD, MerchCard);

@@ -27,7 +27,7 @@ runTests(async () => {
             await delay();
             // Trigger syncHeights explicitly — rAF callbacks may not fire in headless
             miniCompareCharts.forEach((card) =>
-                card.variantLayout?.syncHeights?.(),
+                card.templateLayout?.syncHeights?.(),
             );
             await delay();
             const [card1Slots, card2Slots, card3Slots] = [
@@ -113,7 +113,7 @@ runTests(async () => {
             const rowsBefore = miniCompareChart.querySelectorAll(
                 'merch-whats-included merch-mnemonic-list',
             ).length;
-            miniCompareChart?.variantLayout?.removeEmptyRows();
+            miniCompareChart?.templateLayout?.removeEmptyRows();
             const rowsAfter = miniCompareChart.querySelectorAll(
                 'merch-whats-included merch-mnemonic-list',
             ).length;
@@ -127,12 +127,12 @@ runTests(async () => {
                 'merch-card[variant="mini-compare-chart"]',
             );
             await card.checkReady();
-            const variantLayout = card.variantLayout;
+            const templateLayout = card.templateLayout;
 
-            expect(variantLayout.getRowMinHeightPropertyName(1)).to.equal(
+            expect(templateLayout.getRowMinHeightPropertyName(1)).to.equal(
                 '--consonant-merch-card-footer-row-1-min-height',
             );
-            expect(variantLayout.getRowMinHeightPropertyName(5)).to.equal(
+            expect(templateLayout.getRowMinHeightPropertyName(5)).to.equal(
                 '--consonant-merch-card-footer-row-5-min-height',
             );
         });
@@ -142,7 +142,7 @@ runTests(async () => {
                 'merch-card[variant="mini-compare-chart"]',
             );
             await card.checkReady();
-            expect(card.variantLayout.getGlobalCSS()).to.be.a('string');
+            expect(card.templateLayout.getGlobalCSS()).to.be.a('string');
         });
 
         it('mini-compare-chart should update price quantity on selector change', async () => {
@@ -152,10 +152,10 @@ runTests(async () => {
             await card.checkReady();
             await delay();
 
-            const variantLayout = card.variantLayout;
-            const mainPrice = variantLayout.mainPrice;
+            const templateLayout = card.templateLayout;
+            const mainPrice = templateLayout.mainPrice;
 
-            expect(variantLayout.updatePriceQuantity).to.be.a('function');
+            expect(templateLayout.updatePriceQuantity).to.be.a('function');
 
             if (mainPrice) {
                 card.dispatchEvent(
@@ -169,8 +169,8 @@ runTests(async () => {
             }
 
             // updatePriceQuantity with no detail should not throw
-            variantLayout.updatePriceQuantity({ detail: null });
-            variantLayout.updatePriceQuantity({});
+            templateLayout.updatePriceQuantity({ detail: null });
+            templateLayout.updatePriceQuantity({});
         });
 
         it('mini-compare-chart should clean up on disconnect', async () => {
@@ -178,13 +178,13 @@ runTests(async () => {
                 'merch-card[variant="mini-compare-chart"]',
             );
             await card.checkReady();
-            const variantLayout = card.variantLayout;
+            const templateLayout = card.templateLayout;
 
-            variantLayout.disconnectedCallbackHook();
-            expect(variantLayout.visibilityObserver).to.not.be.null;
+            templateLayout.disconnectedCallbackHook();
+            expect(templateLayout.visibilityObserver).to.not.be.null;
 
             // Re-connect
-            variantLayout.connectedCallbackHook();
+            templateLayout.connectedCallbackHook();
         });
 
         it('mini-compare-chart headingMPriceSlot getter returns element or undefined', async () => {
@@ -192,10 +192,10 @@ runTests(async () => {
                 'merch-card[variant="mini-compare-chart"]',
             );
             await card.checkReady();
-            const variantLayout = card.variantLayout;
+            const templateLayout = card.templateLayout;
 
             // headingMPriceSlot is the assigned element of the heading-m-price slot
-            const slot = variantLayout.headingMPriceSlot;
+            const slot = templateLayout.headingMPriceSlot;
             // It may be undefined if nothing is assigned; just verify it doesn't throw
             expect(slot === undefined || slot instanceof Element).to.be.true;
         });
@@ -235,7 +235,7 @@ runTests(async () => {
                 'merch-card[variant="mini-compare-chart"]',
             );
             await card.checkReady();
-            const variantLayout = card.variantLayout;
+            const templateLayout = card.templateLayout;
 
             const parent = document.createElement('div');
             // Test legal template branch
@@ -244,7 +244,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const legalOptions = {};
-            variantLayout.priceOptionsProvider(legalElement, legalOptions);
+            templateLayout.priceOptionsProvider(legalElement, legalOptions);
             expect(legalOptions.displayPlanType).to.be.a('boolean');
 
             // Test strikethrough template branch
@@ -253,7 +253,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const strikethroughOptions = {};
-            variantLayout.priceOptionsProvider(
+            templateLayout.priceOptionsProvider(
                 strikethroughElement,
                 strikethroughOptions,
             );
@@ -265,7 +265,7 @@ runTests(async () => {
                 closest: () => parent,
             };
             const priceOptions = {};
-            variantLayout.priceOptionsProvider(priceElement, priceOptions);
+            templateLayout.priceOptionsProvider(priceElement, priceOptions);
             expect(priceOptions.displayPerUnit).to.be.false;
         });
     });
@@ -461,9 +461,7 @@ runTests(async () => {
     describe('ETF text (adjustLegal / adjustShortDescription)', () => {
         let keepInHeadingPriceForAnnual;
         before(async () => {
-            ({ keepInHeadingPriceForAnnual } = await import(
-                '../src/variants/mini-compare-chart.js'
-            ));
+            ({ keepInHeadingPriceForAnnual } = await import('../src/utils.js'));
         });
 
         async function mountCardWithEtf(etfText = 'Fee applies') {
@@ -491,7 +489,7 @@ runTests(async () => {
             document.body.appendChild(mount);
             const card = mount.querySelector('merch-card');
             await card.checkReady();
-            const vl = card.variantLayout;
+            const vl = card.templateLayout;
             if (vl && !vl.legalAdjusted) {
                 await vl.adjustLegal();
             }
@@ -502,8 +500,8 @@ runTests(async () => {
         it('adjustLegal creates a legal inline-price and sets legalAdjusted', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
-                expect(variantLayout.legalAdjusted).to.be.true;
+                const templateLayout = card.templateLayout;
+                expect(templateLayout.legalAdjusted).to.be.true;
                 const legal = card.querySelector(
                     '[is="inline-price"][data-template="legal"]',
                 );
@@ -516,8 +514,8 @@ runTests(async () => {
         it('adjustLegal sets up MutationObserver on the legal element', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
-                expect(variantLayout.legalObserver).to.not.be.null;
+                const templateLayout = card.templateLayout;
+                expect(templateLayout.legalObserver).to.not.be.null;
             } finally {
                 mount.remove();
             }
@@ -526,18 +524,18 @@ runTests(async () => {
         it('adjustLegal in-flight guard prevents concurrent execution', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
-                variantLayout.legalAdjusted = false;
-                variantLayout.legalAdjusting = true;
+                const templateLayout = card.templateLayout;
+                templateLayout.legalAdjusted = false;
+                templateLayout.legalAdjusting = true;
                 const countBefore = card.querySelectorAll(
                     '[data-template="legal"]',
                 ).length;
-                await variantLayout.adjustLegal();
+                await templateLayout.adjustLegal();
                 const countAfter = card.querySelectorAll(
                     '[data-template="legal"]',
                 ).length;
                 expect(countAfter).to.equal(countBefore);
-                variantLayout.legalAdjusting = false;
+                templateLayout.legalAdjusting = false;
             } finally {
                 mount.remove();
             }
@@ -562,9 +560,9 @@ runTests(async () => {
         it('adjustShortDescription is idempotent — does not duplicate ETF text', async () => {
             const { card, mount } = await mountCardWithEtf('Fee applies');
             try {
-                const variantLayout = card.variantLayout;
-                variantLayout.adjustShortDescription();
-                variantLayout.adjustShortDescription();
+                const templateLayout = card.templateLayout;
+                templateLayout.adjustShortDescription();
+                templateLayout.adjustShortDescription();
                 const planType = card.querySelector(
                     '[is="inline-price"][data-template="legal"] .price-plan-type',
                 );
@@ -578,12 +576,12 @@ runTests(async () => {
         it('disconnectedCallbackHook disconnects and nulls legalObserver', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
-                expect(variantLayout.legalObserver).to.not.be.null;
+                const templateLayout = card.templateLayout;
+                expect(templateLayout.legalObserver).to.not.be.null;
 
-                variantLayout.disconnectedCallbackHook();
+                templateLayout.disconnectedCallbackHook();
 
-                expect(variantLayout.legalObserver).to.be.null;
+                expect(templateLayout.legalObserver).to.be.null;
             } finally {
                 mount.remove();
             }
@@ -592,19 +590,19 @@ runTests(async () => {
         it('connectedCallbackHook recovery restores legalObserver after card re-insertion', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
-                expect(variantLayout.legalAdjusted).to.be.true;
+                const templateLayout = card.templateLayout;
+                expect(templateLayout.legalAdjusted).to.be.true;
 
                 mount.removeChild(card);
                 await card.updateComplete;
 
-                expect(variantLayout.legalObserver).to.be.null;
-                expect(variantLayout.legalAdjusted).to.be.true;
+                expect(templateLayout.legalObserver).to.be.null;
+                expect(templateLayout.legalAdjusted).to.be.true;
 
                 mount.appendChild(card);
                 await card.checkReady();
 
-                expect(variantLayout.legalObserver).to.not.be.null;
+                expect(templateLayout.legalObserver).to.not.be.null;
             } finally {
                 mount.remove();
             }
@@ -613,7 +611,7 @@ runTests(async () => {
         it('connectedCallbackHook resets legalAdjusted when legal element is gone after re-insertion', async () => {
             const { card, mount } = await mountCardWithEtf();
             try {
-                const variantLayout = card.variantLayout;
+                const templateLayout = card.templateLayout;
                 const legal = card.querySelector('[data-template="legal"]');
                 legal?.remove();
 
@@ -623,7 +621,7 @@ runTests(async () => {
                 mount.appendChild(card);
                 await card.checkReady();
 
-                expect(variantLayout.legalAdjusted).to.be.false;
+                expect(templateLayout.legalAdjusted).to.be.false;
             } finally {
                 mount.remove();
             }

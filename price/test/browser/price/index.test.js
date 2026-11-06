@@ -2,15 +2,7 @@ import * as snapshots from './__snapshots__/index.snapshot.js';
 import { expectHtml } from '../helpers.js';
 import { dataTrees } from '../../fixtures/price-info.js';
 
-import {
-    price,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-} from '../../../src/price/index.js';
+import { buildPriceHTML } from '../../../src/price.js';
 
 const globals = { country: 'US', language: 'en' };
 
@@ -45,14 +37,14 @@ const formats = {
 };
 
 Object.entries({
-    price,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-}).forEach(([templateName, template]) => {
+    price: {},
+    priceOptical: { template: 'optical' },
+    priceStrikethrough: { template: 'strikethrough' },
+    pricePromoStrikethrough: { template: 'promo-strikethrough' },
+    priceAnnual: { template: 'annual' },
+    priceWithAnnual: { displayAnnual: true },
+    pricePromoWithAnnual: { displayAnnual: true, promotionCode: 'PROMO' },
+}).forEach(([templateName, templateOptions]) => {
     describe(`template "${templateName}"`, () => {
         [
             { displayPerUnit: true },
@@ -76,7 +68,17 @@ Object.entries({
                                 );
                                 renderAndComparePrice(
                                     `${idPrefix}1`,
-                                    template({ ...context, ...globals }, applyFormat(offer, name), {}),
+                                    buildPriceHTML(
+                                        [
+                                            {
+                                                ...applyFormat(offer, name),
+                                                // These snapshots invoke annual templates even for non-ABM fixtures.
+                                                planType: 'ABM',
+                                                ...(templateOptions.promotionCode ? { promotion: {} } : {}),
+                                            },
+                                        ],
+                                        { ...context, ...globals, ...templateOptions },
+                                    ),
                                 );
                             });
                         });

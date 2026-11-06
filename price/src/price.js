@@ -1,17 +1,35 @@
 import {
-    price,
-    pricePromo,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-    priceAlternative,
-    priceOpticalAlternative,
-    legal,
-} from './price/index.js';
-import { discount } from './discount/index.js';
+    createPriceTemplate,
+    createPromoPriceTemplate,
+    createPriceWithAnnualTemplate,
+    createPromoPriceWithAnnualTemplate,
+} from './price/template.js';
+import { legalTemplate } from './price/legal.js';
+import { discount } from './discount.js';
+
+const price = createPriceTemplate();
+const pricePromo = createPromoPriceTemplate();
+const priceOptical = createPriceTemplate({
+    displayOptical: true,
+});
+const priceStrikethrough = createPriceTemplate({
+    displayStrikethrough: true,
+});
+const pricePromoStrikethrough = createPriceTemplate({
+    displayPromoStrikethrough: true,
+});
+const priceAnnual = createPriceTemplate({
+    displayAnnual: true,
+});
+const priceOpticalAlternative = createPriceTemplate({
+    displayOptical: true,
+    isAlternativePrice: true,
+});
+const priceAlternative = createPriceTemplate({
+    isAlternativePrice: true,
+});
+const priceWithAnnual = createPriceWithAnnualTemplate();
+const pricePromoWithAnnual = createPromoPriceWithAnnualTemplate();
 
 /**
  * Renders already-resolved WCS offers and options, without collecting browser
@@ -34,7 +52,7 @@ export function buildPriceHTML(offers, options, { logger = console } = {}) {
             method = priceAnnual;
             break;
         case 'legal':
-            method = legal;
+            method = legalTemplate;
             break;
         default:
             if (options.template === 'optical' && options.alternativePrice) method = priceOpticalAlternative;

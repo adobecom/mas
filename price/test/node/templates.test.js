@@ -24,9 +24,8 @@ import {
     makeSpacesAroundNonBreaking,
     currencyIsFirstChar,
 } from '../../src/price/utilities.js';
-import * as prices from '../../src/price/index.js';
-import { legalTemplate } from '../../src/price/legal.js';
-import { discount } from '../../src/discount/index.js';
+import { buildPriceHTML } from '../../src/price.js';
+import { discount } from '../../src/discount.js';
 import { Commitment, Term } from '../../src/constants.js';
 import { baseOffer, promotion, priceInfo, instant } from '../fixtures/cases.js';
 import { messageCases } from '../fixtures/message-cases.js';
@@ -45,24 +44,25 @@ describe('legacy ICU golden literals', () => {
     }
 });
 
-describe('template compatibility exports', () => {
+describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };
-    for (const name of [
-        'price',
-        'pricePromo',
-        'priceOptical',
-        'priceStrikethrough',
-        'pricePromoStrikethrough',
-        'priceAnnual',
-        'priceAlternative',
-        'priceOpticalAlternative',
-        'priceWithAnnual',
-        'pricePromoWithAnnual',
-        'legal',
-    ]) {
+    for (const [name, templateOptions] of Object.entries({
+        price: {},
+        pricePromo: { promotionCode: 'PROMO' },
+        priceOptical: { template: 'optical' },
+        priceStrikethrough: { template: 'strikethrough' },
+        pricePromoStrikethrough: { template: 'promo-strikethrough' },
+        priceAnnual: { template: 'annual' },
+        priceAlternative: { alternativePrice: true },
+        priceOpticalAlternative: { template: 'optical', alternativePrice: true },
+        priceWithAnnual: { displayAnnual: true },
+        pricePromoWithAnnual: { displayAnnual: true, promotionCode: 'PROMO' },
+        legal: { template: 'legal' },
+    })) {
         it(`${name} renders without a browser environment`, () => {
-            assert.match(prices[name](options, value), /^<span class="price/);
+            const offer = templateOptions.promotionCode ? { ...baseOffer, promotion } : baseOffer;
+            assert.match(buildPriceHTML([offer], { ...options, ...templateOptions }), /^<span class="price/);
         });
     }
     for (const [name, factory] of Object.entries({
@@ -76,12 +76,6 @@ describe('template compatibility exports', () => {
             assert.equal(template(options, value), template(options, value));
         });
     }
-    it('retains the legal template alias', () => {
-        assert.equal(prices.legal, legalTemplate);
-    });
-    it('retains the promotion utility alias', () => {
-        assert.equal(prices.isPromotionActive, isPromotionActive);
-    });
     it('formats a localized discount', () => {
         assert.equal(discount(options, { price: 35, priceWithoutDiscount: 100 }), '<span class="discount">65%</span>');
     });

@@ -287,6 +287,22 @@ export function formatAuthorPath(contentType, fragmentParts) {
     return `${surface} / ${contentType} / ${rest}`;
 }
 
+export const FRAGMENT_TITLE_ORGS = Object.freeze(['MERCH', 'OPT', 'PZN', 'DC', 'HOMEPAGE', 'EDU HUB']);
+
+/** Splits `ORG: [Template]: [Product]: [Segment]: STATE`. Titles off the convention stay whole as `middle`. */
+export function parseFragmentTitle(title) {
+    const text = typeof title === 'string' ? title : '';
+    const parts = text.split(':').map((part) => part.trim());
+    if (parts.length >= 3 && FRAGMENT_TITLE_ORGS.includes(parts[0])) {
+        return { org: parts[0], middle: parts.slice(1, -1).join(': '), state: parts.at(-1) };
+    }
+    return { org: '', middle: text, state: '' };
+}
+
+export function composeFragmentTitle({ org, middle, state }) {
+    return [org, middle, state].filter((part) => part).join(': ');
+}
+
 export function generateLinkToUse(fragment, path, page, failMessage) {
     const { fragmentParts, title } = getFragmentPartsToUse(fragment, path);
     const webComponentName = getWebComponentName(fragment);

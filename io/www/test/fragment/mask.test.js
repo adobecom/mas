@@ -60,8 +60,14 @@ describe('mask transformer init', function () {
         fetchStub.withArgs(byPathUrl('fr_CA', 'zorro')).returns(createResponse(404, {}, 'Not Found'));
         fetchStub.withArgs(byPathUrl('fr_FR', 'zorro')).returns(createResponse(200, { id: 'mask-id' }));
         fetchStub.withArgs(hydrateUrl('mask-id')).returns(createResponse(200, MASK_BODY));
-        const result = await mask.init(withLocale('fr_CA', 'fr_FR', { mask: 'zorro' }));
-        expect(result.fields.badge).to.equal('MASKED BADGE');
+        const errorStub = sinon.stub(console, 'error');
+        try {
+            const result = await mask.init(withLocale('fr_CA', 'fr_FR', { mask: 'zorro' }));
+            expect(result.fields.badge).to.equal('MASKED BADGE');
+            expect(errorStub.called).to.be.false;
+        } finally {
+            errorStub.restore();
+        }
     });
 
     it('reuses a regional 404 across pipeline runs while resolving the default mask', async function () {
@@ -93,6 +99,28 @@ describe('mask transformer init', function () {
         fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
         await Promise.all([1, 2, 3].map(() => mask.init(withLocale('en_US', 'en_US', { mask: 'missing' }))));
         expect(fetchStub.callCount).to.equal(1);
+    });
+
+    it('preserves the mask id for every concurrent request', async function () {
+        mockMaskFound('en_US', 'photo');
+        const contexts = [1, 2, 3].map(() =>
+            withLocale('en_US', 'en_US', { mask: 'photo', fragmentsIds: {}, marks: {}, measures: [] }),
+        );
+        await Promise.all(contexts.map((context) => mask.init(context)));
+        for (const context of contexts) {
+            expect(context.fragmentsIds).to.deep.equal({ 'mask-id-en_US': 'mask-id' });
+        }
+    });
+
+    it('measures each concurrent mask cache read independently', async function () {
+        mockMaskFound('en_US', 'photo');
+        const contexts = [1, 2, 3].map(() =>
+            withLocale('en_US', 'en_US', { mask: 'photo', fragmentsIds: {}, marks: {}, measures: [] }),
+        );
+        await Promise.all(contexts.map((context) => mask.init(context)));
+        for (const context of contexts) {
+            expect(context.measures.some(({ label }) => label === 'mask-id-cache-en_US')).to.equal(true);
+        }
     });
 
     it('isolates missing masks by surface, locale, and mask name', async function () {
@@ -218,7 +246,7 @@ describe('mask transformer init', function () {
         expect(result).not.to.have.property('maskError');
     });
 
-    it('keeps production rendering and reports final failures even when misses are cached', async function () {
+    it('logs missing masks once per cache fill while preserving rendering', async function () {
         fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
         const errorStub = sinon.stub(console, 'error');
         const body = { id: 'collection-id', fields: { title: 'collection' } };
@@ -239,13 +267,68 @@ describe('mask transformer init', function () {
             const failures = errorStub.args
                 .map(([message]) => message)
                 .filter((message) => message.includes('Unable to load mask'));
-            expect(failures).to.have.lengthOf(2);
+            expect(failures).to.have.lengthOf(1);
             expect(failures[0]).to.include('photo').and.include('sandbox').and.include('en_US').and.include('run-1');
-            expect(failures[1]).to.include('run-2');
         } finally {
             errorStub.restore();
         }
     });
+
+    it('logs a concurrent final miss only once', async function () {
+        fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
+        const errorStub = sinon.stub(console, 'error');
+        try {
+            await Promise.all([1, 2, 3].map(() => mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }))));
+            expect(errorStub.args.filter(([message]) => message.includes('Unable to load mask'))).to.have.lengthOf(1);
+        } finally {
+            errorStub.restore();
+        }
+    });
+
+    for (const reset of ['expiry', 'clear']) {
+        it(`logs a fresh final miss after cache ${reset}`, async function () {
+            const clock = sinon.useFakeTimers({ toFake: ['Date'] });
+            fetchStub.resolves({ status: 404, message: 'Not Found', headers: new Headers() });
+            const errorStub = sinon.stub(console, 'error');
+            try {
+                await mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }));
+                if (reset === 'expiry') clock.setSystemTime(Date.now() + 5 * 60 * 1000 + 1);
+                else clearMaskCache();
+                await mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }));
+                expect(errorStub.args.filter(([message]) => message.includes('Unable to load mask'))).to.have.lengthOf(2);
+            } finally {
+                errorStub.restore();
+                clock.restore();
+            }
+        });
+    }
+
+    for (const status of [401, 503]) {
+        it(`reports every concurrent byPath HTTP ${status} failure`, async function () {
+            fetchStub.callsFake(() => createResponse(status, {}, 'Unavailable'));
+            const errorStub = sinon.stub(console, 'error');
+            try {
+                await Promise.all([1, 2].map(() => mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }))));
+                expect(errorStub.args.filter(([message]) => message.includes('Unable to load mask'))).to.have.lengthOf(2);
+            } finally {
+                errorStub.restore();
+            }
+        });
+    }
+
+    for (const status of [404, 503]) {
+        it(`reports every concurrent hydration HTTP ${status} failure`, async function () {
+            mockMaskFound('en_US', 'photo');
+            fetchStub.withArgs(hydrateUrl('mask-id')).returns(createResponse(status, {}, 'Unavailable'));
+            const errorStub = sinon.stub(console, 'error');
+            try {
+                await Promise.all([1, 2].map(() => mask.init(withLocale('en_US', 'en_US', { mask: 'photo' }))));
+                expect(errorStub.args.filter(([message]) => message.includes('Unable to load mask'))).to.have.lengthOf(2);
+            } finally {
+                errorStub.restore();
+            }
+        });
+    }
 
     it('resolves to null when the mask name contains invalid characters, without fetching', async function () {
         const result = await mask.init(withLocale('en_US', 'en_US', { mask: '../evil' }));

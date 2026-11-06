@@ -52,6 +52,8 @@ import { cachedInheritanceParent } from '../aem/variation-utils.js';
 import { buildEditorHref } from '../common/utils/editor-link.js';
 
 const QUANTITY_MODEL = 'quantitySelect';
+const TOGGLE_SETTINGS = new Set(['showPlanType', 'showSecureLabel']);
+const isToggleOn = (value) => hasContent([value]) && `${value}` !== 'false';
 const WHAT_IS_INCLUDED = 'whatsIncluded';
 /** Plain-text projection of an html label, for the non-edu textfield path. */
 const htmlToText = (html) => new DOMParser().parseFromString(html || '', 'text/html').body.textContent.trim();
@@ -688,6 +690,44 @@ class MerchCardEditor extends LitElement {
         return this.#cachedGlobalDefaults;
     }
 
+    /** Global settings the baselines inherit: resolved without the card's own settings, which would otherwise win. */
+    get #baselineGlobalSettings() {
+        if (!this.#cachedBaselineGlobalSettings) {
+            const context = this.getSettingsContextFragment();
+            this.#cachedBaselineGlobalSettings = getGlobalSettingsDefaults(
+                {
+                    ...context,
+                    locale: context.locale,
+                    fields: context.fields.filter(({ name }) => !MerchCardEditor.SETTINGS_FIELDS.includes(name)),
+                },
+                Store.settings.rows.get(),
+            );
+        }
+        return this.#cachedBaselineGlobalSettings;
+    }
+
+    /** A card with baselines inherits its settings from them, and the baselines inherit the global settings. */
+    get inheritsSettingsFromBaseline() {
+        return !this.effectiveIsVariation && Boolean(this.baselinesController.parent);
+    }
+
+    /** Value a card with baselines inherits for a setting: the baselines value, else the global setting. */
+    baselineSettingValue(fieldName) {
+        const values = this.baselinesController.parent?.getFieldValues(fieldName);
+        return hasContent(values) ? values[0] : (this.#baselineGlobalSettings[fieldName] ?? '');
+    }
+
+    #isBaselineSettingValue(fieldName, value) {
+        const baselineValue = this.baselineSettingValue(fieldName);
+        if (TOGGLE_SETTINGS.has(fieldName)) return isToggleOn(value) === isToggleOn(baselineValue);
+        if (fieldName === ADDON) return this.#addonText(value) === this.#addonText(baselineValue);
+        return `${value ?? ''}` === `${baselineValue ?? ''}`;
+    }
+
+    #addonText(value) {
+        return this.isAddonWebComponent(value) ? this.getAddonElement(value).textContent : value;
+    }
+
     getEffectiveSettingValue(fieldName) {
         const value = this.getEffectiveFieldValue(fieldName, 0);
         if (value === undefined || value === null || value === '') {
@@ -717,15 +757,47 @@ class MerchCardEditor extends LitElement {
         return true;
     }
 
+    #baselineSetsSetting(fieldName) {
+        return hasContent(this.baselinesController.parent?.getFieldValues(fieldName));
+    }
+
     /**
-     * For variations: true when the variation's own value differs from its parent.
-     * For top-level fragments: true when the card has an explicit value (overriding global settings).
+     * For cards with baselines: true when the own value differs from the value inherited from the baselines.
+     * For variations: true when the own value differs from the parent's.
+     * For other top-level fragments: true when the card has an explicit value (overriding global settings).
      */
     isSettingOverridden(fieldName) {
+        if (this.inheritsSettingsFromBaseline) {
+            return (
+                this.hasExplicitSettingOverride(fieldName) &&
+                !this.#isBaselineSettingValue(fieldName, this.fragment.getFieldValue(fieldName, 0))
+            );
+        }
         if (this.effectiveIsVariation) {
             return this.getFieldState(fieldName) === 'overridden';
         }
         return this.hasExplicitSettingOverride(fieldName);
+    }
+
+    /** The card has baselines and does not override the setting, so it takes the setting from the baselines. */
+    isSettingFromBaseline(fieldName) {
+        return this.inheritsSettingsFromBaseline && !this.isSettingOverridden(fieldName);
+    }
+
+    /** Writes a settings toggle, clearing the card's value when it matches the value inherited from the baselines. */
+    handleSettingToggle = (event) => {
+        const fieldName = event.target.dataset.field;
+        if (this.inheritsSettingsFromBaseline && this.#isBaselineSettingValue(fieldName, event.target.value)) {
+            this.fragmentStore.updateField(fieldName, ['']);
+            return;
+        }
+        this.#handleFragmentUpdate(event);
+    };
+
+    get settingFromBaselineIndicator() {
+        return html`<span class="field-status-indicator field-status-indicator--baseline setting-baseline-indicator">
+            <span class="field-status-label">From baseline</span>
+        </span>`;
     }
 
     get isAnySettingOverridden() {
@@ -760,13 +832,7 @@ class MerchCardEditor extends LitElement {
     #handleAddonChange = (event) => {
         const newValue = event.detail?.value;
         const currentValue = this.getEffectiveFieldValue(ADDON, 0);
-        const settingsValue = this.globalSettingsDefaults[ADDON];
-        let parentValue;
-        if (this.effectiveIsVariation) {
-            parentValue = this.localeDefaultFragment?.getField(ADDON)?.values[0] || settingsValue;
-        } else {
-            parentValue = settingsValue;
-        }
+        const parentValue = this.#settingParentValue(ADDON);
         let value;
         if (this.isAddonWebComponent(currentValue)) {
             const addonEl = this.getAddonElement(currentValue);
@@ -782,13 +848,12 @@ class MerchCardEditor extends LitElement {
 
     resetAddonSettingToDefault() {
         let restored = false;
-        if (this.effectiveIsVariation) {
-            const parentValues = this.localeDefaultFragment?.getField(ADDON)?.values || [];
-            restored = this.fragmentStore.resetFieldToParent(ADDON, parentValues);
+        if (this.effectiveIsVariation || this.#baselineSetsSetting(ADDON)) {
+            restored = this.fragmentStore.resetFieldToParent(ADDON);
         } else {
             const addonFragment = this.fragment?.getFieldValue(ADDON, 0);
             if (this.isAddonWebComponent(addonFragment)) {
-                const addonSettings = this.globalSettingsDefaults[ADDON];
+                const addonSettings = this.#settingParentValue(ADDON);
                 const addonEl = this.getAddonElement(addonFragment);
                 addonEl.textContent = addonSettings;
                 restored = this.fragmentStore.updateField(ADDON, [addonEl.outerHTML]) !== false;
@@ -812,15 +877,28 @@ class MerchCardEditor extends LitElement {
         } else {
             restored = this.fragmentStore.updateField(fieldName, ['']) !== false;
         }
-        if (!silent && restored) showToast('Setting restored to default', 'positive');
+        if (!silent && restored) {
+            showToast(`Setting restored to ${this.inheritsSettingsFromBaseline ? 'baseline' : 'default'}`, 'positive');
+        }
         return restored;
+    }
+
+    /** Value a setting the card does not set takes: from the baselines, else the variation parent or the global setting. */
+    #settingParentValue(fieldName) {
+        if (this.inheritsSettingsFromBaseline) return this.baselineSettingValue(fieldName);
+        return this.inheritanceParent?.getFieldValue(fieldName, 0) || this.globalSettingsDefaults[fieldName];
+    }
+
+    get #quantityParentHtml() {
+        return this.#settingParentValue(QUANTITY_MODEL) || '';
     }
 
     resetQuantitySettingToDefault(fieldName) {
         if (this.effectiveIsVariation) {
             this.resetQuantityComponentToParent(fieldName);
         } else {
-            const parentValues = parseQuantitySelectValue(this.globalSettingsDefaults[QUANTITY_MODEL]);
+            const parentHtml = this.#quantityParentHtml;
+            const parentValues = parseQuantitySelectValue(parentHtml);
             const currentValues = parseQuantitySelectValue(this.quantityValue);
             const html = createQuantitySelectValue({
                 title: this.#getQuantitySelectValue(fieldName, 'title', parentValues, currentValues),
@@ -828,7 +906,7 @@ class MerchCardEditor extends LitElement {
                 step: this.#getQuantitySelectValue(fieldName, 'step', parentValues, currentValues),
                 defaultValue: this.#getQuantitySelectValue(fieldName, 'defaultValue', parentValues, currentValues),
             });
-            if (this.globalSettingsDefaults[QUANTITY_MODEL] === html) {
+            if (parentHtml === html) {
                 this.fragmentStore.updateField(QUANTITY_MODEL, ['']);
             } else {
                 this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
@@ -841,13 +919,16 @@ class MerchCardEditor extends LitElement {
     }
 
     restoreSettingsToDefault(clickHandler, fieldName) {
+        const label = this.inheritsSettingsFromBaseline
+            ? 'Overridden. Click to restore baseline value'
+            : 'Restore setting to default';
         return html`
             <sp-action-button
                 slot="indicator"
                 class="setting-override-indicator"
                 quiet
-                title="Restore setting to default"
-                aria-label="Restore setting to default"
+                title="${label}"
+                aria-label="${label}"
                 @click=${() => clickHandler(fieldName)}
             >
                 <sp-icon-unlink slot="icon"></sp-icon-unlink>
@@ -859,19 +940,15 @@ class MerchCardEditor extends LitElement {
         if (this.isQuantitySelectVariationOverridden()) {
             return this.restoreSettingsToDefault(this.resetSettingToDefault, QUANTITY_MODEL);
         }
-
+        if (this.isSettingFromBaseline(QUANTITY_MODEL)) return this.settingFromBaselineIndicator;
         return nothing;
     }
 
     renderQuantitySelectSettingOverrideIndicator(field) {
-        const globalSettings = parseQuantitySelectValue(this.globalSettingsDefaults[QUANTITY_MODEL]);
         const effectiveSettings = parseQuantitySelectValue(this.getEffectiveSettingValue(QUANTITY_MODEL));
 
         if (this.effectiveIsVariation) {
-            const parentHtml =
-                this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) ||
-                this.globalSettingsDefaults[QUANTITY_MODEL] ||
-                '';
+            const parentHtml = this.#quantityParentHtml;
             const variationHtml = this.fragment?.getFieldValue(QUANTITY_MODEL, 0) || '';
             const parent = parseQuantitySelectValue(parentHtml);
             const variation = parseQuantitySelectValue(variationHtml);
@@ -879,7 +956,7 @@ class MerchCardEditor extends LitElement {
             if (!variationHtml || parent[field] === variation[field]) {
                 return nothing;
             }
-        } else if (effectiveSettings[field] === globalSettings[field]) {
+        } else if (effectiveSettings[field] === parseQuantitySelectValue(this.#quantityParentHtml)[field]) {
             return nothing;
         }
 
@@ -892,16 +969,7 @@ class MerchCardEditor extends LitElement {
 
         if (this.isAddonWebComponent(addonFragment)) {
             const addonEl = this.getAddonElement(addonFragment);
-            const addonSettings = this.globalSettingsDefaults[ADDON];
-            let addonParent;
-            if (this.effectiveIsVariation) {
-                addonParent = this.localeDefaultFragment?.getField(ADDON)?.values[0] || addonSettings;
-            } else {
-                addonParent = addonSettings;
-            }
-            if (this.isAddonWebComponent(addonParent)) {
-                addonParent = this.getAddonElement(addonParent).textContent;
-            }
+            const addonParent = this.#addonText(this.#settingParentValue(ADDON));
             return addonEl.textContent !== addonParent;
         }
 
@@ -909,9 +977,11 @@ class MerchCardEditor extends LitElement {
     }
 
     renderSettingOverrideIndicator(fieldName) {
-        if (fieldName === ADDON && !this.isAddonSettingVisuallyOverridden()) return nothing;
-        if (!this.isSettingVisuallyOverridden(fieldName)) return nothing;
-        return this.restoreSettingsToDefault(this.resetSettingToDefault, fieldName);
+        const overridden =
+            (fieldName !== ADDON || this.isAddonSettingVisuallyOverridden()) && this.isSettingVisuallyOverridden(fieldName);
+        if (overridden) return this.restoreSettingsToDefault(this.resetSettingToDefault, fieldName);
+        if (this.isSettingFromBaseline(fieldName)) return this.settingFromBaselineIndicator;
+        return nothing;
     }
 
     resetAllSettings() {
@@ -995,9 +1065,11 @@ class MerchCardEditor extends LitElement {
     }
 
     #cachedGlobalDefaults = null;
+    #cachedBaselineGlobalSettings = null;
 
     willUpdate(changedProperties) {
         this.#cachedGlobalDefaults = null;
+        this.#cachedBaselineGlobalSettings = null;
         if (this.fragmentStore?.get()) {
             this.#syncGroupedPreviewLocale();
         }
@@ -1241,7 +1313,8 @@ class MerchCardEditor extends LitElement {
     #handleQuantityFieldChange = (event) => {
         const html = event.detail?.value ?? event.currentTarget?.value;
         if (typeof html !== 'string') return;
-        this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
+        const clears = this.inheritsSettingsFromBaseline && this.#isBaselineSettingValue(QUANTITY_MODEL, html);
+        this.fragmentStore.updateField(QUANTITY_MODEL, [clears ? '' : html]);
         this.quantitySelectorValues = html;
     };
 
@@ -1663,6 +1736,11 @@ class MerchCardEditor extends LitElement {
                 .settings-toggle-field .field-row sp-switch,
                 .settings-toggle-field .field-row .setting-override-indicator {
                     flex: none;
+                }
+
+                .settings-toggle-field .setting-baseline-indicator {
+                    flex: none;
+                    margin-top: 0;
                 }
 
                 .settings-toggle-field[data-field-state='overridden'] sp-switch[checked] {
@@ -2270,7 +2348,7 @@ class MerchCardEditor extends LitElement {
                             data-field-state="${this.isSettingVisuallyOverridden('showPlanType') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('showPlanType')}
                             value="${this.getEffectiveSettingValue('showPlanType')}"
-                            @input="${this.#handleFragmentUpdate}"
+                            @input="${this.handleSettingToggle}"
                         ></mas-plan-type-field>
                     </sp-field-group>
                     <sp-field-group id="secureLabel" class="toggle">
@@ -2282,7 +2360,7 @@ class MerchCardEditor extends LitElement {
                             data-field-state="${this.isSettingVisuallyOverridden('showSecureLabel') ? 'overridden' : 'default'}"
                             .indicatorTemplate=${this.renderSettingOverrideIndicator('showSecureLabel')}
                             value="${this.getEffectiveSettingValue('showSecureLabel')}"
-                            @input="${this.#handleFragmentUpdate}"
+                            @input="${this.handleSettingToggle}"
                         ></secure-text-field>
                     </sp-field-group>
                     <sp-field-group id="quantitySelect" class="toggle">
@@ -2892,8 +2970,7 @@ class MerchCardEditor extends LitElement {
     }
 
     async resetQuantityComponentToParent(component) {
-        const parentHtml =
-            this.localeDefaultFragment?.getFieldValue(QUANTITY_MODEL, 0) || this.globalSettingsDefaults[QUANTITY_MODEL] || '';
+        const parentHtml = this.#quantityParentHtml;
         if (!component && !parentHtml) {
             this.fragmentStore.updateField(QUANTITY_MODEL, [parentHtml]);
             this.quantitySelectorValues = parentHtml;
@@ -2910,7 +2987,7 @@ class MerchCardEditor extends LitElement {
         });
         this.fragmentStore.updateField(QUANTITY_MODEL, [html]);
         this.quantitySelectorValues = html;
-        showToast('Field restored to parent value', 'positive');
+        this.#showRestoredToast(QUANTITY_MODEL);
     }
 
     getBadgeComponentState(fieldName, component) {

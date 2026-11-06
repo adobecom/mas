@@ -304,7 +304,8 @@ export class Fragment {
         // For variations: if values match parent exactly, reset to inherited state
         if (parentField) {
             const valuesMatchParent =
-                encodedValues.length === parentValues.length && encodedValues.every((v, i) => v === parentValues[i]);
+                encodedValues.length === parentValues.length &&
+                encodedValues.every((v, i) => String(v) === String(parentValues[i]));
 
             if (valuesMatchParent) {
                 // Reset field if it exists, or just confirm it should stay inherited

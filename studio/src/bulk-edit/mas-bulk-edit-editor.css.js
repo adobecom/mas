@@ -5,8 +5,6 @@ export const styles = css`
         display: block;
         box-sizing: border-box;
         width: 100%;
-        max-width: 1100px;
-        margin: 0 auto;
         padding: 24px 32px 120px;
     }
 

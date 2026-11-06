@@ -124,6 +124,24 @@
                             expect(root.querySelector('[data-testid="project-row"]')).to.exist;
                         });
 
+                        it('uses the full editor width with 32px side padding on a 1400px page', async () => {
+                            const viewport = document.createElement('div');
+                            viewport.style.width = '1400px';
+                            const editor = document.createElement('mas-bulk-edit-editor');
+                            viewport.append(editor);
+                            document.body.append(viewport);
+                            await editor.updateComplete;
+                            const bounds = viewport.getBoundingClientRect();
+                            expect(editor.getBoundingClientRect().width).to.equal(1400);
+                            expect(getComputedStyle(editor).maxWidth).to.equal('none');
+                            for (const selector of ['header', '.card', '.fragments-table']) {
+                                const elementBounds = editor.shadowRoot.querySelector(selector).getBoundingClientRect();
+                                expect(elementBounds.left - bounds.left).to.equal(32);
+                                expect(bounds.right - elementBounds.right).to.equal(32);
+                            }
+                            viewport.remove();
+                        });
+
                         it('shows the empty editor with the design controls and no results', async () => {
                             const editor = document.querySelector('#editor');
                             await editor.updateComplete;

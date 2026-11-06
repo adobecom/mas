@@ -1,0 +1,800 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Find and replace UI preview</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <script src="../../src/swc.js" type="module"></script>
+        <style>
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+            }
+            h2 {
+                margin: 24px 32px;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <h2>Project list with actions and Create project</h2>
+            <mas-bulk-edit id="projects"></mas-bulk-edit>
+            <h2>New project: design controls and empty fragments table</h2>
+            <div id="editor-host"></div>
+        </sp-theme>
+        <script type="module">
+            import { expect } from '@esm-bundle/chai';
+            import { waitUntil } from '@open-wc/testing';
+            import '@adobecom/mas';
+            import Store from '../../src/store.js';
+            import { Fragment } from '../../src/aem/fragment.js';
+            import { FragmentStore } from '../../src/reactivity/fragment-store.js';
+            import { filterByTags } from '../../src/aem/aem.js';
+            import { __tagCacheStores } from '../../src/aem/tag-cache.js';
+            import '../../src/bulk-edit/mas-bulk-edit.js';
+            import '../../src/bulk-edit/mas-bulk-edit-editor.js';
+
+            const demoTagIds = ['mas:market_segments/edu', 'mas:customer_segment/individual', 'mas:product_code/photoshop'];
+            __tagCacheStores.data.set(
+                '/content/cq:tags/mas',
+                new Map(
+                    [
+                        ['market_segments/edu', 'Education'],
+                        ['customer_segment/individual', 'Individual'],
+                        ['product_code/photoshop', 'Photoshop'],
+                    ].map(([name, title]) => {
+                        const path = `/content/cq:tags/mas/${name}`;
+                        return [path, { path, title }];
+                    }),
+                ),
+            );
+
+            const demoRepository = {
+                async searchFragmentList() {
+                    return [];
+                },
+                async createFragment(payload) {
+                    return {
+                        id: 'demo-saved-project',
+                        path: `${payload.parentPath}/${payload.name}`,
+                        model: { id: payload.modelId },
+                        fields: payload.fields,
+                    };
+                },
+                aem: {
+                    sites: {
+                        cf: {
+                            fragments: {
+                                async getById() {
+                                    const {
+                                        value: [parent],
+                                    } = await demoRepository.searchFragmentPages().next();
+                                    const locale = {
+                                        id: 'demo-locale',
+                                        path: '/content/dam/mas/acom/en_AU/school-offer',
+                                        title: 'Australia education offer',
+                                        fields: [],
+                                    };
+                                    const locales = [
+                                        locale,
+                                        ...['CA', 'NZ', 'IN'].map((country) => ({
+                                            id: `demo-locale-${country}`,
+                                            path: `/content/dam/mas/acom/en_${country}/school-offer`,
+                                            title: `${country} education offer`,
+                                            fields: [],
+                                        })),
+                                    ];
+                                    const promotion = {
+                                        id: 'demo-promotion',
+                                        path: '/content/dam/mas/acom/en_US/promotions/sale/school-offer',
+                                        title: 'School promotion offer',
+                                        fields: [],
+                                    };
+                                    const grouped = {
+                                        id: 'demo-grouped',
+                                        path: '/content/dam/mas/acom/en_US/school-offer/pzn/education',
+                                        title: 'Grouped education offer',
+                                        fields: [],
+                                    };
+                                    return {
+                                        ...parent,
+                                        references: [...locales, promotion, grouped],
+                                        fields: [
+                                            ...parent.fields,
+                                            { name: 'variations', values: [...locales.map(({ path }) => path), grouped.path] },
+                                        ],
+                                    };
+                                },
+                                async *search() {
+                                    yield [];
+                                },
+                            },
+                        },
+                    },
+                },
+                async loadPromotions() {},
+                async *searchFragmentPages({ tags = [], status = [] } = {}) {
+                    const fragments = [
+                        {
+                            id: 'matching-fragment',
+                            path: '/content/dam/mas/acom/en_US/school-offer',
+                            title: `Photoshop education ${'with a very long fragment title '.repeat(12)}`,
+                            description: `Education offer ${'with a long fragment description '.repeat(12)}`,
+                            status: 'PUBLISHED',
+                            tags: demoTagIds.map((id) => ({ id })),
+                            fields: [
+                                { name: 'cardTitle', values: ['Photoshop'] },
+                                {
+                                    name: 'callout',
+                                    values: [`Back to <strong>school</strong> offer ${'Long callout text '.repeat(20)}`],
+                                },
+                                { name: 'osi', values: ['A-long-unbroken-offer-selector'.repeat(12)] },
+                                {
+                                    name: 'mnemonicIcon',
+                                    values: [
+                                        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24"/%3E',
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            id: 'matching-promotion-copy',
+                            path: '/content/dam/mas/acom/en_US/promotions/sale/school-offer',
+                            title: 'School promotion copy',
+                            fields: [{ name: 'cardTitle', values: ['Photoshop school promotion'] }],
+                        },
+                        {
+                            id: 'matching-grouped-copy',
+                            path: '/content/dam/mas/acom/en_US/school-offer/pzn/education',
+                            title: 'School grouped copy',
+                            fields: [{ name: 'cardTitle', values: ['Photoshop school grouped variation'] }],
+                        },
+                    ];
+                    yield fragments
+                        .filter(filterByTags(tags))
+                        .filter((fragment) => !status.length || status.includes(fragment.status));
+                },
+                processError: (error) => {
+                    throw error;
+                },
+            };
+            const demoEditor = document.createElement('mas-bulk-edit-editor');
+            demoEditor.id = 'editor';
+            Object.defineProperty(demoEditor, 'repository', { value: demoRepository });
+            document.querySelector('#editor-host').append(demoEditor);
+
+            Store.bulkEditProjects.projectId.set(null);
+            Store.bulkEditProjects.list.loading.set(false);
+            Store.bulkEditProjects.list.data.set([
+                new FragmentStore(
+                    new Fragment({
+                        id: 'preview-project',
+                        path: '/content/dam/mas/bulk-edit-projects/sandbox/preview',
+                        fields: [
+                            { name: 'title', values: ['Replace school with university-MWPW-191345'] },
+                            { name: 'status', values: ['Draft'] },
+                        ],
+                        created: { fullName: 'Example author', at: '2026-11-02T16:00:00Z' },
+                    }),
+                ),
+            ]);
+
+            if (window.__WTR_CONFIG__) {
+                const { runTests } = await import('@web/test-runner-mocha');
+                const { sendMouse, sendKeys, setViewport } = await import('@web/test-runner-commands');
+                runTests(() => {
+                    describe('Find and replace visual UI', () => {
+                        it('shows a populated project list with the blue Create project button', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            expect(projects.shadowRoot.querySelectorAll('[data-testid="project-row"]')).to.have.lengthOf(1);
+                            expect(projects.shadowRoot.querySelector('[data-testid="create-btn"]').variant).to.equal('accent');
+                        });
+
+                        it('matches Bulk publish padding and insets the heading, toolbar and table by 32px', async () => {
+                            await import('../../src/bulk-publish/mas-bulk-publish.js');
+                            const publish = document.createElement('mas-bulk-publish');
+                            document.body.append(publish);
+                            await publish.updateComplete;
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const root = projects.shadowRoot;
+                            const container = root.querySelector('.page-container');
+                            const reference = publish.shadowRoot.querySelector('.page-container');
+                            expect(getComputedStyle(container).padding).to.equal(getComputedStyle(reference).padding);
+                            expect(getComputedStyle(container).padding).to.equal('32px');
+                            await waitUntil(() => root.querySelector('.item-table').getBoundingClientRect().width > 0);
+                            const hostBounds = projects.getBoundingClientRect();
+                            for (const selector of ['h1', 'sp-tabs', '[data-testid="project-search"]', '.item-table']) {
+                                expect(root.querySelector(selector).getBoundingClientRect().left - hostBounds.left).to.equal(
+                                    32,
+                                );
+                            }
+                            expect(root.querySelector('h1').getBoundingClientRect().top - hostBounds.top).to.equal(32);
+                            expect(
+                                hostBounds.right -
+                                    root.querySelector('[data-testid="create-btn"]').getBoundingClientRect().right,
+                            ).to.equal(32);
+                            publish.remove();
+                        });
+
+                        it('keeps Find and replace selected when the unimplemented Update offer tab is clicked', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const tabs = projects.shadowRoot.querySelector('sp-tabs');
+                            await tabs.updateComplete;
+                            const updateOffer = tabs.querySelector('sp-tab[value="update-offer"]');
+                            expect(updateOffer.disabled).to.be.true;
+                            updateOffer.click();
+                            await tabs.updateComplete;
+                            expect(tabs.selected).to.equal('find-and-replace');
+                            expect(tabs.querySelector('sp-tab-panel[value="find-and-replace"]').selected).to.be.true;
+                            expect(projects.shadowRoot.querySelector('[data-testid="project-row"]')).to.exist;
+                        });
+
+                        it('places search and its result count to the left of Create project and filters the list', async () => {
+                            const projects = document.querySelector('#projects');
+                            await projects.updateComplete;
+                            const root = projects.shadowRoot;
+                            const search = root.querySelector('[data-testid="project-search"]');
+                            const count = root.querySelector('[data-testid="result-count"]');
+                            const create = root.querySelector('[data-testid="create-btn"]');
+                            await waitUntil(() => count.getBoundingClientRect().width > 0);
+                            expect(search.getBoundingClientRect().right).to.be.at.most(count.getBoundingClientRect().left);
+                            expect(count.getBoundingClientRect().right).to.be.at.most(create.getBoundingClientRect().left);
+                            expect(search.getBoundingClientRect().top).to.be.closeTo(create.getBoundingClientRect().top, 5);
+                            search.value = 'missing project';
+                            search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await projects.updateComplete;
+                            expect(root.querySelector('[data-testid="no-results"]')).to.exist;
+                            search.value = '';
+                            search.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await projects.updateComplete;
+                            expect(root.querySelector('[data-testid="project-row"]')).to.exist;
+                        });
+
+                        it('uses the full editor width with 32px side padding on a 1400px page', async () => {
+                            const viewport = document.createElement('div');
+                            viewport.style.width = '1400px';
+                            const editor = document.createElement('mas-bulk-edit-editor');
+                            Object.defineProperty(editor, 'repository', { value: demoRepository });
+                            viewport.append(editor);
+                            document.body.append(viewport);
+                            await editor.updateComplete;
+                            const bounds = viewport.getBoundingClientRect();
+                            expect(editor.getBoundingClientRect().width).to.equal(1400);
+                            expect(getComputedStyle(editor).maxWidth).to.equal('none');
+                            for (const selector of ['header', '.card', '.fragments-table']) {
+                                const elementBounds = editor.shadowRoot.querySelector(selector).getBoundingClientRect();
+                                expect(elementBounds.left - bounds.left).to.equal(32);
+                                expect(bounds.right - elementBounds.right).to.equal(32);
+                            }
+                            viewport.remove();
+                        });
+
+                        it('keeps Search in open while selecting multiple fields and supports Everywhere and Escape', async () => {
+                            const editor = document.querySelector('#editor');
+                            await editor.updateComplete;
+                            const root = editor.shadowRoot;
+                            const click = async (element) => {
+                                const bounds = element.getBoundingClientRect();
+                                await sendMouse({
+                                    type: 'click',
+                                    position: [
+                                        Math.round(bounds.left + bounds.width / 2),
+                                        Math.round(bounds.top + bounds.height / 2),
+                                    ],
+                                });
+                            };
+                            const trigger = root.querySelector('#search-in');
+                            trigger.scrollIntoView({ block: 'center' });
+                            await new Promise(requestAnimationFrame);
+                            await click(trigger);
+                            const everywhere = root.querySelector('[data-testid="search-everywhere"]');
+                            await waitUntil(() => everywhere.getBoundingClientRect().width > 0, 'Search in menu should open');
+                            await click(everywhere);
+                            expect(editor.searchFields).to.deep.equal([]);
+                            await click(root.querySelector('sp-checkbox[value="badge"]'));
+                            await click(root.querySelector('sp-checkbox[value="callout"]'));
+                            await waitUntil(() => editor.searchFields.length === 2, 'Two fields should be selected');
+                            expect(editor.searchInLabel).to.equal('2 fields selected');
+                            expect(everywhere.checked).to.be.false;
+                            expect(everywhere.getBoundingClientRect().width).to.be.greaterThan(0);
+                            await click(everywhere);
+                            await waitUntil(() => editor.searchEverywhere, 'Everywhere should select all fields');
+                            expect([...root.querySelectorAll('.search-in-popover sp-checkbox')].every((field) => field.checked))
+                                .to.be.true;
+                            await sendKeys({ press: 'Escape' });
+                            await waitUntil(
+                                () => everywhere.getBoundingClientRect().width === 0,
+                                'Escape should close Search in',
+                            );
+                        });
+
+                        it('shows struck-out matches, arrows and green replacements only in selected fields', async () => {
+                            const { ignoreWindowResizeObserverLoopErrors } = await import(
+                                '@lit-labs/virtualizer/support/resize-observer-errors.js'
+                            );
+                            const restoreResizeErrors = ignoreWindowResizeObserverLoopErrors();
+                            const host = document.createElement('section');
+                            host.innerHTML = '<h2>Replacement preview: school to university in Callout text</h2>';
+                            const editor = document.createElement('mas-bulk-edit-editor');
+                            Object.defineProperty(editor, 'repository', { value: demoRepository });
+                            host.append(editor);
+                            document.querySelector('sp-theme').append(host);
+                            try {
+                                await editor.updateComplete;
+                                editor.scrollIntoView({ block: 'start' });
+                                editor.findText = 'school';
+                                editor.searchFields = ['callout'];
+                                await editor.updateComplete;
+                                await editor.searchFragments();
+                                await editor.updateComplete;
+                                const root = editor.shadowRoot;
+                                const replace = root.querySelector('#replace-text');
+                                replace.value = 'university';
+                                replace.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                                await waitUntil(() => root.querySelector('.callout ins'));
+                                const original = root.querySelector('.callout del');
+                                const replacement = root.querySelector('.callout ins');
+                                expect(original.textContent).to.equal('school');
+                                expect(getComputedStyle(original).textDecorationLine).to.equal('line-through');
+                                expect(root.querySelector('.callout .replacement-arrow').textContent).to.equal(' → ');
+                                expect(replacement.textContent).to.equal('university');
+                                expect(getComputedStyle(replacement).textDecorationLine).to.equal('none');
+                                expect(getComputedStyle(replacement).backgroundColor).to.not.equal('rgba(0, 0, 0, 0)');
+                                expect(root.querySelector('.fragmentTitle del')).to.not.exist;
+                                expect(root.querySelector('.offer del')).to.not.exist;
+                                const source = JSON.stringify(editor.searchResults[0].fragment);
+                                replace.value = 'college';
+                                replace.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                                await waitUntil(() => root.querySelector('.callout ins')?.textContent === 'college');
+                                expect(JSON.stringify(editor.searchResults[0].fragment)).to.equal(source);
+                                replace.value = '';
+                                replace.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                                await waitUntil(() => root.querySelector('.callout mark'));
+                                expect(root.querySelector('del')).to.not.exist;
+                            } finally {
+                                host.remove();
+                                restoreResizeErrors();
+                            }
+                        });
+
+                        it('finds and highlights matching fragment text only after pressing Enter', async () => {
+                            const editor = document.querySelector('#editor');
+                            const root = editor.shadowRoot;
+                            const find = root.querySelector('#find-text');
+                            find.value = 'school';
+                            find.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await editor.updateComplete;
+                            expect(editor.searchedQuery).to.equal('');
+                            find.focus();
+                            await sendKeys({ press: 'Enter' });
+                            await waitUntil(
+                                () => editor.searchedQuery === 'school' && !editor.searching,
+                                'Enter should run Find',
+                            );
+                            const table = root.querySelector('sp-table');
+                            await waitUntil(() => table.querySelector('mark'));
+                            expect(table.items).to.have.lengthOf(1);
+                            expect(table.querySelector('mark').textContent).to.equal('school');
+                            expect(root.querySelector('.search-result-count').textContent.trim()).to.equal('1 result(s)');
+                            await new Promise(requestAnimationFrame);
+                            const row = table.querySelector('sp-table-row');
+                            expect(row.getBoundingClientRect().height).to.be.at.most(73);
+                            const headers = [...table.querySelectorAll('sp-table-head-cell')];
+                            const cells = [...row.querySelectorAll('sp-table-cell')];
+                            expect(cells).to.have.lengthOf(headers.length);
+                            for (let index = 0; index < headers.length; index++) {
+                                const header = headers[index].getBoundingClientRect();
+                                const cell = cells[index].getBoundingClientRect();
+                                expect(Math.abs(header.left - cell.left), `Column ${index} should align`).to.be.at.most(1);
+                                expect(
+                                    Math.abs(header.width - cell.width),
+                                    `Column ${index} should have matching widths`,
+                                ).to.be.at.most(1);
+                            }
+                            const title = row.querySelector('.fragmentTitle .title-clamp');
+                            expect(title.getBoundingClientRect().height).to.be.at.most(40);
+                            expect(title.scrollHeight).to.be.greaterThan(title.clientHeight);
+                            expect(row.querySelector('.mnemonic-icon').getBoundingClientRect().width).to.equal(24);
+                            expect(row.querySelector('.offerId sp-action-button')).to.exist;
+                            expect(row.querySelector('.selection sp-checkbox').disabled).to.be.false;
+                            row.scrollIntoView({ block: 'center', inline: 'start' });
+                            await new Promise(requestAnimationFrame);
+                            const scroller = root.querySelector('.results-scroll');
+                            expect(scroller.scrollWidth).to.be.greaterThan(scroller.clientWidth);
+                            const count = root.querySelector('.search-result-count');
+                            const countLeft = count.getBoundingClientRect().left;
+                            const offer = row.querySelector('.offer');
+                            const offerHead = table.querySelector('sp-table-head-cell.offer');
+                            const offerLeft = offer.getBoundingClientRect().left;
+                            const titleLeft = row.querySelector('.fragmentTitle').getBoundingClientRect().left;
+                            scroller.scrollLeft = 500;
+                            await new Promise(requestAnimationFrame);
+                            expect(scroller.scrollLeft).to.be.greaterThan(0);
+                            expect(offer.getBoundingClientRect().left).to.be.closeTo(offerLeft, 1);
+                            expect(offerHead.getBoundingClientRect().left).to.be.closeTo(offerLeft, 1);
+                            expect(row.querySelector('.fragmentTitle').getBoundingClientRect().left).to.be.closeTo(
+                                titleLeft - scroller.scrollLeft,
+                                1,
+                            );
+                            const offerBounds = offer.getBoundingClientRect();
+                            const idBounds = row.querySelector('.offerId').getBoundingClientRect();
+                            const overlapLeft = Math.max(offerBounds.left, idBounds.left);
+                            const overlapRight = Math.min(offerBounds.right, idBounds.right);
+                            expect(overlapRight).to.be.greaterThan(overlapLeft);
+                            const topmost = root.elementFromPoint(
+                                (overlapLeft + overlapRight) / 2,
+                                offerBounds.top + offerBounds.height / 2,
+                            );
+                            expect(offer === topmost || offer.contains(topmost), 'Offer must cover the scrolling ID controls')
+                                .to.be.true;
+                            expect(count.getBoundingClientRect().left).to.equal(countLeft);
+                            find.value = '';
+                            find.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+                            await editor.updateComplete;
+                            expect(editor.searchResults).to.have.lengthOf(0);
+                        });
+
+                        it('expands the Find result and selects Locale, Promotion and Grouped variations with real controls', async () => {
+                            const { ignoreWindowResizeObserverLoopErrors } = await import(
+                                '@lit-labs/virtualizer/support/resize-observer-errors.js'
+                            );
+                            const restoreResizeErrors = ignoreWindowResizeObserverLoopErrors();
+                            const editor = document.querySelector('#editor');
+                            const root = editor.shadowRoot;
+                            const click = async (element) => {
+                                element.scrollIntoView({ block: 'center', inline: 'nearest' });
+                                await new Promise(requestAnimationFrame);
+                                const bounds = element.getBoundingClientRect();
+                                await sendMouse({
+                                    type: 'click',
+                                    position: [
+                                        Math.round(bounds.left + bounds.width / 2),
+                                        Math.round(bounds.top + bounds.height / 2),
+                                    ],
+                                });
+                            };
+                            try {
+                                editor.findText = 'school';
+                                await editor.updateComplete;
+                                await editor.searchFragments();
+                                await editor.updateComplete;
+                                expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['matching-fragment']);
+                                await waitUntil(() => root.querySelector('.expansion sp-action-button'));
+                                await click(root.querySelector('.expansion sp-action-button'));
+                                await waitUntil(() => root.querySelector('[data-fragment-id="demo-locale"]'));
+                                expect(
+                                    [...root.querySelectorAll('.variation-toolbar sp-tab')].map((tab) => tab.value),
+                                ).to.deep.equal(['locale', 'promotion', 'grouped']);
+                                const scroll = root.querySelector('.results-scroll');
+                                scroll.scrollLeft = 0;
+                                await new Promise(requestAnimationFrame);
+                                const parent = root.querySelector('[data-fragment-id="matching-fragment"]').parentElement;
+                                const childSelection = root.querySelector('[data-fragment-id="demo-locale"]');
+                                const child = childSelection.parentElement;
+                                const childOffer = child.querySelector('.offer');
+                                const toolbar = root.querySelector('.variation-toolbar');
+                                const controls = root.querySelector('.variation-controls');
+                                expect(childOffer.textContent.trim()).to.equal('Photoshop AU (EN)');
+                                expect(childOffer.querySelector('img')).to.equal(null);
+                                expect(getComputedStyle(childOffer).fontWeight).to.equal('700');
+                                expect(getComputedStyle(childSelection).borderTopLeftRadius).to.equal('12px');
+                                expect(getComputedStyle(child.querySelector('.status')).marginRight).to.equal('32px');
+                                expect(
+                                    childSelection.getBoundingClientRect().left - parent.getBoundingClientRect().left,
+                                ).to.be.closeTo(32, 1);
+                                expect(childSelection.querySelector('sp-checkbox').getBoundingClientRect().left).to.be.closeTo(
+                                    parent.querySelector('.selection sp-checkbox').getBoundingClientRect().left,
+                                    1,
+                                );
+                                expect(getComputedStyle(childSelection).backgroundColor).not.to.equal(
+                                    getComputedStyle(child.querySelector('.expansion')).backgroundColor,
+                                );
+                                expect(controls.getBoundingClientRect().height).to.equal(112);
+                                expect(child.getBoundingClientRect().top - parent.getBoundingClientRect().bottom).to.be.closeTo(
+                                    112,
+                                    1,
+                                );
+                                expect(childOffer.getBoundingClientRect().left).to.be.closeTo(
+                                    parent.querySelector('.offer').getBoundingClientRect().left,
+                                    1,
+                                );
+                                const rule = getComputedStyle(controls, '::after');
+                                expect(rule.left).to.equal('32px');
+                                expect(rule.right).to.equal('32px');
+                                const offerLeft = childOffer.getBoundingClientRect().left;
+                                const tabsLeft = toolbar.getBoundingClientRect().left;
+                                scroll.scrollLeft = 300;
+                                await new Promise(requestAnimationFrame);
+                                expect(childOffer.getBoundingClientRect().left).to.be.closeTo(offerLeft, 1);
+                                expect(toolbar.getBoundingClientRect().left).to.be.closeTo(tabsLeft, 1);
+                                scroll.scrollLeft = 0;
+                                const filters = root.querySelector('mas-bulk-edit-filters');
+                                await filters.updateComplete;
+                                const localeTrigger = filters.shadowRoot.querySelector('sp-action-button[label="Locale"]');
+                                const localePopover = localeTrigger.parentElement.querySelector('sp-popover');
+                                await click(localeTrigger);
+                                const allLocales = localePopover.querySelector('sp-checkbox[value="all"]');
+                                await click(allLocales);
+                                await waitUntil(() => editor.displayRows.length === 2);
+                                await click(localePopover.querySelector('sp-checkbox[value="en_AU"]'));
+                                await waitUntil(() => editor.displayRows.length === 3);
+                                expect(editor.displayRows[2].id).to.equal('demo-locale');
+                                expect(editor.searchResults.map(({ id }) => id)).to.deep.equal(['matching-fragment']);
+                                await click(allLocales);
+                                await waitUntil(() => editor.resultFilters.locales === null);
+                                await sendKeys({ press: 'Escape' });
+                                await waitUntil(() => root.querySelector('[data-fragment-id="demo-locale"]'));
+                                await click(root.querySelector('[data-fragment-id="demo-locale"] sp-checkbox'));
+                                await waitUntil(() => editor.selectedFragments.has('demo-locale'));
+                                await click(root.querySelector('.variation-toolbar sp-tab[value="promotion"]'));
+                                await waitUntil(() => root.querySelector('[data-fragment-id="demo-promotion"]'));
+                                const promotionSelection = root.querySelector('[data-fragment-id="demo-promotion"]');
+                                expect(getComputedStyle(promotionSelection).borderBottomLeftRadius).to.equal('12px');
+                                expect(promotionSelection.getBoundingClientRect().height).to.equal(72);
+                                expect(promotionSelection.parentElement.getBoundingClientRect().height).to.equal(96);
+                                await click(root.querySelector('[data-fragment-id="demo-promotion"] sp-checkbox'));
+                                await waitUntil(() => editor.selectedFragments.has('demo-promotion'));
+                                await click(root.querySelector('.variation-toolbar sp-tab[value="grouped"]'));
+                                await waitUntil(() => root.querySelector('[data-fragment-id="demo-grouped"]'));
+                                await click(root.querySelector('[data-fragment-id="demo-grouped"] sp-checkbox'));
+                                await waitUntil(() => editor.selectedFragments.size === 3);
+                                expect(editor.selectedFragments.has('matching-fragment')).to.be.false;
+                                await click(root.querySelector('.expansion sp-action-button'));
+                                await waitUntil(() => !root.querySelector('.variation-toolbar'));
+                                expect(editor.selectedFragments.size).to.equal(3);
+                                await click(root.querySelector('.expansion sp-action-button'));
+                                await waitUntil(
+                                    () => root.querySelector('[data-fragment-id="demo-grouped"] sp-checkbox')?.checked,
+                                );
+                                await click(root.querySelector('.selection-summary sp-action-button'));
+                                await waitUntil(() => editor.selectedFragments.size === 0);
+                            } finally {
+                                editor.findText = '';
+                                editor.updateSelection(new Map());
+                                await editor.updateComplete;
+                                restoreResizeErrors();
+                            }
+                        });
+
+                        it('displays the first page without fetching the rest and loads more on request', async () => {
+                            const { ignoreWindowResizeObserverLoopErrors } = await import(
+                                '@lit-labs/virtualizer/support/resize-observer-errors.js'
+                            );
+                            // Use Virtualizer's test helper for its recoverable resize-loop notifications.
+                            const restoreResizeErrors = ignoreWindowResizeObserverLoopErrors();
+                            const editor = document.createElement('mas-bulk-edit-editor');
+                            let pagesRead = 0;
+                            Object.defineProperty(editor, 'repository', {
+                                value: {
+                                    async *searchFragmentPages() {
+                                        pagesRead++;
+                                        yield Array.from({ length: 50 }, (_, index) => ({
+                                            id: `page-one-${index}`,
+                                            title: `School offer ${index}`,
+                                            path: `/content/dam/mas/acom/en_US/page-one-${index}`,
+                                            fields: [],
+                                        }));
+                                        pagesRead++;
+                                        yield [
+                                            {
+                                                id: 'page-two',
+                                                title: 'School offer on the next page',
+                                                path: '/content/dam/mas/acom/en_US/page-two',
+                                                fields: [],
+                                            },
+                                        ];
+                                    },
+                                    processError(error) {
+                                        throw error;
+                                    },
+                                },
+                            });
+                            document.querySelector('sp-theme').append(editor);
+                            try {
+                                await editor.updateComplete;
+                                const root = editor.shadowRoot;
+                                const find = root.querySelector('#find-text');
+                                find.value = 'school';
+                                find.dispatchEvent(new Event('input'));
+                                await editor.updateComplete;
+                                find.focus();
+                                await sendKeys({ press: 'Enter' });
+                                await waitUntil(() => editor.searchResults.length === 50 && !editor.searching);
+                                await editor.updateComplete;
+                                const table = root.querySelector('sp-table');
+                                await table.updateComplete;
+                                await waitUntil(() => table.querySelector('sp-table-row'));
+                                await new Promise(requestAnimationFrame);
+                                expect(pagesRead).to.equal(1);
+                                expect(root.querySelector('.search-result-count').textContent.trim()).to.equal(
+                                    '50 result(s) loaded',
+                                );
+                                const button = root.querySelector('.search-pagination sp-button');
+                                button.scrollIntoView({ block: 'center' });
+                                await new Promise(requestAnimationFrame);
+                                const bounds = button.getBoundingClientRect();
+                                await sendMouse({
+                                    type: 'click',
+                                    position: [
+                                        Math.round(bounds.left + bounds.width / 2),
+                                        Math.round(bounds.top + bounds.height / 2),
+                                    ],
+                                });
+                                await waitUntil(() => !editor.hasMoreResults && !editor.searching);
+                                expect(pagesRead).to.equal(2);
+                                expect(editor.searchResults).to.have.lengthOf(51);
+                                await editor.updateComplete;
+                                await table.updateComplete;
+                                await new Promise(requestAnimationFrame);
+                            } finally {
+                                editor.remove();
+                                restoreResizeErrors();
+                            }
+                        });
+
+                        it('fills the remaining screen height and shows more rows when the window grows', async () => {
+                            const { ignoreWindowResizeObserverLoopErrors } = await import(
+                                '@lit-labs/virtualizer/support/resize-observer-errors.js'
+                            );
+                            const restoreResizeErrors = ignoreWindowResizeObserverLoopErrors();
+                            const viewport = { width: innerWidth, height: innerHeight };
+                            const frame = document.createElement('div');
+                            frame.style.cssText =
+                                'position: fixed; top: 66px; bottom: 0; left: 0; right: 0; display: flex; flex-direction: column; overflow: auto; --mas-nav-height: 50px; background: white;';
+                            const editor = document.createElement('mas-bulk-edit-editor');
+                            Object.defineProperty(editor, 'repository', {
+                                value: {
+                                    async *searchFragmentPages() {
+                                        yield Array.from({ length: 50 }, (_, index) => ({
+                                            id: `viewport-card-${index}`,
+                                            title: `School offer ${index}`,
+                                            path: `/content/dam/mas/acom/en_US/viewport-card-${index}`,
+                                            fields: [],
+                                        }));
+                                    },
+                                    processError(error) {
+                                        throw error;
+                                    },
+                                },
+                            });
+                            document.querySelector('sp-theme').append(frame);
+                            frame.append(editor);
+                            try {
+                                await setViewport({ width: 1200, height: 1000 });
+                                await editor.updateComplete;
+                                const root = editor.shadowRoot;
+                                expect(root.querySelector('.back-link').getBoundingClientRect().width).to.be.lessThan(
+                                    editor.getBoundingClientRect().width / 2,
+                                );
+                                const find = root.querySelector('#find-text');
+                                find.value = 'school';
+                                find.dispatchEvent(new Event('input'));
+                                await editor.updateComplete;
+                                await editor.handleFindSubmit({ target: find, preventDefault() {} });
+                                await editor.updateComplete;
+                                const table = root.querySelector('sp-table');
+                                await table.updateComplete;
+                                await waitUntil(() => table.querySelector('sp-table-row'));
+                                await new Promise(requestAnimationFrame);
+                                const scroller = root.querySelector('.results-scroll');
+                                const visibleRows = () => {
+                                    const viewport = scroller.getBoundingClientRect();
+                                    const header = table.querySelector('sp-table-head').getBoundingClientRect();
+                                    return [...table.querySelectorAll('sp-table-row')].filter((row) => {
+                                        const bounds = row.getBoundingClientRect();
+                                        return bounds.top >= header.bottom && bounds.bottom <= viewport.bottom;
+                                    }).length;
+                                };
+                                const initialHeight = scroller.getBoundingClientRect().height;
+                                const initialRows = visibleRows();
+                                await setViewport({ width: 1200, height: 1400 });
+                                await waitUntil(
+                                    () => scroller.getBoundingClientRect().height >= initialHeight + 390,
+                                    'The results viewport should grow with the window',
+                                );
+                                await waitUntil(() => visibleRows() > initialRows, 'A taller window should display more rows');
+                                expect(scroller.getBoundingClientRect().height - initialHeight).to.be.closeTo(400, 2);
+                                expect(scroller.getBoundingClientRect().height).to.be.greaterThan(420);
+                                const header = table.querySelector('sp-table-head');
+                                const headerTop = header.getBoundingClientRect().top;
+                                scroller.scrollTop = 500;
+                                await new Promise(requestAnimationFrame);
+                                expect(scroller.scrollTop).to.be.greaterThan(0);
+                                expect(header.getBoundingClientRect().top).to.be.closeTo(headerTop, 1);
+                                expect(root.querySelector('.fragments-table').getBoundingClientRect().bottom).to.be.closeTo(
+                                    innerHeight - 120,
+                                    2,
+                                );
+                                await setViewport({ width: 1200, height: 600 });
+                                await new Promise(requestAnimationFrame);
+                                expect(root.querySelector('.fragments-table').getBoundingClientRect().height).to.be.at.least(
+                                    300,
+                                );
+                                expect(frame.scrollHeight).to.be.greaterThan(frame.clientHeight);
+                            } finally {
+                                frame.remove();
+                                await setViewport(viewport);
+                                restoreResizeErrors();
+                            }
+                        });
+
+                        it('shows the empty editor with the design controls and no results', async () => {
+                            const editor = document.querySelector('#editor');
+                            await editor.updateComplete;
+                            expect(editor.shadowRoot.querySelector('#find-text')).to.exist;
+                            expect(editor.shadowRoot.querySelector('#replace-text')).to.exist;
+                            expect(editor.shadowRoot.querySelector('#search-in')).to.exist;
+                            expect(editor.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+                            expect(
+                                [...editor.shadowRoot.querySelectorAll('.file-actions sp-button')].every(
+                                    (button) => button.disabled,
+                                ),
+                            ).to.be.true;
+                            expect(editor.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal(
+                                'No search queries entered yet',
+                            );
+                            expect(editor.shadowRoot.querySelector('[data-testid="title-input"]')).to.be.null;
+                        });
+
+                        it('opens Save edits, supports Cancel and Escape, then confirms the name with Enter', async () => {
+                            const editor = document.querySelector('#editor');
+                            const root = editor.shadowRoot;
+                            const click = async (target) => {
+                                target.scrollIntoView({ block: 'center' });
+                                await new Promise(requestAnimationFrame);
+                                const bounds = target.getBoundingClientRect();
+                                await sendMouse({
+                                    type: 'click',
+                                    position: [
+                                        Math.round(bounds.left + bounds.width / 2),
+                                        Math.round(bounds.top + bounds.height / 2),
+                                    ],
+                                });
+                            };
+                            const replace = root.querySelector('#replace-text');
+                            replace.value = 'university';
+                            replace.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+                            await editor.updateComplete;
+                            const quickActions = root.querySelector('mas-quick-actions');
+                            await quickActions.updateComplete;
+                            const saveButton = quickActions.shadowRoot.querySelector('[title="Save"]');
+                            expect(saveButton.disabled).to.be.false;
+                            await click(saveButton);
+                            await waitUntil(() => root.querySelector('sp-overlay')?.state === 'opened');
+                            expect(root.querySelector('sp-dialog-wrapper').headline).to.equal('Save edits');
+                            expect(root.querySelector('[data-testid="title-input"]').value).to.equal('');
+                            expect(root.querySelector('[data-testid="confirm-save"]').disabled).to.be.true;
+                            await click(root.querySelector('.save-dialog-actions sp-button'));
+                            await waitUntil(() => !editor.saveDialogOpen);
+                            expect(editor.hasChanges).to.be.true;
+                            expect(editor.replaceText).to.equal('university');
+                            await quickActions.updateComplete;
+                            await click(saveButton);
+                            await waitUntil(() => root.querySelector('sp-overlay')?.state === 'opened');
+                            root.querySelector('[data-testid="title-input"]').focus();
+                            await sendKeys({ press: 'Escape' });
+                            await waitUntil(() => !editor.saveDialogOpen);
+                            await quickActions.updateComplete;
+                            await click(saveButton);
+                            await waitUntil(() => root.querySelector('sp-overlay')?.state === 'opened');
+                            const title = root.querySelector('[data-testid="title-input"]');
+                            title.focus();
+                            await sendKeys({ type: 'Education-MWPW-191345' });
+                            await sendKeys({ press: 'Enter' });
+                            await waitUntil(() => !editor.saveDialogOpen && !editor.saving);
+                            expect(editor.project.get().getFieldValue('title')).to.equal('Education-MWPW-191345');
+                            expect(editor.project.get().getFieldValue('replaceTerm')).to.equal('university');
+                            expect(editor.hasChanges).to.be.false;
+                        });
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>

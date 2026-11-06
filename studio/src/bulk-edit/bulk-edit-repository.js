@@ -21,7 +21,28 @@ export function getBulkEditProjectsPath() {
     return `${ROOT_PATH}/${BULK_EDIT_PROJECTS_FOLDER}/${getSearchSurface(Store.search.get()?.path)}`;
 }
 
-export function buildBulkEditProjectPayload({ title, status }) {
+/** Serializes editor configuration using the existing bulk-edit project model. */
+export function buildBulkEditConfigurationFields({
+    findText,
+    replaceText,
+    searchFields,
+    matchCase,
+    resultFilters,
+    selectedFragments,
+}) {
+    const selection = [...selectedFragments.values()].map(({ id, path }) => ({ id, path }));
+    return [
+        { name: 'searchTerm', type: 'text', values: [findText] },
+        { name: 'replaceTerm', type: 'text', values: [replaceText] },
+        { name: 'fieldNames', type: 'text', multiple: true, values: [...searchFields] },
+        { name: 'fragments', type: 'content-fragment', multiple: true, values: selection.map(({ path }) => path) },
+        // Keep identities, not stale copies of authored fragment content.
+        { name: 'items', type: 'text', values: [JSON.stringify({ matchCase, resultFilters, selection })] },
+    ];
+}
+
+/** Builds a draft project, optionally including its editor configuration. */
+export function buildBulkEditProjectPayload({ title, status, configurationFields = [] }) {
     return {
         title,
         name: normalizeKey(title),
@@ -30,6 +51,7 @@ export function buildBulkEditProjectPayload({ title, status }) {
         fields: [
             { name: 'title', type: 'text', values: [title] },
             { name: 'status', type: 'text', values: [status] },
+            ...configurationFields,
         ],
     };
 }

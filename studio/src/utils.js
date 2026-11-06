@@ -146,6 +146,16 @@ export function debounce(fn, delay) {
 }
 
 /**
+ * Uses the longest term to narrow AEM metadata searches without requiring every phrase token in its EDGES index.
+ * The full query must still be matched locally against the returned candidates.
+ * @param {string} query
+ * @returns {string}
+ */
+export function getAemSearchTerm(query) {
+    return (query.match(/\S+/g) ?? []).reduce((longest, term) => (term.length > longest.length ? term : longest), '');
+}
+
+/**
  * Shared UUID pattern used for fragment-id searches.
  */
 export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -80,6 +80,76 @@ describe('MasRepository dictionary helpers', () => {
         ...overrides,
     });
 
+    describe('progressive search pages', () => {
+        it('requests only the next cursor page and yields cached Fragment instances', async () => {
+            const repository = createFullRepository();
+            const next = sandbox.stub();
+            next.onCall(0).resolves({ value: [createFragment({ id: 'page-one' })], done: false });
+            next.onCall(1).resolves({ value: [createFragment({ id: 'page-two' })], done: false });
+            next.onCall(2).resolves({ done: true });
+            const search = sandbox.stub().resolves({
+                next,
+                [Symbol.asyncIterator]() {
+                    return this;
+                },
+            });
+            repository.aem = createAemMock({ fragments: { search } });
+            const options = { path: '/content/dam/mas/acom' };
+            const controller = new AbortController();
+            const pages = repository.searchFragmentPages(options, 50, controller);
+            expect(search.called).to.be.false;
+            const first = await pages.next();
+            expect(next.calledOnce).to.be.true;
+            expect(first.value[0]).to.be.instanceOf(Fragment);
+            expect(first.value[0].id).to.equal('page-one');
+            expect(search.calledOnceWithExactly(options, 50, controller)).to.be.true;
+            const second = await pages.next();
+            expect(next.calledTwice).to.be.true;
+            expect(second.value[0].id).to.equal('page-two');
+            expect((await pages.next()).done).to.be.true;
+        });
+
+        it('keeps searchFragmentList returning the flattened results across every page', async () => {
+            const repository = createFullRepository();
+            repository.aem = createAemMock({
+                fragments: {
+                    search: async function* () {
+                        yield [createFragment({ id: 'first' })];
+                        yield [createFragment({ id: 'second' })];
+                    },
+                },
+            });
+            const fragments = await repository.searchFragmentList({ path: '/content/dam/mas/acom' }, 50);
+            expect(fragments.map((fragment) => fragment.id)).to.deep.equal(['first', 'second']);
+            expect(fragments.every((fragment) => fragment instanceof Fragment)).to.be.true;
+        });
+
+        it('does not fetch another page after cancellation', async () => {
+            const repository = createFullRepository();
+            const next = sandbox.stub().resolves({ value: [createFragment()], done: false });
+            repository.aem = createAemMock({
+                fragments: {
+                    search: sandbox.stub().resolves({
+                        next,
+                        [Symbol.asyncIterator]() {
+                            return this;
+                        },
+                    }),
+                },
+            });
+            const controller = new AbortController();
+            const pages = repository.searchFragmentPages({ path: '/content/dam/mas/acom' }, 50, controller);
+            await pages.next();
+            controller.abort();
+            expect((await pages.next()).done).to.be.true;
+            expect(next.calledOnce).to.be.true;
+            const error = await repository
+                .searchFragmentList({ path: '/content/dam/mas/acom' }, 50, controller)
+                .catch((error) => error);
+            expect(error.name).to.equal('AbortError');
+        });
+    });
+
     describe('loadFolders', () => {
         it('should filter out images, promotions and bulk-publish-projects by default', async () => {
             const repository = createRepository();

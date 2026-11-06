@@ -16,6 +16,7 @@ import {
     extractSurfaceFromPath,
     formatAuthorPath,
     isUUID,
+    getAemSearchTerm,
     matchesContentTypeFilter,
     resolveContentTypeFilters,
     resolveHydratedParentFragment,
@@ -405,15 +406,27 @@ export class MasRepository extends LitElement {
     }
 
     async searchFragmentList(options, limit, abortController) {
-        const cursor = await this.aem.sites.cf.fragments.search(options, limit, abortController);
         const fragments = [];
+        for await (const page of this.searchFragmentPages(options, limit, abortController)) fragments.push(...page);
+        abortController?.signal.throwIfAborted();
+        return fragments;
+    }
+
+    /** Yields cached search pages on demand without exhausting the AEM cursor. */
+    async *searchFragmentPages(options, limit, abortController) {
+        if (abortController?.signal.aborted) return;
+        const cursor = await this.aem.sites.cf.fragments.search(options, limit, abortController);
         for await (const result of cursor) {
+            if (abortController?.signal.aborted) return;
+            const fragments = [];
             for await (const item of result) {
                 const fragment = await this.#addToCache(item);
+                if (abortController?.signal.aborted) return;
                 fragments.push(fragment);
             }
+            yield fragments;
+            if (abortController?.signal.aborted) return;
         }
-        return fragments;
     }
 
     #skipVariant(variants, item) {
@@ -751,8 +764,7 @@ export class MasRepository extends LitElement {
         } else if (userQuery) {
             const tokens = userQuery.match(/\S+/g) || [];
             if (tokens.length > 1) {
-                const longest = tokens.reduce((a, b) => (b.length > a.length ? b : a));
-                localSearch.query = longest;
+                localSearch.query = getAemSearchTerm(userQuery);
                 clientQuery = userQuery;
             }
         }

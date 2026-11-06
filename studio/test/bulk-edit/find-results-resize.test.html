@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Resizable Find and replace results</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="module">
+            window.process = { env: {} };
+            window.__swc = { warn: () => {} };
+        </script>
+        <script src="../../src/swc.js" type="module"></script>
+        <style>
+            body {
+                margin: 0;
+                font-family: Arial, sans-serif;
+            }
+            h2 {
+                margin: 24px 32px;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <h2>Drag a header edge to reveal replacement previews in parent and variation rows</h2>
+            <div id="editor-host"></div>
+        </sp-theme>
+        <script type="module">
+            import { expect, waitUntil } from '@open-wc/testing';
+            import { ignoreWindowResizeObserverLoopErrors } from '@lit-labs/virtualizer/support/resize-observer-errors.js';
+            import Store from '../../src/store.js';
+            import { __tagCacheStores } from '../../src/aem/tag-cache.js';
+            import { buildSearchRow } from '../../src/bulk-edit/bulk-edit-search.js';
+            import {
+                COLUMN_RESIZE_STEP,
+                MAX_COLUMN_WIDTH,
+                MIN_COLUMN_WIDTH,
+            } from '../../src/common/column-resize-controller.js';
+            import '../../src/bulk-edit/mas-bulk-edit-editor.js';
+
+            const makeRow = (id, path) =>
+                buildSearchRow({
+                    id,
+                    path,
+                    title: 'School offer',
+                    fields: [
+                        { name: 'cardTitle', values: ['Photoshop'] },
+                        { name: 'callout', values: ['Back to school offer: Get 3 months free with your plan.'] },
+                    ],
+                });
+            const parent = makeRow('parent', '/content/dam/mas/acom/en_US/school');
+            const variation = {
+                ...makeRow('variation', '/content/dam/mas/acom/en_GB/school'),
+                parentId: 'parent',
+            };
+            let editor;
+            __tagCacheStores.data.set('/content/cq:tags/mas', new Map());
+            const createEditor = async () => {
+                editor?.remove();
+                Store.bulkEditProjects.projectId.set(null);
+                Store.search.set({ ...Store.search.get(), path: 'acom' });
+                Store.filters.set({ ...Store.filters.get(), locale: 'en_US' });
+                editor = document.createElement('mas-bulk-edit-editor');
+                document.querySelector('#editor-host').append(editor);
+                await editor.updateComplete;
+            };
+            const populate = async () => {
+                editor.findText = 'school';
+                await editor.updateComplete;
+                editor.searchedQuery = 'school';
+                editor.replaceText = 'university';
+                editor.searchResults = [parent];
+                editor.expandedRows = new Set([parent.id]);
+                editor.variationStates = new Map([
+                    [
+                        parent.id,
+                        {
+                            controller: new AbortController(),
+                            tab: 'locale',
+                            rows: { locale: [variation], promotion: [], grouped: [] },
+                        },
+                    ],
+                ]);
+                await editor.updateComplete;
+                editor.scrollIntoView({ block: 'start' });
+                await waitUntil(() => editor.shadowRoot.querySelectorAll('sp-table-cell.callout').length === 2);
+            };
+            const table = () => editor.shadowRoot.querySelector('sp-table');
+            const header = (key) => table().querySelector(`sp-table-head-cell.${key}`);
+            const handle = (key) => header(key).querySelector('.column-resize-handle');
+            const assertAligned = (key, width) => {
+                const head = header(key).getBoundingClientRect();
+                expect(head.width).to.be.closeTo(width, 1);
+                for (const cell of table().querySelectorAll(`sp-table-cell.${key}`)) {
+                    const bounds = cell.getBoundingClientRect();
+                    expect(bounds.width).to.be.closeTo(width, 1);
+                    expect(bounds.left).to.be.closeTo(head.left, 1);
+                }
+            };
+
+            await createEditor();
+            await populate();
+
+            if (window.__WTR_CONFIG__) {
+                const { runTests } = await import('@web/test-runner-mocha');
+                const { sendKeys, sendMouse, setViewport } = await import('@web/test-runner-commands');
+                runTests(() => {
+                    describe('Resizable Find results', () => {
+                        let restoreResizeErrors;
+                        beforeEach(async () => {
+                            restoreResizeErrors = ignoreWindowResizeObserverLoopErrors();
+                            await createEditor();
+                        });
+                        afterEach(() => {
+                            editor.remove();
+                            restoreResizeErrors();
+                        });
+
+                        it('orders file actions and aligns them with the inputs without overflowing narrow layouts', async () => {
+                            const viewport = { width: innerWidth, height: innerHeight };
+                            try {
+                                await setViewport({ width: 1280, height: 900 });
+                                await new Promise(requestAnimationFrame);
+                                const root = editor.shadowRoot;
+                                const buttons = [...root.querySelectorAll('.file-actions sp-button')];
+                                expect(buttons.map((button) => button.textContent.trim())).to.deep.equal([
+                                    'Download report',
+                                    'Upload file',
+                                ]);
+                                const find = root.querySelector('#find-text').getBoundingClientRect();
+                                const replace = root.querySelector('#replace-text').getBoundingClientRect();
+                                for (const button of buttons) {
+                                    const bounds = button.getBoundingClientRect();
+                                    expect(bounds.height).to.be.greaterThan(0);
+                                    expect(bounds.top).to.be.closeTo(find.top, 1);
+                                    expect(bounds.bottom).to.be.closeTo(find.bottom, 1);
+                                    expect(bounds.top).to.be.closeTo(replace.top, 1);
+                                    expect(bounds.bottom).to.be.closeTo(replace.bottom, 1);
+                                    expect(button.disabled).to.be.true;
+                                }
+                                expect(buttons[0].getBoundingClientRect().right).to.be.at.most(
+                                    buttons[1].getBoundingClientRect().left,
+                                );
+                                await setViewport({ width: 520, height: 900 });
+                                await new Promise(requestAnimationFrame);
+                                const row = root.querySelector('.search-row').getBoundingClientRect();
+                                for (const button of buttons) {
+                                    const bounds = button.getBoundingClientRect();
+                                    expect(bounds.left).to.be.at.least(row.left);
+                                    expect(bounds.right).to.be.at.most(row.right);
+                                }
+                            } finally {
+                                await setViewport(viewport);
+                            }
+                        });
+
+                        it('provides accessible resize handles for result columns, not fixed gutters', async () => {
+                            const handles = table().querySelectorAll('.column-resize-handle');
+                            expect(handles).to.have.lengthOf(13);
+                            expect(handle('callout').getAttribute('aria-label')).to.equal('Resize Callout text column');
+                            expect(handle('callout').getAttribute('role')).to.equal('separator');
+                            expect(handle('callout').tabIndex).to.equal(0);
+                            expect(header('selection').querySelector('.column-resize-handle')).to.not.exist;
+                            expect(header('expansion').querySelector('.column-resize-handle')).to.not.exist;
+                        });
+
+                        it('drags a column wider to reveal previews while keeping parent and variation cells aligned', async () => {
+                            await populate();
+                            editor.hasChanges = false;
+                            await editor.updateComplete;
+                            const resize = handle('callout');
+                            resize.scrollIntoView({ block: 'center', inline: 'center' });
+                            await new Promise(requestAnimationFrame);
+                            const width = header('callout').getBoundingClientRect().width;
+                            const bounds = resize.getBoundingClientRect();
+                            const position = [
+                                Math.round(bounds.left + bounds.width / 2),
+                                Math.round(bounds.top + bounds.height / 2),
+                            ];
+                            await sendMouse({ type: 'move', position });
+                            await sendMouse({ type: 'down' });
+                            await sendMouse({ type: 'move', position: [position[0] + 180, position[1]] });
+                            await sendMouse({ type: 'up' });
+                            await editor.updateComplete;
+                            assertAligned('callout', width + 180);
+                            for (const cell of table().querySelectorAll('sp-table-cell.callout')) {
+                                expect(cell.querySelector('del').textContent).to.equal('school');
+                                expect(cell.querySelector('ins').textContent).to.equal('university');
+                                const preview = cell.querySelector('ins').getBoundingClientRect();
+                                expect(preview.right).to.be.at.most(cell.getBoundingClientRect().right);
+                            }
+                            expect(parent.text.callout).to.equal('Back to school offer: Get 3 months free with your plan.');
+                            expect(editor.hasChanges).to.be.false;
+                        });
+
+                        it('resizes by keyboard and preserves widths when results clear and return', async () => {
+                            await populate();
+                            const width = header('fragmentTitle').getBoundingClientRect().width;
+                            handle('fragmentTitle').focus();
+                            await sendKeys({ press: 'ArrowRight' });
+                            await editor.updateComplete;
+                            assertAligned('fragmentTitle', width + COLUMN_RESIZE_STEP);
+                            expect(handle('fragmentTitle').getAttribute('aria-valuenow')).to.equal(
+                                String(width + COLUMN_RESIZE_STEP),
+                            );
+                            editor.resetSearch();
+                            await editor.updateComplete;
+                            expect(header('fragmentTitle').getBoundingClientRect().width).to.be.closeTo(
+                                width + COLUMN_RESIZE_STEP,
+                                1,
+                            );
+                            await populate();
+                            assertAligned('fragmentTitle', width + COLUMN_RESIZE_STEP);
+                            editor.columnResize.setWidth('callout', 0);
+                            await editor.updateComplete;
+                            assertAligned('callout', MIN_COLUMN_WIDTH);
+                            editor.columnResize.setWidth('callout', 10000);
+                            await editor.updateComplete;
+                            assertAligned('callout', MAX_COLUMN_WIDTH);
+                        });
+
+                        it('keeps Offer sticky and horizontal scrolling inside the results area after resizing', async () => {
+                            await populate();
+                            editor.columnResize.setWidth('offer', 260);
+                            editor.columnResize.setWidth('callout', 500);
+                            await editor.updateComplete;
+                            assertAligned('offer', 260);
+                            const root = editor.shadowRoot;
+                            const scroller = root.querySelector('.results-scroll');
+                            const offer = table().querySelector('sp-table-cell.offer');
+                            const offerLeft = offer.getBoundingClientRect().left;
+                            const footerLeft = root.querySelector('.search-result-count').getBoundingClientRect().left;
+                            expect(getComputedStyle(table()).overflowX).to.equal('visible');
+                            scroller.scrollLeft = 600;
+                            await new Promise(requestAnimationFrame);
+                            expect(scroller.scrollLeft).to.equal(600);
+                            expect(offer.getBoundingClientRect().left).to.be.closeTo(offerLeft, 1);
+                            expect(header('offer').getBoundingClientRect().left).to.be.closeTo(offerLeft, 1);
+                            expect(root.querySelector('.search-result-count').getBoundingClientRect().left).to.equal(
+                                footerLeft,
+                            );
+                            assertAligned('callout', 500);
+                        });
+                    });
+                });
+            }
+        </script>
+    </body>
+</html>

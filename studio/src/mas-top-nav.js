@@ -320,7 +320,7 @@ class MasTopNav extends LitElement {
     get bulkEditEditorBreadcrumbLabel() {
         const title = this.bulkEditProjects.inEdit.get()?.get()?.getFieldValue('title');
         if (title) return title;
-        return this.bulkEditProjects.projectId.get() ? 'Edit project' : 'Create project';
+        return this.bulkEditProjects.projectId.get() ? 'Edit project' : 'New Project';
     }
 
     get breadcrumbItems() {
@@ -391,12 +391,15 @@ class MasTopNav extends LitElement {
         if (this.page.value === PAGE_NAMES.BULK_EDIT) {
             return [
                 { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
-                { label: 'Bulk edits' },
+                { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
+                { label: 'Find and replace' },
             ];
         }
         if (this.page.value === PAGE_NAMES.BULK_EDIT_EDITOR) {
             return [
+                { label: 'Advanced tools', handler: () => router.navigateToPage(PAGE_NAMES.ADVANCED_TOOLS)() },
                 { label: 'Bulk edits', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
+                { label: 'Find and replace', handler: () => router.navigateToPage(PAGE_NAMES.BULK_EDIT)() },
                 { label: this.bulkEditEditorBreadcrumbLabel },
             ];
         }

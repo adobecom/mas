@@ -5,6 +5,7 @@ import router from '../../src/router.js';
 import { BULK_EDIT_PROJECT_MODEL_ID, BULK_EDIT_STATUS, PAGE_NAMES, QUICK_ACTION } from '../../src/constants.js';
 import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { Fragment } from '../../src/aem/fragment.js';
+import { __tagCacheStores } from '../../src/aem/tag-cache.js';
 import Events from '../../src/events.js';
 import { prepopulateFragmentCache, removeFromFragmentCache } from '../../src/mas-repository.js';
 import {
@@ -12,6 +13,7 @@ import {
     isBulkEditProjectTitleTaken,
     loadBulkEditProjects,
 } from '../../src/bulk-edit/bulk-edit-repository.js';
+import { buildSearchRow } from '../../src/bulk-edit/bulk-edit-search.js';
 import '@adobecom/mas';
 import '../../src/bulk-edit/mas-bulk-edit-editor.js';
 
@@ -29,8 +31,23 @@ const stubRepository = (el, repo) =>
         value: { searchFragmentList: sinon.stub().resolves([]), processError: sinon.stub(), ...repo },
     });
 
+const setSearchCheckbox = async (el, selector, checked) => {
+    const checkbox = el.shadowRoot.querySelector(selector);
+    checkbox.checked = checked;
+    checkbox.dispatchEvent(new Event('change'));
+    await el.updateComplete;
+};
+
+const openNamingDialog = async (el) => {
+    el.hasChanges = true;
+    el.openSaveDialog();
+    await el.updateComplete;
+};
+
 describe('mas-bulk-edit-editor', () => {
     let navigate;
+    let repositoryQuery;
+    let previousTagCache;
     const connected = [];
 
     const connectEditor = (repo) => {
@@ -41,7 +58,14 @@ describe('mas-bulk-edit-editor', () => {
     };
 
     beforeEach(() => {
+        previousTagCache = __tagCacheStores.data.get('/content/cq:tags/mas');
+        __tagCacheStores.data.set('/content/cq:tags/mas', new Map());
         navigate = sinon.stub(router, 'navigateToPage').returns(() => {});
+        repositoryQuery = sinon.stub(document, 'querySelector').callThrough();
+        repositoryQuery.withArgs('mas-repository').returns({
+            searchFragmentList: sinon.stub().resolves([]),
+            processError: sinon.stub(),
+        });
     });
 
     afterEach(() => {
@@ -50,36 +74,415 @@ describe('mas-bulk-edit-editor', () => {
         Store.bulkEditProjects.inEdit.set(null);
         Store.bulkEditProjects.list.data.set([]);
         Store.bulkEditProjects.list.data.removeMeta('pendingProjects');
+        if (previousTagCache) __tagCacheStores.data.set('/content/cq:tags/mas', previousTagCache);
+        else __tagCacheStores.data.delete('/content/cq:tags/mas');
         sinon.restore();
     });
 
     it('renders an empty create form when no project id is set', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
         expect(el.isNewProject).to.be.true;
-        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Create bulk edits project');
+        expect(el.shadowRoot.querySelector('h1').textContent).to.equal('Create new find and replace project');
         expect(el.disabledActions.has(QUICK_ACTION.DELETE)).to.be.true;
         expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
+        expect(el.shadowRoot.querySelector('[data-testid="title-input"]')).to.be.null;
+        expect(el.shadowRoot.querySelector('sp-overlay')).to.be.null;
+    });
+
+    it('renders the design controls and an empty fragments table without running a search', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        expect(el.shadowRoot.querySelector('#find-text')).to.exist;
+        expect(el.shadowRoot.querySelector('#replace-text')).to.exist;
+        expect(el.shadowRoot.querySelector('#search-in').textContent).to.include('Everywhere');
+        expect(el.shadowRoot.querySelector('sp-checkbox').checked).to.be.false;
+        expect(el.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal('No search queries entered yet');
+        expect([...el.shadowRoot.querySelectorAll('sp-table-head-cell')].map((cell) => cell.textContent.trim())).to.deep.equal([
+            '',
+            '',
+            'Offer',
+            'Fragment title',
+            'Offer ID',
+            'Badge',
+            'Button label',
+            'Callout text',
+            'Fragment description',
+            'Promo text',
+            'Subtitle',
+            'Tags',
+            'Offer type',
+            'Production description',
+            'Status',
+        ]);
+        expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+        expect(
+            [...el.shadowRoot.querySelectorAll('.file-actions sp-button')].every((button) => button.hasAttribute('disabled')),
+        ).to.be.true;
+    });
+
+    it('lists Everywhere above a divider and all nine checked fields in design order', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const popover = el.shadowRoot.querySelector('.search-in-popover');
+        expect([...popover.children].map((child) => child.localName)).to.deep.equal([
+            'sp-checkbox',
+            'sp-divider',
+            'sp-field-group',
+        ]);
+        const fields = [...popover.querySelectorAll('sp-field-group sp-checkbox')];
+        expect(fields.map((field) => field.textContent.trim())).to.deep.equal([
+            'Badge',
+            'Button labels',
+            'Callout text',
+            'Fragment description',
+            'Fragment title',
+            'Product description',
+            'Promo text',
+            'Subtitle',
+            'Tags',
+        ]);
+        expect([...popover.querySelectorAll('sp-checkbox')].every((field) => field.checked)).to.be.true;
+        expect(el.searchEverywhere).to.be.true;
+    });
+
+    it('clears every field when Everywhere is unchecked, then permits multiple individual fields', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await setSearchCheckbox(el, '[data-testid="search-everywhere"]', false);
+        expect(el.searchFields).to.deep.equal([]);
+        expect(el.searchInLabel).to.equal('Select fields');
+        expect([...el.shadowRoot.querySelectorAll('.search-in-popover sp-checkbox')].every((field) => !field.checked)).to.be
+            .true;
+        await setSearchCheckbox(el, 'sp-checkbox[value="badge"]', true);
+        expect(el.searchInLabel).to.equal('Badge');
+        await setSearchCheckbox(el, 'sp-checkbox[value="ctas"]', true);
+        expect(el.searchFields).to.deep.equal(['badge', 'ctas']);
+        expect(el.searchInLabel).to.equal('2 fields selected');
+        expect(el.searchEverywhere).to.be.false;
+        expect(el.hasChanges).to.be.true;
+    });
+
+    it('unchecks Everywhere when one field is deselected and restores all fields when Everywhere is checked', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await setSearchCheckbox(el, 'sp-checkbox[value="tags"]', false);
+        expect(el.searchFields).to.have.lengthOf(8);
+        expect(el.searchEverywhere).to.be.false;
+        expect(el.shadowRoot.querySelector('[data-testid="search-everywhere"]').checked).to.be.false;
+        await setSearchCheckbox(el, '[data-testid="search-everywhere"]', true);
+        expect(el.searchFields).to.have.lengthOf(9);
+        expect(el.searchInLabel).to.equal('Everywhere');
+        expect([...el.shadowRoot.querySelectorAll('.search-in-popover sp-checkbox')].every((field) => field.checked)).to.be
+            .true;
+    });
+
+    it('selects Everywhere automatically when the last unchecked field is selected', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await setSearchCheckbox(el, 'sp-checkbox[value="subtitle"]', false);
+        await setSearchCheckbox(el, 'sp-checkbox[value="subtitle"]', true);
+        expect(el.searchEverywhere).to.be.true;
+        expect(el.searchInLabel).to.equal('Everywhere');
+    });
+
+    it('enables project save on form edits but requires Enter to search', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const find = el.shadowRoot.querySelector('#find-text');
+        find.value = 'school';
+        find.dispatchEvent(new Event('input'));
+        const replace = el.shadowRoot.querySelector('#replace-text');
+        replace.value = 'university';
+        replace.dispatchEvent(new Event('input'));
+        const checkbox = el.shadowRoot.querySelector('sp-checkbox');
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event('change'));
+        await el.updateComplete;
+        expect(el.findText).to.equal('school');
+        expect(el.replaceText).to.equal('university');
+        expect(el.matchCase).to.be.true;
+        expect(el.hasChanges).to.be.true;
+        expect(el.shadowRoot.querySelector('sp-illustrated-message h2').textContent).to.equal('Press Enter to find fragments');
+        expect(el.shadowRoot.querySelectorAll('sp-table-row')).to.have.lengthOf(0);
+        expect(el.shadowRoot.querySelector('.preview-notice').textContent.replace(/\s+/g, ' ')).to.include(
+            'Save preserves your search settings',
+        );
+    });
+
+    it('returns to all projects using the back button', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        el.shadowRoot.querySelector('.back-link').click();
+        expect(navigate.calledWith(PAGE_NAMES.BULK_EDIT)).to.be.true;
     });
 
     it('exposes the title format hint as a labelled button with a focusable tooltip', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await openNamingDialog(el);
         const info = el.shadowRoot.querySelector('[data-testid="title-info"]');
         expect(info.localName).to.equal('sp-action-button');
         expect(info.getAttribute('label')).to.equal('Project name format');
         expect(info.querySelector('sp-tooltip').hasAttribute('self-managed')).to.be.true;
     });
 
-    it('enables save in quick actions once the title changes', async () => {
+    it('enables save in quick actions when Find changes without requiring a title', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
-        el.handleTitleInput({ target: { value: 'Draft-MWPW-1' } });
+        el.findText = 'school';
         await el.updateComplete;
         expect(el.shadowRoot.querySelector('mas-quick-actions').disabled.has(QUICK_ACTION.SAVE)).to.be.false;
+    });
+
+    it('opens Save edits from the quick action without creating a project', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const createFragment = sinon.stub();
+        stubRepository(el, { createFragment });
+        el.replaceText = 'university';
+        await el.updateComplete;
+        el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent(QUICK_ACTION.SAVE));
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('sp-dialog-wrapper').headline).to.equal('Save edits');
+        expect(el.shadowRoot.querySelector('[data-testid="title-input"]').value).to.equal('');
+        expect(el.shadowRoot.querySelector('[data-testid="confirm-save"]').disabled).to.be.true;
+        expect(createFragment.called).to.be.false;
+    });
+
+    it('prefills the saved name and cancels without renaming or losing form edits', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        Store.bulkEditProjects.inEdit.set(new FragmentStore(new Fragment(rawProject('Existing-MWPW-1'))));
+        el.findText = 'school';
+        await el.updateComplete;
+        el.openSaveDialog();
+        await el.updateComplete;
+        expect(el.shadowRoot.querySelector('[data-testid="title-input"]').value).to.equal('Existing-MWPW-1');
+        el.handleTitleInput({ target: { value: 'Renamed-MWPW-1' } });
+        el.shadowRoot.querySelector('.save-dialog-actions sp-button').click();
+        await el.updateComplete;
+        expect(el.saveDialogOpen).to.be.false;
+        expect(el.project.get().getFieldValue('title')).to.equal('Existing-MWPW-1');
+        expect(el.findText).to.equal('school');
+        expect(el.hasChanges).to.be.true;
+        el.openSaveDialog();
+        expect(el.projectTitle).to.equal('Existing-MWPW-1');
+    });
+
+    it('ignores a nested overlay closing but dismisses Save edits when its own overlay closes', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await openNamingDialog(el);
+        const overlay = el.shadowRoot.querySelector('sp-overlay');
+        overlay.querySelector('sp-textfield').dispatchEvent(new Event('sp-closed', { bubbles: true }));
+        expect(el.saveDialogOpen).to.be.true;
+        overlay.dispatchEvent(new Event('sp-closed'));
+        expect(el.saveDialogOpen).to.be.false;
+        expect(el.hasChanges).to.be.true;
     });
 
     it('opens the delete dialog from the quick actions delete event', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
         el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent(QUICK_ACTION.DELETE));
         expect(el.deleteDialogOpen).to.be.true;
+    });
+
+    for (const [property, value] of [
+        ['findText', 'school'],
+        ['replaceText', 'university'],
+        ['searchFields', ['badge']],
+        ['matchCase', true],
+        ['resultFilters', { tagPaths: {}, tags: [], statuses: ['DRAFT'], locales: [] }],
+        ['selectedFragments', new Map([['locale-child', { id: 'locale-child', path: '/content/dam/mas/acom/en_AU/offer' }]])],
+    ]) {
+        it(`enables Save for ${property} and disables it again when the edit is undone`, async () => {
+            const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+            const original = el[property];
+            el[property] = value;
+            await el.updateComplete;
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
+            el[property] = original;
+            await el.updateComplete;
+            expect(el.hasChanges).to.be.false;
+            expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
+        });
+    }
+
+    it('does not dirty the project when results arrive or variation display changes', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        el.searchResults = [
+            buildSearchRow({ id: 'parent', path: '/content/dam/mas/acom/en_US/offer', title: 'Offer', fields: [] }),
+        ];
+        el.expandedRows = new Set(['parent']);
+        el.variationStates = new Map([
+            ['parent', { tab: 'locale', loading: false, rows: { locale: [], promotion: [], grouped: [] } }],
+        ]);
+        await el.updateComplete;
+        expect(el.hasChanges).to.be.false;
+    });
+
+    it('round-trips the form and hidden selections and immediately searches with saved settings on reopen', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        let persisted;
+        const createFragment = sinon.stub().callsFake(async (payload) => {
+            persisted = {
+                id: 'saved-config',
+                path: `${payload.parentPath}/${payload.name}`,
+                model: { id: payload.modelId },
+                fields: payload.fields,
+            };
+            return persisted;
+        });
+        stubRepository(el, { createFragment });
+        el.findText = 'school';
+        el.replaceText = 'university';
+        el.searchFields = ['badge', 'ctas'];
+        el.matchCase = true;
+        el.resultFilters = {
+            tagPaths: { product: ['/content/cq:tags/mas/product_code/photoshop'] },
+            tags: ['mas:product_code/photoshop'],
+            statuses: ['PUBLISHED'],
+            locales: ['en_AU'],
+        };
+        const selection = [
+            { id: 'parent', path: '/content/dam/mas/acom/en_US/offer' },
+            { id: 'child', path: '/content/dam/mas/acom/en_AU/offer' },
+        ];
+        el.updateSelection(new Map(selection.map((fragment) => [fragment.id, fragment])));
+        await el.updateComplete;
+        el.openSaveDialog();
+        el.handleTitleInput({ target: { value: 'School-MWPW-191345' } });
+        await el.save();
+        expect(el.hasChanges).to.be.false;
+        expect(el.saveDialogOpen).to.be.false;
+        const project = el.project.get();
+        expect(project.getFieldValue('searchTerm')).to.equal('school');
+        expect(project.getFieldValue('replaceTerm')).to.equal('university');
+        expect(project.getFieldValues('fieldNames')).to.deep.equal(['badge', 'ctas']);
+        expect(project.getFieldValues('fragments')).to.deep.equal(selection.map(({ path }) => path));
+        expect(JSON.parse(project.getFieldValue('items'))).to.deep.equal({
+            matchCase: true,
+            resultFilters: el.resultFilters,
+            selection,
+        });
+        const searchFragmentPages = sinon.stub().callsFake(async function* () {
+            yield [{ ...selection[0], title: 'School offer', fields: [{ name: 'badge', values: ['school'] }] }];
+        });
+        const reopened = connectEditor({ getFragmentById: sinon.stub().resolves(persisted), searchFragmentPages });
+        await reopened.connectedCallback();
+        await reopened.updateComplete;
+        expect(reopened.findText).to.equal('school');
+        expect(reopened.replaceText).to.equal('university');
+        expect(reopened.searchFields).to.deep.equal(['badge', 'ctas']);
+        expect(reopened.matchCase).to.be.true;
+        expect(reopened.resultFilters).to.deep.equal(el.resultFilters);
+        expect([...reopened.selectedFragments.values()]).to.deep.equal(selection);
+        expect(reopened.hasChanges).to.be.false;
+        expect(reopened.searchedQuery).to.equal('school');
+        expect(searchFragmentPages.calledOnce).to.be.true;
+        expect(searchFragmentPages.firstCall.args[0]).to.include({ query: 'school' });
+        expect(searchFragmentPages.firstCall.args[0].tags).to.deep.equal(el.resultFilters.tags);
+        expect(searchFragmentPages.firstCall.args[0].status).to.deep.equal(el.resultFilters.statuses);
+        expect(reopened.searchResults.map(({ id }) => id)).to.deep.equal(['parent']);
+    });
+
+    it('shows the editor while its saved search is pending without dirtying the project', async () => {
+        const projectId = 'opening-search';
+        Store.bulkEditProjects.projectId.set(projectId);
+        let resolvePage;
+        const next = sinon.stub();
+        next.onFirstCall().returns(new Promise((resolve) => (resolvePage = resolve)));
+        next.onSecondCall().resolves({ done: true });
+        const el = connectEditor({
+            getFragmentById: sinon.stub().resolves({
+                ...rawProject('School-MWPW-1'),
+                id: projectId,
+                model: { id: BULK_EDIT_PROJECT_MODEL_ID },
+                fields: [...rawProject('School-MWPW-1').fields, { name: 'searchTerm', values: ['school'] }],
+            }),
+            searchFragmentPages: sinon.stub().returns({ next }),
+        });
+        const opening = el.connectedCallback();
+        await waitUntil(() => resolvePage);
+        await el.updateComplete;
+        expect(el.loading).to.be.false;
+        expect(el.searching).to.be.true;
+        expect(el.searchedQuery).to.equal('school');
+        expect(el.hasChanges).to.be.false;
+        expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
+        resolvePage({ value: [], done: false });
+        await opening;
+        expect(el.searching).to.be.false;
+        expect(el.hasChanges).to.be.false;
+    });
+
+    it('reports an automatic search failure as a retryable search error, not a project load failure', async () => {
+        Store.bulkEditProjects.projectId.set('opening-search-error');
+        const error = new Error('Search unavailable');
+        const el = connectEditor({
+            getFragmentById: sinon.stub().resolves({
+                ...rawProject('School-MWPW-1'),
+                id: 'opening-search-error',
+                model: { id: BULK_EDIT_PROJECT_MODEL_ID },
+                fields: [...rawProject('School-MWPW-1').fields, { name: 'searchTerm', values: ['school'] }],
+            }),
+            searchFragmentPages: sinon.stub().callsFake(async function* () {
+                throw error;
+            }),
+        });
+        await el.connectedCallback();
+        expect(el.loadFailed).to.be.false;
+        expect(el.fragmentsFailed).to.be.true;
+        expect(el.hasChanges).to.be.false;
+        expect(el.repository.processError.calledOnceWithExactly(error, 'Could not load fragments for text search.')).to.be.true;
+    });
+
+    it('saves configuration with the existing name and clears previously saved selections and scopes', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        const original = new FragmentStore(
+            new Fragment({
+                ...rawProject('Existing-MWPW-1'),
+                fields: [
+                    ...rawProject('Existing-MWPW-1').fields,
+                    { name: 'fragments', type: 'content-fragment', multiple: true, values: ['/old-selection'] },
+                    { name: 'fieldNames', type: 'text', multiple: true, values: ['badge'] },
+                ],
+            }),
+        );
+        Store.bulkEditProjects.inEdit.set(original);
+        const saveFragment = sinon.stub().callsFake(async (draft) => {
+            expect(original.get().getFieldValues('fragments')).to.deep.equal(['/old-selection']);
+            expect(draft.get().getFieldValues('fragments')).to.deep.equal([]);
+            expect(draft.get().getFieldValues('fieldNames')).to.deep.equal([]);
+            return true;
+        });
+        stubRepository(el, { saveFragment });
+        el.searchFields = [];
+        await el.updateComplete;
+        el.openSaveDialog();
+        await el.save();
+        expect(saveFragment.calledOnce).to.be.true;
+        expect(original.get().getFieldValue('title')).to.equal('Existing-MWPW-1');
+        expect(original.get().getFieldValues('fragments')).to.deep.equal([]);
+        expect(el.hasChanges).to.be.false;
+    });
+
+    it('preserves edits made after dismissing an in-flight save and ignores duplicate submissions', async () => {
+        const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        let resolve;
+        const createFragment = sinon.stub().callsFake(
+            (payload) =>
+                new Promise((done) => {
+                    resolve = () => done({ ...rawProject(payload.title), fields: payload.fields });
+                }),
+        );
+        stubRepository(el, { createFragment });
+        el.findText = 'school';
+        await el.updateComplete;
+        el.openSaveDialog();
+        el.handleTitleInput({ target: { value: 'School-MWPW-1' } });
+        const saving = el.save();
+        await waitUntil(() => createFragment.called);
+        await el.save();
+        expect(createFragment.calledOnce).to.be.true;
+        el.closeSaveDialog();
+        el.findText = 'college';
+        await el.updateComplete;
+        resolve();
+        await saving;
+        await el.updateComplete;
+        expect(el.project.get().getFieldValue('searchTerm')).to.equal('school');
+        expect(el.findText).to.equal('college');
+        expect(el.hasChanges).to.be.true;
+        expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.false;
     });
 
     it('creates a draft project on save and stores its id', async () => {
@@ -109,6 +512,7 @@ describe('mas-bulk-edit-editor', () => {
 
     it('disables the title field while saving', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await openNamingDialog(el);
         let resolve;
         const createFragment = sinon.stub().callsFake(() => new Promise((r) => (resolve = r)));
         stubRepository(el, { createFragment });
@@ -118,10 +522,16 @@ describe('mas-bulk-edit-editor', () => {
         await el.updateComplete;
         const input = el.shadowRoot.querySelector('[data-testid="title-input"]');
         expect(input.hasAttribute('disabled')).to.be.true;
+        expect(el.shadowRoot.querySelector('.save-dialog-actions sp-button').disabled).to.be.true;
+        expect(el.shadowRoot.querySelector('[data-testid="confirm-save"]').disabled).to.be.true;
+        const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        input.dispatchEvent(escape);
+        expect(escape.defaultPrevented).to.be.true;
+        expect(el.saveDialogOpen).to.be.true;
         resolve(rawProject('New one-MWPW-123456'));
         await saving;
         await el.updateComplete;
-        expect(input.hasAttribute('disabled')).to.be.false;
+        expect(el.saveDialogOpen).to.be.false;
     });
 
     it('blocks saving a title already used by another project', async () => {
@@ -129,6 +539,7 @@ describe('mas-bulk-edit-editor', () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
         const createFragment = sinon.stub();
         stubRepository(el, { createFragment });
+        await openNamingDialog(el);
         el.handleTitleInput({ target: { value: 'Taken-MWPW-1' } });
         await el.updateComplete;
         await el.save();
@@ -138,6 +549,7 @@ describe('mas-bulk-edit-editor', () => {
 
     it('flags a taken title once the project list finishes loading', async () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+        await openNamingDialog(el);
         el.handleTitleInput({ target: { value: 'Taken-MWPW-1' } });
         await el.updateComplete;
         Store.bulkEditProjects.list.data.set([new FragmentStore(new Fragment({ ...rawProject('Taken-MWPW-1'), id: 'other' }))]);
@@ -150,12 +562,13 @@ describe('mas-bulk-edit-editor', () => {
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
         const createFragment = sinon.stub();
         stubRepository(el, { createFragment });
+        await openNamingDialog(el);
         el.handleTitleInput({ target: { value: 'Spring sale' } });
         await el.updateComplete;
         await el.save();
         expect(createFragment.called).to.be.false;
         expect(el.disabledActions.has(QUICK_ACTION.SAVE)).to.be.true;
-        expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('invalid')).to.be.true;
+        expect(el.shadowRoot.querySelector('[data-testid="title-input"]').hasAttribute('invalid')).to.be.true;
     });
 
     it('navigates back to the list after deleting', async () => {
@@ -205,7 +618,7 @@ describe('mas-bulk-edit-editor', () => {
     it('resolves the repository from the document', async () => {
         const repository = {};
         const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
-        sinon.stub(document, 'querySelector').callThrough().withArgs('mas-repository').returns(repository);
+        repositoryQuery.withArgs('mas-repository').returns(repository);
         expect(el.repository).to.equal(repository);
     });
 
@@ -286,6 +699,7 @@ describe('mas-bulk-edit-editor', () => {
         const editorWithTitle = async (repo, title = 'New one-MWPW-123456') => {
             const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
             stubRepository(el, repo);
+            await openNamingDialog(el);
             el.handleTitleInput({ target: { value: title } });
             return el;
         };
@@ -297,6 +711,7 @@ describe('mas-bulk-edit-editor', () => {
             expect(Store.bulkEditProjects.projectId.get()).to.be.null;
             expect(el.hasChanges).to.be.true;
             expect(el.saving).to.be.false;
+            expect(el.saveDialogOpen).to.be.true;
         });
 
         it('reports a title conflict when create fails with 409', async () => {
@@ -321,6 +736,8 @@ describe('mas-bulk-edit-editor', () => {
                 .true;
             expect(el.hasChanges).to.be.true;
             expect(el.saving).to.be.false;
+            expect(el.project.get().getFieldValue('title')).to.equal('Existing');
+            expect(el.saveDialogOpen).to.be.true;
         });
 
         it('blocks creating a project whose title another project took after the list was loaded', async () => {
@@ -388,6 +805,8 @@ describe('mas-bulk-edit-editor', () => {
             expect(toast.calledWithMatch({ variant: 'positive' })).to.be.false;
             expect(el.hasChanges).to.be.true;
             expect(el.saving).to.be.false;
+            expect(el.project.get().getFieldValue('title')).to.equal('Existing');
+            expect(el.saveDialogOpen).to.be.true;
         });
 
         it('stays on the editor when deleting fails', async () => {
@@ -479,10 +898,11 @@ describe('mas-bulk-edit-editor', () => {
     describe('accessibility', () => {
         it('associates the field label with the title input', async () => {
             const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
-            const label = el.shadowRoot.querySelector('sp-field-label');
+            await openNamingDialog(el);
+            const label = el.shadowRoot.querySelector('sp-field-label[for="project-title"]');
             const input = el.shadowRoot.querySelector('[data-testid="title-input"]');
             expect(label.getAttribute('for')).to.equal(input.id);
-            expect(label.textContent.trim()).to.equal('Project name');
+            expect(label.textContent.trim()).to.equal('Title');
         });
 
         it('renders a single level-one heading', async () => {
@@ -501,6 +921,7 @@ describe('mas-bulk-edit-editor', () => {
 
         it('exposes the title error through the negative help text slot', async () => {
             const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
+            await openNamingDialog(el);
             el.handleTitleInput({ target: { value: 'Spring sale' } });
             await el.updateComplete;
             const help = el.shadowRoot.querySelector('[data-testid="title-error"]');
@@ -510,7 +931,8 @@ describe('mas-bulk-edit-editor', () => {
 
         it('does not mark a pristine title field as invalid', async () => {
             const el = await fixture(html`<mas-bulk-edit-editor></mas-bulk-edit-editor>`);
-            expect(el.shadowRoot.querySelector('sp-textfield').hasAttribute('invalid')).to.be.false;
+            await openNamingDialog(el);
+            expect(el.shadowRoot.querySelector('[data-testid="title-input"]').hasAttribute('invalid')).to.be.false;
         });
 
         it('offers a keyboard-reachable button to recover from a load error', async () => {

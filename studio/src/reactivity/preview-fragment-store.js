@@ -14,6 +14,8 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
+import { mergeParentFields } from '../aem/variation-utils.js';
+import { MERGE_CONFIG } from '../../../io/www/src/fragment/transformers/customize.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
 const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
@@ -93,8 +95,11 @@ export class PreviewFragmentStore extends FragmentStore {
     resolved = false;
     placeholderUnsubscribe = null;
     previewLocaleOverride = null;
+    /** @type {Fragment | null} merged baselines filling the empty fields of the preview */
+    baselineParent = null;
     #resolving = false;
     #resolvePending = false;
+    #valueVersion = 0;
     #resolveDebounceTimer = null;
     #refreshDebounceTimer = null;
     #resolvedDictionarySig = null;
@@ -131,26 +136,31 @@ export class PreviewFragmentStore extends FragmentStore {
            rather than (in this case) "super.set(value)"
         */
         this.value.replaceFrom(value, false);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateField(name, value) {
         this.value.updateField(name, value);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     updateFieldInternal(name, value) {
         this.value.updateFieldInternal(name, value);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     refreshFrom(value) {
         this.value.refreshFrom(value);
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
     discardChanges() {
         this.value.discardChanges();
+        this.#valueVersion++;
         this.resolveFragment();
     }
 
@@ -230,13 +240,14 @@ export class PreviewFragmentStore extends FragmentStore {
 
         this.#resolving = true;
         const dictionarySig = this.previewLocale;
+        const valueVersion = this.#valueVersion;
         this.getResolvedFragment()
             .then((result) => {
-                if (result) {
-                    this.#resolvedDictionarySig = dictionarySig;
-                    this.replaceFrom(result);
-                    this.refreshAemFragment(true);
-                }
+                // The value changed mid-resolve: drop the outdated result, the follow-up resolve applies the fresh one.
+                if (!result || valueVersion !== this.#valueVersion) return;
+                this.#resolvedDictionarySig = dictionarySig;
+                this.replaceFrom(result);
+                this.refreshAemFragment(true);
             })
             .catch((error) => {
                 console.error('[PreviewFragmentStore] Failed to resolve fragment:', error);
@@ -258,6 +269,10 @@ export class PreviewFragmentStore extends FragmentStore {
     async getResolvedFragment() {
         /* Transform fields to publish */
         const body = structuredClone(this.value);
+        if (this.baselineParent) {
+            const variant = body.fields.find(({ name }) => name === 'variant')?.values[0];
+            mergeParentFields(body, this.baselineParent, MERGE_CONFIG[variant]?.arraysToMerge);
+        }
         const originalFields = body.fields;
         body.fields = serializePreviewFields(originalFields);
 

@@ -304,8 +304,8 @@ describe('Fragment', () => {
                 name: 'description',
                 values: [EXPLICIT_EMPTY_SENTINEL],
                 multiple: false,
-                expected: [EXPLICIT_EMPTY_SENTINEL],
-                desc: 'returns sentinel as-is for non-allowed fields — does not treat it as explicit-empty',
+                expected: [''],
+                desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] on fields not allowed to store it',
             },
         ].forEach(({ name, values, multiple, expected, desc }) => {
             it(desc, () => {
@@ -331,6 +331,14 @@ describe('Fragment', () => {
             );
             expect(variation.getEffectiveFieldValues('badge', null, true)).to.deep.equal([]);
         });
+
+        it('resolves an EXPLICIT_EMPTY_SENTINEL inherited from the parent to [""]', () => {
+            const clearedParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'subtitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            const variation = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: [] }] }));
+            expect(variation.getEffectiveFieldValues('subtitle', clearedParent, true)).to.deep.equal(['']);
+        });
     });
 
     describe('getEffectiveFieldValue', () => {
@@ -350,11 +358,19 @@ describe('Fragment', () => {
             expect(variation.getEffectiveFieldValue('badge', parent, true, 0)).to.equal('');
         });
 
-        it('does not treat EXPLICIT_EMPTY_SENTINEL as explicit-empty on non-allowed fields', () => {
+        it('returns empty string for EXPLICIT_EMPTY_SENTINEL on fields not allowed to store it', () => {
             const variation = new Fragment(
                 createFragmentConfig({ fields: [{ name: 'description', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
             );
-            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal(EXPLICIT_EMPTY_SENTINEL);
+            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal('');
+        });
+
+        it('returns empty string for an EXPLICIT_EMPTY_SENTINEL inherited from the parent', () => {
+            const clearedParent = new Fragment(
+                createFragmentConfig({ fields: [{ name: 'subtitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+            );
+            const variation = new Fragment(createFragmentConfig({ fields: [] }));
+            expect(variation.getEffectiveFieldValue('subtitle', clearedParent, true, 0)).to.equal('');
         });
 
         it('still inherits from parent when own value is absent', () => {

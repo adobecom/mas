@@ -15,9 +15,17 @@ import {
     fieldValuesArePersistedExplicitEmpty,
     isExplicitEmptyField,
     isExplicitEmptySentinel,
+    normalizeExplicitEmptyInFields,
     parentValuesHaveContent,
     toPersistedExplicitEmptyValues,
 } from '../../../io/www/src/fragment/utils/explicit-empty.js';
+
+/**
+ * Values of a field as shown in the editor: a stored explicit_empty sentinel reads as empty, whatever the field.
+ * @param {{ values?: Array, multiple?: boolean } | undefined} field
+ * @returns {Array}
+ */
+const displayedValues = (field) => (field ? (normalizeExplicitEmptyInFields([field])[0].values ?? []) : []);
 
 /**
  * Whether a variation field stores an intentional empty override (persisted `explicit_empty`).
@@ -315,7 +323,7 @@ export class Fragment {
 
     getEffectiveFieldValue(fieldName, parentFragment, isVariation, index = 0) {
         const ownValue = this.getFieldValue(fieldName, index);
-        if (isExplicitEmptyField(fieldName) && isExplicitEmptySentinel(ownValue)) {
+        if (isExplicitEmptySentinel(ownValue)) {
             return '';
         }
         if (ownValue !== undefined && ownValue !== null && ownValue !== '') {
@@ -324,7 +332,8 @@ export class Fragment {
         if (!parentFragment || !isVariation) {
             return ownValue;
         }
-        return parentFragment.getFieldValue(fieldName, index);
+        const parentValue = parentFragment.getFieldValue(fieldName, index);
+        return isExplicitEmptySentinel(parentValue) ? '' : parentValue;
     }
 
     getEffectiveFieldValues(fieldName, parentFragment, isVariation) {
@@ -336,14 +345,13 @@ export class Fragment {
             if (!parentFragment || !isVariation) {
                 return [];
             }
-            const parentField = parentFragment.getField(fieldName);
-            return parentField?.values || [];
+            return displayedValues(parentFragment.getField(fieldName));
         }
 
         // For [""] (single empty string):
         // - For multi-value fields (multiple: true): explicit clear sentinel → return empty array
         // - For single-value fields (multiple: false): AEM initializes empty fields this way → inherit from parent
-        if (isExplicitEmptyField(fieldName) && fieldValuesArePersistedExplicitEmpty(ownValues)) {
+        if (fieldValuesArePersistedExplicitEmpty(ownValues)) {
             const isMultipleField = ownField?.multiple === true;
             if (isMultipleField || !parentFragment || !isVariation) {
                 return [];
@@ -361,12 +369,10 @@ export class Fragment {
             if (!parentFragment || !isVariation) {
                 return [];
             }
-            const parentField = parentFragment.getField(fieldName);
-            return parentField?.values || [];
+            return displayedValues(parentFragment.getField(fieldName));
         }
 
-        // Has actual values - return them
-        return ownValues;
+        return displayedValues(ownField);
     }
 
     getFieldState(fieldName, parentFragment, isVariation) {

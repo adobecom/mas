@@ -3,7 +3,7 @@ import { FragmentStore } from './fragment-store.js';
 import { PreviewFragmentStore, INHERITED_SETTINGS_FIELDS } from './preview-fragment-store.js';
 import Store from '../store.js';
 import { getGlobalSettingsDefaults } from '../settings/settings-store.js';
-import { variationFieldShouldInheritParent } from '../aem/variation-utils.js';
+import { mergeParentFields } from '../aem/variation-utils.js';
 
 export class SourceFragmentStore extends FragmentStore {
     /** @type {PreviewFragmentStore} */
@@ -96,6 +96,20 @@ export class SourceFragmentStore extends FragmentStore {
         this.previewStore.resolveFragment();
     }
 
+    /**
+     * Sets the merged baselines the card inherits from (`null` when baselines are off or missing) and rebuilds the
+     * preview from the source, so values of a previous baseline do not linger.
+     * @param {Fragment | null} baselineParent
+     */
+    setBaselineParent(baselineParent) {
+        if (this.previewStore.baselineParent === baselineParent) return;
+        this.previewStore.baselineParent = baselineParent;
+        const previewData = this.parentFragment
+            ? createPreviewDataWithParent(this.value, this.parentFragment)
+            : structuredClone(this.value);
+        this.previewStore.refreshFrom(previewData);
+    }
+
     refreshAemFragment() {
         /* Source fragments aren't linked to the aem-fragment cache */
     }
@@ -140,20 +154,7 @@ export function createPreviewDataWithParent(sourceFragment, parentFragment) {
         previewData.fields.push(variationTags);
     }
 
-    parentFragment.fields?.forEach((parentField) => {
-        const sourceField = previewData.fields?.find((f) => f.name === parentField.name);
-        const sourceValues = sourceField?.values || [];
-
-        const shouldInherit = variationFieldShouldInheritParent(sourceValues, sourceField?.multiple === true);
-
-        if (shouldInherit && parentField?.values?.length > 0) {
-            if (sourceField) {
-                sourceField.values = [...parentField.values];
-            } else {
-                previewData.fields.push({ ...parentField });
-            }
-        }
-    });
+    mergeParentFields(previewData, parentFragment);
 
     const settingsRows = Store.settings.rows.get?.();
     if (parentFragment && Array.isArray(settingsRows) && settingsRows.length > 0) {

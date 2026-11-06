@@ -1,0 +1,200 @@
+import Store from '../store.js';
+import Events from '../events.js';
+import { PROMOTION_MODEL_ID } from '../constants.js';
+import { showToast } from '../utils.js';
+import { canEditPromotions } from '../groups.js';
+import { compareVersionValues, versionFieldValues } from '../../libs/fragment-version.js';
+import { getPromotionTagFromFragment, getPromoNameFromTag, isPromoVariationPath } from './promotion-model.js';
+
+const historyRequests = new Map();
+const pendingVersions = new Map();
+let historySession;
+
+function historyRequestKey(projectId, filters) {
+    const session = JSON.stringify([
+        document.querySelector('meta[name="io-base-url"]')?.content,
+        document.querySelector('mas-repository')?.getAttribute('base-url'),
+        Store.profile.get()?.id ?? Store.profile.get()?.email,
+        sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token,
+    ]);
+    if (historySession !== session) {
+        clearPromotionHistoryRequests();
+        historySession = session;
+    }
+    return JSON.stringify([projectId, Object.entries(filters).sort(([a], [b]) => a.localeCompare(b))]);
+}
+
+/** Prevents new history reads from reusing requests started before a content or session change. */
+export function clearPromotionHistoryRequests(projectId) {
+    for (const [key, entry] of historyRequests) {
+        if (!projectId || entry.projectId === projectId) historyRequests.delete(key);
+    }
+}
+
+Events.fragmentSaved.subscribe(() => clearPromotionHistoryRequests());
+Store.profile.subscribe(() => clearPromotionHistoryRequests());
+
+async function callAction(action, { projectId, ...payload }) {
+    const baseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
+    const token = sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token;
+    if (!baseUrl) throw new Error('Studio I/O endpoint is not configured.');
+    if (!token) throw new Error('Sign in to access promotion versions.');
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/history-${action}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...payload, scopeType: 'promotion', rootId: projectId }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+        const error = new Error(body.error?.body?.error ?? body.error ?? 'Promotion version request failed.');
+        error.status = response.status;
+        error.details = body;
+        throw error;
+    }
+    return body;
+}
+
+/** Fetches fresh history while sharing identical requests that are still in flight. */
+export async function listPromotionHistory(projectId, filters = {}) {
+    while (pendingVersions.size) await Promise.all(pendingVersions.values());
+    const key = historyRequestKey(projectId, filters);
+    let entry = historyRequests.get(key);
+    if (!entry) {
+        entry = { projectId, pending: callAction('list', { ...filters, projectId }) };
+        historyRequests.set(key, entry);
+    }
+    try {
+        return structuredClone(await entry.pending);
+    } finally {
+        if (historyRequests.get(key) === entry) historyRequests.delete(key);
+    }
+}
+
+export async function restorePromotionHistory(projectId, eventId, options) {
+    clearPromotionHistoryRequests(projectId);
+    try {
+        return await callAction('restore', { ...options, projectId, eventId, requestId: crypto.randomUUID() });
+    } finally {
+        clearPromotionHistoryRequests(projectId);
+    }
+}
+
+function isProject(fragment) {
+    return (fragment.modelId ?? fragment.model?.id)?.replace(/={1,2}$/, '') === PROMOTION_MODEL_ID.replace(/={1,2}$/, '');
+}
+
+async function resolveProjectIds(repository, fragment) {
+    if (isProject(fragment)) return [fragment.id];
+    if (!isPromoVariationPath(fragment.path)) return [];
+    const tag = getPromotionTagFromFragment(fragment);
+    const matchingProjects = () =>
+        Store.promotions.list.data
+            .get()
+            .map((store) => store.get())
+            .filter((project) => {
+                const projectTag = getPromotionTagFromFragment(project);
+                if (tag) return projectTag === tag;
+                const name = getPromoNameFromTag(projectTag ?? '');
+                return name && fragment.path.includes(`/promotions/${name}/`);
+            });
+    let matches = matchingProjects();
+    if (!matches.length) {
+        await repository.loadPromotions();
+        matches = matchingProjects();
+    }
+    if (!matches.length) throw new Error('The promotion project could not be resolved. Reload and try again.');
+    return matches.map((project) => project.id);
+}
+
+async function recordPromotionVersion(repository, fragment, { beforeVersionId, action = 'create', projectId } = {}) {
+    clearPromotionHistoryRequests();
+    try {
+        for (const rootId of projectId ? [projectId] : await resolveProjectIds(repository, fragment)) {
+            await callAction('record', {
+                projectId: rootId,
+                targetId: fragment.id,
+                requestId: crypto.randomUUID(),
+                action,
+                ...(beforeVersionId ? { beforeVersionId } : {}),
+                ...(fragment.etag ? { completionEtag: fragment.etag } : {}),
+            });
+        }
+    } catch (error) {
+        console.error('Promotion version capture failed:', error);
+        showToast('Your content was saved, but its version could not be recorded. Review Version history.', 'warning');
+    } finally {
+        clearPromotionHistoryRequests();
+    }
+}
+
+/** Tracks background captures so later saves and history reads cannot overtake them. */
+export async function savePromotionVersion(repository, fragment, options = {}) {
+    if (!canEditPromotions()) return;
+    const previous = pendingVersions.get(fragment.id);
+    const pending = (async () => {
+        if (previous) await previous;
+        await recordPromotionVersion(repository, fragment, options);
+    })();
+    pendingVersions.set(fragment.id, pending);
+    try {
+        await pending;
+    } finally {
+        if (pendingVersions.get(fragment.id) === pending) pendingVersions.delete(fragment.id);
+    }
+}
+
+async function captureBeforeVersion(repository, fragment) {
+    const fragments = repository.aem.sites.cf.fragments;
+    try {
+        const history = await fragments.getVersions(fragment.id, { limit: 50, sort: 'created:desc' });
+        const previous = history.items
+            .filter(
+                (version) =>
+                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - 95 * 86400000,
+            )
+            .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
+        if (previous) {
+            const [historical, current] = await Promise.all([
+                fragments.getVersion(fragment.id, previous.id),
+                fragments.getById(fragment.id),
+            ]);
+            if (
+                current.id === fragment.id &&
+                historical.id === current.id &&
+                historical.path === current.path &&
+                current.path === fragment.path &&
+                !compareVersionValues(versionFieldValues(historical), versionFieldValues(current), null).length
+            ) {
+                return previous.id;
+            }
+        }
+    } catch (error) {
+        console.error('Promotion previous-version reuse failed; capturing a new version:', error);
+    }
+    return fragments.createVersion(fragment.id);
+}
+
+export async function withPromotionVersion(repository, fragment, write) {
+    if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
+    const previous = pendingVersions.get(fragment.id);
+    if (previous) await previous;
+    let beforeVersionId;
+    if (fragment.id) {
+        try {
+            beforeVersionId = await captureBeforeVersion(repository, fragment);
+        } catch (error) {
+            console.error('Promotion before-version capture failed:', error);
+        }
+    }
+    const saved = await write();
+    clearPromotionHistoryRequests();
+    if (fragment.id && !beforeVersionId) {
+        showToast(
+            'Your content was saved, but its previous version could not be captured. This save cannot be restored.',
+            'warning',
+        );
+    } else {
+        void savePromotionVersion(repository, saved, { beforeVersionId, action: fragment.id ? 'save' : 'create' });
+    }
+    return saved;
+}

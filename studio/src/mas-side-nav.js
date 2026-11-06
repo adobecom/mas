@@ -961,7 +961,9 @@ class MasSideNav extends LitElement {
             </mas-side-nav-item>
             <mas-side-nav-item
                 label="Promotions"
-                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR].includes(Store.page.get())}
+                ?selected=${[PAGE_NAMES.PROMOTIONS, PAGE_NAMES.PROMOTIONS_EDITOR, PAGE_NAMES.PROMOTIONS_HISTORY].includes(
+                    Store.page.get(),
+                )}
                 @nav-click="${router.navigateToPage(PAGE_NAMES.PROMOTIONS)}"
             >
                 <sp-icon-promote slot="icon"></sp-icon-promote>

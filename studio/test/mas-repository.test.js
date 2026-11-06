@@ -5284,6 +5284,8 @@ describe('MasRepository dictionary helpers', () => {
             const savedFragment = { id: 'var-1', path: variationPath, fields: fragment.fields };
             repository.aem = createAemMock({
                 fragments: {
+                    createVersion: sandbox.stub().resolves('before-save'),
+                    getVersions: sandbox.stub().resolves({ items: [] }),
                     getById: sandbox.stub().resolves({ id: fragment.id, path: fragment.path, tags: fragment.tags }),
                     getByPath: sandbox.stub().withArgs(defaultPath).resolves({ id: 'parent-1', path: defaultPath }),
                     search,

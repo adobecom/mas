@@ -1111,13 +1111,14 @@ describe('MasPromotionsEditor', () => {
                 'Copy link',
                 'Copy variation links',
                 'Lock project',
+                'Version history',
                 'Delete',
             ]);
             expect(isPromotionQuickActionDisabled(el, 'Save')).to.be.true;
             expect(isPromotionQuickActionDisabled(el, 'Unpublish')).to.be.true;
         });
 
-        it('disables every quick action for a non-editor (view-only)', async () => {
+        it('allows history but disables write actions for a non-editor (view-only)', async () => {
             const { FragmentStore } = await import('../../src/reactivity/fragment-store.js');
             Store.profile.set({ email: 'viewer@adobe.com' });
             Store.users.set([{ userPrincipalName: 'viewer@adobe.com', groups: ['GRP-ODIN-MAS-ACOM-POWERUSERS'] }]);
@@ -1136,8 +1137,13 @@ describe('MasPromotionsEditor', () => {
             el.isNewPromotion = false;
             await el.updateComplete;
             for (const title of getPromotionQuickActionTitles(el)) {
-                expect(isPromotionQuickActionDisabled(el, title), title).to.be.true;
+                expect(isPromotionQuickActionDisabled(el, title), title).to.equal(title !== 'Version history');
             }
+        });
+
+        it('disables history before a new project is saved', async () => {
+            const el = await mountEditor();
+            expect(isPromotionQuickActionDisabled(el, 'Version history')).to.be.true;
         });
 
         it('disables general info fields and surface controls for a non-editor (view-only)', async () => {

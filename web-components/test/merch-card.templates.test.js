@@ -164,3 +164,20 @@ describe('merch-card template attribute', () => {
         expect(card.hasAttribute('variant')).to.be.false;
     });
 });
+
+describe('merch-card-collection template names', () => {
+    it('waits for the card templates, not the collection grouping', async () => {
+        const { getCardTemplateNames } = await import(
+            '../src/merch-card-collection.js'
+        );
+        expect(
+            getCardTemplateNames([
+                { fields: { variant: 'pro' } },
+                { fields: { variant: 'bizpro' } },
+                { fields: { variant: 'compare-chart-column' } },
+                { fields: { variant: '' } },
+                { fields: {} },
+            ]),
+        ).to.deep.equal(['pro', 'compare-chart-column']);
+    });
+});

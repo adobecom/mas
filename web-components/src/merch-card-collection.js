@@ -67,6 +67,21 @@ const CARD_ARRANGEMENT_PROPERTIES = [
     'types',
 ];
 
+/**
+ * The templates the collection's cards render with. Not normalizeVariant(),
+ * which groups pro under plans for the collection's own classes and options.
+ * Empty values come from personalization variations, which inherit theirs.
+ */
+export function getCardTemplateNames(cards) {
+    const names = cards
+        .map(({ fields }) =>
+            // TODO(MWPW-200587): remove after content migration
+            fields?.variant === 'bizpro' ? 'pro' : fields?.variant,
+        )
+        .filter(Boolean);
+    return [...new Set(names)];
+}
+
 const categoryFilter = (elements, { filter }) =>
     elements.filter(
         (element) =>
@@ -794,11 +809,8 @@ export class MerchCardCollection extends HTMLElement {
             // Default-child support and the collection options come from the
             // templates, whose bundle may still be loading. A template the page
             // never loads fails its own cards; the rest of the collection renders.
-            const templateNames = new Set(
-                cards.map((card) => normalizeVariant(card.fields?.variant)),
-            );
             await Promise.allSettled(
-                [...templateNames].map((name) =>
+                getCardTemplateNames(cards).map((name) =>
                     this.#merchCardElement?.whenTemplate(name),
                 ),
             );

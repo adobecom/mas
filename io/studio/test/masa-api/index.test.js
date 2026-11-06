@@ -322,8 +322,8 @@ describe('Studio MASA Runtime adapter', function () {
         const h = harness();
         await h.handler(params());
         const { headers } = h.backendCalls()[0].init;
-        assert.equal(headers.Authorization, `Bearer ${gatewayToken}`);
-        assert.equal(headers['X-Api-Key'], config.MASA_GATEWAY_API_KEY);
+        assert.equal(headers.Authorization, gatewayToken);
+        assert.equal(headers.api_key, config.MASA_GATEWAY_API_KEY);
         assert.equal(headers['Target-Authorization'], `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
         assert.equal(JSON.stringify(headers).includes(token()), false);
     });

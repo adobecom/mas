@@ -95,8 +95,9 @@ export function signedHeaders(config, identity, operation, now, gatewayToken) {
         .map((item) => Buffer.from(JSON.stringify(item)).toString('base64url'))
         .join('.');
     return {
-        Authorization: `Bearer ${gatewayToken}`,
-        'X-Api-Key': config.gateway.apiKey,
+        // The gateway rejects a Bearer prefix on its own token and reads the consumer key from api_key.
+        Authorization: gatewayToken,
+        api_key: config.gateway.apiKey,
         'Target-Authorization': `Bearer ${config.serviceToken}`,
         'X-Masa-User-Assertion': `${encoded}.${sign(null, Buffer.from(encoded), config.privateKey).toString('base64url')}`,
         Accept: 'application/json',

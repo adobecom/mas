@@ -2,7 +2,6 @@
 <html>
     <head>
         <title>MASA investigation sessions</title>
-        <meta name="mas-investigations-enabled" content="false" />
         <script>
             window.process = { env: {} };
             window.__swc = { warn: () => {} };
@@ -60,7 +59,6 @@
                 investigationHistory,
             } from '../../src/mas-chat/investigation-session.js';
             import { MasaClient, MasaClientError, mediaDigest } from '../../src/mas-chat/masa-client.js';
-            import { isMasaInvestigationEnabled } from '../../src/mas-chat/features.js';
             import { useIsolatedChatSessionStorage } from '../helpers/chat-session-storage.js';
 
             const sid = 'ses_11111111-1111-4111-8111-111111111111';
@@ -160,7 +158,6 @@
                     let clockNow;
                     let saved;
                     let host;
-                    const flag = document.querySelector('meta[name="mas-investigations-enabled"]');
                     const calls = [];
                     beforeEach(() => {
                         storage = useIsolatedChatSessionStorage();
@@ -185,7 +182,6 @@
                         clearInterval(current.timer);
                         current.clearMedia();
                         render(null, document.querySelector('#interactive'));
-                        flag.content = 'false';
                         sinon.restore();
                         storage.restore();
                     });
@@ -209,13 +205,7 @@
                         }
                         return signOut;
                     }
-                    it('defaults off and requires an explicit flag', () => {
-                        expect(isMasaInvestigationEnabled()).to.equal(false);
-                        flag.content = 'true';
-                        expect(isMasaInvestigationEnabled()).to.equal(true);
-                    });
                     it('keeps Chat and release confirmations available when switching views', async () => {
-                        flag.content = 'true';
                         host = document.createElement('mas-chat');
                         document.querySelector('#interactive').append(host);
                         await host.updateComplete;
@@ -441,7 +431,6 @@
                     });
 
                     it('revokes known leases before explicit sign-out, and keeps credentials on failure', async () => {
-                        flag.content = 'true';
                         const chat = sessionManager.createSession();
                         const owned = getInvestigationSession(chat.id);
                         owned.session = lease();
@@ -464,7 +453,6 @@
                         }
                     });
                     it('signs out after an explicit end while MASA is unavailable', async () => {
-                        flag.content = 'true';
                         const owned = getInvestigationSession(sessionManager.createSession().id);
                         owned.session = lease();
                         const control = sinon
@@ -477,7 +465,6 @@
                         expect(signOut.calledOnce).to.equal(true);
                     });
                     it('signs out after reloading an explicitly ended conversation while MASA is unavailable', async () => {
-                        flag.content = 'true';
                         current.session = lease();
                         await current.end();
                         const chat = sessionManager.createSession();

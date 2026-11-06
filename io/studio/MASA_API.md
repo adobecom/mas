@@ -3,7 +3,7 @@
 `MerchAtScaleStudio/masa-api` connects Studio to the shared read-only MASA backend using short JSON
 controls. It creates/renews/ends sessions, submits/polls/cancels investigations and obtains upload/download
 grants. It is disabled unless `MASA_API_ENABLED=true`, and normal `core`/`assistant` deployments exclude it.
-The same Studio PR includes the investigation UI behind `mas-investigations-enabled=false`. Merging it does not activate the API or enable investigations.
+The same Studio PR adds the investigation UI. Until a workspace configures the adapter, Investigate answers `masa-not-configured`.
 
 The rollout plan is [mas-agent #127](https://github.com/adobecom/mas-agent/pull/127). The matching session
 and binary-transfer contracts shipped in [#139](https://github.com/adobecom/mas-agent/pull/139) and
@@ -23,7 +23,7 @@ and current admission. Cancellation first reads the job and checks its session b
 Controls reach MASA through the iPaaS API Gateway API `masa_studio_api` ([IPAASOPS-5173](https://jira.corp.adobe.com/browse/IPAASOPS-5173)),
 which admits only IMS service tokens. The adapter exchanges the gateway client's permanent authorization code for
 a service token, reuses it within a warm container until five minutes before it expires, and sends it in
-`Authorization` with the consumer key in `X-Api-Key`. The user's IMS token never leaves the action. MASA's
+`Authorization`, without a `Bearer` prefix, with the consumer key in `api_key`. The user's IMS token never leaves the action. MASA's
 service token goes in `Target-Authorization`, which the gateway moves into MASA's `Authorization`. The gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and
 `Content-Type` through unchanged, strip its route prefix so MASA receives `/v1/...`, and keep the body
 byte-for-byte, or the assertion fails.
@@ -128,8 +128,7 @@ Saved state contains no IMS tokens, transfer grants, binary files or blob/downlo
 
 ## Studio experience and local verification
 
-The existing assistant gains an explicit **Chat / Investigate** switch only when the independent
-`mas-investigations-enabled` meta tag is `true`. Chat retains its current question, search, confirmation
+The existing assistant gains an explicit **Chat / Investigate** switch. Chat retains its current question, search, confirmation
 and release-card paths; Investigate submits read-only jobs to MASA. MASA owns findings and evidence.
 Studio renders results and opens matching card IDs through its existing editor route. It never interprets
 an investigation finding as an authoring command.
@@ -163,16 +162,15 @@ A [fixture screenshot](../../studio/test/mas-chat/masa-investigations.png) is in
 Append `?demo` when opening it through a local server with npm module resolution to inspect the fixtures
 without starting assertions. It uses simulated responses and sends no live MASA or Slack traffic.
 
-For the later stage pilot, configure the two meta tags in the test branch's `studio.html`:
+For file transfers, set the media origin in `studio.html`:
 
 ```html
-<meta name="mas-investigations-enabled" content="true" />
 <meta name="masa-media-origin" content="https://YOUR-EXACT-MEDIA-ORIGIN" />
 ```
 
 The media origin must exactly match `MASA_MEDIA_BASE_URL`, without a trailing slash. Controls use the
 existing `io-base-url` environment and `/masa-api.http`. A mismatched media destination is rejected
-before IMS credentials are sent. Leave both defaults unchanged until the stage deployment gate below.
+before IMS credentials are sent. Leave it empty until the stage deployment gate below.
 No synchronous card-search cutover or automatic routing of ordinary chat questions is included.
 
 ## Limits and remaining rollout gates
@@ -216,7 +214,7 @@ node scripts/deploy-actions.mjs masa
 
 Never use an unfiltered deployment to activate this integration. The `core` and `assistant` CI groups
 exclude it even when MASA secrets exist in the workspace configuration. To disable a deployed adapter,
-set `MASA_API_ENABLED=false` and redeploy the `masa` group; separately set `mas-investigations-enabled=false`.
+set `MASA_API_ENABLED=false` and redeploy the `masa` group.
 
 Before enabling the UI, verify the deployed action's `raw-http`, `final` and `web-custom-options`
 annotations, actual IMS admission, preflight, signed session lifecycle, idempotent retries, origin/user

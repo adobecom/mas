@@ -5,7 +5,6 @@ import './mas-prompt-suggestions.js';
 import './mas-operation-result.js';
 import './mas-chat-session-selector.js';
 import './mas-chat-investigation.js';
-import { isMasaInvestigationEnabled } from './mas-chat/features.js';
 import Store from './store.js';
 import router from './router.js';
 import { masaAvatar } from './img/masa-avatar.js';
@@ -2714,40 +2713,35 @@ export class MasChat extends LitElement {
     }
 
     render() {
-        if (isMasaInvestigationEnabled())
-            return html`
-                <div class="investigation-switcher" role="group" aria-label="Assistant mode">
-                    <sp-action-button
-                        ?selected=${!this.investigationMode}
-                        @click=${() => {
-                            this.investigationMode = false;
-                        }}
-                        >Chat</sp-action-button
-                    >
-                    <sp-action-button
-                        ?selected=${this.investigationMode}
-                        ?disabled=${this.isLoading}
-                        @click=${() => {
-                            this.investigationMode = true;
-                        }}
-                        >Investigate</sp-action-button
-                    >
-                </div>
-                <div class="chat-mode-view" ?hidden=${this.investigationMode}>
-                    ${this.showWelcomeScreen ? this.renderWelcomeScreen() : this.renderChatView()}
-                </div>
-                ${this.investigationMode
-                    ? html` <mas-chat-session-selector></mas-chat-session-selector>
-                          <mas-chat-investigation
-                              .conversationId=${this.currentSessionId}
-                              .context=${`Studio path: ${Store.search.value.path ?? ''}\nLocale: ${Store.filters.value.locale ?? 'en_US'}\nFragment ID: ${Store.fragmentEditor.fragmentId.get() ?? ''}`}
-                          ></mas-chat-investigation>`
-                    : nothing}
-            `;
-        if (this.showWelcomeScreen) {
-            return this.renderWelcomeScreen();
-        }
-        return this.renderChatView();
+        return html`
+            <div class="investigation-switcher" role="group" aria-label="Assistant mode">
+                <sp-action-button
+                    ?selected=${!this.investigationMode}
+                    @click=${() => {
+                        this.investigationMode = false;
+                    }}
+                    >Chat</sp-action-button
+                >
+                <sp-action-button
+                    ?selected=${this.investigationMode}
+                    ?disabled=${this.isLoading}
+                    @click=${() => {
+                        this.investigationMode = true;
+                    }}
+                    >Investigate</sp-action-button
+                >
+            </div>
+            <div class="chat-mode-view" ?hidden=${this.investigationMode}>
+                ${this.showWelcomeScreen ? this.renderWelcomeScreen() : this.renderChatView()}
+            </div>
+            ${this.investigationMode
+                ? html` <mas-chat-session-selector></mas-chat-session-selector>
+                      <mas-chat-investigation
+                          .conversationId=${this.currentSessionId}
+                          .context=${`Studio path: ${Store.search.value.path ?? ''}\nLocale: ${Store.filters.value.locale ?? 'en_US'}\nFragment ID: ${Store.fragmentEditor.fragmentId.get() ?? ''}`}
+                      ></mas-chat-investigation>`
+                : nothing}
+        `;
     }
 
     renderWelcomeScreen() {

@@ -2,7 +2,6 @@ import { LitElement, html, nothing } from 'lit';
 import sessionManager from './services/chat-session-manager.js';
 import { showToast } from './utils.js';
 import { confirmation } from './mas-confirm-dialog.js';
-import { isMasaInvestigationEnabled } from './mas-chat/features.js';
 
 export class MasChatSessionSelector extends LitElement {
     static properties = {
@@ -109,10 +108,8 @@ export class MasChatSessionSelector extends LitElement {
 
         try {
             const wasActive = sessionId === this.activeSessionId;
-            if (isMasaInvestigationEnabled()) {
-                const { endConversationInvestigations } = await import('./mas-chat/investigation-session.js');
-                await endConversationInvestigations(sessionId);
-            }
+            const { endConversationInvestigations } = await import('./mas-chat/investigation-session.js');
+            await endConversationInvestigations(sessionId);
             const newActiveSessionId = sessionManager.deleteSession(sessionId);
             this.loadSessions();
 
@@ -164,10 +161,8 @@ export class MasChatSessionSelector extends LitElement {
         try {
             const sessionIds = this.sessions.map((s) => s.id);
             for (const id of sessionIds) {
-                if (isMasaInvestigationEnabled()) {
-                    const { endConversationInvestigations } = await import('./mas-chat/investigation-session.js');
-                    await endConversationInvestigations(id);
-                }
+                const { endConversationInvestigations } = await import('./mas-chat/investigation-session.js');
+                await endConversationInvestigations(id);
                 sessionManager.deleteSession(id);
             }
             this.loadSessions();

@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html, nothing } from 'lit';
 import { CSS } from './plans.css.js';
 import Media from '../media.js';
 import {
@@ -7,7 +6,7 @@ import {
     SELECTOR_MAS_INLINE_PRICE,
     TEMPLATE_PRICE_LEGAL,
 } from '../constants.js';
-import { getOuterHeight } from '../utils.js';
+import { escapeHTML, getOuterHeight } from '../utils.js';
 import { css } from '../css.js';
 
 export const PLANS_AEM_FRAGMENT_MAPPING = {
@@ -266,7 +265,7 @@ export class Plans extends VariantLayout {
         }
         await super.postCardUpdateHook();
         if (window.matchMedia('(min-width: 768px)').matches) {
-            if (this.card === this.card.parentElement.firstElementChild) {
+            if (this.card === this.card.parentElement?.firstElementChild) {
                 requestAnimationFrame(() => {
                     this.syncHeights();
                 });
@@ -287,8 +286,8 @@ export class Plans extends VariantLayout {
 
     get divider() {
         return this.card.variant === 'plans-education'
-            ? html`<div class="divider"></div>`
-            : nothing;
+            ? `<div class="divider"></div>`
+            : '';
     }
 
     async adjustLegal() {
@@ -337,12 +336,12 @@ export class Plans extends VariantLayout {
 
     get stockCheckbox() {
         return this.card.checkboxLabel
-            ? html`<label id="stock-checkbox">
-                <input type="checkbox" @change=${this.card.toggleStockOffer}></input>
+            ? `<label id="stock-checkbox">
+                <input type="checkbox">
                 <span></span>
-                ${this.card.checkboxLabel}
+                ${escapeHTML(this.card.checkboxLabel)}
             </label>`
-            : nothing;
+            : '';
     }
 
     get icons() {
@@ -350,8 +349,15 @@ export class Plans extends VariantLayout {
             !this.card.querySelector('[slot="icons"]') &&
             !this.card.getAttribute('id')
         )
-            return nothing;
-        return html`<slot name="icons"></slot>`;
+            return '';
+        return `<slot name="icons"></slot>`;
+    }
+
+    bindEvents(root) {
+        root.querySelector('#stock-checkbox > input')?.addEventListener(
+            'change',
+            (event) => this.card.toggleStockOffer(event),
+        );
     }
 
     resizeHandler() {
@@ -384,7 +390,7 @@ export class Plans extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
+        return ` ${this.badge}
             <div class="body">
                 ${this.icons}
                 <slot name="heading-xs"></slot>
@@ -523,8 +529,8 @@ export class Plans extends VariantLayout {
 
     static collectionOptions = {
         customHeaderArea: (collection) => {
-            if (!collection.sidenav) return nothing;
-            return html`<slot name="resultsText"></slot>`;
+            if (!collection.sidenav) return '';
+            return `<slot name="resultsText"></slot>`;
         },
         headerVisibility: {
             search: false,

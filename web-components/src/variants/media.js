@@ -1,4 +1,3 @@
-import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './media.css.js';
 import { css } from '../css.js';
@@ -33,7 +32,7 @@ export class Media extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             <div class="media-row">
                 <div class="text">
                     <slot name="body-xxs"></slot>

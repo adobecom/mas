@@ -1,6 +1,5 @@
 import { VariantLayout } from './variant-layout';
 import { createTag } from '../utils.js';
-import { html } from 'lit';
 import { CSS } from './product.css.js';
 import Media from '../media.js';
 import {
@@ -98,17 +97,15 @@ export class Product extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
+        return ` ${this.badge}
             <div class="body" aria-live="polite">
                 <slot name="icons"></slot>
                 <slot name="heading-xs"></slot>
-                ${!this.promoBottom
-                    ? html`<slot name="promo-text"></slot>`
-                    : ''}
+                ${!this.promoBottom ? `<slot name="promo-text"></slot>` : ''}
                 <slot name="body-xs"></slot>
                 <slot name="short-description"></slot>
                 <slot name="addon"></slot>
-                ${this.promoBottom ? html`<slot name="promo-text"></slot>` : ''}
+                ${this.promoBottom ? `<slot name="promo-text"></slot>` : ''}
                 <slot name="whats-included"></slot>
                 <slot name="callout-content"></slot>
                 <slot name="quantity-select"></slot>

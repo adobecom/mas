@@ -1,5 +1,4 @@
 import { VariantLayout } from './variant-layout';
-import { html } from 'lit';
 import { CSS } from './inline-heading.css.js';
 export class InlineHeading extends VariantLayout {
     constructor(card) {
@@ -11,7 +10,7 @@ export class InlineHeading extends VariantLayout {
     }
 
     renderLayout() {
-        return html` ${this.badge}
+        return ` ${this.badge}
             <div class="body">
                 <div class="top-section">
                     <slot name="icons"></slot>
@@ -19,6 +18,6 @@ export class InlineHeading extends VariantLayout {
                 </div>
                 <slot name="body-xs"></slot>
             </div>
-            ${!this.card.customHr ? html`<hr />` : ''} ${this.secureLabelFooter}`;
+            ${!this.card.customHr ? `<hr />` : ''} ${this.secureLabelFooter}`;
     }
 }

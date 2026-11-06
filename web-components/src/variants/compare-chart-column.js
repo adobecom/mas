@@ -1,4 +1,3 @@
-import { html } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './compare-chart-column.css.js';
 import { css } from '../css.js';
@@ -78,7 +77,7 @@ export class CompareChartColumn extends VariantLayout {
     }
 
     renderLayout() {
-        return html`
+        return `
             <div class="card">
                 <div class="seg seg-header">
                     <slot name="icons"></slot>

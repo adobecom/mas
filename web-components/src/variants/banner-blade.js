@@ -1,12 +1,13 @@
-import { html, nothing } from 'lit';
 import { VariantLayout } from './variant-layout.js';
 import { CSS } from './headless.css.js';
 import { HEADLESS_FAMILY_STYLE } from './headless.js';
+import { escapeHTML } from '../utils.js';
 import {
     makeRefreshBackgroundsDetail,
     makeToggleBackgroundsDetail,
     renderBackgroundsDetailRow,
     renderBackgroundsToggleButton,
+    bindBackgroundsPreview,
 } from './backgrounds-preview.js';
 
 /**
@@ -49,33 +50,31 @@ export class BannerBlade extends VariantLayout {
     refreshBackgroundsDetail = makeRefreshBackgroundsDetail(() => this.card);
 
     renderLayout() {
-        return html`
+        const rows = BANNER_BLADE_FIELDS.map(({ slot, label }) => {
+            const isBackgrounds = slot === 'backgrounds';
+            return `
+                <div class="headless-row">
+                    <span class="headless-label">${escapeHTML(label)}</span>
+                    <span class="headless-value" data-slot="${escapeHTML(slot)}">
+                        <slot name="${escapeHTML(slot)}"></slot>
+                        ${isBackgrounds ? ` ${renderBackgroundsToggleButton()}` : ''}
+                    </span>
+                </div>
+                ${isBackgrounds ? renderBackgroundsDetailRow() : ''}
+            `;
+        }).join('');
+        return `
             <div class="headless">
-                ${BANNER_BLADE_FIELDS.map(
-                    ({ slot, label }) => html`
-                        <div class="headless-row">
-                            <span class="headless-label">${label}</span>
-                            <span class="headless-value" data-slot="${slot}">
-                                <slot
-                                    name="${slot}"
-                                    @slotchange=${slot === 'backgrounds'
-                                        ? this.refreshBackgroundsDetail
-                                        : nothing}
-                                ></slot>
-                                ${slot === 'backgrounds'
-                                    ? renderBackgroundsToggleButton(
-                                          this.toggleBackgroundsDetail,
-                                      )
-                                    : nothing}
-                            </span>
-                        </div>
-                        ${slot === 'backgrounds'
-                            ? renderBackgroundsDetailRow()
-                            : nothing}
-                    `,
-                )}
+                ${rows}
             </div>
         `;
+    }
+
+    bindEvents(root) {
+        bindBackgroundsPreview(root, {
+            toggle: this.toggleBackgroundsDetail,
+            refresh: this.refreshBackgroundsDetail,
+        });
     }
 
     static variantStyle = HEADLESS_FAMILY_STYLE;

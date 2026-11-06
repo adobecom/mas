@@ -2048,6 +2048,160 @@ describe('MasFragmentEditor', () => {
             const preview = el.previewColumn;
             expect(preview).to.not.equal(nothing);
         });
+
+        describe('countdown preview notice', () => {
+            const start = '2026-11-02T04:00:00Z';
+            const end = '2026-11-13T14:00:00Z';
+            let preview;
+            let service;
+
+            beforeEach(() => {
+                preview = new Fragment({
+                    ...el.fragment,
+                    previewLocale: 'en_IN',
+                    fields: [
+                        ...el.fragment.fields,
+                        { name: 'description', values: ['<p><a href="#">countdown-timer</a></p>'] },
+                    ],
+                });
+                el.inEdit.value.previewStore = { value: preview, resolved: true, resolveFragment: sandbox.stub() };
+                el.previewResolved = true;
+                service = { settings: { instant: '2026-11-05T12:00:00Z' } };
+                sandbox.stub(document, 'querySelector').callThrough().withArgs('mas-commerce-service').returns(service);
+            });
+
+            const renderNotice = () => {
+                const container = document.createElement('div');
+                render(el.countdownPreviewNotice, container);
+                return container;
+            };
+
+            for (const dates of [{}, { cdtStart: start }, { cdtEnd: end }]) {
+                it(`explains missing countdown dates with ${Object.keys(dates).join(', ') || 'neither date'} resolved`, () => {
+                    Object.assign(preview, dates, { countdownStatus: 'missing-dates' });
+                    const container = document.createElement('div');
+                    render(el.previewColumn, container);
+
+                    const notice = container.querySelector('#countdown-preview-notice');
+                    expect(notice).to.exist;
+                    expect(notice.getAttribute('role')).to.equal('status');
+                    expect(notice.textContent.trim()).to.match(/^Countdown timer:/);
+                    expect(notice.textContent).to.include('selected promotion is missing');
+                    expect(notice.textContent).to.include('Countdown Timer Start and Countdown Timer End (local time)');
+                });
+            }
+
+            for (const [state, text] of [
+                ['no-project', 'No promotion project is linked'],
+                ['no-match', 'No matching promotion applies'],
+                ['lookup-failed', "Couldn't load countdown settings"],
+            ]) {
+                it(`explains ${state} without claiming countdown dates are missing`, () => {
+                    preview.countdownStatus = state;
+                    const textContent = renderNotice().textContent;
+                    expect(textContent.trim()).to.match(/^Countdown timer:/);
+                    expect(textContent).to.include(text);
+                    expect(textContent).to.not.include('selected promotion is missing');
+                });
+            }
+
+            it('explains clone membership without assuming every unlinked card is a clone', () => {
+                preview.countdownStatus = 'no-project';
+                expect(renderNotice().textContent).to.include('For cloned cards, copying an offer or promo code does not copy');
+            });
+
+            it('shows the effective preview locale and UTC time for an unmatched promotion', () => {
+                preview.countdownStatus = 'no-match';
+                const text = renderNotice().textContent;
+                expect(text).to.include('en_IN');
+                expect(text).to.include('5 Nov 2026, 12:00 UTC');
+            });
+
+            for (const [instant, expected] of [
+                ['2026-11-01T12:00:00Z', 'Countdown starts on 2 Nov 2026, 04:00 local time'],
+                ['2026-11-14T12:00:00Z', 'Countdown ended on 13 Nov 2026, 14:00 local time'],
+            ]) {
+                it(`uses the preview's effective time ${instant}`, () => {
+                    Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });
+                    service.settings.instant = instant;
+                    expect(renderNotice().textContent).to.include(expected);
+                });
+            }
+
+            it('clears the notice when both dates resolve and the countdown is active', () => {
+                preview.countdownStatus = 'missing-dates';
+                expect(el.countdownPreviewNotice).to.not.equal(nothing);
+                Object.assign(preview, { cdtStart: start, cdtEnd: end, countdownStatus: 'ready' });
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('stays silent while the countdown lookup has not run for a freshly typed sentinel', () => {
+                delete preview.countdownStatus;
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('explains an invalid countdown range', () => {
+                Object.assign(preview, { cdtStart: end, cdtEnd: start, countdownStatus: 'ready' });
+                expect(renderNotice().textContent).to.include('Countdown end must be later than countdown start.');
+            });
+
+            it('refreshes live notices at start and expiry and clears its timer on disconnect', () => {
+                const now = Date.parse('2026-11-05T12:00:00Z');
+                const clock = sandbox.useFakeTimers({ now, toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+                service.settings.instant = undefined;
+                Object.assign(preview, {
+                    cdtStart: new Date(now + 1000).toISOString(),
+                    cdtEnd: new Date(now + 2000).toISOString(),
+                    countdownStatus: 'ready',
+                });
+                sandbox.stub(el, 'isConnected').get(() => true);
+                sandbox.stub(el, 'fragment').get(() => null);
+                const requestUpdate = sandbox.stub(el, 'requestUpdate');
+
+                el.updated(new Map());
+                expect(renderNotice().textContent).to.include('Countdown starts');
+                clock.tick(1001);
+                expect(requestUpdate.calledOnce).to.be.true;
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+
+                el.updated(new Map());
+                clock.tick(1000);
+                expect(requestUpdate.calledTwice).to.be.true;
+                expect(renderNotice().textContent).to.include('Countdown ended');
+
+                preview.cdtEnd = new Date(now + 10000).toISOString();
+                el.updated(new Map());
+                expect(clock.countTimers()).to.equal(1);
+                el.disconnectedCallback();
+                expect(clock.countTimers()).to.equal(0);
+            });
+
+            it('does not run a live clock for a fixed preview instant', () => {
+                const clock = sandbox.useFakeTimers({ now: Date.parse(start), toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+                Object.assign(preview, { cdtStart: start, cdtEnd: end });
+                sandbox.stub(el, 'isConnected').get(() => true);
+                sandbox.stub(el, 'fragment').get(() => null);
+                el.updated(new Map());
+                expect(clock.countTimers()).to.equal(0);
+            });
+
+            it('retries failed lookups through the existing preview resolver', () => {
+                preview.countdownStatus = 'lookup-failed';
+                const button = renderNotice().querySelector('sp-button');
+                button.click();
+                expect(el.fragmentStore.previewStore.resolveFragment.calledOnceWithExactly(true)).to.be.true;
+            });
+
+            it('does not show a notice without a countdown link', () => {
+                preview.updateField('description', ['<p>Offer details</p>']);
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+
+            it('waits for preview resolution before showing a notice', () => {
+                el.previewResolved = false;
+                expect(el.countdownPreviewNotice).to.equal(nothing);
+            });
+        });
     });
 
     describe('missing variation state', () => {
@@ -2603,8 +2757,24 @@ describe('MasFragmentEditor', () => {
         });
     });
 
-    describe('previewColumn for collection grouped variations', () => {
-        it('returns nothing for collection fragment that is not a grouped variation', () => {
+    describe('previewColumn for collections', () => {
+        let ioMeta;
+
+        beforeEach(() => {
+            ioMeta = document.createElement('meta');
+            ioMeta.name = 'io-base-url';
+            ioMeta.content = 'https://io.example';
+            document.head.append(ioMeta);
+            sessionStorage.setItem('masAccessToken', 'ims-token');
+        });
+
+        afterEach(() => {
+            ioMeta.remove();
+            sessionStorage.removeItem('masAccessToken');
+        });
+
+        it('leaves a plain collection without a preview column when usage cannot be fetched', () => {
+            ioMeta.remove();
             const el = document.createElement('mas-fragment-editor');
             const fragment = new Fragment({
                 id: 'coll-id',
@@ -2618,7 +2788,43 @@ describe('MasFragmentEditor', () => {
             expect(el.previewColumn).to.equal(nothing);
         });
 
-        it('returns preview column with related variations for grouped collection variation', () => {
+        it('mounts related pages and artifacts for a plain collection, without related variations', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'coll-id',
+                path: '/content/dam/mas/sandbox/en_US/pac/parent-collection',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('#preview-column')).to.exist;
+            expect(container.querySelector('mas-related-pages')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+            expect(container.querySelector('mas-related-variations')).to.not.exist;
+        });
+
+        it('mounts related pages and artifacts for a compare chart', () => {
+            const el = document.createElement('mas-fragment-editor');
+            const fragment = new Fragment({
+                id: 'compare-chart',
+                path: '/content/dam/mas/sandbox/en_US/compare-chart',
+                model: { path: COLLECTION_MODEL_PATH },
+                fields: [{ name: COMPARE_CHART_FIELD, values: ['<mas-compare-chart></mas-compare-chart>'] }],
+                tags: [],
+            });
+            el.inEdit.value = { get: () => fragment };
+            sandbox.stub(el.editorContextStore, 'isVariation').returns(false);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('mas-related-pages')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+        });
+
+        it('mounts related variations, artifacts and pages for a grouped collection variation', () => {
             const el = document.createElement('mas-fragment-editor');
             const fragment = new Fragment({
                 id: 'grouped-var',
@@ -2646,10 +2852,12 @@ describe('MasFragmentEditor', () => {
                 ],
             };
             sandbox.stub(el.editorContextStore, 'isVariation').returns(true);
-            const col = el.previewColumn;
-            expect(col).to.not.equal(nothing);
-            expect(col.strings.join('')).to.include('preview-column');
-            expect(col.values[0]).to.not.equal(nothing);
+            const container = document.createElement('div');
+            render(el.previewColumn, container);
+            expect(container.querySelector('#preview-column')).to.exist;
+            expect(container.querySelector('mas-related-variations')).to.exist;
+            expect(container.querySelector('mas-related-artifacts')).to.exist;
+            expect(container.querySelector('mas-related-pages')).to.exist;
         });
     });
 
@@ -2665,7 +2873,7 @@ describe('MasFragmentEditor', () => {
             return container.querySelector('#editor-content').className;
         };
 
-        it('renders a plain collection full width', () => {
+        it('renders a collection without a preview column full width', () => {
             const className = renderEditorContentClass({
                 id: 'plain-coll',
                 path: '/content/dam/mas/sandbox/en_US/plain-coll',
@@ -2891,6 +3099,13 @@ describe('MasFragmentEditor', () => {
 
         it('does not render related artifacts for other models', () => {
             expect(renderSection(withModel('/conf/mas/settings/dam/cfm/models/dictionnary'))).to.equal(null);
+        });
+
+        it('renders related pages for the open fragment', () => {
+            const editor = withModel(CARD_MODEL_PATH);
+            const host = document.createElement('div');
+            render(editor.relatedPagesSection, host);
+            expect(host.querySelector('mas-related-pages').fragment.id).to.equal('f1');
         });
 
         describe('after a save', () => {

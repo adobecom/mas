@@ -17,18 +17,16 @@ import {
     getService,
     getSlotText,
     debounce,
+    normalizeVariant,
     setForegroundTimeout,
     clearForegroundTimeout,
 } from './utils.js';
-import { getFragmentMapping } from './variants/variants.js';
 import {
     matchesTagGroups,
     groupTagFilters,
     cardFilterTags,
     isExcluded,
 } from './tag-groups.js';
-import { normalizeVariant } from './hydrate.js';
-import './mas-commerce-service';
 
 const MERCH_CARD_COLLECTION = 'merch-card-collection';
 const MERCH_CARD_COLLECTION_LOAD_TIMEOUT = 30000;
@@ -55,6 +53,19 @@ const VARIANT_CLASSES = {
 const SIDENAV_AUTOCLOSE = {
     plans: true,
 };
+
+// Properties card filtering, sorting and paging depend on. Other changes, such
+// as the resultCount and hasMore written by the previous pass, keep cards as is.
+const CARD_ARRANGEMENT_PROPERTIES = [
+    'excludeTags',
+    'filter',
+    'limit',
+    'page',
+    'search',
+    'singleApp',
+    'sort',
+    'types',
+];
 
 const categoryFilter = (elements, { filter }) =>
     elements.filter(
@@ -148,10 +159,18 @@ export class MerchCardCollection extends LitElement {
     };
 
     #overrideMap = {};
-    #service;
-    #log;
+    #logger;
 
-    #merchCardElement;
+    // Resolved lazily: the host page loads mas.js/commerce.js separately, so
+    // the service may not be registered or activated when this element connects.
+    get #log() {
+        this.#logger ??= getService()?.Log?.module(MERCH_CARD_COLLECTION);
+        return this.#logger;
+    }
+
+    get #merchCardElement() {
+        return customElements.get('merch-card');
+    }
 
     constructor() {
         super();
@@ -175,6 +194,14 @@ export class MerchCardCollection extends LitElement {
 
     resizeHandler() {
         this.firstChild?.variantLayout?.resizeHandler?.();
+    }
+
+    // A bare requestUpdate() (tag group deeplink, literals, sidenav) asks for a
+    // re-arrangement, even when batched with a resultCount or hasMore write.
+    // Lit calls this from its constructor, before private fields exist.
+    requestUpdate(name, ...rest) {
+        if (name === undefined) this.arrangeRequested = true;
+        super.requestUpdate(name, ...rest);
     }
 
     render() {
@@ -201,10 +228,17 @@ export class MerchCardCollection extends LitElement {
     }
 
     updated(changedProperties) {
+        const arrangeRequested = this.arrangeRequested;
+        this.arrangeRequested = false;
         // cards are not added yet.
         if (!this.querySelector('merch-card')) return;
-        const lastScrollTop =
-            window.scrollY || document.documentElement.scrollTop;
+
+        const arrangeCards =
+            arrangeRequested ||
+            CARD_ARRANGEMENT_PROPERTIES.some((property) =>
+                changedProperties.has(property),
+            );
+        if (!arrangeCards && !changedProperties.has('sidenav')) return;
 
         const children = [...this.children].filter(
             (child) => child.tagName === 'MERCH-CARD' && !child.failed,
@@ -212,6 +246,23 @@ export class MerchCardCollection extends LitElement {
 
         if (children.length === 0) return;
 
+        if (arrangeCards) this.#arrangeCards(children, changedProperties);
+
+        this.updateComplete.then(() => {
+            this.dispatchLiteralsChanged();
+            if (this.sidenav && !this.literalsHandlerAttached) {
+                this.sidenav.addEventListener(
+                    EVENT_MERCH_SIDENAV_SELECT,
+                    () => {
+                        this.dispatchLiteralsChanged();
+                    },
+                );
+                this.literalsHandlerAttached = true;
+            }
+        });
+    }
+
+    #arrangeCards(children, changedProperties) {
         if (changedProperties.has('singleApp') && this.singleApp) {
             children.forEach((card) => {
                 card.updateFilters(card.name === this.singleApp);
@@ -240,9 +291,35 @@ export class MerchCardCollection extends LitElement {
             this.hasMore = result.length > pageSize;
             result = result.filter(([, index]) => index < pageSize);
         }
+        const displayed = result.map(([card]) => card);
         const reduced = new Map(result.reverse());
-        for (const card of reduced.keys()) {
-            this.prepend(card);
+
+        // Reading the scroll position flushes style, so only do it when cards
+        // actually move or toggle. This pass is a no-op for cards already
+        // arranged, e.g. the update caused by writing resultCount and hasMore.
+        const reordered = displayed.some(
+            (card, index) => this.children[index] !== card,
+        );
+        const visibilityChanged = children.some((child) =>
+            reduced.has(child)
+                ? child.style.display !== ''
+                : child.style.display !== 'none' || child.size !== undefined,
+        );
+        if (!reordered && !visibilityChanged) {
+            // size is reactive, so cards re-render themselves when it changes.
+            for (const child of reduced.keys()) {
+                child.size = child.filters[this.filter]?.size;
+            }
+            return;
+        }
+
+        const lastScrollTop =
+            window.scrollY || document.documentElement.scrollTop;
+
+        if (reordered) {
+            for (const card of reduced.keys()) {
+                this.prepend(card);
+            }
         }
 
         children.forEach((child) => {
@@ -256,19 +333,6 @@ export class MerchCardCollection extends LitElement {
             }
         });
         window.scrollTo(0, lastScrollTop);
-
-        this.updateComplete.then(() => {
-            this.dispatchLiteralsChanged();
-            if (this.sidenav && !this.literalsHandlerAttached) {
-                this.sidenav.addEventListener(
-                    EVENT_MERCH_SIDENAV_SELECT,
-                    () => {
-                        this.dispatchLiteralsChanged();
-                    },
-                );
-                this.literalsHandlerAttached = true;
-            }
-        });
     }
 
     dispatchLiteralsChanged() {
@@ -295,11 +359,6 @@ export class MerchCardCollection extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-        this.#service = getService();
-        if (this.#service) {
-            this.#log = this.#service.Log.module(MERCH_CARD_COLLECTION);
-        }
-        this.#merchCardElement = customElements.get('merch-card');
         this.buildOverrideMap();
         this.init();
         window.addEventListener('resize', this.resizeHandlerDebounced);
@@ -578,9 +637,10 @@ export class MerchCardCollection extends LitElement {
                 }
 
                 // Check if this variant supports default child through mapping
-                const variantMapping = getFragmentMapping(
-                    fragment.fields.variant,
-                );
+                const variantMapping =
+                    this.#merchCardElement?.getFragmentMapping(
+                        fragment.fields.variant,
+                    );
                 if (variantMapping?.supportsDefaultChild) {
                     const isDefault = rootDefaultChild
                         ? fragmentId === rootDefaultChild

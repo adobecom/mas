@@ -2,12 +2,18 @@ import { html, nothing } from 'lit';
 import { getFragmentMapping } from './variants';
 import { MERCH_CARD_LOAD_TIMEOUT } from '../constants.js';
 
+const BORDER_BOX = { box: 'border-box' };
+
 export class VariantLayout {
     static styleMap = {};
 
     card;
 
     #container;
+
+    #reflowObserver = null;
+
+    #observedBoxes = new WeakMap();
 
     getContainer() {
         this.#container =
@@ -199,6 +205,60 @@ export class VariantLayout {
             await Promise.race([settle, timeout]);
             clearTimeout(timeoutId);
         }
+    }
+
+    // Variants that re-sync heights on reflow call resyncOnReflow from here.
+    // The check runs inside a ResizeObserver callback, after the frame's own
+    // style and layout, so its geometry reads never force a recalc. Reading
+    // right after a price write (mas:resolved) flushed style for the whole
+    // document once per card.
+    observeReflow(...elements) {
+        if (typeof ResizeObserver === 'undefined') return;
+        this.#observedBoxes = new WeakMap();
+        this.#reflowObserver = new ResizeObserver((entries) => {
+            // merch-card builds a layout before first render and another after;
+            // only the one it keeps measures.
+            if (this.card.variantLayout !== this) return;
+            for (const { target, borderBoxSize } of entries) {
+                const [{ inlineSize, blockSize }] = borderBoxSize;
+                this.#observedBoxes.set(target, {
+                    width: inlineSize,
+                    height: blockSize,
+                });
+            }
+            this.resyncOnReflow();
+        });
+        elements
+            .filter(Boolean)
+            .forEach((element) =>
+                this.#reflowObserver.observe(element, BORDER_BOX),
+            );
+    }
+
+    // A resolved price may not resize either observed box. Observing the card
+    // again makes the observer report it after the next layout, so any number
+    // of prices resolving within a frame cost one check per card.
+    requestReflowCheck() {
+        if (!this.#reflowObserver || this.card.variantLayout !== this) return;
+        this.#reflowObserver.unobserve(this.card);
+        this.#reflowObserver.observe(this.card, BORDER_BOX);
+    }
+
+    disconnectReflow() {
+        this.#reflowObserver?.disconnect();
+        this.#reflowObserver = null;
+    }
+
+    // The observer's last reported size; an element it never reported is
+    // measured.
+    boxOf(element) {
+        return (
+            this.#observedBoxes.get(element) ?? element.getBoundingClientRect()
+        );
+    }
+
+    heightOf(element) {
+        return element ? Math.round(this.boxOf(element).height) : 0;
     }
 
     connectedCallbackHook() {

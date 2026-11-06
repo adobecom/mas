@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { CARD_MODEL_ID } from '../../src/fragment/utils/common.js';
+import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
@@ -26,7 +26,6 @@ let fetchStub;
 describe('pipeline end to end', () => {
     beforeEach(() => {
         fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
-            // eslint-disable-next-line no-console
             console.warn('[test] unmatched fetch stub:', url);
             return createResponse(404, { detail: 'Not Found' }, 'Not Found');
         });
@@ -254,6 +253,64 @@ describe('pipeline end to end', () => {
         expect(result.body.path).to.equal('/content/dam/mas/sandbox/fr_FR/ccd-slice-wide-cc-all-app');
         expect(result.body.maskId).to.equal('mask-holiday-id');
         expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-m_black-friday');
+    });
+
+    it('masks every card of a collection and keys the cache on the mask', async () => {
+        const collectionId = 'mask-coll-fr-fr';
+        const cardIds = ['mask-card-a-fr-fr', 'mask-card-b-fr-fr'];
+        const cardModel = { id: CARD_MODEL_ID };
+        const buildCard = (id) => ({
+            type: 'content-fragment',
+            value: {
+                id,
+                path: `/content/dam/mas/sandbox/fr_FR/${id}`,
+                model: cardModel,
+                fields: { variant: 'plans', badge: 'ORIGINAL', variations: [] },
+            },
+        });
+        const collection = {
+            id: collectionId,
+            path: '/content/dam/mas/sandbox/fr_FR/mask-coll',
+            model: { id: COLLECTION_MODEL_ID },
+            fields: { cards: cardIds, collections: [], variations: [] },
+            references: Object.fromEntries(cardIds.map((id) => [id, buildCard(id)])),
+            referencesTree: cardIds.map((id) => ({ fieldName: 'cards', identifier: id, referencesTree: [] })),
+        };
+        setupFragmentMocks(fetchStub, { id: 'some-en-us-fragment', path: 'someFragment' });
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-coll-en-us?references=all-hydrated').returns(
+            createResponse(200, {
+                ...collection,
+                id: 'mask-coll-en-us',
+                path: '/content/dam/mas/sandbox/en_US/mask-coll',
+                references: {},
+                referencesTree: [],
+            }),
+        );
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/byPath?path=/content/dam/mas/sandbox/fr_FR/mask-coll')
+            .returns(createResponse(200, { id: collectionId }));
+        fetchStub
+            .withArgs(`https://odin.adobe.com/adobe/contentFragments/${collectionId}?references=all-hydrated`)
+            .returns(createResponse(200, collection));
+        stubMask(fetchStub);
+        fetchStub.withArgs('https://odin.adobe.com/adobe/contentFragments/mask-holiday-id').returns(
+            createResponse(200, {
+                id: 'mask-holiday-id',
+                path: '/content/dam/mas/sandbox/fr_FR/masks/holiday',
+                model: cardModel,
+                fields: { badge: 'MASKED' },
+                references: {},
+            }),
+        );
+        const state = new MockState();
+        const result = await getFragment({ id: 'mask-coll-en-us', state, locale: 'fr_FR', mask: 'holiday' });
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.maskId).to.be.undefined;
+        for (const id of cardIds) {
+            expect(result.body.references[id].value.maskId).to.equal('mask-holiday-id');
+            expect(result.body.references[id].value.fields.badge).to.equal('MASKED');
+        }
+        expect(state.store).to.have.property('req-mask-coll-en-us-fr_FR-m_holiday');
     });
 
     it('should replace fragment placeholders with values from mask variables', async () => {
@@ -767,6 +824,8 @@ describe('pipeline end to end', () => {
     describe('countdown timer from a promo variation', () => {
         const CDT_START = '2001-12-12T12:12:00Z';
         const CDT_END = '2027-12-12T12:12:00Z';
+        const CDT_START_LOCAL = '2001-12-12T12:12:00';
+        const CDT_END_LOCAL = '2027-12-12T12:12:00';
         const CARD_OSI = 'PpnQ-UmW9NBwZwXlFw79zw2JybhvwIUwMTDYiIlu5qI';
         const VARIATION_DESCRIPTION =
             '<p>Buy creative for only <span is="inline-price" data-quantity="true" data-template="price" ' +
@@ -849,8 +908,8 @@ describe('pipeline end to end', () => {
             expect(result.body.variationId).to.equal('promo-var-cdt');
             expect(result.body.promoProject).to.equal('NalaEvergreen');
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         // The `countdown-timer` link is supplied by a dictionary placeholder, so it only exists once
@@ -884,8 +943,8 @@ describe('pipeline end to end', () => {
 
             expect(result.statusCode).to.equal(200);
             expect(result.body.fields.description.value).to.include('countdown-timer');
-            expect(result.body.cdtStart).to.equal(CDT_START);
-            expect(result.body.cdtEnd).to.equal(CDT_END);
+            expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+            expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
         });
 
         it('exposes nothing when the promo project only defines one of the two dates', async () => {

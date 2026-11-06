@@ -39,6 +39,51 @@ function installLocalStorageShim() {
 const published = { debugLogs: true, requestId: 'swr-ut' };
 
 describe('swr-cache', () => {
+    describe('blocking expiry', () => {
+        let clock;
+        let cache;
+
+        beforeEach(() => {
+            clock = sinon.stub(Date, 'now').returns(1000);
+            cache = createSwrCache({
+                name: 'mask-misses',
+                ttl: 100,
+                jitter: 0,
+                staleWhileRevalidate: false,
+                shouldCache: (result) => result.status === 404,
+            });
+        });
+
+        afterEach(() => sinon.restore());
+
+        it('returns a recovered result instead of an expired cached 404', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            const recovered = () => cache.get(published, 'photo', async () => ({ status: 200, id: 'photo-id' }));
+            expect(await recovered()).to.deep.equal({ status: 200, id: 'photo-id' });
+            expect(await recovered()).to.deep.equal({ status: 200, id: 'photo-id' });
+        });
+
+        it('shares an awaited refill after a negative entry expires', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            const refill = deferred({ status: 200 });
+            const loader = sinon.spy(refill.loader);
+            const first = cache.get(published, 'photo', loader);
+            const second = cache.get(published, 'photo', loader);
+            refill.settle();
+            expect(await Promise.all([first, second])).to.deep.equal([{ status: 200 }, { status: 200 }]);
+            expect(loader.callCount).to.equal(1);
+        });
+
+        it('does not replace a transient failure with an expired cached 404', async () => {
+            await cache.get(published, 'photo', async () => ({ status: 404 }));
+            clock.returns(1101);
+            expect(await cache.get(published, 'photo', async () => null)).to.equal(null);
+            expect(await cache.get(published, 'photo', async () => ({ status: 200 }))).to.deep.equal({ status: 200 });
+        });
+    });
+
     describe('memory entry limits', () => {
         let clock;
 

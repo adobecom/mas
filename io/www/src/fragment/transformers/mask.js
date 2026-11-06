@@ -2,26 +2,50 @@ import {
     fetch,
     getFragmentId,
     getRequestInfos,
+    mark,
+    measureTiming,
     skimFragmentFromReferences,
     VALID_PARAMETER_VALUE_REGEX,
 } from '../utils/common.js';
 import { odinUrl, odinReferences } from '../utils/paths.js';
 import { logDebug, logError } from '../utils/log.js';
+import { createSwrCache } from '../utils/swr-cache.js';
 
 const MASKS_FOLDER = 'masks';
+const maskIdCache = createSwrCache({
+    name: 'mask-ids',
+    ttl: 5 * 60 * 1000,
+    jitter: 0,
+    staleWhileRevalidate: false,
+    shouldCache: ({ status }) => status === 404,
+});
+
+export function clearMaskCache(preview = false) {
+    maskIdCache.clear(preview);
+}
 
 /**
  * Fetches the mask card fragment by path convention (`masks/<name>`) for a given surface/locale.
- * Returns the skimmed fragment (references stripped) or null when not found.
+ * Returns the skimmed fragment or the failure logging policy.
  */
 async function fetchMaskAtLocale(context, surface, locale, mask) {
     const { preview } = context;
     const url = odinUrl(surface, { locale, fragmentPath: `${MASKS_FOLDER}/${mask}`, preview });
-    const { id, status } = await getFragmentId(context, url, `mask-id-${locale}`);
-    if (status !== 200) return null;
+    const marker = `mask-id-${locale}`;
+    const cacheMarker = `mask-id-cache-${locale}`;
+    let refilled = false;
+    mark(context, cacheMarker);
+    const { id, status } = await maskIdCache.get(context, url, () => {
+        refilled = true;
+        return getFragmentId(context, url, marker);
+    });
+    measureTiming(context, cacheMarker);
+    if (status !== 200) return { shouldLog: refilled || status !== 404 };
+    context.fragmentsIds = context.fragmentsIds || {};
+    context.fragmentsIds[marker] = id;
     const response = await fetch(odinReferences(id, preview), context, `mask-${locale}`);
-    if (response.status !== 200) return null;
-    return skimFragmentFromReferences(response.body);
+    if (response.status !== 200) return { shouldLog: true };
+    return { fragment: skimFragmentFromReferences(response.body) };
 }
 
 /**
@@ -31,9 +55,14 @@ async function fetchMaskAtLocale(context, surface, locale, mask) {
 async function fetchMask(context) {
     const { defaultLocale, mask, regionLocale, surface } = context;
     const locales = regionLocale === defaultLocale ? [regionLocale] : [regionLocale, defaultLocale];
+    let shouldLog = false;
     for (const locale of locales) {
-        const maskFragment = await fetchMaskAtLocale(context, surface, locale, mask);
-        if (maskFragment) return maskFragment;
+        const result = await fetchMaskAtLocale(context, surface, locale, mask);
+        if (result.fragment) return result.fragment;
+        shouldLog ||= result.shouldLog;
+    }
+    if (shouldLog) {
+        logError(`Unable to load mask '${mask}' for ${surface} in locales ${locales.join(', ')}`, context);
     }
     return null;
 }

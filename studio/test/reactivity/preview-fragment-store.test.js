@@ -235,6 +235,28 @@ describe('PreviewFragmentStore', () => {
         store.dispose();
     });
 
+    it('drops a resolve result when the value changes mid-resolve and applies the follow-up resolve', async () => {
+        const clock = sandbox.useFakeTimers();
+        const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
+        let settleStale;
+        const getResolved = sandbox.stub(store, 'getResolvedFragment');
+        getResolved.onFirstCall().returns(new Promise((resolve) => (settleStale = resolve)));
+        getResolved.onSecondCall().resolves(createFragment({ fields: [{ name: 'title', values: ['Fresh'] }] }));
+
+        store.resolveFragment(true);
+        store.refreshFrom(createFragment({ fields: [{ name: 'title', values: ['Clean'] }] }));
+        settleStale(createFragment({ fields: [{ name: 'title', values: ['Baseline'] }] }));
+        await clock.tickAsync(0);
+
+        expect(store.value.getFieldValue('title')).to.equal('Clean');
+
+        await clock.tickAsync(200);
+
+        expect(getResolved.callCount).to.equal(2);
+        expect(store.value.getFieldValue('title')).to.equal('Fresh');
+        store.dispose();
+    });
+
     it('previewLocale getter prefers the override over the global locale', () => {
         const store = new PreviewFragmentStore(createFragment(), null, { lazy: true });
         expect(store.previewLocale).to.equal('en_US');
@@ -550,6 +572,108 @@ describe('PreviewFragmentStore', () => {
             expect(source.previewLocale).to.be.undefined;
             expect(structuredClone(store.value).previewLocale).to.equal('ko_KR');
             store.dispose();
+        });
+    });
+
+    describe('baseline parent', () => {
+        const fieldValues = (fragment, name) => fragment.fields.find((field) => field.name === name)?.values;
+        const createCard = () =>
+            createFragment({
+                fields: [
+                    { name: 'variant', values: ['catalog'] },
+                    { name: 'cardTitle', values: ['Own title'] },
+                    { name: 'subtitle', values: [''] },
+                    { name: 'badge', values: [EXPLICIT_EMPTY_SENTINEL] },
+                ],
+            });
+        const baselineParent = new Fragment({
+            fields: [
+                { name: 'cardTitle', values: ['Baseline title'] },
+                { name: 'subtitle', values: ['Baseline subtitle'] },
+                { name: 'badge', values: ['Baseline badge'] },
+                { name: 'promoText', values: ['Baseline promo'] },
+            ],
+        });
+
+        beforeEach(() => {
+            sandbox.stub(window, 'fetch').callsFake(async () => new Response('{}', { status: 404 }));
+        });
+
+        it('fills the empty card fields of the preview with the baseline values', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+            store.baselineParent = baselineParent;
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'cardTitle')).to.deep.equal(['Own title']);
+            expect(fieldValues(result, 'subtitle')).to.deep.equal(['Baseline subtitle']);
+            expect(fieldValues(result, 'promoText')).to.deep.equal(['Baseline promo']);
+            expect(store.value.getFieldValue('subtitle')).to.equal('');
+            store.dispose();
+        });
+
+        it('keeps a field cleared with the explicit empty sentinel empty', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+            store.baselineParent = baselineParent;
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'badge')).to.deep.equal(['']);
+            store.dispose();
+        });
+
+        it('leaves the preview fields alone without a baseline parent', async () => {
+            const store = new PreviewFragmentStore(createCard(), null, { lazy: true });
+
+            const result = await store.getResolvedFragment();
+
+            expect(fieldValues(result, 'subtitle')).to.deep.equal(['']);
+            expect(fieldValues(result, 'promoText')).to.be.undefined;
+            store.dispose();
+        });
+
+        describe('compare-chart-column features', () => {
+            const featuresParent = new Fragment({
+                fields: [{ name: 'features', multiple: true, values: ['template', 'segment'] }],
+            });
+            const createColumn = (variant, features) =>
+                createFragment({
+                    fields: [
+                        { name: 'variant', values: [variant] },
+                        { name: 'features', multiple: true, values: features },
+                    ],
+                });
+
+            it('appends the card features to the baseline features, like delivery', async () => {
+                const store = new PreviewFragmentStore(createColumn('compare-chart-column', ['own']), null, { lazy: true });
+                store.baselineParent = featuresParent;
+
+                const result = await store.getResolvedFragment();
+
+                expect(fieldValues(result, 'features')).to.deep.equal(['template', 'segment', 'own']);
+                expect(store.value.getFieldValues('features')).to.deep.equal(['own']);
+                store.dispose();
+            });
+
+            it('inherits the baseline features when the card has none', async () => {
+                const store = new PreviewFragmentStore(createColumn('compare-chart-column', []), null, { lazy: true });
+                store.baselineParent = featuresParent;
+
+                const result = await store.getResolvedFragment();
+
+                expect(fieldValues(result, 'features')).to.deep.equal(['template', 'segment']);
+                store.dispose();
+            });
+
+            it('keeps only the card features for other templates', async () => {
+                const store = new PreviewFragmentStore(createColumn('catalog', ['own']), null, { lazy: true });
+                store.baselineParent = featuresParent;
+
+                const result = await store.getResolvedFragment();
+
+                expect(fieldValues(result, 'features')).to.deep.equal(['own']);
+                store.dispose();
+            });
         });
     });
 });

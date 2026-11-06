@@ -865,6 +865,75 @@ describe('settings', () => {
             expect(result.body.placeholders.eduDisclaimer).to.be.undefined;
         });
 
+        describe('edu placeholders in collections', () => {
+            const ref = (fields, cardSettings) => ({
+                type: 'content-fragment',
+                value: { fields, ...(cardSettings && { settings: cardSettings }) },
+            });
+            const run = async (body) => {
+                const context = { locale: 'en_US', body, promises: { settings: Promise.resolve({}) } };
+                return (await settings.process(context)).body;
+            };
+
+            it('gives a pro/edu card reference whatsIncludedLabel and eduDisclaimer', async () => {
+                const body = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: {
+                        edu: ref({ variant: 'pro', size: 'edu' }),
+                        wide: ref({ variant: 'pro', size: 'wide' }),
+                        mini: ref({ variant: 'mini' }),
+                    },
+                });
+                const { edu, wide, mini } = body.references;
+                expect(edu.value.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                expect(edu.value.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+                expect(body.placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                expect(body.placeholders.eduDisclaimer).to.equal('{{edu-disclaimer}}');
+                expect(wide.value.placeholders.whatsIncludedLabel).to.be.undefined;
+                expect(wide.value.placeholders.eduDisclaimer).to.be.undefined;
+                expect(wide.value.placeholders.whatsIncludedToggleLabel).to.equal('{{see-whats-included}}');
+                expect(mini.value.placeholders).to.be.undefined;
+            });
+
+            it('adds no edu placeholders to a collection without an edu card', async () => {
+                const body = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: {
+                        pro: ref({ variant: 'pro', size: 'wide' }),
+                        plans: ref({ variant: 'plans' }),
+                    },
+                });
+                for (const target of [body, body.references.pro.value, body.references.plans.value]) {
+                    expect(target.placeholders.whatsIncludedLabel).to.be.undefined;
+                    expect(target.placeholders.eduDisclaimer).to.be.undefined;
+                }
+                expect(body.placeholders.countdownTimerText).to.equal('{{countdown-timer-text}}');
+                expect(body.references.pro.value.placeholders.licenseLabel).to.exist;
+            });
+
+            it('omits eduDisclaimer when hideEduDisclaimer is on for the card or the collection', async () => {
+                const eduFields = { variant: 'pro', size: 'edu' };
+                const onCard = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    references: { edu: ref(eduFields, { hideEduDisclaimer: true }) },
+                });
+                const onCollection = await run({
+                    model: { id: COLLECTION_MODEL_ID },
+                    fields: {},
+                    settings: { hideEduDisclaimer: true },
+                    references: { edu: ref(eduFields) },
+                });
+                for (const body of [onCard, onCollection]) {
+                    const { placeholders } = body.references.edu.value;
+                    expect(placeholders.whatsIncludedLabel).to.equal('{{whats-included}}');
+                    expect(placeholders.eduDisclaimer).to.be.undefined;
+                }
+            });
+        });
+
         it('publishes the whats-included toggle placeholder for pro cards only', async () => {
             const run = async (variant) => {
                 const context = {

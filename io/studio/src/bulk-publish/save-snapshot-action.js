@@ -2,6 +2,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { errorResponse, getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { recordSnapshot } = require('./snapshot.js');
 const { readProjectFragment, updateProjectFragment, getProjectPaths } = require('./project.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-save-snapshot', { level: 'info' });
 
@@ -41,4 +42,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

@@ -379,7 +379,7 @@ describe('product-api', () => {
             fetchStub.callsFake(
                 (url, init) =>
                     new Promise((resolve, reject) => {
-                        init.signal.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+                        init.signal.addEventListener('abort', () => reject(init.signal.reason));
                     }),
             );
         }
@@ -405,7 +405,7 @@ describe('product-api', () => {
             clock.restore();
 
             expect(error).to.be.instanceOf(Error);
-            expect(error.name).to.equal('AbortError');
+            expect(error.name).to.equal('TimeoutError');
 
             fetchStub.resetBehavior();
             fetchStub.resolves({ ok: true, json: () => Promise.resolve({ combinedProducts: { p1: { name: 'A' } } }) });
@@ -425,7 +425,7 @@ describe('product-api', () => {
             const error = await pending;
             clock.restore();
 
-            expect(error.name).to.equal('AbortError');
+            expect(error.name).to.equal('TimeoutError');
         });
 
         ['abc/def', 'abc.def', 'abc;rm', '../etc', 'päx', 'a'.repeat(65), 12345, null, undefined].forEach((code) => {

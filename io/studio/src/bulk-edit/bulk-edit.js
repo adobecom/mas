@@ -29,6 +29,7 @@ const {
     parseCsvUploadBody,
     isCsvUpload,
 } = require('./csv.js');
+const { exposeRequestId } = require('../response-headers.js');
 
 const logger = Core.Logger('bulk-edit', { level: 'info' });
 
@@ -733,7 +734,7 @@ async function main(params) {
 }
 
 module.exports = {
-    main,
+    main: exposeRequestId(main),
     resolveBulkEditMode,
     createModeMain,
     jobModeMismatchError,

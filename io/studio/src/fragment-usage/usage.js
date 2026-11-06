@@ -13,6 +13,7 @@ const { Core } = require('@adobe/aio-sdk');
 const { getBearerToken, isAllowed, parseOwBody } = require('../../utils.js');
 const { FRAGMENT_ID_PATTERN, prunePages, toEpochHour, topPages } = require('./pages');
 const { readUsage } = require('./state');
+const { exposeRequestId } = require('../response-headers.js');
 
 /**
  * @param {object} params action inputs
@@ -43,7 +44,6 @@ async function main(params) {
         // hours until the record expires. Pruning here keeps the list true to its 7-day label.
         const pages = prunePages(record?.pages || {}, toEpochHour(Date.now()));
 
-        // No custom headers: I/O Runtime adds CORS only when the response carries none of its own.
         return {
             statusCode: 200,
             body: {
@@ -59,4 +59,4 @@ async function main(params) {
     }
 }
 
-exports.main = main;
+exports.main = exposeRequestId(main);

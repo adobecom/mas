@@ -211,6 +211,9 @@ export class MasChatMasaAnswer extends MasaSessionElement {
                 ? "MASA couldn't finish this investigation · answered from Studio's built-in knowledge"
                 : "Answered from Studio's built-in knowledge, MASA unavailable";
         return html`<p class="placeholder">${label}</p>
+            ${reason === 'unfinished'
+                ? html`<p class="placeholder guidance">Ask again with the card ID or the page URL.</p>`
+                : nothing}
             ${pending
                 ? this.workingTemplate()
                 : html`${content ? html`<div class="fallback">${unsafeHTML(parseAnswerMarkdown(content))}</div>` : nothing}

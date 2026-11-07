@@ -26,6 +26,7 @@ const NOT_REMEMBERED_CODES = [
     'masa-timeout',
     'masa-unavailable',
     'worker-unavailable',
+    'answer-unavailable',
 ];
 
 const INPUT_CODES = ['invalid-question', 'question-too-large', 'invalid-image'];

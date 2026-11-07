@@ -184,6 +184,18 @@ describe('MASA answer in the thread', () => {
             const el = await mountAnswer(makeController(), { fallback: { content: '' } });
             expect(el.shadowRoot.textContent).to.contain("Answered from Studio's built-in knowledge, MASA unavailable");
         });
+
+        it('asks for the card ID or page URL under the could-not-finish label', async () => {
+            const el = await mountAnswer(makeController(), { fallback: { content: '', reason: 'unfinished' } });
+            expect(el.shadowRoot.querySelector('.guidance').textContent).to.equal(
+                'Ask again with the card ID or the page URL.',
+            );
+        });
+
+        it('gives no guidance line when MASA is unavailable', async () => {
+            const el = await mountAnswer(makeController(), { fallback: { content: '' } });
+            expect(el.shadowRoot.querySelector('.guidance')).to.be.null;
+        });
     });
 
     it('shows neither evidence nor investigation limits for a completed answer', async () => {

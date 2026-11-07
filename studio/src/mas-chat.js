@@ -55,8 +55,10 @@ import { getInvestigationSession } from './mas-chat/investigation-session.js';
  * products are already on screen by then, so the bare dots read as "nothing is
  * happening" rather than "the next step is still coming".
  */
-const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-timeout', 'masa-timeout'];
 const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
+
+/** MASA ran but could not back up an answer: labelled as unfinished, not as unavailable. */
+const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-timeout', 'masa-timeout', 'answer-unavailable'];
 
 /**
  * Intent hints that drive multi-turn guided flows. While one of these is

@@ -216,7 +216,7 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(isMasaAvailable()).to.equal(false);
     });
 
-    for (const code of ['investigation-budget-exhausted', 'investigation-timeout']) {
+    for (const code of ['investigation-budget-exhausted', 'investigation-timeout', 'answer-unavailable']) {
         it(`stores that MASA could not finish after ${code} and keeps it through a reload`, async () => {
             masa.rejects(new MasaClientError(code, 'Ran out'));
             await send(QUESTION);
@@ -239,6 +239,26 @@ describe('MasChat hands questions to MASA in one conversation', () => {
             .to.contain("MASA couldn't finish this investigation · answered from Studio's built-in knowledge")
             .and.to.contain('Ask MASA again')
             .and.not.to.contain('MASA unavailable');
+    });
+
+    it('shows the guidance line after an unanswerable investigation and keeps MASA available', async () => {
+        masa.rejects(new MasaClientError('answer-unavailable', 'No answer'));
+        await send(QUESTION);
+        await thread.firstCall.returnValue;
+        const answer = await lastAnswerElement(el);
+        expect(answer.shadowRoot.querySelector('.guidance').textContent).to.equal(
+            'Ask again with the card ID or the page URL.',
+        );
+        expect(isMasaAvailable()).to.equal(true);
+    });
+
+    it('keeps the unavailable label without guidance when the model is unavailable', async () => {
+        masa.rejects(new MasaClientError('model-unavailable', 'Model down'));
+        await send(QUESTION);
+        await thread.firstCall.returnValue;
+        const answer = await lastAnswerElement(el);
+        expect(answer.shadowRoot.textContent).to.contain(LABEL);
+        expect(answer.shadowRoot.querySelector('.guidance')).to.be.null;
     });
 
     it('keeps the unavailable label when the connection is down', async () => {

@@ -929,6 +929,28 @@
     border-radius: 4px;
 }
 
+/* Drop overlay for dragged images */
+:where(.mas-feature) .chat-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border: 2px dashed var(--spectrum-global-color-blue-500, #2680eb);
+    border-radius: 8px;
+    background: var(--spectrum-global-color-blue-100, rgba(38, 128, 235, 0.08));
+    color: var(--spectrum-global-color-gray-900, #222);
+    font-size: 16px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+:where(.mas-feature) .image-preview sp-progress-circle {
+    flex: none;
+}
+
 /* Selected Offer Badge */
 :where(.mas-feature) .selected-offer-badge {
     display: inline-flex;

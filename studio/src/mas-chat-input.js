@@ -3,6 +3,7 @@ import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
 import { pasteTextFromClipboardHtml } from './utils/chat-paste.js';
+import { MAX_IMAGES } from './mas-chat/investigation-session.js';
 
 /**
  * Chat Input Component
@@ -158,7 +159,27 @@ export class MasChatInput extends LitElement {
         this.selectedOffer = null;
     }
 
+    /** Image files on the clipboard, e.g. a screenshot; empty for text. */
+    clipboardImages(event) {
+        return [...(event.clipboardData?.items ?? [])]
+            .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+            .map((item) => item.getAsFile())
+            .filter(Boolean);
+    }
+
+    /** Spreadsheet cells, documents and "copy image" carry text beside an image; the text wins. */
+    clipboardHasText(event) {
+        return ['text/plain', 'text/html'].some((type) => event.clipboardData?.getData(type));
+    }
+
     handlePaste(event) {
+        const files = this.imagesEnabled && !this.clipboardHasText(event) ? this.clipboardImages(event) : [];
+        if (files.length) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchAttachImages(files);
+            return;
+        }
         // Rich clipboard content from Studio "copy link" carries the URL only
         // in the HTML flavor; the plain flavor is the human label. Substitute
         // anchors with their hrefs so the link survives the paste.
@@ -202,7 +223,7 @@ export class MasChatInput extends LitElement {
 
     handleSend() {
         const rteField = this.querySelector('rte-field');
-        if (!rteField) return;
+        if (!rteField || this.uploading) return;
         const message = this.plainText.trim();
 
         if (!message && !this.selectedOsi) return;
@@ -246,7 +267,15 @@ export class MasChatInput extends LitElement {
         const files = [...event.target.files];
         event.target.value = '';
         if (!files.length) return;
+        this.dispatchAttachImages(files);
+    }
+
+    dispatchAttachImages(files) {
         this.dispatchEvent(new CustomEvent('attach-images', { detail: { files }, bubbles: true, composed: true }));
+    }
+
+    get uploading() {
+        return this.images.some((image) => image.status === 'uploading');
     }
 
     handleRemoveImage(id) {
@@ -283,17 +312,26 @@ export class MasChatInput extends LitElement {
                               ${this.images.map(
                                   (image) => html`
                                       <figure class="image-preview">
+                                          ${image.status === 'uploading'
+                                              ? html`<sp-progress-circle
+                                                    indeterminate
+                                                    size="s"
+                                                    label="Uploading ${image.name}"
+                                                ></sp-progress-circle>`
+                                              : nothing}
                                           ${image.preview ? html`<img src=${image.preview} alt=${image.name} />` : nothing}
                                           <figcaption>${image.name}</figcaption>
-                                          <sp-action-button
-                                              quiet
-                                              size="xs"
-                                              ?disabled=${this.disabled}
-                                              @click=${() => this.handleRemoveImage(image.id)}
-                                              title="Remove image"
-                                          >
-                                              <sp-icon-close slot="icon"></sp-icon-close>
-                                          </sp-action-button>
+                                          ${image.status === 'uploading'
+                                              ? nothing
+                                              : html`<sp-action-button
+                                                    quiet
+                                                    size="xs"
+                                                    ?disabled=${this.disabled}
+                                                    @click=${() => this.handleRemoveImage(image.id)}
+                                                    title="Remove image"
+                                                >
+                                                    <sp-icon-close slot="icon"></sp-icon-close>
+                                                </sp-action-button>`}
                                       </figure>
                                   `,
                               )}
@@ -324,14 +362,14 @@ export class MasChatInput extends LitElement {
                                       multiple
                                       accept="image/png,image/jpeg,image/gif,image/webp"
                                       hidden
-                                      ?disabled=${this.disabled || this.images.length >= 3}
+                                      ?disabled=${this.disabled || this.uploading || this.images.length >= MAX_IMAGES}
                                       @change=${this.handleChooseImages}
                                   />
                                   <sp-action-button
                                       quiet
                                       size="s"
                                       @click=${() => this.querySelector('.file-input').click()}
-                                      ?disabled=${this.disabled || this.images.length >= 3}
+                                      ?disabled=${this.disabled || this.uploading || this.images.length >= MAX_IMAGES}
                                       title="Attach image"
                                   >
                                       <sp-icon-attach slot="icon"></sp-icon-attach>
@@ -355,7 +393,7 @@ export class MasChatInput extends LitElement {
                             variant="accent"
                             size="s"
                             @click=${this.handleSend}
-                            ?disabled=${this.disabled || this.inputLocked}
+                            ?disabled=${this.disabled || this.inputLocked || this.uploading}
                             title="Send message"
                         >
                             <sp-icon-send slot="icon"></sp-icon-send>

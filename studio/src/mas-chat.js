@@ -112,6 +112,7 @@ export class MasChat extends LitElement {
         currentSessionId: { type: String },
         showWelcomeScreen: { type: Boolean },
         loadingLabel: { type: String },
+        dragActive: { type: Boolean },
     };
 
     constructor() {
@@ -124,6 +125,8 @@ export class MasChat extends LitElement {
         this.currentSessionId = null;
         this.showWelcomeScreen = true;
         this.loadingLabel = '';
+        this.dragActive = false;
+        this.dragDepth = 0;
         this.recentReleaseProductsCache = [];
         this.resetReleaseFlow();
     }
@@ -209,6 +212,7 @@ export class MasChat extends LitElement {
         connectedChats.add(this);
         this.abortController = new AbortController();
         this.loadActiveSession();
+        this.watchSession();
         this.addEventListener('prompt-selected', this.handlePromptSelected);
         this.addEventListener('operation-action', this.handleOperationAction);
         this.addEventListener('open-card', this.handleOpenCardFromOperation);
@@ -219,6 +223,11 @@ export class MasChat extends LitElement {
         this.addEventListener('confirmation-action', this.handleConfirmationAction);
         this.addEventListener('chat-feedback', this.handleChatFeedback);
         this.addEventListener('masa-retry', this.handleMasaRetry);
+        this.addEventListener('dragenter', this.handleDragEnter);
+        this.addEventListener('dragover', this.handleDragOver);
+        this.addEventListener('dragleave', this.handleDragLeave);
+        this.addEventListener('drop', this.handleDrop);
+        this.addEventListener('keydown', this.handleDragEscape);
     }
 
     disconnectedCallback() {
@@ -240,6 +249,27 @@ export class MasChat extends LitElement {
         this.removeEventListener('confirmation-action', this.handleConfirmationAction);
         this.removeEventListener('chat-feedback', this.handleChatFeedback);
         this.removeEventListener('masa-retry', this.handleMasaRetry);
+        this.removeEventListener('dragenter', this.handleDragEnter);
+        this.removeEventListener('dragover', this.handleDragOver);
+        this.removeEventListener('dragleave', this.handleDragLeave);
+        this.removeEventListener('drop', this.handleDrop);
+        this.removeEventListener('keydown', this.handleDragEscape);
+        this.unwatchSession?.();
+        this.endDrag();
+    }
+
+    /** Re-render when the conversation's session changes, so uploads that outlive a closed drawer still show. */
+    watchSession() {
+        this.unwatchSession?.();
+        if (!this.currentSessionId) return;
+        const session = getInvestigationSession(this.currentSessionId);
+        const refresh = () => this.requestUpdate();
+        session.addEventListener('change', refresh);
+        this.unwatchSession = () => session.removeEventListener('change', refresh);
+    }
+
+    willUpdate(changed) {
+        if (changed.has('currentSessionId') && this.isConnected) this.watchSession();
     }
 
     loadActiveSession() {
@@ -1318,7 +1348,7 @@ export class MasChat extends LitElement {
             this.replaceMasaMessage(ask, (message) => ({ ...message, failure: error.message || error.code }));
             return;
         }
-        rememberFailure(error);
+        if (rememberFailure(error)) this.clearAllImages();
         const reason = MASA_UNFINISHED_CODES.includes(error.code) ? { reason: 'unfinished' } : {};
         this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true, ...reason } }));
         try {
@@ -1346,18 +1376,28 @@ export class MasChat extends LitElement {
      * debounced save of it so that save cannot overwrite the change.
      */
     replaceMasaMessage(ask, change) {
-        const edit = (messages) => messages.map((message) => (message.id === ask.id ? change(message) : message));
-        const showing = [...connectedChats].filter((chat) => chat.currentSessionId === ask.conversationId);
+        this.editConversation(ask.conversationId, (messages) =>
+            messages.map((message) => (message.id === ask.id ? change(message) : message)),
+        );
+    }
+
+    editConversation(conversationId, edit) {
+        const showing = [...connectedChats].filter((chat) => chat.currentSessionId === conversationId);
         for (const chat of showing) chat.messages = edit(chat.messages);
         if (showing.length) return;
-        sessionManager.flushSession(ask.conversationId);
-        const stored = sessionManager.getSession(ask.conversationId);
-        if (stored) sessionManager.updateSession(ask.conversationId, { messages: edit(stored.messages) });
+        sessionManager.flushSession(conversationId);
+        const stored = sessionManager.getSession(conversationId);
+        if (stored) sessionManager.updateSession(conversationId, { messages: edit(stored.messages) });
     }
 
     /** MASA reads the images with the question it accepted, so the message box lets go of them. */
     clearImages(session) {
         for (const image of [...session.images]) session.removeImage(image.id);
+    }
+
+    /** MASA is unavailable for the page, so no conversation may keep images that would route its next message to MASA. */
+    clearAllImages() {
+        for (const { id } of sessionManager.listSessions()) this.clearImages(getInvestigationSession(id));
     }
 
     /** Images can be attached only where uploads can reach MASA: a media origin is configured and MASA is not known to be down. */
@@ -1366,41 +1406,87 @@ export class MasChat extends LitElement {
     }
 
     get attachedImages() {
-        return getInvestigationSession(this.currentSessionId).images.map(({ id, name, preview }) => ({
+        const ready = getInvestigationSession(this.currentSessionId).images.map(({ id, name, preview }) => ({
             id,
             name,
             preview,
             status: 'ready',
         }));
+        const uploading = getInvestigationSession(this.currentSessionId).uploads.map(({ id, name }) => ({
+            id,
+            name,
+            status: 'uploading',
+        }));
+        return [...ready, ...uploading];
     }
 
     /** Upload the chosen images; an upload that finds MASA unavailable turns the paperclip off and says why. */
     async handleAttachImages(event) {
-        const session = getInvestigationSession(this.currentSessionId);
+        const conversationId = this.currentSessionId;
+        const session = getInvestigationSession(conversationId);
+        let error = null;
         for (const file of event.detail.files) {
-            await session.addImage(file);
-            if (session.error) break;
+            error = (await session.addImage(file)) ?? session.error;
+            if (error) break;
         }
-        const { error } = session;
         if (error) {
-            if (rememberFailure(error)) {
-                this.messages = [
-                    ...this.messages,
-                    {
-                        role: 'assistant',
-                        content: 'Images need MASA, and MASA is unavailable right now, so I cannot attach them.',
-                        timestamp: Date.now(),
-                        fresh: true,
-                    },
-                ];
-            } else {
-                this.messages = [
-                    ...this.messages,
-                    { role: 'error', content: error.message || error.code, timestamp: Date.now(), fresh: true },
-                ];
-            }
+            const unavailable = rememberFailure(error);
+            if (unavailable) this.clearAllImages();
+            this.editConversation(conversationId, (messages) => [
+                ...messages,
+                unavailable
+                    ? {
+                          role: 'assistant',
+                          content: 'Images need MASA, and MASA is unavailable right now, so I cannot attach them.',
+                          timestamp: Date.now(),
+                          fresh: true,
+                      }
+                    : { role: 'error', content: error.message || error.code, timestamp: Date.now(), fresh: true },
+            ]);
         }
         this.requestUpdate();
+    }
+
+    hasFiles(event) {
+        return [...(event.dataTransfer?.types ?? [])].includes('Files');
+    }
+
+    endDrag() {
+        this.dragDepth = 0;
+        this.dragActive = false;
+    }
+
+    handleDragEnter(event) {
+        if (!this.hasFiles(event)) return;
+        event.preventDefault();
+        this.dragDepth++;
+        this.dragActive = this.imagesEnabled && !getInvestigationSession(this.currentSessionId).uploads.length;
+    }
+
+    handleDragOver(event) {
+        if (this.hasFiles(event)) event.preventDefault();
+    }
+
+    handleDragLeave(event) {
+        if (!this.hasFiles(event)) return;
+        this.dragDepth = Math.max(0, this.dragDepth - 1);
+        if (!this.dragDepth) this.dragActive = false;
+    }
+
+    handleDragEscape(event) {
+        if (event.key === 'Escape') this.endDrag();
+    }
+
+    handleDrop(event) {
+        if (!this.hasFiles(event)) return;
+        event.preventDefault();
+        this.endDrag();
+        const files = [...event.dataTransfer.files];
+        if (this.imagesEnabled && files.length) void this.handleAttachImages({ detail: { files } });
+    }
+
+    renderDropOverlay() {
+        return this.dragActive ? html`<div class="chat-drop-overlay">Drop images to ask MASA about them</div>` : nothing;
     }
 
     handleRemoveImage(event) {
@@ -3039,6 +3125,7 @@ export class MasChat extends LitElement {
     renderWelcomeScreen() {
         return html`
             <div class="chat-welcome-container">
+                ${this.renderDropOverlay()}
                 <div class="welcome-header-actions">
                     <mas-chat-session-selector></mas-chat-session-selector>
                 </div>
@@ -3085,6 +3172,7 @@ export class MasChat extends LitElement {
     renderChatView() {
         return html`
             <div class="chat-page-container">
+                ${this.renderDropOverlay()}
                 <div class="chat-header">
                     <div class="chat-header-content">
                         <h2 class="chat-header-title">MASA</h2>

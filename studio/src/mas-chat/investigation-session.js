@@ -1,6 +1,10 @@
 import sessionManager from '../services/chat-session-manager.js';
 import { MasaClient, MasaClientError } from './masa-client.js';
 
+export const MAX_IMAGES = 3;
+export const MAX_IMAGE_BYTES = 5000000;
+export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
 const sessions = new Map();
 const running = (record) => ['queued', 'running'].includes(record.status);
 const retryable = (error) => [0, 429, 502, 503, 504].includes(error.status);
@@ -106,6 +110,8 @@ export class InvestigationSession extends EventTarget {
         this.createKey = state.createKey;
         this.pending = state.pending ? this.submissionFields(state.pending) : null;
         this.images = [];
+        this.uploads = [];
+        this.uploadChain = Promise.resolve();
         this.downloads = new Map();
         this.error = null;
         this.busy = false;
@@ -235,23 +241,42 @@ export class InvestigationSession extends EventTarget {
         this.notify();
     }
 
+    imageRejection(file) {
+        if (this.images.length + this.uploads.length >= MAX_IMAGES) return `You can attach up to ${MAX_IMAGES} images.`;
+        if (!IMAGE_TYPES.includes(file.type) || file.size < 1) return 'Only PNG, JPEG, GIF or WebP images can be attached.';
+        if (file.size > MAX_IMAGE_BYTES) return 'Images must be 5 MB or smaller.';
+        return null;
+    }
+
+    /**
+     * Uploads run one at a time; those waiting or running count toward the image limit and show as uploading.
+     * Resolves with the error for a file refused up front, since a running upload may clear `error` meanwhile.
+     */
     async addImage(file) {
-        await this.perform(async () => {
-            if (
-                this.images.length >= 3 ||
-                file.size < 1 ||
-                file.size > 5000000 ||
-                !['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)
-            ) {
-                throw new MasaClientError(
-                    'invalid-image',
-                    'Choose up to three PNG, JPEG, GIF or WebP images, each no larger than 5 MB.',
-                );
-            }
-            await this.ensureSession();
-            this.uploadIntent = { file, key: crypto.randomUUID() };
-            await this.completeUpload();
-        });
+        const rejection = this.imageRejection(file);
+        if (rejection) {
+            const error = new MasaClientError('invalid-image', rejection);
+            this.fail(error);
+            this.notify();
+            return error;
+        }
+        const entry = { id: crypto.randomUUID(), name: file.name };
+        this.uploads = [...this.uploads, entry];
+        this.notify();
+        const run = this.uploadChain.then(() =>
+            this.perform(async () => {
+                await this.ensureSession();
+                this.uploadIntent = { file, key: crypto.randomUUID() };
+                await this.completeUpload();
+            }),
+        );
+        this.uploadChain = run.catch(() => {});
+        try {
+            await run;
+        } finally {
+            this.uploads = this.uploads.filter((upload) => upload !== entry);
+            this.notify();
+        }
     }
 
     async completeUpload() {
@@ -284,6 +309,7 @@ export class InvestigationSession extends EventTarget {
 
     removeImage(id) {
         const image = this.images.find((item) => item.id === id);
+        if (!image) return;
         URL.revokeObjectURL(image.preview);
         this.images = this.images.filter((item) => item !== image);
         this.notify();

@@ -32,7 +32,7 @@ import { buildPrompt, buildFlowContext } from './prompt-builder.js';
 import { buildEnvelopeTool, buildSearchTool, ROUTING_TOOL_CHOICE, ENVELOPE_TOOL_NAME } from './tool-definitions.js';
 import { buildGuidedTools, GUIDED_TOOL_CHOICE, extractGuidedTool } from './guided-tool-definitions.js';
 import { extractToolEnvelope, buildEnvelopeResponseBody, normalizeEnvelopeText } from './envelope-native.js';
-import { getFlowForIntent } from './intent-registry.js';
+import { getFlowForIntent, getIntent } from './intent-registry.js';
 import { buildFeedbackEntry, appendFeedbackEntry } from './feedback-store.js';
 import { replaceStudioLinksWithFragmentIds } from './studio-links.js';
 import { validateEnvelope, collectObservedIds, collectObservedSelectors } from './envelope-validator.js';
@@ -881,7 +881,22 @@ async function main(params) {
                 });
             }
 
-            const finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
+            let finalEnvelope = normalizeEnvelopeText(validation.ok ? validation.envelope : validation.coerced);
+            if (
+                masa &&
+                isMasaWriteUp(message) &&
+                getIntent(finalEnvelope?.intent)?.category === 'read-only' &&
+                !getFlowForIntent(finalEnvelope.intent)
+            ) {
+                console.log(
+                    JSON.stringify({
+                        phase: 'masa-write-up-guard',
+                        req: requestId,
+                        intent: finalEnvelope.intent,
+                    }),
+                );
+                finalEnvelope = buildDeterministicEnvelope('ASK_MASA', {});
+            }
             console.log(
                 JSON.stringify({
                     phase: 'envelope-validation',
@@ -1334,6 +1349,21 @@ async function main(params) {
             },
         };
     }
+}
+
+const WRITE_UP_SENTENCE_RE = /[.!?]\s+\S/;
+const WRITE_UP_MAX_WORDS = 30;
+const LOOKUP_VERB_RE = /^\s*(find|show|search|list|get|open)\b/i;
+
+/**
+ * A multi-sentence or long message is a problem report, not a lookup, so a
+ * model-chosen read-only operation must not run on it. Mirrors the client
+ * router's isConversational thresholds; a leading lookup verb is an explicit
+ * command and keeps the model's read-only intent.
+ */
+function isMasaWriteUp(message) {
+    if (typeof message !== 'string' || LOOKUP_VERB_RE.test(message)) return false;
+    return WRITE_UP_SENTENCE_RE.test(message) || message.trim().split(/\s+/).length > WRITE_UP_MAX_WORDS;
 }
 
 /**

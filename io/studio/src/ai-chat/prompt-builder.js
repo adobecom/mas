@@ -34,7 +34,7 @@ const MASA_QUESTIONS =
     'For questions about how MAS itself works, how to do something in Studio, or why something behaves as it does, emit ASK_MASA; never answer them in user_message.';
 
 const ASK_MASA_RULE =
-    'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA.';
+    'When ASK_MASA is available, hand every knowledge or troubleshooting question to ASK_MASA instead of answering it; card search, card operations and the release flow never use ASK_MASA. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
 
 const askUserBlock = (masa) => `
 Meta intents available at any time: ${getMetaIntents({ masa }).join(', ')}.

@@ -36,6 +36,13 @@ describe('prompt-builder', () => {
         );
     });
 
+    it('treats a problem report as a troubleshooting question when MASA is available', () => {
+        const sentence =
+            'A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
+        expect(buildPrompt({ masa: true })).to.include(sentence);
+        expect(buildPrompt()).to.not.include(sentence);
+    });
+
     it('describes ASK_MASA among the meta intents when MASA is available', () => {
         expect(buildPrompt({ masa: true })).to.include(
             '- ASK_MASA — hand a knowledge, how-to or troubleshooting question to MASA, with empty slots and no user_message.',

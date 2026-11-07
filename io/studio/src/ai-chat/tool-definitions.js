@@ -37,7 +37,7 @@ export function buildEnvelopeTool({ masa = false } = {}) {
             }` +
             `To find, list, show, or count cards or fragments, do NOT use this tool — call emit_search.${
                 masa
-                    ? ' Use ASK_MASA, with empty slots and no user_message, for how-to questions and questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting; never answer them in user_message.'
+                    ? ' Use ASK_MASA, with empty slots and no user_message, for how-to questions and questions about MAS, Milo, Studio or card behavior, code, recent changes or troubleshooting; never answer them in user_message. A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.'
                     : ''
             }`,
         input_schema: {

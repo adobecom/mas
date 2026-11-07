@@ -65,6 +65,13 @@ describe('ai-chat/tool-definitions', () => {
         expect(buildEnvelopeTool().description).to.not.include('ASK_MASA');
     });
 
+    it('treats a problem report as a troubleshooting question when MASA is available', () => {
+        const sentence =
+            'A message that reports a problem (what the user did and what went wrong) is a troubleshooting question even without a question mark; links or IDs in it are evidence for MASA, not a request to fetch them.';
+        expect(buildEnvelopeTool({ masa: true }).description).to.include(sentence);
+        expect(buildEnvelopeTool().description).to.not.include(sentence);
+    });
+
     it('does not offer ASK_USER for answers to questions when MASA is available', () => {
         const { description } = buildEnvelopeTool({ masa: true });
         expect(description).to.not.include('answers to questions');

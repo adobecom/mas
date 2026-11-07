@@ -437,6 +437,21 @@
             "note": "With masa: true a troubleshooting question hands off to MASA instead of being answered from Studio's built-in knowledge (design §1, final review I1)."
         },
         {
+            "id": "masa-troubleshoot-placeholder-rte-links",
+            "intent_under_test": "ASK_MASA",
+            "masa": true,
+            "context": {
+                "flow": null,
+                "lastOperation": null,
+                "workingSet": []
+            },
+            "user_message": "I created this Placeholder https://mas.adobe.com/studio.html#content-type=merch-card&page=placeholders&path=acom&locale=en_US&search=5d1c7a52-8f0e-4b3a-9c61-2e7f4b9d0a13 that contains another placeholder key: {{generative-credits}}. The \"generative-credits\" placeholder is an RTE placeholder, as it has a URL link added. The problem with adding a PH key that is RTE into another Placeholder, is the RTE placeholder has a <p> tag around it, which breaks the sentence. As can be seen in this fragment: https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0",
+            "expect": {
+                "intent": "ASK_MASA"
+            },
+            "note": "A long problem report with pasted links hands off to MASA instead of fetching the linked card; links are evidence, not a lookup request."
+        },
+        {
             "id": "masa-troubleshoot-missing-badge",
             "intent_under_test": "ASK_MASA",
             "masa": true,

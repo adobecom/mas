@@ -677,6 +677,10 @@ describe('ai-chat/index main handler', () => {
 
     describe('ASK_MASA hand-off', () => {
         const askMasa = () => toolResponse({ intent: 'ASK_MASA', slots: {}, confidence: 'high' });
+        const REPORTED_ID = 'a1fa2428-341b-4f19-af8a-012068726fb0';
+        const modelPicks = (intent, slots) => toolResponse({ intent, slots, confidence: 'high', user_message: null });
+        const writeUp =
+            'I created this placeholder with a key inside it. The key is an RTE placeholder with a link. The paragraph tag around it breaks the sentence. As can be seen in this fragment: https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0';
 
         it('never hands card search to MASA', async () => {
             sendStub.resolves({
@@ -714,7 +718,7 @@ describe('ai-chat/index main handler', () => {
         });
 
         it('does not turn a troubleshooting question into a title search', async () => {
-            sendStub.resolves(askMasa());
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
             const message =
                 'I created a group variation for FR so that the merch card has a green "recommended" banner. The mas fragment has returned from loc and I have published the Fr English and the Fr French mas fragments. I can see the changes on preview ( https://main--da-cc--adobecom.aem.page/fr/creativecloud/photography ) but not on live (using the same browser just another tab) https://www.adobe.com/fr/creativecloud/photography.html . Here is the FR fragment https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=acom-cc&query=e2b050a0-d726-4961-8956-0c73f849cbe4 fragment id 6c830ea6-9996-4743-8d44-87b197835b4f Please let me know what I\'m missing so that the offer appears on France';
             const result = await main(makeParams({ message, masa: true }));
@@ -723,6 +727,98 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.envelope.intent).to.equal('ASK_MASA');
             const offered = sendStub.firstCall.args[5].tools[0].input_schema.properties.intent.enum;
             expect(offered).to.include('ASK_MASA');
+        });
+
+        it('hands a write-up to MASA when the model picks get_card', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+            expect(result.body.operationName).to.equal(undefined);
+        });
+
+        it('records ASK_MASA in the returned envelope for a guarded write-up', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope).to.deep.include({ intent: 'ASK_MASA', slots: {}, user_message: null });
+            const recorded = result.body.conversationHistory.at(-1);
+            expect(recorded.role).to.equal('assistant');
+            expect(JSON.parse(recorded.content).intent).to.equal('ASK_MASA');
+        });
+
+        it('hands a write-up to MASA when the model calls emit_search', async () => {
+            sendStub.resolves({
+                success: true,
+                message: null,
+                toolUse: { name: 'emit_search', input: { query: 'placeholder', surface: 'acom' } },
+                usage: { inputTokens: 1, outputTokens: 1 },
+            });
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+        });
+
+        it('hands a long single-sentence report to MASA', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message = `${'the card shows the wrong thing '.repeat(7)}${REPORTED_ID}`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('ASK_MASA');
+        });
+
+        it('logs the write-up guard', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            await main(makeParams({ message: writeUp, masa: true }));
+            const logged = console.log.getCalls().some((call) => String(call.args[0]).includes('masa-write-up-guard'));
+            expect(logged).to.equal(true);
+        });
+
+        it('keeps a guided flow step and its hand-off for a write-up', async () => {
+            sendStub.onCall(0).resolves(modelPicks('release_create.list_offers', {}));
+            sendStub.onCall(1).resolves(textResponse('Which offers should the cards use?'));
+            const result = await main(makeParams({ message: writeUp, masa: true }));
+            expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
+            expect(result.body.message).to.include('Which offers should the cards use?');
+            expect(sendStub.secondCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
+        });
+
+        it('keeps the model get_card for a write-up when the request did not offer MASA', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const result = await main(makeParams({ message: writeUp }));
+            expect(result.body.envelope.intent).to.equal('get_card');
+            expect(result.body.operationName).to.equal('get_card');
+        });
+
+        it('keeps a short pasted-link lookup on get_card', async () => {
+            sendStub.resolves(modelPicks('get_card', { id: REPORTED_ID }));
+            const message = `show me this card https://mas.adobe.com/studio.html#content-type=merch-card&page=content&path=acom&query=${REPORTED_ID}`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('get_card');
+        });
+
+        it('keeps a short question-shaped search on search_cards', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'Photoshop', surface: 'acom' }));
+            const result = await main(makeParams({ message: 'Can you find Photoshop cards in acom?', masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
+        });
+
+        it('leaves a state-changing intent in a multi-sentence message unchanged', async () => {
+            sendStub.resolves(modelPicks('update_card', { id: REPORTED_ID, fields: { title: 'New' } }));
+            const message = `Please update card ${REPORTED_ID}. Set the title to New.`;
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('update_card');
+            expect(result.body.confirmationRequired).to.equal(true);
+        });
+
+        it('keeps search_cards for a multi-sentence message that starts with a lookup verb', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
+            const message = 'Show me plans cards in acom. Only the grouped ones.';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
+        });
+
+        it('treats a leading lookup verb case-insensitively', async () => {
+            sendStub.resolves(modelPicks('search_cards', { query: 'plans', surface: 'acom' }));
+            const message = 'FIND plans cards in acom. Only the grouped ones.';
+            const result = await main(makeParams({ message, masa: true }));
+            expect(result.body.envelope.intent).to.equal('search_cards');
         });
 
         it('leaves quoted text with a colon to the model', async () => {

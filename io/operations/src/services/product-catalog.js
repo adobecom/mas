@@ -161,10 +161,6 @@ export class ProductCatalog {
             results = results.filter((p) => p.marketSegments?.[params.marketSegment] === true);
         }
 
-        if (params.limit) {
-            results = results.slice(0, params.limit);
-        }
-
         return results;
     }
 

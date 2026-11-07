@@ -15,6 +15,14 @@ const CATALOG = {
     },
 };
 
+function largeCatalog(size) {
+    const combinedProducts = {};
+    for (let index = 0; index < size; index += 1) {
+        combinedProducts[`p${index}`] = { code: `P${index}`, name: `Product ${index}`, arrangement_code: `pa_${index}` };
+    }
+    return { combinedProducts };
+}
+
 function respond(status, json, statusText = 'OK') {
     return { ok: status >= 200 && status < 300, status, statusText, json };
 }
@@ -69,7 +77,7 @@ describe('list-products action', () => {
         expect(fetchCalls).to.have.length(0);
     });
 
-    it('returns the whole catalog when no searchText is given', async () => {
+    it('returns the whole catalog when no searchText is given and it fits the cap', async () => {
         stubCatalog(() => respond(200, async () => CATALOG));
 
         const result = await call();
@@ -77,7 +85,37 @@ describe('list-products action', () => {
         expect(result.statusCode).to.equal(200);
         expect(result.body.operation).to.equal('list_products');
         expect(result.body.count).to.equal(4);
+        expect(result.body.total).to.equal(4);
         expect(result.body.products).to.have.length(4);
+    });
+
+    // Runtime drops any action result over 1 MB, and the full MCS catalog is larger.
+    it('returns the first 50 products and the match total when browsing a large catalog', async () => {
+        stubCatalog(() => respond(200, async () => largeCatalog(60)));
+
+        const result = await call();
+
+        expect(result.statusCode).to.equal(200);
+        expect(result.body.products).to.have.length(50);
+        expect(result.body.count).to.equal(50);
+        expect(result.body.total).to.equal(60);
+    });
+
+    it('ignores a limit that is not a positive number', async () => {
+        stubCatalog(() => respond(200, async () => CATALOG));
+
+        const result = await call({ limit: -1 });
+
+        expect(result.body.products).to.have.length(4);
+    });
+
+    it('caps a larger requested limit at 50 products', async () => {
+        stubCatalog(() => respond(200, async () => largeCatalog(60)));
+
+        const result = await call({ limit: 500 });
+
+        expect(result.body.products).to.have.length(50);
+        expect(result.body.total).to.equal(60);
     });
 
     it('forwards the caller token to the catalog endpoint', async () => {

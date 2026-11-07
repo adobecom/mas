@@ -2452,7 +2452,10 @@ export class MasChat extends LitElement {
         }
 
         const productCards = rawProducts.map((product) => this.mapProductToChatCard(product));
-        const message = `Found ${rawProducts.length} product${rawProducts.length === 1 ? '' : 's'} in the catalog:`;
+        const message =
+            result.total > rawProducts.length
+                ? `Showing ${rawProducts.length} of ${result.total} products in the catalog. Type a product name to narrow it down:`
+                : `Found ${rawProducts.length} product${rawProducts.length === 1 ? '' : 's'} in the catalog:`;
 
         this.messages = [
             ...this.messages,

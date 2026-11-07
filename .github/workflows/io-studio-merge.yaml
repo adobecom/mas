@@ -1,13 +1,14 @@
 name: IO Studio Merge
 on:
     pull_request:
+        branches: [main]
         types: [closed]
         paths:
             - 'io/studio/**'
 
 jobs:
     deploy_stage:
-        if: github.event.pull_request.merged == true
+        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == 'main'
         uses: ./.github/workflows/io-studio-deploy.yaml
         with:
             batch_size: 5

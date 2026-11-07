@@ -1,4 +1,5 @@
 const { expect } = require('chai');
+const { loadRealCorpus, requireRealCorpus } = require('./real-corpus.js');
 
 /**
  * Can the corpus actually answer the questions users ask?
@@ -56,6 +57,39 @@ const PROBES = [
     ['what does the fragment editor do?', 'fragment editor'],
     ['how do I roll out a card to other locales?', 'roll out'],
     ['how do I preview a card on a page?', 'preview'],
+    // Coverage of the retired Studio source, beyond the original feature smoke questions.
+    ['what is Merch at Scale?', 'Merch at Scale'],
+    ['what is MAS Studio?', 'What is MAS Studio'],
+    ['where does card content live?', 'card content live'],
+    ['how does a card reach adobe.com?', 'card reach adobe.com'],
+    ['what features does Merch at Scale Studio have?', 'features'],
+    ['what is a surface and how does it affect my card?', 'surface and how'],
+    ['how do I choose the right card variant?', 'choose the right card'],
+    ["can I change a card's variant after it is created?", 'change a card'],
+    ['how do I unpublish a card and what happens to pages using it?', 'unpublish a card'],
+    ['what is a locale variation and what are the rules?', 'locale variation'],
+    ['what is a grouped pzn variation?', 'grouped (pzn) variation'],
+    ['how do I use one field of a card on a page?', 'one field of a card'],
+    ['which field names can mas-field address?', 'field names'],
+    ['does a single field still get the right price, promo and locale?', 'single field'],
+    ['what is the difference between a card and an offer?', 'card and an offer'],
+    ['what about offers that are not live yet (draft offers)?', 'draft offers'],
+    ['what are placeholders in MAS Studio?', 'What are placeholders'],
+    ["why don't I see the Promotions page?", "Why don't I see Promotions"],
+    ['what does the promotions list show?', 'promotions list'],
+    ['how do I create a promotion?', 'create a promotion'],
+    ['what fields are required before a promotion can be saved?', 'fields are required'],
+    ['how do I publish or schedule a promotion?', 'publish or schedule'],
+    ['how do promo code exceptions and offer substitutions work?', 'exceptions and offer substitutions'],
+    ['is the Promotions page the same as a PROMOTION offer type?', 'PROMOTION offer type'],
+    ['what are masks in MAS Studio?', 'What are masks'],
+    ['how do I add content and locales to a translation project?', 'add content and locales'],
+    ['what do the translation project statuses mean?', 'statuses mean'],
+    ['what happens after I submit a translation project?', 'submit a translation project'],
+    ['are prices and offers translated too?', 'translated too'],
+    ["why don't I see Promotions or Global settings in the side navigation?", "Why don't I see Promotions"],
+    ['what do 401 and 403 errors mean?', '401 and 403'],
+    ['why does OST show no results for my search?', 'OST show no results'],
 ];
 
 /**
@@ -75,6 +109,42 @@ const PROBES = [
  */
 const KNOWN_GAPS = {};
 
+/**
+ * Tool identifiers are verb-led (search_cards, create_grouped_variation). The
+ * export also names API fields and URL parameters (promotion_code,
+ * single_app), which are not tools, so only these verbs mark an identifier.
+ */
+const TOOL_VERBS = new Set([
+    'attach',
+    'copy',
+    'create',
+    'delete',
+    'find',
+    'get',
+    'link',
+    'list',
+    'open',
+    'publish',
+    'resolve',
+    'search',
+    'update',
+]);
+
+function unknownToolNames(chunks, known) {
+    const unknown = new Set();
+    for (const chunk of chunks) {
+        for (const [token, verb] of `${chunk.title} ${chunk.section} ${chunk.text}`.matchAll(/\b([a-z]+)(?:_[a-z]+){1,3}\b/g)) {
+            if (TOOL_VERBS.has(verb) && !known.has(token)) unknown.add(`${chunk.id}: ${token}`);
+        }
+    }
+    return [...unknown];
+}
+
+async function registryToolNames() {
+    const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
+    return new Set(INTENTS.flatMap((intent) => [intent.name, intent.tool_target].filter(Boolean)));
+}
+
 let retrieve;
 
 async function answersAbout(question, marker) {
@@ -89,18 +159,16 @@ async function answersAbout(question, marker) {
 }
 
 describe('ai-chat/knowledge coverage', () => {
-    before(async () => {
-        const [{ LocalKnowledgeRetriever }, { KNOWLEDGE_CHUNKS }] = await Promise.all([
-            import('../../src/ai-chat/knowledge-retriever.js'),
-            import('../../src/ai-chat/knowledge-corpus.js'),
-        ]);
+    before(async function () {
+        const KNOWLEDGE_CHUNKS = await requireRealCorpus(this);
+        const { LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js');
         const retriever = new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
         retrieve = (question) => retriever.queryWithSources(question, PROD_RETRIEVAL);
     });
 
     it('runs against the real corpus, not a fixture', async () => {
-        const { KNOWLEDGE_CHUNKS } = await import('../../src/ai-chat/knowledge-corpus.js');
-        expect(KNOWLEDGE_CHUNKS.length, 'corpus looks too small to be the real one').to.be.above(50);
+        const { chunks } = await loadRealCorpus();
+        expect(chunks.length, 'corpus looks too small to be the real one').to.be.above(50);
     });
 
     for (const [question, marker] of PROBES) {
@@ -110,45 +178,40 @@ describe('ai-chat/knowledge coverage', () => {
         });
     }
 
+    for (const [question, evidence] of [
+        ['how do I create a card in Studio?', /tags include an offerless tag/],
+        ['how do I edit and publish a placeholder?', /placeholder fragment and then its dictionary index/],
+        ['how do rich text placeholders work?', /500-character limit/],
+        ['where do I get help?', /Support in Studio's navigation/],
+        ['what happens when I edit a card that is already published?', /Published, Draft, New, Modified and Unpublished/],
+        ['can I unpublish a card in Studio?', /does not currently offer Unpublish for cards/],
+    ]) {
+        it(`grounds the answer in current behavior: ${question}`, async () => {
+            const { context } = await retrieve(question);
+            expect(context).to.match(evidence);
+        });
+    }
+
     /**
-     * The corpus names tool identifiers (search_cards, create_grouped_variation)
-     * so the model can connect a documented capability to an intent it can
-     * emit. That makes a stale identifier worse than a stale sentence: it reads
-     * like a real tool name, so it seeds a call the registry will reject.
+     * A corpus that names a tool identifier lets the model connect a documented
+     * capability to an intent it can emit. That makes a stale identifier worse
+     * than a stale sentence: it reads like a real tool name, so it seeds a call
+     * the registry will reject.
      *
-     * find_untranslated_cards survived here for a day after its intent was
-     * removed, purely because nothing checked.
+     * find_untranslated_cards survived in the corpus for a day after its intent
+     * was removed, purely because nothing checked.
      */
     it('names no tool the registry does not have', async () => {
-        const fs = require('fs');
-        const path = require('path');
-        const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
+        const { chunks } = await loadRealCorpus();
+        const unknown = unknownToolNames(chunks, await registryToolNames());
 
-        const known = new Set();
-        for (const intent of INTENTS) {
-            known.add(intent.name);
-            if (intent.tool_target) known.add(intent.tool_target);
-        }
+        expect(unknown, `corpus names tools that are not in the registry:\n  ${unknown.join('\n  ')}`).to.deep.equal([]);
+    });
 
-        // Snake_case tokens long enough to be an identifier rather than prose.
-        // Domain terms that are not tools live here with a reason.
-        const NOT_A_TOOL = new Set(['web_commerce_artifact']);
+    it('flags a stale tool name but not an API field', async () => {
+        const chunk = { id: 'fixture', title: '', section: '', text: 'find_untranslated_cards reads promotion_code' };
 
-        const dir = path.join(__dirname, '../../src/ai-chat/knowledge');
-        const unknown = [];
-        for (const file of fs.readdirSync(dir).filter((f) => f.endsWith('.md'))) {
-            const text = fs.readFileSync(path.join(dir, file), 'utf8');
-            for (const [token] of text.matchAll(/\b[a-z]+(?:_[a-z]+){1,3}\b/g)) {
-                if (token.length > 8 && !known.has(token) && !NOT_A_TOOL.has(token)) {
-                    unknown.push(`${file}: ${token}`);
-                }
-            }
-        }
-
-        expect(
-            [...new Set(unknown)],
-            `corpus names tools that are not in the registry:\n  ${[...new Set(unknown)].join('\n  ')}`,
-        ).to.deep.equal([]);
+        expect(unknownToolNames([chunk], await registryToolNames())).to.deep.equal(['fixture: find_untranslated_cards']);
     });
 
     describe('the known gaps', () => {

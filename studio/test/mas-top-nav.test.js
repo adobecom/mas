@@ -771,8 +771,9 @@ describe('MasTopNav', () => {
             const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
             await delay(200);
 
-            const signOutLink = el.querySelector('.signout-link');
-            signOutLink.click();
+            const signOut = sandbox.spy(el, 'signOut');
+            el.querySelector('.signout-link').click();
+            await signOut.returnValues[0];
 
             expect(window.adobeIMS.signOut.calledOnce).to.be.true;
         });

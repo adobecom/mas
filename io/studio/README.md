@@ -1,5 +1,7 @@
 # SETUP
 
+The `masa-api` adapter deploys separately; see its [contract and deployment guide](MASA_API.md).
+
 ## Setup your workspace
 
 - install aio cli running `npm install -g @adobe/aio-cli`
@@ -172,6 +174,28 @@ All fetched values — and the Vault token — are masked in the workflow logs.
 ## Test & Coverage
 
 - Run `aio app test` to run unit tests for ui and actions
+
+### Shared MASA knowledge
+
+The assistant answers from mas-agent's author corpus: maintain product facts and authoring guidance in
+`adobecom/mas-agent/knowledge/`. Intent schemas, guided flows and confirmation rules stay in Studio.
+
+`npm test` (in its pretest hook) and deployment jobs fetch `knowledge-author.json` from mas-agent's
+`knowledge-latest` release into `src/ai-chat/masa-knowledge.js`, which is generated and gitignored. CI mints
+a read token from the reader App (`MAS_AGENT_READER_APP_ID` variable, `MAS_AGENT_READER_APP_KEY` secret).
+Locally, set `MAS_AGENT_KNOWLEDGE_TOKEN` to a token that can read mas-agent, or use
+an export from a mas-agent checkout (`npm run knowledge:export -- --profile author --out <file>`):
+
+```sh
+MAS_AGENT_KNOWLEDGE_FILE=/absolute/path/knowledge-author.json npm test
+```
+
+A failed or invalid fetch keeps the existing module and never writes an empty one. Run
+`npm run fetch:masa-knowledge` before deploying assistant actions locally.
+
+The bundled knowledge updates whenever the assistant actions deploy, which every `io/studio` merge to
+`main` does, using the export its tests validated. If an export breaks coverage, fix it in mas-agent; do
+not reintroduce a Studio corpus.
 
 ## Deploy & Cleanup
 

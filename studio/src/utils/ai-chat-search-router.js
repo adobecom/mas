@@ -41,6 +41,12 @@ const CONTENT_SIGNAL_RE =
 const CONTENT_QUOTED_RE =
     /\b(?:usages?\s+of|instances?\s+of|occurrences?\s+of|references?\s+to|mentions?\s+of|appearances?\s+of)\s+["']([^"']{2,120})["']/i;
 const SEARCH_VERB_RE = /\b(?:find|show|get|search|look up|list|give me|grab|where(?:'s|\s+is)?)\b/i;
+// A question or a long write-up is a conversation, not a search request: the
+// model (and MASA) answer it. Only plain fragment-ID lookups run before this check.
+const QUESTION_RE =
+    /\?\s*$|^(?:why|how|what|when|which|who|can|does|do|is|are|should|could|explain|tell me)\b|\blet me know\b/i;
+const MULTI_SENTENCE_RE = /[.!?]\s+\S/;
+const MAX_SEARCH_WORDS = 30;
 const SEARCH_NOUN_RE = /\b(?:cards?|fragments?)\b/i;
 // Mutation intents. When any of these appears, the message is asking to
 // CHANGE state, not to search — even if "cards"/"fragments" also appears as
@@ -279,6 +285,12 @@ export function classifySearchIntent(message, context = {}) {
         return { ...empty, confidence: 0.7 };
     }
 
+    // A question that names an OSI or offer ID is troubleshooting, not a
+    // lookup; a bare ID is a single token and still dispatches below.
+    if (isConversational(trimmed)) {
+        return empty;
+    }
+
     const offerIdMatch = trimmed.match(OFFER_ID_RE);
     const hasOfferKeyword = OFFER_KEYWORD_RE.test(trimmed);
     if (offerIdMatch && hasOfferKeyword) {
@@ -308,7 +320,7 @@ export function classifySearchIntent(message, context = {}) {
     // would silently get dispatched as a full-text query instead of a
     // template filter. pickVariantCandidate only returns canonical names
     // (typos abstain), so it's safe to run before generic content matching.
-    const variantToken = pickVariantCandidate(trimmed);
+    const variantToken = SEARCH_VERB_RE.test(trimmed) ? pickVariantCandidate(trimmed) : null;
     if (variantToken) {
         const canonical = normalizeVariantName(variantToken);
         // An explicit "in <surface>" / "for <surface>" at the end overrides
@@ -344,7 +356,7 @@ export function classifySearchIntent(message, context = {}) {
     // message like 'usages of "X"' has a quoted phrase but the user wants
     // content matches, not titles — let the LLM (or the CONTENT_QUOTED
     // path above) handle it instead.
-    if (quotedMatch && hasSearchAnchor(trimmed) && !CONTENT_SIGNAL_RE.test(trimmed)) {
+    if (quotedMatch && hasSearchAnchor(trimmed) && SEARCH_VERB_RE.test(trimmed) && !CONTENT_SIGNAL_RE.test(trimmed)) {
         const title = stripTrailingPunctuation(quotedMatch[2]);
         if (title) {
             return buildTitleDispatch(title, surface, locale, HIGH_CONFIDENCE);
@@ -616,6 +628,10 @@ function pickOsiCandidate(text) {
 function looksLikeBareOsi(text, candidate) {
     const stripped = text.replace(candidate, '').trim();
     return stripped.length === 0;
+}
+
+function isConversational(text) {
+    return QUESTION_RE.test(text) || MULTI_SENTENCE_RE.test(text) || text.split(/\s+/).length > MAX_SEARCH_WORDS;
 }
 
 function hasSearchAnchor(text) {

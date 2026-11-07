@@ -656,4 +656,4 @@ Respond with this exact JSON structure:
 }
 \`\`\`
 
-After the user selects a topic, provide a thorough, helpful explanation using your knowledge of M@S Studio. Include practical examples where relevant.`;
+After the user selects a topic, answer using the retrieved mas-agent knowledge. A topic choice is a question, not a promise that the capability exists. If the retrieved guidance does not cover it, say that you lack the documentation instead of inventing a workflow.`;

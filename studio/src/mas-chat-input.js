@@ -3,6 +3,7 @@ import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
 import { pasteTextFromClipboardHtml } from './utils/chat-paste.js';
+import { IMAGE_TYPES, MAX_IMAGES } from './mas-chat/investigation-session.js';
 
 /**
  * Chat Input Component
@@ -16,6 +17,8 @@ export class MasChatInput extends LitElement {
         message: { type: String },
         inputLocked: { type: Boolean, attribute: 'input-locked' },
         autoSendOnSelect: { type: Boolean },
+        imagesEnabled: { type: Boolean },
+        images: { type: Array },
     };
 
     constructor() {
@@ -26,6 +29,8 @@ export class MasChatInput extends LitElement {
         this.message = '';
         this.inputLocked = false;
         this.autoSendOnSelect = false;
+        this.imagesEnabled = false;
+        this.images = [];
         this.boundHandleOstSelect = this.handleOstSelect.bind(this);
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
@@ -154,7 +159,27 @@ export class MasChatInput extends LitElement {
         this.selectedOffer = null;
     }
 
+    /** Image files on the clipboard, e.g. a screenshot; empty for text. */
+    clipboardImages(event) {
+        return [...(event.clipboardData?.items ?? [])]
+            .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+            .map((item) => item.getAsFile())
+            .filter(Boolean);
+    }
+
+    /** Spreadsheet cells, documents and "copy image" carry text beside an image; the text wins. */
+    clipboardHasText(event) {
+        return ['text/plain', 'text/html'].some((type) => event.clipboardData?.getData(type));
+    }
+
     handlePaste(event) {
+        const files = this.imagesEnabled && !this.clipboardHasText(event) ? this.clipboardImages(event) : [];
+        if (files.length) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.dispatchAttachImages(files);
+            return;
+        }
         // Rich clipboard content from Studio "copy link" carries the URL only
         // in the HTML flavor; the plain flavor is the human label. Substitute
         // anchors with their hrefs so the link survives the paste.
@@ -175,11 +200,18 @@ export class MasChatInput extends LitElement {
         }
     }
 
+    /**
+     * The typed message as plain text. The field's value is serialized HTML,
+     * which would send "&" as "&amp;"; offers travel in context, not in the text.
+     */
+    get plainText() {
+        const doc = this.querySelector('rte-field')?.editorView?.state.doc;
+        if (!doc) return '';
+        return doc.textBetween(0, doc.content.size, '\n', (leaf) => (leaf.type.name === 'hard_break' ? '\n' : ''));
+    }
+
     handleRteChange() {
-        const rteField = this.querySelector('rte-field');
-        if (rteField) {
-            this.message = rteField.value || '';
-        }
+        this.message = this.plainText;
     }
 
     handleRteKeyDown(event) {
@@ -191,8 +223,8 @@ export class MasChatInput extends LitElement {
 
     handleSend() {
         const rteField = this.querySelector('rte-field');
-        if (!rteField) return;
-        const message = (rteField.value || '').trim();
+        if (!rteField || this.uploading) return;
+        const message = this.plainText.trim();
 
         if (!message && !this.selectedOsi) return;
 
@@ -231,6 +263,29 @@ export class MasChatInput extends LitElement {
         rteField.editorView.dispatch(rteField.editorView.state.tr.delete(0, rteField.editorView.state.doc.content.size));
     }
 
+    handleChooseImages(event) {
+        const files = [...event.target.files];
+        event.target.value = '';
+        if (!files.length) return;
+        this.dispatchAttachImages(files);
+    }
+
+    dispatchAttachImages(files) {
+        this.dispatchEvent(new CustomEvent('attach-images', { detail: { files }, bubbles: true, composed: true }));
+    }
+
+    get uploading() {
+        return this.images.some((image) => image.status === 'uploading');
+    }
+
+    get attachDisabled() {
+        return this.disabled || this.uploading || this.images.length >= MAX_IMAGES;
+    }
+
+    handleRemoveImage(id) {
+        this.dispatchEvent(new CustomEvent('remove-image', { detail: { id }, bubbles: true, composed: true }));
+    }
+
     handleOsiSelect() {
         openOfferSelectorTool(this, null);
     }
@@ -255,6 +310,38 @@ export class MasChatInput extends LitElement {
                           </div>
                       `
                     : nothing}
+                ${this.images.length
+                    ? html`
+                          <div class="image-previews">
+                              ${this.images.map(
+                                  (image) => html`
+                                      <figure class="image-preview">
+                                          ${image.status === 'uploading'
+                                              ? html`<sp-progress-circle
+                                                    indeterminate
+                                                    size="s"
+                                                    label="Uploading ${image.name}"
+                                                ></sp-progress-circle>`
+                                              : nothing}
+                                          ${image.preview ? html`<img src=${image.preview} alt=${image.name} />` : nothing}
+                                          <figcaption>${image.name}</figcaption>
+                                          ${image.status === 'uploading'
+                                              ? nothing
+                                              : html`<sp-action-button
+                                                    quiet
+                                                    size="xs"
+                                                    ?disabled=${this.disabled}
+                                                    @click=${() => this.handleRemoveImage(image.id)}
+                                                    title="Remove image"
+                                                >
+                                                    <sp-icon-close slot="icon"></sp-icon-close>
+                                                </sp-action-button>`}
+                                      </figure>
+                                  `,
+                              )}
+                          </div>
+                      `
+                    : nothing}
                 <div class="input-row">
                     <div class="rte-wrapper">
                         <rte-field
@@ -270,6 +357,29 @@ export class MasChatInput extends LitElement {
                         </rte-field>
                     </div>
                     <div class="input-actions">
+                        ${this.imagesEnabled
+                            ? html`
+                                  <input
+                                      class="file-input"
+                                      type="file"
+                                      aria-label="Attach image"
+                                      multiple
+                                      accept=${IMAGE_TYPES.join(',')}
+                                      hidden
+                                      ?disabled=${this.attachDisabled}
+                                      @change=${this.handleChooseImages}
+                                  />
+                                  <sp-action-button
+                                      quiet
+                                      size="s"
+                                      @click=${() => this.querySelector('.file-input').click()}
+                                      ?disabled=${this.attachDisabled}
+                                      title="Attach image"
+                                  >
+                                      <sp-icon-attach slot="icon"></sp-icon-attach>
+                                  </sp-action-button>
+                              `
+                            : nothing}
                         ${!this.selectedOsi
                             ? html`
                                   <sp-action-button
@@ -287,7 +397,7 @@ export class MasChatInput extends LitElement {
                             variant="accent"
                             size="s"
                             @click=${this.handleSend}
-                            ?disabled=${this.disabled || this.inputLocked}
+                            ?disabled=${this.disabled || this.inputLocked || this.uploading}
                             title="Send message"
                         >
                             <sp-icon-send slot="icon"></sp-icon-send>

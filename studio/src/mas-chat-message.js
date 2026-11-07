@@ -5,11 +5,26 @@ import './mas-operation-result.js';
 import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
-import { parseMarkdown } from './utils/markdown-parser.js';
+import './mas-chat-masa-answer.js';
+import { linkifyText, parseMarkdown } from './utils/markdown-parser.js';
 import { masaAvatar } from './img/masa-avatar.js';
+import { typingIndicator } from './mas-chat/typing-indicator.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 import { prepareTextReveal } from './utils/text-reveal.js';
 import Store from './store.js';
+
+/** The message shows the answer text itself; the MASA answer element adds only its label and action. */
+const BUILT_IN_NOTICE = Object.freeze({ content: '' });
+
+const assistantAvatar = html`<div class="message-avatar">${masaAvatar}</div>`;
+
+const EDITOR_ENTITIES = { amp: '&', lt: '<', gt: '>', nbsp: '\u00a0' };
+
+/**
+ * Messages saved before the input sent plain text hold the editor's escaped HTML.
+ * Decode those entities in one pass so "&amp;lt;" shows as "&lt;", not "<".
+ */
+const decodeEditorEntities = (text) => text?.replace(/&(amp|lt|gt|nbsp);/g, (entity, name) => EDITOR_ENTITIES[name]);
 
 /**
  * Chat Message Component
@@ -366,8 +381,48 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
+    /** Root classes of a bubble; a fresh message plays its entrance animation. */
+    get messageClass() {
+        const { role, fresh } = this.message;
+        const entranceClass = fresh ? (role === 'assistant' ? 'msg-bloom' : 'msg-rise') : '';
+        return `chat-message chat-message-${role} ${entranceClass}`.trim();
+    }
+
+    /** A MASA answer sits in the same assistant bubble, mascot included, as any other reply. */
+    renderMasaAnswer() {
+        const { conversationId, question, recordId, fallback, failure } = this.message;
+        return html`
+            <div class=${this.messageClass}>
+                <div class="message-card">
+                    ${assistantAvatar}
+                    <div class="message-content">
+                        <mas-chat-masa-answer
+                            .conversationId=${conversationId}
+                            .question=${question}
+                            .recordId=${recordId}
+                            .fallback=${fallback}
+                            .failure=${failure}
+                            ><div slot="working">${typingIndicator}</div></mas-chat-masa-answer
+                        >
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /** An answer given while MASA is unavailable says so and offers "Ask MASA again". */
+    renderBuiltInNotice() {
+        const { conversationId, question } = this.message.builtIn;
+        return html`<mas-chat-masa-answer
+            .conversationId=${conversationId}
+            .question=${question}
+            .fallback=${BUILT_IN_NOTICE}
+        ></mas-chat-masa-answer>`;
+    }
+
     render() {
         if (!this.message) return nothing;
+        if (this.message.type === 'masa') return this.renderMasaAnswer();
 
         const {
             role,
@@ -390,8 +445,7 @@ export class MasChatMessage extends LitElement {
                 ? rawContent.replace(/<use_mcp_tool>[\s\S]*?<\/use_mcp_tool>/g, '').trim()
                 : rawContent;
 
-        const entranceClass = this.message.fresh ? (role === 'assistant' ? 'msg-bloom' : 'msg-rise') : '';
-        const messageClass = `chat-message chat-message-${role} ${entranceClass}`.trim();
+        const messageClass = this.messageClass;
         const isUser = role === 'user';
 
         const hasDisplayableContent =
@@ -460,13 +514,16 @@ export class MasChatMessage extends LitElement {
                         : operationResult && content === operationResult.message
                           ? nothing
                           : content || this.showSuggestions
-                            ? html`${role === 'assistant' ? html`<div class="message-avatar">${masaAvatar}</div>` : nothing}
+                            ? html`${role === 'assistant' ? assistantAvatar : nothing}
                                   <div class="message-content">
                                       <div class="message-text">
                                           ${role === 'error'
                                               ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
-                                              : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
+                                              : nothing}${unsafeHTML(
+                                              isUser ? linkifyText(decodeEditorEntities(content)) : parseMarkdown(content),
+                                          )}
                                       </div>
+                                      ${this.message.builtIn ? this.renderBuiltInNotice() : nothing}
                                       ${this.showSuggestions
                                           ? html`<mas-prompt-suggestions></mas-prompt-suggestions>`
                                           : nothing}

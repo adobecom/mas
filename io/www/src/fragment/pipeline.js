@@ -41,6 +41,12 @@ const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `$
 
 // e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB | caches 6.1MB of 256.0MB in 548 entries:
 // response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
+// e.g. "42s" or "7m12s"
+const formatAge = (ms) => {
+    const seconds = Math.round(ms / 1000);
+    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
+};
+
 function memoryUsage() {
     const { entries, bytes, maxBytes, caches } = getMemoryStats();
     const { rss, heapUsed, heapTotal } = process.memoryUsage();
@@ -145,9 +151,10 @@ async function main(params) {
     }
     mark(context, 'end');
     context.loggedTransformer = 'pipeline';
-    const { cache, requestKey } = returnValue;
+    const { cache, requestKey, cacheDetail } = returnValue;
     delete returnValue.cache;
     delete returnValue.requestKey;
+    delete returnValue.cacheDetail;
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
@@ -161,7 +168,8 @@ async function main(params) {
     const { duration } = measureTiming(context, 'pipeline', 'start');
     const { statusCode } = returnValue;
     if (cache === 'hit' || cache === 'stale' || cache === 'joined') {
-        log(`cache ${cache} ${requestKey} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
+        const detail = cacheDetail ? ` (${cacheDetail})` : '';
+        log(`cache ${cache} ${requestKey}${detail} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
         return returnValue;
     }
     const measures = context.measures
@@ -230,9 +238,11 @@ async function mainProcess(context) {
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
     const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
-    const storedResponse = (body, cache) => {
-        const { hash, lastModified } = cachedMetadata;
-        return { ...successResponse(context, { hash, lastModified: new Date(lastModified), body }), cache, requestKey };
+    const storedResponse = (body, cache, note = '') => {
+        const { hash, lastModified, refreshedAt } = cachedMetadata;
+        const age = refreshedAt ? `refreshed ${formatAge(Date.now() - refreshedAt)} ago` : 'never refreshed';
+        const response = successResponse(context, { hash, lastModified: new Date(lastModified), body });
+        return { ...response, cache, requestKey, cacheDetail: `${age}${note}` };
     };
     const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
     if (storedBody) return storedResponse(storedBody, 'hit');
@@ -240,7 +250,7 @@ async function mainProcess(context) {
     // or wait for the rebuild already in progress when there is none.
     let rebuild = rebuilds.get(requestKey);
     const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, Infinity);
-    if (staleBody) return storedResponse(staleBody, 'stale');
+    if (staleBody) return storedResponse(staleBody, 'stale', ', rebuild in progress');
     const cache = rebuild ? 'joined' : 'miss';
     if (!rebuild) {
         rebuild = buildResponse(context, requestKey, cachedMetadata, cachedResponse);

@@ -102,8 +102,12 @@ describe('pipeline end to end', () => {
         );
         const hits = summary('cache hit');
         expect(hits).to.have.lengthOf(2);
-        expect(hits[0]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| memory: /);
-        expect(hits[1]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /);
+        expect(hits[0]).to.match(
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: /,
+        );
+        expect(hits[1]).to.match(
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 304 in [\d.]+ms \| memory: /,
+        );
         expect(hits[1]).not.to.include('timings');
     });
 
@@ -144,44 +148,51 @@ describe('pipeline end to end', () => {
         );
     });
 
-    it('should serve the previous stored response to concurrent requests while rebuilding', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
+    for (const { title, refreshedAt, detail } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
+        { title: 'never refreshed', detail: /never refreshed/ },
+    ]) {
+        it(`should serve the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                lastModified: RANDOM_OLD_DATE,
+                refreshedAt,
+            });
+            state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const output = sinon.stub(console, 'log');
+            const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+            let results;
+            try {
+                results = await Promise.all([getFragment(request), getFragment(request)]);
+            } finally {
+                output.restore();
+            }
+            const [first, second] = results;
+            expect(first.body).to.deep.include(EXPECTED_BODY);
+            expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
+            expect(second.statusCode).to.equal(200);
+            expect(second.body).to.deep.equal({ stale: true });
+            expect(second.headers.ETag).to.equal('old-hash');
+            const lines = output.getCalls().map(({ args }) => args[0]);
+            expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+            const stale = lines.find((line) => line.includes('cache stale'));
+            expect(stale).to.match(
+                /cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\) -> 200 in [\d.]+ms \| memory: /,
+            );
+            expect(stale).to.match(detail);
         });
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
-            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
-        const state = new MockState();
-        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            lastModified: RANDOM_OLD_DATE,
-            refreshedAt: Date.now() - 10 * 60 * 1000,
-        });
-        state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
-        });
-        const output = sinon.stub(console, 'log');
-        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
-        let results;
-        try {
-            results = await Promise.all([getFragment(request), getFragment(request)]);
-        } finally {
-            output.restore();
-        }
-        const [first, second] = results;
-        expect(first.body).to.deep.include(EXPECTED_BODY);
-        expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
-        expect(second.statusCode).to.equal(200);
-        expect(second.body).to.deep.equal({ stale: true });
-        expect(second.headers.ETag).to.equal('old-hash');
-        const lines = output.getCalls().map(({ args }) => args[0]);
-        expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
-        expect(lines.find((line) => line.includes('cache stale'))).to.match(
-            /cache stale req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| memory: /,
-        );
-    });
+    }
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(

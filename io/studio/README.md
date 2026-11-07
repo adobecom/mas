@@ -193,9 +193,9 @@ MAS_AGENT_KNOWLEDGE_FILE=/absolute/path/knowledge-author.json npm test
 A failed or invalid fetch keeps the existing module and never writes an empty one. Run
 `npm run fetch:masa-knowledge` before deploying assistant actions locally.
 
-`IO Studio Knowledge Refresh` runs daily at 07:17 UTC on `main`, or on demand: it tests the fetched export,
-deploys the AI action to stage, runs the health check, then deploys the same export to production. If an
-export breaks coverage, fix it in mas-agent and rerun; do not reintroduce a Studio corpus.
+The bundled knowledge updates whenever the assistant actions deploy, which every `io/studio` merge to
+`main` does, using the export its tests validated. If an export breaks coverage, fix it in mas-agent; do
+not reintroduce a Studio corpus.
 
 ## Deploy & Cleanup
 

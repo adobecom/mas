@@ -7,16 +7,6 @@ on:
                 type: boolean
                 required: false
                 default: true
-            assistant_only:
-                description: 'Refresh only AI actions; fail the job if they cannot be updated'
-                type: boolean
-                required: false
-                default: false
-            knowledge_sha256:
-                description: 'Require the exact knowledge export that passed validation'
-                type: string
-                required: false
-                default: ''
             run_tests:
                 type: boolean
                 required: false
@@ -129,17 +119,6 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Validate knowledge refresh inputs
-              if: inputs.assistant_only
-              env:
-                  DEPLOY_AI: ${{ inputs.deploy_ai }}
-                  KNOWLEDGE_SHA256: ${{ inputs.knowledge_sha256 }}
-              run: |
-                  if [ "$DEPLOY_AI" != 'true' ] || ! [[ "$KNOWLEDGE_SHA256" =~ ^[a-f0-9]{64}$ ]]; then
-                      echo '::error::An assistant-only refresh requires AI deployment and a validated export digest.'
-                      exit 1
-                  fi
-
             - name: Setup Node.js 22.23.1
               uses: actions/setup-node@v4
               with:
@@ -193,7 +172,6 @@ jobs:
                   echo "namespace=$ns" >> "$GITHUB_OUTPUT"
 
             - name: Deploy core Studio actions
-              if: inputs.assistant_only != true
               env:
                   ODIN_ENDPOINT: https://author-p22655-${{ env.ODIN_BUCKET }}.adobeaemcloud.com
                   BATCH_SIZE: ${{ inputs.batch_size }}
@@ -232,7 +210,7 @@ jobs:
               continue-on-error: true
               env:
                   MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
-                  MAS_AGENT_KNOWLEDGE_SHA256: ${{ inputs.knowledge_sha256 || needs.tests.outputs.knowledge_sha256 }}
+                  MAS_AGENT_KNOWLEDGE_SHA256: ${{ needs.tests.outputs.knowledge_sha256 }}
                   RUN_TESTS: ${{ inputs.run_tests }}
               run: |
                   if [ "$RUN_TESTS" = 'true' ] && [ -z "$MAS_AGENT_KNOWLEDGE_SHA256" ]; then
@@ -240,18 +218,6 @@ jobs:
                       exit 1
                   fi
                   npm run fetch:masa-knowledge -- --expected-sha256 "$MAS_AGENT_KNOWLEDGE_SHA256"
-
-            # A scheduled refresh must not roll back application code if main advanced while it
-            # waited for the workspace deployment lock. A subsequent refresh uses the newer main.
-            - name: Check refresh still uses current main
-              if: inputs.assistant_only
-              run: |
-                  set -euo pipefail
-                  current=$(git ls-remote origin refs/heads/main | cut -f1)
-                  if [ "$(git rev-parse HEAD)" != "$current" ]; then
-                      echo '::error::Main advanced during knowledge refresh; rerun against current main.'
-                      exit 1
-                  fi
 
             - name: Deploy optional AI actions
               id: ai-deploy
@@ -273,11 +239,4 @@ jobs:
 
             - name: Report optional AI deployment failure
               if: inputs.deploy_ai && (steps.ai-secrets.outcome == 'failure' || steps.masa-token.outcome == 'failure' || steps.masa-knowledge.outcome == 'failure' || steps.ai-deploy.outcome == 'failure')
-              env:
-                  ASSISTANT_ONLY: ${{ inputs.assistant_only }}
-              run: |
-                  if [ "$ASSISTANT_ONLY" = 'true' ]; then
-                      echo '::error::Knowledge refresh failed. Check the AI deployment steps before retrying.'
-                      exit 1
-                  fi
-                  echo '::warning::AI actions were not updated. Core Studio actions were deployed successfully.'
+              run: echo '::warning::AI actions were not updated. Core Studio actions were deployed successfully.'

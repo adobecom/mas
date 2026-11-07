@@ -160,8 +160,8 @@ async function main(params) {
     measureTiming(context, 'endProcess', 'end');
     const { duration } = measureTiming(context, 'pipeline', 'start');
     const { statusCode } = returnValue;
-    if (cache === 'hit') {
-        log(`cache hit ${requestKey} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
+    if (cache === 'hit' || cache === 'stale' || cache === 'joined') {
+        log(`cache ${cache} ${requestKey} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
         return returnValue;
     }
     const measures = context.measures
@@ -175,6 +175,9 @@ async function main(params) {
     log(`pipeline completed: ${context.id} ${context.locale} -> ${statusCode} in ${duration}ms | ${timings}`, context);
     return returnValue;
 }
+
+// in-progress rebuilds by request key
+const rebuilds = new Map();
 
 async function mainProcess(context) {
     // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
@@ -227,12 +230,33 @@ async function mainProcess(context) {
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
     const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
-    const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
-    if (storedBody) {
+    const storedResponse = (body, cache) => {
         const { hash, lastModified } = cachedMetadata;
-        const response = successResponse(context, { hash, lastModified: new Date(lastModified), body: storedBody });
-        return { ...response, cache: 'hit', requestKey };
+        return { ...successResponse(context, { hash, lastModified: new Date(lastModified), body }), cache, requestKey };
+    };
+    const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
+    if (storedBody) return storedResponse(storedBody, 'hit');
+    // Concurrent requests for the same key in this container get the previous stored response, whatever its age,
+    // or wait for the rebuild already in progress when there is none.
+    let rebuild = rebuilds.get(requestKey);
+    const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, Infinity);
+    if (staleBody) return storedResponse(staleBody, 'stale');
+    const cache = rebuild ? 'joined' : 'miss';
+    if (!rebuild) {
+        rebuild = buildResponse(context, requestKey, cachedMetadata, cachedResponse);
+        if (!context.instant) {
+            rebuilds.set(requestKey, rebuild);
+            rebuild.finally(() => rebuilds.delete(requestKey)).catch(() => {});
+        }
     }
+    const built = await rebuild;
+    // error responses are copied: main() mutates the returned object
+    if (built.statusCode) return { ...built };
+    return { ...successResponse(context, built), cache, requestKey };
+}
+
+/** Runs the transformers and stores the result; resolves to `{ id, hash, lastModified, body }` or an error response. */
+async function buildResponse(context, requestKey, cachedMetadata, cachedResponse) {
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
@@ -276,8 +300,7 @@ async function mainProcess(context) {
     const hash = calculateHash(responseBody);
     const body = encode(responseBody);
     const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse });
-    const response = successResponse(context, { id: context.body?.id, hash, lastModified, body });
-    return { ...response, cache: 'miss', requestKey };
+    return { id: context.body?.id, hash, lastModified, body };
 }
 
 export { main, resetCache, PIPELINE };

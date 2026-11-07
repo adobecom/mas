@@ -50,10 +50,10 @@ async function getRequestMetadata(context) {
     return { requestKey, cachedMetadata: cachedMetadata ?? null, cachedResponse: cachedResponse ?? null };
 }
 
-/** Returns the stored encoded body when it matches the metadata hash and was refreshed recently enough. */
-function getStoredResponse(cachedMetadata, cachedResponse) {
+/** Returns the stored encoded body when it matches the metadata hash and was refreshed less than `maxAge` ago. */
+function getStoredResponse(cachedMetadata, cachedResponse, maxAge = RESPONSE_MAX_AGE) {
     if (!cachedResponse || cachedResponse.hash !== cachedMetadata?.hash) return null;
-    if (Date.now() - (cachedMetadata.refreshedAt ?? 0) > RESPONSE_MAX_AGE) return null;
+    if (Date.now() - (cachedMetadata.refreshedAt ?? 0) > maxAge) return null;
     return cachedResponse.body;
 }
 

@@ -9,6 +9,7 @@ import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/o
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
+import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
@@ -104,6 +105,82 @@ describe('pipeline end to end', () => {
         expect(hits[0]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| memory: /);
         expect(hits[1]).to.match(/cache hit req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /);
         expect(hits[1]).not.to.include('timings');
+    });
+
+    it('should rebuild once for concurrent requests on the same key', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // a slow fragment fetch keeps the first rebuild in progress while the second request reads the cache
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        let results;
+        try {
+            results = await Promise.all([
+                getFragment(request),
+                getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } }),
+            ]);
+        } finally {
+            output.restore();
+        }
+        const [first, second] = results;
+        expect(first.statusCode).to.equal(200);
+        expect(first.body).to.deep.include(EXPECTED_BODY);
+        expect(second.statusCode).to.equal(304);
+        expect(second.headers.ETag).to.equal(first.headers.ETag);
+        const fragmentFetches = fetchStub
+            .getCalls()
+            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        expect(fragmentFetches).to.have.lengthOf(1);
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+        expect(lines.find((line) => line.includes('cache joined'))).to.match(
+            /cache joined req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /,
+        );
+    });
+
+    it('should serve the previous stored response to concurrent requests while rebuilding', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+        const state = new MockState();
+        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            hash: 'old-hash',
+            lastModified: RANDOM_OLD_DATE,
+            refreshedAt: Date.now() - 10 * 60 * 1000,
+        });
+        state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+            hash: 'old-hash',
+            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+        });
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        let results;
+        try {
+            results = await Promise.all([getFragment(request), getFragment(request)]);
+        } finally {
+            output.restore();
+        }
+        const [first, second] = results;
+        expect(first.body).to.deep.include(EXPECTED_BODY);
+        expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
+        expect(second.statusCode).to.equal(200);
+        expect(second.body).to.deep.equal({ stale: true });
+        expect(second.headers.ETag).to.equal('old-hash');
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+        expect(lines.find((line) => line.includes('cache stale'))).to.match(
+            /cache stale req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| memory: /,
+        );
     });
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {

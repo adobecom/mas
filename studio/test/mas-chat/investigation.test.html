@@ -236,6 +236,13 @@
                             .click();
                         expect(event.firstCall.args[0].detail.fragment.id).to.equal('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
                     });
+                    it('keeps a finished answer that arrives without a file list', () => {
+                        current.records = [record()];
+                        const { artifacts, ...withoutFiles } = result();
+                        current.updateJob({ ...job('completed'), result: withoutFiles });
+                        expect(current.records[0].text).to.contain('different offer from the author version');
+                        expect(current.records[0].artifacts).to.deep.equal([]);
+                    });
                     it('uploads bounded images and submits opaque attachments', async () => {
                         await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
                         await current.submit('Check this card', 'Studio page');

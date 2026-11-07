@@ -391,7 +391,7 @@ export class InvestigationSession extends EventTarget {
             artifacts: result.result?.artifacts ?? [],
             lists: result.result?.lists ?? [],
         });
-        if (result.result?.artifacts.length)
+        if (result.result?.artifacts?.length)
             record.files = [...record.files, ...result.result.artifacts.map(({ filename }) => ({ name: filename }))].filter(
                 (file, index, files) => files.findIndex((item) => item.name === file.name) === index,
             );

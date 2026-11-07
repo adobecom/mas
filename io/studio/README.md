@@ -182,8 +182,8 @@ The assistant answers from mas-agent's author corpus: maintain product facts and
 
 `npm test` (in its pretest hook) and deployment jobs fetch `knowledge-author.json` from mas-agent's
 `knowledge-latest` release into `src/ai-chat/masa-knowledge.js`, which is generated and gitignored. CI mints
-a read token from the reader App (`MAS_AGENT_READER_APP_ID` variable, `MAS_AGENT_READER_APP_KEY` secret)
-and otherwise uses the `MAS_AGENT_KNOWLEDGE_TOKEN` secret. Locally, set `MAS_AGENT_KNOWLEDGE_TOKEN`, or use
+a read token from the reader App (`MAS_AGENT_READER_APP_ID` variable, `MAS_AGENT_READER_APP_KEY` secret).
+Locally, set `MAS_AGENT_KNOWLEDGE_TOKEN` to a token that can read mas-agent, or use
 an export from a mas-agent checkout (`npm run knowledge:export -- --profile author --out <file>`):
 
 ```sh

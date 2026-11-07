@@ -36,14 +36,13 @@ jobs:
             - name: Check mas-agent read access
               id: masa-access
               env:
-                  AVAILABLE: ${{ secrets.MAS_AGENT_READER_APP_KEY != '' || secrets.MAS_AGENT_KNOWLEDGE_TOKEN != '' }}
+                  AVAILABLE: ${{ secrets.MAS_AGENT_READER_APP_KEY != '' }}
               run: echo "available=$AVAILABLE" >> "$GITHUB_OUTPUT"
 
-            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
-            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            # A short-lived, read-only token from the MASA knowledge reader app.
             - name: Mint a mas-agent read token
               id: masa-token
-              if: steps.masa-access.outputs.available == 'true' && vars.MAS_AGENT_READER_APP_ID != ''
+              if: steps.masa-access.outputs.available == 'true'
               uses: actions/create-github-app-token@v3
               with:
                   app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
@@ -55,7 +54,7 @@ jobs:
             # io/studio's tests fetch the mas-agent knowledge corpus first (pretest); its coverage tests need it.
             - name: Run the tests
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token }}
                   MAS_AGENT_ACCESS: ${{ steps.masa-access.outputs.available }}
               run: |
                   if [ "$MAS_AGENT_ACCESS" = 'true' ]; then

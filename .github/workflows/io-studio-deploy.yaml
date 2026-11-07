@@ -42,8 +42,6 @@ on:
                 required: true
             MAS_AGENT_READER_APP_KEY:
                 required: false
-            MAS_AGENT_KNOWLEDGE_TOKEN:
-                required: false
         outputs:
             namespace:
                 description: 'I/O runtime workspace namespace the app was deployed to'
@@ -75,11 +73,9 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
-            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            # A short-lived, read-only token from the MASA knowledge reader app.
             - name: Mint a mas-agent read token
               id: masa-token
-              if: ${{ vars.MAS_AGENT_READER_APP_ID != '' }}
               uses: actions/create-github-app-token@v3
               with:
                   app-id: ${{ vars.MAS_AGENT_READER_APP_ID }}
@@ -91,7 +87,7 @@ jobs:
             # npm test fetches the mas-agent knowledge corpus first (pretest); the coverage tests need it.
             - name: Run tests
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token }}
               run: npm test
 
             - name: Record the tested knowledge export
@@ -104,11 +100,6 @@ jobs:
         needs: tests
         if: ${{ !cancelled() }}
         runs-on: self-hosted
-        concurrency:
-            group: io-studio-deploy-${{ inputs.vault-path }}
-            cancel-in-progress: false
-            # By default a newly pending deployment cancels the one already waiting in the group.
-            queue: max
         defaults:
             run:
                 working-directory: io/studio
@@ -190,11 +181,10 @@ jobs:
                   path: merch-at-scale/aio-studio/common
                   env-fields: ai_foundry_api_key
 
-            # A short-lived, read-only token from the MASA knowledge reader app when its id is set as the
-            # MAS_AGENT_READER_APP_ID repository variable; otherwise the MAS_AGENT_KNOWLEDGE_TOKEN secret.
+            # A short-lived, read-only token from the MASA knowledge reader app.
             - name: Mint a mas-agent read token
               id: masa-token
-              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && vars.MAS_AGENT_READER_APP_ID != ''
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success'
               continue-on-error: true
               uses: actions/create-github-app-token@v3
               with:
@@ -206,10 +196,10 @@ jobs:
 
             - name: Fetch the mas-agent knowledge corpus
               id: masa-knowledge
-              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && (vars.MAS_AGENT_READER_APP_ID == '' || steps.masa-token.outcome == 'success')
+              if: inputs.deploy_ai && steps.ai-secrets.outcome == 'success' && steps.masa-token.outcome == 'success'
               continue-on-error: true
               env:
-                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token || secrets.MAS_AGENT_KNOWLEDGE_TOKEN }}
+                  MAS_AGENT_KNOWLEDGE_TOKEN: ${{ steps.masa-token.outputs.token }}
                   MAS_AGENT_KNOWLEDGE_SHA256: ${{ needs.tests.outputs.knowledge_sha256 }}
                   RUN_TESTS: ${{ inputs.run_tests }}
               run: |

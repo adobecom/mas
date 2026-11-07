@@ -3,7 +3,7 @@ import { openOfferSelectorTool, closeOfferSelectorTool } from './rte/ost.js';
 import { EVENT_OST_OFFER_SELECT, EVENT_OST_MULTI_OFFER_SELECT, EVENT_OST_SELECT } from './constants.js';
 import './rte/rte-field.js';
 import { pasteTextFromClipboardHtml } from './utils/chat-paste.js';
-import { MAX_IMAGES } from './mas-chat/investigation-session.js';
+import { IMAGE_TYPES, MAX_IMAGES } from './mas-chat/investigation-session.js';
 
 /**
  * Chat Input Component
@@ -278,6 +278,10 @@ export class MasChatInput extends LitElement {
         return this.images.some((image) => image.status === 'uploading');
     }
 
+    get attachDisabled() {
+        return this.disabled || this.uploading || this.images.length >= MAX_IMAGES;
+    }
+
     handleRemoveImage(id) {
         this.dispatchEvent(new CustomEvent('remove-image', { detail: { id }, bubbles: true, composed: true }));
     }
@@ -360,16 +364,16 @@ export class MasChatInput extends LitElement {
                                       type="file"
                                       aria-label="Attach image"
                                       multiple
-                                      accept="image/png,image/jpeg,image/gif,image/webp"
+                                      accept=${IMAGE_TYPES.join(',')}
                                       hidden
-                                      ?disabled=${this.disabled || this.uploading || this.images.length >= MAX_IMAGES}
+                                      ?disabled=${this.attachDisabled}
                                       @change=${this.handleChooseImages}
                                   />
                                   <sp-action-button
                                       quiet
                                       size="s"
                                       @click=${() => this.querySelector('.file-input').click()}
-                                      ?disabled=${this.disabled || this.uploading || this.images.length >= MAX_IMAGES}
+                                      ?disabled=${this.attachDisabled}
                                       title="Attach image"
                                   >
                                       <sp-icon-attach slot="icon"></sp-icon-attach>

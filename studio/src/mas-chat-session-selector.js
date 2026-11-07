@@ -204,7 +204,6 @@ export class MasChatSessionSelector extends LitElement {
     renderSessionItem(session) {
         const isActive = session.id === this.activeSessionId;
         const messageCount = session.messages?.length || 0;
-        const investigationCount = session.investigations?.length ?? 0;
 
         return html`
             <div class="session-item ${isActive ? 'active' : ''}" @click=${() => this.handleSessionSelect(session.id)}>
@@ -212,9 +211,6 @@ export class MasChatSessionSelector extends LitElement {
                     <div class="session-name">${session.name}</div>
                     <div class="session-meta">
                         ${messageCount} message${messageCount !== 1 ? 's' : ''} • ${this.formatDate(session.updatedAt)}
-                        ${investigationCount
-                            ? html` • ${investigationCount} investigation${investigationCount === 1 ? '' : 's'}`
-                            : ''}
                     </div>
                 </div>
                 <div class="session-actions" @click=${(e) => e.stopPropagation()}>

@@ -29,12 +29,7 @@ export function resetMasaAvailability() {
     unavailable = false;
 }
 
-/** Input errors are shown as an editable error and never fall back. */
+/** Input errors are shown as an editable error and never fall back; any other failure is answered from built-in knowledge. */
 export function isUserInputError(error) {
     return USER_INPUT_CODES.has(error.code);
-}
-
-/** Any other MASA failure is answered from Studio's built-in assistant. */
-export function isFallbackFailure(error) {
-    return !isUserInputError(error);
 }

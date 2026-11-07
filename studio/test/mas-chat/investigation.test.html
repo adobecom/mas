@@ -573,19 +573,13 @@
                         sessionManager.deleteSession(chat.id);
                         expect(sessionManager.getSession(chat.id)).to.equal(null);
                     });
-                    it('retains the exact upload descriptor after an uncertain binary response', async () => {
-                        const upload = sinon.stub(current.client, 'upload');
-                        upload.onCall(0).callsFake(async (_conversation, _session, intent) => {
+                    it('never saves an upload grant after an uncertain binary response', async () => {
+                        sinon.stub(current.client, 'upload').callsFake(async (conversationId, sessionId, intent) => {
                             intent.descriptor = { grant: 'only-in-memory', expiresAt: new Date(now + 120000).toISOString() };
                             throw new MasaClientError('connection-unavailable', 'Offline', 0, 5);
                         });
-                        upload.onCall(1).resolves({ id: imageId });
                         await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
-                        const intent = current.uploadIntent;
-                        clockNow += 5000;
-                        await current.retryUpload();
-                        expect(upload.secondCall.args[2]).to.equal(intent);
-                        expect(current.images).to.have.length(1);
+                        expect(current.images).to.have.length(0);
                         expect(JSON.stringify(saved)).not.to.contain('only-in-memory');
                     });
                     it('keeps the session creation key after an uncertain creation response', async () => {

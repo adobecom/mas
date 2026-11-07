@@ -144,7 +144,7 @@ describe('MASA answer in the thread', () => {
 
         it('adds the longer-investigation note from 120 seconds', async () => {
             const el = await mountAnswer(startedAgo(125000));
-            expect(statusText(el)).to.equal('Still checking · 14 checks · 2:05 · Longer investigations can take a few minutes');
+            expect(statusText(el)).to.equal('Still checking · 14 checks · 2:05 · Some answers take a few minutes');
         });
 
         it('omits the check count while there are none', async () => {
@@ -175,7 +175,7 @@ describe('MASA answer in the thread', () => {
         it('says MASA could not finish when the investigation ran out of budget', async () => {
             const el = await mountAnswer(makeController(), { fallback: { content: '', reason: 'unfinished' } });
             expect(el.shadowRoot.textContent)
-                .to.contain("MASA couldn't finish this investigation · answered from Studio's built-in knowledge")
+                .to.contain("MASA couldn't finish this answer · answered from Studio's built-in knowledge")
                 .and.to.contain('Ask MASA again')
                 .and.not.to.contain('MASA unavailable');
         });

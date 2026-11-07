@@ -1,7 +1,7 @@
 import { LitElement } from 'lit';
 import { getInvestigationSession } from './investigation-session.js';
 
-/** Binds an element to its conversation's investigation session: re-renders on change and polls while it needs to. */
+/** Binds an element to its conversation's MASA session: re-renders on change and polls while it needs to. */
 export class MasaSessionElement extends LitElement {
     static properties = {
         conversationId: { type: String },

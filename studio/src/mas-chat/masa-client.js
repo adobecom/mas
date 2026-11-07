@@ -1,6 +1,6 @@
 import { getAIChatBaseURL } from './config.js';
 
-/** A recoverable transport/admission failure that the investigation UI can explain and retry. */
+/** A recoverable transport/admission failure that the chat can explain and retry. */
 export class MasaClientError extends Error {
     constructor(code, message, status = 0, retryAfter = 0) {
         super(message);
@@ -18,7 +18,7 @@ export async function mediaDigest(bytes) {
 
 function accessToken() {
     const token = window.adobeIMS.getAccessToken()?.token;
-    if (!token) throw new MasaClientError('invalid-studio-identity', 'Sign in again to use investigations.', 401);
+    if (!token) throw new MasaClientError('invalid-studio-identity', 'Sign in again to ask MASA.', 401);
     return token;
 }
 

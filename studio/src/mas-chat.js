@@ -45,10 +45,10 @@ import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
-import { askMasa as submitMasaQuestion, buildMasaContext } from './mas-chat/masa-ask.js';
+import { askMasa as submitMasaQuestion, buildMasaContext, MASA_BUSY_MESSAGE } from './mas-chat/masa-ask.js';
 import { typingIndicator } from './mas-chat/typing-indicator.js';
 import { isMasaAvailable, rememberFailure, resetMasaAvailability, isUserInputError } from './mas-chat/masa-availability.js';
-import { getInvestigationSession } from './mas-chat/investigation-session.js';
+import { getInvestigationSession, isRunning } from './mas-chat/investigation-session.js';
 
 /**
  * Shown beside the typing indicator while the follow-up turn runs. The
@@ -57,7 +57,7 @@ import { getInvestigationSession } from './mas-chat/investigation-session.js';
  */
 const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
 
-/** MASA ran but could not back up an answer: labelled as unfinished, not as unavailable. */
+/** MASA ran out of budget or time, or could not back up an answer: labelled as unfinished, not as unavailable. */
 const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-timeout', 'masa-timeout', 'answer-unavailable'];
 
 /**
@@ -69,10 +69,7 @@ const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-
  */
 const GUIDED_FLOW_HINTS = new Set(['guided_search', 'guided_offer_search', 'guided_help', 'release', 'collection']);
 
-/** Shown when a conversation asks MASA a second question before the first is answered. */
-const MASA_BUSY_MESSAGE = 'MASA is still answering the previous question.';
-
-/** Button value of "Cancel it" on that message. */
+/** Button value of "Cancel it" on the message shown when a conversation asks MASA twice at once. */
 const MASA_CANCEL = 'masa-cancel';
 
 /** Shown on a MASA message whose answer an earlier page left unfinished. */
@@ -1508,7 +1505,7 @@ export class MasChat extends LitElement {
                 : message,
         );
         const session = getInvestigationSession(this.currentSessionId);
-        const running = session.records.find((record) => ['queued', 'running'].includes(record.status));
+        const running = session.records.find(isRunning);
         if (running) session.cancel(running);
     }
 

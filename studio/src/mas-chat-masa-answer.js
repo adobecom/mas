@@ -1,9 +1,9 @@
 import { html, css, nothing } from 'lit';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { MasaSessionElement } from './mas-chat/masa-session-element.js';
+import { isRunning } from './mas-chat/investigation-session.js';
 import { parseAnswerMarkdown } from './utils/markdown-parser.js';
 
-const pendingStatus = ['queued', 'running'];
 const STATUS_AFTER_MS = 15000;
 const LONG_WAIT_AFTER_MS = 120000;
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
@@ -132,14 +132,14 @@ export class MasChatMasaAnswer extends MasaSessionElement {
     }
 
     get shouldPoll() {
-        return Boolean(this.record && pendingStatus.includes(this.record.status));
+        return Boolean(this.record && isRunning(this.record));
     }
 
     /** What to call the answer while it is on its way: the built-in fallback, the submission or a running job. */
     get workingLabel() {
         if (this.fallback) return this.fallback.pending ? 'Answer in progress' : null;
         if (this.failure) return null;
-        if (this.record) return pendingStatus.includes(this.record.status) ? 'MASA is working on it' : null;
+        if (this.record) return isRunning(this.record) ? 'MASA is working on it' : null;
         return this.activeController?.busy ? 'MASA is working on it' : null;
     }
 
@@ -174,7 +174,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         </div>`;
     }
 
-    /** Visible text for a long wait, so a quiet investigation does not look like a timed-out session. */
+    /** Visible text for a long wait, so a quiet question does not look like a timed-out session. */
     waitStatus(record) {
         const elapsed = record.startedAt
             ? this.activeController.now() - Date.parse(record.startedAt)
@@ -185,7 +185,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
             'Still checking',
             checks > 0 && `${checks} checks`,
             clock(elapsed),
-            elapsed >= LONG_WAIT_AFTER_MS && 'Longer investigations can take a few minutes',
+            elapsed >= LONG_WAIT_AFTER_MS && 'Some answers take a few minutes',
         ]
             .filter(Boolean)
             .join(' · ');
@@ -208,7 +208,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         const { content, pending, reason } = this.fallback;
         const label =
             reason === 'unfinished'
-                ? "MASA couldn't finish this investigation · answered from Studio's built-in knowledge"
+                ? "MASA couldn't finish this answer · answered from Studio's built-in knowledge"
                 : "Answered from Studio's built-in knowledge, MASA unavailable";
         return html`<p class="placeholder">${label}</p>
             ${reason === 'unfinished'
@@ -228,8 +228,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
     /** A completed answer is just its finding; every other state says where the job stands. */
     statusTemplate(record) {
         if (record.status === 'completed') return nothing;
-        if (!pendingStatus.includes(record.status))
-            return html`<div class="status"><sp-badge>${record.status}</sp-badge></div>`;
+        if (!isRunning(record)) return html`<div class="status"><sp-badge>${record.status}</sp-badge></div>`;
         return this.workingTemplate(
             html`<sp-button
                 size="s"
@@ -253,7 +252,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         return html`${this.statusTemplate(record)}
         ${record.text ? html`<div class="finding">${unsafeHTML(parseAnswerMarkdown(record.text))}</div>` : nothing}
         ${record.status === 'failed' || record.status === 'interrupted'
-            ? html`<p>MASA could not complete this investigation. You can submit a new question.</p>`
+            ? html`<p>MASA could not finish this answer. You can ask a new question.</p>`
             : nothing}
         ${(record.lists ?? []).map(
             (list) =>

@@ -245,11 +245,8 @@ function extractSurfaceFromPath(path) {
 }
 
 /**
- * Detect release/NPI intent in user message
- * @param {string} message - User message
- * @returns {boolean} - True if message contains release/NPI intent
- */
-/**
+ * Detect release/NPI intent in user message.
+ *
  * Note on the `[MCS product data retrieved ...]` marker: it is deliberately not
  * a release signal. The client emits it only from continueWithOperationResult, which
  * runs only when the active flow is NOT release — the release flow renders its
@@ -257,6 +254,9 @@ function extractSurfaceFromPath(path) {
  * prompt and tools onto a turn needing neither, pushing it past the budget.
  * An earlier user turn that mentioned a release does not count: a release in progress is
  * carried by the Step 1 question below, the active flow and the flow recorded in the history.
+ * @param {string} message - User message
+ * @param {Array} conversationHistory - Earlier turns; only the last assistant turn is read
+ * @returns {boolean} - True if message contains release/NPI intent
  */
 export function isReleaseIntent(message, conversationHistory = []) {
     const releaseKeywords = [
@@ -1567,7 +1567,7 @@ export function inferGuidedFlowFromHistory(conversationHistory) {
  */
 function determineSystemPromptWithMeta(intentHint, conversationHistory, message, context) {
     if (intentHint === 'documentation') {
-        return { prompt: buildDocumentationPrompt(message), isDocumentation: true, isCardCreation: false };
+        return { prompt: buildDocumentationPrompt(), isDocumentation: true, isCardCreation: false };
     }
 
     if (intentHint === 'release') {
@@ -1668,7 +1668,7 @@ function determineSystemPromptWithMeta(intentHint, conversationHistory, message,
 
     // No operation or guided-flow match: fall through to documentation.
     return {
-        prompt: buildDocumentationPrompt(message),
+        prompt: buildDocumentationPrompt(),
         isDocumentation: true,
         isCardCreation: false,
     };
@@ -1694,7 +1694,7 @@ function promptFromClassifierLabel(label, message, context) {
             };
         case 'documentation':
             return {
-                prompt: buildDocumentationPrompt(message),
+                prompt: buildDocumentationPrompt(),
                 isDocumentation: true,
                 isCardCreation: false,
             };

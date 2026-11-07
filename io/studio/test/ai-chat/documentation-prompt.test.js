@@ -9,7 +9,7 @@ describe('ai-chat/documentation-prompt', () => {
     });
 
     it('derives supported actions from the registry instead of promising unsupported operations', async () => {
-        const prompt = buildDocumentationPrompt('how do I publish a card?');
+        const prompt = buildDocumentationPrompt();
         const { INTENTS } = await import('../../src/ai-chat/intent-registry.js');
         for (const intent of INTENTS.filter((entry) => entry.tool_target)) {
             expect(prompt).to.include(`${intent.name}: ${intent.description}`);
@@ -28,7 +28,7 @@ describe('ai-chat/documentation-prompt', () => {
     });
 
     it('keeps the no-JSON output contract for documentation answers', () => {
-        const prompt = buildDocumentationPrompt('how do I publish a card?');
+        const prompt = buildDocumentationPrompt();
         expect(prompt).to.include('NEVER include JSON in documentation responses');
     });
 });

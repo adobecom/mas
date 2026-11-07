@@ -57,7 +57,7 @@ class MasTopNav extends LitElement {
             await endAllInvestigations();
         } catch (error) {
             if (!(error instanceof MasaClientError)) throw error;
-            showToast('Could not end the investigation session. Retry sign out when the connection is restored.', 'negative');
+            showToast('Could not end the MASA session. Retry sign out when the connection is restored.', 'negative');
             return;
         }
         window.adobeIMS.signOut();

@@ -4,9 +4,9 @@ import { MasaClient, MasaClientError } from './masa-client.js';
 export const MAX_IMAGES = 3;
 export const MAX_IMAGE_BYTES = 5000000;
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+export const isRunning = (record) => ['queued', 'running'].includes(record.status);
 
 const sessions = new Map();
-const running = (record) => ['queued', 'running'].includes(record.status);
 const retryable = (error) => [0, 429, 502, 503, 504].includes(error.status);
 
 /** Persist text and opaque control IDs only; files, grants, URLs and resumable upload bodies stay in memory. */
@@ -130,7 +130,7 @@ export class InvestigationSession extends EventTarget {
 
     /** True while a submission is in flight or any job is queued or running. */
     get isBusy() {
-        return Boolean(this.pending) || this.records.some(running);
+        return Boolean(this.pending) || this.records.some(isRunning);
     }
 
     /** True while perform() would skip a task: another task runs, the session is ending, or MASA asked Studio to wait. */
@@ -176,7 +176,7 @@ export class InvestigationSession extends EventTarget {
         if (closedSession) {
             this.session = { ...this.session, status: 'expired' };
             this.pending = null;
-            for (const record of this.records.filter(running)) record.status = 'interrupted';
+            for (const record of this.records.filter(isRunning)) record.status = 'interrupted';
         }
     }
 
@@ -236,7 +236,7 @@ export class InvestigationSession extends EventTarget {
             this.session = { id: sessionId, status: 'expired' };
             this.pending = null;
             this.expire();
-            for (const record of this.records.filter(running)) record.status = 'interrupted';
+            for (const record of this.records.filter(isRunning)) record.status = 'interrupted';
         }
         this.notify();
     }
@@ -244,7 +244,7 @@ export class InvestigationSession extends EventTarget {
     imageRejection(file) {
         if (this.images.length + this.uploads.length >= MAX_IMAGES) return `You can attach up to ${MAX_IMAGES} images.`;
         if (!IMAGE_TYPES.includes(file.type) || file.size < 1) return 'Only PNG, JPEG, GIF or WebP images can be attached.';
-        if (file.size > MAX_IMAGE_BYTES) return 'Images must be 5 MB or smaller.';
+        if (file.size > MAX_IMAGE_BYTES) return `Images must be ${MAX_IMAGE_BYTES / 1000000} MB or smaller.`;
         return null;
     }
 
@@ -281,30 +281,10 @@ export class InvestigationSession extends EventTarget {
 
     async completeUpload() {
         const intent = this.uploadIntent;
-        let attachment;
-        try {
-            attachment = await this.client.upload(this.conversationId, this.session.id, intent);
-        } catch (error) {
-            if (error instanceof MasaClientError && error.code === 'transfer-expired') {
-                intent.descriptor = null;
-                intent.key = crypto.randomUUID();
-            }
-            throw error;
-        }
+        const attachment = await this.client.upload(this.conversationId, this.session.id, intent);
         if (this.session.status !== 'active') return;
         this.images.push({ id: attachment.id, name: intent.file.name, preview: URL.createObjectURL(intent.file) });
         this.uploadIntent = null;
-    }
-
-    async retryUpload() {
-        await this.perform(async () => {
-            if (!this.uploadIntent) return;
-            if (this.uploadIntent.descriptor && Date.parse(this.uploadIntent.descriptor.expiresAt) <= this.now()) {
-                this.uploadIntent.key = crypto.randomUUID();
-                this.uploadIntent.descriptor = null;
-            }
-            await this.completeUpload();
-        });
     }
 
     removeImage(id) {
@@ -317,7 +297,7 @@ export class InvestigationSession extends EventTarget {
 
     async submit(question, context) {
         await this.perform(async () => {
-            if (this.pending || this.records.some(running)) return;
+            if (this.pending || this.records.some(isRunning)) return;
             if (!question.trim() || question.length > 6000 || context.length > 6000) {
                 throw new MasaClientError('invalid-question', 'Enter a question of up to 6,000 characters.');
             }
@@ -424,7 +404,7 @@ export class InvestigationSession extends EventTarget {
         this.polling = controller;
         const signal = controller.signal;
         try {
-            for (const record of this.records.filter(running)) {
+            for (const record of this.records.filter(isRunning)) {
                 const { result, retryAfter } = await this.client.control(
                     this.conversationId,
                     'investigation.get',
@@ -444,7 +424,7 @@ export class InvestigationSession extends EventTarget {
             if (!(error instanceof MasaClientError)) throw error;
             this.fail(error);
             if ([404, 410].includes(error.status)) {
-                for (const record of this.records.filter(running)) record.status = 'interrupted';
+                for (const record of this.records.filter(isRunning)) record.status = 'interrupted';
             }
             this.pollAfter = this.now() + Math.max(5, error.retryAfter) * 1000;
         } finally {
@@ -502,7 +482,7 @@ export class InvestigationSession extends EventTarget {
         try {
             await this.inFlight;
             const ids = new Set(
-                [this.leaseId, this.restoreId, ...this.records.filter(running).map((item) => item.sessionId)].filter(Boolean),
+                [this.leaseId, this.restoreId, ...this.records.filter(isRunning).map((item) => item.sessionId)].filter(Boolean),
             );
             if (ids.size && this.now() < this.retryAt) throw this.error;
             for (const sessionId of ids) {
@@ -518,7 +498,7 @@ export class InvestigationSession extends EventTarget {
             this.restoreId = null;
             this.createKey = null;
             if (this.session) this.session = { ...this.session, status: 'ended' };
-            for (const record of this.records.filter(running)) record.status = 'cancelled';
+            for (const record of this.records.filter(isRunning)) record.status = 'cancelled';
             this.error = null;
         } finally {
             this.ending = false;
@@ -542,7 +522,7 @@ export class InvestigationSession extends EventTarget {
         if ([401, 403].includes(this.error?.status)) return;
         if (this.restoreId) await this.perform(() => this.restore());
         if (this.session?.status === 'active' && Date.parse(this.session.expiresAt) <= this.now()) this.expire();
-        if (this.records.some(running)) await this.refresh();
+        if (this.records.some(isRunning)) await this.refresh();
         else if (
             this.session?.status === 'active' &&
             Date.parse(this.session.expiresAt) - this.now() > 120000 &&

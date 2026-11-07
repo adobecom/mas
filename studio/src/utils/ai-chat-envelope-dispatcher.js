@@ -5,7 +5,7 @@
  * every response (intent + slots + confidence + meta). This module classifies
  * the envelope into one of:
  *
- *   - `meta`            — ASK_USER / ABORT / START_OVER / SHOW_HELP / REPORT_ERROR
+ *   - `meta`            — ASK_USER / ASK_MASA / ABORT / START_OVER / SHOW_HELP / REPORT_ERROR
  *   - `operation`             — read-only or state-changing operation intent, with a tool_target
  *   - `guided`          — guided-step intent inside a flow (release_create.*, attach_offer, etc.)
  *   - `unknown`         — intent not in the registry → fall back to old response.type

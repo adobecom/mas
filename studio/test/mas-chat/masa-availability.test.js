@@ -4,7 +4,6 @@ import {
     isMasaAvailable,
     rememberFailure,
     resetMasaAvailability,
-    isFallbackFailure,
     isUserInputError,
 } from '../../src/mas-chat/masa-availability.js';
 
@@ -60,16 +59,14 @@ describe('masa-availability', () => {
         });
     });
 
-    it('treats input errors as neither fallback nor unavailability', () => {
+    it('tells input errors apart from every other MASA failure', () => {
         INPUT_CODES.forEach((code) => {
             const error = new MasaClientError(code, '');
             expect(isUserInputError(error)).to.be.true;
-            expect(isFallbackFailure(error)).to.be.false;
         });
         [...REMEMBERED_CODES, ...NOT_REMEMBERED_CODES].forEach((code) => {
             const error = new MasaClientError(code, '');
             expect(isUserInputError(error)).to.be.false;
-            expect(isFallbackFailure(error)).to.be.true;
         });
     });
 

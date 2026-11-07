@@ -1,9 +1,9 @@
 import { MasaClientError } from './masa-client.js';
-import { endIdleSessions, getInvestigationSession } from './investigation-session.js';
+import { endIdleSessions, getInvestigationSession, isRunning } from './investigation-session.js';
 
 const CONTEXT_LIMIT = 4000;
-const running = (record) => ['queued', 'running'].includes(record.status);
-const busyError = () => new MasaClientError('masa-conversation-busy', 'MASA is still answering the previous question.');
+export const MASA_BUSY_MESSAGE = 'MASA is still answering the previous question.';
+const busyError = () => new MasaClientError('masa-conversation-busy', MASA_BUSY_MESSAGE);
 
 /** Text of a thread message as MASA should see it, or null when it carries nothing to share. */
 function turnLabel(message, conversationId) {
@@ -71,7 +71,7 @@ function settled(session, id) {
     return new Promise((resolve) => {
         const check = () => {
             const current = session.records.find((item) => item.id === id);
-            if (current && running(current)) return;
+            if (current && isRunning(current)) return;
             session.removeEventListener('change', check);
             resolve(current);
         };
@@ -83,7 +83,7 @@ function settled(session, id) {
 /** Submit one question to the conversation's MASA session and resolve with its completed record. */
 export async function askMasa({ conversationId, question, context, onRecord }) {
     const session = getInvestigationSession(conversationId);
-    if (session.records.some(running)) throw busyError();
+    if (session.records.some(isRunning)) throw busyError();
     const detach = session.attach();
     try {
         let accepted;

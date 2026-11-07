@@ -119,7 +119,7 @@ async function main() {
         rmSync(temporary, { force: true });
     }
     console.log(
-        `wrote ${chunks.length} mas-agent knowledge chunks (revision ${corpus.revision ?? 'unknown'}) to src/ai-chat/masa-knowledge.js`,
+        `wrote ${chunks.length} mas-agent knowledge chunks (revision ${corpus.revision}) to src/ai-chat/masa-knowledge.js`,
     );
 }
 

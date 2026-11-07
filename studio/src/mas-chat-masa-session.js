@@ -2,7 +2,7 @@ import { html, css, nothing } from 'lit';
 import { MasaSessionElement } from './mas-chat/masa-session-element.js';
 import { MasaClientError } from './mas-chat/masa-client.js';
 
-/** Session lease status, expiry warning and renewal for a conversation's MASA investigations. */
+/** Session lease status, expiry warning and renewal for a conversation's MASA questions. */
 export class MasChatMasaSession extends MasaSessionElement {
     static styles = css`
         :host {

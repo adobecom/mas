@@ -1,11 +1,9 @@
 /**
  * In-process lexical retriever over mas-agent's generated author snapshot.
  *
- * Replaces the remote OpenSearch knowledge service: the corpus is small
- * (tens of pages), so idf-weighted query-term coverage over pre-tokenized
- * chunks retrieves comparably to embeddings at zero infrastructure cost.
- * Interface-compatible with the old KnowledgeClient — queryWithSources
- * returns { context, sources } and never throws.
+ * Ranks chunks by idf-weighted query-term coverage; each chunk is tokenized once,
+ * when the retriever is built. queryWithSources returns { context, sources } and
+ * never throws.
  *
  * Scores are normalized 0..1 (share of the query's idf weight covered by
  * the chunk), so the existing minScore thresholds keep their meaning:
@@ -122,7 +120,7 @@ function normalize(token) {
     return base;
 }
 
-export function tokenize(text) {
+function tokenize(text) {
     if (!text || typeof text !== 'string') return [];
     const raw = text.toLowerCase().match(/[a-z0-9][a-z0-9_-]*/g) ?? [];
     return raw.map(normalize);

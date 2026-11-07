@@ -236,7 +236,7 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         await thread.firstCall.returnValue;
         const answer = await lastAnswerElement(el);
         expect(answer.shadowRoot.textContent)
-            .to.contain("MASA couldn't finish this investigation · answered from Studio's built-in knowledge")
+            .to.contain("MASA couldn't finish this answer · answered from Studio's built-in knowledge")
             .and.to.contain('Ask MASA again')
             .and.not.to.contain('MASA unavailable');
     });
@@ -585,12 +585,5 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         el.requestUpdate();
         await el.updateComplete;
         expect(el.querySelector('.chat-input mas-chat-masa-session').conversationId).to.equal(el.currentSessionId);
-    });
-
-    it('has no Chat / Investigate switch', async () => {
-        await el.updateComplete;
-        expect(el.querySelector('.investigation-switcher')).to.equal(null);
-        expect(el.querySelector('mas-chat-investigation')).to.equal(null);
-        expect(customElements.get('mas-chat-investigation')).to.equal(undefined);
     });
 });

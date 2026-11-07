@@ -278,6 +278,18 @@ describe('MASA answer in the thread', () => {
         expect(event.bubbles && event.composed).to.equal(true);
     });
 
+    it('renders points as a bulleted list in the finding', async () => {
+        const text = findingText({ answer: { type: 'explain', answer: 'Why.', points: ['A', 'B'] } });
+        const el = await mountAnswer(makeController({ history: [{ ...record(), text }] }));
+        expect(el.shadowRoot.querySelectorAll('.finding ul > li').length).to.equal(2);
+    });
+
+    it('renders steps as a numbered list in the finding', async () => {
+        const text = findingText({ answer: { type: 'explain', answer: 'How.', steps: ['A', 'B'] } });
+        const el = await mountAnswer(makeController({ history: [{ ...record(), text }] }));
+        expect(el.shadowRoot.querySelectorAll('.finding ol > li').length).to.equal(2);
+    });
+
     it('renders a markdown link in the finding that opens in a new tab', async () => {
         const controller = makeController({
             history: [{ ...record(), text: 'Open [the card](https://mas.adobe.com/studio.html#page=content).' }],

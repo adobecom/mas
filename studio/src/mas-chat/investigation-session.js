@@ -17,9 +17,65 @@ export function investigationHistory(records) {
     }));
 }
 
+const SENTENCE_END = /[.!?…)"'\]]$/;
+const LOWERCASE_OPENERS = new Set([
+    'a',
+    'an',
+    'the',
+    'one',
+    'your',
+    'which',
+    'where',
+    'whether',
+    'what',
+    'how',
+    'if',
+    'any',
+    'either',
+]);
+
+/** Same rule as the MASA Slack reply: end a line of prose with a full stop unless it already ends one. */
+const asSentence = (text) => {
+    const trimmed = String(text).trim();
+    return SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
+};
+
+/** An ask names the thing needed, so after "I need" an opener like "A" or "The" loses its capital; names keep it. */
+const leadIn = (text) => {
+    const trimmed = String(text).trim();
+    const [first = ''] = trimmed.split(/\s+/, 1);
+    return LOWERCASE_OPENERS.has(first.toLowerCase()) && /^[A-Z][a-z]*$/.test(first)
+        ? `${first.toLowerCase()}${trimmed.slice(first.length)}`
+        : trimmed;
+};
+
+const documentBlocks = (answer) => [
+    `**${answer.title}**`,
+    answer.summary,
+    ...(answer.sections ?? []).map(({ heading, body }) => `**${heading}**\n\n${String(body).trim()}`),
+    answer.gaps?.length && ['**Check before publishing:**', ...answer.gaps.map((gap) => `- ${gap}`)].join('\n'),
+];
+
+const bodyBlocks = (answer) => {
+    const points = answer.points ?? [];
+    const steps = answer.steps ?? [];
+    const folded = [...(points.length === 1 ? points : []), ...(steps.length === 1 && points.length <= 1 ? steps : [])];
+    const asks = (answer.asks ?? []).map((ask) => asSentence(leadIn(ask.text)));
+    const nextCheck = answer.nextCheck ?? answer.next_check;
+    return [
+        folded.length ? [answer.answer, ...folded].map(asSentence).join(' ') : answer.answer,
+        points.length > 1 && points.map((point) => `- ${point}`).join('\n'),
+        steps.length === 1 && points.length > 1 && asSentence(steps[0]),
+        steps.length > 1 && steps.map((step, index) => `${index + 1}. ${step}`).join('\n'),
+        nextCheck && `**Next check:** ${nextCheck}`,
+        asks.length === 1 && `To check this, I need ${asks[0]}`,
+        asks.length > 1 && ['To check this, I need:', ...asks.map((ask) => `- ${ask}`)].join('\n'),
+    ];
+};
+
 /**
- * Render structured MASA findings as text without adding a second knowledge or action interpreter.
- * Evidence stays out: Studio does not show it and never sends it back as context.
+ * Render structured MASA findings as Markdown laid out the way the MASA Slack reply is.
+ * Evidence, the deciding source line, layer, verdict and confidence stay out: they are MASA's proof, not the reply.
  */
 export function findingText(result) {
     if (!result) return '';
@@ -27,15 +83,10 @@ export function findingText(result) {
     const answer = result.answer;
     if (!answer) return 'No final finding is available.';
     if (answer.type === 'decline') return 'MASA can investigate Merch at Scale questions only.';
+    if (answer.type === 'clarify') return answer.question ?? '';
     return [
-        answer.answer ?? answer.question,
-        ...(answer.points ?? []).map((point) => `• ${point}`),
-        ...(answer.steps ?? []).map((step, index) => `${index + 1}. ${step}`),
-        answer.layer && `Layer: ${answer.layer}`,
-        answer.verdict && `Verdict: ${answer.verdict}`,
-        answer.next_check && `Next check: ${answer.next_check}`,
-        answer.deciding,
-        result.budgetExhausted && `Partial finding: ${result.budgetExhaustedBy ?? 'investigation'} budget reached.`,
+        ...(answer.type === 'document' ? documentBlocks(answer) : bodyBlocks(answer)),
+        result.budgetExhausted && `_Partial finding: ${result.budgetExhaustedBy ?? 'investigation'} budget reached._`,
     ]
         .filter(Boolean)
         .join('\n\n');

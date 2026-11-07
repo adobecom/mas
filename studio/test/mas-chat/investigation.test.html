@@ -323,23 +323,92 @@
                             .to.contain('different offer')
                             .and.not.to.contain('Author and publish snapshots differ');
                     });
-                    it('leaves internal key and value maps out of the finding text', () => {
-                        const answer = {
-                            ...result().answer,
-                            steps: ['Open the card in Studio.'],
-                            readout: { kind: 'access' },
-                            route: { owner: 'x' },
-                            alert: { level: 'y' },
-                        };
-                        const text = findingText({ ...result(), answer });
-                        expect(text).not.to.contain('kind:').and.not.to.contain('owner:').and.not.to.contain('level:');
-                        expect(text)
-                            .to.contain('different offer from the author version')
-                            .and.to.contain('1. Open the card in Studio.');
-                    });
-                    it('leaves confidence out of the finding text', () => {
-                        const answer = { ...result().answer, confidence: 'medium' };
-                        expect(findingText({ ...result(), answer })).not.to.contain('Confidence');
+                    describe('finding text layout', () => {
+                        const text = (answer) => findingText({ ...result(), answer });
+                        const base = { type: 'explain', answer: 'The card shows the wrong offer' };
+
+                        it('leaves internal key and value maps out of the finding text', () => {
+                            const out = text({
+                                ...base,
+                                readout: { kind: 'access' },
+                                route: { owner: 'x' },
+                                alert: { level: 'y' },
+                            });
+                            expect(out).not.to.contain('kind:').and.not.to.contain('owner:').and.not.to.contain('level:');
+                            expect(out).to.equal('The card shows the wrong offer');
+                        });
+                        it('leaves the deciding code line out of the answer', () => {
+                            const code = 'const notInProject = geoTags.filter((tag) => !projectGeos.includes(tag));';
+                            expect(text({ ...base, deciding: code })).not.to.contain('geoTags');
+                        });
+                        it('leaves layer, verdict and confidence out of the finding text', () => {
+                            const out = text({ ...base, layer: 'io', verdict: 'confirmed', confidence: 'medium' });
+                            expect(out).not.to.contain('Layer').and.not.to.contain('Verdict');
+                            expect(out).not.to.contain('Confidence').and.not.to.contain('confirmed');
+                        });
+                        it('lists three points as bullets after a blank line', () => {
+                            expect(text({ ...base, points: ['One', 'Two', 'Three'] })).to.equal(
+                                'The card shows the wrong offer\n\n- One\n- Two\n- Three',
+                            );
+                        });
+                        it('folds one point and one step into a paragraph of sentences', () => {
+                            expect(text({ ...base, points: ['It was edited'], steps: ['Republish the card'] })).to.equal(
+                                'The card shows the wrong offer. It was edited. Republish the card.',
+                            );
+                        });
+                        it('numbers two steps', () => {
+                            expect(text({ ...base, steps: ['Open it', 'Publish it'] })).to.equal(
+                                'The card shows the wrong offer\n\n1. Open it\n2. Publish it',
+                            );
+                        });
+                        it('puts one step after two points as a sentence', () => {
+                            expect(text({ ...base, points: ['A', 'B'], steps: ['Republish'] })).to.equal(
+                                'The card shows the wrong offer\n\n- A\n- B\n\nRepublish.',
+                            );
+                        });
+                        it('adds the next check', () => {
+                            expect(text({ ...base, nextCheck: 'Open the card in Studio.' })).to.equal(
+                                'The card shows the wrong offer\n\n**Next check:** Open the card in Studio.',
+                            );
+                        });
+                        it('still reads the snake case next check', () => {
+                            expect(text({ ...base, next_check: 'Open it.' })).to.contain('**Next check:** Open it.');
+                        });
+                        it('phrases one ask as a sentence after the lead', () => {
+                            expect(text({ ...base, asks: [{ need: 'link', text: 'A MAS Studio link to the card' }] })).to.equal(
+                                'The card shows the wrong offer\n\nTo check this, I need a MAS Studio link to the card.',
+                            );
+                        });
+                        it('lists several asks as bullets', () => {
+                            const asks = [
+                                { need: 'a', text: 'The card link' },
+                                { need: 'b', text: 'MAS locale' },
+                            ];
+                            expect(text({ ...base, asks })).to.equal(
+                                'The card shows the wrong offer\n\nTo check this, I need:\n- the card link.\n- MAS locale.',
+                            );
+                        });
+                        it('shows only the question for a clarify answer', () => {
+                            expect(text({ type: 'clarify', question: 'Which card?', answer: 'ignored' })).to.equal(
+                                'Which card?',
+                            );
+                        });
+                        it('formats a document with its sections and gaps', () => {
+                            const out = text({
+                                type: 'document',
+                                title: 'Offer selectors',
+                                summary: 'How selectors work.',
+                                sections: [{ heading: 'Overview', body: 'Body text. ' }],
+                                gaps: ['No OSI sample'],
+                            });
+                            expect(out).to.equal(
+                                '**Offer selectors**\n\nHow selectors work.\n\n**Overview**\n\nBody text.\n\n**Check before publishing:**\n- No OSI sample',
+                            );
+                        });
+                        it('notes a partial finding in italics', () => {
+                            const out = findingText({ answer: base, budgetExhausted: true, budgetExhaustedBy: 'time' });
+                            expect(out).to.equal('The card shows the wrong offer\n\n_Partial finding: time budget reached._');
+                        });
                     });
                     it('recovers a queued investigation and respects polling delay', async () => {
                         current.records = [record('queued')];

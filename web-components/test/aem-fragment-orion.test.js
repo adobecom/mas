@@ -4,7 +4,7 @@ import {
     removeMasCommerceService,
 } from './utilities.js';
 import sinon from 'sinon';
-import { waitUntil } from '@open-wc/testing';
+import { oneEvent, waitUntil } from '@open-wc/testing';
 import { EVENT_AEM_LOAD, EVENT_AEM_ERROR } from '../src/constants.js';
 import '../src/mas-commerce-service.js';
 import '../src/aem-fragment.js';
@@ -88,11 +88,11 @@ describe('Orion fragment requests and cache isolation', () => {
         return fragment;
     };
 
-    const switchMode = (mode) => {
+    const switchMode = (mode, preview = false) => {
         window.history.replaceState(
             {},
             '',
-            `${baseHref}?commerce.env=stage&mas.orion=${mode}`,
+            `${baseHref}?commerce.env=stage&mas.orion=${mode}${preview ? '&mas.preview=on' : ''}`,
         );
         service.activate();
     };
@@ -222,6 +222,67 @@ describe('Orion fragment requests and cache isolation', () => {
             prefill.restore();
         });
 
+        it(`discards an obsolete Orion ${firstMode} preview before caching or publishing it`, async () => {
+            switchMode(firstMode, true);
+            const sandbox = sinon.createSandbox();
+            const previewResponse = (suffix) => ({
+                status: 200,
+                body: {
+                    id: 'requested-id',
+                    fields: { title: suffix ? 'Orion' : 'Legacy' },
+                    wcs: {
+                        [suffix ? 'stage-latest' : 'stage']: {
+                            'test-osi-gb': [
+                                { offerId: suffix ? 'orion' : 'legacy' },
+                            ],
+                        },
+                    },
+                },
+            });
+            let release;
+            const preview = sandbox
+                .stub(
+                    customElements.get('aem-fragment').prototype,
+                    'generatePreview',
+                )
+                .callsFake(async (suffix) => previewResponse(suffix));
+            preview.onFirstCall().returns(
+                new Promise((resolve) => {
+                    release = resolve;
+                }),
+            );
+            try {
+                const fragment = startLoad();
+                const originalKey = fragment.cacheKey();
+                const loaded = sinon.spy();
+                fragment.addEventListener(EVENT_AEM_LOAD, loaded);
+                await waitUntil(() => preview.calledOnce);
+
+                const otherMode = firstMode === 'on' ? 'off' : 'on';
+                switchMode(otherMode, true);
+                const prefill = sandbox.spy(service, 'prefillWcsCache');
+                release(previewResponse(firstMode === 'on' ? '-orion' : ''));
+                await fragment.updateComplete;
+
+                expect(preview.callCount).to.equal(2);
+                expect(preview.secondCall.args[0]).to.equal(
+                    otherMode === 'on' ? '-orion' : '',
+                );
+                expect(cache.has(originalKey)).to.be.false;
+                expect(fragment.data.fields.title).to.equal(
+                    otherMode === 'on' ? 'Orion' : 'Legacy',
+                );
+                expect(loaded.calledOnce).to.be.true;
+                expect(prefill.calledOnce).to.be.true;
+                expect(prefill.firstCall.args[0]).not.to.have.property(
+                    firstMode === 'on' ? 'stage-latest' : 'stage',
+                );
+                expect(fetchStub.called).to.be.false;
+            } finally {
+                sandbox.restore();
+            }
+        });
+
         it(`retries the current mode when an obsolete Orion ${firstMode} request fails`, async () => {
             switchMode(firstMode);
             const release = deferFirstResponse();
@@ -280,6 +341,31 @@ describe('Orion fragment requests and cache isolation', () => {
             expect(failed.calledOnce).to.be.true;
         });
     }
+
+    it('initializes Orion fetch metadata before waiting for cached data', async () => {
+        removeMasCommerceService();
+        cache.getFetchInfo('requested-id').status = 410;
+        cache.getFetchInfo('requested-id-orion').status = 200;
+        const fragment = document.createElement('aem-fragment');
+        fragments.push(fragment);
+        fragment.setAttribute('fragment', 'requested-id');
+        fragment.setAttribute('loading', 'cache');
+        expect(fragment.fetchInfo['aem-fragment:status']).to.equal(410);
+        service = initMasCommerceService({ 'allow-override': 'true' });
+
+        document.body.append(fragment);
+
+        expect(fragment.fetchInfo['aem-fragment:status']).to.equal(200);
+        expect(fetchStub.called).to.be.false;
+        const loaded = oneEvent(fragment, EVENT_AEM_LOAD);
+        cache.add(
+            { id: 'requested-id', fields: { title: 'Cached Orion' } },
+            false,
+            '-orion',
+        );
+        await loaded;
+        expect(fetchStub.called).to.be.false;
+    });
 
     for (const [attribute, value] of [
         ['fragment', 'other-id'],

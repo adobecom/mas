@@ -19,29 +19,35 @@ function scrollTables(instance) {
     return instance;
 }
 
-const md = scrollTables(
-    openLinksInNewTab(
-        new MarkdownIt({
-            html: false,
-            breaks: true,
-            linkify: true,
-            typographer: true,
-        }),
-    ),
-);
+const markdown = (typographer) =>
+    scrollTables(
+        openLinksInNewTab(
+            new MarkdownIt({
+                html: false,
+                breaks: true,
+                linkify: true,
+                typographer,
+            }),
+        ),
+    );
+
+const md = markdown(true);
+
+/** MASA answers quote code and flags, which typographic quotes and dashes would change. */
+const answerMd = markdown(false);
 
 /** Plain text: everything is escaped and kept literal; only URLs become links and line breaks are kept. */
 const plain = openLinksInNewTab(new MarkdownIt('zero', { breaks: true, linkify: true }).enable(['linkify', 'newline']));
 
 const CACHE_MAX = 200;
 
-function cachedRender(instance) {
+function cachedRender(render) {
     const cache = new Map();
     return (text) => {
         if (!text) return '';
         const cached = cache.get(text);
         if (cached !== undefined) return cached;
-        const rendered = instance.render(text);
+        const rendered = render(text);
         if (cache.size >= CACHE_MAX) {
             cache.delete(cache.keys().next().value);
         }
@@ -50,6 +56,8 @@ function cachedRender(instance) {
     };
 }
 
-export const parseMarkdown = cachedRender(md);
+export const parseMarkdown = cachedRender((text) => md.render(text));
 
-export const linkifyText = cachedRender(plain);
+export const parseAnswerMarkdown = cachedRender((text) => answerMd.render(text));
+
+export const linkifyText = cachedRender((text) => plain.render(text));

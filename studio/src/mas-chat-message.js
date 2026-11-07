@@ -8,12 +8,15 @@ import './mas-chat-confirmation-summary.js';
 import './mas-chat-masa-answer.js';
 import { linkifyText, parseMarkdown } from './utils/markdown-parser.js';
 import { masaAvatar } from './img/masa-avatar.js';
+import { typingIndicator } from './mas-chat/typing-indicator.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 import { prepareTextReveal } from './utils/text-reveal.js';
 import Store from './store.js';
 
 /** The message shows the answer text itself; the MASA answer element adds only its label and action. */
 const BUILT_IN_NOTICE = Object.freeze({ content: '' });
+
+const assistantAvatar = html`<div class="message-avatar">${masaAvatar}</div>`;
 
 const EDITOR_ENTITIES = { amp: '&', lt: '<', gt: '>', nbsp: '\u00a0' };
 
@@ -378,18 +381,30 @@ export class MasChatMessage extends LitElement {
         `;
     }
 
+    /** Root classes of a bubble; a fresh message plays its entrance animation. */
+    get messageClass() {
+        const { role, fresh } = this.message;
+        const entranceClass = fresh ? (role === 'assistant' ? 'msg-bloom' : 'msg-rise') : '';
+        return `chat-message chat-message-${role} ${entranceClass}`.trim();
+    }
+
+    /** A MASA answer sits in the same assistant bubble, mascot included, as any other reply. */
     renderMasaAnswer() {
-        const { role, conversationId, question, recordId, fallback, failure } = this.message;
+        const { conversationId, question, recordId, fallback, failure } = this.message;
         return html`
-            <div class="chat-message chat-message-${role}">
+            <div class=${this.messageClass}>
                 <div class="message-card">
-                    <mas-chat-masa-answer
-                        .conversationId=${conversationId}
-                        .question=${question}
-                        .recordId=${recordId}
-                        .fallback=${fallback}
-                        .failure=${failure}
-                    ></mas-chat-masa-answer>
+                    ${assistantAvatar}
+                    <div class="message-content">
+                        <mas-chat-masa-answer
+                            .conversationId=${conversationId}
+                            .question=${question}
+                            .recordId=${recordId}
+                            .fallback=${fallback}
+                            .failure=${failure}
+                            ><div slot="working">${typingIndicator}</div></mas-chat-masa-answer
+                        >
+                    </div>
                 </div>
             </div>
         `;
@@ -430,8 +445,7 @@ export class MasChatMessage extends LitElement {
                 ? rawContent.replace(/<use_mcp_tool>[\s\S]*?<\/use_mcp_tool>/g, '').trim()
                 : rawContent;
 
-        const entranceClass = this.message.fresh ? (role === 'assistant' ? 'msg-bloom' : 'msg-rise') : '';
-        const messageClass = `chat-message chat-message-${role} ${entranceClass}`.trim();
+        const messageClass = this.messageClass;
         const isUser = role === 'user';
 
         const hasDisplayableContent =
@@ -500,7 +514,7 @@ export class MasChatMessage extends LitElement {
                         : operationResult && content === operationResult.message
                           ? nothing
                           : content || this.showSuggestions
-                            ? html`${role === 'assistant' ? html`<div class="message-avatar">${masaAvatar}</div>` : nothing}
+                            ? html`${role === 'assistant' ? assistantAvatar : nothing}
                                   <div class="message-content">
                                       <div class="message-text">
                                           ${role === 'error'

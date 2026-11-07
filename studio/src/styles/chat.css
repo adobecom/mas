@@ -2709,13 +2709,27 @@
 /* ==========================================================================
    Thinking glow, chip stagger, micro-interactions (MWPW-183572)
    ========================================================================== */
-:where(.mas-feature) .typing-indicator-row {
+/* A MASA answer that is still on its way is the same typing row: mascot beside the glowing dots, no card. */
+:where(.mas-feature) .typing-indicator-row,
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-card {
     display: flex;
     align-items: flex-end;
     gap: var(--spectrum-global-dimension-size-100, 8px);
 }
 
-:where(.mas-feature) .typing-indicator-row .message-avatar {
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) {
+    padding: 0;
+}
+
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-card {
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+:where(.mas-feature) .typing-indicator-row .message-avatar,
+:where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-avatar {
     animation: mas-feature-avatarPop 300ms var(--mas-ease-spring) both;
 }
 
@@ -2819,6 +2833,7 @@
     :where(.mas-feature) .msg-bloom .message-card,
     :where(.mas-feature) .msg-rise,
     :where(.mas-feature) .typing-indicator-row .message-avatar,
+    :where(.mas-feature) .chat-message:has(mas-chat-masa-answer[pending]) .message-avatar,
     :where(.mas-feature) .welcome-chips sp-action-button {
         animation-name: mas-feature-reducedFade;
         animation-duration: 120ms;

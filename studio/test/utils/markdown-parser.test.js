@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { linkifyText, parseMarkdown } from '../../src/utils/markdown-parser.js';
+import { linkifyText, parseAnswerMarkdown, parseMarkdown } from '../../src/utils/markdown-parser.js';
 
 const fragment = (markup) => document.createRange().createContextualFragment(markup);
 
@@ -152,6 +152,24 @@ describe('markdown-parser', () => {
         it('escapes HTML', () => {
             const result = linkifyText('<script>alert(1)</script>');
             expect(result).to.include('&lt;script&gt;').and.not.include('<script');
+        });
+    });
+
+    describe('parseAnswerMarkdown', () => {
+        it('keeps straight quotes and double hyphens', () => {
+            const line = `this.setAttribute('data-promotion-code', "value"); run --flag`;
+            expect(fragment(parseAnswerMarkdown(line)).textContent).to.include(line);
+        });
+
+        it('opens links in a new tab', () => {
+            const link = fragment(parseAnswerMarkdown('[card](https://example.com/card)')).querySelector('a');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.getAttribute('rel')).to.equal('noopener noreferrer');
+        });
+
+        it('wraps a table in a scroll container', () => {
+            const markup = parseAnswerMarkdown('| Card | Offer |\n| --- | --- |\n| Photoshop | Individual |');
+            expect(fragment(markup).querySelector('div.table-wrap > table')).to.exist;
         });
     });
 });

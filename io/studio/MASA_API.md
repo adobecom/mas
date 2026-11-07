@@ -131,8 +131,9 @@ Saved state contains no IMS tokens, transfer grants, binary files or blob/downlo
 Studio Chat is one conversation; there is no separate Investigate view. Every message still goes to `ai-chat`
 first, after the deterministic card-search router. While MASA is available for the page, the request carries
 `masa: true` and `ai-chat` may return a question as the `ASK_MASA` intent instead of answering it. Studio then
-submits it as a read-only MASA investigation for that conversation and shows "MASA is working on it", with
-cancellation, in the thread; the finding, evidence, card links, CSV downloads and PNG previews replace it.
+submits it as a read-only MASA investigation for that conversation and shows the chat's typing indicator,
+announced as "MASA is working on it", with Cancel, in the thread; the finding, card links, CSV downloads and PNG
+previews replace it. Evidence and investigation limits are not shown.
 Card search never goes to MASA, and MASA's own card search is not used. Release creation, guided flows,
 confirmations and search keep their fast path: the message box stays enabled while MASA works. A second MASA
 question in the same conversation is not sent while one is running; the thread says "MASA is still answering
@@ -150,7 +151,7 @@ cancelled question stays cancelled.
 
 Each question carries the Studio path, locale and fragment ID, the most recent conversation turns that fit,
 and up to three complete recent findings when they fit the 6,000-character context and control-body budget.
-The UI discloses omitted context; it does not truncate displayed findings. Downloads verify byte count and
+Displayed findings are not truncated. Downloads verify byte count and
 SHA-256 before exposing a blob.
 
 While an answer is pending, Studio polls it no faster than ten seconds. While the conversation holds an active

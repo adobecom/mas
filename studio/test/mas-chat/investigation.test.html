@@ -129,7 +129,6 @@
             ];
             demos[0][1].session = { ...lease(), activeInvestigations: 1 };
             demos[0][1].records[0].files = [];
-            demos[0][1].records[0].progress = { probeResults: 2 };
             demos[1][1].updateJob(job('completed'));
             demos[2][1].session = { ...lease(), status: 'expired' };
             const fallback = { content: 'Compare the offer selector before publishing.' };
@@ -227,7 +226,7 @@
                         current.updateJob(job('completed'));
                         const parts = await mount();
                         const text = textOf(parts);
-                        expect(text).to.contain('Author and publish snapshots differ');
+                        expect(text).to.contain('different offer from the author version');
                         expect(text).to.contain('Prepare download');
                         const event = sinon.spy();
                         document.querySelector('#interactive').addEventListener('open-card', event, { once: true });
@@ -241,7 +240,6 @@
                         await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
                         await current.submit('Check this card', 'Studio page');
                         expect(calls.at(-1)[2].attachmentIds).to.deep.equal([imageId]);
-                        expect(calls.at(-1)[2]).not.to.have.property('limitedContext');
                         expect(current.records[0].status).to.equal('queued');
                     });
                     it('rejects oversized or unsupported images before creating a session', async () => {
@@ -314,7 +312,6 @@
                         current.records = [{ ...record(), text: 'x'.repeat(6000) }];
                         await current.submit('Short follow-up', 'Page');
                         expect(calls.at(-1)[2].context).to.equal('Page');
-                        expect(current.records.at(-1).limitedContext).to.equal(true);
                     });
                     it('includes a prior finding as context when it fits', async () => {
                         current.records = [record()];
@@ -326,17 +323,9 @@
                             .to.contain('different offer')
                             .and.not.to.contain('Author and publish snapshots differ');
                     });
-                    it('keeps the evidence on the record', () => {
-                        current.records = [record('running')];
-                        current.updateJob(job('completed'));
-                        expect(current.records[0].evidence).to.deep.equal([
-                            { id: 'E1', summary: 'Author and publish snapshots differ.' },
-                        ]);
-                    });
-                    it('keeps the evidence of a withheld finding hidden', () => {
-                        current.records = [record('running')];
-                        current.updateJob({ ...job('completed'), result: { ...result(), withheld: true } });
-                        expect(current.records[0].evidence).to.deep.equal([]);
+                    it('leaves confidence out of the finding text', () => {
+                        const answer = { ...result().answer, confidence: 'medium' };
+                        expect(findingText({ ...result(), answer })).not.to.contain('Confidence');
                     });
                     it('recovers a queued investigation and respects polling delay', async () => {
                         current.records = [record('queued')];

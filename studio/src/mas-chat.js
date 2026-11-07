@@ -46,6 +46,7 @@ import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
 import { askMasa as submitMasaQuestion, buildMasaContext } from './mas-chat/masa-ask.js';
+import { typingIndicator } from './mas-chat/typing-indicator.js';
 import { isMasaAvailable, rememberFailure, resetMasaAvailability, isUserInputError } from './mas-chat/masa-availability.js';
 import { getInvestigationSession } from './mas-chat/investigation-session.js';
 
@@ -3115,11 +3116,7 @@ export class MasChat extends LitElement {
                             ? html`
                                   <div class="typing-indicator-row">
                                       <div class="message-avatar">${masaAvatar}</div>
-                                      <div class="typing-indicator">
-                                          <div class="typing-dot"></div>
-                                          <div class="typing-dot"></div>
-                                          <div class="typing-dot"></div>
-                                      </div>
+                                      ${typingIndicator}
                                       ${this.loadingLabel
                                           ? html`<span class="typing-status">${this.loadingLabel}</span>`
                                           : nothing}

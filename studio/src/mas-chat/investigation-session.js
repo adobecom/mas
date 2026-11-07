@@ -7,20 +7,19 @@ const retryable = (error) => [0, 429, 502, 503, 504].includes(error.status);
 
 /** Persist text and opaque control IDs only; files, grants, URLs and resumable upload bodies stay in memory. */
 export function investigationHistory(records) {
-    return records.map(({ id, sessionId, question, text, status, files, limitedContext }) => ({
+    return records.map(({ id, sessionId, question, text, status, files }) => ({
         id,
         sessionId,
         question,
         text,
         status,
-        limitedContext,
         files: files.map(({ name }) => ({ name })),
     }));
 }
 
 /**
  * Render structured MASA findings as text without adding a second knowledge or action interpreter.
- * Evidence stays out: it is shown collapsed beside the finding and never sent back as context.
+ * Evidence stays out: Studio does not show it and never sends it back as context.
  */
 export function findingText(result) {
     if (!result) return '';
@@ -36,7 +35,6 @@ export function findingText(result) {
         ...Object.entries(answer.alert ?? {}).map(([label, value]) => `${label}: ${value}`),
         ...Object.entries(answer.route ?? {}).map(([label, value]) => `${label}: ${value}`),
         answer.layer && `Layer: ${answer.layer}`,
-        answer.confidence && `Confidence: ${answer.confidence}`,
         answer.verdict && `Verdict: ${answer.verdict}`,
         answer.next_check && `Next check: ${answer.next_check}`,
         answer.deciding,
@@ -272,16 +270,15 @@ export class InvestigationSession extends EventTarget {
                     'This question and page context exceed the request limit. Shorten the question and try again.',
                 );
             }
-            const previous = this.records.filter((record) => record.text);
-            let included = 0;
-            for (const record of previous.slice(-3).reverse()) {
+            for (const record of this.records
+                .filter((item) => item.text)
+                .slice(-3)
+                .reverse()) {
                 const candidate = `${context}\n\nEarlier question: ${record.question}\nEarlier finding: ${record.text}`;
                 if (!fits(candidate)) break;
                 context = candidate;
-                included++;
             }
             this.pending.context = context;
-            this.pending.limitedContext = included < previous.length;
             this.notify();
             await this.completeSubmission();
         });
@@ -293,13 +290,13 @@ export class InvestigationSession extends EventTarget {
         this.notify();
     }
 
-    submissionFields({ sessionId, idempotencyKey, question, context, attachmentIds, limitedContext }) {
-        return { sessionId, idempotencyKey, question, context, attachmentIds, limitedContext };
+    submissionFields({ sessionId, idempotencyKey, question, context, attachmentIds }) {
+        return { sessionId, idempotencyKey, question, context, attachmentIds };
     }
 
     async completeSubmission() {
         const intent = this.pending;
-        const { limitedContext, ...fields } = this.submissionFields(intent);
+        const fields = this.submissionFields(intent);
         let response;
         try {
             response = await this.client.control(this.conversationId, 'investigation.submit', fields);
@@ -315,7 +312,6 @@ export class InvestigationSession extends EventTarget {
             text: '',
             files: this.images.map(({ name }) => ({ name })),
             status: result.status,
-            limitedContext,
         });
         this.pending = null;
         this.updateJob(result);
@@ -334,15 +330,10 @@ export class InvestigationSession extends EventTarget {
         const record = this.records.find((item) => item.id === result.id);
         Object.assign(record, {
             status: result.status,
-            progress: result.progress,
             text: findingText(result.result),
-            evidence: result.result?.withheld
-                ? []
-                : (result.result?.evidence ?? []).map(({ id, summary }) => ({ id, summary })),
             failure: result.error?.code,
             artifacts: result.result?.artifacts ?? [],
             lists: result.result?.lists ?? [],
-            limitations: result.result?.limitations ?? [],
         });
         if (result.result?.artifacts.length)
             record.files = [...record.files, ...result.result.artifacts.map(({ filename }) => ({ name: filename }))].filter(

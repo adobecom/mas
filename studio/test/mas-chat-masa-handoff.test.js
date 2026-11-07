@@ -290,7 +290,7 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         });
     }
 
-    it('shows progress under the label while the built-in answer is on its way', async () => {
+    it('shows the typing indicator under the label while the built-in answer is on its way', async () => {
         const started = deferred();
         ai.callsFake(async (params) => {
             if (params.requestType) return {};
@@ -304,7 +304,8 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(masaMessages()[0].fallback).to.deep.equal({ pending: true });
         const answer = await lastAnswerElement(el);
         expect(answer.shadowRoot.textContent).to.contain(LABEL);
-        expect(answer.shadowRoot.querySelector('sp-progress-circle')).to.exist;
+        const [slotted] = answer.shadowRoot.querySelector('slot[name="working"]').assignedElements();
+        expect(slotted.querySelectorAll('.typing-indicator .typing-dot').length).to.equal(3);
     });
 
     it('offers to ask MASA again for an answer a reload interrupted', async () => {

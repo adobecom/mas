@@ -1,3 +1,4 @@
+import zlib from 'zlib';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
@@ -8,6 +9,7 @@ import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/o
 import { mockDictionary } from './replace.test.js';
 import DICTIONARY_RESPONSE from './mocks/dictionary.json' with { type: 'json' };
 import SETTINGS_RESPONSE from './mocks/settings-sandbox.json' with { type: 'json' };
+import FRAGMENT_RESPONSE_EN from './mocks/fragment-en-default.json' with { type: 'json' };
 import FRAGMENT_AH_DE_DE_CORRUPTED from './mocks/fragment-ah-de_DE-corrupted.json' with { type: 'json' };
 import { MockState } from './mocks/MockState.js';
 import { createResponse } from './mocks/MockFetch.js';
@@ -57,8 +59,10 @@ describe('pipeline end to end', () => {
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
         expect(result.headers['ETag']).to.equal(EXPECTED_BODY_HASH);
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_FR', 'res-some-en-us-fragment-fr_FR']);
+        const stored = JSON.parse(state.store['res-some-en-us-fragment-fr_FR']);
+        expect(stored.hash).to.equal(EXPECTED_BODY_HASH);
+        expect(JSON.parse(zlib.brotliDecompressSync(Buffer.from(stored.body, 'base64')))).to.deep.equal(result.body);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR']);
         delete json.lastModified; // removing the date to avoid flakiness
         expect(json).to.deep.include({
@@ -70,6 +74,125 @@ describe('pipeline end to end', () => {
             hash: EXPECTED_BODY_HASH,
         });
     });
+
+    it('should log a cache miss with its timings, then cache hits with their status', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        const summary = (prefix) =>
+            output
+                .getCalls()
+                .map(({ args }) => args[0])
+                .filter((line) => line.includes(prefix));
+        try {
+            await getFragment(request);
+            await getFragment(request);
+            await getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } });
+        } finally {
+            output.restore();
+        }
+        const [miss, ...others] = summary('cache miss');
+        expect(others).to.be.empty;
+        expect(miss).to.match(
+            /cache miss req-some-en-us-fragment-fr_FR -> 200 in [\d.]+ms \| timings \(time and duration\) .*main-fetch-fragment t:.* \| memory: /,
+        );
+        const hits = summary('cache hit');
+        expect(hits).to.have.lengthOf(2);
+        expect(hits[0]).to.match(
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: /,
+        );
+        expect(hits[1]).to.match(
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 304 in [\d.]+ms \| memory: /,
+        );
+        expect(hits[1]).not.to.include('timings');
+    });
+
+    it('should rebuild once for concurrent requests on the same key', async () => {
+        setupFragmentMocks(fetchStub, {
+            id: 'some-en-us-fragment',
+            path: 'someFragment',
+        });
+        // a slow fragment fetch keeps the first rebuild in progress while the second request reads the cache
+        fetchStub
+            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+            .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+        const state = new MockState();
+        const output = sinon.stub(console, 'log');
+        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+        let results;
+        try {
+            results = await Promise.all([
+                getFragment(request),
+                getFragment({ ...request, __ow_headers: { 'if-modified-since': 'Tue, 21 Nov 2050 08:00:00 GMT' } }),
+            ]);
+        } finally {
+            output.restore();
+        }
+        const [first, second] = results;
+        expect(first.statusCode).to.equal(200);
+        expect(first.body).to.deep.include(EXPECTED_BODY);
+        expect(second.statusCode).to.equal(304);
+        expect(second.headers.ETag).to.equal(first.headers.ETag);
+        const fragmentFetches = fetchStub
+            .getCalls()
+            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        expect(fragmentFetches).to.have.lengthOf(1);
+        const lines = output.getCalls().map(({ args }) => args[0]);
+        expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+        expect(lines.find((line) => line.includes('cache joined'))).to.match(
+            /cache joined req-some-en-us-fragment-fr_FR -> 304 in [\d.]+ms \| memory: /,
+        );
+    });
+
+    for (const { title, refreshedAt, detail } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
+        { title: 'never refreshed', detail: /never refreshed/ },
+    ]) {
+        it(`should serve the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(200, FRAGMENT_RESPONSE_EN)), 30)));
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                lastModified: RANDOM_OLD_DATE,
+                refreshedAt,
+            });
+            state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const output = sinon.stub(console, 'log');
+            const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+            let results;
+            try {
+                results = await Promise.all([getFragment(request), getFragment(request)]);
+            } finally {
+                output.restore();
+            }
+            const [first, second] = results;
+            expect(first.body).to.deep.include(EXPECTED_BODY);
+            expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
+            expect(second.statusCode).to.equal(200);
+            expect(second.body).to.deep.equal({ stale: true });
+            expect(second.headers.ETag).to.equal('old-hash');
+            const lines = output.getCalls().map(({ args }) => args[0]);
+            expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+            const stale = lines.find((line) => line.includes('cache stale'));
+            expect(stale).to.match(
+                /cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\) -> 200 in [\d.]+ms \| memory: /,
+            );
+            expect(stale).to.match(detail);
+        });
+    }
 
     it('should detect already treated /content/dam/mas/sandbox/fr_FR/someFragment if not changed', async () => {
         const result = await runOnFilledState(
@@ -117,8 +240,7 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_CA');
+        expect(Object.keys(state.store)).to.have.members(['req-some-en-us-fragment-fr_CA', 'res-some-en-us-fragment-fr_CA']);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');
@@ -148,8 +270,10 @@ describe('pipeline end to end', () => {
         });
         expect(result.headers).to.have.property('Last-Modified');
         expect(result.headers).to.have.property('ETag');
-        expect(Object.keys(state.store).length).to.equal(1);
-        expect(state.store).to.have.property('req-some-en-us-fragment-fr_FR-CA');
+        expect(Object.keys(state.store)).to.have.members([
+            'req-some-en-us-fragment-fr_FR-CA',
+            'res-some-en-us-fragment-fr_FR-CA',
+        ]);
         const json = JSON.parse(state.store['req-some-en-us-fragment-fr_FR-CA']);
         expect(json.fragmentsIds['dictionary-id']).to.not.equal('sandbox_fr_FR_dictionary');
         expect(json.fragmentsIds['default-locale-id']).to.equal('some-fr-fr-fragment');

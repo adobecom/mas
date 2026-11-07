@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { createSwrCache } from '../../src/fragment/utils/swr-cache.js';
+import { createSwrCache, getMemoryStats, setMemoryLimit } from '../../src/fragment/utils/swr-cache.js';
 
 // A deferred loader: resolve/reject externally so a refill can be held in-flight to observe
 // single-flight coalescing and stale-while-revalidate.
@@ -67,7 +67,7 @@ describe('swr-cache', () => {
                 expect(await cache.get(context, '0', async () => 'reloaded')).to.equal('reloaded');
             });
 
-            it(`evicts the oldest written ${mode} entry at the configured limit`, async () => {
+            it(`evicts the least recently used ${mode} entry at the configured limit`, async () => {
                 const cache = createSwrCache({ name: 'test', previewMemory: true, maxEntries: 2 });
                 await cache.get(context, 'a', async () => 'a');
                 await cache.get(context, 'b', async () => 'b');
@@ -75,9 +75,9 @@ describe('swr-cache', () => {
 
                 await cache.get(context, 'c', async () => 'c');
 
-                expect(await cache.get(context, 'b', async () => 'unexpected')).to.equal('b');
+                expect(await cache.get(context, 'a', async () => 'unexpected')).to.equal('a');
                 expect(await cache.get(context, 'c', async () => 'unexpected')).to.equal('c');
-                expect(await cache.get(context, 'a', async () => 'reloaded')).to.equal('reloaded');
+                expect(await cache.get(context, 'b', async () => 'reloaded')).to.equal('reloaded');
             });
 
             it(`keeps recently refreshed ${mode} entries when evicting`, async () => {
@@ -115,6 +115,75 @@ describe('swr-cache', () => {
 
             expect(await cache.get({ preview: true }, 'a', async () => 'unexpected')).to.equal('a');
             expect(await cache.get({ preview: true }, 'b', async () => 'unexpected')).to.equal('b');
+        });
+    });
+
+    describe('shared memory budget', () => {
+        const cacheStats = (name) => getMemoryStats().caches[name];
+
+        afterEach(() => {
+            setMemoryLimit(256 * 1024 * 1024);
+        });
+
+        it('evicts the least recently used entries across cache instances above the byte budget', async () => {
+            const first = createSwrCache({ name: 'budget-a' });
+            const second = createSwrCache({ name: 'budget-b' });
+            await first.get(published, 'k', async () => 'x'.repeat(98));
+            await second.get(published, 'k', async () => 'y'.repeat(98));
+            await first.get(published, 'k', async () => 'unexpected');
+            setMemoryLimit(200);
+
+            await second.get(published, 'other', async () => 'z'.repeat(98));
+
+            expect(await first.get(published, 'k', async () => 'unexpected')).to.have.length(98);
+            expect(await second.get(published, 'k', async () => 'reloaded')).to.equal('reloaded');
+            expect(cacheStats('budget-a')).to.deep.equal({ entries: 1, bytes: 100 });
+        });
+
+        it('counts an undefined value as empty', async () => {
+            const cache = createSwrCache({ name: 'budget-undefined' });
+            cache.set(published, 'k', undefined);
+            expect(cacheStats('budget-undefined')).to.deep.equal({ entries: 1, bytes: 0 });
+        });
+
+        it('keeps a single entry larger than the budget', async () => {
+            const cache = createSwrCache({ name: 'budget-single' });
+            setMemoryLimit(0);
+            await cache.get(published, 'k', async () => 'large');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('large');
+            expect(getMemoryStats()).to.include({ entries: 1, bytes: 7, maxBytes: 0 });
+        });
+
+        it('stops counting replaced, evicted and cleared entries', async () => {
+            const cache = createSwrCache({ name: 'budget-count', maxEntries: 1 });
+            await cache.get(published, 'a', async () => 'aa');
+            cache.set(published, 'a', 'aaaa');
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 6 });
+            await cache.get(published, 'b', async () => 'b');
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 1, bytes: 3 });
+            cache.clear();
+            expect(cacheStats('budget-count')).to.deep.equal({ entries: 0, bytes: 0 });
+        });
+    });
+
+    describe('set', () => {
+        it('replaces a fresh memory value without calling the loader', async () => {
+            const cache = createSwrCache({ name: 'test' });
+            await cache.get(published, 'k', async () => 'old');
+            cache.set(published, 'k', 'new');
+            expect(await cache.get(published, 'k', async () => 'unexpected')).to.equal('new');
+        });
+
+        it('writes persistent preview values to localStorage', async () => {
+            const storage = installLocalStorageShim();
+            try {
+                const cache = createSwrCache({ name: 'set-preview' });
+                cache.set({ preview: true }, 'k', 'preview');
+                expect(JSON.parse(storage['set-preview-k']).value).to.equal('preview');
+                expect(await cache.get({ preview: true }, 'k', async () => 'unexpected')).to.equal('preview');
+            } finally {
+                delete globalThis.localStorage;
+            }
         });
     });
 

@@ -1,6 +1,18 @@
 import { createTimeoutPromise, mark, measureTiming, VALID_PARAMETER_VALUE_REGEX } from './utils/common.js';
-import { getRequestMetadata, storeRequestMetadata, extractContextFromMetadata } from './utils/cache.js';
-import { getApiKeySurface, loadConfiguration, resetCache, validateApiKey } from './utils/configuration.js';
+import {
+    clearRequestCaches,
+    extractContextFromMetadata,
+    getRequestMetadata,
+    getStoredResponse,
+    storeRequestMetadata,
+} from './utils/cache.js';
+import {
+    getApiKeySurface,
+    loadConfiguration,
+    resetCache as resetConfiguration,
+    validateApiKey,
+} from './utils/configuration.js';
+import { getMemoryStats } from './utils/swr-cache.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
 import zlib from 'zlib';
@@ -20,6 +32,47 @@ import { isKnownLocale, resolveTerritoryCountries } from './locales.js';
 
 function calculateHash(body) {
     return crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+}
+
+const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toString('base64') : undefined);
+
+const MB = 1024 * 1024;
+const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `${(bytes / MB).toFixed(1)}MB`);
+
+// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB | caches 6.1MB of 256.0MB in 548 entries:
+// response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
+// e.g. "42s" or "7m12s"
+const formatAge = (ms) => {
+    const seconds = Math.round(ms / 1000);
+    return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m${seconds % 60}s`;
+};
+
+function memoryUsage() {
+    const { entries, bytes, maxBytes, caches } = getMemoryStats();
+    const { rss, heapUsed, heapTotal } = process.memoryUsage();
+    const perCache = Object.entries(caches)
+        .sort(([, a], [, b]) => b.bytes - a.bytes)
+        .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries})`)
+        .join(', ');
+    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(bytes)} of ${formatSize(maxBytes)} in ${entries} entries: ${perCache}`;
+}
+
+function resetCache() {
+    resetConfiguration();
+    clearRequestCaches();
+}
+
+/** 200 (or 304 when not modified since `If-Modified-Since`) response for an already encoded body. */
+function successResponse(context, { id, hash, lastModified, body }) {
+    const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
+    const notModified = ifModifiedSince && lastModified.getTime() <= new Date(ifModifiedSince).getTime();
+    return {
+        statusCode: notModified ? 304 : 200,
+        id,
+        headers: { ETag: hash, 'Last-Modified': lastModified.toUTCString() },
+        body: notModified ? undefined : body,
+        encoded: true,
+    };
 }
 
 const PIPELINE = [fetchFragment, defaultLanguage, offer, promotions, mask, customize, settings, replace, wcs, corrector];
@@ -98,26 +151,41 @@ async function main(params) {
     }
     mark(context, 'end');
     context.loggedTransformer = 'pipeline';
+    const { cache, requestKey, cacheDetail } = returnValue;
+    delete returnValue.cache;
+    delete returnValue.requestKey;
+    delete returnValue.cacheDetail;
     delete returnValue.id; // id is not part of the response
     returnValue.headers = {
         ...returnValue.headers,
         ...RESPONSE_HEADERS,
         'Cache-Control': cacheControl,
     };
-    returnValue.body = returnValue.body?.length > 0 ? zlib.brotliCompressSync(returnValue.body).toString('base64') : undefined;
+    if (!returnValue.encoded) returnValue.body = encode(returnValue.body);
+    delete returnValue.encoded;
     logDebug(() => `full response: ${JSON.stringify(returnValue)}`, context);
     measureTiming(context, 'endProcess', 'end');
-    const pipelineMeasure = measureTiming(context, 'pipeline', 'start');
+    const { duration } = measureTiming(context, 'pipeline', 'start');
+    const { statusCode } = returnValue;
+    if (cache === 'hit' || cache === 'stale' || cache === 'joined') {
+        const detail = cacheDetail ? ` (${cacheDetail})` : '';
+        log(`cache ${cache} ${requestKey}${detail} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
+        return returnValue;
+    }
     const measures = context.measures
         .map((measure) => `${measure.label} t:${measure.startTime}, d:${measure.duration}`)
         .join('|');
-    log(`timings (time and duration) region: ${region}: ${measures}`, context);
-    log(
-        `pipeline completed: ${context.id} ${context.locale} -> ${returnValue.id} (${returnValue.statusCode}) in ${pipelineMeasure.duration}ms`,
-        context,
-    );
+    const timings = `timings (time and duration) region: ${region}: ${measures} | ${memoryUsage()}`;
+    if (cache === 'miss') {
+        log(`cache miss ${requestKey} -> ${statusCode} in ${duration}ms | ${timings}`, context);
+        return returnValue;
+    }
+    log(`pipeline completed: ${context.id} ${context.locale} -> ${statusCode} in ${duration}ms | ${timings}`, context);
     return returnValue;
 }
+
+// in-progress rebuilds by request key
+const rebuilds = new Map();
 
 async function mainProcess(context) {
     // ADR CONT-0001: the `surface` parameter wins over the fragment's surface, which wins over the api key's one.
@@ -169,7 +237,36 @@ async function mainProcess(context) {
     // The request cache key is captured once, here — before that restriction happens — so the read
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
-    const { requestKey, cachedMetadata } = await getRequestMetadata(context);
+    const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
+    const storedResponse = (body, cache, note = '') => {
+        const { hash, lastModified, refreshedAt } = cachedMetadata;
+        const age = refreshedAt ? `refreshed ${formatAge(Date.now() - refreshedAt)} ago` : 'never refreshed';
+        const response = successResponse(context, { hash, lastModified: new Date(lastModified), body });
+        return { ...response, cache, requestKey, cacheDetail: `${age}${note}` };
+    };
+    const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
+    if (storedBody) return storedResponse(storedBody, 'hit');
+    // Concurrent requests for the same key in this container get the previous stored response, whatever its age,
+    // or wait for the rebuild already in progress when there is none.
+    let rebuild = rebuilds.get(requestKey);
+    const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, Infinity);
+    if (staleBody) return storedResponse(staleBody, 'stale', ', rebuild in progress');
+    const cache = rebuild ? 'joined' : 'miss';
+    if (!rebuild) {
+        rebuild = buildResponse(context, requestKey, cachedMetadata, cachedResponse);
+        if (!context.instant) {
+            rebuilds.set(requestKey, rebuild);
+            rebuild.finally(() => rebuilds.delete(requestKey)).catch(() => {});
+        }
+    }
+    const built = await rebuild;
+    // error responses are copied: main() mutates the returned object
+    if (built.statusCode) return { ...built };
+    return { ...successResponse(context, built), cache, requestKey };
+}
+
+/** Runs the transformers and stores the result; resolves to `{ id, hash, lastModified, body }` or an error response. */
+async function buildResponse(context, requestKey, cachedMetadata, cachedResponse) {
     const metadataContext = extractContextFromMetadata(cachedMetadata);
     context = { ...context, ...metadataContext };
     // Initialize all transformers that have an init function
@@ -205,37 +302,15 @@ async function mainProcess(context) {
         measureTiming(context, transformer.name);
     }
     context.loggedTransformer = 'pipeline';
-    const returnValue = {
-        statusCode: context.status,
-        id: context.body?.id,
-    };
-    let responseBody = undefined;
-    if (context.status == 200) {
-        responseBody = JSON.stringify(context.body, null, 0);
-        logDebug(() => `response body: ${responseBody}`, context);
-        const hash = calculateHash(responseBody);
-        const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash);
-        // Check If-Modified-Since header
-        const ifModifiedSince = context.__ow_headers?.['if-modified-since'];
-        if (ifModifiedSince) {
-            const modifiedSince = new Date(ifModifiedSince);
-            if (lastModified.getTime() <= modifiedSince.getTime()) {
-                returnValue.statusCode = 304;
-                responseBody = undefined;
-            }
-        }
-        returnValue.headers = {
-            ...returnValue.headers,
-            ETag: `${hash}`,
-            'Last-Modified': lastModified.toUTCString(),
-        };
-    } else {
-        responseBody = JSON.stringify({
-            message: context.message,
-        });
+    if (context.status != 200) {
+        return { statusCode: context.status, body: JSON.stringify({ message: context.message }) };
     }
-    returnValue.body = responseBody;
-    return returnValue;
+    const responseBody = JSON.stringify(context.body, null, 0);
+    logDebug(() => `response body: ${responseBody}`, context);
+    const hash = calculateHash(responseBody);
+    const body = encode(responseBody);
+    const { lastModified } = await storeRequestMetadata(context, requestKey, cachedMetadata, hash, { body, cachedResponse });
+    return { id: context.body?.id, hash, lastModified, body };
 }
 
 export { main, resetCache, PIPELINE };

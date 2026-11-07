@@ -63,6 +63,13 @@ describe('MASA session strip', () => {
         expect(buttonLabels(el)).to.deep.equal(['End session']);
     });
 
+    it('keeps the working copy within two minutes of expiry while MASA works', async () => {
+        const { el } = await mountStrip(lease(60000, { activeInvestigations: 1 }));
+        expect(text(el)).to.equal('MASA is working · session stays active');
+        expect(buttonLabels(el)).to.deep.equal(['End session']);
+        expect(el.shadowRoot.querySelector('.strip.expiring')).to.equal(null);
+    });
+
     it('warns with an emphasized Keep active when the session is about to end', async () => {
         const { el } = await mountStrip(lease(60000));
         expect(text(el)).to.equal(`Session ends at ${time(60000)}`);

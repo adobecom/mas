@@ -329,6 +329,8 @@ export class InvestigationSession extends EventTarget {
             status: result.status,
             text: findingText(result.result),
             failure: result.error?.code,
+            progress: result.progress,
+            startedAt: result.startedAt ?? result.createdAt ?? record.startedAt,
             artifacts: result.result?.artifacts ?? [],
             lists: result.result?.lists ?? [],
         });

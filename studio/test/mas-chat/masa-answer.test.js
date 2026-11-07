@@ -5,7 +5,12 @@ import '../../src/swc.js';
 import '../../src/mas-chat-message.js';
 import '../../src/mas-chat-masa-answer.js';
 import '../../src/mas-chat-masa-session.js';
-import { InvestigationSession, findingText, getInvestigationSession } from '../../src/mas-chat/investigation-session.js';
+import {
+    InvestigationSession,
+    findingText,
+    getInvestigationSession,
+    investigationHistory,
+} from '../../src/mas-chat/investigation-session.js';
 import { spTheme } from '../utils.js';
 
 const sid = 'ses_11111111-1111-4111-8111-111111111111';
@@ -111,6 +116,74 @@ describe('MASA answer in the thread', () => {
         expect(el.shadowRoot.querySelector('[aria-live]').textContent).to.equal('MASA is working on it');
         expect(el.shadowRoot.textContent).not.to.contain('checks completed');
         expect(el.shadowRoot.querySelectorAll('sp-progress-circle').length).to.equal(0);
+    });
+
+    describe('long-wait status', () => {
+        const withJob = (controller, fields) => {
+            const polled = { ...job('running'), ...fields };
+            control = sinon.stub().resolves({ result: polled, retryAfter: 10 });
+            controller.updateJob(polled);
+            return controller;
+        };
+        const startedAgo = (ms, progress = { probeResults: 14 }) => {
+            const controller = makeController({ history: [record('running')] });
+            controller.session = lease();
+            return withJob(controller, { startedAt: new Date(now - ms).toISOString(), progress });
+        };
+        const statusText = (el) => el.shadowRoot.querySelector('.typing-status')?.textContent.trim();
+
+        it('shows dots only for the first 15 seconds', async () => {
+            const el = await mountAnswer(startedAgo(14000));
+            expect(el.shadowRoot.querySelector('.typing-status')).to.equal(null);
+        });
+
+        it('counts checks and elapsed time from 15 seconds', async () => {
+            const el = await mountAnswer(startedAgo(91000));
+            expect(statusText(el)).to.equal('Still checking · 14 checks · 1:31');
+        });
+
+        it('adds the longer-investigation note from 120 seconds', async () => {
+            const el = await mountAnswer(startedAgo(125000));
+            expect(statusText(el)).to.equal('Still checking · 14 checks · 2:05 · Longer investigations can take a few minutes');
+        });
+
+        it('omits the check count while there are none', async () => {
+            const el = await mountAnswer(startedAgo(20000, { probeResults: 0 }));
+            expect(statusText(el)).to.equal('Still checking · 0:20');
+        });
+
+        it('falls back to the progress elapsed time without a start time', async () => {
+            const controller = makeController({ history: [record('running')] });
+            controller.session = lease();
+            withJob(controller, { progress: { elapsedMs: 91163, probeResults: 14 } });
+            const el = await mountAnswer(controller);
+            expect(statusText(el)).to.equal('Still checking · 14 checks · 1:31');
+        });
+
+        it('keeps the live region text stable', async () => {
+            const el = await mountAnswer(startedAgo(91000));
+            expect(el.shadowRoot.querySelector('[aria-live]').textContent).to.equal('MASA is working on it');
+        });
+
+        it('does not persist progress', () => {
+            const controller = startedAgo(91000);
+            expect(investigationHistory(controller.records)[0]).not.to.have.any.keys('progress', 'startedAt');
+        });
+    });
+
+    describe('fallback label', () => {
+        it('says MASA could not finish when the investigation ran out of budget', async () => {
+            const el = await mountAnswer(makeController(), { fallback: { content: '', reason: 'unfinished' } });
+            expect(el.shadowRoot.textContent)
+                .to.contain("MASA couldn't finish this investigation · answered from Studio's built-in knowledge")
+                .and.to.contain('Ask MASA again')
+                .and.not.to.contain('MASA unavailable');
+        });
+
+        it('says MASA is unavailable for a fallback saved without a reason', async () => {
+            const el = await mountAnswer(makeController(), { fallback: { content: '' } });
+            expect(el.shadowRoot.textContent).to.contain("Answered from Studio's built-in knowledge, MASA unavailable");
+        });
     });
 
     it('shows neither evidence nor investigation limits for a completed answer', async () => {

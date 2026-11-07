@@ -216,6 +216,39 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(isMasaAvailable()).to.equal(false);
     });
 
+    for (const code of ['investigation-budget-exhausted', 'investigation-timeout']) {
+        it(`stores that MASA could not finish after ${code} and keeps it through a reload`, async () => {
+            masa.rejects(new MasaClientError(code, 'Ran out'));
+            await send(QUESTION);
+            await thread.firstCall.returnValue;
+            expect(masaMessages()[0].fallback).to.deep.equal({ content: builtIn.message, reason: 'unfinished' });
+            el.saveCurrentSession();
+            sessionManager.flushSession(el.currentSessionId);
+            const saved = sessionManager.getSession(el.currentSessionId).messages.find((message) => message.type === 'masa');
+            expect(saved.fallback.reason).to.equal('unfinished');
+            expect(isMasaAvailable()).to.equal(true);
+        });
+    }
+
+    it('shows the could-not-finish label with Ask MASA again after the budget runs out', async () => {
+        masa.rejects(new MasaClientError('investigation-budget-exhausted', 'Ran out'));
+        await send(QUESTION);
+        await thread.firstCall.returnValue;
+        const answer = await lastAnswerElement(el);
+        expect(answer.shadowRoot.textContent)
+            .to.contain("MASA couldn't finish this investigation · answered from Studio's built-in knowledge")
+            .and.to.contain('Ask MASA again')
+            .and.not.to.contain('MASA unavailable');
+    });
+
+    it('keeps the unavailable label when the connection is down', async () => {
+        masa.rejects(new MasaClientError('connection-unavailable', 'Offline'));
+        await send(QUESTION);
+        await thread.firstCall.returnValue;
+        const answer = await lastAnswerElement(el);
+        expect(answer.shadowRoot.textContent).to.contain(LABEL);
+    });
+
     it('places a late fallback under its MASA message', async () => {
         const answer = deferred();
         masa.returns(answer.promise);
@@ -226,7 +259,7 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         answer.reject(new MasaClientError('masa-timeout', 'Timed out'));
         await thread.firstCall.returnValue;
         const index = el.messages.findIndex((message) => message.type === 'masa');
-        expect(el.messages[index].fallback).to.deep.equal({ content: builtIn.message });
+        expect(el.messages[index].fallback).to.deep.equal({ content: builtIn.message, reason: 'unfinished' });
         expect(index).to.be.below(el.messages.length - 2);
         expect(el.messages.filter((message) => message.content === builtIn.message)).to.have.length(0);
     });

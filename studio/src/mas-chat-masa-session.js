@@ -74,14 +74,14 @@ export class MasChatMasaSession extends MasaSessionElement {
                 <span class="message" role="status">Session ended. Saved answers stay in this chat.</span>
             </div>`;
         const remaining = Date.parse(session.expiresAt) - controller.now();
-        const expiring = remaining <= 120000;
         const working = session.activeInvestigations > 0;
+        const expiring = remaining <= 120000 && !working;
         const until = new Date(session.expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
         const files = this.fileCount;
         const kept = files && !expiring ? ` · ${files} ${files === 1 ? 'file' : 'files'} kept until ${until}` : '';
         let message = `MASA session active until ${until}`;
-        if (expiring) message = `Session ends at ${until}`;
-        else if (working) message = 'MASA is working · session stays active';
+        if (working) message = 'MASA is working · session stays active';
+        else if (expiring) message = `Session ends at ${until}`;
         return html`<div class="strip ${expiring ? 'expiring' : ''}">
             ${expiring
                 ? html`<sp-icon-alert size="s" aria-hidden="true"></sp-icon-alert>`

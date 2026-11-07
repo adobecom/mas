@@ -55,6 +55,7 @@ import { getInvestigationSession } from './mas-chat/investigation-session.js';
  * products are already on screen by then, so the bare dots read as "nothing is
  * happening" rather than "the next step is still coming".
  */
+const MASA_UNFINISHED_CODES = ['investigation-budget-exhausted', 'investigation-timeout', 'masa-timeout'];
 const FOLLOW_UP_LOADING_LABEL = 'Still working on your request...';
 
 /**
@@ -1316,7 +1317,8 @@ export class MasChat extends LitElement {
             return;
         }
         rememberFailure(error);
-        this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true } }));
+        const reason = MASA_UNFINISHED_CODES.includes(error.code) ? { reason: 'unfinished' } : {};
+        this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true, ...reason } }));
         try {
             const response = await this.callAIChatAction(
                 { message: ask.question, conversationHistory: ask.history, context: ask.studioContext, masa: false },
@@ -1324,7 +1326,7 @@ export class MasChat extends LitElement {
             );
             const content =
                 response.message || response.user_message || 'I processed your request but have nothing further to add.';
-            this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { content } }));
+            this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { content, ...reason } }));
         } catch (fallbackError) {
             logError('MASA fallback answer failed', fallbackError);
             this.replaceMasaMessage(ask, (message) => ({

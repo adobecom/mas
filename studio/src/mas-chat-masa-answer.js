@@ -4,6 +4,9 @@ import { MasaSessionElement } from './mas-chat/masa-session-element.js';
 import { parseAnswerMarkdown } from './utils/markdown-parser.js';
 
 const pendingStatus = ['queued', 'running'];
+const STATUS_AFTER_MS = 15000;
+const LONG_WAIT_AFTER_MS = 120000;
+const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 
 /** One MASA answer in the conversation thread: live job progress, the finding, or the labelled fallback. */
 export class MasChatMasaAnswer extends MasaSessionElement {
@@ -34,6 +37,10 @@ export class MasChatMasaAnswer extends MasaSessionElement {
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
+        }
+        .typing-status {
+            color: var(--spectrum-global-color-gray-600, #6e6e6e);
+            font-size: var(--spectrum-global-dimension-font-size-75, 12px);
         }
         .finding,
         .fallback {
@@ -167,11 +174,28 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         </div>`;
     }
 
+    /** Visible text for a long wait, so a quiet investigation does not look like a timed-out session. */
+    waitStatus(record) {
+        const elapsed = record.startedAt
+            ? this.activeController.now() - Date.parse(record.startedAt)
+            : (record.progress?.elapsedMs ?? 0);
+        if (!(elapsed >= STATUS_AFTER_MS)) return '';
+        const checks = record.progress?.probeResults;
+        return [
+            'Still checking',
+            checks > 0 && `${checks} checks`,
+            clock(elapsed),
+            elapsed >= LONG_WAIT_AFTER_MS && 'Longer investigations can take a few minutes',
+        ]
+            .filter(Boolean)
+            .join(' · ');
+    }
+
     /** While an answer is on its way: the chat's glowing dots, which the message slots in so chat.css styles them. */
-    workingTemplate(action = nothing) {
+    workingTemplate(action = nothing, status = '') {
         return html`<div class="status">
             <slot name="working"></slot>
-            ${action}
+            ${status ? html`<span class="typing-status">${status}</span>` : nothing} ${action}
         </div>`;
     }
 
@@ -181,8 +205,12 @@ export class MasChatMasaAnswer extends MasaSessionElement {
      * passes empty content, so only the label and the action are added.
      */
     get fallbackTemplate() {
-        const { content, pending } = this.fallback;
-        return html`<p class="placeholder">Answered from Studio's built-in knowledge, MASA unavailable</p>
+        const { content, pending, reason } = this.fallback;
+        const label =
+            reason === 'unfinished'
+                ? "MASA couldn't finish this investigation · answered from Studio's built-in knowledge"
+                : "Answered from Studio's built-in knowledge, MASA unavailable";
+        return html`<p class="placeholder">${label}</p>
             ${pending
                 ? this.workingTemplate()
                 : html`${content ? html`<div class="fallback">${unsafeHTML(parseAnswerMarkdown(content))}</div>` : nothing}
@@ -207,6 +235,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
                 @click=${() => this.activeController.cancel(record)}
                 >Cancel</sp-button
             >`,
+            this.waitStatus(record),
         );
     }
 

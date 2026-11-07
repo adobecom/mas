@@ -323,6 +323,20 @@
                             .to.contain('different offer')
                             .and.not.to.contain('Author and publish snapshots differ');
                     });
+                    it('leaves internal key and value maps out of the finding text', () => {
+                        const answer = {
+                            ...result().answer,
+                            steps: ['Open the card in Studio.'],
+                            readout: { kind: 'access' },
+                            route: { owner: 'x' },
+                            alert: { level: 'y' },
+                        };
+                        const text = findingText({ ...result(), answer });
+                        expect(text).not.to.contain('kind:').and.not.to.contain('owner:').and.not.to.contain('level:');
+                        expect(text)
+                            .to.contain('different offer from the author version')
+                            .and.to.contain('1. Open the card in Studio.');
+                    });
                     it('leaves confidence out of the finding text', () => {
                         const answer = { ...result().answer, confidence: 'medium' };
                         expect(findingText({ ...result(), answer })).not.to.contain('Confidence');

@@ -98,7 +98,10 @@ describe('ai-chat/index main handler', () => {
             const result = await main(
                 makeParams({
                     message: offerId,
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -112,7 +115,10 @@ describe('ai-chat/index main handler', () => {
             const result = await main(
                 makeParams({
                     message: 'phsp_direct_individual',
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -144,7 +150,10 @@ describe('ai-chat/index main handler', () => {
             const result = await main(
                 makeParams({
                     message: osi,
-                    conversationHistory: [{ role: 'user', content: 'help me create cards' }],
+                    conversationHistory: [
+                        { role: 'user', content: 'help me create cards' },
+                        { role: 'assistant', content: 'Which product is this release for?' },
+                    ],
                 }),
             );
             expect(result.statusCode).to.equal(200);
@@ -503,7 +512,13 @@ describe('ai-chat/index main handler', () => {
 
         it('recovers through the parse retry when the model calls an unknown tool', async () => {
             sendStub.onCall(0).resolves(guidedToolResponse('emit_envelope', { intent: 'get_card', slots: {} }));
-            sendStub.onCall(1).resolves(textResponse('```json\n{"type": "guided_step", "message": "Select one:"}\n```'));
+            sendStub
+                .onCall(1)
+                .resolves(
+                    textResponse(
+                        '```json\n{"type": "guided_step", "message": "Select one:", "productCards": [{"label": "Creative Cloud Pro", "value": "PA-1636"}]}\n```',
+                    ),
+                );
             const result = await main(makeParams({ message: 'creative cloud pro', intentHint: 'release' }));
             expect(result.statusCode).to.equal(200);
             expect(result.body.type).to.equal('guided_step');
@@ -834,5 +849,145 @@ describe('ai-chat/index main handler', () => {
             expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
             expect(sendStub.callCount).to.equal(2);
         });
+    });
+});
+
+/**
+ * One earlier "release" mention used to put every later turn of the conversation on the
+ * release prompt, which kept it off the native envelope path where ASK_MASA is offered.
+ * A release is now recognised from the current message, the guided Step 1 question,
+ * the active flow or the flow recorded in the history, never from an old user turn.
+ */
+describe('ai-chat/index release intent routing', () => {
+    let sendStub;
+
+    const offeredIntents = () =>
+        sendStub.firstCall.args[5].tools?.find((tool) => tool.name === 'emit_envelope')?.input_schema.properties.intent.enum;
+    const finishedFlow = [
+        { role: 'user', content: 'create cards for photoshop' },
+        {
+            role: 'assistant',
+            content: '```json\n{"type": "release_cards", "cardConfigs": [{"title": "Photoshop"}]}\n```',
+        },
+    ];
+
+    before(async () => {
+        ({ main } = await import('../../src/ai-chat/index.js'));
+        ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
+        ({ Ims } = await import('@adobe/aio-lib-ims'));
+    });
+
+    beforeEach(() => {
+        sinon.stub(Ims.prototype, 'validateTokenAllowList').resolves({ valid: true });
+        sendStub = sinon.stub(FoundryClient.prototype, 'sendWithContext').resolves(textResponse('Okay.'));
+        sinon.stub(console, 'log');
+        sinon.stub(console, 'error');
+        sinon.stub(console, 'warn');
+    });
+
+    afterEach(() => {
+        sinon.restore();
+    });
+
+    it('offers ASK_MASA on a troubleshooting turn after a finished release flow', async () => {
+        await main(
+            makeParams({
+                message:
+                    'The generative-credits placeholder is RTE, so its p tag breaks the sentence of the placeholder around it',
+                conversationHistory: finishedFlow,
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.include('ASK_MASA');
+        expect(sendStub.firstCall.args[2]).to.not.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('offers ASK_MASA when an earlier turn merely mentioned a release', async () => {
+        await main(
+            makeParams({
+                message: 'find photoshop cards',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    { role: 'assistant', content: 'A release is a set of cards for a new product.' },
+                ],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.include('ASK_MASA');
+        expect(sendStub.firstCall.args[2]).to.not.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('keeps the turn after the Step 1 question on the release flow', async () => {
+        const result = await main(
+            makeParams({
+                message: 'PA-1375',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    { role: 'assistant', content: 'Which product is this release for?' },
+                ],
+                masa: true,
+            }),
+        );
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('keeps a turn of the active flow on the guided path', async () => {
+        await main(
+            makeParams({
+                message: 'monthly',
+                context: { flow: { active: 'release_create', step: 'offering' } },
+                conversationHistory: [{ role: 'user', content: 'create cards for photoshop' }],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.equal(undefined);
+    });
+
+    it('keeps a mid-flow turn recorded in the history on the release prompt', async () => {
+        await main(
+            makeParams({
+                message: 'monthly',
+                conversationHistory: [
+                    { role: 'user', content: 'create cards for photoshop' },
+                    {
+                        role: 'assistant',
+                        content: '```json\n{"type": "guided_step", "flowId": "release", "message": "Offering type?"}\n```',
+                    },
+                ],
+                masa: true,
+            }),
+        );
+        expect(offeredIntents()).to.equal(undefined);
+        expect(sendStub.firstCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
+    });
+
+    it('keeps the bare-identifier shortcut on a later step recorded only in the history', async () => {
+        const result = await main(
+            makeParams({
+                message: 'PA-1375',
+                conversationHistory: [
+                    { role: 'user', content: 'what is a release?' },
+                    {
+                        role: 'assistant',
+                        content: '```json\n{"type": "guided_step", "flowId": "release", "message": "Offering type?"}\n```',
+                    },
+                ],
+            }),
+        );
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('keeps the bare-identifier shortcut when the client sends the release intent hint', async () => {
+        const result = await main(makeParams({ message: 'PA-1375', intentHint: 'release' }));
+        expect(result.body.operationName).to.equal('get_product_by_arrangement_code');
+        expect(sendStub.called).to.equal(false);
+    });
+
+    it('selects the release path when the current message carries a keyword', async () => {
+        await main(makeParams({ message: 'create cards for photoshop', masa: true }));
+        expect(offeredIntents()).to.equal(undefined);
+        expect(sendStub.firstCall.args[2]).to.include('GUIDED CARD CREATION FLOW');
     });
 });

@@ -255,7 +255,8 @@ function extractSurfaceFromPath(path) {
  * runs only when the active flow is NOT release — the release flow renders its
  * product selection locally. Treating it as a release loaded the guided release
  * prompt and tools onto a turn needing neither, pushing it past the budget.
- * A release still wins here when the history says so.
+ * An earlier user turn that mentioned a release does not count: a release in progress is
+ * carried by the Step 1 question below, the active flow and the flow recorded in the history.
  */
 export function isReleaseIntent(message, conversationHistory = []) {
     const releaseKeywords = [
@@ -270,13 +271,6 @@ export function isReleaseIntent(message, conversationHistory = []) {
     ];
     const lowerMessage = message.toLowerCase();
     if (releaseKeywords.some((keyword) => lowerMessage.includes(keyword))) return true;
-    if (
-        conversationHistory.some(
-            (msg) => msg.role === 'user' && releaseKeywords.some((kw) => msg.content?.toLowerCase().includes(kw)),
-        )
-    ) {
-        return true;
-    }
     // Mid-flow fallback: if the previous assistant turn asked which product this
     // release is for (the guided Step 1 prompt), subsequent user turns are part
     // of the release flow even though they don't carry keywords.
@@ -599,7 +593,9 @@ async function main(params) {
         // The guided prompt must stand alone: basePrompt carries the envelope
         // output contract, and combining the two makes the model emit
         // envelope JSON that the guided flow cannot execute.
-        const releaseIntent = isReleaseIntent(message, conversationHistory);
+        // A flow chosen by the hint or recorded in the history (isCardCreation) is a
+        // release in progress even when the current message has no keyword.
+        const releaseIntent = isReleaseIntent(message, conversationHistory) || isCardCreation;
         const effectivePrompt = releaseIntent ? GUIDED_CARD_CREATION_PROMPT : basePrompt;
 
         // Native envelope routing applies only to the free-routing surface.

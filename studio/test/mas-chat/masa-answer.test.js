@@ -33,6 +33,13 @@ const record = (status = 'completed') => ({
     status,
     files: [],
 });
+const WIDE_TABLE = [
+    '| Card | Offer | Plan type | Market segment | Customer segment | Offer selector |',
+    '| --- | --- | --- | --- | --- | --- |',
+    '| Photoshop | photoshop-individual | annual-commitment | commercial-education | individual-team | osi-photoshop-individual |',
+].join('\n');
+const LONG_CODE = `\`\`\`js\nconst selectors = ['${'osi-photoshop-individual-annual-'.repeat(8)}'];\n\`\`\``;
+const TRANSPARENT = 'rgba(0, 0, 0, 0)';
 const job = (status) => ({
     id: iid,
     session: lease(),
@@ -134,6 +141,115 @@ describe('MASA answer in the thread', () => {
         const event = await opened;
         expect(event.detail.fragment.id).to.equal(cardId);
         expect(event.bubbles && event.composed).to.equal(true);
+    });
+
+    it('renders a markdown link in the finding that opens in a new tab', async () => {
+        const controller = makeController({
+            history: [{ ...record(), text: 'Open [the card](https://mas.adobe.com/studio.html#page=content).' }],
+        });
+        const el = await mountAnswer(controller);
+        const link = el.shadowRoot.querySelector('.finding a');
+        expect(link.getAttribute('href')).to.equal('https://mas.adobe.com/studio.html#page=content');
+        expect(link.getAttribute('target')).to.equal('_blank');
+        expect(link.getAttribute('rel')).to.equal('noopener noreferrer');
+    });
+
+    it('collapses the evidence under its count', async () => {
+        const controller = makeController({ history: [record()] });
+        controller.records[0].evidence = [
+            { id: 'E1', summary: 'Author and publish snapshots differ.' },
+            { id: 'E2', summary: 'Published at https://www.adobe.com/products/photoshop.html' },
+        ];
+        const el = await mountAnswer(controller);
+        const details = el.shadowRoot.querySelector('details.evidence');
+        expect(details.open).to.equal(false);
+        expect(details.querySelector('summary').textContent.trim()).to.equal('Evidence (2)');
+    });
+
+    it('shows each evidence id with its summary and clickable URLs', async () => {
+        const controller = makeController({ history: [record()] });
+        controller.records[0].evidence = [{ id: 'E2', summary: 'Published at https://www.adobe.com/products/photoshop.html' }];
+        const el = await mountAnswer(controller);
+        const item = el.shadowRoot.querySelector('details.evidence li');
+        expect(item.textContent).to.contain('E2').and.to.contain('Published at');
+        const link = item.querySelector('a');
+        expect(link.getAttribute('href')).to.equal('https://www.adobe.com/products/photoshop.html');
+        expect(link.getAttribute('target')).to.equal('_blank');
+    });
+
+    it('shows no evidence disclosure without evidence', async () => {
+        const controller = makeController({ history: [record()] });
+        controller.records[0].evidence = [];
+        const el = await mountAnswer(controller);
+        expect(el.shadowRoot.querySelector('details')).to.equal(null);
+    });
+
+    describe('code and tables', () => {
+        let style;
+
+        before(() => {
+            style = document.createElement('style');
+            style.textContent = '.narrow-drawer { display: block; width: 240px; }';
+            document.head.append(style);
+        });
+
+        after(() => style.remove());
+
+        const mountFinding = (text, evidence = []) => {
+            const controller = makeController({ history: [{ ...record(), text }] });
+            controller.records[0].evidence = evidence;
+            const theme = spTheme();
+            theme.classList.add('narrow-drawer');
+            return fixture(html`<mas-chat-masa-answer .controller=${controller} .recordId=${iid}></mas-chat-masa-answer>`, {
+                parentNode: theme,
+            });
+        };
+
+        it('scrolls a wide finding table inside the answer instead of widening it', async () => {
+            const el = await mountFinding(WIDE_TABLE);
+            const wrap = el.shadowRoot.querySelector('.finding div.table-wrap');
+            expect(wrap.querySelectorAll('table thead th').length).to.equal(6);
+            expect(getComputedStyle(wrap).overflowX).to.equal('auto');
+            expect(wrap.scrollWidth).to.be.greaterThan(wrap.clientWidth);
+            expect(el.getBoundingClientRect().width).to.be.at.most(240);
+        });
+
+        it('draws finding table cells with borders, padding and a header background', async () => {
+            const el = await mountFinding(WIDE_TABLE);
+            const header = getComputedStyle(el.shadowRoot.querySelector('.finding th'));
+            const cell = getComputedStyle(el.shadowRoot.querySelector('.finding td'));
+            expect(cell.borderTopStyle).to.equal('solid');
+            expect(parseFloat(cell.paddingLeft)).to.be.greaterThan(0);
+            expect(header.backgroundColor).not.to.equal(TRANSPARENT);
+        });
+
+        it('keeps a fenced block on its lines and scrolls it inside the answer', async () => {
+            const el = await mountFinding(LONG_CODE);
+            const pre = el.shadowRoot.querySelector('.finding pre');
+            expect(pre.querySelector('code.language-js')).to.exist;
+            const preStyle = getComputedStyle(pre);
+            expect(preStyle.whiteSpace).to.equal('pre');
+            expect(preStyle.overflowX).to.equal('auto');
+            expect(preStyle.backgroundColor).not.to.equal(TRANSPARENT);
+            expect(pre.scrollWidth).to.be.greaterThan(pre.clientWidth);
+            expect(el.getBoundingClientRect().width).to.be.at.most(240);
+        });
+
+        it('formats inline code in the finding', async () => {
+            const el = await mountFinding('Check `data-wcs-osi` first.');
+            const code = getComputedStyle(el.shadowRoot.querySelector('.finding code'));
+            expect(code.fontFamily).to.contain('monospace');
+            expect(code.backgroundColor).not.to.equal(TRANSPARENT);
+            expect(parseFloat(code.paddingLeft)).to.be.greaterThan(0);
+            expect(parseFloat(code.borderTopLeftRadius)).to.be.greaterThan(0);
+        });
+
+        it('renders a table in evidence inside a scroll container', async () => {
+            const el = await mountFinding('Finding.', [{ id: 'E1', summary: WIDE_TABLE }]);
+            const wrap = el.shadowRoot.querySelector('details.evidence div.table-wrap');
+            expect(wrap.querySelectorAll('table thead th').length).to.equal(6);
+            expect(getComputedStyle(wrap).overflowX).to.equal('auto');
+        });
     });
 
     it('shows the labelled fallback and asks again', async () => {

@@ -1,5 +1,7 @@
 import { expect } from '@esm-bundle/chai';
-import { parseMarkdown } from '../../src/utils/markdown-parser.js';
+import { linkifyText, parseMarkdown } from '../../src/utils/markdown-parser.js';
+
+const fragment = (markup) => document.createRange().createContextualFragment(markup);
 
 describe('markdown-parser', () => {
     describe('parseMarkdown', () => {
@@ -102,6 +104,54 @@ describe('markdown-parser', () => {
             const first = parseMarkdown(input);
             const second = parseMarkdown(input);
             expect(second).to.equal(first);
+        });
+
+        it('opens links in a new tab without giving the page access to Studio', () => {
+            const link = fragment(parseMarkdown('[card](https://example.com/card)')).querySelector('a');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.getAttribute('rel')).to.equal('noopener noreferrer');
+        });
+
+        it('does not render a javascript: link', () => {
+            expect(fragment(parseMarkdown('[run](javascript:alert(1))')).querySelector('a')).to.equal(null);
+        });
+
+        it('escapes raw script text', () => {
+            const result = parseMarkdown('<script>alert(1)</script>');
+            expect(result).to.include('&lt;script&gt;').and.not.include('<script');
+        });
+
+        it('wraps a table in a scroll container', () => {
+            const table = fragment(parseMarkdown('| Card | Offer |\n| --- | --- |\n| Photoshop | Individual |')).querySelector(
+                'div.table-wrap > table',
+            );
+            expect([...table.querySelectorAll('thead th')].map((cell) => cell.textContent)).to.deep.equal(['Card', 'Offer']);
+        });
+
+        it('renders a fenced block as escaped code with its language class', () => {
+            const code = fragment(parseMarkdown('```js\nconst tag = "<b>";\n```')).querySelector('pre > code.language-js');
+            expect(code.textContent).to.equal('const tag = "<b>";\n');
+            expect(code.children.length).to.equal(0);
+        });
+    });
+
+    describe('linkifyText', () => {
+        it('links a URL in a new tab without giving the page access to Studio', () => {
+            const link = fragment(linkifyText('See https://x.test/a?b=1&c=2 please')).querySelector('a');
+            expect(link.getAttribute('href')).to.equal('https://x.test/a?b=1&c=2');
+            expect(link.getAttribute('target')).to.equal('_blank');
+            expect(link.getAttribute('rel')).to.equal('noopener noreferrer');
+        });
+
+        it('keeps markdown syntax literal', () => {
+            expect(fragment(linkifyText('*not bold* and # not a heading')).textContent).to.include(
+                '*not bold* and # not a heading',
+            );
+        });
+
+        it('escapes HTML', () => {
+            const result = linkifyText('<script>alert(1)</script>');
+            expect(result).to.include('&lt;script&gt;').and.not.include('<script');
         });
     });
 });

@@ -179,11 +179,18 @@ export class MasChatInput extends LitElement {
         }
     }
 
+    /**
+     * The typed message as plain text. The field's value is serialized HTML,
+     * which would send "&" as "&amp;"; offers travel in context, not in the text.
+     */
+    get plainText() {
+        const doc = this.querySelector('rte-field')?.editorView?.state.doc;
+        if (!doc) return '';
+        return doc.textBetween(0, doc.content.size, '\n', (leaf) => (leaf.type.name === 'hard_break' ? '\n' : ''));
+    }
+
     handleRteChange() {
-        const rteField = this.querySelector('rte-field');
-        if (rteField) {
-            this.message = rteField.value || '';
-        }
+        this.message = this.plainText;
     }
 
     handleRteKeyDown(event) {
@@ -196,7 +203,7 @@ export class MasChatInput extends LitElement {
     handleSend() {
         const rteField = this.querySelector('rte-field');
         if (!rteField) return;
-        const message = (rteField.value || '').trim();
+        const message = this.plainText.trim();
 
         if (!message && !this.selectedOsi) return;
 

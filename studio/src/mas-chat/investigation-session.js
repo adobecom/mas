@@ -18,7 +18,10 @@ export function investigationHistory(records) {
     }));
 }
 
-/** Render structured MASA findings as text without adding a second knowledge or action interpreter. */
+/**
+ * Render structured MASA findings as text without adding a second knowledge or action interpreter.
+ * Evidence stays out: it is shown collapsed beside the finding and never sent back as context.
+ */
 export function findingText(result) {
     if (!result) return '';
     if (result.withheld) return 'MASA could not share this finding with this audience.';
@@ -38,7 +41,6 @@ export function findingText(result) {
         answer.next_check && `Next check: ${answer.next_check}`,
         answer.deciding,
         result.budgetExhausted && `Partial finding: ${result.budgetExhaustedBy ?? 'investigation'} budget reached.`,
-        ...(result.evidence ?? []).map((evidence) => `[${evidence.id}] ${evidence.summary}`),
     ]
         .filter(Boolean)
         .join('\n\n');
@@ -334,6 +336,9 @@ export class InvestigationSession extends EventTarget {
             status: result.status,
             progress: result.progress,
             text: findingText(result.result),
+            evidence: result.result?.withheld
+                ? []
+                : (result.result?.evidence ?? []).map(({ id, summary }) => ({ id, summary })),
             failure: result.error?.code,
             artifacts: result.result?.artifacts ?? [],
             lists: result.result?.lists ?? [],

@@ -321,6 +321,23 @@
                         await current.submit('Which offer?', 'Page');
                         expect(calls.at(-1)[2].context).to.contain('Earlier question:').and.to.contain(record().text);
                     });
+                    it('keeps evidence out of the finding text', () => {
+                        expect(findingText(result()))
+                            .to.contain('different offer')
+                            .and.not.to.contain('Author and publish snapshots differ');
+                    });
+                    it('keeps the evidence on the record', () => {
+                        current.records = [record('running')];
+                        current.updateJob(job('completed'));
+                        expect(current.records[0].evidence).to.deep.equal([
+                            { id: 'E1', summary: 'Author and publish snapshots differ.' },
+                        ]);
+                    });
+                    it('keeps the evidence of a withheld finding hidden', () => {
+                        current.records = [record('running')];
+                        current.updateJob({ ...job('completed'), result: { ...result(), withheld: true } });
+                        expect(current.records[0].evidence).to.deep.equal([]);
+                    });
                     it('recovers a queued investigation and respects polling delay', async () => {
                         current.records = [record('queued')];
                         sinon.stub(current.client, 'control').resolves({ result: job('completed'), retryAfter: 30 });

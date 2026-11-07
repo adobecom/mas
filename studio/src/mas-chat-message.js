@@ -6,7 +6,7 @@ import './mas-chat-button-group.js';
 import './mas-chat-product-cards.js';
 import './mas-chat-confirmation-summary.js';
 import './mas-chat-masa-answer.js';
-import { parseMarkdown } from './utils/markdown-parser.js';
+import { linkifyText, parseMarkdown } from './utils/markdown-parser.js';
 import { masaAvatar } from './img/masa-avatar.js';
 import { buildStudioFragmentHref, showToast } from './utils.js';
 import { prepareTextReveal } from './utils/text-reveal.js';
@@ -14,6 +14,14 @@ import Store from './store.js';
 
 /** The message shows the answer text itself; the MASA answer element adds only its label and action. */
 const BUILT_IN_NOTICE = Object.freeze({ content: '' });
+
+const EDITOR_ENTITIES = { amp: '&', lt: '<', gt: '>', nbsp: '\u00a0' };
+
+/**
+ * Messages saved before the input sent plain text hold the editor's escaped HTML.
+ * Decode those entities in one pass so "&amp;lt;" shows as "&lt;", not "<".
+ */
+const decodeEditorEntities = (text) => text?.replace(/&(amp|lt|gt|nbsp);/g, (entity, name) => EDITOR_ENTITIES[name]);
 
 /**
  * Chat Message Component
@@ -497,7 +505,9 @@ export class MasChatMessage extends LitElement {
                                       <div class="message-text">
                                           ${role === 'error'
                                               ? html`<sp-icon-alert size="s" class="error-icon"></sp-icon-alert> `
-                                              : nothing}${isUser ? content : unsafeHTML(parseMarkdown(content))}
+                                              : nothing}${unsafeHTML(
+                                              isUser ? linkifyText(decodeEditorEntities(content)) : parseMarkdown(content),
+                                          )}
                                       </div>
                                       ${this.message.builtIn ? this.renderBuiltInNotice() : nothing}
                                       ${this.showSuggestions

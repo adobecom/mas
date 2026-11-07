@@ -34,9 +34,61 @@ export class MasChatMasaAnswer extends MasaSessionElement {
             align-items: center;
             gap: 8px;
         }
-        .finding {
-            white-space: pre-wrap;
+        .finding,
+        .evidence,
+        .fallback {
+            min-width: 0;
             overflow-wrap: anywhere;
+        }
+        .finding p,
+        .evidence p {
+            margin-block: 0 8px;
+        }
+        .finding > :last-child,
+        .evidence li > :last-child {
+            margin-block-end: 0;
+        }
+        .evidence summary {
+            cursor: pointer;
+        }
+        code {
+            font-family: var(--spectrum-code-font-family-stack, monospace);
+            font-size: 0.9em;
+            background: var(--spectrum-gray-100, #f8f8f8);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre {
+            margin-block: 0 8px;
+            padding: 8px 12px;
+            background: var(--spectrum-gray-100, #f8f8f8);
+            border: 1px solid var(--spectrum-gray-300, #d5d5d5);
+            border-radius: 6px;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        pre code {
+            background: transparent;
+            padding: 0;
+        }
+        .table-wrap {
+            margin-block: 0 8px;
+            overflow-x: auto;
+            overflow-wrap: normal;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        th,
+        td {
+            padding: 4px 8px;
+            border: 1px solid var(--spectrum-gray-300, #d5d5d5);
+            text-align: start;
+            vertical-align: top;
+        }
+        th {
+            background: var(--spectrum-gray-100, #f8f8f8);
+            font-weight: 600;
         }
         img {
             max-width: 100%;
@@ -46,7 +98,8 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         .placeholder {
             color: var(--spectrum-gray-700, #555);
         }
-        ul {
+        ul,
+        ol {
             margin: 0;
             padding-inline-start: 24px;
         }
@@ -136,7 +189,17 @@ export class MasChatMasaAnswer extends MasaSessionElement {
                       >`
                     : nothing}
             </div>
-            ${record.text ? html`<p class="finding">${record.text}</p>` : nothing}
+            ${record.text ? html`<div class="finding">${unsafeHTML(parseMarkdown(record.text))}</div>` : nothing}
+            ${record.evidence?.length
+                ? html`<details class="evidence">
+                      <summary>Evidence (${record.evidence.length})</summary>
+                      <ul>
+                          ${record.evidence.map(
+                              ({ id, summary }) => html`<li><code>${id}</code> ${unsafeHTML(parseMarkdown(summary))}</li>`,
+                          )}
+                      </ul>
+                  </details>`
+                : nothing}
             ${record.status === 'failed' || record.status === 'interrupted'
                 ? html`<p>MASA could not complete this investigation. You can submit a new question.</p>`
                 : nothing}

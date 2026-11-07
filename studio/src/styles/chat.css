@@ -222,6 +222,7 @@
 /* Message Card */
 :where(.mas-feature) .message-card {
     position: relative;
+    box-sizing: border-box;
     background: var(--spectrum-global-color-gray-75, #fdfdfd);
     border-radius: 16px;
     padding: var(--spectrum-global-dimension-size-200, 16px) var(--spectrum-global-dimension-size-250, 20px);
@@ -378,6 +379,7 @@
     background: var(--spectrum-global-color-gray-100, #f8f8f8);
     border-radius: var(--spectrum-global-dimension-size-75, 6px);
     border: 1px solid var(--spectrum-global-color-gray-300, #d5d5d5);
+    white-space: pre;
     overflow-x: auto;
 }
 
@@ -411,8 +413,13 @@
     text-decoration: underline;
 }
 
-:where(.mas-feature) .message-text table {
+/* A wide table scrolls inside its wrapper instead of widening the bubble. */
+:where(.mas-feature) .message-text .table-wrap {
     margin: var(--spectrum-global-dimension-size-150, 12px) 0;
+    overflow-x: auto;
+}
+
+:where(.mas-feature) .message-text table {
     border-collapse: collapse;
     width: 100%;
 }

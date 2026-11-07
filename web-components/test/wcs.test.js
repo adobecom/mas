@@ -1,4 +1,5 @@
 import { Defaults } from '../src/defaults.js';
+import { Env, WCS_STAGE_URL } from '../src/constants.js';
 import { Wcs, applyPlanType } from '../src/wcs.js';
 import sinon from 'sinon';
 
@@ -209,6 +210,125 @@ describe('prefillWcsCache', () => {
             baz: 'qux',
             planType: '',
         });
+    });
+});
+
+describe('Orion WCS requests and prefill', () => {
+    const options = { country: 'US', language: 'en', wcsOsi: ['abm'] };
+    const settings = { ...Defaults, env: Env.STAGE, wcsURL: WCS_STAGE_URL };
+    const key = 'abm-us-mult';
+
+    for (const [env, orion, expected] of [
+        [Env.STAGE, true, 'true'],
+        [Env.STAGE, false, null],
+        [Env.PRODUCTION, true, null],
+    ]) {
+        it(`sends serveLatest=${expected} for ${env} with Orion=${orion}`, async () => {
+            await mockFetch(withWcs);
+            const client = Wcs({ settings: { ...settings, env, orion } });
+            await Promise.all(client.resolveOfferSelectors(options));
+            const url = new URL(fetch.firstCall.args[0]);
+            expect(url.searchParams.get('serveLatest')).to.equal(expected);
+        });
+    }
+
+    it('uses latest prefill without a client WCS request', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings: { ...settings, orion: true } });
+        client.prefillWcsCache({
+            stage: { [key]: [{ offerId: 'legacy' }] },
+            'stage-latest': { [key]: [{ offerId: 'orion' }] },
+        });
+        const [offers] = await Promise.all(
+            client.resolveOfferSelectors(options),
+        );
+        expect(offers.map(({ offerId }) => offerId)).to.deep.equal(['orion']);
+        expect(fetch.callCount).to.equal(0);
+    });
+
+    it('does not use normal prefill in latest mode, including after a cache flush', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings: { ...settings, orion: true } });
+        client.prefillWcsCache({ stage: { [key]: [{ offerId: 'legacy' }] } });
+        client.flushWcsCacheInternal();
+        await Promise.all(client.resolveOfferSelectors(options));
+        expect(fetch.callCount).to.equal(1);
+        expect(
+            new URL(fetch.firstCall.args[0]).searchParams.get('serveLatest'),
+        ).to.equal('true');
+    });
+
+    it('does not use latest prefill in normal mode', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings });
+        client.prefillWcsCache({
+            'stage-latest': { [key]: [{ offerId: 'orion' }] },
+        });
+        await Promise.all(client.resolveOfferSelectors(options));
+        expect(fetch.callCount).to.equal(1);
+        expect(new URL(fetch.firstCall.args[0]).searchParams.has('serveLatest'))
+            .to.be.false;
+    });
+
+    it('uses the server GB cache key without a language suffix in latest mode', async () => {
+        await mockFetch(withWcs);
+        const client = Wcs({ settings: { ...settings, orion: true } });
+        client.prefillWcsCache({
+            'stage-latest': {
+                'abm-gb': [
+                    { offerId: 'orion-EN', language: 'EN' },
+                    { offerId: 'orion-MULT', language: 'MULT' },
+                ],
+            },
+        });
+        const [offers] = await Promise.all(
+            client.resolveOfferSelectors({ ...options, country: 'GB' }),
+        );
+        expect(offers.map(({ language }) => language)).to.deep.equal([
+            'EN',
+            'MULT',
+        ]);
+        expect(fetch.callCount).to.equal(0);
+    });
+
+    it('preserves a single future-dated offer returned in latest mode', async () => {
+        const offer = {
+            offerId: 'future-offer',
+            offerSelectorIds: ['abm'],
+            startDate: '2099-01-01T00:00:00.000Z',
+            language: 'MULT',
+        };
+        await mockFetch(
+            async () => async () =>
+                new Response(JSON.stringify({ resolvedOffers: [offer] })),
+        );
+        const client = Wcs({ settings: { ...settings, orion: true } });
+        const [resolved] = await Promise.all(
+            client.resolveOfferSelectors(options),
+        );
+        expect(resolved).to.deep.equal([{ ...offer, planType: '' }]);
+    });
+
+    it('preserves EN and MULT offers returned by WCS in latest mode', async () => {
+        const offers = ['EN', 'MULT'].map((language) => ({
+            offerId: `orion-${language}`,
+            language,
+            offerSelectorIds: ['abm'],
+            commitment: 'MONTH',
+            term: 'MONTHLY',
+        }));
+        await mockFetch(
+            async () => async () =>
+                new Response(JSON.stringify({ resolvedOffers: offers })),
+        );
+        const client = Wcs({ settings: { ...settings, orion: true } });
+        const [resolved] = await Promise.all(
+            client.resolveOfferSelectors({ ...options, country: 'GB' }),
+        );
+        expect(resolved.map(({ language }) => language)).to.deep.equal([
+            'EN',
+            'MULT',
+        ]);
     });
 });
 

@@ -176,6 +176,27 @@ handle the workflow. Pre-AUP bypasses emit neither phase. <code>element</code> i
 originating checkout link or button and carries the configured <code>data-modal-id</code>.</p>
 <h3 id="feature-flags" tabindex="-1">Feature flags <a class="header-anchor" href="#feature-flags" href="#feature-flags" title="Permalink to this heading">#</a></h3>
 <p>For detailed documentation on all available feature flags, see <a href="feature-flags.html">Feature Flags</a>.</p>
+<h3 id="orion-stage-testing" tabindex="-1">Orion stage testing <a class="header-anchor" href="#orion-stage-testing" href="#orion-stage-testing" title="Permalink to this heading">#</a></h3>
+<p>Use <code>?commerce.env=stage&amp;mas.orion=on</code> (or <code>mas.orion=true</code>) to test the latest
+offers. The service must allow commerce environment overrides with <code>allow-override</code>.
+Milo metadata <code>mas.orion: on</code> or <code>true</code> is also supported when the effective commerce
+environment is stage. The corresponding HTML metadata is <code>&lt;meta name=&quot;mas.orion&quot; content=&quot;on&quot;&gt;</code>;
+<code>mas-orion</code> metadata is supported as well. The URL parameter takes precedence.
+Values other than <code>on</code> and <code>true</code> disable the mode, and it is ignored in production.
+The Orion setting is not read from browser storage.</p>
+<p>The mode adds <code>serveLatest=true</code> to client-side stage WCS requests and to the
+MAS IO fragment URL, so server prefill uses the same selection. Latest offers
+are stored under the <code>stage-latest</code> WCS cache namespace; normal <code>stage</code> and <code>prod</code>
+caches are unchanged. Browser fragment caches, including references and collections,
+are also isolated from normal mode.</p>
+<p>Browser previews (<code>mas.preview=on</code>) forward the same flag to early WCS lookups
+and final prefill. Each in-flight fragment request retains its original cache
+namespace. If the mode changes before it completes, the fragment reloads in the
+current mode before publishing data or prefilling WCS. Stale fallback data is
+reused only within the same normal/latest namespace. Changes to fragment ID,
+mask, or personalization alone retain the existing fragment lifecycle.</p>
+<p>WCS must enable <code>wcs.feature.enableServeLatest</code> on stage. MAS treats offers
+returned in latest mode as Orion offers and does not classify them by ID or date.</p>
 <h3 id="examples" tabindex="-1">Examples <a class="header-anchor" href="#examples" href="#examples" title="Permalink to this heading">#</a></h3>
 <pre><code class="hljs language-html"><span class="hljs-comment">&lt;!-- for US english production--&gt;</span>
 <span class="hljs-tag">&lt;<span class="hljs-name">mas-commerce-service</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">mas-commerce-service</span>&gt;</span>

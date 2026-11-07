@@ -9,6 +9,7 @@ import {
     buildOfferMapping,
     resolveOfferSubstituteMap,
     clearOfferMappingCache,
+    computeWcsCaches,
 } from '../../src/fragment/transformers/wcs.js';
 import { createResponse } from './mocks/MockFetch.js';
 import FRAGMENT from './mocks/fragment.json' with { type: 'json' };
@@ -19,6 +20,89 @@ const CONFIGURATION = () => [
         env: 'prod',
     },
 ];
+
+describe('Orion WCS prefill', () => {
+    let fetchStub;
+    const tokens = [{ osi: 'test-osi' }];
+    const configuration = [
+        ...CONFIGURATION(),
+        { env: 'stage', wcsURL: 'https://www.stage.adobe.com/web_commerce_artifact_stage', landscape: 'ALL' },
+    ];
+    const context = {
+        api_key: 'testing_wcs',
+        locale: 'en_GB',
+        wcsConfiguration: configuration,
+    };
+    const key = 'test-osi-gb';
+
+    beforeEach(() => {
+        fetchStub = sinon.stub(globalThis, 'fetch').callsFake((url) => {
+            const latest = new URL(url).searchParams.get('serveLatest') === 'true';
+            return createResponse(200, {
+                resolvedOffers: ['EN', 'MULT'].map((language) => ({
+                    offerId: `${latest ? 'orion' : 'legacy'}-${language}`,
+                    language,
+                })),
+            });
+        });
+    });
+
+    afterEach(() => {
+        fetchStub.restore();
+    });
+
+    for (const value of ['true', true]) {
+        it(`adds serveLatest only to stage WCS requests for ${JSON.stringify(value)}`, async () => {
+            await computeWcsCaches(tokens, { ...context, serveLatest: value });
+            const urls = fetchStub.getCalls().map(({ args: [url] }) => new URL(url));
+            expect(urls.find(({ hostname }) => hostname === 'www.stage.adobe.com').searchParams.get('serveLatest')).to.equal(
+                'true',
+            );
+            expect(urls.find(({ hostname }) => hostname === 'www.adobe.com').searchParams.has('serveLatest')).to.be.false;
+        });
+    }
+
+    for (const value of [undefined, 'false', 'on']) {
+        it(`does not add serveLatest for ${JSON.stringify(value)}`, async () => {
+            await computeWcsCaches(tokens, { ...context, serveLatest: value });
+            expect(fetchStub.getCalls().every(({ args: [url] }) => !new URL(url).searchParams.has('serveLatest'))).to.be.true;
+        });
+    }
+
+    it('separates latest prefill from normal stage offers while preserving EN and MULT', async () => {
+        const caches = await computeWcsCaches(tokens, { ...context, serveLatest: 'true' });
+        expect(caches).not.to.have.property('stage');
+        expect(caches['stage-latest'][key]).to.deep.equal([
+            { offerId: 'orion-EN', language: 'EN' },
+            { offerId: 'orion-MULT', language: 'MULT' },
+        ]);
+        expect(caches.prod[key].map(({ offerId }) => offerId)).to.deep.equal(['legacy-EN', 'legacy-MULT']);
+    });
+
+    it('does not reuse normal prefetched stage offers in latest mode', async () => {
+        const caches = await computeWcsCaches(
+            tokens,
+            { ...context, serveLatest: 'true' },
+            { stage: { [key]: [{ offerId: 'legacy' }] } },
+        );
+        expect(caches['stage-latest'][key][0].offerId).to.equal('orion-EN');
+    });
+
+    it('does not reuse latest prefetched offers in normal mode', async () => {
+        const caches = await computeWcsCaches(tokens, context, {
+            'stage-latest': { [key]: [{ offerId: 'orion' }] },
+        });
+        expect(caches.stage[key][0].offerId).to.equal('legacy-EN');
+    });
+
+    it('reuses latest offers fetched earlier in the fragment pipeline', async () => {
+        const latestContext = { ...context, serveLatest: 'true' };
+        const prefetched = await computeWcsCaches(tokens, latestContext);
+        fetchStub.resetHistory();
+        expect(await computeWcsCaches(tokens, latestContext, prefetched)).to.deep.equal(prefetched);
+        expect(fetchStub.callCount).to.equal(0);
+    });
+});
 
 describe('MAS_ELEMENT_REGEXP', function () {
     it('should match a span with osi', function () {

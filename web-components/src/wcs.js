@@ -83,6 +83,12 @@ const NAMESPACE = 'wcs';
 export function Wcs({ settings, fetchTimeout }) {
     const log = Log.module(NAMESPACE);
     const { env, wcsApiKey: apiKey } = settings;
+    const serveLatest = env === Env.STAGE && settings.orion === true;
+    const envKey = serveLatest
+        ? 'stage-latest'
+        : env === Env.STAGE
+          ? 'stage'
+          : 'prod';
     /**
      * Cache of promises resolving to arrays of Wcs offers grouped by osi-based keys.
      * @type {Map<string, Promise<Offer[]>>}
@@ -140,6 +146,9 @@ export function Wcs({ settings, fetchTimeout }) {
                 env === Env.STAGE ? 'ALL' : settings.landscape,
             );
             url.searchParams.set('api_key', apiKey);
+            if (serveLatest) {
+                url.searchParams.set('serveLatest', 'true');
+            }
             // language can be undefined if its a UK offer
             if (options.language) {
                 url.searchParams.set('language', options.language);
@@ -236,10 +245,9 @@ export function Wcs({ settings, fetchTimeout }) {
         if (!preloadedCache || typeof preloadedCache !== 'object') {
             throw new TypeError('Cache must be a Map or similar object');
         }
-        const envKey = env === Env.STAGE ? 'stage' : 'prod';
         const envCache = preloadedCache[envKey];
         if (!envCache || typeof envCache !== 'object') {
-            log.warn(`No cache found for environment: ${env}`);
+            log.warn(`No cache found for environment: ${envKey}`);
             return;
         }
         // Fill cache with provided entries
@@ -318,7 +326,13 @@ export function Wcs({ settings, fetchTimeout }) {
             // 2+ codes zip positionally, missing positions default to ''.
             const osiPromotionCode =
                 codes.length === 1 ? codes[0] : (codes[index] ?? '');
-            const groupKey = [validCountry, validLanguage, osiPromotionCode]
+            const groupKey = [
+                validCountry,
+                serveLatest && validCountry === 'GB'
+                    ? undefined
+                    : validLanguage,
+                osiPromotionCode,
+            ]
                 .filter((val) => val)
                 .join('-')
                 .toLowerCase();

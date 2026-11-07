@@ -316,9 +316,9 @@ describe('MASA answer in the thread', () => {
         const el = await fixture(html`<mas-chat-masa-session .controller=${controller}></mas-chat-masa-session>`, {
             parentNode: spTheme(),
         });
-        expect(el.shadowRoot.textContent).to.contain('about to expire').and.to.contain('Keep session active');
+        expect(el.shadowRoot.textContent).to.contain('Session ends at').and.to.contain('Keep active');
         controller.renew = sinon.stub().resolves();
-        [...el.shadowRoot.querySelectorAll('sp-button')].find((b) => b.textContent.includes('Keep session active')).click();
+        [...el.shadowRoot.querySelectorAll('sp-action-button')].find((b) => b.textContent.includes('Keep active')).click();
         expect(controller.renew.calledOnce).to.equal(true);
     });
 

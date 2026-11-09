@@ -6,6 +6,7 @@ const logger = Core.Logger('history-cleanup', { level: 'info' });
 const RETENTION = 95 * 86400000;
 const MAX_BYTES = 750000;
 const PAGE_SIZE = 50;
+const TIME_BUDGET = 240000;
 const CURSOR_PATH = 'private/history-cleanup/cursor.json';
 const METADATA_PATH =
     /^private\/history\/(?<scopeType>[a-z][a-z0-9-]{0,63})\/(?<rootId>[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/(?<kind>numbering|index(?:-\d+)?)\.json$/i;
@@ -84,32 +85,41 @@ async function cleanBlob(container, name, cutoff) {
 }
 
 async function main() {
+    const deadline = Date.now() + TIME_BUDGET;
     try {
         const files = await Files.init();
         const container = files.containerClientPrivate;
         const cursorBlob = container.getBlockBlobClient(CURSOR_PATH);
         const cursor = await readBlob(cursorBlob);
-        const pages = container
-            .listBlobsFlat({
-                prefix: 'private/history/',
-                abortSignal: AbortSignal.timeout(15000),
-            })
-            .byPage({
-                maxPageSize: PAGE_SIZE,
-                continuationToken: cursor?.value.continuationToken || undefined,
-            });
-        const { value: page } = await pages.next();
-        const items = page?.segment.blobItems ?? [];
         const cutoff = Date.now() - RETENTION;
-        for (let offset = 0; offset < items.length; offset += 4) {
-            await Promise.all(items.slice(offset, offset + 4).map(({ name }) => cleanBlob(container, name, cutoff)));
+        let continuationToken = cursor?.value.continuationToken ?? '';
+        let scanned = 0;
+        let more = true;
+        while (more && Date.now() < deadline) {
+            const pages = container
+                .listBlobsFlat({
+                    prefix: 'private/history/',
+                    abortSignal: AbortSignal.timeout(15000),
+                })
+                .byPage({ maxPageSize: PAGE_SIZE, continuationToken: continuationToken || undefined });
+            const { value: page } = await pages.next();
+            const items = page?.segment.blobItems ?? [];
+            let offset = 0;
+            for (; offset < items.length && Date.now() < deadline; offset += 4) {
+                const batch = items.slice(offset, offset + 4);
+                await Promise.all(batch.map(({ name }) => cleanBlob(container, name, cutoff)));
+                scanned += batch.length;
+            }
+            if (offset < items.length) break;
+            continuationToken = page?.continuationToken ?? '';
+            more = !!continuationToken;
         }
-        await cursorBlob.uploadData(Buffer.from(JSON.stringify({ continuationToken: page?.continuationToken ?? '' })), {
+        await cursorBlob.uploadData(Buffer.from(JSON.stringify({ continuationToken })), {
             conditions: cursor ? { ifMatch: cursor.etag } : { ifNoneMatch: '*' },
             blobHTTPHeaders: { blobContentType: 'application/json' },
             abortSignal: AbortSignal.timeout(15000),
         });
-        const result = { scanned: items.length, more: !!page?.continuationToken };
+        const result = { scanned, more };
         logger.info(JSON.stringify({ event: 'cleanup-complete', ...result }));
         return result;
     } catch (error) {

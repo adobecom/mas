@@ -17,6 +17,9 @@ const HISTORY_CONCURRENCY = 4;
 const INDEX_PAGE_SIZE = 100;
 const NUMBERING_RETRIES = 5;
 const NUMBERING_URL_TTL = 300;
+const RESTORE_BUDGET = 50000;
+const RESTORE_WRITE_BUDGET = 25000;
+const RESTORE_LEASE = 70000;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 function fail(statusCode, message) {
@@ -91,12 +94,18 @@ function endpoint(params) {
     return url.origin;
 }
 
+function requestSignal(context) {
+    const remaining = context.deadline ? context.deadline - Date.now() : 15000;
+    if (remaining <= 0) fail(503, 'Restore time budget exhausted; select fewer fragments and retry');
+    return AbortSignal.timeout(Math.min(15000, remaining));
+}
+
 async function aem(context, suffix, options = {}) {
     const response = await fetch(`${context.endpoint}/adobe/sites/cf/fragments${suffix}`, {
         ...options,
         headers: { Authorization: `Bearer ${context.token}`, Accept: 'application/json', ...options.headers },
         redirect: 'error',
-        signal: AbortSignal.timeout(15000),
+        signal: requestSignal(context),
     });
     if (!response.ok) {
         logger.error(
@@ -249,7 +258,7 @@ async function metadataRequest(context, name, options = {}) {
     return fetch(context.fileUrls.get(name), {
         ...options,
         redirect: 'error',
-        signal: AbortSignal.timeout(15000),
+        signal: requestSignal(context),
     });
 }
 
@@ -284,7 +293,10 @@ async function updateMetadata(context, name, initial, update) {
 }
 
 async function reserveVersion(context, event, exclusive = false) {
-    if (!exclusive && context.numbering?.entries[event.id]) return context.numbering.entries[event.id];
+    if (!exclusive && context.numbering?.entries[event.id]) {
+        const { version, createdAt } = context.numbering.entries[event.id];
+        return { version, createdAt };
+    }
     let reserved = false;
     context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
         reserved = false;
@@ -297,7 +309,11 @@ async function reserveVersion(context, event, exclusive = false) {
         if (ledger.entries[event.id]) return false;
         const version = ++ledger.lastVersion;
         if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
-        ledger.entries[event.id] = { version, createdAt: event.createdAt };
+        ledger.entries[event.id] = {
+            version,
+            createdAt: event.createdAt,
+            ...(exclusive ? { lockedUntil: Date.now() + RESTORE_LEASE } : {}),
+        };
         reserved = true;
         return true;
     });
@@ -307,7 +323,8 @@ async function reserveVersion(context, event, exclusive = false) {
             result: { versionPending: true },
         });
     }
-    return context.numbering.entries[event.id];
+    const { version, createdAt } = context.numbering.entries[event.id];
+    return { version, createdAt };
 }
 
 function entryTtl(event) {
@@ -728,6 +745,170 @@ function versionPending(restored, failures) {
     });
 }
 
+async function persistRestore(context, guard) {
+    await context.state.put(`${namespace(context, 'request')}${requestId(context)}`, bounded(guard), { ttl: RETENTION });
+}
+
+async function finishRestore(context, guard, plan, after) {
+    const { restored, failures, beforeSnapshot } = guard;
+    try {
+        const result = { restored, failures };
+        const changed = after.filter((fragment, index) => {
+            const changes = diff({ fragments: [plan[index].before] }, { fragments: [fragment] });
+            if (changes.some((change) => !plan[index].fields.includes(change.field))) {
+                fail(409, 'Unrelated content changed before version capture');
+            }
+            const wanted = versionFieldValues({ ...plan[index].before, ...plan[index].payload });
+            if (changes.some((change) => JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null))) {
+                fail(409, 'Selected fields changed during restore');
+            }
+            return changes.length;
+        });
+        if (changed.length) {
+            const ids = new Set(changed.map((fragment) => fragment.id));
+            for (const fragment of changed) {
+                if (guard.afterVersions.some((entry) => entry.id === fragment.id)) continue;
+                const snapshot = await versionSnapshot(context, { fragments: [fragment] });
+                guard.afterVersions.push(...snapshot.fragments);
+                await persistRestore(context, guard);
+            }
+            for (const fragment of changed) {
+                const live = (await readFragment(context, fragment.id)).fragment;
+                if (live.path !== fragment.path || diff({ fragments: [fragment] }, { fragments: [live] }).length) {
+                    fail(409, 'Fragment changed while creating its AEM version; reload and retry');
+                }
+            }
+            const changedBefore = { fragments: plan.filter((item) => ids.has(item.id)).map((item) => item.before) };
+            const changedSnapshot = {
+                fragments: beforeSnapshot.fragments.filter((entry) => ids.has(entry.id)),
+                ...inheritanceContext(context, changedBefore),
+            };
+            result.event = await writeEntry(context, 'restore', changedBefore, { fragments: changed }, changedSnapshot, {
+                fragments: guard.afterVersions,
+                ...inheritanceContext(context, { fragments: changed }),
+            });
+        }
+        await persistRestore(context, { ...guard, versionPending: false });
+        return result;
+    } catch (error) {
+        if (error.statusCode && error.statusCode < 500) {
+            error.result = { restored, failures };
+            try {
+                await persistRestore(context, {
+                    ...guard,
+                    versionPending: false,
+                    conflict: { statusCode: error.statusCode, message: error.message },
+                });
+            } catch {
+                throw versionPending(restored, failures);
+            }
+            throw error;
+        }
+        throw versionPending(restored, failures);
+    }
+}
+
+async function reconcileRestore(context, guard, previous) {
+    if (!guard.beforeSnapshot) {
+        throw Object.assign(new Error('Restore already attempted; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
+    const source = await findEntry(context, guard.eventId);
+    if (!source) fail(404, 'Version no longer available');
+    await authorizeEvent(context, source);
+    if (previous) await authorizeEvent(context, previous);
+    let claimed = false;
+    try {
+        await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+            claimed = false;
+            const entry = ledger.entries[requestId(context)];
+            if (!entry?.lockedUntil || entry.lockedUntil > Date.now()) return false;
+            entry.lockedUntil = Date.now() + RESTORE_LEASE;
+            claimed = true;
+            return true;
+        });
+    } catch {
+        throw versionPending(guard.restored, guard.failures);
+    }
+    if (!claimed) {
+        throw Object.assign(new Error('Restore is still pending; reload before retrying'), {
+            statusCode: 409,
+            result: { versionPending: true },
+        });
+    }
+    context.target = context.root;
+    if (previous) {
+        try {
+            await persistRestore(context, { ...guard, versionPending: false });
+        } catch {
+            throw versionPending(guard.restored, guard.failures);
+        }
+        return { restored: guard.restored, failures: guard.failures, event: previous };
+    }
+    const plan = [];
+    const after = [];
+    try {
+        for (const entry of guard.beforeSnapshot.fragments) {
+            const before = await readVersion(context, entry);
+            const fields = guard.selections.find((selection) => selection.fragmentId === entry.id).fields;
+            const historical = await readVersion(
+                context,
+                source.beforeSnapshot.fragments.find((fragment) => fragment.id === entry.id),
+            );
+            const payload = restorePayload(before, historical, fields);
+            plan.push({ id: entry.id, before, fields, payload });
+            if (!guard.attempted.includes(entry.id)) {
+                after.push(before);
+                continue;
+            }
+            const { fragment } = await readFragment(context, entry.id);
+            assertTarget(context, fragment);
+            if (fragment.path !== entry.path) fail(409, 'Historical fragment moved');
+            const changes = diff({ fragments: [before] }, { fragments: [fragment] });
+            const wanted = versionFieldValues({ ...before, ...payload });
+            if (
+                changes.some(
+                    (change) =>
+                        !fields.includes(change.field) ||
+                        JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null),
+                )
+            ) {
+                throw versionPending(guard.restored, guard.failures);
+            }
+            let failure = guard.failures.find((failure) => failure.fragmentId === entry.id);
+            if (!changes.length && (!failure || failure.partial)) throw versionPending(guard.restored, guard.failures);
+            const incomplete = diff({ fragments: [fragment] }, { fragments: [{ ...before, ...payload }] }).some((change) =>
+                fields.includes(change.field),
+            );
+            if (incomplete && guard.restored.includes(entry.id)) throw versionPending(guard.restored, guard.failures);
+            if (incomplete && !failure) {
+                failure = { fragmentId: entry.id, statusCode: 503, error: 'Draft restore interrupted', partial: true };
+                guard.failures.push(failure);
+            }
+            if (!failure && !guard.restored.includes(entry.id)) guard.restored.push(entry.id);
+            const captured = guard.afterVersions.find((version) => version.id === entry.id);
+            if (captured) {
+                const historicalAfter = await readVersion(context, captured);
+                if (diff({ fragments: [historicalAfter] }, { fragments: [fragment] }).length) {
+                    throw versionPending(guard.restored, guard.failures);
+                }
+            }
+            after.push(fragment);
+        }
+        for (const item of plan.filter((item) => !guard.attempted.includes(item.id))) {
+            if (!guard.failures.some((failure) => failure.fragmentId === item.id)) {
+                guard.failures.push({ fragmentId: item.id, statusCode: 424, error: 'Not attempted before interruption' });
+            }
+        }
+        await persistRestore(context, guard);
+    } catch {
+        throw versionPending(guard.restored, guard.failures);
+    }
+    return finishRestore(context, guard, plan, after);
+}
+
 async function restore(context, params, source) {
     if (!source) fail(404, 'Version no longer available');
     if (!source.beforeSnapshot.fragments.length) fail(400, 'Creation cannot be undone');
@@ -736,14 +917,39 @@ async function restore(context, params, source) {
     context.target = context.root;
     const before = { fragments: plan.map((item) => item.before) };
     const beforeSnapshot = await historySnapshot(context, before);
-    const guardKey = `${namespace(context, 'request')}${requestId(context)}`;
-    const guard = { eventId: source.id, selections: params.selections, expected: params.expected, versionPending: true };
+    const guard = {
+        eventId: source.id,
+        selections: params.selections,
+        expected: params.expected,
+        versionPending: true,
+        beforeSnapshot,
+        attempted: [],
+        restored: [],
+        failures: [],
+        afterVersions: [],
+    };
     await reserveVersion(context, { id: requestId(context), createdAt: new Date().toISOString() }, true);
-    await context.state.put(guardKey, bounded(guard), { ttl: RETENTION });
-    const restored = [];
-    const failures = [];
+    await persistRestore(context, guard);
+    const { restored, failures } = guard;
     const after = [];
     for (const [index, item] of plan.entries()) {
+        if (Date.now() >= context.writeDeadline) {
+            for (const remaining of plan.slice(index)) {
+                failures.push({
+                    fragmentId: remaining.id,
+                    statusCode: 424,
+                    error: 'Not attempted before restore time budget',
+                });
+                after.push(remaining.before);
+            }
+            break;
+        }
+        guard.attempted.push(item.id);
+        try {
+            await persistRestore(context, guard);
+        } catch {
+            throw versionPending(restored, failures);
+        }
         try {
             after.push(await writeDraft(context, item));
             restored.push(item.id);
@@ -771,64 +977,22 @@ async function restore(context, params, source) {
             }
             break;
         }
+        try {
+            await persistRestore(context, guard);
+        } catch {
+            throw versionPending(restored, failures);
+        }
     }
     try {
-        const result = { restored, failures };
-        const changed = after.filter((fragment, index) => {
-            const changes = diff({ fragments: [plan[index].before] }, { fragments: [fragment] });
-            if (changes.some((change) => !plan[index].fields.includes(change.field))) {
-                fail(409, 'Unrelated content changed before version capture');
-            }
-            const wanted = versionFieldValues({ ...plan[index].before, ...plan[index].payload });
-            if (changes.some((change) => JSON.stringify(change.after) !== JSON.stringify(wanted.get(change.field) ?? null))) {
-                fail(409, 'Selected fields changed during restore');
-            }
-            return changes.length;
-        });
-        if (changed.length) {
-            const ids = new Set(changed.map((fragment) => fragment.id));
-            const afterSnapshot = await historySnapshot(context, { fragments: changed });
-            const changedBefore = { fragments: before.fragments.filter((fragment) => ids.has(fragment.id)) };
-            const changedSnapshot = {
-                fragments: beforeSnapshot.fragments.filter((entry) => ids.has(entry.id)),
-                ...inheritanceContext(context, changedBefore),
-            };
-            result.event = await writeEntry(
-                context,
-                'restore',
-                changedBefore,
-                { fragments: changed },
-                changedSnapshot,
-                afterSnapshot,
-            );
-        }
-        await context.state.put(guardKey, bounded({ ...guard, versionPending: false, restored, failures }), { ttl: RETENTION });
-        return result;
-    } catch (error) {
-        if (error.statusCode && error.statusCode < 500) {
-            error.result = { restored, failures };
-            try {
-                await context.state.put(
-                    guardKey,
-                    bounded({
-                        ...guard,
-                        versionPending: false,
-                        restored,
-                        failures,
-                        conflict: { statusCode: error.statusCode, message: error.message },
-                    }),
-                    { ttl: RETENTION },
-                );
-            } catch {
-                throw versionPending(restored, failures);
-            }
-            throw error;
-        }
+        await persistRestore(context, guard);
+    } catch {
         throw versionPending(restored, failures);
     }
+    return finishRestore(context, guard, plan, after);
 }
 
 async function execute(operation, params) {
+    const startedAt = Date.now();
     if ((params.__ow_method ?? '').toLowerCase() !== 'post') fail(405, 'POST required');
     if (!['record', 'list', 'restore'].includes(operation)) fail(400, 'Unknown version operation');
     const scope = resolveScope(params.scopeType);
@@ -862,6 +1026,9 @@ async function execute(operation, params) {
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         access: new Map(),
         fragments: new Map(),
+        ...(operation === 'restore'
+            ? { deadline: startedAt + RESTORE_BUDGET, writeDeadline: startedAt + RESTORE_WRITE_BUDGET }
+            : {}),
     };
     context.root = (await readFragment(context, context.rootId)).fragment;
     scope.assertRoot(context.root);
@@ -888,11 +1055,7 @@ async function execute(operation, params) {
                 JSON.stringify(prior.expected) !== JSON.stringify(params.expected)
             )
                 fail(409, 'Request ID already used');
-            if (prior.versionPending)
-                throw Object.assign(new Error('Restore already attempted; reload before retrying'), {
-                    statusCode: 409,
-                    result: { versionPending: true },
-                });
+            if (prior.versionPending) return reconcileRestore(context, prior, previous);
             if (prior.conflict)
                 throw Object.assign(new Error(prior.conflict.message), {
                     statusCode: prior.conflict.statusCode,

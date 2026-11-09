@@ -42,6 +42,8 @@ application:
                         function: src/history/restore.js
                         web: 'yes'
                         runtime: nodejs:22
+                        limits:
+                            timeout: 60000
                         inputs:
                             odinEndpoint: $ODIN_ENDPOINT
                         annotations:

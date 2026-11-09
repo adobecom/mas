@@ -177,6 +177,7 @@ async function captureBeforeVersion(repository, fragment) {
 export async function withPromotionVersion(repository, fragment, write) {
     if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
     const previous = pendingVersions.get(fragment.id);
+    // Wait so this save cannot overwrite the state still being captured for the previous history entry.
     if (previous) await previous;
     let beforeVersionId;
     if (fragment.id) {
@@ -187,6 +188,7 @@ export async function withPromotionVersion(repository, fragment, write) {
         }
     }
     const saved = await write();
+    if (!saved) return saved;
     clearPromotionHistoryRequests();
     if (fragment.id && !beforeVersionId) {
         showToast(

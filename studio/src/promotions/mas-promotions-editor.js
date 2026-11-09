@@ -102,9 +102,11 @@ import { renderFragmentStatusCell } from '../common/utils/render-utils.js';
 import { clearCaches } from '../../libs/fragment-client.js';
 import { canEditPromotions, canManagePromotions } from '../groups.js';
 import {
+    createPromotionFragment,
     duplicatePromotionProject,
     getAllAttachedPromoVariations,
     getPromotionProjectsForProbe,
+    savePromotionFragment,
 } from './promotions-repository.js';
 
 function getPromotionPickerFragmentLabel(data) {
@@ -963,7 +965,8 @@ class MasPromotionsEditor extends LitElement {
                 if (tag) await this.#deletePromotionTag(tag);
                 return;
             }
-            const newPromotion = await this.repository.createFragment(
+            const newPromotion = await createPromotionFragment(
+                this.repository,
                 this.#buildPromotionFragmentPayload(this.fragment.getFieldValue('title')),
                 false,
             );
@@ -1048,7 +1051,7 @@ class MasPromotionsEditor extends LitElement {
         showToast('Saving project...');
         let saved;
         try {
-            saved = await this.repository.saveFragment(this.fragmentStore, { withToast: false, refetchEtag: false });
+            saved = await savePromotionFragment(this.repository, this.fragmentStore, { withToast: false, refetchEtag: false });
         } catch (error) {
             showToast(error.message || 'Failed to save project.', 'negative');
             return;

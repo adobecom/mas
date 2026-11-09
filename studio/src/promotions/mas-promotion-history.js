@@ -445,7 +445,15 @@ export class MasPromotionHistory extends LitElement {
                     !beforeParents.has(change.fragmentId) ||
                     JSON.stringify(change.before) !== JSON.stringify(change.after),
             );
-        return { ...event, displayChanges, beforeParents, afterParents, comparisonWarning: '' };
+        const comparisonWarning = displayChanges.some(
+            (change) =>
+                !change.field.startsWith('@') &&
+                unavailableParents.has(change.fragmentId) &&
+                !normalizations.has(change.fragmentId),
+        )
+            ? 'Only raw stored differences are shown.'
+            : '';
+        return { ...event, displayChanges, beforeParents, afterParents, comparisonWarning };
     }
 
     effectiveValue(value, field, parent) {
@@ -820,7 +828,9 @@ export class MasPromotionHistory extends LitElement {
         event.preventDefault();
         if (this.busy) return;
         this.filters = Object.fromEntries(
-            [...this.renderRoot.querySelectorAll('[name]')].map((input) => [input.name, input.value.trim()]),
+            [...this.renderRoot.querySelectorAll('[name]')]
+                .map((input) => [input.name, input.value.trim()])
+                .filter(([, value]) => value),
         );
         this.loadHistory();
     }

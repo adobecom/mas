@@ -7,9 +7,19 @@ import { Fragment } from '../aem/fragment.js';
 import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
-import { savePromotionVersion } from './promotion-version.js';
+import { savePromotionVersion, withPromotionVersion } from './promotion-version.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
+
+/** Creates promotion content and records its initial version after the repository finishes. */
+export async function createPromotionFragment(repository, fragmentData, withToast = true) {
+    return withPromotionVersion(repository, fragmentData, () => repository.createFragment(fragmentData, withToast));
+}
+
+/** Captures promotion content before saving; ordinary fragments use the repository without versioning. */
+export async function savePromotionFragment(repository, fragmentStore, options = {}) {
+    return withPromotionVersion(repository, fragmentStore.get(), () => repository.saveFragment(fragmentStore, options));
+}
 
 /**
  * @returns {Array<Object>}
@@ -346,7 +356,7 @@ export async function duplicatePromotionProject(repository, sourcePromotion, { t
     };
     let newPromotion;
     try {
-        newPromotion = await repository.createFragment(payload, false);
+        newPromotion = await createPromotionFragment(repository, payload, false);
         if (!newPromotion) throw new Error('Failed to duplicate project.');
     } catch (error) {
         if (tag) await repository.aem.tags.delete(tag.tagPath).catch(() => {});

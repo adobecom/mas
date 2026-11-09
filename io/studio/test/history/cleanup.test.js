@@ -70,6 +70,8 @@ describe('Scheduled history metadata cleanup', () => {
         }));
     });
 
+    afterEach(() => sinon.restore());
+
     it('physically removes expired orphan pages and reservations even for inactive roots while retaining the counter', async () => {
         put(`${scopePath}index-0.json`, { entries: { old: { createdAt: expiredAt } } });
         put(`${scopePath}index.json`, { pages: {} });
@@ -139,12 +141,30 @@ describe('Scheduled history metadata cleanup', () => {
         expect(client.delete.firstCall.args[0].conditions).to.deep.equal({ ifMatch: '"1"' });
     });
 
-    it('bounds each scheduled scan and persists continuation so later inactive scopes are reached', async () => {
+    it('processes multiple pages in one scheduled run when time remains', async () => {
+        for (let page = 0; page < 101; page++) put(`${scopePath}index-${page}.json`, { entries: {} });
+
+        const result = await main();
+
+        expect(result).to.deep.equal({ scanned: 101, more: false });
+        expect([...blobs.keys()]).to.deep.equal([cursorPath]);
+        expect(blobs.get(cursorPath).value.continuationToken).to.equal('');
+    });
+
+    it('stops at the time budget and persists continuation for the next run', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         for (let page = 0; page < 51; page++) put(`${scopePath}index-${page}.json`, { entries: {} });
         const names = [...blobs.keys()].sort();
+        const client = container.getBlockBlobClient(names[49]);
+        const original = client.delete;
+        client.delete = sinon.stub().callsFake(async (options) => {
+            await original(options);
+            clock.tick(240000);
+        });
 
-        await main();
+        const result = await main();
 
+        expect(result).to.deep.equal({ scanned: 50, more: true });
         expect(listing.firstCall.args[0].maxPageSize).to.equal(50);
         expect(blobs.get(cursorPath).value.continuationToken).to.equal(names[49]);
         expect(container.listBlobsFlat.firstCall.args[0].prefix).to.equal('private/history/');
@@ -152,6 +172,26 @@ describe('Scheduled history metadata cleanup', () => {
         await main();
         expect([...blobs.keys()]).to.deep.equal([cursorPath]);
         expect(blobs.get(cursorPath).value.continuationToken).to.equal('');
+    });
+
+    it('replays an unfinished page on the next run without skipping its remaining files', async () => {
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        for (let page = 0; page < 60; page++) put(`${scopePath}index-${page}.json`, { entries: {} });
+        const names = [...blobs.keys()].sort();
+        const client = container.getBlockBlobClient(names[50]);
+        const original = client.delete;
+        client.delete = sinon.stub().callsFake(async (options) => {
+            await original(options);
+            clock.tick(240000);
+        });
+
+        const result = await main();
+
+        expect(result).to.deep.equal({ scanned: 54, more: true });
+        expect(blobs.get(cursorPath).value.continuationToken).to.equal(names[49]);
+        expect(blobs.has(names[54])).to.equal(true);
+        expect(await main()).to.deep.equal({ scanned: 6, more: false });
+        expect([...blobs.keys()]).to.deep.equal([cursorPath]);
     });
 
     it('retains concurrent numbering reservations and their increased counter when a cleanup write loses its ETag race', async () => {

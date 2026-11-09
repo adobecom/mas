@@ -13,6 +13,11 @@ import {
     restorePromotionHistory,
     clearPromotionHistoryRequests,
 } from '../../src/promotions/promotion-version.js';
+import {
+    createPromotionFragment,
+    duplicatePromotionProject,
+    savePromotionFragment,
+} from '../../src/promotions/promotions-repository.js';
 
 describe('Promotion version capture', () => {
     let sandbox;
@@ -72,6 +77,98 @@ describe('Promotion version capture', () => {
         sessionStorage.removeItem('masAccessToken');
         sessionStorage.removeItem('mas.pendingPromotionAudit');
         Store.promotions.list.data.set(projects);
+    });
+
+    it('records project creation through the promotion model after the repository finishes', async () => {
+        const payload = { ...project, id: undefined };
+        repository.createFragment = sandbox.stub().callsFake(async () => {
+            expect(fetchStub.called).to.be.false;
+            return project;
+        });
+
+        expect(await createPromotionFragment(repository, payload, false)).to.equal(project);
+        await listPromotionHistory(project.id);
+
+        expect(repository.createFragment.calledOnceWithExactly(payload, false)).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({ action: 'create', targetId: project.id });
+    });
+
+    it('captures the previous project version before delegating the save to the repository', async () => {
+        const store = new FragmentStore(new Fragment(project));
+        const options = { withToast: false, refetchEtag: false };
+        repository.saveFragment = sandbox.stub().callsFake(async () => {
+            expect(repository.aem.sites.cf.fragments.createVersion.calledOnceWith(project.id)).to.be.true;
+            return { ...project, etag: '"saved"' };
+        });
+
+        await savePromotionFragment(repository, store, options);
+        await listPromotionHistory(project.id);
+
+        expect(repository.saveFragment.calledOnceWithExactly(store, options)).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({
+            action: 'save',
+            beforeVersionId: 'before-version',
+            completionEtag: '"saved"',
+        });
+    });
+
+    it('records promo variation saves through the promotion model against their project', async () => {
+        const variation = {
+            id: 'variation',
+            path: '/content/dam/mas/acom/en_US/promotions/launch/card',
+            fields: [{ name: 'tags', values: ['mas:promotion/launch'] }],
+        };
+        repository.saveFragment = sandbox.stub().callsFake(async () => {
+            expect(repository.aem.sites.cf.fragments.createVersion.calledOnceWith(variation.id)).to.be.true;
+            return variation;
+        });
+
+        await savePromotionFragment(repository, new FragmentStore(new Fragment(variation)));
+        await listPromotionHistory(project.id);
+
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({
+            rootId: project.id,
+            targetId: variation.id,
+            beforeVersionId: 'before-version',
+        });
+    });
+
+    it('keeps ordinary fragment saves free of promotion version requests', async () => {
+        const ordinary = { id: 'ordinary', path: '/content/dam/mas/acom/en_US/card' };
+        repository.saveFragment = sandbox.stub().resolves(ordinary);
+
+        expect(await savePromotionFragment(repository, new FragmentStore(new Fragment(ordinary)))).to.equal(ordinary);
+
+        expect(repository.aem.sites.cf.fragments.createVersion.called).to.be.false;
+        expect(fetchStub.called).to.be.false;
+    });
+
+    for (const operation of ['create', 'save']) {
+        it(`does not record a version when the repository returns a failed ${operation}`, async () => {
+            const toast = sandbox.spy(Events.toast, 'emit');
+            repository[`${operation}Fragment`] = sandbox.stub().resolves(false);
+
+            const result =
+                operation === 'create'
+                    ? await createPromotionFragment(repository, { ...project, id: undefined })
+                    : await savePromotionFragment(repository, new FragmentStore(new Fragment(project)));
+            await listPromotionHistory(project.id);
+
+            expect(result).to.be.false;
+            expect(fetchStub.getCalls().some((call) => call.args[0].endsWith('/history-record'))).to.be.false;
+            expect(toast.called).to.be.false;
+        });
+    }
+
+    it('records duplicated project creation through the promotion model', async () => {
+        repository.aem.tags = { create: sandbox.stub().resolves() };
+        repository.getPromotionsPath = () => '/content/dam/mas/promotions';
+        repository.createFragment = sandbox.stub().resolves(project);
+
+        await duplicatePromotionProject(repository, new Fragment(project), { title: 'Launch copy' });
+        await listPromotionHistory(project.id);
+
+        expect(JSON.parse(fetchStub.firstCall.args[1].body)).to.include({ action: 'create', targetId: project.id });
     });
 
     it('captures native content before saving without preparing an audit intent', async () => {

@@ -1,6 +1,9 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
+const { build } = require('esbuild');
+const { resolve } = require('node:path');
+const { authorizeWrite } = require('../../src/history/components/promotion.js');
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
 const VARIATION = '22222222-2222-4222-8222-222222222222';
@@ -79,6 +82,19 @@ describe('Promotion project versions', () => {
         });
     const nativePosts = () =>
         fetchStub.getCalls().filter(({ args: [url, options] }) => url.endsWith('/versions') && options.method === 'POST');
+    const failPostWriteCapture = () => {
+        let captures = 0;
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match.has('method', 'POST'),
+            )
+            .callsFake(async (url) => {
+                if (++captures === 2) return response({}, 503);
+                const path = new URL(url).pathname;
+                return response({}, 201, null, { location: `${path}/${remember(path.split('/').at(-2))}` });
+            });
+    };
     const writes = () =>
         fetchStub
             .getCalls()
@@ -868,17 +884,7 @@ describe('Promotion project versions', () => {
 
     it('returns versionPending with actual outcomes if post-write native capture fails', async () => {
         const { event } = await save();
-        let captures = 0;
-        fetchStub
-            .withArgs(
-                sinon.match((url) => url.endsWith('/versions')),
-                sinon.match.has('method', 'POST'),
-            )
-            .callsFake(async (url) => {
-                captures++;
-                if (captures === 2) return response({}, 503);
-                return response({}, 201, null, { location: `${new URL(url).pathname}/${remember()}` });
-            });
+        failPostWriteCapture();
         const error = await expectError(undo(event), 503);
         expect(error.result).to.include({ versionPending: true });
         expect(error.result.restored).to.deep.equal([PROJECT]);
@@ -886,6 +892,216 @@ describe('Promotion project versions', () => {
         expect(error.message).not.to.include('audit');
         await expectError(undo(event), 409);
         expect(writes()).to.have.length(1);
+    });
+
+    it('stops starting draft writes at the time budget and records completed restores', async () => {
+        const first = (await save()).event;
+        const second = (await save(VARIATION, undefined, { requestId: 'variation-save' })).event;
+        const combined = {
+            ...first,
+            changes: [...first.changes, ...second.changes],
+            beforeSnapshot: { fragments: [...first.beforeSnapshot.fragments, ...second.beforeSnapshot.fragments] },
+            afterSnapshot: { fragments: [...first.afterSnapshot.fragments, ...second.afterSnapshot.fragments] },
+        };
+        const key = [...stored.keys()].find((key) => JSON.parse(stored.get(key)).id === first.id);
+        stored.set(key, JSON.stringify(combined));
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .callsFake(async (url, options) => {
+                fragments.set(PROJECT, { ...fragments.get(PROJECT), ...JSON.parse(options.body) });
+                clock.tick(25000);
+                return response(fragments.get(PROJECT));
+            });
+
+        const result = await undo(combined, ['@title'], {
+            selections: [PROJECT, VARIATION].map((fragmentId) => ({ fragmentId, fields: ['@title'] })),
+            expected: [PROJECT, VARIATION].map((fragmentId) => ({ fragmentId, etag: '"one"' })),
+        });
+
+        expect(result.restored).to.deep.equal([PROJECT]);
+        expect(result.failures).to.deep.equal([
+            { fragmentId: VARIATION, statusCode: 424, error: 'Not attempted before restore time budget' },
+        ]);
+        expect(result.event.changes.map((change) => change.fragmentId)).to.deep.equal([PROJECT]);
+        expect(fragments.get(VARIATION).title).to.equal('Saved');
+        expect(writes()).to.have.length(1);
+    });
+
+    it('does not start draft writes when preparation exhausts the request time budget', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match.has('method', 'POST'),
+            )
+            .callsFake(async (url) => {
+                const versionId = remember();
+                clock.tick(50000);
+                return response({}, 201, null, { location: `${new URL(url).pathname}/${versionId}` });
+            });
+
+        const failure = await expectError(undo(event), 503);
+
+        expect(failure.message).to.include('time budget exhausted');
+        expect(writes()).to.have.length(0);
+    });
+
+    it('reconciles an expired pending restore without repeating its draft writes', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        failPostWriteCapture();
+        await expectError(undo(event), 503);
+        await expectError(undo(event), 409);
+
+        clock.tick(70000);
+        const result = await undo(event);
+
+        expect(result.restored).to.deep.equal([PROJECT]);
+        expect(result.event.changes[0]).to.include({ field: '@title', before: 'Saved', after: 'Project' });
+        expect(result.event).not.to.have.property('lockedUntil');
+        expect(await undo(event)).to.deep.equal(result);
+        expect(writes()).to.have.length(1);
+    });
+
+    it('reuses checkpointed native versions after interrupted catalog persistence', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const put = state.put;
+        let unavailable = true;
+        state.put = async (key, value, options) => {
+            if (unavailable && JSON.parse(value).action === 'restore') throw new Error('State unavailable');
+            return put(key, value, options);
+        };
+        await expectError(undo(event), 503);
+        const captures = nativePosts().length;
+
+        unavailable = false;
+        clock.tick(70000);
+        const result = await undo(event);
+
+        expect(result.event.action).to.equal('restore');
+        expect(nativePosts()).to.have.length(captures);
+        expect(writes()).to.have.length(1);
+    });
+
+    it('reconciles an already recorded restore after its final guard update failed', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const put = state.put;
+        let unavailable = true;
+        state.put = async (key, value, options) => {
+            if (unavailable && JSON.parse(value).versionPending === false) throw new Error('State unavailable');
+            return put(key, value, options);
+        };
+        await expectError(undo(event), 503);
+        const captures = nativePosts().length;
+
+        unavailable = false;
+        clock.tick(70000);
+        const result = await undo(event);
+
+        expect(result.restored).to.deep.equal([PROJECT]);
+        expect(result.event.action).to.equal('restore');
+        expect(nativePosts()).to.have.length(captures);
+        expect(writes()).to.have.length(1);
+    });
+
+    it('records only confirmed partial changes when reconciling an interrupted content and tag restore', async () => {
+        fragments.get(VARIATION).tags = [{ id: 'mas:old' }];
+        const { event } = await save(VARIATION, (fragment) => {
+            fragment.title = 'New';
+            fragment.tags = [{ id: 'mas:new' }];
+        });
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/tags')),
+                sinon.match.has('method', 'PUT'),
+            )
+            .resolves(response({}, 503));
+        await expectError(undo(event, ['@title', '@tags']), 503);
+        const draftWrites = writes().length;
+
+        clock.tick(70000);
+        const result = await undo(event, ['@title', '@tags']);
+
+        expect(result.restored).to.deep.equal([]);
+        expect(result.failures[0]).to.include({ fragmentId: VARIATION, partial: true });
+        expect(result.event.changes.map((change) => change.field)).to.deep.equal(['@title']);
+        expect(writes()).to.have.length(draftWrites);
+    });
+
+    it('rechecks historical access before reconciling an interrupted restore', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const put = state.put;
+        state.put = async (key, value, options) => {
+            if (JSON.parse(value).action === 'restore') throw new Error('State unavailable');
+            return put(key, value, options);
+        };
+        await expectError(undo(event), 503);
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes('/versions/') && !url.endsWith('/versions')))
+            .resolves(response({}, 403));
+
+        clock.tick(70000);
+        await expectError(undo(event), 403);
+
+        expect(writes()).to.have.length(1);
+    });
+
+    it('does not finalize an expired pending restore while its accepted draft is still unconfirmed', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith(`/${PROJECT}`)),
+                sinon.match.has('method', 'PUT'),
+            )
+            .rejects(new Error('Connection lost'));
+        await expectError(undo(event), 503);
+
+        clock.tick(70000);
+        const failure = await expectError(undo(event), 503);
+
+        expect(failure.result.versionPending).to.equal(true);
+        expect(writes()).to.have.length(1);
+        expect((await call('list')).events.map((entry) => entry.id)).to.deep.equal([event.id]);
+    });
+
+    it('does not reconcile unrelated changes into an expired pending restore', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        failPostWriteCapture();
+        await expectError(undo(event), 503);
+        fragments.get(PROJECT).description = 'Changed by another editor';
+
+        clock.tick(70000);
+        const failure = await expectError(undo(event), 503);
+
+        expect(failure.result.versionPending).to.equal(true);
+        expect(writes()).to.have.length(1);
+        expect((await call('list')).events).to.have.length(1);
+    });
+
+    it('claims pending reconciliation exclusively across simultaneous retries', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        failPostWriteCapture();
+        await expectError(undo(event), 503);
+
+        clock.tick(70000);
+        const results = await Promise.allSettled([undo(event), undo(event)]);
+
+        expect(results.filter((result) => result.status === 'fulfilled')).to.have.length(1);
+        expect(results.find((result) => result.status === 'rejected').reason.statusCode).to.equal(409);
+        expect(writes()).to.have.length(1);
+        expect((await call('list')).events.filter((entry) => entry.action === 'restore')).to.have.length(1);
     });
 
     it('reports a tag-only write as partial if its result cannot be read back', async () => {
@@ -1148,6 +1364,57 @@ describe('Promotion project versions', () => {
         await expectError(undo(event), 403);
         roles = ['GRP-ODIN-MAS-PROMO-POWERUSERS'];
         expect((await undo(event)).restored).to.deep.equal([PROJECT]);
+    });
+
+    it('keeps Studio Restore visibility aligned with backend authorization', async () => {
+        const { outputFiles } = await build({
+            stdin: {
+                contents: `
+                    export { canManagePromotions } from './groups.js';
+                    export { default as Store } from './store.js';
+                `,
+                resolveDir: resolve(__dirname, '../../../../studio/src'),
+            },
+            bundle: true,
+            format: 'esm',
+            write: false,
+            plugins: [
+                {
+                    name: 'permission-test-store',
+                    setup(builder) {
+                        builder.onResolve({ filter: /^\.\/store\.js$/ }, () => ({
+                            path: 'store',
+                            namespace: 'permission-test',
+                        }));
+                        builder.onLoad({ filter: /.*/, namespace: 'permission-test' }, () => ({
+                            contents: `
+                                const Store = {
+                                    profile: { get: () => Store.profile.value },
+                                    users: { get: () => Store.users.value },
+                                };
+                                export default Store;
+                            `,
+                        }));
+                    },
+                },
+            ],
+        });
+        const ui = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);
+        ui.Store.profile.value = profile;
+        for (const [groups, permitted] of [
+            [['GRP-ODIN-MAS-ADMINS'], true],
+            [['GRP-ODIN-MAS-PROMO-POWERUSERS'], true],
+            [['grp-odin-mas-promo-powerusers'], true],
+            [['GRP-ODIN-MAS-PROMO-EDITORS'], false],
+            [['GRP-ODIN-MAS-ACOM-POWERUSERS'], false],
+            [[], false],
+        ]) {
+            roles = groups;
+            ui.Store.users.value = [{ userPrincipalName: profile.email, groups }];
+            expect(ui.canManagePromotions(), JSON.stringify(groups)).to.equal(permitted);
+            if (permitted) await authorizeWrite(state, profile.email, 'restore');
+            else await expectError(authorizeWrite(state, profile.email, 'restore'), 403);
+        }
     });
 
     for (const extra of [

@@ -351,6 +351,7 @@ describe('Promotion version history', () => {
         expect(element.rows.map((row) => row.field)).to.deep.equal(['cardTitle']);
         expect(root.querySelector('.card-summary').textContent).to.include('1 change');
         expect(element.selectedEvent.changes).to.have.length(3);
+        expect(root.querySelector('.row-warning')).to.be.null;
     });
 
     it('keeps an explicit multi-value clear visible instead of hiding it as inheritance', async () => {
@@ -373,7 +374,7 @@ describe('Promotion version history', () => {
         expect(element.rows.map((row) => row.field)).to.deep.equal(['variant', 'cardTitle']);
     });
 
-    for (const modified of [{ at: '2026-10-01T09:30:00Z' }, undefined]) {
+    for (const modified of [{ at: '2026-10-01T09:30:00Z' }, { at: '2026-10-02T09:00:00Z' }, undefined]) {
         it(`preserves raw differences when the parent's historical values cannot be confirmed (${JSON.stringify(modified)})`, async () => {
             const { parent } = savedPromoInheritanceVersion();
             parent.modified = modified;
@@ -381,7 +382,7 @@ describe('Promotion version history', () => {
             const root = await mount();
 
             expect(element.rows.map((row) => row.field)).to.deep.equal(['variant', 'ctas', 'cardTitle']);
-            expect(root.textContent).not.to.include('Historical inheritance is unavailable');
+            expect(root.querySelector('.row-warning').textContent).to.include('Only raw stored differences are shown');
         });
     }
 
@@ -742,6 +743,22 @@ describe('Promotion version history', () => {
             { limit: 10, query: 'Author' },
         ]);
     });
+
+    for (const value of ['', '   ']) {
+        it(`removes the previous search filter when submitting ${JSON.stringify(value)}`, async () => {
+            const root = await mount();
+            root.querySelector('#history-search').value = 'Author';
+            root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+            await waitUntil(() => client.listPromotionHistory.callCount === 2 && !element.busy);
+            await element.updateComplete;
+
+            root.querySelector('#history-search').value = value;
+            root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+            await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.busy);
+
+            expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([before.id, { limit: 10 }]);
+        });
+    }
 
     it('keeps previous results hidden until fresh history and its comparison finish loading', async () => {
         const root = await mount();

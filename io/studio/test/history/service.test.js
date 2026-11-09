@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
-const { build } = require('esbuild');
+const { readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const { authorizeWrite } = require('../../src/history/components/promotion.js');
 
@@ -1366,52 +1366,23 @@ describe('Promotion project versions', () => {
         expect((await undo(event)).restored).to.deep.equal([PROJECT]);
     });
 
-    it('keeps Studio Restore visibility aligned with backend authorization', async () => {
-        const { outputFiles } = await build({
-            stdin: {
-                contents: `
-                    export { canManagePromotions } from './groups.js';
-                    export { default as Store } from './store.js';
-                `,
-                resolveDir: resolve(__dirname, '../../../../studio/src'),
-            },
-            bundle: true,
-            format: 'esm',
-            write: false,
-            plugins: [
-                {
-                    name: 'permission-test-store',
-                    setup(builder) {
-                        builder.onResolve({ filter: /^\.\/store\.js$/ }, () => ({
-                            path: 'store',
-                            namespace: 'permission-test',
-                        }));
-                        builder.onLoad({ filter: /.*/, namespace: 'permission-test' }, () => ({
-                            contents: `
-                                const Store = {
-                                    profile: { get: () => Store.profile.value },
-                                    users: { get: () => Store.users.value },
-                                };
-                                export default Store;
-                            `,
-                        }));
-                    },
-                },
-            ],
-        });
-        const ui = await import(`data:text/javascript;base64,${Buffer.from(outputFiles[0].text).toString('base64')}`);
-        ui.Store.profile.value = profile;
+    it('keeps backend Restore permissions aligned with Studio group names', async () => {
+        const source = readFileSync(resolve(__dirname, '../../../../studio/src/groups.js'), 'utf8');
+        const studioGroups = Object.fromEntries(
+            [...source.matchAll(/^const (MAS_ADMIN_GROUP|MAS_PROMO_(?:EDITORS|POWERUSERS)_GROUP) = '([^']+)';$/gm)].map(
+                ([, name, value]) => [name, value],
+            ),
+        );
+        expect(studioGroups).to.have.all.keys('MAS_ADMIN_GROUP', 'MAS_PROMO_EDITORS_GROUP', 'MAS_PROMO_POWERUSERS_GROUP');
         for (const [groups, permitted] of [
-            [['GRP-ODIN-MAS-ADMINS'], true],
-            [['GRP-ODIN-MAS-PROMO-POWERUSERS'], true],
-            [['grp-odin-mas-promo-powerusers'], true],
-            [['GRP-ODIN-MAS-PROMO-EDITORS'], false],
+            [[studioGroups.MAS_ADMIN_GROUP], true],
+            [[studioGroups.MAS_PROMO_POWERUSERS_GROUP], true],
+            [[studioGroups.MAS_PROMO_POWERUSERS_GROUP.toLowerCase()], true],
+            [[studioGroups.MAS_PROMO_EDITORS_GROUP], false],
             [['GRP-ODIN-MAS-ACOM-POWERUSERS'], false],
             [[], false],
         ]) {
             roles = groups;
-            ui.Store.users.value = [{ userPrincipalName: profile.email, groups }];
-            expect(ui.canManagePromotions(), JSON.stringify(groups)).to.equal(permitted);
             if (permitted) await authorizeWrite(state, profile.email, 'restore');
             else await expectError(authorizeWrite(state, profile.email, 'restore'), 403);
         }

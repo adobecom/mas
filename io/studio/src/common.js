@@ -276,6 +276,7 @@ async function fetchOdin(
         body = null,
         contentType = null,
         etag = null,
+        csrfToken = null,
         ignoreErrors = [],
         max429Retries = 3,
         retryAfterFallbackSecs = 65,
@@ -291,6 +292,9 @@ async function fetchOdin(
     };
     if (etag) {
         headers['If-Match'] = etag;
+    }
+    if (csrfToken) {
+        headers['CSRF-Token'] = csrfToken;
     }
     if (method !== 'GET' && body) {
         headers['Content-Type'] = contentType || 'application/json';

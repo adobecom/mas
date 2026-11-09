@@ -31,11 +31,8 @@ import {
 import { MasError } from '../src/mas-error.js';
 import '../src/mas.js';
 import { Defaults } from '../src/defaults.js';
-import {
-    sumOffers,
-    selectOffers,
-    buildPriceHTML as sharedBuildPriceHTML,
-} from '../../price/src/index.js';
+import { sumOffers, selectOffers } from '../../price/src/offers.js';
+import { buildPriceHTML as sharedBuildPriceHTML } from '../../price/src/price.js';
 import { Log } from '../src/log.js';
 import {
     cases,

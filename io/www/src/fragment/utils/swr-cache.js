@@ -8,8 +8,9 @@ const DEFAULT_MAX_MEMORY_BYTES = 256 * 1024 * 1024;
 
 // One heap per container: every memory entry of every cache instance is tracked here, ordered from
 // least to most recently used, so the least recently used ones (whatever their cache) are evicted
-// while the estimated total size exceeds `maxBytes`. Sizes are serialized lengths, an estimate only.
-const memory = { lru: new Map(), bytes: 0, maxBytes: DEFAULT_MAX_MEMORY_BYTES, caches: {} };
+// while the estimated total size exceeds `maxBytes`, or the heap used exceeds the heap budget when one
+// is set (see `setHeapBudget`). Sizes are serialized lengths, an estimate only.
+const memory = { lru: new Map(), bytes: 0, maxBytes: DEFAULT_MAX_MEMORY_BYTES, heap: null, caches: {} };
 
 const sizeOf = (value) => JSON.stringify(value)?.length ?? 0;
 
@@ -46,7 +47,27 @@ function store(name, backend, memoryKey, entry, maxEntries) {
     memory.caches[name].entries++;
     memory.caches[name].bytes += entry.size;
     if (backend.store.size > maxEntries) evict(backend.store.values().next().value);
-    while (memory.bytes > memory.maxBytes && memory.lru.size > 1) evict(memory.lru.keys().next().value);
+    enforceBudget();
+}
+
+function heapExcess() {
+    const { heap } = memory;
+    const used = heap.getHeapUsed();
+    // Evicted entries are only freed by the next garbage collection, which is what shrinks the heap:
+    // until then they are deducted from the heap used, so that a single excess is not evicted again.
+    if (used < heap.lastUsed) heap.evicted = 0;
+    heap.lastUsed = used;
+    return used - heap.evicted - heap.maxUsed;
+}
+
+function enforceBudget() {
+    let excess = memory.heap ? heapExcess() : memory.bytes - memory.maxBytes;
+    while (excess > 0 && memory.lru.size > 1) {
+        const entry = memory.lru.keys().next().value;
+        excess -= entry.size;
+        if (memory.heap) memory.heap.evicted += entry.size;
+        evict(entry);
+    }
 }
 
 const untrackBackend = (backend) => {
@@ -58,13 +79,24 @@ export const getMemoryStats = () => ({
     entries: memory.lru.size,
     bytes: memory.bytes,
     maxBytes: memory.maxBytes,
+    maxHeapUsed: memory.heap?.maxUsed,
     caches: structuredClone(memory.caches),
 });
 
 /** Sets the memory budget shared by all cache instances, evicting least recently used entries above it. */
 export function setMemoryLimit(maxBytes) {
     memory.maxBytes = maxBytes;
-    while (memory.bytes > memory.maxBytes && memory.lru.size > 1) evict(memory.lru.keys().next().value);
+    enforceBudget();
+}
+
+/**
+ * Replaces the byte budget with the actual heap usage (where the runtime exposes it): least recently
+ * used entries are evicted while `getHeapUsed()` exceeds `maxHeapUsed`. Called without arguments,
+ * goes back to the byte budget.
+ */
+export function setHeapBudget(maxHeapUsed, getHeapUsed) {
+    memory.heap = getHeapUsed ? { maxUsed: maxHeapUsed, getHeapUsed, lastUsed: 0, evicted: 0 } : null;
+    enforceBudget();
 }
 
 /**
@@ -76,7 +108,7 @@ export function setMemoryLimit(maxBytes) {
  * unless `previewMemory` is enabled. Memory-only preview caches share an invalidation revision
  * in localStorage, so clearing one instance also invalidates other clients on the same origin.
  * Each memory backend keeps at most `maxEntries` (default 1000), evicting its least recently
- * used entry on overflow; all memory backends also share one byte budget (see `setMemoryLimit`).
+ * used entry on overflow; all memory backends also share one budget (see `setMemoryLimit` and `setHeapBudget`).
  * Reads, refreshes and `set` move a key to the most recently used position. The read path:
  *   - fresh entry         → return it;
  *   - expired, published  → serve stale, refill in the background (coalesced single-flight);

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { createSwrCache, getMemoryStats, setMemoryLimit } from '../../src/fragment/utils/swr-cache.js';
+import v8 from 'v8';
+import { createSwrCache, getMemoryStats, setHeapBudget, setMemoryLimit } from '../../src/fragment/utils/swr-cache.js';
 
 // A deferred loader: resolve/reject externally so a refill can be held in-flight to observe
 // single-flight coalescing and stale-while-revalidate.
@@ -120,9 +121,38 @@ describe('swr-cache', () => {
 
     describe('shared memory budget', () => {
         const cacheStats = (name) => getMemoryStats().caches[name];
+        let maxHeapUsed;
+
+        beforeEach(() => {
+            maxHeapUsed = getMemoryStats().maxHeapUsed;
+            setHeapBudget();
+        });
 
         afterEach(() => {
             setMemoryLimit(256 * 1024 * 1024);
+            setHeapBudget(maxHeapUsed, () => v8.getHeapStatistics().used_heap_size);
+        });
+
+        it('evicts only the excess above the heap budget, until the heap shrinks', async () => {
+            const cache = createSwrCache({ name: 'budget-heap' });
+            let heapUsed = 0;
+            setHeapBudget(1000, () => heapUsed);
+            for (const key of ['a', 'b', 'c']) await cache.get(published, key, async () => key.repeat(98));
+
+            // older entries of the previous tests are evicted first: the excess also covers them, then a and b
+            heapUsed = 1000 + getMemoryStats().bytes - 150;
+            await cache.get(published, 'd', async () => 'd'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 2, bytes: 200 });
+            expect(getMemoryStats().maxHeapUsed).to.equal(1000);
+
+            // the evicted entries are not freed yet: the same heap used does not evict again
+            await cache.get(published, 'e', async () => 'e'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300 });
+
+            heapUsed = 1050;
+            await cache.get(published, 'f', async () => 'f'.repeat(98));
+            expect(cacheStats('budget-heap')).to.deep.equal({ entries: 3, bytes: 300 });
+            expect(await cache.get(published, 'c', async () => 'reloaded')).to.equal('reloaded');
         });
 
         it('evicts the least recently used entries across cache instances above the byte budget', async () => {

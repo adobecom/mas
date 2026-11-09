@@ -12,9 +12,10 @@ import {
     resetCache as resetConfiguration,
     validateApiKey,
 } from './utils/configuration.js';
-import { getMemoryStats } from './utils/swr-cache.js';
+import { getMemoryStats, setHeapBudget } from './utils/swr-cache.js';
 import { log, logError, logDebug } from './utils/log.js';
 import crypto from 'crypto';
+import v8 from 'v8';
 import zlib from 'zlib';
 import stateLib from '@adobe/aio-lib-state';
 
@@ -39,8 +40,12 @@ const encode = (body) => (body?.length > 0 ? zlib.brotliCompressSync(body).toStr
 const MB = 1024 * 1024;
 const formatSize = (bytes) => (bytes < MB ? `${Math.round(bytes / 1024)}KB` : `${(bytes / MB).toFixed(1)}MB`);
 
-// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB | caches 6.1MB of 256.0MB in 548 entries:
-// response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
+// The caches grow until the heap used reaches 75% of the V8 heap limit, the rest being left to the requests in flight.
+const HEAP_LIMIT = v8.getHeapStatistics().heap_size_limit;
+setHeapBudget(HEAP_LIMIT * 0.75, () => v8.getHeapStatistics().used_heap_size);
+
+// e.g. "memory: process rss=140.2MB heap used 41.0MB of 62.5MB, limit 768.0MB | caches 6.1MB up to heap used 576.0MB
+// in 548 entries: response 4.0MB (180), request-metadata 75KB (180), ..." (largest cache first, entry count in parentheses)
 // e.g. "42s" or "7m12s"
 const formatAge = (ms) => {
     const seconds = Math.round(ms / 1000);
@@ -48,13 +53,13 @@ const formatAge = (ms) => {
 };
 
 function memoryUsage() {
-    const { entries, bytes, maxBytes, caches } = getMemoryStats();
+    const { entries, bytes, maxHeapUsed, caches } = getMemoryStats();
     const { rss, heapUsed, heapTotal } = process.memoryUsage();
     const perCache = Object.entries(caches)
         .sort(([, a], [, b]) => b.bytes - a.bytes)
         .map(([name, cache]) => `${name} ${formatSize(cache.bytes)} (${cache.entries})`)
         .join(', ');
-    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)} | caches ${formatSize(bytes)} of ${formatSize(maxBytes)} in ${entries} entries: ${perCache}`;
+    return `memory: process rss=${formatSize(rss)} heap used ${formatSize(heapUsed)} of ${formatSize(heapTotal)}, limit ${formatSize(HEAP_LIMIT)} | caches ${formatSize(bytes)} up to heap used ${formatSize(maxHeapUsed)} in ${entries} entries: ${perCache}`;
 }
 
 function resetCache() {

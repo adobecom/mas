@@ -103,7 +103,7 @@ describe('pipeline end to end', () => {
         const hits = summary('cache hit');
         expect(hits).to.have.lengthOf(2);
         expect(hits[0]).to.match(
-            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: /,
+            /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 200 in [\d.]+ms \| memory: .*, limit [\d.]+MB \| caches [\d.]+[KM]B up to heap used [\d.]+MB in /,
         );
         expect(hits[1]).to.match(
             /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago\) -> 304 in [\d.]+ms \| memory: /,

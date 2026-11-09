@@ -356,7 +356,7 @@ describe('offer transformer', () => {
             expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
             expect(body.fields.mnemonicAlt).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicAlt);
             expect(body.fields.osi).to.equal(OSI);
-            expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
+            expect(body.fields).not.to.have.property('variations');
             expect(wcsCalls()).to.have.length(1);
         });
 
@@ -372,7 +372,7 @@ describe('offer transformer', () => {
             // the fragment's own icons win over the offer baseline's, and so does their alt text
             expect(body.fields.mnemonicIcon).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicIcon);
             expect(body.fields.mnemonicAlt).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.mnemonicAlt);
-            expect(body.fields.variations).to.deep.equal(FRAGMENT_RESPONSE_EN.fields.variations);
+            expect(body.fields).not.to.have.property('variations');
         });
 
         it("resolves the fragment's own osi when only a template is requested", async () => {

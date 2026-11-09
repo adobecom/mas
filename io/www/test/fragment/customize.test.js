@@ -1470,6 +1470,18 @@ describe('customize active grouped references', function () {
         fetchStub.restore();
     });
 
+    it('removes variation ids from the delivered root and kept cards and collections without changing the source', async function () {
+        body.fields.variations = ['inactive'];
+        const source = structuredClone(body);
+        const result = await process({ ...FAKE_CONTEXT, fragmentPath: 'root', locale: 'en_US', country: 'AR', body });
+
+        expect(result.body.fields).not.to.have.property('variations');
+        expect(result.body.references.collection.value.fields).not.to.have.property('variations');
+        expect(result.body.references.card.value.fields).not.to.have.property('variations');
+        expect(result.body.references.card.value.variationId).to.equal('active');
+        expect(body).to.deep.equal(source);
+    });
+
     it('preserves active dictionary subtrees while removing nested variation branches', async function () {
         const dictionary = structuredClone(DICTIONARY_RESPONSE);
         const [entry, nestedEntry] = dictionary.referencesTree;

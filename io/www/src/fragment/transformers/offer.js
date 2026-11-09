@@ -1,14 +1,13 @@
-import { CARD_MODEL_ID, fetch, VALID_PARAMETER_VALUE_REGEX } from '../utils/common.js';
+import { CARD_MODEL_ID, fetch } from '../utils/common.js';
 import { log, logDebug, logError } from '../utils/log.js';
 import { MAS_ROOT, odinFolder, PATH_TOKENS } from '../utils/paths.js';
 import { createSwrCache } from '../utils/swr-cache.js';
 import { getDefaultLocaleCode, resolveCommerceCountries } from '../locales.js';
 import { computeRegionLocale } from './defaultLanguage.js';
 import { computeWcsCaches, createWcsContext, tokenKey, wcsCacheKey } from './wcs.js';
-import { adaptReferencesTree, mergeVariations, selectPromoProjectForFragment } from './customize.js';
+import { adaptReferencesTree, getValidatedPzn, resolveActiveFragment } from './customize.js';
 import { transformer as promotionsTransformer } from './promotions.js';
 import { transformBody } from '../utils/odinSchemaTransform.js';
-import { normalizeExplicitEmptyInFields } from '../utils/explicit-empty.js';
 const TRANSFORMER_NAME = 'offer';
 const FOLDER_PAGE_SIZE = 50;
 const TRAVERSED_FIELDS = ['cards', 'collections'];
@@ -190,30 +189,15 @@ export async function resolveOfferInfos(initContext) {
  * Each fragment is collected once.
  */
 function collectTargets(context) {
-    const { body, offer, template, pzn } = context;
+    const { body, offer, template } = context;
     const variationContext = {
         ...context,
         isRegionLocale: context.regionLocale !== context.defaultLocale,
         references: body.references,
+        pzn: getValidatedPzn(context),
     };
-    if (
-        pzn &&
-        String(pzn)
-            .split(',')
-            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
-    ) {
-        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
-        variationContext.pzn = undefined;
-    }
     const resolve = ({ id, path, model, fields }, tree = []) => {
-        const root = { id, path, model, fields };
-        const { references, referencesTree, ...fragment } = mergeVariations(
-            root,
-            variationContext,
-            selectPromoProjectForFragment(root, variationContext),
-        );
-        if (references) variationContext.references = { ...references, ...variationContext.references };
-        fragment.fields = normalizeExplicitEmptyInFields(fragment.fields);
+        const { fragment, referencesTree } = resolveActiveFragment({ id, path, model, fields }, variationContext);
         return { fragment, referencesTree: adaptReferencesTree(tree, fragment, referencesTree) };
     };
     const { fragment: root, referencesTree: rootTree } = resolve(body, body.referencesTree);

@@ -478,6 +478,22 @@ class AEM {
     }
 
     /**
+     * Activate only this fragment through classic replication, without a reference workflow.
+     * Requires crx:replicate on the fragment path for the calling user.
+     * @param {Object} fragment
+     * @returns {Promise<void>}
+     */
+    async replicateFragment(fragment) {
+        const formData = new FormData();
+        formData.append('cmd', 'Activate');
+        formData.append('path', fragment.path);
+        const response = await this.postFormWithCsrf('/bin/replicate', formData);
+        if (!response.ok) {
+            throw new Error(`Failed to replicate fragment: ${response.status} ${response.statusText}`);
+        }
+    }
+
+    /**
      * Publish a fragment
      * @param {Object} fragment
      * @returns {Promise<void>}

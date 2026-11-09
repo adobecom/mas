@@ -265,6 +265,8 @@ describe('PreviewFragmentStore', () => {
     describe('countdown dates', () => {
         const SENTINEL_FIELDS = [{ name: 'description', values: ['<p>Ends <a href="#">countdown-timer</a></p>'] }];
         const DATES = { cdtStart: '2026-02-01T00:00:00Z', cdtEnd: '2026-02-10T00:00:00Z', countdownStatus: 'ready' };
+        // The preview reads the authored dates as local time, like the live pipeline serves them.
+        const READY = { cdtStart: '2026-02-01T00:00:00', cdtEnd: '2026-02-10T00:00:00', countdownStatus: 'ready' };
         const NONE = { cdtStart: undefined, cdtEnd: undefined, countdownStatus: undefined };
         const FAILED = { ...NONE, countdownStatus: 'lookup-failed' };
         const NO_PROJECT = { ...NONE, countdownStatus: 'no-project' };
@@ -353,7 +355,7 @@ describe('PreviewFragmentStore', () => {
             const result = await store.getResolvedFragment();
 
             expect(result.fields.find((field) => field.name === 'description').values).to.deep.equal([description]);
-            expect(result).to.include({ ...DATES, previewLocale: 'ko_KR' });
+            expect(result).to.include({ ...READY, previewLocale: 'ko_KR' });
             expect(source.getFieldValue('description')).to.equal('{{offer-description}}');
             expect(source.cdtStart).to.be.undefined;
             expect(source.previewLocale).to.be.undefined;
@@ -375,7 +377,7 @@ describe('PreviewFragmentStore', () => {
 
         it('takes a default card dates from the pipeline-selected project provenance', async () => {
             const store = createStore({ id: 'card-id' });
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(store.previewPublishedFragment.calledOnce).to.be.true;
             // Only the saved fragment id and request settings leave: never the unsaved authored fields.
             expect(store.previewPublishedFragment.firstCall.args).to.deep.equal([
@@ -419,7 +421,7 @@ describe('PreviewFragmentStore', () => {
             store.previewPublishedFragment.onFirstCall().rejects(new Error('boom'));
             sandbox.stub(console, 'warn');
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(store.previewPublishedFragment.callCount).to.equal(2);
             store.dispose();
         });
@@ -473,7 +475,7 @@ describe('PreviewFragmentStore', () => {
             store.previewPublishedFragment.onFirstCall().resolves({ status: 503, body: {} });
             sandbox.stub(console, 'warn');
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(FAILED);
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(store.previewPublishedFragment.callCount).to.equal(2);
             store.dispose();
         });
@@ -503,7 +505,7 @@ describe('PreviewFragmentStore', () => {
 
         it('takes a promo variation dates from its tagged project via a cold raw search, never loadPromotions', async () => {
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             await store.getCountdownDates(SENTINEL_FIELDS);
             expect(repository.searchFragmentList.calledOnce).to.be.true;
             expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/promotions');
@@ -515,7 +517,7 @@ describe('PreviewFragmentStore', () => {
         it('uses the loaded promotions list for a promo variation instead of searching', async () => {
             Store.promotions.list.data.set([{ get: () => new Promotion(rawProject()) }]);
             const store = createStore(variation());
-            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(DATES);
+            expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             expect(repository.searchFragmentList.called).to.be.false;
             store.dispose();
         });

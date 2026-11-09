@@ -8,6 +8,8 @@ export const isRunning = (record) => ['queued', 'running'].includes(record.statu
 
 const sessions = new Map();
 const retryable = (error) => [0, 429, 502, 503, 504].includes(error.status);
+/** MASA asks for a check every 3 seconds while it answers; the session ticks at the same pace. */
+const POLL_SECONDS = 3;
 
 /** Persist text and opaque control IDs only; files, grants, URLs and resumable upload bodies stay in memory. */
 export function investigationHistory(records) {
@@ -121,6 +123,7 @@ export class InvestigationSession extends EventTarget {
         this.renewedAt = 0;
         this.epoch = 0;
         this.foreground = 0;
+        this.onVisibilityChange = () => void this.tick();
     }
 
     /** A lease MASA has not confirmed ended; only these are resumed after reload or revoked on end. */
@@ -369,7 +372,7 @@ export class InvestigationSession extends EventTarget {
         });
         this.pending = null;
         this.updateJob(result);
-        this.pollAfter = this.now() + Math.max(10, retryAfter) * 1000;
+        this.pollAfter = this.now() + Math.max(POLL_SECONDS, retryAfter) * 1000;
     }
 
     retrySubmission() {
@@ -416,7 +419,7 @@ export class InvestigationSession extends EventTarget {
                 );
                 if (epoch !== this.epoch) return;
                 this.updateJob(result);
-                this.pollAfter = this.now() + Math.max(10, retryAfter) * 1000;
+                this.pollAfter = this.now() + Math.max(POLL_SECONDS, retryAfter) * 1000;
             }
             if (!this.pending && !this.uploadIntent) this.error = null;
         } catch (error) {
@@ -509,11 +512,14 @@ export class InvestigationSession extends EventTarget {
     attach() {
         this.foreground++;
         if (this.foreground === 1) {
-            this.timer = setInterval(() => this.tick(), 3000);
+            this.timer = setInterval(() => this.tick(), POLL_SECONDS * 1000);
+            document.addEventListener('visibilitychange', this.onVisibilityChange);
             void this.tick();
         }
         return () => {
-            if (--this.foreground === 0) clearInterval(this.timer);
+            if (--this.foreground) return;
+            clearInterval(this.timer);
+            document.removeEventListener('visibilitychange', this.onVisibilityChange);
         };
     }
 

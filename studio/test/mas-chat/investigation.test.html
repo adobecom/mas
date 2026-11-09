@@ -360,6 +360,19 @@
                     expect(current.records[0].status).to.equal('completed');
                     expect(current.pollAfter).to.equal(now + 30000);
                 });
+                it('checks a running answer again after the 3 seconds MASA asks for', async () => {
+                    current.records = [record('running')];
+                    sinon.stub(current.client, 'control').resolves({ result: job('running'), retryAfter: 3 });
+                    await current.refresh();
+                    expect(current.pollAfter).to.equal(now + 3000);
+                });
+                it('first checks a new answer after the 3 seconds MASA asks for', async () => {
+                    const control = sinon.stub(current.client, 'control');
+                    control.onCall(0).resolves({ result: lease(), retryAfter: 0 });
+                    control.onCall(1).resolves({ result: job('queued'), retryAfter: 3 });
+                    await current.submit('Check this card', '');
+                    expect(current.pollAfter).to.equal(now + 3000);
+                });
                 it('stops polling a job that is no longer retained', async () => {
                     current.records = [record('running')];
                     sinon
@@ -553,6 +566,19 @@
                     sinon.stub(document, 'hidden').get(() => true);
                     await current.tick();
                     expect(calls).to.have.length(0);
+                });
+                it('checks for an answer as soon as the tab is shown again', () => {
+                    const detach = current.attach();
+                    const tick = sinon.stub(current, 'tick').resolves();
+                    document.dispatchEvent(new Event('visibilitychange'));
+                    detach();
+                    expect(tick.calledOnce).to.equal(true);
+                });
+                it('stops watching the tab once the chat is closed', () => {
+                    current.attach()();
+                    const tick = sinon.stub(current, 'tick').resolves();
+                    document.dispatchEvent(new Event('visibilitychange'));
+                    expect(tick.called).to.equal(false);
                 });
                 it('clears media when the server no longer recognizes the session', async () => {
                     await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));

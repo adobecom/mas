@@ -360,18 +360,25 @@
                     expect(current.records[0].status).to.equal('completed');
                     expect(current.pollAfter).to.equal(now + 30000);
                 });
-                it('checks a running answer again after the 3 seconds MASA asks for', async () => {
+                it('checks a running answer again on the next tick, however long the check took', async () => {
                     current.records = [record('running')];
-                    sinon.stub(current.client, 'control').resolves({ result: job('running'), retryAfter: 3 });
+                    const control = sinon.stub(current.client, 'control').callsFake(async () => {
+                        clockNow += 600;
+                        return { result: job('running'), retryAfter: 3 };
+                    });
                     await current.refresh();
-                    expect(current.pollAfter).to.equal(now + 3000);
+                    clockNow = now + 3000;
+                    await current.refresh();
+                    expect(control.callCount).to.equal(2);
                 });
-                it('first checks a new answer after the 3 seconds MASA asks for', async () => {
+                it('checks a new answer on the next tick', async () => {
                     const control = sinon.stub(current.client, 'control');
                     control.onCall(0).resolves({ result: lease(), retryAfter: 0 });
                     control.onCall(1).resolves({ result: job('queued'), retryAfter: 3 });
+                    control.onCall(2).resolves({ result: job('running'), retryAfter: 3 });
                     await current.submit('Check this card', '');
-                    expect(current.pollAfter).to.equal(now + 3000);
+                    await current.refresh();
+                    expect(control.getCall(2)?.args[1]).to.equal('investigation.get');
                 });
                 it('stops polling a job that is no longer retained', async () => {
                     current.records = [record('running')];

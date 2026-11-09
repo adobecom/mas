@@ -10,6 +10,8 @@ const sessions = new Map();
 const retryable = (error) => [0, 429, 502, 503, 504].includes(error.status);
 /** MASA asks for a check every 3 seconds while it answers; the session ticks at the same pace. */
 const POLL_SECONDS = 3;
+/** Ticks already space checks; only a longer Retry-After needs its own wait. */
+const nextPoll = (now, retryAfter) => (retryAfter > POLL_SECONDS ? now + retryAfter * 1000 : 0);
 
 /** Persist text and opaque control IDs only; files, grants, URLs and resumable upload bodies stay in memory. */
 export function investigationHistory(records) {
@@ -372,7 +374,7 @@ export class InvestigationSession extends EventTarget {
         });
         this.pending = null;
         this.updateJob(result);
-        this.pollAfter = this.now() + Math.max(POLL_SECONDS, retryAfter) * 1000;
+        this.pollAfter = nextPoll(this.now(), retryAfter);
     }
 
     retrySubmission() {
@@ -419,7 +421,7 @@ export class InvestigationSession extends EventTarget {
                 );
                 if (epoch !== this.epoch) return;
                 this.updateJob(result);
-                this.pollAfter = this.now() + Math.max(POLL_SECONDS, retryAfter) * 1000;
+                this.pollAfter = nextPoll(this.now(), retryAfter);
             }
             if (!this.pending && !this.uploadIntent) this.error = null;
         } catch (error) {

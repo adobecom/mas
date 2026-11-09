@@ -10,7 +10,7 @@ import {
 } from './constants.js';
 
 import { PlanType } from '@dexter/tacocat-core/src/wcsUtils.js';
-import { applyPlanType } from '../../price/src/index.js';
+import { applyPlanType } from '../../price/src/offers.js';
 import { Log } from './log.js';
 import { MasError } from './mas-error.js';
 import { masFetch } from './utils/mas-fetch.js';

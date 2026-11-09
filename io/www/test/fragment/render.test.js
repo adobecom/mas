@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { readFile } from 'node:fs/promises';
 import { transformer as render } from '../../src/fragment/transformers/render.js';
 import { PIPELINE } from '../../src/fragment/pipeline.js';
-import { buildPriceHTML } from '../../../../price/src/index.js';
+import { buildPriceHTML } from '../../../../price/src/price.js';
 import { baseOffer, cases, instant, priceInfo } from '../../../../price/test/fixtures/cases.js';
 
 const golden = JSON.parse(await readFile(new URL('../../../../price/test/fixtures/price-html.expected.json', import.meta.url)));

@@ -6,7 +6,7 @@ import {
 } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { getService } from './utilities.js';
-import { selectOffers, sumOffers } from '../../price/src/index.js';
+import { selectOffers, sumOffers } from '../../price/src/offers.js';
 import { Defaults } from './defaults.js';
 import {
     defaultLiterals,

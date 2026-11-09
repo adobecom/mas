@@ -5364,6 +5364,7 @@ describe('MasRepository publishFragment', () => {
         const repo = new MasRepository();
         repo.operation = { set: sandbox.stub() };
         repo.aem = {
+            replicateFragment: sandbox.stub().resolves(),
             sites: {
                 cf: {
                     fragments: {
@@ -5414,6 +5415,33 @@ describe('MasRepository publishFragment', () => {
         await repo.publishFragment(fragment);
         expect(repo.aem.sites.cf.fragments.publish.calledWith(fragment, [])).to.be.true;
         expect(repo.aem.sites.cf.fragments.publishFragments.called).to.be.false;
+        expect(repo.aem.replicateFragment.called).to.be.false;
+    });
+
+    it('directly replicates when requested without starting the reference workflow', async () => {
+        const repo = makeRepo();
+
+        const result = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+
+        expect(result).to.be.true;
+        expect(repo.aem.replicateFragment.calledOnceWithExactly(fragment)).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
+        expect(diagnosis.called).to.be.false;
+        expect(repo.operation.set.lastCall.args).to.deep.equal([null]);
+    });
+
+    it('reports replication errors and releases the publish lock for a later attempt', async () => {
+        const repo = makeRepo();
+        repo.aem.replicateFragment.rejects(new Error('Forbidden'));
+
+        const failed = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+        repo.aem.replicateFragment.resolves();
+        const retried = await repo.publishFragment(fragment, { replicate: true, skipReferenceDiagnosis: true }, false);
+
+        expect(failed).to.be.false;
+        expect(retried).to.be.true;
+        expect(repo.processError.calledOnce).to.be.true;
+        expect(repo.aem.sites.cf.fragments.publish.called).to.be.false;
     });
 
     it('publishes parent with [] (no cascade) when allSelected is true and no refs present', async () => {
@@ -5617,6 +5645,24 @@ describe('MasRepository bulkPublishFragments', () => {
     it('calls refreshFragment for each published fragment', async () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
+    });
+
+    it('refreshes fragments from completed batches and reports partial success when a later batch fails', async () => {
+        const error = new Error('Failed to publish fragments: 500 Server Error');
+        error.publishedFragments = [frag1];
+        repo.aem.sites.cf.fragments.publishFragments.rejects(error);
+        const toastStub = sandbox.stub(Events.toast, 'emit');
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.refreshFragment.calledOnce).to.be.true;
+        expect(repo.processError.called).to.be.false;
+        expect(
+            toastStub.calledWith(
+                sinon.match({ variant: 'negative', content: 'Published 1 of 2 fragment(s); the rest failed.' }),
+            ),
+        ).to.be.true;
     });
 });
 

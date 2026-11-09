@@ -150,6 +150,20 @@ describe('Orion fragment pipeline', () => {
                 .every(({ offerId }) => offerId === 'legacy'),
         ).to.be.true;
     });
+
+    it('uses normal response metadata for latest requests without a Stage configuration', async () => {
+        const state = new MockState();
+        const response = await getFragment({
+            id: 'some-en-us-fragment',
+            locale: 'en_US',
+            serveLatest: 'true',
+            state,
+        });
+        expect(response.statusCode).to.equal(200);
+        expect(state.store).to.have.property('req-some-en-us-fragment-en_US');
+        expect(state.store).not.to.have.property('req-some-en-us-fragment-en_US-latest');
+        expect(response.body.wcs).to.have.all.keys('prod');
+    });
 });
 
 const runOnFilledState = async (fetchStub, entry, headers) => {

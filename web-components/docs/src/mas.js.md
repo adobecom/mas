@@ -80,12 +80,15 @@ For detailed documentation on all available feature flags, see [Feature Flags](f
 
 ### Orion stage testing
 
+Author instructions: [Test Orion offers on Stage](https://main--mas--adobecom.aem.live/docs/author-offers-pricing-checkout/orion-stage-testing).
+
 Use `?commerce.env=stage&mas.orion=on` (or `mas.orion=true`) to test the latest
 offers. The service must allow commerce environment overrides with `allow-override`.
 Milo metadata `mas.orion: on` or `true` is also supported when the effective commerce
 environment is stage. The corresponding HTML metadata is `<meta name="mas.orion" content="on">`;
 `mas-orion` metadata is supported as well. The URL parameter takes precedence.
-Values other than `on` and `true` disable the mode, and it is ignored in production.
+Values are case-insensitive; values other than `on` and `true` disable the mode,
+and it is ignored in production.
 The Orion setting is not read from browser storage.
 
 The mode adds `serveLatest=true` to client-side stage WCS requests and to the

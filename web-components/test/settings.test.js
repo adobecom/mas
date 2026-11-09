@@ -129,7 +129,7 @@ describe('getSettings', () => {
             meta.remove();
         });
 
-        for (const value of ['on', 'true']) {
+        for (const value of ['on', 'true', 'ON', 'True', 'oN', 'tRuE']) {
             it(`enables Orion through "${value}" metadata on stage`, () => {
                 meta.content = value;
                 expect(getSettings(config, mockService).orion).to.be.true;
@@ -152,15 +152,17 @@ describe('getSettings', () => {
             });
         }
 
-        it('lets an off query parameter override enabled metadata', () => {
-            meta.content = 'on';
-            window.history.replaceState(
-                {},
-                '',
-                `${baseHref}?commerce.env=stage&mas.orion=off`,
-            );
-            expect(getSettings(config, mockService).orion).not.to.be.true;
-        });
+        for (const value of ['off', 'OFF', 'FaLsE', '']) {
+            it(`lets "${value}" query parameter override enabled metadata`, () => {
+                meta.content = 'ON';
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?commerce.env=stage&mas.orion=${value}`,
+                );
+                expect(getSettings(config, mockService).orion).not.to.be.true;
+            });
+        }
 
         it('supports kebab-case metadata used by existing parameter helpers', () => {
             meta.name = 'mas-orion';
@@ -168,11 +170,17 @@ describe('getSettings', () => {
             expect(getSettings(config, mockService).orion).to.be.true;
         });
 
-        it('does not enable Orion in production', () => {
-            meta.content = 'true';
-            window.history.replaceState({}, '', `${baseHref}?mas.orion=true`);
-            expect(getSettings(config, mockService).orion).not.to.be.true;
-        });
+        for (const value of ['true', 'ON', 'True']) {
+            it(`does not enable Orion in production through "${value}"`, () => {
+                meta.content = value;
+                window.history.replaceState(
+                    {},
+                    '',
+                    `${baseHref}?mas.orion=${value}`,
+                );
+                expect(getSettings(config, mockService).orion).not.to.be.true;
+            });
+        }
 
         it('respects the existing commerce environment override permission', () => {
             meta.content = 'on';

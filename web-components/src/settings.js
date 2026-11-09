@@ -140,7 +140,7 @@ function getSettings(config = {}, service) {
                     )?.content,
                 },
                 { storage: false },
-            ),
+            )?.toLowerCase(),
         );
 
     const previewParam = getParameter(PARAM_MAS_PREVIEW) ?? config.preview;

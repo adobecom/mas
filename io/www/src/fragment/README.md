@@ -153,7 +153,9 @@ the same mode, reusing artifacts under `body.wcs["stage-latest"]` rather than
 `body.wcs.stage`. The existing OSI/country/language/promotion keys are unchanged.
 Direct render callers can select this cache with `environment: 'stage-latest'`.
 
-Latest requests use a separate request metadata/ETag key. The fragment URL
+Latest requests use a separate request metadata/ETag key only when a Stage WCS
+configuration is present. Without one, normal metadata is reused because prefill
+is unchanged. The fragment URL
 contains `serveLatest=true`; the deployed CDN must retain this query parameter
 in its cache key and forward it to the action. Verify normal/latest cache
 isolation on stage and coordinate WCS cache expiry or purge when its

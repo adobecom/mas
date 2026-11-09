@@ -1806,6 +1806,7 @@ export class MasRepository extends LitElement {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
 
+        const fragments = [];
         try {
             const listStores = Store.fragments.list.data.get();
             const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
@@ -1813,7 +1814,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
                 if (!fragment?.etag) {
@@ -1849,7 +1849,20 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            this.processError(error, 'Failed to publish fragments.');
+            const published = error.publishedFragments ?? [];
+            if (!published.length) {
+                this.processError(error, 'Failed to publish fragments.');
+                return false;
+            }
+            console.error('Failed to publish fragments', error);
+            const listStores = Store.fragments.list.data.get();
+            await Promise.all(
+                published.map(({ id }) => {
+                    const store = findFragmentStoreById(id, listStores);
+                    return store ? this.refreshFragment(store) : Promise.resolve();
+                }),
+            );
+            showToast(`Published ${published.length} of ${fragments.length} fragment(s); the rest failed.`, 'negative');
             return false;
         } finally {
             this.operation.set(null);

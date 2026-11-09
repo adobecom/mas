@@ -5646,6 +5646,24 @@ describe('MasRepository bulkPublishFragments', () => {
         await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
         expect(repo.refreshFragment.calledTwice).to.be.true;
     });
+
+    it('refreshes fragments from completed batches and reports partial success when a later batch fails', async () => {
+        const error = new Error('Failed to publish fragments: 500 Server Error');
+        error.publishedFragments = [frag1];
+        repo.aem.sites.cf.fragments.publishFragments.rejects(error);
+        const toastStub = sandbox.stub(Events.toast, 'emit');
+
+        const result = await repo.bulkPublishFragments(['frag-1', 'frag-2'], { withToast: false });
+
+        expect(result).to.be.false;
+        expect(repo.refreshFragment.calledOnce).to.be.true;
+        expect(repo.processError.called).to.be.false;
+        expect(
+            toastStub.calledWith(
+                sinon.match({ variant: 'negative', content: 'Published 1 of 2 fragment(s); the rest failed.' }),
+            ),
+        ).to.be.true;
+    });
 });
 
 describe('status filter narrowing', () => {

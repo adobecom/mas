@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import {
     COUNTDOWN_UNITS,
+    countdownLocalTime,
     countdownUnitPlaceholder,
     isCountdownLinkText,
     supportsCountdown,
@@ -20,5 +21,16 @@ describe('countdown rules', () => {
     it('wraps each unit entry pair in a tag', () => {
         expect(COUNTDOWN_UNITS).to.deep.equal(['day', 'hour', 'minute']);
         expect(countdownUnitPlaceholder('day')).to.equal('<day>{{countdown-day-singular}}|{{countdown-day-plural}}</day>');
+    });
+
+    it('drops the zone so browsers read dates as local wall-clock time', () => {
+        for (const date of [
+            '2026-11-13T16:00:00.000Z',
+            '2026-11-13T16:00:00Z',
+            '2026-11-13T16:00:00+05:30',
+            '2026-11-13T16:00:00',
+        ])
+            expect(countdownLocalTime(date)).to.equal('2026-11-13T16:00:00');
+        expect(countdownLocalTime('2026-11-13T16:00Z')).to.equal('2026-11-13T16:00');
     });
 });

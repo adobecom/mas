@@ -2213,7 +2213,7 @@ class RteField extends LitElement {
                 id="addCountdownButton"
                 ?disabled=${this.readOnly}
                 @click=${this.addCountdown}
-                title="Add countdown timer (uses the promotion's UTC dates)"
+                title="Add countdown timer (uses the promotion's dates, in the visitor's local time)"
                 >Countdown</sp-action-button
             >
             ${this.countdownColor === null

@@ -17,7 +17,7 @@ class MasToast extends LitElement {
             display: none;
         }
 
-        .pinned {
+        .long {
             --mod-toast-negative-background-color-default: var(--spectrum-orange-900);
         }
     `;
@@ -37,8 +37,8 @@ class MasToast extends LitElement {
         Events.toast.unsubscribe(this.show);
     }
 
-    show({ variant, content, pinned = false }) {
-        const toast = this.shadowRoot.querySelector(pinned ? '.pinned' : '.auto-close');
+    show({ variant, content, long = false }) {
+        const toast = this.shadowRoot.querySelector(long ? '.long' : '.auto-close');
         if (toast) {
             toast.textContent = content;
             toast.variant = variant;
@@ -49,7 +49,7 @@ class MasToast extends LitElement {
     render() {
         return html`
             <sp-toast class="auto-close" timeout="6000"></sp-toast>
-            <sp-toast class="pinned" timeout="30000"></sp-toast>
+            <sp-toast class="long" timeout="30000"></sp-toast>
         `;
     }
 }

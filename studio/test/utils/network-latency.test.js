@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import {
+    MAX_LOGS_PER_DOMAIN,
     REQUEST_TYPE,
     SLOW_REQUEST_THRESHOLD_MS,
     classifyRequest,
@@ -128,6 +129,19 @@ describe('createTrackedFetch', () => {
         await trackedFetch(AEM_URL);
         await trackedFetch(AEM_URL);
         expect([log.callCount, warn.callCount]).to.deep.equal([2, 1]);
+    });
+
+    it('stops logging a domain after the per-domain cap', async () => {
+        const { trackedFetch, log } = setup();
+        for (let i = 0; i <= MAX_LOGS_PER_DOMAIN; i++) await trackedFetch(AEM_URL);
+        expect(log.callCount).to.equal(MAX_LOGS_PER_DOMAIN);
+    });
+
+    it('keeps logging other domains after one domain hits the cap', async () => {
+        const { trackedFetch, log } = setup();
+        for (let i = 0; i < MAX_LOGS_PER_DOMAIN; i++) await trackedFetch(AEM_URL);
+        await trackedFetch(OPERATIONS_URL);
+        expect(log.lastCall.args[0].domain).to.equal('io.example.com');
     });
 
     it('reports an unknown request id when the header is missing', async () => {

@@ -8,8 +8,8 @@ import Events from '../src/events.js';
 describe('mas-toast', () => {
     async function setup() {
         const el = await fixture(html`<mas-toast></mas-toast>`);
-        const [regular, pinned] = el.shadowRoot.querySelectorAll('sp-toast');
-        return { regular, pinned };
+        const [regular, long] = el.shadowRoot.querySelectorAll('sp-toast');
+        return { regular, long };
     }
 
     it('shows a regular toast that auto-closes', async () => {
@@ -18,21 +18,21 @@ describe('mas-toast', () => {
         expect([regular.textContent, regular.open, regular.timeout]).to.deep.equal(['hello', true, 6000]);
     });
 
-    it('shows a pinned toast that closes after 30 seconds', async () => {
-        const { pinned } = await setup();
-        Events.toast.emit({ variant: 'warning', content: 'hello', pinned: true });
-        expect([pinned.textContent, pinned.open, pinned.timeout]).to.deep.equal(['hello', true, 30000]);
+    it('shows a long toast that closes after 30 seconds', async () => {
+        const { long } = await setup();
+        Events.toast.emit({ variant: 'warning', content: 'hello', long: true });
+        expect([long.textContent, long.open, long.timeout]).to.deep.equal(['hello', true, 30000]);
     });
 
-    it('keeps a pinned toast when a regular toast follows', async () => {
-        const { pinned } = await setup();
-        Events.toast.emit({ variant: 'warning', content: 'keep me', pinned: true });
+    it('keeps a long toast when a regular toast follows', async () => {
+        const { long } = await setup();
+        Events.toast.emit({ variant: 'warning', content: 'keep me', long: true });
         Events.toast.emit({ variant: 'positive', content: 'saved' });
-        expect([pinned.textContent, pinned.open]).to.deep.equal(['keep me', true]);
+        expect([long.textContent, long.open]).to.deep.equal(['keep me', true]);
     });
 
     it('takes no space while a toast is closed', async () => {
-        const { pinned } = await setup();
-        expect(getComputedStyle(pinned).display).to.equal('none');
+        const { long } = await setup();
+        expect(getComputedStyle(long).display).to.equal('none');
     });
 });

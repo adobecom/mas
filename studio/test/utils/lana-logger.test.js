@@ -12,11 +12,18 @@ describe('logToLana', () => {
 
     afterEach(() => {
         window.lana = originalLana;
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
     });
 
-    it('logs the message with the page path and facts', () => {
+    it('logs the message with the Studio page, path and facts from the hash', () => {
+        window.location.hash = 'page=content&path=sandbox';
         logToLana('Something happened', { a: 1 }, 100);
-        expect(window.lana.log.firstCall.args[0]).to.equal(`Something happened¶page=${window.location.pathname}¶facts={"a":1}`);
+        expect(window.lana.log.firstCall.args[0]).to.equal('Something happened¶page=content¶path=sandbox¶facts={"a":1}');
+    });
+
+    it('logs an empty page and path when the hash has none', () => {
+        logToLana('Something happened', {}, 100);
+        expect(window.lana.log.firstCall.args[0]).to.equal('Something happened¶page=¶path=¶facts={}');
     });
 
     it('uses the Studio client with the given sample rate', () => {

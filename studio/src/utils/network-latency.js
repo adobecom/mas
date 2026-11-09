@@ -3,6 +3,7 @@ import Events from '../events.js';
 import { logToLana } from './lana-logger.js';
 
 export const SLOW_REQUEST_THRESHOLD_MS = 5000;
+export const MAX_LOGS_PER_DOMAIN = 5;
 
 export const REQUEST_TYPE = { GET: 'get', SAVE: 'save', PUBLISH: 'publish', DELETE: 'delete', CHAT: 'chat' };
 
@@ -27,6 +28,7 @@ export function classifyRequest(url, method, body) {
 
 export function createTrackedFetch({ fetch, log, warn, now = () => performance.now() }) {
     let hasWarned = false;
+    const logCounts = new Map();
 
     function report(input, options, durationMs, response, error) {
         if (durationMs <= SLOW_REQUEST_THRESHOLD_MS || error?.name === 'AbortError') return;
@@ -35,15 +37,19 @@ export function createTrackedFetch({ fetch, log, warn, now = () => performance.n
         const domain = new URL(url, window.location.href).hostname;
         const requestType = classifyRequest(url, method, options?.body);
         const requestId = response?.headers.get(HEADER_X_REQUEST_ID) ?? UNKNOWN_REQUEST_ID;
-        log({
-            domain,
-            durationMs: Math.round(durationMs),
-            requestType,
-            method,
-            requestId,
-            status: response?.status,
-            error: error?.name,
-        });
+        const logCount = logCounts.get(domain) ?? 0;
+        logCounts.set(domain, logCount + 1);
+        if (logCount < MAX_LOGS_PER_DOMAIN) {
+            log({
+                domain,
+                durationMs: Math.round(durationMs),
+                requestType,
+                method,
+                requestId,
+                status: response?.status,
+                error: error?.name,
+            });
+        }
         if (hasWarned || requestType === REQUEST_TYPE.CHAT) return;
         hasWarned = true;
         warn(
@@ -75,6 +81,6 @@ export function startNetworkLatencyMonitor() {
     window.fetch = createTrackedFetch({
         fetch: window.fetch.bind(window),
         log: (facts) => logToLana('Slow Studio network request', facts, LANA_SAMPLE_RATE),
-        warn: (message) => Events.toast.emit({ variant: 'warning', content: message, pinned: true }),
+        warn: (message) => Events.toast.emit({ variant: 'warning', content: message, long: true }),
     });
 }

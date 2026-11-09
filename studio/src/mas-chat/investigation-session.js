@@ -218,6 +218,16 @@ export class InvestigationSession extends EventTarget {
         this.createKey ??= crypto.randomUUID();
         this.notify();
         try {
+            return await this.createSession();
+        } catch (error) {
+            // MASA allows two sessions per person; another conversation's unused lease may hold one of them.
+            if (error.code !== 'session-capacity' || !(await endIdleSessions(this.conversationId))) throw error;
+            return this.createSession();
+        }
+    }
+
+    async createSession() {
+        try {
             const { result } = await this.client.control(this.conversationId, 'session.create', {
                 idempotencyKey: this.createKey,
             });

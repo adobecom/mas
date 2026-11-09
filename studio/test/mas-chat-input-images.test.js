@@ -320,6 +320,32 @@ describe('mas-chat images', () => {
         expect(el.messages.at(-1)).to.include({ role: 'error', content: 'Choose up to three images.' });
     });
 
+    it('explains the session cap when an upload cannot get a MASA session', async () => {
+        const session = getInvestigationSession(el.currentSessionId);
+        sinon.stub(session, 'addImage').callsFake(async () => {
+            session.error = new MasaClientError('session-capacity', 'MASA is busy. Retry after the indicated delay.', 429, 60);
+        });
+        await el.handleAttachImages({ detail: { files: [file()] } });
+        expect(el.imagesEnabled).to.equal(true);
+        expect(el.messages.at(-1)).to.include({
+            role: 'error',
+            content:
+                'MASA allows two active sessions per person. End the session in another conversation or tab, then try again.',
+        });
+    });
+
+    it('leaves the welcome screen so an upload error on a fresh chat is visible', async () => {
+        const session = getInvestigationSession(el.currentSessionId);
+        sinon.stub(session, 'addImage').callsFake(async () => {
+            session.error = new MasaClientError('invalid-image', 'Choose up to three images.');
+        });
+        expect(el.showWelcomeScreen).to.equal(true);
+        await el.handleAttachImages({ detail: { files: [file()] } });
+        await el.updateComplete;
+        expect(el.showWelcomeScreen).to.equal(false);
+        expect(el.querySelector('.chat-page-container')).to.exist;
+    });
+
     const dragEvent = (type, files = [file()]) => {
         const dataTransfer = new DataTransfer();
         for (const item of files) dataTransfer.items.add(item);

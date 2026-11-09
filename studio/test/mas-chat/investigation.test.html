@@ -574,6 +574,25 @@
                     await current.tick();
                     expect(calls).to.have.length(0);
                 });
+                it("frees another conversation's idle session and retries once when an upload hits the session cap", async () => {
+                    const idle = sessionManager.createSession();
+                    const idleSession = getInvestigationSession(idle.id);
+                    idleSession.session = { ...lease(), id: 'ses_idle' };
+                    sinon.stub(sessionManager, 'listSessions').returns([{ id: idle.id }, { id: 'fixture-conversation' }]);
+                    let creates = 0;
+                    const control = sinon.stub(current.client, 'control').callsFake(async (conversation, operation) => {
+                        if (operation === 'session.create' && creates++ === 0) {
+                            throw new MasaClientError('session-capacity', 'Too many sessions', 429, 60);
+                        }
+                        return { result: lease(), retryAfter: 0 };
+                    });
+                    sinon.stub(idleSession.client, 'control').resolves({ result: {}, retryAfter: 0 });
+                    const error = await current.addImage(new File(['png'], 'card.png', { type: 'image/png' }));
+                    expect(error).to.equal(undefined);
+                    expect(current.images).to.have.length(1);
+                    expect(control.getCalls().filter((call) => call.args[1] === 'session.create')).to.have.length(2);
+                    expect(idleSession.session.status).to.equal('ended');
+                });
                 it('checks for an answer as soon as the tab is shown again', () => {
                     const detach = current.attach();
                     const tick = sinon.stub(current, 'tick').resolves();

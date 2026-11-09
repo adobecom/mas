@@ -1,8 +1,10 @@
 import { MasaClientError } from './masa-client.js';
-import { endIdleSessions, getInvestigationSession, isRunning } from './investigation-session.js';
+import { getInvestigationSession, isRunning } from './investigation-session.js';
 
 const CONTEXT_LIMIT = 4000;
 export const MASA_BUSY_MESSAGE = 'MASA is still answering the previous question.';
+export const SESSION_CAPACITY_MESSAGE =
+    'MASA allows two active sessions per person. End the session in another conversation or tab, then try again.';
 const busyError = () => new MasaClientError('masa-conversation-busy', MASA_BUSY_MESSAGE);
 
 /** Text of a thread message as MASA should see it, or null when it carries nothing to share. */
@@ -86,14 +88,7 @@ export async function askMasa({ conversationId, question, context, onRecord }) {
     if (session.records.some(isRunning)) throw busyError();
     const detach = session.attach();
     try {
-        let accepted;
-        try {
-            accepted = await submitOnce(session, question, context);
-        } catch (error) {
-            if (error.code !== 'session-capacity' || !(await endIdleSessions(conversationId))) throw error;
-            session.retryAt = 0;
-            accepted = await submitOnce(session, question, context);
-        }
+        const accepted = await submitOnce(session, question, context);
         onRecord?.(accepted.id);
         const record = await settled(session, accepted.id);
         if (record?.status !== 'completed') throw new MasaClientError(record?.failure ?? 'investigation-failed', '');

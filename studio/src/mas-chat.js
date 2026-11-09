@@ -45,7 +45,12 @@ import { openOfferSelectorTool } from './rte/ost.js';
 import sessionManager from './services/chat-session-manager.js';
 import { fetchProducts, fetchProductDetail } from './services/product-api.js';
 import { routerAction, nextGuidedFlowState, resolveIntentHint, guidedFlowHintForIntent } from './utils/ai-chat-flow-state.js';
-import { askMasa as submitMasaQuestion, buildMasaContext, MASA_BUSY_MESSAGE } from './mas-chat/masa-ask.js';
+import {
+    askMasa as submitMasaQuestion,
+    buildMasaContext,
+    MASA_BUSY_MESSAGE,
+    SESSION_CAPACITY_MESSAGE,
+} from './mas-chat/masa-ask.js';
 import { typingIndicator } from './mas-chat/typing-indicator.js';
 import { isMasaAvailable, rememberFailure, resetMasaAvailability, isUserInputError } from './mas-chat/masa-availability.js';
 import { getInvestigationSession, isRunning } from './mas-chat/investigation-session.js';
@@ -1438,8 +1443,15 @@ export class MasChat extends LitElement {
                           timestamp: Date.now(),
                           fresh: true,
                       }
-                    : { role: 'error', content: error.message || error.code, timestamp: Date.now(), fresh: true },
+                    : {
+                          role: 'error',
+                          content: error.code === 'session-capacity' ? SESSION_CAPACITY_MESSAGE : error.message || error.code,
+                          timestamp: Date.now(),
+                          fresh: true,
+                      },
             ]);
+            this.showWelcomeScreen = false;
+            this.showPromptSuggestions = false;
         }
         this.requestUpdate();
     }

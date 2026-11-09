@@ -5,6 +5,10 @@ import { mockLana } from './mocks/lana.js';
 import { mockFetch } from './mocks/fetch.js';
 
 import { pushState } from '../src/deeplink.js';
+import {
+    EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+    EVENT_MERCH_SIDENAV_SELECT,
+} from '../src/constants.js';
 
 import {
     appendMiloStyles,
@@ -687,6 +691,411 @@ runTests(async () => {
             expect(card.style.display).to.equal('none');
 
             card.remove();
+        });
+    });
+
+    describe('merch-card-collection update work', () => {
+        let collection;
+        let spacer;
+        let cards;
+        let log;
+        const scrollYDescriptor = Object.getOwnPropertyDescriptor(
+            window,
+            'scrollY',
+        );
+        const originalScrollTo = window.scrollTo;
+
+        const makeCard = (title, filters) => {
+            const card = document.createElement('merch-card');
+            card.filters = filters;
+            const heading = document.createElement('h3');
+            heading.className = 'card-heading';
+            heading.textContent = title;
+            card.append(heading);
+            return card;
+        };
+
+        const childOrder = () =>
+            [...collection.children].map((child) => child.title);
+
+        const startLogging = () => {
+            log = [];
+            Object.defineProperty(window, 'scrollY', {
+                configurable: true,
+                get() {
+                    log.push('scrollY');
+                    return scrollYDescriptor.get.call(window);
+                },
+            });
+            window.scrollTo = (...args) => {
+                log.push('scrollTo');
+                originalScrollTo.apply(window, args);
+            };
+            const { prepend } = collection;
+            collection.prepend = (...nodes) => {
+                log.push('prepend');
+                prepend.apply(collection, nodes);
+            };
+        };
+
+        const stopLogging = () => {
+            Object.defineProperty(window, 'scrollY', scrollYDescriptor);
+            window.scrollTo = originalScrollTo;
+            delete collection.prepend;
+        };
+
+        beforeEach(async () => {
+            document.location.hash = '';
+            spacer = document.createElement('div');
+            spacer.style.height = '5000px';
+            collection = document.createElement('merch-card-collection');
+            cards = [
+                makeCard('Delta', { all: { order: 1 } }),
+                makeCard('Bravo', { all: { order: 2 }, sub: { order: 2 } }),
+                makeCard('Charlie', { all: { order: 3 }, sub: { order: 1 } }),
+                makeCard('Alpha', { all: { order: 4 } }),
+            ];
+            collection.append(...cards);
+            const content = document.getElementById('content');
+            content.innerHTML = '';
+            content.append(spacer, collection);
+            await collection.updateComplete;
+            await delay(20);
+            window.scrollTo(0, 1200);
+        });
+
+        afterEach(() => {
+            if (log) stopLogging();
+            log = null;
+            collection.remove();
+            spacer.remove();
+            window.scrollTo(0, 0);
+        });
+
+        it('arranges cards on the first update', () => {
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+            expect(collection.resultCount).to.equal(4);
+        });
+
+        it('keeps the scroll position when a filter reorders and hides cards', async () => {
+            expect(window.scrollY).to.equal(1200);
+            startLogging();
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+            const entries = [...log];
+            stopLogging();
+
+            expect(collection.resultCount).to.equal(2);
+            expect(childOrder().slice(0, 2)).to.deep.equal([
+                'Charlie',
+                'Bravo',
+            ]);
+            expect(cards[0].style.display).to.equal('none');
+            expect(cards[3].style.display).to.equal('none');
+            expect(window.scrollY).to.equal(1200);
+            // One layout read before any DOM write, then one scroll restore:
+            // the resultCount update that follows must not repeat the work.
+            expect(
+                entries.filter((entry) => entry === 'scrollY'),
+            ).to.have.length(1);
+            expect(entries[0]).to.equal('scrollY');
+            expect(entries.indexOf('scrollY')).to.be.below(
+                entries.indexOf('prepend'),
+            );
+            expect(
+                entries.filter((entry) => entry === 'scrollTo'),
+            ).to.have.length(1);
+            expect(entries.at(-1)).to.equal('scrollTo');
+        });
+
+        it('keeps the scroll position when a sort reorders the cards', async () => {
+            startLogging();
+            collection.sort = 'alphabetical';
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(childOrder()).to.deep.equal([
+                'Alpha',
+                'Bravo',
+                'Charlie',
+                'Delta',
+            ]);
+            expect(window.scrollY).to.equal(1200);
+            expect(
+                entries.filter((entry) => entry === 'scrollY'),
+            ).to.have.length(1);
+        });
+
+        it('restores hidden cards when the filter goes back', async () => {
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+            collection.filter = 'all';
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(collection.resultCount).to.equal(4);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+            for (const card of cards) {
+                expect(card.style.display).to.equal('');
+            }
+            expect(window.scrollY).to.equal(1200);
+        });
+
+        it('keeps cards in place and skips the scroll read when only resultCount and hasMore change', async () => {
+            startLogging();
+            collection.resultCount = 99;
+            collection.hasMore = true;
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('does not move or toggle arranged cards when a filtering property is re-applied', async () => {
+            startLogging();
+            collection.search = 'a';
+            await collection.updateComplete;
+            collection.search = '';
+            await collection.updateComplete;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            expect(collection.resultCount).to.equal(4);
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('does not read the scroll position when nothing needs to move', async () => {
+            startLogging();
+            collection.requestUpdate();
+            await collection.updateComplete;
+            collection.page = 1;
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+        });
+
+        it('syncs card sizes for a filter change that keeps the same cards in place', async () => {
+            cards.forEach((card, index) => {
+                card.filters.wide = { order: index + 1, size: 'wide' };
+            });
+            startLogging();
+            collection.filter = 'wide';
+            await collection.updateComplete;
+            const entries = [...log];
+            stopLogging();
+
+            expect(entries).to.deep.equal([]);
+            for (const card of cards) {
+                expect(card.size).to.equal('wide');
+            }
+        });
+
+        it('re-arranges cards on requestUpdate() batched with a resultCount write', async () => {
+            cards[0].filters.all.order = 9;
+            collection.resultCount = 99;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(childOrder()).to.deep.equal([
+                'Bravo',
+                'Charlie',
+                'Alpha',
+                'Delta',
+            ]);
+            expect(collection.resultCount).to.equal(4);
+        });
+
+        it('re-arranges cards on requestUpdate() without a changed property', async () => {
+            cards[0].filters.all.order = 9;
+            collection.requestUpdate();
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(childOrder()).to.deep.equal([
+                'Bravo',
+                'Charlie',
+                'Alpha',
+                'Delta',
+            ]);
+            expect(window.scrollY).to.equal(1200);
+        });
+
+        it('pages cards by page and limit', async () => {
+            collection.limit = 3;
+            collection.page = 1;
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.hasMore).to.be.true;
+            expect(cards[3].style.display).to.equal('none');
+
+            collection.page = 2;
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.hasMore).to.be.false;
+            for (const card of cards) {
+                expect(card.style.display).to.equal('');
+            }
+            expect(childOrder()).to.deep.equal([
+                'Delta',
+                'Bravo',
+                'Charlie',
+                'Alpha',
+            ]);
+        });
+
+        it('dispatches literals when the sidenav is attached and when it selects', async () => {
+            const sidenav = new EventTarget();
+            sidenav.filters = { selectedText: 'Photo' };
+            const details = [];
+            collection.addEventListener(
+                EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                (event) => details.push(event.detail),
+            );
+
+            collection.sidenav = sidenav;
+            await collection.updateComplete;
+            await delay(20);
+            expect(details).to.have.length(1);
+            expect(details[0].filter).to.equal('Photo');
+
+            sidenav.dispatchEvent(new CustomEvent(EVENT_MERCH_SIDENAV_SELECT));
+            expect(details).to.have.length(2);
+        });
+
+        it('dispatches literals once for a filter change that rewrites resultCount', async () => {
+            const details = [];
+            collection.addEventListener(
+                EVENT_MERCH_CARD_COLLECTION_LITERALS_CHANGED,
+                (event) => details.push(event.detail),
+            );
+            collection.filter = 'sub';
+            await collection.updateComplete;
+            await delay(20);
+
+            expect(details).to.have.length(1);
+            expect(details[0].resultCount).to.equal(2);
+        });
+    });
+
+    describe('merch-card-collection first load with title based arrangement', () => {
+        let collection;
+
+        const allCards = () => [...collection.querySelectorAll('merch-card')];
+        const cardTitle = (card) => card.title ?? '';
+        // Titles are written by each card's own hydration, after the cards are appended.
+        const titledCards = () => allCards().filter(cardTitle);
+        const shownTitles = () =>
+            [...collection.children]
+                .filter(
+                    (child) =>
+                        child.tagName === 'MERCH-CARD' &&
+                        child.style.display !== 'none',
+                )
+                .map(cardTitle);
+        const compareTitles = (a, b) =>
+            a.localeCompare(b, 'en', { sensitivity: 'base' });
+
+        const load = async (hash) => {
+            document.location.hash = hash;
+            let render;
+            [collection, render] = prepareTemplate(
+                'collectionAutoblock',
+                false,
+            );
+            render();
+            await collection.checkReady();
+            for (let i = 0; i < 50 && titledCards().length === 0; i++) {
+                await delay(20);
+            }
+            await delay(100);
+        };
+
+        afterEach(() => {
+            collection?.remove();
+            document.location.hash = '';
+        });
+
+        it('orders cards alphabetically by their hydrated titles when sort is in the URL', async () => {
+            await load('#sort=alphabetical');
+
+            expect(titledCards().length).to.be.greaterThan(0);
+            const expected = allCards()
+                .map(cardTitle)
+                .sort(compareTitles)
+                .slice(0, collection.limit);
+            expect(shownTitles()).to.deep.equal(expected);
+        });
+
+        it('keeps only cards whose hydrated title matches the search in the URL', async () => {
+            await load('#search=photo');
+
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('photo'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+        });
+
+        it('applies a search and an alphabetical sort changed after the cards hydrated', async () => {
+            await load('');
+            expect(titledCards().length).to.be.greaterThan(0);
+
+            collection.sort = 'alphabetical';
+            await collection.updateComplete;
+            await delay(20);
+            expect(shownTitles()).to.deep.equal(
+                allCards()
+                    .map(cardTitle)
+                    .sort(compareTitles)
+                    .slice(0, collection.limit),
+            );
+
+            collection.search = 'heading';
+            await collection.updateComplete;
+            await delay(20);
+            const matching = allCards().filter((card) =>
+                cardTitle(card).toLowerCase().includes('heading'),
+            );
+            expect(matching.length).to.be.greaterThan(0);
+            expect(collection.resultCount).to.equal(matching.length);
+            expect(shownTitles()).to.deep.equal(matching.map(cardTitle));
+
+            collection.search = '';
+            await collection.updateComplete;
+            await delay(20);
+            expect(collection.resultCount).to.equal(allCards().length);
         });
     });
 

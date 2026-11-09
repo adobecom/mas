@@ -24,9 +24,9 @@ import {
     makeSpacesAroundNonBreaking,
     currencyIsFirstChar,
 } from '../../src/price/utilities.js';
-import * as prices from '../../src/price/index.js';
+import { buildPriceHTML } from '../../src/price.js';
 import { legalTemplate } from '../../src/price/legal.js';
-import { discount } from '../../src/discount/index.js';
+import { discount } from '../../src/discount.js';
 import { Commitment, Term } from '../../src/constants.js';
 import { baseOffer, promotion, priceInfo, instant } from '../fixtures/cases.js';
 import { messageCases } from '../fixtures/message-cases.js';
@@ -45,26 +45,40 @@ describe('legacy ICU golden literals', () => {
     }
 });
 
-describe('template compatibility exports', () => {
+describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };
-    for (const name of [
-        'price',
-        'pricePromo',
-        'priceOptical',
-        'priceStrikethrough',
-        'pricePromoStrikethrough',
-        'priceAnnual',
-        'priceAlternative',
-        'priceOpticalAlternative',
-        'priceWithAnnual',
-        'pricePromoWithAnnual',
-        'legal',
-    ]) {
-        it(`${name} renders without a browser environment`, () => {
-            assert.match(prices[name](options, value), /^<span class="price/);
+    const templateCases = Object.entries({
+        price: [{}, createPriceTemplate()],
+        pricePromo: [{ promotionCode: 'PROMO' }, createPromoPriceTemplate()],
+        priceOptical: [{ template: 'optical' }, createPriceTemplate({ displayOptical: true })],
+        priceStrikethrough: [{ template: 'strikethrough' }, createPriceTemplate({ displayStrikethrough: true })],
+        pricePromoStrikethrough: [
+            { template: 'promo-strikethrough' },
+            createPriceTemplate({ displayPromoStrikethrough: true }),
+        ],
+        priceAnnual: [{ template: 'annual' }, createPriceTemplate({ displayAnnual: true })],
+        priceAlternative: [{ alternativePrice: true }, createPriceTemplate({ isAlternativePrice: true })],
+        priceOpticalAlternative: [
+            { template: 'optical', alternativePrice: true },
+            createPriceTemplate({ displayOptical: true, isAlternativePrice: true }),
+        ],
+        priceWithAnnual: [{ displayAnnual: true }, createPriceWithAnnualTemplate()],
+        pricePromoWithAnnual: [{ displayAnnual: true, promotionCode: 'PROMO' }, createPromoPriceWithAnnualTemplate()],
+        legal: [{ template: 'legal' }, legalTemplate],
+    }).map(([name, [templateOptions, template]]) => {
+        const offer = templateOptions.promotionCode ? { ...baseOffer, promotion } : baseOffer;
+        const context = { ...options, ...templateOptions };
+        return { name, offer, context, expected: template(context, { ...offer, ...offer.priceDetails }) };
+    });
+    for (const { name, offer, context, expected } of templateCases) {
+        it(`dispatches ${name} to its exact template HTML without a browser environment`, () => {
+            assert.equal(buildPriceHTML([offer], context), expected);
         });
     }
+    it('uses distinct fixture HTML for every dispatch variant', () => {
+        assert.equal(new Set(templateCases.map(({ expected }) => expected)).size, templateCases.length);
+    });
     for (const [name, factory] of Object.entries({
         createPriceTemplate,
         createPromoPriceTemplate,
@@ -76,12 +90,6 @@ describe('template compatibility exports', () => {
             assert.equal(template(options, value), template(options, value));
         });
     }
-    it('retains the legal template alias', () => {
-        assert.equal(prices.legal, legalTemplate);
-    });
-    it('retains the promotion utility alias', () => {
-        assert.equal(prices.isPromotionActive, isPromotionActive);
-    });
     it('formats a localized discount', () => {
         assert.equal(discount(options, { price: 35, priceWithoutDiscount: 100 }), '<span class="discount">65%</span>');
     });
@@ -172,4 +180,47 @@ describe('formatting utilities', () => {
             assert.equal(isPromotionActive(promotion, at), expected);
         });
     }
+});
+
+describe('legal template custom plan type label', () => {
+    const shortDescription =
+        '<em>Fee applies of half your remaining annual commitment if you cancel after 14 days.</em> <span class="icon-button" data-tooltip="Details"></span>';
+    const vat = { taxDisplay: 'TAX_INCLUSIVE_DETAILS', taxTerm: 'VAT', planType: 'ABM' };
+    const options = {
+        country: 'CH',
+        language: 'en',
+        displayTax: true,
+        displayPlanType: true,
+        literals: { taxInclusiveLabel: 'incl. VAT', planTypeLabel: 'Annual, billed monthly' },
+    };
+    const planTypeOf = (html) => html.match(/<span class="price-plan-type[^"]*">(.*?)<\/span><\/span>$/)[1];
+
+    it('renders the authored HTML as the plan type, after the dotted tax label', () => {
+        const actual = legalTemplate({ ...options, customPlanTypeLabel: shortDescription }, vat);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT\. <\/span>/);
+        assert.equal(planTypeOf(actual), shortDescription);
+        assert.doesNotMatch(actual, /Annual, billed monthly/);
+    });
+    it('renders it whatever the offer plan type', () => {
+        const actual = legalTemplate({ ...options, customPlanTypeLabel: shortDescription }, { ...vat, planType: undefined });
+        assert.equal(planTypeOf(actual), shortDescription);
+    });
+    it('keeps the authored casing', () => {
+        const actual = legalTemplate({ ...options, planTypeCase: 'upper', customPlanTypeLabel: '<em>fee applies</em>' }, vat);
+        assert.equal(planTypeOf(actual), '<em>fee applies</em>');
+    });
+    it('honors displayDot', () => {
+        const actual = legalTemplate({ ...options, displayDot: false, customPlanTypeLabel: shortDescription }, vat);
+        assert.match(actual, /<span class="price-tax-inclusivity">incl\. VAT<\/span>/);
+    });
+    it('is ignored when the plan type line is off', () => {
+        const actual = legalTemplate({ ...options, displayPlanType: false, customPlanTypeLabel: shortDescription }, vat);
+        assert.equal(actual, legalTemplate({ ...options, displayPlanType: false }, vat));
+        assert.doesNotMatch(actual, /Fee applies/);
+    });
+    it('falls back to the plan type literal when absent or empty', () => {
+        const literal = legalTemplate(options, vat);
+        assert.equal(planTypeOf(literal), 'Annual, billed monthly');
+        assert.equal(legalTemplate({ ...options, customPlanTypeLabel: '' }, vat), literal);
+    });
 });

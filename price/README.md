@@ -14,7 +14,8 @@ Production pipeline rendering is not enabled.
 
 ```js
 // Example run from price/; consumers use the relative path from their file.
-import { applyPlanType, selectOffers, sumOffers, buildPriceHTML } from './src/index.js';
+import { applyPlanType, selectOffers, sumOffers } from './src/offers.js';
+import { buildPriceHTML } from './src/price.js';
 
 const options = {
     country: 'GB',
@@ -118,10 +119,12 @@ rather than relying on the standalone console default.
 
 ### Source entry points
 
-Consumers import the shared primitives from `src/index.js` using relative paths.
-Supporting entry points include `src/constants.js`, `src/price/index.js`,
-`src/price/template.js`, `src/price/utilities.js`, `src/price/legal.js` and
-`src/discount/index.js`. All imports use `.js` extensions. Node smoke tests cover
+Consumers import rendering from `src/price.js` and selection, summation, and
+plan-type normalization from `src/offers.js` using relative paths. Price-template
+instances remain private to the renderer and are initialized once at module scope.
+Supporting modules include `src/constants.js`, `src/price/template.js`,
+`src/price/utilities.js`, `src/price/legal.js`, and `src/discount.js`.
+All imports use `.js` extensions. Node smoke tests cover
 these source entry points; they do not assert an installed-package contract.
 
 The small internal boolean/predicate/escaping helpers and net-price rewrite

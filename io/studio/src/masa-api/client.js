@@ -71,7 +71,7 @@ export async function requestJson(url, options, fetchImpl, maxBytes) {
 
 /**
  * Sign the exact route/body/key with fresh replay protection for every attempt. The iPaaS gateway
- * validates the Studio service token and API key, then moves Target-Authorization into MASA's
+ * validates the Studio service token and API key, then moves authorization-target into MASA's
  * Authorization header.
  */
 export function signedHeaders(config, identity, operation, now, gatewayToken) {
@@ -98,7 +98,7 @@ export function signedHeaders(config, identity, operation, now, gatewayToken) {
         // The gateway rejects a Bearer prefix on its own token and reads the consumer key from api_key.
         Authorization: gatewayToken,
         api_key: config.gateway.apiKey,
-        'Target-Authorization': `Bearer ${config.serviceToken}`,
+        'authorization-target': `Bearer ${config.serviceToken}`,
         'X-Masa-User-Assertion': `${encoded}.${sign(null, Buffer.from(encoded), config.privateKey).toString('base64url')}`,
         Accept: 'application/json',
         ...(operation.method === 'POST' ? { 'Content-Type': 'application/json' } : {}),

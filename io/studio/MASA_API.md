@@ -19,7 +19,7 @@ Controls reach MASA through the iPaaS API Gateway API `masa_studio_api`, which a
 tokens. The adapter exchanges the gateway client's permanent authorization code for a service token, reuses
 it within a warm container until five minutes before it expires, and sends it in `Authorization`, without a
 `Bearer` prefix, with the consumer key in `api_key`. The user's IMS token never leaves the action. MASA's
-service token goes in `Target-Authorization`, which the gateway moves into MASA's `Authorization`. The
+service token goes in `authorization-target`, which the gateway moves into MASA's `Authorization`. The
 gateway must also pass `X-Masa-User-Assertion`, `Idempotency-Key` and `Content-Type` through unchanged,
 strip its route prefix so MASA receives `/v1/...`, and keep the body byte-for-byte, or the assertion fails.
 

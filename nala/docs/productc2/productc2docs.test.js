@@ -87,4 +87,111 @@ test.describe('Product-C2 gallery feature test suite', () => {
             expect(await webUtil.verifyCSS(await badge, galleryPage.cssPropGray.badge)).toBeTruthy();
         });
     });
+
+    test(`${features[2].name},${features[2].tags}`, async () => {
+        const { data } = features[2];
+
+        await test.step('step-1: Go to ProductC2 gallery page', async () => {
+            const page = await workerSetup.getPage('US');
+            galleryPage = new MasProductC2(page);
+            webUtil = new WebUtil(page);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PRODUCT_C2, expect);
+        });
+
+        await test.step('step-2: Verify ProductC2 card content', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', data.variant);
+            const footerCtas = galleryPage.getCard(data.id).locator('div[slot="footer"] :is(a, button)');
+            const cta = footerCtas.first();
+            await expect(cta).toHaveText(data.cta1);
+            await expect(cta).toHaveAttribute('data-wcs-osi', data.cta1osi);
+            await expect(cta).toHaveAttribute('data-replaced-osi', data.cta1osiReplaced);
+            await expect(cta).toHaveAttribute('data-analytics-id', 'buy-now');
+            const count = await footerCtas.count();
+            expect(count).toBe(1);
+            await expect(cta).toHaveAttribute('class', /blue/);
+        });
+    });    
+
+    test(`${features[3].name},${features[3].tags}`, async () => {
+        const { data } = features[3];
+
+        await test.step('step-1: Go to ProductC2 gallery page', async () => {
+            const page = await workerSetup.getPage('US');
+            galleryPage = new MasProductC2(page);
+            webUtil = new WebUtil(page);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PRODUCT_C2, expect);
+        });
+
+        await test.step('step-2: Verify ProductC2 card content', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', data.variant);
+            const footerCtas = galleryPage.getCard(data.id).locator('div[slot="footer"] :is(a, button)');
+            const cta = footerCtas.first();
+            await expect(cta).toHaveText(data.cta1);
+            await expect(cta).toHaveAttribute('data-wcs-osi', data.cta1osi);
+            await expect(cta).toHaveAttribute('data-analytics-id', 'select');
+            const count = await footerCtas.count();
+            expect(count).toBe(1);
+            await expect(cta).toHaveAttribute('class', /blue/);
+        });
+    });    
+
+    test(`${features[4].name},${features[4].tags}`, async () => {
+        const { data } = features[4];
+
+        await test.step('step-1: Go to ProductC2 gallery page', async () => {
+            const page = await workerSetup.getPage('US');
+            galleryPage = new MasProductC2(page);
+            webUtil = new WebUtil(page);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PRODUCT_C2, expect);
+        });
+
+        await test.step('step-2: Verify ProductC2 card content', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', data.variant);
+            const footerCtas = galleryPage.getCard(data.id).locator('div[slot="footer"] :is(a, button)');
+            const cta = footerCtas.first();
+            await expect(cta).toHaveText(data.cta1);
+            await expect(cta).toHaveAttribute('data-wcs-osi', data.cta1osi);
+            await expect(cta).toHaveAttribute('data-analytics-id', 'buy-now');
+            const count = await footerCtas.count();
+            expect(count).toBe(1);
+            await expect(cta).toHaveAttribute('class', /blue/);
+        });
+    });     
+    
+    test(`${features[5].name},${features[5].tags}`, async () => {
+        const { data } = features[5];
+
+        await test.step('step-1: Go to ProductC2 gallery page', async () => {
+            const page = await workerSetup.getPage('US');
+            galleryPage = new MasProductC2(page);
+            webUtil = new WebUtil(page);
+            await workerSetup.verifyPageURL('US', DOCS_GALLERY_PATH.PRODUCT_C2, expect);
+        });
+
+        await test.step('step-2: Verify ProductC2 card content', async () => {
+            const card = galleryPage.getCard(data.id);
+            await expect(card).toBeVisible();
+            await expect(card).toHaveAttribute('variant', data.variant);
+            const footerCtas = galleryPage.getCard(data.id).locator('div[slot="footer"] :is(a, button)');
+            const cta1 = footerCtas.first();
+            await expect(cta1).toHaveText(data.cta1);
+            await expect(cta1).toHaveAttribute('data-wcs-osi', data.cta1osi);
+            await expect(cta1).toHaveAttribute('data-replaced-osi', data.cta1osiReplaced);
+            await expect(cta1).toHaveAttribute('data-analytics-id', 'buy-now');          
+            const cta2 = footerCtas.last();
+            await expect(cta2).toHaveText(data.cta2);
+            await expect(cta2).toHaveAttribute('data-wcs-osi', data.cta2osi);
+            await expect(cta2).toHaveAttribute('data-analytics-id', 'save-now');
+            const count = await footerCtas.count();
+            expect(count).toBe(2);
+            await expect(cta1).toHaveAttribute('class', /blue/);
+            await expect(cta2).toHaveAttribute('class', /primary/);
+        });
+    });      
 });

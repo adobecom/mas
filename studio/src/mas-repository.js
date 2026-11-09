@@ -501,7 +501,6 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const lowerQuery = query?.toLowerCase() || '';
-        const createdByLc = createdBy.map((value) => value.toLowerCase());
         return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
@@ -510,10 +509,7 @@ export class MasRepository extends LitElement {
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (status.length && !status.includes(item.status)) return false;
-            if (createdByLc.length) {
-                const itemCreatedBy = (item.created?.by || '').toLowerCase();
-                if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
-            }
+            if (createdBy.length && !Fragment.isCreatedByAny(item, createdBy)) return false;
             if (this.#skipQuery(lowerQuery, item)) return false;
             return true;
         });
@@ -2297,7 +2293,9 @@ export class MasRepository extends LitElement {
                 const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
                     references: 'direct-hydrated',
                 });
-                if (fragment) return fragment;
+                if (!fragment) continue;
+                if (!Fragment.isGroupedVariationPath(fragment.path)) return fragment;
+                return await this.resolveHydratedParentFragment(fragment.path);
             }
             return null;
         }

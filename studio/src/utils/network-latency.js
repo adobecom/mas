@@ -38,8 +38,8 @@ export function createTrackedFetch({ fetch, log, warn, now = () => performance.n
         const requestType = classifyRequest(url, method, options?.body);
         const requestId = response?.headers.get(HEADER_X_REQUEST_ID) ?? UNKNOWN_REQUEST_ID;
         const logCount = logCounts.get(domain) ?? 0;
-        logCounts.set(domain, logCount + 1);
         if (logCount < MAX_LOGS_PER_DOMAIN) {
+            logCounts.set(domain, logCount + 1);
             log({
                 domain,
                 durationMs: Math.round(durationMs),

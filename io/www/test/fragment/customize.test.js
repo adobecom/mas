@@ -4488,6 +4488,9 @@ describe('countdown timer dates', function () {
 
     const CDT_START = '2026-11-20T00:00:00Z';
     const CDT_END = '2026-11-30T23:59:59Z';
+    // Served without a zone so each browser reads them in its own time zone.
+    const CDT_START_LOCAL = '2026-11-20T00:00:00';
+    const CDT_END_LOCAL = '2026-11-30T23:59:59';
     const CDT_LINK = '<p>Ends in <a href="https://www.adobe.com/promo">countdown-timer</a></p>';
 
     function makeProject(overrides = {}) {
@@ -4525,8 +4528,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores fragments without a countdown-timer link', async function () {
@@ -4654,8 +4657,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('stops at the first card carrying the link, even when it has no promo project', async function () {
@@ -4744,12 +4747,12 @@ describe('countdown timer dates', function () {
         const { body } = result;
         expect(result.status).to.equal(200);
         // root keeps the first timed card's dates
-        expect(body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(body.cdtEnd).to.equal('2026-01-10T00:00:00');
         const dates = (id) => [body.references[id].value.cdtStart, body.references[id].value.cdtEnd];
-        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00Z', '2026-01-10T00:00:00Z']);
-        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00Z', '2026-02-10T00:00:00Z']);
-        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00Z', '2026-03-10T00:00:00Z']);
+        expect(dates('card-1')).to.deep.equal(['2026-01-01T00:00:00', '2026-01-10T00:00:00']);
+        expect(dates('card-2')).to.deep.equal(['2026-02-01T00:00:00', '2026-02-10T00:00:00']);
+        expect(dates('card-3')).to.deep.equal(['2026-03-01T00:00:00', '2026-03-10T00:00:00']);
         // no usable project dates, no sentinel, or a container without a sentinel: nothing stamped
         expect(dates('card-4')).to.deep.equal([undefined, undefined]);
         expect(dates('card-plain')).to.deep.equal([undefined, undefined]);
@@ -4777,8 +4780,8 @@ describe('countdown timer dates', function () {
             },
             [{ project: makeProject(), promoMap: { '*': 'CODE' }, fragmentPaths: new Set(['card-1']) }],
         );
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.references['card-1'].value.cdtStart).to.equal(CDT_START_LOCAL);
         expect(result.body.references['card-2'].value.cdtStart).to.be.undefined;
         expect(result.body.references['card-2'].value.cdtEnd).to.be.undefined;
     });
@@ -4812,8 +4815,8 @@ describe('countdown timer dates', function () {
             ],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00Z');
-        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00Z');
+        expect(result.body.cdtStart).to.equal('2026-01-01T00:00:00');
+        expect(result.body.cdtEnd).to.equal('2026-01-10T00:00:00');
     });
 
     it('detects a countdown-timer link whose text is formatted', async function () {
@@ -4839,8 +4842,8 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 
     it('ignores a link whose text merely contains countdown-timer', async function () {
@@ -4884,7 +4887,7 @@ describe('countdown timer dates', function () {
             [{ project: makeProject(), promoMap: { 'OSI-C': 'CODE' }, fragmentPaths: new Set(['card-cdt']) }],
         );
         expect(result.status).to.equal(200);
-        expect(result.body.cdtStart).to.equal(CDT_START);
-        expect(result.body.cdtEnd).to.equal(CDT_END);
+        expect(result.body.cdtStart).to.equal(CDT_START_LOCAL);
+        expect(result.body.cdtEnd).to.equal(CDT_END_LOCAL);
     });
 });

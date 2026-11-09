@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>M@S Dev Board</title>
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="importmap">
+            {
+                "imports": {
+                    "lit": "/web-components/dist/lit-all.min.js"
+                }
+            }
+        </script>
+        <script>
+            // Same IMS client and scope as studio.html, so imslib picks up the token Studio stored.
+            // IMS only redirects back to studio.html, so signing in happens there.
+            window.imsReady = new Promise((resolve) => {
+                window.adobeid = {
+                    client_id: 'mas-studio',
+                    environment: 'prod',
+                    locale: 'en_US',
+                    redirect_uri: `${location.origin}/studio.html`,
+                    scope: 'additional_info,additional_info.projectedProductContext,additional_info.roles,AdobeID,openid,read_organizations,read_members',
+                    useLocalStorage: true,
+                    onReady: resolve,
+                    onError: resolve,
+                };
+            });
+        </script>
+        <script src="https://www.adobe.com/libs/deps/imslib.min.js" async></script>
+        <script src="/studio/libs/swc.js" type="module"></script>
+        <script src="/studio/src/dev-board/mas-dev-board.js" type="module"></script>
+        <link rel="stylesheet" href="https://use.typekit.net/hah7vzn.css" />
+        <style>
+            body {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <sp-theme system="spectrum-two" color="light" scale="medium">
+            <mas-dev-board></mas-dev-board>
+        </sp-theme>
+    </body>
+</html>

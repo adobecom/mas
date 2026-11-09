@@ -64,6 +64,19 @@ describe('mas-bulk-edit (overview)', () => {
         expect(navigate.calledWith(PAGE_NAMES.BULK_EDIT_EDITOR)).to.be.true;
     });
 
+    it('applies a resized width to the header and to the row cells', async () => {
+        Store.bulkEditProjects.list.data.set([makeProjectStore()]);
+        const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);
+        const handle = el.shadowRoot.querySelector('.column-resize-handle[data-column="status"]');
+        handle.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, composed: true, cancelable: true }),
+        );
+        await el.updateComplete;
+        const width = `${el.columnResize.widths.get('status')}px`;
+        expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-head-cell')[3]).width).to.equal(width);
+        expect(getComputedStyle(el.shadowRoot.querySelectorAll('sp-table-cell')[3]).width).to.equal(width);
+    });
+
     it('renders editor links to the bulk edit editor', async () => {
         Store.bulkEditProjects.list.data.set([makeProjectStore({ id: 'be-1' })]);
         const el = await fixture(html`<mas-bulk-edit></mas-bulk-edit>`);

@@ -7,6 +7,7 @@ on:
         paths:
             - 'web-components/**'
             - 'price/**'
+            - 'checkout/**'
             - 'package.json'
             - 'package-lock.json'
             - 'eslint.config.mjs'
@@ -16,6 +17,7 @@ on:
         paths:
             - 'web-components/**'
             - 'price/**'
+            - 'checkout/**'
             - 'package.json'
             - 'package-lock.json'
             - 'eslint.config.mjs'

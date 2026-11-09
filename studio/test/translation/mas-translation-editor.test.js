@@ -2235,7 +2235,7 @@ describe('MasTranslationEditor', () => {
             expect(Store.page.get()).to.equal(PAGE_NAMES.TRANSLATIONS);
             const rows = listView.shadowRoot.querySelectorAll('sp-table-row[data-id]');
             expect(Array.from(rows, (row) => row.dataset.id)).to.deep.equal(['new-id', 'test-fragment-id']);
-            expect(rows[0].querySelector('sp-table-cell').textContent).to.equal('Test-Translation-Project-copy');
+            expect(rows[0].querySelector('.title-clamp').textContent.trim()).to.equal('Test-Translation-Project-copy');
         });
 
         it('shows a single error toast and does not switch project when duplication fails', async () => {

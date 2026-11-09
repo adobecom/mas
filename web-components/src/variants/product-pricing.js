@@ -62,7 +62,7 @@ export const PRODUCT_PRICING_AEM_FRAGMENT_MAPPING = {
     mnemonics: { size: 's' },
     // Plain text badge; merch-badge pill styling is stripped in product-pricing.css.js.
     badge: { tag: 'div', slot: 'badge' },
-    title: { tag: 'h3', slot: 'heading-s' },
+    title: { tag: 'h2', slot: 'heading-s' },
     prices: { tag: 'p', slot: 'heading-xs' },
     description: { tag: 'div', slot: 'body-xs' },
     shortDescription: { tag: 'div', slot: 'short-description' },

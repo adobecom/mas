@@ -18,7 +18,6 @@ before(async () => {
 
 describe('ProductPricing.resyncOnReflow', () => {
     it('re-syncs on a real reflow but dedupes unchanged geometry', () => {
-        const layout = Object.create(ProductPricing.prototype);
         const rect = { width: 0 };
         const heights = {
             'heading-s': 18,
@@ -27,7 +26,7 @@ describe('ProductPricing.resyncOnReflow', () => {
             fine: 0,
         };
         const box = (h) => ({ getBoundingClientRect: () => ({ height: h }) });
-        layout.card = {
+        const layout = new ProductPricing({
             getBoundingClientRect: () => rect,
             querySelector: (sel) => {
                 const slot = sel.match(/slot="([^"]+)"/)?.[1];
@@ -39,7 +38,7 @@ describe('ProductPricing.resyncOnReflow', () => {
                 querySelector: (sel) =>
                     sel.includes('.fine') ? box(heights.fine) : null,
             },
-        };
+        });
         const sync = sinon.stub(layout, 'syncHeights');
 
         layout.resyncOnReflow();
@@ -66,6 +65,53 @@ describe('ProductPricing.resyncOnReflow', () => {
         const sync = sinon.stub(layout, 'syncHeights');
         layout.resyncOnReflow();
         expect(sync.calledOnce).to.be.true;
+    });
+
+    it('keys on the sizes the observer reports instead of measuring', () => {
+        const RealObserver = window.ResizeObserver;
+        let observer;
+        window.ResizeObserver = class {
+            constructor(callback) {
+                this.callback = callback;
+                observer = this;
+            }
+            observe() {}
+            disconnect() {}
+        };
+        try {
+            const measured = sinon.spy(() => ({ width: 1, height: 1 }));
+            const desc = { getBoundingClientRect: measured };
+            const card = {
+                addEventListener: () => {},
+                getBoundingClientRect: measured,
+                querySelector: (sel) => (sel.includes('body-xs') ? desc : null),
+            };
+            const layout = new ProductPricing(card);
+            card.variantLayout = layout;
+            const sync = sinon.stub(layout, 'syncHeights');
+            layout.connectedCallbackHook();
+            const entry = (target, width, height) => ({
+                target,
+                borderBoxSize: [{ inlineSize: width, blockSize: height }],
+            });
+
+            observer.callback([entry(card, 300, 400), entry(desc, 300, 54)]);
+            expect(sync.calledOnce, 'syncs on the first report').to.be.true;
+
+            observer.callback([entry(card, 300, 420)]);
+            expect(sync.calledOnce, 'a card height change is not a reflow').to
+                .be.true;
+
+            observer.callback([entry(desc, 300, 72)]);
+            expect(sync.calledTwice, 'a description reflow re-syncs').to.be
+                .true;
+
+            observer.callback([entry(card, 0, 0), entry(desc, 0, 0)]);
+            expect(sync.calledTwice, 'a hidden card is skipped').to.be.true;
+            expect(measured.called, 'nothing was measured').to.be.false;
+        } finally {
+            window.ResizeObserver = RealObserver;
+        }
     });
 });
 
@@ -187,15 +233,20 @@ describe('ProductPricing.syncHeights across a collection', () => {
 });
 
 describe('ProductPricing reflow wiring', () => {
-    it('observes the card + description and listens for price resolution', () => {
+    it('observes the card + description and re-checks after a price resolves', () => {
         const observed = [];
+        const unobserved = [];
         const RealObserver = window.ResizeObserver;
         class FakeObserver {
             constructor(callback) {
                 this.callback = callback;
+                FakeObserver.last = this;
             }
             observe(el) {
                 observed.push(el);
+            }
+            unobserve(el) {
+                unobserved.push(el);
             }
             disconnect() {
                 this.disconnected = true;
@@ -218,6 +269,7 @@ describe('ProductPricing reflow wiring', () => {
                 },
             };
             const layout = new ProductPricing(card);
+            card.variantLayout = layout;
             const resync = sinon.stub(layout, 'resyncOnReflow');
 
             layout.connectedCallbackHook();
@@ -229,14 +281,25 @@ describe('ProductPricing reflow wiring', () => {
             expect(listeners[EVENT_TYPE_RESOLVED], 'listens for resolve').to
                 .exist;
 
+            observed.length = 0;
             listeners[EVENT_TYPE_RESOLVED]();
-            expect(resync.calledOnce, 'a resolved price re-syncs').to.be.true;
+            expect(resync.called, 'a resolved price is not measured in place')
+                .to.be.false;
+            expect(unobserved, 'asks for a fresh card report').to.deep.equal([
+                card,
+            ]);
+            expect(observed).to.deep.equal([card]);
+
+            FakeObserver.last.callback([]);
+            expect(resync.calledOnce, 'the report re-syncs').to.be.true;
 
             layout.disconnectedCallbackHook();
             expect(
                 card.removeEventListener.calledWith(EVENT_TYPE_RESOLVED),
                 'removes the resolve listener',
             ).to.be.true;
+            expect(FakeObserver.last.disconnected, 'drops the observer').to.be
+                .true;
         } finally {
             window.ResizeObserver = RealObserver;
         }

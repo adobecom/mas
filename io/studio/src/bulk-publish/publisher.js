@@ -19,22 +19,71 @@ async function publishChunk({
     logger,
     maxRetries = DEFAULT_MAX_RETRIES,
     filterReferencesByStatus = ['DRAFT', 'MODIFIED', 'UNPUBLISHED'],
+    replicate = false,
 }) {
-    try {
-        return await doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus });
-    } catch (error) {
-        const message = error.message || String(error);
-        logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: chunk.length, error: message }));
-        return chunk.map((path) => ({ path, status: 'failed', reason: 'unexpected-error', retries: 0 }));
+    const chunks = replicate ? chunk.map((path) => [path]) : [chunk];
+    const results = [];
+    const csrfTokenCache = {};
+    for (const paths of chunks) {
+        try {
+            results.push(
+                ...(await doPublishChunk({
+                    chunk: paths,
+                    odinEndpoint,
+                    authToken,
+                    logger,
+                    maxRetries,
+                    filterReferencesByStatus,
+                    replicate,
+                    csrfTokenCache,
+                })),
+            );
+        } catch (error) {
+            const message = error.message || String(error);
+            logger.error(JSON.stringify({ event: 'publish-unexpected-error', chunkSize: paths.length, error: message }));
+            results.push(...paths.map((path) => ({ path, status: 'failed', reason: 'unexpected-error', retries: 0 })));
+        }
     }
+    return results;
 }
 
-async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetries, filterReferencesByStatus }) {
+async function replicatePath({ path, odinEndpoint, authToken, csrfTokenCache }) {
+    if (!csrfTokenCache.token) {
+        const response = await fetchOdin(odinEndpoint, '/libs/granite/csrf/token.json', authToken);
+        const { token } = await response.json();
+        csrfTokenCache.token = token;
+    }
+    await fetchOdin(odinEndpoint, '/bin/replicate', authToken, {
+        method: 'POST',
+        contentType: 'application/x-www-form-urlencoded',
+        body: new URLSearchParams({ cmd: 'Activate', path }).toString(),
+        csrfToken: csrfTokenCache.token,
+    });
+}
+
+async function doPublishChunk({
+    chunk,
+    odinEndpoint,
+    authToken,
+    logger,
+    maxRetries,
+    filterReferencesByStatus,
+    replicate,
+    csrfTokenCache,
+}) {
     logger.info(JSON.stringify({ event: 'publish-start', chunkSize: chunk.length }));
 
     let lastError = null;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let csrfRefreshes = 0;
+    let retries = 0;
+    for (let attempt = 1; attempt <= maxRetries + csrfRefreshes; attempt++) {
+        retries = attempt - 1;
         try {
+            if (replicate) {
+                await replicatePath({ path: chunk[0], odinEndpoint, authToken, csrfTokenCache });
+                logger.info(JSON.stringify({ event: 'replicate-success', chunkSize: chunk.length, retries }));
+                return chunk.map((path) => ({ path, status: 'published', retries }));
+            }
             const response = await fetchOdin(odinEndpoint, PUBLISH_URI, authToken, {
                 method: 'POST',
                 contentType: 'application/json',
@@ -45,24 +94,28 @@ async function doPublishChunk({ chunk, odinEndpoint, authToken, logger, maxRetri
                 }),
             });
             const data = await parseResponse(response);
-            const retries = attempt - 1;
             logger.info(JSON.stringify({ event: 'publish-success', chunkSize: chunk.length, retries }));
             return mapItemsToResults(chunk, data, retries);
         } catch (error) {
+            if (replicate) csrfTokenCache.token = null;
             lastError = error.message || String(error);
             const statusMatch = lastError.match(/status (\d{3})/);
             const httpStatus = statusMatch ? Number(statusMatch[1]) : 0;
-            const retryable = httpStatus === 0 || httpStatus === 429 || httpStatus >= 500;
+            const refreshCsrf = replicate && httpStatus === 403 && csrfRefreshes === 0;
+            const retryable = refreshCsrf || httpStatus === 0 || httpStatus === 429 || httpStatus >= 500;
             logger.warn(JSON.stringify({ event: 'retry', attempt, chunkSize: chunk.length, error: lastError, retryable }));
             if (!retryable) break;
-            if (attempt < maxRetries) {
-                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+            if (refreshCsrf) {
+                csrfRefreshes++;
+                continue;
+            }
+            if (attempt < maxRetries + csrfRefreshes) {
+                const delay = Math.min(1000 * Math.pow(2, attempt - csrfRefreshes - 1), 5000);
                 await new Promise((resolve) => setTimeout(resolve, delay));
             }
         }
     }
 
-    const retries = maxRetries - 1;
     logger.error(JSON.stringify({ event: 'publish-failed', chunkSize: chunk.length, error: lastError, retries }));
     return chunk.map((path) => ({ path, status: 'failed', reason: lastError, retries }));
 }

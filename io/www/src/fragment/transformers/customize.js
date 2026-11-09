@@ -106,6 +106,20 @@ function parsePznTokens(pzn) {
         .filter(Boolean);
 }
 
+export function getValidatedPzn(context) {
+    const { pzn } = context;
+    if (
+        pzn &&
+        String(pzn)
+            .split(',')
+            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
+    ) {
+        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
+        return undefined;
+    }
+    return pzn;
+}
+
 const PZN_TAG_RE = /(?:^|[/:])pzn\/(.+)$/i;
 
 function countMatchedPznTokens(tags, tokens) {
@@ -436,7 +450,7 @@ function mergeVariations(root, customizeContext, selectedPromoProject) {
  * @param {Array} [variationReferencesTree] hydrated referencesTree of the merged promo variation
  * @returns {Array}
  */
-function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
+export function adaptReferencesTree(referencesTree, customizedRoot, variationReferencesTree = []) {
     const customizedCards = customizedRoot.fields?.cards;
     const customizedCollections = customizedRoot.fields?.collections;
     if (!Array.isArray(customizedCards) && !Array.isArray(customizedCollections)) {
@@ -521,6 +535,19 @@ function applyMask(fragment, maskFragment) {
     return merged;
 }
 
+export function resolveActiveFragment(
+    root,
+    customizeContext,
+    selectedPromoProject = selectPromoProjectForFragment(root, customizeContext),
+) {
+    const { references, referencesTree, ...fragment } = mergeVariations(root, customizeContext, selectedPromoProject);
+    if (references) {
+        customizeContext.references = { ...references, ...customizeContext.references };
+    }
+    fragment.fields = normalizeExplicitEmptyInFields(fragment.fields);
+    return { fragment, referencesTree };
+}
+
 /**
  * will return customized fragment, and sub fragments (recursive)
  * @param {*} root
@@ -531,19 +558,12 @@ function applyMask(fragment, maskFragment) {
 function customizeTree(fragment, referencesTree = [], customizeContext) {
     const root = applyBaselines(fragment, customizeContext);
     const selectedPromoProject = selectPromoProjectForFragment(root, customizeContext);
-    //apply regional or promo variation, if any.
-    const {
-        references: variationReferences,
-        referencesTree: variationReferencesTree,
-        ...mergedRoot
-    } = mergeVariations(root, customizeContext, selectedPromoProject);
+    const { fragment: mergedRoot, referencesTree: variationReferencesTree } = resolveActiveFragment(
+        root,
+        customizeContext,
+        selectedPromoProject,
+    );
     let customizedRoot = mergedRoot;
-    if (variationReferences) {
-        // Hydrated collection promo variation: make fragments it adds resolvable. Existing references
-        // win, since they may already hold customized values.
-        customizeContext.references = { ...variationReferences, ...customizeContext.references };
-    }
-    customizedRoot.fields = normalizeExplicitEmptyInFields(customizedRoot.fields);
     if (customizeContext.maskFragment && customizedRoot.model?.id === CARD_MODEL_ID) {
         customizedRoot = applyMask(customizedRoot, customizeContext.maskFragment);
     }
@@ -596,6 +616,10 @@ function customizeTree(fragment, referencesTree = [], customizeContext) {
             }
         }
     }
+    if (customizedRoot.fields) {
+        const { variations, ...fields } = customizedRoot.fields;
+        customizedRoot.fields = fields;
+    }
     //finally we return updated root and references (stable id: default fragment key in references map)
     const refs = customizeContext.references;
     if (refs && root.id != null) {
@@ -620,7 +644,6 @@ async function customize(context) {
     const fragmentInit = await resolveFragmentInit(context, requestInfos);
     const { body, defaultLocale, status, message, regionLocale: regionLocaleFromInit } = fragmentInit;
     const promoProjects = context.promoProjects ?? [];
-    const { pzn } = context;
 
     if (status != 200) {
         return { ...context, status, message };
@@ -637,28 +660,32 @@ async function customize(context) {
         regionLocale,
         references,
         surface,
+        pzn: getValidatedPzn(context),
         // Accumulates each in-scope fragment's promo scope by fragment id, consumed by the wcs transformer.
         promoScopeById: {},
         // adapted references tree of each customized card / collection, by id
         customizedTrees: new Map(),
     };
-    if (
-        pzn &&
-        String(pzn)
-            .split(',')
-            .some((token) => !VALID_PARAMETER_VALUE_REGEX.test(token.trim()))
-    ) {
-        logError(`Invalid pzn value '${pzn}', ignoring...`, context);
-        customizeContext.pzn = undefined;
-    }
-
     const customizedTree = customizeTree(baseFragment, referencesTree, customizeContext);
     const { fragment: customizedFragment } = customizedTree;
     if (context.offer) customizedFragment.fields = { ...customizedFragment.fields, osi: context.offer };
     const { references: customizedReferences, referencesTree: customizedReferenceTree } = customizedTree;
 
-    customizedFragment.references = customizedReferences;
-    customizedFragment.referencesTree = customizedReferenceTree;
+    const activeReferences = new Set([customizedFragment.id]);
+    const collectReferences = (tree) =>
+        tree
+            .filter(({ fieldName }) => fieldName !== 'variations')
+            .map((entry) => {
+                activeReferences.add(entry.identifier);
+                return entry.referencesTree ? { ...entry, referencesTree: collectReferences(entry.referencesTree) } : entry;
+            });
+    const activeTree = collectReferences(customizedReferenceTree);
+    customizedFragment.references = Object.fromEntries(
+        Object.entries(customizedReferences ?? {}).filter(
+            ([id, ref]) => ref.type !== 'content-fragment' || activeReferences.has(id),
+        ),
+    );
+    customizedFragment.referencesTree = activeTree;
     return {
         ...context,
         status: 200,

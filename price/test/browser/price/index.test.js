@@ -72,8 +72,8 @@ Object.entries({
                                         [
                                             {
                                                 ...applyFormat(offer, name),
-                                                // These snapshots invoke annual templates even for non-ABM fixtures.
-                                                planType: 'ABM',
+                                                // Combined-annual snapshots require ABM dispatch for non-ABM fixtures.
+                                                ...(templateOptions.displayAnnual ? { planType: 'ABM' } : {}),
                                                 ...(templateOptions.promotionCode ? { promotion: {} } : {}),
                                             },
                                         ],

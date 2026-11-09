@@ -19,18 +19,18 @@ describe('native shared source entry points', () => {
     it('renders identically through the renderer and template factory', () => {
         assert.equal(buildPriceHTML([baseOffer], options), createPriceTemplate()(options, value));
     });
-    it('exports the extracted commitment and term constants', () => {
+    it('imports commitment and term constants from their owning module', () => {
         assert.equal(Commitment.YEAR, baseOffer.commitment);
         assert.equal(Term.MONTHLY, baseOffer.term);
     });
-    it('exports the regular price formatter', () => {
+    it('formats regular price parts through the owning formatter', () => {
         assert.equal(formatRegularPrice(value).integer, '29');
         assert.equal(formatRegularPrice(value).decimals, '99');
     });
-    it('exports the legal template', () => {
+    it('renders legal HTML via buildPriceHTML', () => {
         assert.equal(buildPriceHTML([baseOffer], { ...options, template: 'legal' }), legalTemplate(options, value));
     });
-    it('exports the discount template', () => {
+    it('renders discount HTML via buildPriceHTML', () => {
         assert.equal(buildPriceHTML([baseOffer], { ...options, template: 'discount' }), discount(options, value));
     });
 });

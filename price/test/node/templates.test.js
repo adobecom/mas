@@ -48,7 +48,7 @@ describe('legacy ICU golden literals', () => {
 describe('template rendering and factories', () => {
     const options = { country: 'US', language: 'en', instant };
     const value = { ...baseOffer, ...baseOffer.priceDetails };
-    for (const [name, [templateOptions, template]] of Object.entries({
+    const templateCases = Object.entries({
         price: [{}, createPriceTemplate()],
         pricePromo: [{ promotionCode: 'PROMO' }, createPromoPriceTemplate()],
         priceOptical: [{ template: 'optical' }, createPriceTemplate({ displayOptical: true })],
@@ -66,13 +66,19 @@ describe('template rendering and factories', () => {
         priceWithAnnual: [{ displayAnnual: true }, createPriceWithAnnualTemplate()],
         pricePromoWithAnnual: [{ displayAnnual: true, promotionCode: 'PROMO' }, createPromoPriceWithAnnualTemplate()],
         legal: [{ template: 'legal' }, legalTemplate],
-    })) {
+    }).map(([name, [templateOptions, template]]) => {
+        const offer = templateOptions.promotionCode ? { ...baseOffer, promotion } : baseOffer;
+        const context = { ...options, ...templateOptions };
+        return { name, offer, context, expected: template(context, { ...offer, ...offer.priceDetails }) };
+    });
+    for (const { name, offer, context, expected } of templateCases) {
         it(`dispatches ${name} to its exact template HTML without a browser environment`, () => {
-            const offer = templateOptions.promotionCode ? { ...baseOffer, promotion } : baseOffer;
-            const context = { ...options, ...templateOptions };
-            assert.equal(buildPriceHTML([offer], context), template(context, { ...offer, ...offer.priceDetails }));
+            assert.equal(buildPriceHTML([offer], context), expected);
         });
     }
+    it('uses distinct fixture HTML for every dispatch variant', () => {
+        assert.equal(new Set(templateCases.map(({ expected }) => expected)).size, templateCases.length);
+    });
     for (const [name, factory] of Object.entries({
         createPriceTemplate,
         createPromoPriceTemplate,

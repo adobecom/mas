@@ -132,6 +132,63 @@ describe('Promotion version history', () => {
         await element.updateComplete;
     }
 
+    it('labels save notices without claiming there were no changes or offering restore', async () => {
+        client.listPromotionHistory.resolves({
+            events: [
+                {
+                    ...version,
+                    snapshotUnavailable: true,
+                    changes: [],
+                    beforeSnapshot: { fragments: [] },
+                    afterSnapshot: { fragments: [] },
+                },
+            ],
+        });
+
+        const root = await mount();
+
+        expect(root.textContent).to.include('Snapshot unavailable');
+        expect(root.textContent).not.to.include('No content changes');
+        expect(element.canRestore).to.be.false;
+        expect(getVersion.called).to.be.false;
+    });
+
+    it('shows deleted promo variations without loading the removed fragment or offering restore', async () => {
+        const variationPath = '/content/dam/mas/acom/en_US/promotions/sale/deleted-card';
+        const deleted = {
+            ...version,
+            action: 'delete',
+            targetId: 'deleted-variation',
+            targetPath: variationPath,
+            targetTitle: 'Deleted promo card',
+            changes: [
+                {
+                    fragmentId: 'deleted-variation',
+                    path: variationPath,
+                    field: '@deleted',
+                    before: 'Deleted promo card',
+                    after: null,
+                    category: 'fragments',
+                },
+            ],
+            beforeSnapshot: { fragments: [] },
+            afterSnapshot: { fragments: [] },
+        };
+        client.listPromotionHistory.resolves({ events: [deleted], currentEventId: deleted.id });
+
+        const root = await mount();
+
+        expect(root.textContent).to.include('Promo variation deleted');
+        const row = root.querySelector('[data-field="@deleted"]');
+        expect(row.textContent).to.include('Deleted promo card');
+        expect(row.textContent).to.include(variationPath);
+        expect(row.querySelector('a')).to.be.null;
+        expect(row.querySelector('sp-checkbox').disabled).to.be.true;
+        expect(element.canRestore).to.be.false;
+        expect(getVersion.called || getWithEtag.called || getByPath.called).to.be.false;
+        expect(root.textContent).not.to.include('Fragment details unavailable');
+    });
+
     function createdPromoVersion(pznTags) {
         const promo = {
             id: 'created-promo',

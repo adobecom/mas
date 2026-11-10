@@ -68,9 +68,9 @@ describe('Promotion project versions', () => {
         return versionId;
     };
     const save = async (id = PROJECT, modify = (fragment) => (fragment.title = 'Saved'), extra = {}) => {
-        const beforeVersionId = remember(id);
+        await call('record', { phase: 'prepare', targetId: id, ...extra, completionEtag: undefined });
         modify(fragments.get(id));
-        return call('record', { targetId: id, beforeVersionId, ...extra });
+        return call('record', { targetId: id, ...extra });
     };
     const undo = (event, fields = ['@title'], extra = {}) =>
         call('restore', {
@@ -82,6 +82,7 @@ describe('Promotion project versions', () => {
         });
     const nativePosts = () =>
         fetchStub.getCalls().filter(({ args: [url, options] }) => url.endsWith('/versions') && options.method === 'POST');
+    const storedEvents = () => [...stored].filter(([key]) => key.includes('.entry.'));
     const failPostWriteCapture = () => {
         let captures = 0;
         fetchStub
@@ -163,6 +164,7 @@ describe('Promotion project versions', () => {
                     if (!fragments.has(id)) return response({}, 404);
                     return response({}, 201, null, { location: `${parsed.pathname}/${remember(id)}` });
                 }
+                if (!versionId) return response({ items: [] });
                 const historical = versions.get(`${id}:${decodeURIComponent(versionId)}`);
                 return historical ? response(historical) : response({}, 404);
             }
@@ -202,6 +204,298 @@ describe('Promotion project versions', () => {
         sinon.restore();
     });
 
+    it('records a non-restorable save notice when its before snapshot could not be prepared', async () => {
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match.has('method', 'POST'),
+            )
+            .resolves(response({}, 503));
+        await expectError(call('record', { phase: 'prepare' }), 503);
+        fragments.get(PROJECT).title = 'Saved';
+
+        const { event } = await call('record', { metadataOnly: true, completionEtag: '"stale"' });
+
+        expect(event).to.include({ action: 'save', targetId: PROJECT, snapshotUnavailable: true });
+        expect(event.changes).to.deep.equal([]);
+        expect(event.beforeSnapshot.fragments).to.deep.equal([]);
+        expect(event.afterSnapshot.fragments).to.deep.equal([]);
+        const error = await expectError(undo(event), 400);
+        expect(error.message).to.include('Snapshot unavailable');
+        expect(writes()).to.have.length(0);
+    });
+
+    it('keeps a metadata-only save notice idempotent after a completion conflict without capturing later edits', async () => {
+        await call('record', { phase: 'prepare' });
+        fragments.get(PROJECT).title = 'Someone else edited it';
+        await expectError(call('record', { completionEtag: '"stale"' }), 409);
+        const beforePosts = nativePosts().length;
+
+        const { event } = await call('record', { metadataOnly: true, completionEtag: '"stale"' });
+        fragments.get(PROJECT).title = 'Edited again';
+        expect(await call('record', { metadataOnly: true, completionEtag: '"stale"' })).to.deep.equal({ event });
+
+        expect(event.snapshotUnavailable).to.equal(true);
+        expect(event.changes).to.deep.equal([]);
+        expect(nativePosts()).to.have.length(beforePosts);
+        expect(storedEvents()).to.have.length(1);
+    });
+
+    it('still authorizes metadata-only notices and rejects fallback on preparation or deletion', async () => {
+        await expectError(call('record', { metadataOnly: true, phase: 'prepare' }), 400);
+        await expectError(call('record', { metadataOnly: true, action: 'delete' }), 400);
+        await expectError(call('record', { metadataOnly: 'true' }), 400);
+        fragments.set(OTHER, { ...makeVariation(), id: OTHER, path: '/content/dam/mas/acom/en_US/outside' });
+        await expectError(call('record', { metadataOnly: true, targetId: OTHER }), 403);
+        roles = [];
+        await expectError(call('record', { metadataOnly: true }), 403);
+    });
+
+    it('prepares an authoritative before snapshot once and rejects client-selected versions', async () => {
+        const prepared = await call('record', { phase: 'prepare' });
+        fragments.get(PROJECT).title = 'External edit';
+        expect(await call('record', { phase: 'prepare' })).to.deep.equal(prepared);
+        expect(nativePosts()).to.have.length(1);
+        await expectError(call('record', { beforeVersionId: prepared.beforeVersionId }), 400);
+        const { event } = await call('record');
+        expect(event.changes[0]).to.include({ before: 'Project', after: 'External edit' });
+    });
+
+    it('reuses the previous change-set snapshot when it matches the current fragment', async () => {
+        const { event } = await save();
+        const previous = event.afterSnapshot.fragments[0];
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions?`)))
+            .resolves(
+                response({ items: [{ id: previous.versionId, comment: `Change-set: ${event.id}`, created: event.createdAt }] }),
+            );
+        const captures = nativePosts().length;
+
+        const prepared = await call('record', { phase: 'prepare', requestId: 'next-save' });
+
+        expect(prepared.beforeVersionId).to.equal(previous.versionId);
+        expect(nativePosts()).to.have.length(captures);
+        fragments.get(PROJECT).title = 'Next saved title';
+
+        const completed = await call('record', { requestId: 'next-save' });
+
+        expect(completed.event.beforeSnapshot.fragments[0].versionId).to.equal(previous.versionId);
+        expect(nativePosts()).to.have.length(captures + 1);
+    });
+
+    it('captures a fresh before snapshot when the previous change-set does not match the live fragment', async () => {
+        const { event } = await save();
+        const previous = event.afterSnapshot.fragments[0];
+        fetchStub
+            .withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions?`)))
+            .resolves(
+                response({ items: [{ id: previous.versionId, comment: `Change-set: ${event.id}`, created: event.createdAt }] }),
+            );
+        fragments.get(PROJECT).title = 'External edit';
+        const captures = nativePosts().length;
+
+        const prepared = await call('record', { phase: 'prepare', requestId: 'next-save' });
+
+        expect(prepared.beforeVersionId).not.to.equal(previous.versionId);
+        expect(versions.get(`${PROJECT}:${prepared.beforeVersionId}`).title).to.equal('External edit');
+        expect(nativePosts()).to.have.length(captures + 1);
+    });
+
+    it('captures a fresh before snapshot when a previous native version is unavailable', async () => {
+        fetchStub.withArgs(sinon.match((url) => url.includes(`/${PROJECT}/versions?`))).resolves(
+            response({
+                items: [{ id: 'missing-version', comment: 'Change-set: previous', created: new Date().toISOString() }],
+            }),
+        );
+
+        const prepared = await call('record', { phase: 'prepare' });
+
+        expect(prepared.beforeVersionId).not.to.equal('missing-version');
+        expect(nativePosts()).to.have.length(1);
+    });
+
+    it('binds preparation to its user, action and target', async () => {
+        await call('record', { phase: 'prepare' });
+        await expectError(call('record', { phase: 'prepare', action: 'delete' }), 409);
+        await expectError(call('record', { phase: 'prepare', targetId: VARIATION }), 409);
+        profile = { ...profile, id: 'another-user' };
+        await expectError(call('record'), 400);
+    });
+
+    it('isolates preparation and numbering when one request ID is used in different projects', async () => {
+        fragments.set(OTHER, { ...makeProject(), id: OTHER, path: `${projectPath}-other` });
+        await call('record', { phase: 'prepare' });
+        await call('record', { phase: 'prepare', rootId: OTHER, targetId: OTHER });
+        fragments.get(PROJECT).title = 'First project';
+        fragments.get(OTHER).title = 'Second project';
+        const first = (await call('record')).event;
+        const second = (await call('record', { rootId: OTHER, targetId: OTHER })).event;
+        expect([first.version, second.version]).to.deep.equal([1, 1]);
+        expect(first.id).not.to.equal(second.id);
+        expect(first.changes[0]).to.include({ before: 'Project', after: 'First project' });
+        expect(second.changes[0]).to.include({ before: 'Project', after: 'Second project' });
+    });
+
+    it('rejects unknown phases and stale preparation ETags', async () => {
+        await expectError(call('record', { phase: 'complete' }), 400);
+        await expectError(call('record', { phase: 'prepare', expectedEtag: '"stale"' }), 409);
+        expect(nativePosts()).to.have.length(0);
+    });
+
+    it('returns the ETag confirmed against the captured before snapshot, including version-induced ETag changes', async () => {
+        fetchStub
+            .withArgs(sinon.match((url) => url.endsWith(`/${PROJECT}`)))
+            .callsFake(async () => response(fragments.get(PROJECT), 200, versions.size ? '"after-version"' : '"one"'));
+        const prepared = await call('record', { phase: 'prepare', expectedEtag: '"one"' });
+        expect(prepared.etag).to.equal('"after-version"');
+        expect(await call('record', { phase: 'prepare' })).to.deep.equal(prepared);
+    });
+
+    it('rejects preparation when AEM cannot provide an ETag binding the before snapshot to the write', async () => {
+        fetchStub
+            .withArgs(sinon.match((url) => url.endsWith(`/${PROJECT}`)))
+            .callsFake(async () => response(fragments.get(PROJECT), 200, null));
+        await expectError(call('record', { phase: 'prepare' }), 409);
+    });
+
+    it('checkpoints immutable completion before indexing and retries without capturing later edits', async () => {
+        await call('record', { phase: 'prepare' });
+        fragments.get(PROJECT).title = 'Our saved title';
+        const pageWrites = fetchStub.withArgs(
+            sinon.match((url) => url.endsWith('/index-0.json')),
+            sinon.match.has('method', 'PUT'),
+        );
+        pageWrites.resolves(response({}, 503));
+        await expectError(call('record', { completionEtag: '"one"' }), 503);
+        const captures = nativePosts().length;
+        fragments.get(PROJECT).title = 'Someone else saved later';
+        pageWrites.resetBehavior();
+        const { event } = await call('record', { completionEtag: '"one"' });
+        expect(event.changes[0].after).to.equal('Our saved title');
+        expect(nativePosts()).to.have.length(captures);
+        expect((await call('list')).events.map((item) => item.id)).to.deep.equal([event.id]);
+        expect(numberingFiles.get(`/private/history/promotion/${PROJECT}/numbering.json`).body.entries).to.deep.equal({});
+    });
+
+    it('reuses checkpointed content and its reserved number after event storage fails', async () => {
+        await call('record', { phase: 'prepare' });
+        fragments.get(PROJECT).title = 'Our saved title';
+        const put = state.put;
+        state.put = async (key, value, options) => {
+            if (key.includes('.entry.')) throw Object.assign(new Error('State unavailable'), { statusCode: 503 });
+            return put(key, value, options);
+        };
+        await expectError(call('record'), 503);
+        const captures = nativePosts().length;
+        fragments.get(PROJECT).title = 'Someone else saved later';
+        state.put = put;
+        const { event } = await call('record');
+        expect(event.version).to.equal(1);
+        expect(event.changes[0].after).to.equal('Our saved title');
+        expect(nativePosts()).to.have.length(captures);
+        expect((await call('record', { action: 'create', requestId: 'next' })).event.version).to.equal(2);
+    });
+
+    it('claims preparation across concurrent requests before capturing its native version', async () => {
+        const results = await Promise.allSettled([call('record', { phase: 'prepare' }), call('record', { phase: 'prepare' })]);
+        expect(results.filter((result) => result.status === 'fulfilled')).to.have.length(1);
+        expect(results.find((result) => result.status === 'rejected').reason.statusCode).to.equal(503);
+        const prepared = results.find((result) => result.status === 'fulfilled').value;
+        expect(await call('record', { phase: 'prepare' })).to.deep.equal(prepared);
+        expect(nativePosts()).to.have.length(1);
+    });
+
+    it('rejects native before snapshots that captured a competing edit', async () => {
+        fetchStub
+            .withArgs(
+                sinon.match((url) => url.endsWith('/versions')),
+                sinon.match.has('method', 'POST'),
+            )
+            .callsFake(async (url) => {
+                fragments.get(PROJECT).title = 'Competing edit';
+                return response({}, 201, null, { location: `${new URL(url).pathname}/${remember()}` });
+            });
+        await expectError(call('record', { phase: 'prepare' }), 409);
+        await expectError(call('record'), 409);
+        expect(storedEvents()).to.have.length(0);
+    });
+
+    it('records a verified deletion without native versions and keeps it visible and non-restorable', async () => {
+        await call('record', { phase: 'prepare', action: 'delete', targetId: VARIATION });
+        fragments.delete(VARIATION);
+        const { event } = await call('record', { action: 'delete', targetId: VARIATION });
+        expect(event).to.include({ action: 'delete', targetId: VARIATION, targetPath: variationPath, targetTitle: 'Card' });
+        expect(event.beforeSnapshot).to.deep.equal({ fragments: [] });
+        expect(event.afterSnapshot).to.deep.equal({ fragments: [] });
+        expect(event.changes).to.deep.equal([
+            {
+                fragmentId: VARIATION,
+                path: variationPath,
+                field: '@deleted',
+                before: 'Card',
+                after: null,
+                category: 'fragments',
+            },
+        ]);
+        versions.clear();
+        expect((await call('list')).events.map((item) => item.id)).to.deep.equal([event.id]);
+        expect(await call('record', { action: 'delete', targetId: VARIATION })).to.deep.equal({ event });
+        await expectError(undo(event, ['@deleted']), 400);
+        expect(nativePosts()).to.have.length(0);
+        expect(writes()).to.have.length(0);
+        fragments.get(PROJECT).tags = [{ id: 'mas:promotion/another-promotion' }];
+        expect((await call('list')).events).to.deep.equal([]);
+    });
+
+    it('requires an existing authorized target to prepare deletion and a confirmed 404 to complete', async () => {
+        await expectError(call('record', { action: 'delete', targetId: VARIATION }), 400);
+        await expectError(call('record', { phase: 'prepare', action: 'delete', targetId: OTHER }), 404);
+        await call('record', { phase: 'prepare', action: 'delete', targetId: VARIATION });
+        await expectError(call('record', { action: 'delete', targetId: VARIATION }), 503);
+        fetchStub.withArgs(sinon.match((url) => url.endsWith(`/${VARIATION}`))).resolves(response({}, 403));
+        await expectError(call('record', { action: 'delete', targetId: VARIATION }), 403);
+    });
+
+    it('waits for asynchronous deletion to become a 404 and records it exactly once', async () => {
+        await call('record', { phase: 'prepare', action: 'delete', targetId: VARIATION });
+        let confirmations = 0;
+        fetchStub.withArgs(sinon.match((url) => url.endsWith(`/${VARIATION}`))).callsFake(async () => {
+            if (++confirmations === 1) return response(fragments.get(VARIATION));
+            fragments.delete(VARIATION);
+            return response({}, 404);
+        });
+        const result = await call('record', { action: 'delete', targetId: VARIATION });
+        expect(result.event.action).to.equal('delete');
+        expect(confirmations).to.equal(2);
+        expect(await call('record', { action: 'delete', targetId: VARIATION })).to.deep.equal(result);
+        expect(storedEvents()).to.have.length(1);
+    });
+
+    it('compacts a large completed legacy ledger without dropping outstanding restore leases', async () => {
+        const base = (await save()).event;
+        const entries = {};
+        for (let index = 1; index <= 6500; index++) {
+            const id = `aaaaaaaa-aaaa-4aaa-8aaa-${String(index).padStart(12, '0')}`;
+            const event = { ...base, id, version: index };
+            entries[id] = { version: index, createdAt: event.createdAt };
+            stored.set(`history.promotion.${PROJECT}.entry.${id}`, JSON.stringify(event));
+            const path = `/private/history/promotion/${PROJECT}/index-${Math.floor((index - 1) / 100)}.json`;
+            if (!numberingFiles.has(path)) numberingFiles.set(path, { etag: '"1"', body: { entries: {} } });
+            numberingFiles.get(path).body.entries[id] = { id, version: index, createdAt: event.createdAt };
+        }
+        entries.pending = { version: 6501, createdAt: base.createdAt, lockedUntil: Date.now() + 70000 };
+        numberingFiles.set(`/private/history/promotion/${PROJECT}/numbering.json`, {
+            etag: '"1"',
+            body: { lastVersion: 6501, entries },
+        });
+        const { event } = await call('record', { action: 'create', requestId: 'after-legacy' });
+        const ledger = numberingFiles.get(`/private/history/promotion/${PROJECT}/numbering.json`).body;
+        expect(event.version).to.equal(6502);
+        expect(ledger.entries.pending).to.deep.equal(entries.pending);
+        expect(Object.keys(ledger.entries).length).to.be.lessThan(6000);
+        expect(Buffer.byteLength(JSON.stringify(ledger))).to.be.lessThan(750000);
+    });
+
     it('records verified identity, ISO time, changed fields and authoritative native manifests', async () => {
         const { event } = await save(PROJECT, undefined, { user: { name: 'Impersonator' } });
         expect(event.user).to.deep.equal(profile);
@@ -213,8 +507,8 @@ describe('Promotion project versions', () => {
         ]);
         expect(event.beforeSnapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-1' }]);
         expect(event.afterSnapshot.fragments).to.deep.equal([{ id: PROJECT, path: projectPath, versionId: 'version-2' }]);
-        expect(nativePosts()).to.have.length(1);
-        const [key, value] = [...stored][0];
+        expect(nativePosts()).to.have.length(2);
+        const [key, value] = storedEvents()[0];
         expect(key).to.match(new RegExp(`^history\\.promotion\\.${PROJECT}\\.`));
         expect(event).to.include({ scopeType: 'promotion', rootId: PROJECT });
         expect(event).not.to.have.property('projectId');
@@ -232,18 +526,19 @@ describe('Promotion project versions', () => {
         expect(writes()).to.have.length(0);
     });
 
-    it('does not create native or catalog versions for a no-op save', async () => {
+    it('does not create an after version or catalog event for a no-op save', async () => {
         expect(await save(PROJECT, () => {})).to.deep.equal({ unchanged: true });
-        expect(nativePosts()).to.have.length(0);
-        expect(stored.size).to.equal(0);
+        expect(nativePosts()).to.have.length(1);
+        expect(storedEvents()).to.have.length(0);
+        expect(await call('record')).to.deep.equal({ unchanged: true });
     });
 
     it('replays a request without another native version or catalog entry', async () => {
         const result = await save();
-        expect(await call('record', { beforeVersionId: 'version-1' })).to.deep.equal(result);
-        expect(nativePosts()).to.have.length(1);
-        expect(stored.size).to.equal(1);
-        await expectError(call('record', { targetId: VARIATION, beforeVersionId: 'version-1' }), 409);
+        expect(await call('record')).to.deep.equal(result);
+        expect(nativePosts()).to.have.length(2);
+        expect(storedEvents()).to.have.length(1);
+        await expectError(call('record', { targetId: VARIATION }), 409);
     });
 
     it('scopes request idempotency to verified author', async () => {
@@ -251,7 +546,7 @@ describe('Promotion project versions', () => {
         profile = { ...profile, id: 'second-user' };
         const { event } = await save(PROJECT, (fragment) => (fragment.title = 'Second'));
         expect(event.user.id).to.equal('second-user');
-        expect(stored.size).to.equal(2);
+        expect(storedEvents()).to.have.length(2);
     });
 
     it('accepts owned promo variations but rejects source cards and other promotions', async () => {
@@ -262,24 +557,26 @@ describe('Promotion project versions', () => {
         await expectError(save(OTHER, undefined, { requestId: 'outside' }), 403);
     });
 
-    it('reads the supplied before version only from the same fragment', async () => {
+    it('rejects arbitrary before versions even when they exist for another fragment', async () => {
         const beforeVersionId = remember(VARIATION);
         fragments.get(PROJECT).title = 'Saved';
-        await expectError(call('record', { beforeVersionId }), 404);
+        await expectError(call('record', { beforeVersionId }), 400);
         expect(stored.size).to.equal(0);
     });
 
-    it('requires a before version for saves and rejects create with a before version', async () => {
+    it('requires preparation for saves and rejects create with a before version', async () => {
         await expectError(call('record'), 400);
         await expectError(call('record', { action: 'create', beforeVersionId: remember() }), 400);
     });
 
     it('checks optional completion ETags before creating a version', async () => {
         await expectError(save(PROJECT, undefined, { completionEtag: '"stale"' }), 409);
-        expect(nativePosts()).to.have.length(0);
+        expect(nativePosts()).to.have.length(1);
     });
 
-    it('checks completion ETags again when native capture finishes', async () => {
+    it('retains a verified immutable capture when live content changes after native version creation', async () => {
+        await call('record', { phase: 'prepare' });
+        fragments.get(PROJECT).title = 'Our save';
         let captured = false;
         fetchStub
             .withArgs(sinon.match((url) => url.endsWith(`/${PROJECT}`)))
@@ -292,10 +589,12 @@ describe('Promotion project versions', () => {
             .callsFake(async (url) => {
                 const versionId = remember();
                 captured = true;
+                fragments.get(PROJECT).title = 'Later save';
                 return response({}, 201, null, { location: `${new URL(url).pathname}/${versionId}` });
             });
-        await expectError(save(PROJECT, undefined, { completionEtag: '"one"' }), 409);
-        expect(stored.size).to.equal(0);
+        const { event } = await call('record', { completionEtag: '"one"' });
+        expect(event.changes[0]).to.include({ before: 'Project', after: 'Our save' });
+        expect(versions.get(`${PROJECT}:${event.afterSnapshot.fragments[0].versionId}`).title).to.equal('Our save');
     });
 
     it('rejects native version locations outside the configured fragment endpoint', async () => {
@@ -306,7 +605,7 @@ describe('Promotion project versions', () => {
             )
             .resolves(response({}, 201, null, { location: 'https://attacker.example.com/versions/stolen' }));
         await expectError(save(), 502);
-        expect(stored.size).to.equal(0);
+        expect(storedEvents()).to.have.length(0);
     });
 
     it('rejects content races during native capture', async () => {
@@ -321,7 +620,7 @@ describe('Promotion project versions', () => {
                 return response({}, 201, null, { location: `${new URL(url).pathname}/${versionId}` });
             });
         await expectError(save(), 409);
-        expect(stored.size).to.equal(0);
+        expect(storedEvents()).to.have.length(0);
     });
 
     it('lists persisted numeric versions, search, cursor and current id before filtering', async () => {
@@ -412,8 +711,8 @@ describe('Promotion project versions', () => {
 
     it('fills pages across denied versions and continues when access to the cursor version is revoked', async () => {
         await recordHistory(25);
-        const events = [...stored.values()]
-            .map((value) => JSON.parse(value))
+        const events = storedEvents()
+            .map(([, value]) => JSON.parse(value))
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
         const deny = (event) =>
             fetchStub
@@ -505,11 +804,11 @@ describe('Promotion project versions', () => {
         expect(listed.events.map((event) => event.id)).to.deep.equal(expected.map((event) => event.id));
     });
 
-    it('does not commit an unindexed event when index persistence fails and recovers on retry', async () => {
+    it('durably captures an unindexed event and completes its original numbering on retry', async () => {
         const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
         await save();
         clock.tick(1);
-        const beforeVersionId = remember();
+        await call('record', { phase: 'prepare', requestId: 'index-failure' });
         fragments.get(PROJECT).title = 'Second';
         const pageWrites = fetchStub.withArgs(
             sinon.match((url) => url.endsWith('/index-0.json')),
@@ -517,11 +816,11 @@ describe('Promotion project versions', () => {
         );
         pageWrites.resolves(response({}, 503));
 
-        await expectError(call('record', { beforeVersionId, requestId: 'index-failure' }), 503);
+        await expectError(call('record', { requestId: 'index-failure' }), 503);
 
-        expect(stored.size).to.equal(1);
+        expect(storedEvents()).to.have.length(2);
         pageWrites.resetBehavior();
-        const { event } = await call('record', { beforeVersionId, requestId: 'index-failure' });
+        const { event } = await call('record', { requestId: 'index-failure' });
         expect(event.version).to.equal(2);
         expect((await call('list')).events.map((item) => item.version)).to.deep.equal([2, 1]);
     });
@@ -609,10 +908,12 @@ describe('Promotion project versions', () => {
     });
 
     it('reuses one number and event key when identical requests arrive concurrently', async () => {
-        const results = await Promise.all([call('record', { action: 'create' }), call('record', { action: 'create' })]);
+        const results = await Promise.allSettled([call('record', { action: 'create' }), call('record', { action: 'create' })]);
 
-        expect(results.map(({ event }) => event.version)).to.deep.equal([1, 1]);
-        expect(stored.size).to.equal(1);
+        expect(results.filter((result) => result.status === 'fulfilled')).to.have.length(1);
+        expect(results.find((result) => result.status === 'rejected').reason.statusCode).to.equal(503);
+        expect((await call('record', { action: 'create' })).event.version).to.equal(1);
+        expect(storedEvents()).to.have.length(1);
         expect((await call('record', { action: 'create', requestId: 'next' })).event.version).to.equal(2);
     });
 
@@ -646,11 +947,11 @@ describe('Promotion project versions', () => {
     });
 
     it('keeps numbering metadata private and free of authors, field values and AEM version IDs', async () => {
-        const { event } = await save();
+        await save();
         const { body } = numberingFiles.get(`/private/history/promotion/${PROJECT}/numbering.json`);
         expect(body).to.deep.equal({
             lastVersion: 1,
-            entries: { [event.id]: { version: 1, createdAt: event.createdAt } },
+            entries: {},
         });
         const presign = files.generatePresignURL.getCalls().find(({ args: [path] }) => path.endsWith('/numbering.json'));
         expect(presign.args).to.deep.equal([
@@ -712,7 +1013,7 @@ describe('Promotion project versions', () => {
 
     it('ignores expired catalogs', async () => {
         const { event } = await save();
-        const [key] = [...stored.keys()];
+        const [[key]] = storedEvents();
         stored.set(key, JSON.stringify({ ...event, createdAt: new Date(Date.now() - 96 * 86400000).toISOString() }));
         expect(await call('list')).to.deep.equal({ events: [], currentEventId: null });
     });
@@ -1009,6 +1310,25 @@ describe('Promotion project versions', () => {
         expect(result.event.action).to.equal('restore');
         expect(nativePosts()).to.have.length(captures);
         expect(writes()).to.have.length(1);
+    });
+
+    it('repairs restore indexing after a durable event write without losing its leased number', async () => {
+        const { event } = await save();
+        const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ['Date'] });
+        const pageWrites = fetchStub.withArgs(
+            sinon.match((url) => url.endsWith('/index-0.json')),
+            sinon.match.has('method', 'PUT'),
+        );
+        pageWrites.resolves(response({}, 503));
+        await expectError(undo(event), 503);
+        expect((await call('list')).events.map((item) => item.action)).to.deep.equal(['save']);
+        pageWrites.resetBehavior();
+        clock.tick(70000);
+        const result = await undo(event);
+        expect(result.event.version).to.equal(2);
+        expect((await call('list')).events.map((item) => item.action)).to.deep.equal(['restore', 'save']);
+        expect(writes()).to.have.length(1);
+        expect(numberingFiles.get(`/private/history/promotion/${PROJECT}/numbering.json`).body.entries).to.deep.equal({});
     });
 
     it('records only confirmed partial changes when reconciling an interrupted content and tag restore', async () => {
@@ -1393,7 +1713,6 @@ describe('Promotion project versions', () => {
         { targetId: 'not-an-id' },
         { requestId: '' },
         { action: 'publish' },
-        { action: 'delete' },
         { beforeVersionId: '../version' },
         { completionEtag: '*' },
         { __ow_method: 'get' },

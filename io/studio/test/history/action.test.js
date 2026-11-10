@@ -38,15 +38,31 @@ describe('History web actions', () => {
         expect(result.body).to.deep.equal({ error: 'Conflict' });
     });
 
-    it('passes native before versions but strips removed audit protocol inputs', async () => {
+    it('preserves obsolete before versions for explicit service rejection and strips removed audit inputs', async () => {
         await handle('record', { beforeVersionId: 'native-before', phase: 'prepare', intentId: 'old', sourceProjectId: 'old' });
         expect(execute.firstCall.args[1].beforeVersionId).to.equal('native-before');
-        expect(execute.firstCall.args[1]).not.to.have.any.keys('phase', 'intentId', 'sourceProjectId');
+        expect(execute.firstCall.args[1]).not.to.have.any.keys('intentId', 'sourceProjectId');
+    });
+
+    it('passes preparation phase and optimistic precondition through the request whitelist', async () => {
+        await handle('record', {
+            __ow_body: JSON.stringify({ phase: 'prepare', action: 'delete', expectedEtag: '"before-delete"' }),
+        });
+        expect(execute.firstCall.args[1]).to.include({
+            phase: 'prepare',
+            action: 'delete',
+            expectedEtag: '"before-delete"',
+        });
     });
 
     it('allows an optional completion ETag through the request whitelist', async () => {
         await handle('record', { completionEtag: '"saved-result"' });
         expect(execute.firstCall.args[1].completionEtag).to.equal('"saved-result"');
+    });
+
+    it('passes the metadata-only fallback through the request whitelist', async () => {
+        await handle('record', { metadataOnly: true });
+        expect(execute.firstCall.args[1].metadataOnly).to.equal(true);
     });
 
     it('exposes post-write versionPending and partial restore results at the HTTP body top level', async () => {

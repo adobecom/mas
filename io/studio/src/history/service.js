@@ -109,7 +109,14 @@ async function aem(context, suffix, options = {}) {
     });
     if (!response.ok) {
         logger.error(
-            JSON.stringify({ operation: context.operation, method: options.method ?? 'GET', status: response.status }),
+            JSON.stringify({
+                operation: context.operation,
+                scopeType: context.scopeType,
+                rootId: context.rootId,
+                requestId: context.requestId ? requestId(context) : undefined,
+                method: options.method ?? 'GET',
+                status: response.status,
+            }),
         );
         fail(response.status, response.status === 412 ? 'Fragment changed; reload before restoring' : 'AEM request failed');
     }
@@ -183,7 +190,7 @@ function diff(before, after) {
     });
 }
 
-async function versionSnapshot(context, current) {
+async function versionSnapshot(context, current, verifyLive = true) {
     const fragments = [];
     for (const fragment of current.fragments) {
         const versionId = await createVersion(
@@ -208,7 +215,7 @@ async function versionSnapshot(context, current) {
         }
         fragments.push(entry);
     }
-    for (const fragment of current.fragments) {
+    for (const fragment of verifyLive ? current.fragments : []) {
         const live = (await readFragment(context, fragment.id)).fragment;
         if (live.path !== fragment.path || diff({ fragments: [fragment] }, { fragments: [live] }).length) {
             fail(409, 'Fragment changed while creating its AEM version; reload and retry');
@@ -223,6 +230,29 @@ function inheritanceContext(context, current) {
 
 async function historySnapshot(context, current) {
     return { ...(await versionSnapshot(context, current)), ...inheritanceContext(context, current) };
+}
+
+async function prepareSnapshot(context, target) {
+    const current = { fragments: [target] };
+    try {
+        const response = await aem(context, `/${target.id}/versions?limit=50&sort=created:desc`);
+        const previous = (await response.json()).items
+            .filter(
+                (version) =>
+                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - RETENTION * 1000,
+            )
+            .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
+        if (previous) {
+            const entry = { id: target.id, path: target.path, versionId: previous.id };
+            const historical = await readVersion(context, entry);
+            if (!diff({ fragments: [historical] }, current).length) {
+                return { fragments: [entry], ...inheritanceContext(context, current) };
+            }
+        }
+    } catch (error) {
+        if (error.statusCode !== 404) throw error;
+    }
+    return historySnapshot(context, current);
 }
 
 function namespace(context, kind) {
@@ -293,23 +323,22 @@ async function updateMetadata(context, name, initial, update) {
 }
 
 async function reserveVersion(context, event, exclusive = false) {
-    if (!exclusive && context.numbering?.entries[event.id]) {
+    if (!exclusive && context.numbering?.entries[event.id]?.version) {
         const { version, createdAt } = context.numbering.entries[event.id];
         return { version, createdAt };
     }
     let reserved = false;
-    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, async (ledger) => {
         reserved = false;
         if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries) {
             fail(503, 'Invalid version numbering metadata');
         }
-        ledger.entries = Object.fromEntries(
-            Object.entries(ledger.entries).filter(([, entry]) => Date.parse(entry.createdAt) >= Date.now() - RETENTION * 1000),
-        );
-        if (ledger.entries[event.id]) return false;
+        const compacted = await compactReservations(context, ledger, event.id);
+        if (ledger.entries[event.id]?.version) return compacted;
         const version = ++ledger.lastVersion;
         if (!Number.isSafeInteger(version)) fail(503, 'Version numbering limit reached');
         ledger.entries[event.id] = {
+            ...ledger.entries[event.id],
             version,
             createdAt: event.createdAt,
             ...(exclusive ? { lockedUntil: Date.now() + RESTORE_LEASE } : {}),
@@ -325,6 +354,75 @@ async function reserveVersion(context, event, exclusive = false) {
     }
     const { version, createdAt } = context.numbering.entries[event.id];
     return { version, createdAt };
+}
+
+async function compactReservations(context, ledger, keepId) {
+    let changed = false;
+    const candidates = Object.entries(ledger.entries).filter(([id, entry]) => {
+        if (Date.parse(entry.createdAt) < Date.now() - RETENTION * 1000) {
+            delete ledger.entries[id];
+            changed = true;
+            return false;
+        }
+        return id !== keepId && !entry.lockedUntil;
+    });
+    const pages = new Map();
+    for (const [id, entry] of candidates.slice(0, 1000)) {
+        if (!entry.version) continue;
+        const page = indexPage(entry.version);
+        if (!pages.has(page)) pages.set(page, []);
+        pages.get(page).push(id);
+    }
+    for (const [page, ids] of pages) {
+        const indexed = await readMetadata(context, `index-${page}.json`);
+        for (let offset = 0; offset < ids.length; offset += HISTORY_CONCURRENCY) {
+            await Promise.all(
+                ids.slice(offset, offset + HISTORY_CONCURRENCY).map(async (id) => {
+                    if (indexed?.value.entries[id]?.version !== ledger.entries[id].version) return;
+                    if ((await findEntry(context, id))?.version !== ledger.entries[id].version) return;
+                    delete ledger.entries[id];
+                    changed = true;
+                }),
+            );
+        }
+    }
+    return changed;
+}
+
+async function releaseReservation(context) {
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        if (!ledger.entries[requestId(context)]) return false;
+        delete ledger.entries[requestId(context)];
+        return true;
+    });
+}
+
+async function claimRecord(context) {
+    context.claimToken = crypto.randomUUID();
+    context.numbering = await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, async (ledger) => {
+        if (!Number.isSafeInteger(ledger.lastVersion) || ledger.lastVersion < 0 || !ledger.entries)
+            fail(503, 'Invalid version numbering metadata');
+        await compactReservations(context, ledger, requestId(context));
+        const entry = ledger.entries[requestId(context)];
+        if (entry?.lockedUntil > Date.now()) fail(503, 'Version request is in progress; retry shortly');
+        ledger.entries[requestId(context)] = {
+            ...entry,
+            createdAt: entry?.createdAt ?? new Date().toISOString(),
+            lockedUntil: Date.now() + RESTORE_LEASE,
+            claimToken: context.claimToken,
+        };
+        return true;
+    });
+}
+
+async function unlockRecord(context) {
+    await updateMetadata(context, 'numbering.json', { lastVersion: 0, entries: {} }, (ledger) => {
+        const entry = ledger.entries[requestId(context)];
+        if (entry?.claimToken !== context.claimToken) return false;
+        delete entry.lockedUntil;
+        delete entry.claimToken;
+        return true;
+    });
 }
 
 function entryTtl(event) {
@@ -463,26 +561,55 @@ async function writeEntry(context, action, before, after, beforeSnapshot, afterS
         rootId: context.rootId,
         targetId: context.target.id,
         targetPath: context.target.path,
-        changes: diff(before, after).map((change) => ({
-            ...change,
-            category: context.scope.category(
-                after.fragments.find((fragment) => fragment.id === change.fragmentId) ??
-                    before.fragments.find((fragment) => fragment.id === change.fragmentId),
-                change.field,
-            ),
-        })),
+        ...(context.recordGuard?.metadataOnly ? { snapshotUnavailable: true } : {}),
+        ...(action === 'delete' ? { targetTitle: context.target.title } : {}),
+        changes:
+            action === 'delete'
+                ? [
+                      {
+                          fragmentId: context.target.id,
+                          path: context.target.path,
+                          field: '@deleted',
+                          before: context.target.title,
+                          after: null,
+                          category: 'fragments',
+                      },
+                  ]
+                : diff(before, after).map((change) => ({
+                      ...change,
+                      category: context.scope.category(
+                          after.fragments.find((fragment) => fragment.id === change.fragmentId) ??
+                              before.fragments.find((fragment) => fragment.id === change.fragmentId),
+                          change.field,
+                      ),
+                  })),
         beforeSnapshot,
         afterSnapshot,
     };
-    Object.assign(event, await reserveVersion(context, event));
-    await indexEntries(context, [event]);
+    if (context.recordGuard) {
+        context.recordGuard.event = event;
+        await persistRestore(context, context.recordGuard);
+    }
+    return persistEvent(context, event);
+}
+
+async function persistEvent(context, event) {
+    if (!event.version) {
+        Object.assign(event, await reserveVersion(context, event));
+        if (context.recordGuard) await persistRestore(context, context.recordGuard);
+    }
     await context.state.put(entryKey(context, event.id), bounded(event), {
         ttl: entryTtl(event),
     });
+    await indexEntries(context, [event]);
     return event;
 }
 
 async function authorizeEvent(context, event) {
+    if (event.action === 'delete' || event.snapshotUnavailable) {
+        assertTarget(context, { id: event.targetId, path: event.targetPath });
+        return event;
+    }
     const unavailable = new Set();
     const targets = [...event.beforeSnapshot.fragments, ...event.afterSnapshot.fragments];
     for (const entry of targets) {
@@ -510,24 +637,152 @@ async function authorizeEvent(context, event) {
 }
 
 async function record(context, params) {
-    const target = params.targetId === context.rootId ? context.root : (await readFragment(context, params.targetId)).fragment;
+    let guard = context.recordGuard;
+    if (params.phase === 'prepare' && guard?.beforeSnapshot) {
+        assertTarget(context, guard.target);
+        return { beforeVersionId: guard.beforeSnapshot.fragments[0]?.versionId, etag: guard.etag };
+    }
+    if (params.phase === 'prepare' && guard?.action === 'delete') {
+        assertTarget(context, guard.target);
+        return { etag: guard.etag };
+    }
+    if (!params.phase && !guard && params.action !== 'create' && !params.metadataOnly)
+        fail(400, 'Prepared version request required');
+    await claimRecord(context);
+    try {
+        const stored = await context.state.get(`${namespace(context, 'request')}${requestId(context)}`);
+        guard = stored?.value ? JSON.parse(stored.value) : guard;
+        if (guard && (guard.operation !== 'record' || guard.action !== params.action || guard.target.id !== params.targetId))
+            fail(409, 'Request ID already used');
+        context.recordGuard = guard;
+        if (guard?.result) {
+            assertTarget(context, guard.target);
+            await releaseReservation(context);
+            return guard.result;
+        }
+        if (guard?.event && !params.phase) {
+            await authorizeEvent(context, guard.event);
+            const event = await persistEvent(context, guard.event);
+            await releaseReservation(context);
+            return { event };
+        }
+        return await captureRecord(context, params, guard);
+    } catch (error) {
+        logger.error(
+            JSON.stringify({
+                operation: 'record',
+                phase: params.phase ?? 'complete',
+                action: params.action,
+                rootId: context.rootId,
+                targetId: params.targetId,
+                requestId: requestId(context),
+                status: error.statusCode ?? 500,
+            }),
+        );
+        throw error;
+    } finally {
+        try {
+            await unlockRecord(context);
+        } catch (error) {
+            logger.error(
+                JSON.stringify({ operation: 'record-unlock', requestId: requestId(context), status: error.statusCode ?? 500 }),
+            );
+        }
+    }
+}
+
+async function captureRecord(context, params, guard) {
+    if (params.metadataOnly) {
+        const target = guard?.target ?? (await readFragment(context, params.targetId)).fragment;
+        assertTarget(context, target);
+        context.target = target;
+        context.recordGuard = guard ?? {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+        };
+        context.recordGuard.metadataOnly = true;
+        const empty = { fragments: [] };
+        const event = await writeEntry(context, params.action, empty, empty, empty, empty);
+        await releaseReservation(context);
+        return { event };
+    }
+    if (!params.phase && params.action === 'delete') {
+        assertTarget(context, guard.target);
+        let deleted = false;
+        for (let attempt = 0; attempt < 10; attempt++) {
+            try {
+                await readFragment(context, params.targetId);
+            } catch (error) {
+                if (error.statusCode !== 404) throw error;
+                deleted = true;
+                break;
+            }
+            if (attempt < 9) await delay(250);
+        }
+        if (!deleted) fail(503, 'Fragment deletion is still pending; retry shortly');
+        context.target = guard.target;
+        const empty = { fragments: [] };
+        const event = await writeEntry(context, 'delete', empty, empty, empty, empty);
+        await releaseReservation(context);
+        return { event };
+    }
+    const { fragment: target, etag } = await readFragment(context, params.targetId);
     assertTarget(context, target);
     context.target = target;
-    const { etag } = await readFragment(context, target.id);
+    if (guard && guard.target.path !== target.path) fail(409, 'Prepared fragment moved');
+    if (params.phase === 'prepare') {
+        if (params.expectedEtag !== undefined && params.expectedEtag !== etag) fail(409, 'Fragment changed before preparation');
+        guard ??= {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+            etag,
+        };
+        context.recordGuard = guard;
+        await persistRestore(context, guard);
+        if (params.action === 'save' && !guard.beforeSnapshot) {
+            guard.beforeSnapshot = await prepareSnapshot(context, target);
+            const confirmed = await readFragment(context, target.id);
+            if (
+                confirmed.fragment.path !== target.path ||
+                diff({ fragments: [target] }, { fragments: [confirmed.fragment] }).length
+            )
+                fail(409, 'Fragment changed while preparing its version');
+            if (!confirmed.etag) fail(409, 'AEM did not provide a concurrency token for preparation');
+            guard.etag = confirmed.etag;
+            await persistRestore(context, guard);
+        }
+        return { beforeVersionId: guard.beforeSnapshot?.fragments[0]?.versionId, etag: guard.etag };
+    }
     if (params.completionEtag !== undefined && params.completionEtag !== etag) {
         fail(409, 'Completed fragment changed; reload before capturing its version');
     }
-    const beforeEntry = params.beforeVersionId ? { id: target.id, path: target.path, versionId: params.beforeVersionId } : null;
+    if (params.action === 'save' && !guard.beforeSnapshot) fail(409, 'Version preparation did not finish');
+    if (!guard) {
+        guard = {
+            operation: 'record',
+            action: params.action,
+            target: { id: target.id, path: target.path, title: target.title },
+        };
+        context.recordGuard = guard;
+        await persistRestore(context, guard);
+    }
+    const beforeEntry = guard.beforeSnapshot?.fragments[0];
     const before = { fragments: beforeEntry ? [await readVersion(context, beforeEntry)] : [] };
     const after = { fragments: [target] };
-    if (params.action === 'save' && !diff(before, after).length) return { unchanged: true };
-    const inheritance = inheritanceContext(context, after);
-    const beforeSnapshot = { fragments: beforeEntry ? [beforeEntry] : [], ...(beforeEntry ? inheritance : {}) };
-    const afterSnapshot = { ...(await versionSnapshot(context, after)), ...inheritance };
-    if (params.completionEtag !== undefined && params.completionEtag !== (await readFragment(context, target.id)).etag) {
-        fail(409, 'Completed fragment changed while capturing its version');
+    if (params.action === 'save' && !diff(before, after).length) {
+        guard.result = { unchanged: true };
+        await persistRestore(context, guard);
+        await releaseReservation(context);
+        return guard.result;
     }
-    return { event: await writeEntry(context, params.action, before, after, beforeSnapshot, afterSnapshot) };
+    const inheritance = inheritanceContext(context, after);
+    const beforeSnapshot = guard.beforeSnapshot ?? { fragments: [] };
+    const afterSnapshot = { ...(await versionSnapshot(context, after, false)), ...inheritance };
+    const event = await writeEntry(context, params.action, before, after, beforeSnapshot, afterSnapshot);
+    await releaseReservation(context);
+    return { event };
 }
 
 async function list(context, params) {
@@ -789,6 +1044,7 @@ async function finishRestore(context, guard, plan, after) {
             });
         }
         await persistRestore(context, { ...guard, versionPending: false });
+        await releaseReservation(context);
         return result;
     } catch (error) {
         if (error.statusCode && error.statusCode < 500) {
@@ -799,6 +1055,7 @@ async function finishRestore(context, guard, plan, after) {
                     versionPending: false,
                     conflict: { statusCode: error.statusCode, message: error.message },
                 });
+                await releaseReservation(context);
             } catch {
                 throw versionPending(restored, failures);
             }
@@ -841,7 +1098,9 @@ async function reconcileRestore(context, guard, previous) {
     context.target = context.root;
     if (previous) {
         try {
+            await indexEntries(context, [previous]);
             await persistRestore(context, { ...guard, versionPending: false });
+            await releaseReservation(context);
         } catch {
             throw versionPending(guard.restored, guard.failures);
         }
@@ -911,6 +1170,8 @@ async function reconcileRestore(context, guard, previous) {
 
 async function restore(context, params, source) {
     if (!source) fail(404, 'Version no longer available');
+    if (source.snapshotUnavailable) fail(400, 'Snapshot unavailable; this event cannot be restored');
+    if (source.action === 'delete') fail(400, 'Deletion cannot be restored');
     if (!source.beforeSnapshot.fragments.length) fail(400, 'Creation cannot be undone');
     const plan = await restorePlan(context, params, source);
     if (!plan.length) return { unchanged: true, restored: [], failures: [] };
@@ -1000,11 +1261,16 @@ async function execute(operation, params) {
     if (operation === 'record') {
         identifier(params.targetId);
         params = { ...params, action: params.action ?? 'save' };
-        if (!['save', 'create'].includes(params.action)) fail(400, 'Invalid version action');
-        if (params.beforeVersionId !== undefined) versionIdentifier(params.beforeVersionId);
-        if (params.action === 'save' && !params.beforeVersionId) fail(400, 'Before version required');
-        if (params.action === 'create' && params.beforeVersionId !== undefined)
-            fail(400, 'Creation cannot have a before version');
+        if (!['save', 'create', 'delete'].includes(params.action)) fail(400, 'Invalid version action');
+        if (params.phase !== undefined && (params.phase !== 'prepare' || params.action === 'create'))
+            fail(400, 'Invalid version phase');
+        if (
+            params.metadataOnly !== undefined &&
+            (typeof params.metadataOnly !== 'boolean' || params.phase !== undefined || params.action === 'delete')
+        )
+            fail(400, 'Invalid metadata-only record');
+        if (params.beforeVersionId !== undefined) fail(400, 'Client before versions are not accepted');
+        if (params.expectedEtag !== undefined) etagValue(params.expectedEtag);
         if (params.completionEtag !== undefined) etagValue(params.completionEtag);
     }
     if (operation === 'restore') {
@@ -1026,9 +1292,8 @@ async function execute(operation, params) {
         requestId: operation === 'list' ? undefined : text(params.requestId, 'request ID'),
         access: new Map(),
         fragments: new Map(),
-        ...(operation === 'restore'
-            ? { deadline: startedAt + RESTORE_BUDGET, writeDeadline: startedAt + RESTORE_WRITE_BUDGET }
-            : {}),
+        ...(operation === 'list' ? {} : { deadline: startedAt + RESTORE_BUDGET }),
+        ...(operation === 'restore' ? { writeDeadline: startedAt + RESTORE_WRITE_BUDGET } : {}),
     };
     context.root = (await readFragment(context, context.rootId)).fragment;
     scope.assertRoot(context.root);
@@ -1036,18 +1301,24 @@ async function execute(operation, params) {
     if (operation !== 'list') {
         const previous = await findEntry(context, requestId(context));
         if (previous && operation === 'record') {
-            if (
-                previous.action !== params.action ||
-                previous.targetId !== params.targetId ||
-                previous.beforeSnapshot.fragments[0]?.versionId !== params.beforeVersionId
-            )
+            if (previous.action !== params.action || previous.targetId !== params.targetId)
                 fail(409, 'Request ID already used');
             await authorizeEvent(context, previous);
-            return { event: previous };
+            if (!params.phase) {
+                await indexEntries(context, [previous]);
+                await releaseReservation(context);
+                return { event: previous };
+            }
         }
         const request = await state.get(`${namespace(context, 'request')}${requestId(context)}`);
         if (request?.value) {
             const prior = JSON.parse(request.value);
+            if (operation === 'record') {
+                if (prior.operation !== 'record' || prior.action !== params.action || prior.target.id !== params.targetId)
+                    fail(409, 'Request ID already used');
+                context.recordGuard = prior;
+                return record(context, params);
+            }
             if (
                 operation !== 'restore' ||
                 prior.eventId !== params.eventId ||

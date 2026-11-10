@@ -3,12 +3,121 @@ import Events from '../events.js';
 import { PROMOTION_MODEL_ID } from '../constants.js';
 import { showToast } from '../utils.js';
 import { canEditPromotions } from '../groups.js';
-import { compareVersionValues, versionFieldValues } from '../../libs/fragment-version.js';
 import { getPromotionTagFromFragment, getPromoNameFromTag, isPromoVariationPath } from './promotion-model.js';
+import { compareVersionValues, versionFieldValues } from '../../libs/fragment-version.js';
 
 const historyRequests = new Map();
 const pendingVersions = new Map();
+const RECORD_ATTEMPTS = 3;
+const OUTBOX_PREFIX = 'mas.promotion-history.';
+const activeRecords = new Set();
+let replayTimer;
 let historySession;
+
+function historyOwner() {
+    const profile = Store.profile.get();
+    return JSON.stringify([document.querySelector('meta[name="io-base-url"]')?.content, profile?.id ?? profile?.email]);
+}
+
+function outboxKey(owner, payload) {
+    return `${OUTBOX_PREFIX}${encodeURIComponent(owner)}.${encodeURIComponent(JSON.stringify([payload.projectId, payload.requestId]))}`;
+}
+
+function storageFailure(error) {
+    if (!['SecurityError', 'QuotaExceededError'].includes(error.name)) throw error;
+    console.error('Promotion history persistence unavailable:', error);
+    showToast('Pending promotion history could not be stored. Closing this tab may lose the history entry.', 'warning');
+}
+
+function persistRecord(entry, remove = false) {
+    try {
+        if (remove) localStorage.removeItem(entry.key);
+        else localStorage.setItem(entry.key, JSON.stringify({ payload: entry.payload, createdAt: entry.createdAt }));
+    } catch (error) {
+        storageFailure(error);
+    }
+}
+
+function queueRecords(fragment, records, owner) {
+    return records.map((record) => {
+        const payload = {
+            ...record,
+            ...(record.action !== 'delete' && fragment.etag ? { completionEtag: fragment.etag } : {}),
+        };
+        const entry = { owner, payload, key: outboxKey(owner, payload), createdAt: Date.now() };
+        persistRecord(entry);
+        activeRecords.add(entry.key);
+        return entry;
+    });
+}
+
+function readPendingRecords() {
+    const owner = historyOwner();
+    const prefix = `${OUTBOX_PREFIX}${encodeURIComponent(owner)}.`;
+    const entries = [];
+    try {
+        for (const key of Object.keys(localStorage).filter((key) => key.startsWith(prefix))) {
+            if (activeRecords.has(key)) continue;
+            try {
+                const raw = localStorage.getItem(key);
+                if (raw === null) continue;
+                const stored = JSON.parse(raw);
+                if (!stored || typeof stored !== 'object' || Array.isArray(stored))
+                    throw new SyntaxError('Invalid pending promotion history record');
+                const { payload, createdAt } = stored;
+                if (
+                    !payload ||
+                    !Number.isFinite(createdAt) ||
+                    !['save', 'create', 'delete'].includes(payload.action) ||
+                    !['projectId', 'targetId', 'requestId'].every(
+                        (field) =>
+                            typeof payload[field] === 'string' && payload[field].length > 0 && payload[field].length <= 200,
+                    ) ||
+                    Object.keys(payload).some(
+                        (field) =>
+                            !['projectId', 'targetId', 'requestId', 'action', 'completionEtag', 'metadataOnly'].includes(field),
+                    ) ||
+                    (payload.completionEtag !== undefined &&
+                        (typeof payload.completionEtag !== 'string' || payload.completionEtag.length > 200)) ||
+                    (payload.metadataOnly !== undefined && (payload.metadataOnly !== true || payload.action === 'delete')) ||
+                    key !== outboxKey(owner, payload)
+                )
+                    throw new SyntaxError('Invalid pending promotion history record');
+                entries.push({ key, owner, payload, createdAt });
+            } catch (error) {
+                if (!(error instanceof SyntaxError)) throw error;
+                console.error('Pending promotion history could not be recovered:', error);
+                showToast('Some pending promotion history could not be recovered. Please report this issue.', 'warning');
+            }
+        }
+    } catch (error) {
+        storageFailure(error);
+    }
+    return entries.sort((a, b) => a.createdAt - b.createdAt);
+}
+
+function scheduleReplay() {
+    replayTimer ??= setTimeout(() => {
+        replayTimer = undefined;
+        resumePendingHistory();
+    }, 60000);
+}
+
+function resumePendingHistory() {
+    if (
+        !Store.profile.get()?.email ||
+        !canEditPromotions() ||
+        !document.querySelector('meta[name="io-base-url"]')?.content ||
+        !(sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token)
+    )
+        return;
+    for (const entry of readPendingRecords()) {
+        activeRecords.add(entry.key);
+        void trackVersion(entry.payload.targetId, () => completeRecords([entry])).catch((error) =>
+            console.error('Promotion history recovery failed:', error),
+        );
+    }
+}
 
 function historyRequestKey(projectId, filters) {
     const session = JSON.stringify([
@@ -32,7 +141,6 @@ export function clearPromotionHistoryRequests(projectId) {
 }
 
 Events.fragmentSaved.subscribe(() => clearPromotionHistoryRequests());
-Store.profile.subscribe(() => clearPromotionHistoryRequests());
 
 async function callAction(action, { projectId, ...payload }) {
     const baseUrl = document.querySelector('meta[name="io-base-url"]')?.content;
@@ -43,10 +151,20 @@ async function callAction(action, { projectId, ...payload }) {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, scopeType: 'promotion', rootId: projectId }),
+        signal: AbortSignal.timeout(action === 'restore' ? 55000 : 15000),
+        keepalive: action === 'record',
     });
-    const body = await response.json();
+    let body;
+    try {
+        body = await response.json();
+    } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        if (response.ok) throw new Error('Promotion version service returned an invalid response.');
+    }
     if (!response.ok) {
-        const error = new Error(body.error?.body?.error ?? body.error ?? 'Promotion version request failed.');
+        const error = new Error(
+            body?.error?.body?.error ?? body?.error ?? `Promotion version request failed (${response.status}).`,
+        );
         error.status = response.status;
         error.details = body;
         throw error;
@@ -56,7 +174,8 @@ async function callAction(action, { projectId, ...payload }) {
 
 /** Fetches fresh history while sharing identical requests that are still in flight. */
 export async function listPromotionHistory(projectId, filters = {}) {
-    while (pendingVersions.size) await Promise.all(pendingVersions.values());
+    resumePendingHistory();
+    while (pendingVersions.size) await Promise.allSettled(pendingVersions.values());
     const key = historyRequestKey(projectId, filters);
     let entry = historyRequests.get(key);
     if (!entry) {
@@ -106,97 +225,212 @@ async function resolveProjectIds(repository, fragment) {
     return matches.map((project) => project.id);
 }
 
-async function recordPromotionVersion(repository, fragment, { beforeVersionId, action = 'create', projectId } = {}) {
-    clearPromotionHistoryRequests();
-    try {
-        for (const rootId of projectId ? [projectId] : await resolveProjectIds(repository, fragment)) {
-            await callAction('record', {
-                projectId: rootId,
-                targetId: fragment.id,
-                requestId: crypto.randomUUID(),
-                action,
-                ...(beforeVersionId ? { beforeVersionId } : {}),
-                ...(fragment.etag ? { completionEtag: fragment.etag } : {}),
-            });
+async function retryRecord(payload, owner) {
+    for (let attempt = 0; attempt < RECORD_ATTEMPTS; attempt += 1) {
+        try {
+            if (owner !== undefined && owner !== historyOwner())
+                throw Object.assign(new Error('Promotion history session changed'), { name: 'HistorySessionChanged' });
+            return await callAction('record', payload);
+        } catch (error) {
+            const transient =
+                error.status === 429 || error.status >= 500 || ['TimeoutError', 'AbortError', 'TypeError'].includes(error.name);
+            if (!transient || attempt === RECORD_ATTEMPTS - 1) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 200 * 2 ** attempt));
         }
-    } catch (error) {
-        console.error('Promotion version capture failed:', error);
-        showToast('Your content was saved, but its version could not be recorded. Review Version history.', 'warning');
-    } finally {
-        clearPromotionHistoryRequests();
     }
 }
 
-/** Tracks background captures so later saves and history reads cannot overtake them. */
-export async function savePromotionVersion(repository, fragment, options = {}) {
-    if (!canEditPromotions()) return;
-    const previous = pendingVersions.get(fragment.id);
-    const pending = (async () => {
-        if (previous) await previous;
-        await recordPromotionVersion(repository, fragment, options);
+async function trackVersion(fragmentId, operation, complete) {
+    const previous = pendingVersions.get(fragmentId);
+    let resultId;
+    const saved = (async () => {
+        if (previous) await Promise.allSettled([previous]);
+        return operation();
     })();
-    pendingVersions.set(fragment.id, pending);
-    try {
-        await pending;
-    } finally {
-        if (pendingVersions.get(fragment.id) === pending) pendingVersions.delete(fragment.id);
+    const pending = (
+        complete
+            ? saved.then((result) => {
+                  if (result?.id && result.id !== fragmentId) {
+                      resultId = result.id;
+                      pendingVersions.set(resultId, pending);
+                  }
+                  return complete(result);
+              })
+            : saved
+    ).finally(() => {
+        if (pendingVersions.get(fragmentId) === pending) pendingVersions.delete(fragmentId);
+        if (resultId && pendingVersions.get(resultId) === pending) pendingVersions.delete(resultId);
+    });
+    pendingVersions.set(fragmentId, pending);
+    if (complete) {
+        void pending.catch((error) => console.error('Promotion history completion failed:', error));
+        return saved;
     }
+    return pending;
 }
 
-async function captureBeforeVersion(repository, fragment) {
-    const fragments = repository.aem.sites.cf.fragments;
+async function projectRecords(repository, fragment, projectId, action) {
+    return (projectId ? [projectId] : await resolveProjectIds(repository, fragment)).map((rootId) => ({
+        projectId: rootId,
+        targetId: fragment.id,
+        requestId: crypto.randomUUID(),
+        action,
+    }));
+}
+
+async function prepareRecords(repository, fragment, action, owner) {
+    const prepared = [];
+    const revisions = new Set();
+    let failed = false;
     try {
-        const history = await fragments.getVersions(fragment.id, { limit: 50, sort: 'created:desc' });
-        const previous = history.items
-            .filter(
-                (version) =>
-                    version.comment?.startsWith('Change-set: ') && Date.parse(version.created) >= Date.now() - 95 * 86400000,
-            )
-            .sort((a, b) => Date.parse(b.created) - Date.parse(a.created))[0];
-        if (previous) {
-            const [historical, current] = await Promise.all([
-                fragments.getVersion(fragment.id, previous.id),
-                fragments.getById(fragment.id),
-            ]);
-            if (
-                current.id === fragment.id &&
-                historical.id === current.id &&
-                historical.path === current.path &&
-                current.path === fragment.path &&
-                !compareVersionValues(versionFieldValues(historical), versionFieldValues(current), null).length
-            ) {
-                return previous.id;
+        for (const record of await projectRecords(repository, fragment, undefined, action)) {
+            if (action === 'create') {
+                prepared.push(record);
+                continue;
+            }
+            try {
+                const preparation = await retryRecord(
+                    {
+                        ...record,
+                        phase: 'prepare',
+                        ...(fragment.etag ? { expectedEtag: fragment.etag } : {}),
+                    },
+                    owner,
+                );
+                prepared.push(record);
+                if (preparation.etag) revisions.add(preparation.etag);
+            } catch (error) {
+                if (error.name === 'HistorySessionChanged') throw error;
+                if (action === 'save') prepared.push({ ...record, metadataOnly: true });
+                else failed = true;
+                console.error(`Promotion history preparation failed for project ${record.projectId}:`, error);
             }
         }
     } catch (error) {
-        console.error('Promotion previous-version reuse failed; capturing a new version:', error);
+        if (error.name === 'HistorySessionChanged') throw error;
+        failed = true;
+        console.error('Promotion history project resolution failed:', error);
     }
-    return fragments.createVersion(fragment.id);
+    if (action !== 'delete' && revisions.size > 1)
+        throw new Error('Fragment changed while preparing history. Reload before saving.');
+    return { prepared, failed, etag: [...revisions][0] };
 }
 
-export async function withPromotionVersion(repository, fragment, write) {
-    if (!canEditPromotions() || (!isProject(fragment) && !isPromoVariationPath(fragment.path))) return write();
-    const previous = pendingVersions.get(fragment.id);
-    // Wait so this save cannot overwrite the state still being captured for the previous history entry.
-    if (previous) await previous;
-    let beforeVersionId;
-    if (fragment.id) {
-        try {
-            beforeVersionId = await captureBeforeVersion(repository, fragment);
-        } catch (error) {
-            console.error('Promotion before-version capture failed:', error);
-        }
-    }
-    const saved = await write();
-    if (!saved) return saved;
+async function completeRecords(records, failed = false) {
     clearPromotionHistoryRequests();
-    if (fragment.id && !beforeVersionId) {
+    let snapshotUnavailable = false;
+    try {
+        for (const entry of records) {
+            try {
+                let result;
+                try {
+                    result = await retryRecord(entry.payload, entry.owner);
+                } catch (error) {
+                    if (error.status !== 409 || entry.payload.action === 'delete' || entry.payload.metadataOnly) throw error;
+                    entry.payload.metadataOnly = true;
+                    persistRecord(entry);
+                    result = await retryRecord(entry.payload, entry.owner);
+                }
+                snapshotUnavailable ||= Boolean(result.event?.snapshotUnavailable);
+                persistRecord(entry, true);
+            } catch (error) {
+                if (error.name === 'HistorySessionChanged') {
+                    scheduleReplay();
+                    continue;
+                }
+                failed = true;
+                scheduleReplay();
+                console.error(`Promotion history recording failed for project ${entry.payload.projectId}:`, error);
+            } finally {
+                activeRecords.delete(entry.key);
+            }
+        }
+    } finally {
+        clearPromotionHistoryRequests();
+    }
+    if (failed) {
         showToast(
-            'Your content was saved, but its previous version could not be captured. This save cannot be restored.',
+            'Your change was completed, but it is currently missing from the history for one or more promotion projects.',
             'warning',
         );
-    } else {
-        void savePromotionVersion(repository, saved, { beforeVersionId, action: fragment.id ? 'save' : 'create' });
     }
-    return saved;
+    if (snapshotUnavailable)
+        showToast('Your change was recorded, but its snapshot is unavailable and it cannot be restored.', 'warning');
 }
+
+/** Persists creation records before returning, then completes them in the background. */
+export async function savePromotionVersion(repository, fragment, { projectId } = {}) {
+    if (!canEditPromotions()) return;
+    resumePendingHistory();
+    const owner = historyOwner();
+    let records = [];
+    let failed = false;
+    return trackVersion(
+        fragment.id,
+        async () => {
+            try {
+                records = await projectRecords(repository, fragment, projectId, 'create');
+            } catch (error) {
+                failed = true;
+                console.error('Promotion history project resolution failed:', error);
+            }
+            records = queueRecords(fragment, records, owner);
+            return fragment;
+        },
+        () => completeRecords(records, failed),
+    );
+}
+
+/** Uses server-prepared snapshots and records history after returning the content operation. */
+export async function withPromotionVersion(repository, fragment, write, { action } = {}) {
+    if (
+        !canEditPromotions() ||
+        (!isProject(fragment) && !isPromoVariationPath(fragment.path)) ||
+        (action === 'delete' && !isPromoVariationPath(fragment.path))
+    )
+        return write();
+    resumePendingHistory();
+    const owner = historyOwner();
+    action ??= fragment.id ? 'save' : 'create';
+    let preparation;
+    return trackVersion(
+        action === 'create' ? crypto.randomUUID() : fragment.id,
+        async () => {
+            preparation =
+                action === 'create'
+                    ? { prepared: [], failed: false }
+                    : await prepareRecords(repository, fragment, action, owner);
+            if (owner !== historyOwner()) throw new Error('Sign-in changed; reload before continuing.');
+            const submitted =
+                action === 'save'
+                    ? structuredClone(versionFieldValues({ ...fragment, tags: fragment.newTags ?? fragment.tags }))
+                    : undefined;
+            const saved = await write(
+                action === 'save' && preparation.etag ? { expectedEtag: preparation.etag, refetchEtag: false } : undefined,
+            );
+            if (saved) {
+                if (action === 'create') preparation = await prepareRecords(repository, saved, action, owner);
+                if (
+                    action === 'save' &&
+                    preparation.etag &&
+                    saved.etag === preparation.etag &&
+                    compareVersionValues(submitted, versionFieldValues(saved)).length
+                )
+                    preparation.prepared = preparation.prepared.map((record) => ({ ...record, metadataOnly: true }));
+                preparation.prepared = queueRecords(action === 'delete' ? fragment : saved, preparation.prepared, owner);
+            }
+            return saved;
+        },
+        async (saved) => {
+            if (!saved) return;
+            await completeRecords(preparation.prepared, preparation.failed);
+        },
+    );
+}
+
+Store.profile.subscribe(() => {
+    clearPromotionHistoryRequests();
+    resumePendingHistory();
+});
+Store.users.subscribe(() => resumePendingHistory());
+window.addEventListener('online', resumePendingHistory);

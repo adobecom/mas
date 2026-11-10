@@ -4,10 +4,11 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
-import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
+import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard, showToast } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
 import { savePromotionVersion, withPromotionVersion } from './promotion-version.js';
+import { canEditPromotions } from '../groups.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
 
@@ -18,7 +19,42 @@ export async function createPromotionFragment(repository, fragmentData, withToas
 
 /** Captures promotion content before saving; ordinary fragments use the repository without versioning. */
 export async function savePromotionFragment(repository, fragmentStore, options = {}) {
-    return withPromotionVersion(repository, fragmentStore.get(), () => repository.saveFragment(fragmentStore, options));
+    return withPromotionVersion(repository, fragmentStore.get(), (precondition) =>
+        repository.saveFragment(fragmentStore, { ...options, ...precondition }),
+    );
+}
+
+export async function deletePromotionFragment(repository, fragment, remove) {
+    let result;
+    await withPromotionVersion(
+        repository,
+        fragment,
+        async () => {
+            result = await remove();
+            return result.deleted ?? result.success;
+        },
+        { action: 'delete' },
+    );
+    return result;
+}
+
+/** Records promo variation deletion when a cascade identifies the fragment by path. */
+export async function forceDeletePromoVariation(repository, path) {
+    const remove = async () => {
+        await repository.aem.sites.cf.fragments.forceDelete({ path });
+        return true;
+    };
+    if (!isPromoVariationPath(path) || !canEditPromotions()) return remove();
+    let fragment;
+    try {
+        fragment = await repository.aem.sites.cf.fragments.getByPath(path);
+    } catch (error) {
+        console.error('Promotion history fragment lookup failed:', error);
+        const deleted = await remove();
+        showToast('Your change was completed, but it will be missing from the promotion history.', 'warning');
+        return deleted;
+    }
+    return withPromotionVersion(repository, fragment, remove, { action: 'delete' });
 }
 
 /**
@@ -210,7 +246,7 @@ export async function createPromoVariation(aem, sourceFragmentId, promoTagId, ge
         geoTags,
         attachedFragmentPaths,
     );
-    void savePromotionVersion({ loadPromotions }, createdFragment);
+    await savePromotionVersion({ loadPromotions }, createdFragment);
     if (onCreated) await onCreated(createdFragment);
     return createdFragment;
 }
@@ -325,7 +361,7 @@ async function duplicateAttachedPromoVariations(repository, sourcePromotion, new
                 attachedFragmentPaths,
                 sourceFragment,
             );
-            void savePromotionVersion(repository, created, { projectId });
+            await savePromotionVersion(repository, created, { projectId });
         } catch (error) {
             console.error('Error cloning promo variation:', error);
             failedVariations.push({ path: variation.path, error });

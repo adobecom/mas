@@ -957,6 +957,22 @@ describe('Fragment', () => {
         });
     });
 
+    describe('getCurrentTagTitles (product / Tag Path)', () => {
+        it('returns the titles of all product tags, longest id first', () => {
+            const productIds = ['mas:product/dc/ai-assistant-acrobat', 'mas:product/dc/acrobat-pro'];
+            const fragment = new Fragment(
+                createFragmentConfig({
+                    tags: [
+                        { id: productIds[0], title: 'AI Assistant for Acrobat' },
+                        { id: productIds[1], title: 'Acrobat Pro' },
+                    ],
+                    fields: [{ name: 'tags', values: productIds, multiple: true }],
+                }),
+            );
+            expect(fragment.getCurrentTagTitles('mas:product/')).to.deep.equal(['AI Assistant for Acrobat', 'Acrobat Pro']);
+        });
+    });
+
     describe('getPublishableReferences', () => {
         it('returns empty object when there are no references', () => {
             const fragment = new Fragment(createFragmentConfig({ references: [] }));

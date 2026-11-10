@@ -774,6 +774,14 @@ describe('getFragmentPartsToUse', () => {
         expect(fragmentParts).to.equal('ACOM / Catalog / Acrobat Pro');
     });
 
+    it('names every mas:product/ title when no product_code tags exist', () => {
+        const fragment = makeCard({
+            getCurrentTagTitles: (prefix) => (prefix === 'mas:product/' ? ['AI Assistant for Acrobat', 'Acrobat Pro'] : []),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / AI Assistant for Acrobat + Acrobat Pro');
+    });
+
     it('returns surface + variant label for a catalog card', () => {
         const fragment = makeCard({ variantCode: 'catalog' });
         const { fragmentParts, title } = getFragmentPartsToUse(fragment, 'acom');

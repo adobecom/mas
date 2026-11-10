@@ -247,6 +247,7 @@ export function getFragmentPartsToUse(fragment, path) {
                 customerSegment: fragment?.getTagTitle('customer_segment'),
                 product_code:
                     fragment?.getCurrentTagTitles?.(MAS_PRODUCT_CODE_PREFIX)?.join(' + ') ||
+                    fragment?.getCurrentTagTitles?.('mas:product/')?.join(' + ') ||
                     fragment?.getTagTitle?.('mas:product/'),
                 promotion: fragment?.getCurrentTagTitle?.(TAG_PROMOTION_PREFIX),
             };

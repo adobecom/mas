@@ -20,6 +20,37 @@ export class MasChatMasaAnswer extends MasaSessionElement {
     };
 
     static styles = css`
+        .chat-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .chat-option-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border: 1px solid var(--spectrum-gray-300, #d5d5d5);
+            border-radius: 16px;
+            background: var(--spectrum-white, #ffffff);
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--spectrum-gray-800, #2c2c2c);
+        }
+        .chat-option-pill:hover:not(.disabled) {
+            border-color: var(--spectrum-gray-400, #b8b8b8);
+        }
+        .chat-option-pill.selected {
+            border-color: #1473e6;
+            font-weight: 600;
+        }
+        .chat-option-pill.disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+        .chat-option-pill-label {
+            flex: 1;
+        }
         :host {
             display: grid;
             gap: 12px;
@@ -162,6 +193,22 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         );
     }
 
+    handleFollowUp(event) {
+        this.dispatchEvent(
+            new CustomEvent('masa-follow-up', { detail: { question: event.detail.value }, bubbles: true, composed: true }),
+        );
+    }
+
+    get followUpsTemplate() {
+        const { record } = this;
+        if (record?.status !== 'completed' || !record.followUps?.length) return nothing;
+        if (this.activeController.records.at(-1) !== record) return nothing;
+        return html`<mas-chat-button-group
+            .buttons=${record.followUps.map((question) => ({ label: question, value: question }))}
+            @button-selected=${this.handleFollowUp}
+        ></mas-chat-button-group>`;
+    }
+
     askAgain() {
         this.dispatchEvent(
             new CustomEvent('masa-retry', { detail: { question: this.question }, bubbles: true, composed: true }),
@@ -295,7 +342,8 @@ export class MasChatMasaAnswer extends MasaSessionElement {
                   Files from the earlier view are unavailable: ${missingFiles.map((file) => file.name).join(', ')}. Upload
                   images again if needed.
               </p>`
-            : nothing}`;
+            : nothing}
+        ${this.followUpsTemplate}`;
     }
 
     get bodyTemplate() {

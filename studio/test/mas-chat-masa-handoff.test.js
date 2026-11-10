@@ -563,6 +563,13 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(masa.firstCall.args[0]).to.include({ question: QUESTION });
     });
 
+    it('a follow-up chip asks MASA in the same conversation', async () => {
+        el.dispatchEvent(
+            new CustomEvent('masa-follow-up', { detail: { question: 'How do I publish it?' }, bubbles: true, composed: true }),
+        );
+        expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
+    });
+
     it('leaves a running Studio turn loading when MASA is asked again', async () => {
         el.isLoading = true;
         el.dispatchEvent(new CustomEvent('masa-retry', { detail: { question: QUESTION } }));

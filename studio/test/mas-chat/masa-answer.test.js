@@ -100,6 +100,50 @@ describe('MASA answer in the thread', () => {
             { parentNode: spTheme() },
         );
 
+    describe('follow-up questions', () => {
+        const withFollowUps = (records) => {
+            const controller = makeController({ history: records });
+            controller.session = lease();
+            controller.records = records;
+            return controller;
+        };
+        const group = (el) => el.shadowRoot.querySelector('mas-chat-button-group');
+
+        it("shows MASA's follow-up questions as chips under the latest completed answer", async () => {
+            const controller = withFollowUps([
+                { ...record('completed'), followUps: ['Does this affect FR too?', 'How do I publish it?'] },
+            ]);
+            const el = await mountAnswer(controller);
+            expect(group(el).buttons.map((b) => b.label)).to.deep.equal(['Does this affect FR too?', 'How do I publish it?']);
+        });
+
+        it('asks the chosen follow-up in the conversation and disables the chips', async () => {
+            const controller = withFollowUps([{ ...record('completed'), followUps: ['How do I publish it?'] }]);
+            const el = await mountAnswer(controller);
+            const asked = [];
+            el.addEventListener('masa-follow-up', (event) => asked.push(event.detail.question));
+            await group(el).updateComplete;
+            group(el).querySelector('.chat-option-pill').click();
+            await el.updateComplete;
+            expect(asked).to.deep.equal(['How do I publish it?']);
+            expect(group(el).selectedValue).to.equal('How do I publish it?');
+        });
+
+        it('shows no chips on an older answer', async () => {
+            const newer = { ...record('completed'), id: 'inv_33333333-3333-4333-8333-333333333333', followUps: [] };
+            const controller = withFollowUps([{ ...record('completed'), followUps: ['Old?'] }, newer]);
+            const el = await mountAnswer(controller);
+            expect(group(el)).to.equal(null);
+        });
+
+        it('shows no chips on a running answer or one without follow-ups', async () => {
+            const running = await mountAnswer(withFollowUps([{ ...record('running'), followUps: ['Soon?'] }]));
+            const none = await mountAnswer(withFollowUps([{ ...record('completed'), followUps: [] }]));
+            expect(group(running)).to.equal(null);
+            expect(group(none)).to.equal(null);
+        });
+    });
+
     it('cancels a running job', async () => {
         const controller = makeController({ history: [record('running')] });
         controller.session = lease();

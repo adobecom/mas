@@ -225,6 +225,7 @@ export class MasChat extends LitElement {
         this.addEventListener('confirmation-action', this.handleConfirmationAction);
         this.addEventListener('chat-feedback', this.handleChatFeedback);
         this.addEventListener('masa-retry', this.handleMasaRetry);
+        this.addEventListener('masa-follow-up', this.handleMasaFollowUp);
         this.addEventListener('dragenter', this.handleDragEnter);
         this.addEventListener('dragover', this.handleDragOver);
         this.addEventListener('dragleave', this.handleDragLeave);
@@ -251,6 +252,7 @@ export class MasChat extends LitElement {
         this.removeEventListener('confirmation-action', this.handleConfirmationAction);
         this.removeEventListener('chat-feedback', this.handleChatFeedback);
         this.removeEventListener('masa-retry', this.handleMasaRetry);
+        this.removeEventListener('masa-follow-up', this.handleMasaFollowUp);
         this.removeEventListener('dragenter', this.handleDragEnter);
         this.removeEventListener('dragover', this.handleDragOver);
         this.removeEventListener('dragleave', this.handleDragLeave);
@@ -1506,6 +1508,11 @@ export class MasChat extends LitElement {
     /** "Ask MASA again" forgets that MASA was unavailable and asks the same question anew. */
     handleMasaRetry(event) {
         resetMasaAvailability();
+        void this.askMasaInThread(event.detail.question);
+    }
+
+    /** A follow-up chip under MASA's answer asks that question in the same conversation. */
+    handleMasaFollowUp(event) {
         void this.askMasaInThread(event.detail.question);
     }
 

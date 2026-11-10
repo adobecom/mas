@@ -756,7 +756,9 @@ async function main(params) {
         // publishing work?" contains 'publish'): the native envelope path
         // classifies the real intent, but retrieval runs before the model
         // and ungrounded feature answers contradict the docs.
-        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, knowledgeClient, {
+        // A turn that can hand off to ASK_MASA gets its knowledge from MASA.
+        const retriever = masa && nativeEnvelopeEligible ? null : knowledgeClient;
+        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, retriever, {
             isDocumentation: isDocumentation || isQuestionShaped(message),
         });
         if (ragContext) {

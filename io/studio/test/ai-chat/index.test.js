@@ -8,6 +8,7 @@ let isGuidedToolMiss;
 let guidedToolMissFallback;
 let FoundryClient;
 let Ims;
+let LocalKnowledgeRetriever;
 
 function makeParams(overrides = {}) {
     return {
@@ -45,6 +46,7 @@ describe('ai-chat/index main handler', () => {
         ({ main, isGuidedToolMiss, guidedToolMissFallback } = await import('../../src/ai-chat/index.js'));
         ({ FoundryClient } = await import('../../src/ai-chat/foundry-client.js'));
         ({ Ims } = await import('@adobe/aio-lib-ims'));
+        ({ LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js'));
     });
 
     beforeEach(() => {
@@ -848,6 +850,34 @@ describe('ai-chat/index main handler', () => {
             const result = await main(makeParams({ message: 'why is my price wrong in Milo?' }));
             expect(result.body.envelope?.intent).to.not.equal('ASK_MASA');
             expect(sendStub.callCount).to.equal(2);
+        });
+    });
+
+    describe('knowledge retrieval', () => {
+        const question = 'why is my price wrong in Milo?';
+        const withRetrieval = (overrides) => makeParams({ message: question, RAG_ENABLED: undefined, ...overrides });
+        let queryStub;
+
+        beforeEach(() => {
+            queryStub = sinon
+                .stub(LocalKnowledgeRetriever.prototype, 'queryWithSources')
+                .resolves({ context: 'Prices come from the offer.', sources: [] });
+            sendStub.resolves(textResponse('Here is the answer.'));
+        });
+
+        it('sends no knowledge with a question MASA can take', async () => {
+            await main(withRetrieval({ masa: true }));
+            expect(sendStub.firstCall.args[3]).to.not.have.property('ragContext');
+        });
+
+        it('sends knowledge with the same question when MASA is not offered', async () => {
+            await main(withRetrieval({ masa: false }));
+            expect(sendStub.firstCall.args[3].ragContext).to.include('Prices come from the offer.');
+        });
+
+        it('sends knowledge with a guided Help question, which never reaches MASA', async () => {
+            await main(withRetrieval({ masa: true, intentHint: 'guided_help' }));
+            expect(sendStub.firstCall.args[3].ragContext).to.include('Prices come from the offer.');
         });
     });
 });

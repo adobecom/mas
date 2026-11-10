@@ -49,13 +49,14 @@
                 expiresAt: new Date(now + 1800000).toISOString(),
                 activeInvestigations: 0,
             });
-            const result = () => ({
+            const result = (extra = {}) => ({
                 answer: {
                     type: 'diagnose',
                     answer: 'The published Photoshop card has a different offer from the author version.',
                     points: ['Compare the offer selector before publishing.'],
                     confidence: 'high',
                     next_check: 'Open the card in Studio.',
+                    ...extra,
                 },
                 evidence: [{ id: 'E1', summary: 'Author and publish snapshots differ.' }],
                 artifacts: [
@@ -69,11 +70,11 @@
                 ],
                 limitations: ['partial-evidence'],
             });
-            const job = (status = 'queued') => ({
+            const job = (status = 'queued', extra) => ({
                 id: iid,
                 session: lease(),
                 status,
-                result: status === 'completed' ? result() : null,
+                result: status === 'completed' ? result(extra) : null,
                 progress: { probeResults: 2, modelCalls: 1 },
             });
             const record = (status = 'completed') => ({
@@ -359,6 +360,17 @@
                     await current.refresh();
                     expect(current.records[0].status).to.equal('completed');
                     expect(current.pollAfter).to.equal(now + 30000);
+                });
+                it('keeps the follow-up questions MASA offers with the record', async () => {
+                    current.records = [record('running')];
+                    const followUps = ['Does this affect FR too?', 'How do I publish it?'];
+                    sinon.stub(current.client, 'control').resolves({ result: job('completed', { followUps }), retryAfter: 0 });
+                    await current.refresh();
+                    expect(current.records[0].followUps).to.deep.equal(followUps);
+                    expect(saved.history[0].followUps).to.deep.equal(followUps);
+                });
+                it('restores a record without follow-ups as an empty list', () => {
+                    expect(investigationHistory([record('completed')])[0].followUps).to.deep.equal([]);
                 });
                 it('checks a running answer again on the next tick, however long the check took', async () => {
                     current.records = [record('running')];

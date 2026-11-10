@@ -15,13 +15,14 @@ const nextPoll = (now, retryAfter) => (retryAfter > POLL_SECONDS ? now + retryAf
 
 /** Persist text and opaque control IDs only; files, grants, URLs and resumable upload bodies stay in memory. */
 export function investigationHistory(records) {
-    return records.map(({ id, sessionId, question, text, status, files }) => ({
+    return records.map(({ id, sessionId, question, text, status, files, followUps }) => ({
         id,
         sessionId,
         question,
         text,
         status,
         files: files.map(({ name }) => ({ name })),
+        followUps: followUps ?? [],
     }));
 }
 
@@ -381,6 +382,7 @@ export class InvestigationSession extends EventTarget {
             text: '',
             files: this.images.map(({ name }) => ({ name })),
             status: result.status,
+            followUps: [],
         });
         this.pending = null;
         this.updateJob(result);
@@ -405,6 +407,7 @@ export class InvestigationSession extends EventTarget {
             startedAt: result.startedAt ?? result.createdAt ?? record.startedAt,
             artifacts: result.result?.artifacts ?? [],
             lists: result.result?.lists ?? [],
+            followUps: result.result?.answer?.followUps ?? [],
         });
         if (result.result?.artifacts?.length)
             record.files = [...record.files, ...result.result.artifacts.map(({ filename }) => ({ name: filename }))].filter(

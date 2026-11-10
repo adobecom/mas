@@ -6,6 +6,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
     MERCH_CARD_LOAD_TIMEOUT,
+    TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
 import { getService, hydrateHeadlessCta } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
@@ -61,17 +62,20 @@ function escapeAttr(value) {
     return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 }
 
+// CTAs that lead to purchase; keep identical to the list in hydrate.js.
+const QUALIFYING_CTA_SELECTOR = TRIAL_TO_BUY_CTA_ANALYTICS_IDS.map(
+    (id) => `a[data-analytics-id="${id}"]`,
+).join(',');
+
 export async function stripTrialCtas(template, indexed, self) {
-    let buyNowCta = template.content.querySelector(
-        'a[data-analytics-id="buy-now"]',
-    );
+    let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);
     const anchors = [...template.content.querySelectorAll('a')];
     const trials = anchors.filter((anchor) =>
         TRIAL_ANALYTICS_IDS.has(anchor.dataset.analyticsId),
     );
     if (trials.length === 0) return template.innerHTML;
 
-    if (indexed && !buyNowCta) {
+    if (indexed && !qualifyingCta) {
         // for mas-field with single CTA check if there is neighbour mas-field with buy-now CTA
         const thisField = self.getAttribute('field');
 
@@ -104,9 +108,7 @@ export async function stripTrialCtas(template, indexed, self) {
         if (fieldsReady.some((c) => c === true)) {
             masFields.forEach((c) => {
                 if (c.getAttribute('field') !== thisField) {
-                    buyNowCta ??= c.querySelector(
-                        'a[data-analytics-id="buy-now"]',
-                    );
+                    qualifyingCta ??= c.querySelector(QUALIFYING_CTA_SELECTOR);
                 }
             });
         }
@@ -116,7 +118,7 @@ export async function stripTrialCtas(template, indexed, self) {
     trials.forEach((anchor) => {
         if (anchor.hasAttribute('data-replaced-osi')) {
             const buyNowText = self.aemFragment?.data?.priceLiterals?.buyNow;
-            if (buyNowCta || !buyNowText || buyNowText === 'buy-now') {
+            if (qualifyingCta || !buyNowText || buyNowText === 'buy-now') {
                 anchor.remove();
             } else {
                 if (anchor.hasAttribute('aria-label'))
@@ -133,8 +135,8 @@ export async function stripTrialCtas(template, indexed, self) {
     });
 
     const buyNowCtaNew =
-        template.content.querySelector('a[data-analytics-id="buy-now"]') ||
-        buyNowCta;
+        template.content.querySelector(QUALIFYING_CTA_SELECTOR) ||
+        qualifyingCta;
     if (buyNowCtaNew && trialCtaSwapped) {
         if (buyNowCtaNew.className.trim()) {
             buyNowCtaNew.className

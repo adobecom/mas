@@ -931,6 +931,32 @@ describe('Fragment', () => {
         });
     });
 
+    describe('getCurrentTagTitles (product_code / Tag Path)', () => {
+        const bundleIds = ['mas:product_code/acrobat-pro-dc', 'mas:product_code/ai-assistant'];
+        const createBundle = () =>
+            new Fragment(
+                createFragmentConfig({
+                    tags: [
+                        { id: bundleIds[0], title: 'Acrobat Pro' },
+                        { id: bundleIds[1], title: 'AI Assistant' },
+                    ],
+                    fields: [{ name: 'tags', values: bundleIds, multiple: true }],
+                }),
+            );
+
+        it('returns the titles of all product_code tags, longest id first', () => {
+            const fragment = createBundle();
+            expect(fragment.getCurrentTagTitles('mas:product_code/')).to.deep.equal(['Acrobat Pro', 'AI Assistant']);
+            expect(fragment.getCurrentTagTitle('mas:product_code/')).to.equal('Acrobat Pro');
+        });
+
+        it('returns an empty array and undefined when no tag matches', () => {
+            const fragment = createBundle();
+            expect(fragment.getCurrentTagTitles('mas:promotion/')).to.deep.equal([]);
+            expect(fragment.getCurrentTagTitle('mas:promotion/')).to.be.undefined;
+        });
+    });
+
     describe('getPublishableReferences', () => {
         it('returns empty object when there are no references', () => {
             const fragment = new Fragment(createFragmentConfig({ references: [] }));

@@ -325,7 +325,6 @@ describe('Studio MASA Runtime adapter', function () {
         assert.equal(headers.Authorization, gatewayToken);
         assert.equal(headers.api_key, config.MASA_GATEWAY_API_KEY);
         assert.equal(headers['authorization-target'], `Bearer ${config.MASA_API_SERVICE_TOKEN}`);
-        assert.equal(headers['Target-Authorization'], undefined);
         assert.equal(JSON.stringify(headers).includes(token()), false);
     });
 

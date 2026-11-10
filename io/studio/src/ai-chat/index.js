@@ -328,10 +328,13 @@ async function authorize(headers) {
     return false;
 }
 
+let knowledgeRetriever = null;
+
 /**
  * Knowledge retrieval runs in-process over the bundled corpus — zero
  * external infrastructure, so it is on by default. RAG_ENABLED=false is
- * the opt-out.
+ * the opt-out. The retriever tokenizes the corpus once and is shared by
+ * every request the action container serves.
  * @param {Object} params - Action parameters
  * @returns {LocalKnowledgeRetriever|null}
  */
@@ -339,7 +342,8 @@ function createKnowledgeClient(params) {
     if (params.RAG_ENABLED === 'false') {
         return null;
     }
-    return new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS);
+    if (!knowledgeRetriever) knowledgeRetriever = new LocalKnowledgeRetriever(ALL_KNOWLEDGE_CHUNKS);
+    return knowledgeRetriever;
 }
 
 /**

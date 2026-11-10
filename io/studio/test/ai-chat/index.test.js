@@ -879,6 +879,13 @@ describe('ai-chat/index main handler', () => {
             await main(withRetrieval({ masa: true, intentHint: 'guided_help' }));
             expect(sendStub.firstCall.args[3].ragContext).to.include('Prices come from the offer.');
         });
+
+        it('reuses one retriever across requests', async () => {
+            await main(withRetrieval({ masa: false }));
+            await main(withRetrieval({ masa: false }));
+            expect(queryStub.callCount).to.equal(2);
+            expect(queryStub.thisValues[1]).to.equal(queryStub.thisValues[0]);
+        });
     });
 });
 

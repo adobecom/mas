@@ -180,8 +180,10 @@ describe('Promotion version history', () => {
 
         expect(root.textContent).to.include('Promo variation deleted');
         const row = root.querySelector('[data-field="@deleted"]');
-        expect(row.textContent).to.include('Deleted promo card');
-        expect(row.textContent).to.include(variationPath);
+        expect(row.querySelector('.field-label').textContent).to.equal('Promo variation:');
+        expect(row.querySelector('.fragment-name').textContent).to.equal('Deleted promo card');
+        expect(row.textContent).not.to.include(variationPath);
+        expect(row.querySelector('.fragment-path')).to.be.null;
         expect(row.querySelector('a')).to.be.null;
         expect(row.querySelector('sp-checkbox').disabled).to.be.true;
         expect(element.canRestore).to.be.false;

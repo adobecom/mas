@@ -700,7 +700,8 @@ export class MasPromotionHistory extends LitElement {
             referenceLabel: country ? 'Country' : promo ? 'Promo variation' : referenceOnly ? 'Fragment' : row.label,
             referenceTitle: row.promoCreation ? fragment?.title : this.fragmentTitle(fragment, detail?.parent),
             referencePath: path,
-            referenceDescription: row.promoCreation ? '' : fragment ? this.fragmentDisplayPath(fragment) || path : path,
+            referenceDescription:
+                row.promoCreation || detail?.deleted ? '' : fragment ? this.fragmentDisplayPath(fragment) || path : path,
             referenceOnly,
             referenceField: promo && !referenceOnly && !country ? row.label : '',
             referenceContext: country

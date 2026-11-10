@@ -15,6 +15,7 @@ import {
     listPromotionHistory,
     restorePromotionHistory,
     clearPromotionHistoryRequests,
+    recoverPromotionHistory,
 } from '../../src/promotions/promotion-version.js';
 import {
     createPromotionFragment,
@@ -122,7 +123,7 @@ describe('Promotion version capture', () => {
         await waitUntil(() => queued().length === 0);
     });
 
-    it('recovers persisted failed completions on reconnect with the original idempotency key', async () => {
+    it('recovers persisted failed completions on opening History with the original idempotency key', async () => {
         fetchStub.callsFake(async () => new Response('Unavailable', { status: 503 }));
         await savePromotionVersion(repository, project);
         await waitUntil(() => queued().length === 1);
@@ -133,10 +134,136 @@ describe('Promotion version capture', () => {
         const [pending] = queued();
         fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recorded' } })));
 
-        window.dispatchEvent(new Event('online'));
+        await recoverPromotionHistory(project.id);
         await waitUntil(() => queued().length === 0);
 
         expect(JSON.parse(fetchStub.lastCall.args[1].body).requestId).to.equal(pending.payload.requestId);
+    });
+
+    it('retains failed history without periodic recovery, repeated notifications or retries when browsing', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        const timers = sandbox.spy(window, 'setTimeout');
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Not found' }), {
+                    status: url.endsWith('/history-list') ? 200 : 404,
+                }),
+        );
+        await savePromotionVersion(repository, project);
+        await listPromotionHistory(project.id);
+        const [pending] = queued();
+        fetchStub.resetHistory();
+
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            Store.profile.notify();
+            Store.users.notify();
+            window.dispatchEvent(new Event('online'));
+            await listPromotionHistory(project.id);
+        }
+
+        const recordings = fetchStub.getCalls().filter((call) => call.args[0].endsWith('/history-record'));
+        expect(recordings).to.have.length(0);
+        expect(queued()).to.have.length(1);
+        expect(queued()[0].payload).to.deep.equal(pending.payload);
+        expect(timers.getCalls().some((call) => call.args[1] === 60000)).to.be.false;
+        expect(toast.called).to.be.false;
+    });
+
+    it('removes a pending entry when History recovery succeeds without notifying the author', async () => {
+        const toast = sandbox.spy(Events.toast, 'emit');
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Not found' }), {
+                    status: url.endsWith('/history-list') ? 200 : 404,
+                }),
+        );
+        await savePromotionVersion(repository, project);
+        await listPromotionHistory(project.id);
+        const [pending] = queued();
+        fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recorded' } })));
+        fetchStub.resetHistory();
+
+        await recoverPromotionHistory(project.id);
+
+        expect(queued()).to.have.length(0);
+        expect(fetchStub.getCalls().filter((call) => call.args[0].endsWith('/history-record'))).to.have.length(1);
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).requestId).to.equal(pending.payload.requestId);
+        expect(toast.called).to.be.false;
+    });
+
+    it('limits each History recovery round to three transient attempts with the original request ID', async () => {
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Unavailable' }), {
+                    status: url.endsWith('/history-list') ? 200 : 503,
+                }),
+        );
+        const toast = sandbox.spy(Events.toast, 'emit');
+        await savePromotionVersion(repository, project);
+        await listPromotionHistory(project.id);
+        const [pending] = queued();
+        fetchStub.resetHistory();
+
+        await recoverPromotionHistory(project.id);
+
+        const recordings = fetchStub.getCalls().filter((call) => call.args[0].endsWith('/history-record'));
+        expect(recordings).to.have.length(3);
+        expect(recordings.map((call) => JSON.parse(call.args[1].body).requestId)).to.deep.equal(
+            Array(3).fill(pending.payload.requestId),
+        );
+        expect(queued()).to.have.length(1);
+        expect(toast.called).to.be.false;
+    });
+
+    it('recovers only the project whose History was opened', async () => {
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Not found' }), {
+                    status: url.endsWith('/history-list') ? 200 : 404,
+                }),
+        );
+        await savePromotionVersion(repository, project);
+        await savePromotionVersion(repository, { ...project, id: 'another-project' });
+        await listPromotionHistory(project.id);
+        fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recovered' } })));
+        fetchStub.resetHistory();
+
+        await recoverPromotionHistory(project.id);
+
+        expect(fetchStub.calledOnce).to.be.true;
+        expect(JSON.parse(fetchStub.firstCall.args[1].body).rootId).to.equal(project.id);
+        expect(queued().map((entry) => entry.payload.projectId)).to.deep.equal(['another-project']);
+    });
+
+    it('does not block history reads while recovering a pending entry', async () => {
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Not found' }), {
+                    status: url.endsWith('/history-list') ? 200 : 404,
+                }),
+        );
+        await savePromotionVersion(repository, project);
+        await listPromotionHistory(project.id);
+        let finish;
+        fetchStub.callsFake(async (url) => {
+            if (url.endsWith('/history-list')) return new Response(JSON.stringify({ events: [] }));
+            return new Promise((resolve) => {
+                finish = resolve;
+            });
+        });
+        const recovery = recoverPromotionHistory(project.id);
+        await waitUntil(() => finish);
+        let loaded = false;
+        const listing = listPromotionHistory(project.id).then(() => {
+            loaded = true;
+        });
+        try {
+            await waitUntil(() => loaded);
+        } finally {
+            finish(new Response(JSON.stringify({ event: { id: 'recovered' } })));
+            await recovery;
+            await listing;
+        }
     });
 
     it('records a metadata-only save notice when preparation fails', async () => {
@@ -182,26 +309,26 @@ describe('Promotion version capture', () => {
 
     it('replays pending entries only for the original account and I/O environment', async () => {
         fetchStub.callsFake(async () => new Response('Forbidden', { status: 403 }));
-        const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
         await savePromotionVersion(repository, project);
-        await waitUntil(() => toast.called);
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
         const [pending] = queued();
         fetchStub.resetHistory();
 
         Store.profile.set({ email: 'another@example.com' });
         Store.users.set([{ userPrincipalName: 'another@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-        window.dispatchEvent(new Event('online'));
+        await recoverPromotionHistory(project.id);
         expect(fetchStub.called).to.be.false;
         meta.content = 'https://other.example/api';
         Store.profile.set({ email: 'author@example.com' });
         Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
-        window.dispatchEvent(new Event('online'));
+        await recoverPromotionHistory(project.id);
         expect(fetchStub.called).to.be.false;
         expect(queued()).to.have.length(1);
 
         fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recovered' } })));
         meta.content = 'https://studio.example/api';
-        Store.users.notify();
+        await recoverPromotionHistory(project.id);
         await waitUntil(() => queued().length === 0);
 
         expect(fetchStub.calledOnce).to.be.true;
@@ -210,18 +337,19 @@ describe('Promotion version capture', () => {
 
     it('does not replay persisted history while the author lacks promotion permission', async () => {
         fetchStub.callsFake(async () => new Response('Forbidden', { status: 403 }));
-        const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
         await savePromotionVersion(repository, project);
-        await waitUntil(() => toast.called);
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
         fetchStub.resetHistory();
 
         Store.users.set([]);
-        window.dispatchEvent(new Event('online'));
+        await recoverPromotionHistory(project.id);
 
         expect(fetchStub.called).to.be.false;
         expect(queued()).to.have.length(1);
         fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recovered' } })));
         Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        await recoverPromotionHistory(project.id);
         await waitUntil(() => queued().length === 0);
     });
 
@@ -249,6 +377,7 @@ describe('Promotion version capture', () => {
         expect(fetchStub.getCalls().filter((call) => call.args[0].endsWith('/history-record'))).to.have.length(1);
         Store.profile.set({ email: 'author@example.com' });
         Store.users.set([{ userPrincipalName: 'author@example.com', groups: ['GRP-ODIN-MAS-PROMO-EDITORS'] }]);
+        await recoverPromotionHistory(project.id);
         await waitUntil(() => queued().length === 0);
     });
 
@@ -277,12 +406,12 @@ describe('Promotion version capture', () => {
         expect(queued()).to.have.length(0);
     });
 
-    it('warns without replaying malformed persisted history', () => {
+    it('warns without replaying malformed persisted history', async () => {
         const owner = JSON.stringify(['https://studio.example/api', 'author@example.com']);
         localStorage.setItem(`mas.promotion-history.${encodeURIComponent(owner)}.broken`, 'null');
         const toast = sandbox.spy(Events.toast, 'emit');
 
-        window.dispatchEvent(new Event('online'));
+        await recoverPromotionHistory(project.id);
 
         expect(fetchStub.called).to.be.false;
         expect(toast.calledWithMatch({ variant: 'warning', content: sinon.match('could not be recovered') })).to.be.true;
@@ -595,16 +724,18 @@ describe('Promotion version capture', () => {
         expect(JSON.parse(fetchStub.firstCall.args[1].body).phase).to.equal('prepare');
     });
 
-    it('warns that a save is missing when both preparation and the fallback exhaust retries', async () => {
+    it('keeps a save queued without a toast when preparation and fallback exhaust retries', async () => {
         fetchStub.callsFake(async () => new Response('Unavailable', { status: 503 }));
         const write = sandbox.stub().resolves(project);
         const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
 
         expect(await withPromotionVersion(repository, project, write)).to.equal(project);
-        await waitUntil(() => toast.calledWithMatch({ variant: 'warning', content: sinon.match('missing from') }));
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
         expect(write.calledOnce).to.be.true;
         expect(fetchStub.callCount).to.equal(6);
-        expect(toast.calledWithMatch({ variant: 'warning', content: sinon.match('missing from') })).to.be.true;
+        expect(queued()).to.have.length(1);
+        expect(toast.called).to.be.false;
     });
 
     it('finishes Save while history recording is still pending', async () => {
@@ -801,15 +932,16 @@ describe('Promotion version capture', () => {
         expect(toast.called).to.be.false;
     });
 
-    it('warns explicitly if content was saved but the version catalog could not be updated', async () => {
+    it('logs failed history recording without showing a toast after saving content', async () => {
         fetchStub.callsFake(async () => new Response(JSON.stringify({ error: 'Unavailable' }), { status: 503 }));
         const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
         const saved = { ...project, etag: '"saved"' };
 
         expect(await withPromotionVersion(repository, project, sandbox.stub().resolves(saved))).to.equal(saved);
-        await waitUntil(() => toast.calledWithMatch({ variant: 'warning' }));
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
 
-        expect(toast.calledWithMatch({ variant: 'warning' })).to.be.true;
+        expect(toast.called).to.be.false;
         expect(sessionStorage.getItem('mas.pendingPromotionAudit')).to.be.null;
     });
 
@@ -828,14 +960,15 @@ describe('Promotion version capture', () => {
     it('preserves the saved completion ETag when falling back after a conflict', async () => {
         fetchStub.callsFake(async () => new Response(JSON.stringify({ error: 'Changed' }), { status: 409 }));
         const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
 
         await savePromotionVersion(repository, { ...project, etag: '"saved"' });
-        await waitUntil(() => toast.calledWithMatch({ variant: 'warning', content: sinon.match('missing from') }));
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
 
         expect(fetchStub.calledTwice).to.be.true;
         expect(JSON.parse(fetchStub.firstCall.args[1].body).completionEtag).to.equal('"saved"');
         expect(JSON.parse(fetchStub.secondCall.args[1].body)).to.include({ completionEtag: '"saved"', metadataOnly: true });
-        expect(toast.calledWithMatch({ variant: 'warning', content: sinon.match('missing from') })).to.be.true;
+        expect(toast.called).to.be.false;
     });
 
     it('continues recording other matching projects after one project fails', async () => {
@@ -1387,19 +1520,42 @@ describe('Promotion version capture', () => {
         expect(failure.details.restored).to.deep.equal(['variation']);
     });
 
-    it('recovers persisted completions when a fresh history client starts with no in-memory queue', async () => {
+    it('recovers persisted completions on History access after reopening Studio', async () => {
         fetchStub.callsFake(async () => new Response('Forbidden', { status: 403 }));
-        const toast = sandbox.spy(Events.toast, 'emit');
+        const errors = sandbox.spy(console, 'error');
         await savePromotionVersion(repository, project);
-        await waitUntil(() => toast.called);
+        await waitUntil(() => errors.calledWithMatch('Promotion history recording failed'));
         const [pending] = queued();
         fetchStub.resetHistory();
         fetchStub.callsFake(async () => new Response(JSON.stringify({ event: { id: 'recovered' } })));
 
-        await import('../../src/promotions/promotion-version.js?recovery-test');
+        const reopened = await import('../../src/promotions/promotion-version.js?recovery-test');
+        expect(fetchStub.called).to.be.false;
+        await reopened.recoverPromotionHistory(project.id);
         await waitUntil(() => queued().length === 0);
 
         expect(fetchStub.calledOnce).to.be.true;
         expect(JSON.parse(fetchStub.firstCall.args[1].body).requestId).to.equal(pending.payload.requestId);
+    });
+
+    it('does not recover pending entries on startup, profile updates or reconnection', async () => {
+        const owner = JSON.stringify(['https://studio.example/api', 'author@example.com']);
+        const payload = { projectId: project.id, targetId: project.id, requestId: 'pending', action: 'create' };
+        const key = `mas.promotion-history.${encodeURIComponent(owner)}.${encodeURIComponent(JSON.stringify([project.id, payload.requestId]))}`;
+        localStorage.setItem(key, JSON.stringify({ payload, createdAt: Date.now() }));
+        fetchStub.callsFake(
+            async (url) =>
+                new Response(JSON.stringify(url.endsWith('/history-list') ? { events: [] } : { error: 'Not found' }), {
+                    status: url.endsWith('/history-list') ? 200 : 404,
+                }),
+        );
+        await import('../../src/promotions/promotion-version.js?single-recovery-test');
+        Store.profile.notify();
+        Store.users.notify();
+        window.dispatchEvent(new Event('online'));
+        await listPromotionHistory(project.id);
+
+        expect(fetchStub.getCalls().filter((call) => call.args[0].endsWith('/history-record'))).to.have.length(0);
+        expect(queued()).to.have.length(1);
     });
 });

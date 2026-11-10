@@ -163,7 +163,7 @@ export class MasPromotionHistory extends LitElement {
         if (changed.has('projectId')) {
             this.currentEventId = '';
             this.filters = {};
-            this.loadHistory();
+            this.openHistory();
         }
         if (changed.has('rows') || changed.has('fragmentDetails')) {
             this.groups = categories.map((label) => this.buildGroup(label)).filter((group) => group.rows.length);
@@ -214,6 +214,17 @@ export class MasPromotionHistory extends LitElement {
             for (const field of row.fields) fragments.get(row.fragmentId).add(field);
         }
         return [...fragments].map(([fragmentId, fields]) => ({ fragmentId, fields: [...fields] }));
+    }
+
+    async openHistory() {
+        const projectId = this.projectId;
+        const request = this.listRequest + 1;
+        await this.loadHistory();
+        if (!projectId || !this.isConnected || request !== this.listRequest) return;
+        const recovered = await this.client.recoverPromotionHistory(projectId);
+        if (recovered && this.isConnected && request === this.listRequest) {
+            await this.loadHistory(false, this.selectedEvent?.id);
+        }
     }
 
     async loadHistory(append = false, selectedId) {

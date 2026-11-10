@@ -45,6 +45,7 @@ describe('Promotion project versions', () => {
     let originalFetch;
     let numberingFiles;
     let files;
+    let logger;
     const params = (extra = {}) => ({
         __ow_method: 'post',
         __ow_headers: { authorization: 'Bearer test-token' },
@@ -187,9 +188,10 @@ describe('Promotion project versions', () => {
         });
         originalFetch = global.fetch;
         global.fetch = fetchStub;
+        logger = { error: sinon.spy() };
         ({ execute } = proxyquire('../../src/history/service.js', {
             'node:timers/promises': { setTimeout: sinon.stub().resolves() },
-            '@adobe/aio-sdk': { Core: { Logger: () => ({ error: sinon.spy() }) } },
+            '@adobe/aio-sdk': { Core: { Logger: () => logger } },
             '@adobe/aio-lib-state': { init: async () => state },
             '@adobe/aio-lib-files': { init: async () => files },
             '../../utils.js': {
@@ -202,6 +204,26 @@ describe('Promotion project versions', () => {
     afterEach(() => {
         global.fetch = originalFetch;
         sinon.restore();
+    });
+
+    it('logs the failing AEM URL and status without logging credentials or upstream response bodies', async () => {
+        fetchStub
+            .withArgs(`https://author.example.com/adobe/sites/cf/fragments/${PROJECT}`)
+            .resolves(response({ message: 'Private upstream response' }, 404));
+
+        const error = await expectError(call('list'), 404);
+
+        expect(error.message).to.equal('AEM request failed');
+        expect(JSON.parse(logger.error.firstCall.args[0])).to.include({
+            operation: 'list',
+            scopeType: 'promotion',
+            rootId: PROJECT,
+            method: 'GET',
+            status: 404,
+            url: `https://author.example.com/adobe/sites/cf/fragments/${PROJECT}`,
+        });
+        const logged = JSON.stringify(logger.error.args);
+        for (const secret of ['test-token', profile.email, 'Private upstream response']) expect(logged).not.to.include(secret);
     });
 
     it('records a non-restorable save notice when its before snapshot could not be prepared', async () => {

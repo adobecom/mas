@@ -115,6 +115,7 @@ async function aem(context, suffix, options = {}) {
                 rootId: context.rootId,
                 requestId: context.requestId ? requestId(context) : undefined,
                 method: options.method ?? 'GET',
+                url: `${context.endpoint}/adobe/sites/cf/fragments${suffix.split('?')[0]}`,
                 status: response.status,
             }),
         );

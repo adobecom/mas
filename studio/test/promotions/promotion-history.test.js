@@ -84,6 +84,7 @@ describe('Promotion version history', () => {
         Store.users.set([{ userPrincipalName: 'admin@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
         client = {
             listPromotionHistory: sandbox.stub().resolves({ events: [version], currentEventId: version.id }),
+            recoverPromotionHistory: sandbox.stub().resolves(false),
             restorePromotionHistory: sandbox.stub().resolves({
                 event: { ...version, id: 'version-3', action: 'restore', version: 3 },
                 restored: [before.id],
@@ -132,6 +133,76 @@ describe('Promotion version history', () => {
         root.querySelector('#restore-selected').click();
         await element.updateComplete;
     }
+
+    it('recovers once on opening History, not on filtering, pagination or profile changes', async () => {
+        await mount();
+        await waitUntil(() => client.recoverPromotionHistory.calledOnce);
+
+        element.filters = { q: 'promo' };
+        await element.loadHistory();
+        element.cursor = 'next-page';
+        await element.loadHistory(true);
+        Store.profile.notify();
+        Store.users.notify();
+        await element.updateComplete;
+
+        expect(client.recoverPromotionHistory.calledOnceWithExactly(before.id)).to.be.true;
+        element.remove();
+        await mount();
+        await waitUntil(() => client.recoverPromotionHistory.callCount === 2);
+    });
+
+    it('displays history before recovery finishes and refreshes it after a confirmed recording', async () => {
+        let finish;
+        client.recoverPromotionHistory.callsFake(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve;
+                }),
+        );
+        const root = await mount();
+        await waitUntil(() => finish);
+        try {
+            expect(element.loading).to.be.false;
+            expect(root.textContent).to.include('New project');
+            expect(client.listPromotionHistory.calledOnce).to.be.true;
+        } finally {
+            finish(true);
+        }
+        await waitUntil(() => client.listPromotionHistory.calledTwice && !element.loading);
+        expect(element.selectedEvent.id).to.equal(version.id);
+        expect(client.recoverPromotionHistory.calledOnce).to.be.true;
+    });
+
+    it('does not reload or retry recovery when pending recordings fail', async () => {
+        await mount();
+        await waitUntil(() => client.recoverPromotionHistory.calledOnce);
+        await element.updateComplete;
+
+        expect(client.listPromotionHistory.calledOnce).to.be.true;
+        expect(element.error).to.equal('');
+    });
+
+    it('does not refresh the previous project when its recovery finishes after navigation', async () => {
+        let finish;
+        client.recoverPromotionHistory.onFirstCall().returns(
+            new Promise((resolve) => {
+                finish = resolve;
+            }),
+        );
+        await mount();
+        await waitUntil(() => client.recoverPromotionHistory.calledOnce);
+        element.projectId = 'another-project';
+        await element.updateComplete;
+        await waitUntil(() => client.recoverPromotionHistory.calledTwice);
+
+        finish(true);
+        await element.updateComplete;
+        await Promise.resolve();
+
+        expect(client.listPromotionHistory.callCount).to.equal(2);
+        expect(client.listPromotionHistory.lastCall.args[0]).to.equal('another-project');
+    });
 
     it('labels save notices without claiming there were no changes or offering restore', async () => {
         client.listPromotionHistory.resolves({

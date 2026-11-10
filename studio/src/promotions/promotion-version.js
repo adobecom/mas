@@ -8,10 +8,10 @@ import { compareVersionValues, versionFieldValues } from '../../libs/fragment-ve
 
 const historyRequests = new Map();
 const pendingVersions = new Map();
+const recoveringVersions = new Set();
 const RECORD_ATTEMPTS = 3;
 const OUTBOX_PREFIX = 'mas.promotion-history.';
 const activeRecords = new Set();
-let replayTimer;
 let historySession;
 
 function historyOwner() {
@@ -96,27 +96,30 @@ function readPendingRecords() {
     return entries.sort((a, b) => a.createdAt - b.createdAt);
 }
 
-function scheduleReplay() {
-    replayTimer ??= setTimeout(() => {
-        replayTimer = undefined;
-        resumePendingHistory();
-    }, 60000);
-}
-
-function resumePendingHistory() {
+export async function recoverPromotionHistory(projectId) {
     if (
         !Store.profile.get()?.email ||
         !canEditPromotions() ||
         !document.querySelector('meta[name="io-base-url"]')?.content ||
         !(sessionStorage.getItem('masAccessToken') ?? window.adobeIMS?.getAccessToken()?.token)
     )
-        return;
-    for (const entry of readPendingRecords()) {
-        activeRecords.add(entry.key);
-        void trackVersion(entry.payload.targetId, () => completeRecords([entry])).catch((error) =>
-            console.error('Promotion history recovery failed:', error),
-        );
-    }
+        return false;
+    const results = await Promise.all(
+        readPendingRecords()
+            .filter((entry) => entry.payload.projectId === projectId)
+            .map((entry) => {
+                activeRecords.add(entry.key);
+                const pending = trackVersion(entry.payload.targetId, () => completeRecords([entry]));
+                recoveringVersions.add(pending);
+                return pending
+                    .catch((error) => {
+                        console.error('Promotion history recovery failed:', error);
+                        return false;
+                    })
+                    .finally(() => recoveringVersions.delete(pending));
+            }),
+    );
+    return results.some(Boolean);
 }
 
 function historyRequestKey(projectId, filters) {
@@ -174,8 +177,11 @@ async function callAction(action, { projectId, ...payload }) {
 
 /** Fetches fresh history while sharing identical requests that are still in flight. */
 export async function listPromotionHistory(projectId, filters = {}) {
-    resumePendingHistory();
-    while (pendingVersions.size) await Promise.allSettled(pendingVersions.values());
+    while (pendingVersions.size) {
+        const writes = [...pendingVersions.values()].filter((pending) => !recoveringVersions.has(pending));
+        if (!writes.length) break;
+        await Promise.allSettled(writes);
+    }
     const key = historyRequestKey(projectId, filters);
     let entry = historyRequests.get(key);
     if (!entry) {
@@ -240,7 +246,7 @@ async function retryRecord(payload, owner) {
     }
 }
 
-async function trackVersion(fragmentId, operation, complete) {
+function trackVersion(fragmentId, operation, complete) {
     const previous = pendingVersions.get(fragmentId);
     let resultId;
     const saved = (async () => {
@@ -281,7 +287,6 @@ async function projectRecords(repository, fragment, projectId, action) {
 async function prepareRecords(repository, fragment, action, owner) {
     const prepared = [];
     const revisions = new Set();
-    let failed = false;
     try {
         for (const record of await projectRecords(repository, fragment, undefined, action)) {
             if (action === 'create') {
@@ -302,22 +307,21 @@ async function prepareRecords(repository, fragment, action, owner) {
             } catch (error) {
                 if (error.name === 'HistorySessionChanged') throw error;
                 if (action === 'save') prepared.push({ ...record, metadataOnly: true });
-                else failed = true;
                 console.error(`Promotion history preparation failed for project ${record.projectId}:`, error);
             }
         }
     } catch (error) {
         if (error.name === 'HistorySessionChanged') throw error;
-        failed = true;
         console.error('Promotion history project resolution failed:', error);
     }
     if (action !== 'delete' && revisions.size > 1)
         throw new Error('Fragment changed while preparing history. Reload before saving.');
-    return { prepared, failed, etag: [...revisions][0] };
+    return { prepared, etag: [...revisions][0] };
 }
 
-async function completeRecords(records, failed = false) {
+async function completeRecords(records) {
     clearPromotionHistoryRequests();
+    let recorded = false;
     let snapshotUnavailable = false;
     try {
         for (const entry of records) {
@@ -333,13 +337,9 @@ async function completeRecords(records, failed = false) {
                 }
                 snapshotUnavailable ||= Boolean(result.event?.snapshotUnavailable);
                 persistRecord(entry, true);
+                recorded = true;
             } catch (error) {
-                if (error.name === 'HistorySessionChanged') {
-                    scheduleReplay();
-                    continue;
-                }
-                failed = true;
-                scheduleReplay();
+                if (error.name === 'HistorySessionChanged') continue;
                 console.error(`Promotion history recording failed for project ${entry.payload.projectId}:`, error);
             } finally {
                 activeRecords.delete(entry.key);
@@ -348,36 +348,28 @@ async function completeRecords(records, failed = false) {
     } finally {
         clearPromotionHistoryRequests();
     }
-    if (failed) {
-        showToast(
-            'Your change was completed, but it is currently missing from the history for one or more promotion projects.',
-            'warning',
-        );
-    }
     if (snapshotUnavailable)
         showToast('Your change was recorded, but its snapshot is unavailable and it cannot be restored.', 'warning');
+    return recorded;
 }
 
 /** Persists creation records before returning, then completes them in the background. */
 export async function savePromotionVersion(repository, fragment, { projectId } = {}) {
     if (!canEditPromotions()) return;
-    resumePendingHistory();
     const owner = historyOwner();
     let records = [];
-    let failed = false;
     return trackVersion(
         fragment.id,
         async () => {
             try {
                 records = await projectRecords(repository, fragment, projectId, 'create');
             } catch (error) {
-                failed = true;
                 console.error('Promotion history project resolution failed:', error);
             }
             records = queueRecords(fragment, records, owner);
             return fragment;
         },
-        () => completeRecords(records, failed),
+        () => completeRecords(records),
     );
 }
 
@@ -389,17 +381,13 @@ export async function withPromotionVersion(repository, fragment, write, { action
         (action === 'delete' && !isPromoVariationPath(fragment.path))
     )
         return write();
-    resumePendingHistory();
     const owner = historyOwner();
     action ??= fragment.id ? 'save' : 'create';
     let preparation;
     return trackVersion(
         action === 'create' ? crypto.randomUUID() : fragment.id,
         async () => {
-            preparation =
-                action === 'create'
-                    ? { prepared: [], failed: false }
-                    : await prepareRecords(repository, fragment, action, owner);
+            preparation = action === 'create' ? { prepared: [] } : await prepareRecords(repository, fragment, action, owner);
             if (owner !== historyOwner()) throw new Error('Sign-in changed; reload before continuing.');
             const submitted =
                 action === 'save'
@@ -423,14 +411,9 @@ export async function withPromotionVersion(repository, fragment, write, { action
         },
         async (saved) => {
             if (!saved) return;
-            await completeRecords(preparation.prepared, preparation.failed);
+            await completeRecords(preparation.prepared);
         },
     );
 }
 
-Store.profile.subscribe(() => {
-    clearPromotionHistoryRequests();
-    resumePendingHistory();
-});
-Store.users.subscribe(() => resumePendingHistory());
-window.addEventListener('online', resumePendingHistory);
+Store.profile.subscribe(() => clearPromotionHistoryRequests());

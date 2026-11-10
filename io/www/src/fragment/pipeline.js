@@ -4,6 +4,7 @@ import {
     extractContextFromMetadata,
     getRequestMetadata,
     getStoredResponse,
+    STALE_MAX_AGE,
     storeRequestMetadata,
 } from './utils/cache.js';
 import {
@@ -245,16 +246,15 @@ async function mainProcess(context) {
     const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
     const storedResponse = (body, cache, note = '') => {
         const { hash, lastModified, refreshedAt } = cachedMetadata;
-        const age = refreshedAt ? `refreshed ${formatAge(Date.now() - refreshedAt)} ago` : 'never refreshed';
         const response = successResponse(context, { hash, lastModified: new Date(lastModified), body });
-        return { ...response, cache, requestKey, cacheDetail: `${age}${note}` };
+        return { ...response, cache, requestKey, cacheDetail: `refreshed ${formatAge(Date.now() - refreshedAt)} ago${note}` };
     };
     const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
     if (storedBody) return storedResponse(storedBody, 'hit');
-    // Concurrent requests for the same key in this container get the previous stored response, whatever its age,
-    // or wait for the rebuild already in progress when there is none.
+    // Concurrent requests for the same key in this container get the previous stored response when it is less than
+    // STALE_MAX_AGE old, or wait for the rebuild already in progress otherwise.
     let rebuild = rebuilds.get(requestKey);
-    const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, Infinity);
+    const staleBody = rebuild && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
     if (staleBody) return storedResponse(staleBody, 'stale', ', rebuild in progress');
     const cache = rebuild ? 'joined' : 'miss';
     if (!rebuild) {

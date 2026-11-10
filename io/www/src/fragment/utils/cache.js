@@ -19,6 +19,8 @@ const getRequestMetadataKey = ({ id, locale, country, pzn, mask, offer, template
 const MEMORY_TTL = 60 * 1000;
 // A stored response refreshed less than this ago is served as is; an older one is rebuilt.
 const RESPONSE_MAX_AGE = 5 * 60 * 1000;
+// While a rebuild is in progress, an older stored response is still served, up to this age; beyond it requests wait.
+const STALE_MAX_AGE = 30 * 60 * 1000;
 // State values are limited to 1 MB.
 const MAX_STORED_RESPONSE_LENGTH = 900 * 1024;
 
@@ -117,4 +119,11 @@ function clearRequestCaches() {
     responseCache.clear();
 }
 
-export { getRequestMetadata, getStoredResponse, extractContextFromMetadata, storeRequestMetadata, clearRequestCaches };
+export {
+    STALE_MAX_AGE,
+    getRequestMetadata,
+    getStoredResponse,
+    extractContextFromMetadata,
+    storeRequestMetadata,
+    clearRequestCaches,
+};

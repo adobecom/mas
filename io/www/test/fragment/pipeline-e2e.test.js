@@ -150,9 +150,10 @@ describe('pipeline end to end', () => {
 
     for (const { title, refreshedAt, detail } of [
         { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, detail: /refreshed 10m\d+s ago/ },
-        { title: 'never refreshed', detail: /never refreshed/ },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000 },
+        { title: 'never refreshed' },
     ]) {
-        it(`should serve the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
+        it(`should ${detail ? 'serve' : 'not serve'} the previous stored response (${title}) to concurrent requests while rebuilding`, async () => {
             setupFragmentMocks(fetchStub, {
                 id: 'some-en-us-fragment',
                 path: 'someFragment',
@@ -182,10 +183,16 @@ describe('pipeline end to end', () => {
             expect(first.body).to.deep.include(EXPECTED_BODY);
             expect(first.headers.ETag).to.equal(EXPECTED_BODY_HASH);
             expect(second.statusCode).to.equal(200);
-            expect(second.body).to.deep.equal({ stale: true });
-            expect(second.headers.ETag).to.equal('old-hash');
             const lines = output.getCalls().map(({ args }) => args[0]);
             expect(lines.filter((line) => line.includes('cache miss'))).to.have.lengthOf(1);
+            if (!detail) {
+                // older than STALE_MAX_AGE: the concurrent request waits for the rebuild
+                expect(second.body).to.deep.include(EXPECTED_BODY);
+                expect(lines.filter((line) => line.includes('cache joined'))).to.have.lengthOf(1);
+                return;
+            }
+            expect(second.body).to.deep.equal({ stale: true });
+            expect(second.headers.ETag).to.equal('old-hash');
             const stale = lines.find((line) => line.includes('cache stale'));
             expect(stale).to.match(
                 /cache stale req-some-en-us-fragment-fr_FR \(.*, rebuild in progress\) -> 200 in [\d.]+ms \| memory: /,

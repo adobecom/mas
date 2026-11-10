@@ -14,6 +14,7 @@ node ./docs/src/build-docs.mjs masks.md ./docs/masks.html
 node ./docs/src/build-docs.mjs merch-card.md ./docs/merch-card.html
 node ./docs/src/build-docs.mjs plans.md ./docs/plans.html
 node ./docs/src/build-docs.mjs plans-collection.md ./docs/plans-collection.html
+node ./docs/src/build-docs.mjs pro.md ./docs/pro.html
 node ./docs/src/build-docs.mjs catalog.md ./docs/catalog.html
 node ./docs/src/build-docs.mjs minicompare.md ./docs/minicompare.html
 node ./docs/src/build-docs.mjs minicomparemweb.md ./docs/minicomparemweb.html

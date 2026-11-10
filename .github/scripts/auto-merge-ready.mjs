@@ -21,6 +21,8 @@ const RESTRICTED_PREFIXES = ['io/', 'web-components/', '.github/'];
 const PASSING_CONCLUSIONS = ['success', 'neutral', 'skipped'];
 // Review states that say nothing about approval.
 const NEUTRAL_REVIEW_STATES = ['COMMENTED', 'PENDING'];
+// Only reviewers who can approve under the ruleset; anyone can leave an APPROVED review on a public repo.
+const TRUSTED_ASSOCIATIONS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
 
 // Exact, case-sensitive match; `gh pr list --label` is not.
 export function selectCandidates(prs) {
@@ -64,7 +66,10 @@ export function failingChecks({ checkRuns, statuses }) {
 export function currentApprovals(reviews) {
     const latest = new Map();
     const submitted = reviews
-        .filter((review) => !NEUTRAL_REVIEW_STATES.includes(review.state))
+        .filter(
+            (review) =>
+                !NEUTRAL_REVIEW_STATES.includes(review.state) && TRUSTED_ASSOCIATIONS.includes(review.author_association),
+        )
         .sort((a, b) => Date.parse(a.submitted_at) - Date.parse(b.submitted_at));
     for (const review of submitted) latest.set(review.user.login, review);
     return [...latest.values()].filter((review) => review.state === 'APPROVED');
@@ -113,10 +118,6 @@ function gh(...args) {
 
 function ghPaginate(path) {
     return JSON.parse(gh('api', path, '--paginate', '--slurp')).flat();
-}
-
-function git(...args) {
-    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 function runGit(args) {
@@ -280,7 +281,8 @@ function main() {
     const text = summary({ dryRun, rows });
     console.log(text);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
-    for (const failure of purgeFailures) console.error(purgeFailureMessage(failure));
+    // ::error:: puts the retry command on the run page, not only in the log.
+    for (const failure of purgeFailures) console.error(`::error::${purgeFailureMessage(failure)}`);
     if (purgeFailures.length) process.exitCode = 1;
 }
 

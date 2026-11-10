@@ -22,7 +22,13 @@ import {
 
 const run = (id, name, status, conclusion) => ({ id, name, status, conclusion });
 const passing = { checkRuns: [run(1, 'build', 'completed', 'success')], statuses: [] };
-const review = (login, state, submitted_at, commit_id = 'head') => ({ user: { login }, state, submitted_at, commit_id });
+const review = (login, state, submitted_at, commit_id = 'head', author_association = 'MEMBER') => ({
+    user: { login },
+    state,
+    submitted_at,
+    commit_id,
+    author_association,
+});
 const approvals = {
     reviews: [review('a', 'APPROVED', '2026-01-01T10:00:00Z'), review('b', 'APPROVED', '2026-01-01T11:00:00Z')],
     headSha: 'head',
@@ -162,6 +168,10 @@ test('a dismissed approval does not count', () => {
     );
 });
 
+test('an approval from a reviewer outside the repo does not count', () => {
+    assert.deepEqual(currentApprovals([review('a', 'APPROVED', '2026-01-01T10:00:00Z', 'head', 'CONTRIBUTOR')]), []);
+});
+
 test('an approval on the head counts without a tree comparison', () => {
     assert.equal(countApprovals({ ...approvals, applies: {} }), 2);
 });
@@ -263,8 +273,7 @@ function approvedChange({ sh, write, commit, lines }) {
 const mainChange = (sh, write, commit, file, content, message) => {
     sh('checkout', 'main');
     write(file, content);
-    const sha = commit(message);
-    return sha;
+    return commit(message);
 };
 
 test('a clean merge from main that changed lines near the PR change keeps the approval', () => {

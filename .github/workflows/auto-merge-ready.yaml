@@ -6,7 +6,7 @@ on:
     workflow_dispatch:
         inputs:
             dry_run:
-                description: 'Only report what would be merged: no merge, comment or purge'
+                description: 'Only report what would be merged. Runs are always dry until the repo variable AUTO_MERGE_LIVE is true'
                 required: false
                 type: boolean
                 default: false

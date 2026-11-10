@@ -24,6 +24,7 @@ const run = (paths, { fragments = {}, entries = null, readProject } = {}) => {
         readProjectFragment: readProject || (async () => projectFragment(paths)),
         checkFragment: async (path) => fragments[path] || { state: 'not-found' },
         readPublishedIndexEntries: async () => entries,
+        processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)),
     };
     return generateReport({ projectId: 'p1', odinEndpoint: 'https://odin', authToken: 'tok', deps });
 };

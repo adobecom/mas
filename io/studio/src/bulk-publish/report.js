@@ -122,6 +122,7 @@ async function generateReport({ projectId, odinEndpoint, authToken, deps = {} })
     const readProject = deps.readProjectFragment || readProjectFragment;
     const check = deps.checkFragment || ((path) => checkFragment(path, { odinEndpoint, authToken }));
     const readEntries = deps.readPublishedIndexEntries || readPublishedIndexEntries;
+    const runBatches = deps.processBatchWithConcurrency || processBatchWithConcurrency;
 
     const { fragment: project } = await readProject(odinEndpoint, projectId, authToken);
     const projectPublishedAt = getValue(project, 'publishedAt')?.value || '';
@@ -131,7 +132,7 @@ async function generateReport({ projectId, odinEndpoint, authToken, deps = {} })
     const placeholdersByIndex = groupPlaceholdersByIndex(itemPaths);
     const paths = [...new Set([...itemPaths, ...placeholdersByIndex.keys()])].sort();
 
-    const checks = await processBatchWithConcurrency(paths, REPORT_CONCURRENCY, check, REPORT_RPS_LIMIT);
+    const checks = await runBatches(paths, REPORT_CONCURRENCY, check, REPORT_RPS_LIMIT);
     const checkByPath = new Map(paths.map((path, i) => [path, checks[i]]));
 
     const missingIndexes = [];

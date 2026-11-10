@@ -33,6 +33,12 @@ describe('mas-chat-input message text', () => {
         expect((await detail).message).to.equal('Why does https://x.test/a?b=1&c=2 fail?');
     });
 
+    it('does not re-render the message box on each keystroke', async () => {
+        view.dispatch(view.state.tr.insertText('W'));
+        view.dom.dispatchEvent(new KeyboardEvent('keyup', { key: 'W', bubbles: true }));
+        expect(input.isUpdatePending).to.equal(false);
+    });
+
     it('sends a line break as a newline', async () => {
         const { tr, schema } = view.state;
         view.dispatch(tr.insertText('line one').insert(8, schema.nodes.hard_break.create()).insertText('line two', 9));

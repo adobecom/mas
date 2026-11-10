@@ -14,7 +14,6 @@ export class MasChatInput extends LitElement {
         disabled: { type: Boolean },
         selectedOsi: { type: String },
         selectedOffer: { type: Object },
-        message: { type: String },
         inputLocked: { type: Boolean, attribute: 'input-locked' },
         autoSendOnSelect: { type: Boolean },
         imagesEnabled: { type: Boolean },
@@ -26,7 +25,6 @@ export class MasChatInput extends LitElement {
         this.disabled = false;
         this.selectedOsi = null;
         this.selectedOffer = null;
-        this.message = '';
         this.inputLocked = false;
         this.autoSendOnSelect = false;
         this.imagesEnabled = false;
@@ -35,7 +33,6 @@ export class MasChatInput extends LitElement {
         this.boundHandleOfferSelect = this.handleOfferSelect.bind(this);
         this.boundHandleMultiOfferSelect = this.handleMultiOfferSelect.bind(this);
         this.boundHandleEscKey = this.handleEscKey.bind(this);
-        this.boundHandleRteChange = this.handleRteChange.bind(this);
         this.boundHandlePaste = this.handlePaste.bind(this);
     }
 
@@ -49,8 +46,6 @@ export class MasChatInput extends LitElement {
         document.addEventListener(EVENT_OST_OFFER_SELECT, this.boundHandleOfferSelect);
         document.addEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.boundHandleMultiOfferSelect);
         document.addEventListener('keydown', this.boundHandleEscKey, { capture: true });
-        this.addEventListener('change', this.boundHandleRteChange);
-        this.addEventListener('keyup', this.boundHandleRteChange);
         this.addEventListener('paste', this.boundHandlePaste, { capture: true });
     }
 
@@ -60,8 +55,6 @@ export class MasChatInput extends LitElement {
         document.removeEventListener(EVENT_OST_OFFER_SELECT, this.boundHandleOfferSelect);
         document.removeEventListener(EVENT_OST_MULTI_OFFER_SELECT, this.boundHandleMultiOfferSelect);
         document.removeEventListener('keydown', this.boundHandleEscKey, { capture: true });
-        this.removeEventListener('change', this.boundHandleRteChange);
-        this.removeEventListener('keyup', this.boundHandleRteChange);
         this.removeEventListener('paste', this.boundHandlePaste, { capture: true });
     }
 
@@ -210,10 +203,6 @@ export class MasChatInput extends LitElement {
         return doc.textBetween(0, doc.content.size, '\n', (leaf) => (leaf.type.name === 'hard_break' ? '\n' : ''));
     }
 
-    handleRteChange() {
-        this.message = this.plainText;
-    }
-
     handleRteKeyDown(event) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -256,7 +245,6 @@ export class MasChatInput extends LitElement {
             }),
         );
 
-        this.message = '';
         this.selectedOsi = null;
         this.selectedOffer = null;
 

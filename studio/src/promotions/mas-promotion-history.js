@@ -923,7 +923,7 @@ export class MasPromotionHistory extends LitElement {
 
     get searchTemplate() {
         return html`
-            <form class="search-form" aria-label="History search" @submit=${this.applyFilters}>
+            <div class="search-form">
                 <sp-search
                     id="history-search"
                     name="query"
@@ -931,8 +931,9 @@ export class MasPromotionHistory extends LitElement {
                     aria-label="Search version history"
                     .value=${this.filters.query ?? ''}
                     ?disabled=${this.busy}
+                    @submit=${this.applyFilters}
                 ></sp-search>
-            </form>
+            </div>
         `;
     }
 

@@ -1,6 +1,7 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import { waitUntil } from '@open-wc/testing-helpers/pure';
+import { sendKeys } from '@web/test-runner-commands';
 import Store from '../../src/store.js';
 import Events from '../../src/events.js';
 import router from '../../src/router.js';
@@ -794,7 +795,7 @@ describe('Promotion version history', () => {
         const input = root.querySelector('#history-search');
         input.value = 'Author';
 
-        root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+        input.dispatchEvent(new Event('submit', { cancelable: true }));
         await waitUntil(() => client.listPromotionHistory.callCount === 2);
 
         expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([
@@ -803,16 +804,38 @@ describe('Promotion version history', () => {
         ]);
     });
 
+    it('submits the real search input with Enter without navigating or replacing the current environment', async () => {
+        const root = await mount();
+        const search = root.querySelector('#history-search');
+        await search.updateComplete;
+        const location = window.location.href;
+        const nativeSubmissions = [];
+        search.shadowRoot.querySelector('form').addEventListener('submit', (event) => {
+            nativeSubmissions.push(event.defaultPrevented);
+            event.preventDefault();
+        });
+
+        search.focus();
+        await sendKeys({ type: '20' });
+        await sendKeys({ press: 'Enter' });
+        await waitUntil(() => nativeSubmissions.length);
+
+        expect(nativeSubmissions).to.deep.equal([true]);
+        expect(client.listPromotionHistory.callCount).to.equal(2);
+        expect(client.listPromotionHistory.lastCall.args[1]).to.deep.equal({ limit: 10, query: '20' });
+        expect(window.location.href).to.equal(location);
+    });
+
     for (const value of ['', '   ']) {
         it(`removes the previous search filter when submitting ${JSON.stringify(value)}`, async () => {
             const root = await mount();
             root.querySelector('#history-search').value = 'Author';
-            root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+            root.querySelector('#history-search').dispatchEvent(new Event('submit', { cancelable: true }));
             await waitUntil(() => client.listPromotionHistory.callCount === 2 && !element.busy);
             await element.updateComplete;
 
             root.querySelector('#history-search').value = value;
-            root.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
+            root.querySelector('#history-search').dispatchEvent(new Event('submit', { cancelable: true }));
             await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.busy);
 
             expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([before.id, { limit: 10 }]);

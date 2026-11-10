@@ -819,6 +819,7 @@ async function list(context, params) {
             const event = await findEntry(context, next.value.id);
             if (!event) continue;
             const searchable = [
+                `Version ${event.version}`,
                 event.user.name,
                 ...event.changes.flatMap(({ field, before, after }) => [field, before, after]),
             ];

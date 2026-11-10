@@ -645,7 +645,7 @@ describe('Promotion project versions', () => {
         });
     }
 
-    it('searches only author names and changed field values', async () => {
+    it('searches author names and changed field values without exposing internal metadata', async () => {
         const { event } = await save();
         for (const query of ['verified user', '@title', 'Project', 'Saved']) {
             expect((await call('list', { query })).events.map((item) => item.id)).to.deep.equal([event.id]);
@@ -665,6 +665,19 @@ describe('Promotion project versions', () => {
             expect((await call('list', { query })).events).to.deep.equal([]);
         }
     });
+
+    for (const query of ['20', 'Version 20', 'version 20']) {
+        it(`finds a version by its displayed number using ${JSON.stringify(query)}`, async () => {
+            await recordHistory(19);
+            await save(PROJECT, (fragment) => (fragment.title = 'Twentieth'), { requestId: 'twentieth' });
+            await save(PROJECT, (fragment) => (fragment.title = 'Latest'), { requestId: 'latest' });
+
+            const page = await call('list', { query });
+
+            expect(page.events.map((event) => event.version)).to.deep.equal([20]);
+            expect(page.currentEventId).not.to.equal(page.events[0]?.id);
+        });
+    }
 
     it('tags captured native versions with the deterministic change-set event ID', async () => {
         const { event } = await save();

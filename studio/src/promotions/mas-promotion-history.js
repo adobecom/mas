@@ -932,6 +932,9 @@ export class MasPromotionHistory extends LitElement {
                     .value=${this.filters.query ?? ''}
                     ?disabled=${this.busy}
                     @submit=${this.applyFilters}
+                    @input=${(event) => {
+                        if (!event.currentTarget.value.trim() && this.filters.query) this.applyFilters(event);
+                    }}
                 ></sp-search>
             </div>
         `;

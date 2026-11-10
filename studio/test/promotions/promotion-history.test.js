@@ -839,6 +839,60 @@ describe('Promotion version history', () => {
         });
     }
 
+    for (const clearWith of ['keyboard', 'clear button']) {
+        it(`reloads unfiltered history without Enter when cleared using the ${clearWith}`, async () => {
+            const latest = { ...version, id: 'version-11', version: 11 };
+            const matching = { ...version, version: 10 };
+            client.listPromotionHistory.resolves({
+                events: [latest, matching],
+                currentEventId: latest.id,
+                cursor: 'next-page',
+            });
+            client.listPromotionHistory.onSecondCall().resolves({ events: [matching], currentEventId: latest.id });
+            const root = await mount();
+            const search = root.querySelector('#history-search');
+            search.value = '10';
+            search.dispatchEvent(new Event('submit', { cancelable: true }));
+            await waitUntil(() => client.listPromotionHistory.callCount === 2 && !element.busy);
+            await element.updateComplete;
+            await search.updateComplete;
+            expect(root.querySelectorAll('.history-card')).to.have.length(1);
+
+            if (clearWith === 'keyboard') {
+                search.focus();
+                search.shadowRoot.querySelector('input').select();
+                await sendKeys({ press: 'Backspace' });
+            } else {
+                search.shadowRoot.querySelector('sp-clear-button').click();
+            }
+            await waitUntil(() => client.listPromotionHistory.callCount === 3 && !element.busy);
+            await element.updateComplete;
+
+            expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([before.id, { limit: 10 }]);
+            expect(search.value).to.equal('');
+            expect(root.querySelectorAll('.history-card')).to.have.length(2);
+            expect(element.cursor).to.equal('next-page');
+        });
+    }
+
+    it('does not search automatically while replacing the version number with another number', async () => {
+        const root = await mount();
+        const search = root.querySelector('#history-search');
+        search.value = '10';
+        search.dispatchEvent(new Event('submit', { cancelable: true }));
+        await waitUntil(() => client.listPromotionHistory.callCount === 2 && !element.busy);
+        await element.updateComplete;
+        await search.updateComplete;
+
+        search.focus();
+        search.shadowRoot.querySelector('input').select();
+        await sendKeys({ type: '20' });
+
+        expect(client.listPromotionHistory.callCount).to.equal(2);
+        expect(element.filters).to.deep.equal({ query: '10' });
+        expect(search.value).to.equal('20');
+    });
+
     it('keeps previous results hidden until fresh history and its comparison finish loading', async () => {
         const root = await mount();
         let complete;

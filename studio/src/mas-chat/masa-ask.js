@@ -7,26 +7,23 @@ export const SESSION_CAPACITY_MESSAGE =
     'MASA allows two active sessions per person. End the session in another conversation or tab, then try again.';
 const busyError = () => new MasaClientError('masa-conversation-busy', MASA_BUSY_MESSAGE);
 
-/** Text of a thread message as MASA should see it, or null when it carries nothing to share. */
-function turnLabel(message, conversationId) {
-    if (message.hidden) return null;
-    if (message.type === 'masa') {
-        const record = getInvestigationSession(message.conversationId ?? conversationId).records.find(
-            (item) => item.id === message.recordId,
-        );
-        return record?.text ? `Earlier answer: ${record.text}` : null;
-    }
+/**
+ * Text of a thread message as MASA should see it, or null when it carries nothing to share.
+ * A MASA answer is left out: the session adds its recent findings to the submission itself.
+ */
+function turnLabel(message) {
+    if (message.hidden || message.type === 'masa') return null;
     if (typeof message.content !== 'string' || !message.content.trim()) return null;
     if (message.role === 'user') return `Earlier user: ${message.content}`;
     return message.role === 'assistant' ? `Earlier answer: ${message.content}` : null;
 }
 
 /** Page block plus the newest visible turns that fit, leaving room for the session's own earlier findings. */
-export function buildMasaContext({ page, messages, conversationId }) {
+export function buildMasaContext({ page, messages }) {
     let context = page;
     let limited = false;
     for (const message of [...messages].reverse()) {
-        const label = turnLabel(message, conversationId);
+        const label = turnLabel(message);
         if (!label) continue;
         const candidate = `${context}\n\n${label}`;
         if (candidate.length > CONTEXT_LIMIT) {

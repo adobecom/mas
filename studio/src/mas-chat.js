@@ -1312,11 +1312,7 @@ export class MasChat extends LitElement {
         try {
             ask.studioContext = this.studioContext();
             ask.session = getInvestigationSession(ask.conversationId);
-            const { context } = buildMasaContext({
-                page: this.masaPageContext,
-                messages: earlier,
-                conversationId: ask.conversationId,
-            });
+            const { context } = buildMasaContext({ page: this.masaPageContext, messages: earlier });
             await this.askMasa({
                 conversationId: ask.conversationId,
                 question,

@@ -77,6 +77,31 @@ describe('askMasa', () => {
         expect(onRecord.calledOnceWith(iid)).to.be.true;
     });
 
+    it('sends an earlier MASA finding to MASA once', async () => {
+        respond('completed');
+        const conversationId = open('once');
+        const earlier = 'inv_33333333-3333-4333-8333-333333333333';
+        getInvestigationSession(conversationId).records.push({
+            id: earlier,
+            sessionId: sid,
+            question: 'Why is the price wrong?',
+            text: 'The fr_FR offer differs.',
+            files: [],
+            status: 'completed',
+        });
+        complete(conversationId);
+        const { context } = buildMasaContext({
+            page: 'Page',
+            messages: [
+                { role: 'user', content: 'Why is the price wrong?' },
+                { role: 'assistant', type: 'masa', conversationId, recordId: earlier, content: '' },
+            ],
+        });
+        await askMasa({ conversationId, question: 'And in de_DE?', context });
+        const submitted = control.getCalls().find((call) => call.args[1] === 'investigation.submit').args[2].context;
+        expect(submitted.split('The fr_FR offer differs.')).to.have.length(2);
+    });
+
     it('rejects a second question while the conversation is busy without submitting', async () => {
         respond('completed');
         const conversationId = open('busy');
@@ -354,7 +379,7 @@ describe('buildMasaContext', () => {
         expect(limited).to.be.true;
     });
 
-    it('adds a MASA finding by its record text, using the given conversation', () => {
+    it('leaves a MASA answer to the earlier findings the session adds', () => {
         const conversationId = 'masa-context-conversation';
         const session = getInvestigationSession(conversationId);
         session.records.push({
@@ -367,10 +392,9 @@ describe('buildMasaContext', () => {
         });
         const { context } = buildMasaContext({
             page: 'Page',
-            conversationId,
-            messages: [{ role: 'assistant', type: 'masa', recordId: iid, content: '' }],
+            messages: [{ role: 'assistant', type: 'masa', conversationId, recordId: iid, content: '' }],
         });
-        expect(context).to.equal('Page\n\nEarlier answer: Offer differs.');
+        expect(context).to.equal('Page');
     });
 
     it('skips hidden messages', () => {

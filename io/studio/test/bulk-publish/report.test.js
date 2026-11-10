@@ -19,14 +19,13 @@ const projectFragment = (paths, extra = {}) => ({
 
 const found = (path, status, extra = {}) => ({ state: 'ok', fragment: { id: `id-${path}`, path, status, ...extra } });
 
-const run = (paths, { fragments = {}, entries = null, readProject } = {}) => {
+const run = (paths, { fragments = {}, entries = null, project = projectFragment(paths).fragment } = {}) => {
     const deps = {
-        readProjectFragment: readProject || (async () => projectFragment(paths)),
         checkFragment: async (path) => fragments[path] || { state: 'not-found' },
         readPublishedIndexEntries: async () => entries,
         processBatchWithConcurrency: (items, size, processor) => Promise.all(items.map(processor)),
     };
-    return generateReport({ projectId: 'p1', odinEndpoint: 'https://odin', authToken: 'tok', deps });
+    return generateReport({ projectId: 'p1', project, odinEndpoint: 'https://odin', authToken: 'tok', deps });
 };
 
 describe('bulk-publish/report.js', () => {
@@ -68,15 +67,13 @@ describe('bulk-publish/report.js', () => {
             fragments[placeholder] = found(placeholder, 'PUBLISHED');
             fragments[index] = found(index, 'PUBLISHED');
         }
-        const readProject = async () => ({
-            fragment: {
-                fields: [
-                    { name: 'fragments', values: paths },
-                    { name: 'lastResult', values: [JSON.stringify({ total: 114, published: 113 })] },
-                ],
-            },
-        });
-        const report = await run(paths, { fragments, entries: [], readProject });
+        const project = {
+            fields: [
+                { name: 'fragments', values: paths },
+                { name: 'lastResult', values: [JSON.stringify({ total: 114, published: 113 })] },
+            ],
+        };
+        const report = await run(paths, { fragments, entries: [], project });
         expect(report.summary).to.include({ total: 114, live: 93, failed: 21, reportedPublished: 113 });
         expect(report.summary.live).to.not.equal(report.summary.reportedPublished);
     });

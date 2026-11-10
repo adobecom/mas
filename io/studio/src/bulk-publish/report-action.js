@@ -30,7 +30,7 @@ async function main(params) {
             return errorResponse(409, 'Project is not complete', logger);
         }
 
-        const report = await generateReport({ projectId, odinEndpoint, authToken });
+        const report = await generateReport({ projectId, project: fragment, odinEndpoint, authToken });
         const { live, failed, notLive } = report.summary;
         logger.info(JSON.stringify({ event: 'report-complete', projectId, live, failed, notLive }));
         for (const { path, message } of report.errors) {

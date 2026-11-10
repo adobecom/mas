@@ -1,7 +1,7 @@
-const { fetchOdin, getValue, processBatchWithConcurrency } = require('../common.js');
-const { readProjectFragment, getProjectPaths, getProjectLocales } = require('./project.js');
+const { fetchFragmentByPath, getValue, processBatchWithConcurrency } = require('../common.js');
+const { getProjectPaths, getProjectLocales } = require('./project.js');
 const { resolvePaths } = require('./resolver.js');
-const { extractLocale } = require('./publish-core.js');
+const { extractLocale, indexPathOf, DICTIONARY_SEGMENT, INDEX_SUFFIX } = require('./publish-core.js');
 
 const REPORT_STATUS = { LIVE: 'live', NOT_LIVE: 'not-live', FAILED: 'failed' };
 const ROW_TYPE = { ITEM: 'item', PLACEHOLDER: 'placeholder', DICTIONARY_INDEX: 'dictionary-index' };
@@ -9,11 +9,6 @@ const ROW_TYPE = { ITEM: 'item', PLACEHOLDER: 'placeholder', DICTIONARY_INDEX: '
 const REPORT_CONCURRENCY = 5;
 const REPORT_RPS_LIMIT = 5;
 
-const DICTIONARY_SEGMENT = '/dictionary/';
-const INDEX_SUFFIX = `${DICTIONARY_SEGMENT}index`;
-
-// Same field and view io/www reads to build the live dictionary (replace.js: fields.entries of the
-// `references=direct-hydrated` response, each reference being { value: { path, fields } }).
 const INDEX_ENTRIES_FIELD = 'entries';
 const PUBLISHED_FRAGMENT_URL = 'https://odin.adobe.com/adobe/contentFragments';
 const DIRECT_HYDRATED = 'direct-hydrated';
@@ -24,17 +19,10 @@ const NOT_LIVE_AEM_STATUSES = new Set(['DRAFT', 'NEW', 'UNPUBLISHED']);
 const CHECK = { OK: 'ok', NOT_FOUND: 'not-found', ERROR: 'error' };
 
 async function checkFragment(path, { odinEndpoint, authToken }) {
-    try {
-        const response = await fetchOdin(odinEndpoint, `/adobe/sites/cf/fragments?path=${path}`, authToken, {
-            ignoreErrors: [404],
-            max429Retries: 1,
-        });
-        if (response.status === 404) return { state: CHECK.NOT_FOUND };
-        const fragment = (await response.json()).items?.[0];
-        return fragment ? { state: CHECK.OK, fragment } : { state: CHECK.NOT_FOUND };
-    } catch (error) {
-        return { state: CHECK.ERROR, message: error.message };
-    }
+    const { fragment, status } = await fetchFragmentByPath(odinEndpoint, path, authToken);
+    if (fragment) return { state: CHECK.OK, fragment };
+    if (status === 404) return { state: CHECK.NOT_FOUND };
+    return { state: CHECK.ERROR, message: `AEM responded ${status}` };
 }
 
 /**
@@ -43,18 +31,14 @@ async function checkFragment(path, { odinEndpoint, authToken }) {
  * @returns {Promise<string[]|null>} paths of the entries that are live, or null when the view cannot be read
  */
 async function readPublishedIndexEntries(indexFragment) {
-    const response = await fetch(`${PUBLISHED_FRAGMENT_URL}/${indexFragment.id}?references=${DIRECT_HYDRATED}`);
-    if (!response.ok) return null;
+    const response = await fetch(`${PUBLISHED_FRAGMENT_URL}/${indexFragment.id}?references=${DIRECT_HYDRATED}`).catch(
+        () => null,
+    );
+    if (!response?.ok) return null;
     const body = await response.json();
     const references = body.references || {};
     const entryIds = body.fields?.[INDEX_ENTRIES_FIELD] || [];
     return entryIds.map((id) => references[id]?.value?.path).filter(Boolean);
-}
-
-function indexPathOf(path) {
-    const segmentIndex = path.indexOf(DICTIONARY_SEGMENT);
-    if (segmentIndex === -1) return null;
-    return path.slice(0, segmentIndex) + INDEX_SUFFIX;
 }
 
 function rowType(path) {
@@ -113,18 +97,17 @@ function parseReportedResult(project) {
  * used to decide a status. Read-only: nothing is written to AEM.
  * @param {object} input
  * @param {string} input.projectId project content fragment id
+ * @param {object} input.project project content fragment, already read by the caller
  * @param {string} input.odinEndpoint AEM author endpoint
  * @param {string} input.authToken bearer token
  * @param {object} [input.deps] injectable collaborators (tests)
  * @returns {Promise<object>} report with summary, missingIndexes, rows and errors
  */
-async function generateReport({ projectId, odinEndpoint, authToken, deps = {} }) {
-    const readProject = deps.readProjectFragment || readProjectFragment;
+async function generateReport({ projectId, project, odinEndpoint, authToken, deps = {} }) {
     const check = deps.checkFragment || ((path) => checkFragment(path, { odinEndpoint, authToken }));
     const readEntries = deps.readPublishedIndexEntries || readPublishedIndexEntries;
     const runBatches = deps.processBatchWithConcurrency || processBatchWithConcurrency;
 
-    const { fragment: project } = await readProject(odinEndpoint, projectId, authToken);
     const projectPublishedAt = getValue(project, 'publishedAt')?.value || '';
     const reported = parseReportedResult(project);
 
@@ -154,7 +137,6 @@ async function generateReport({ projectId, odinEndpoint, authToken, deps = {} })
 
         const fragment = result.fragment;
         const modifiedAt = fragment?.modified?.at || '';
-        // Author fragment JSON exposes the last activation as `published.at`.
         const publishedAt = fragment?.published?.at || '';
         rows.push({
             path,

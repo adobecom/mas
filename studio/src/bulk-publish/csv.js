@@ -9,18 +9,20 @@ function escape(value) {
     return str;
 }
 
-const REPORT_HEADERS = [
-    'path',
-    'type',
-    'locale',
-    'status',
-    'reason',
-    'aem_status',
-    'modified_at',
-    'published_at',
-    'project_published_at',
-    'modified_after_publish',
+const REPORT_COLUMNS = [
+    ['path', 'path'],
+    ['type', 'type'],
+    ['locale', 'locale'],
+    ['status', 'status'],
+    ['reason', 'reason'],
+    ['aem_status', 'aemStatus'],
+    ['modified_at', 'modifiedAt'],
+    ['published_at', 'publishedAt'],
+    ['project_published_at', 'projectPublishedAt'],
+    ['modified_after_publish', 'modifiedAfterPublish'],
 ];
+const REPORT_HEADERS = REPORT_COLUMNS.map(([header]) => header);
+const REPORT_FIELDS = REPORT_COLUMNS.map(([, field]) => field);
 
 /**
  * Serializes a live-status report: summary lines, a blank line, then one line per row.
@@ -38,22 +40,7 @@ export function toReportCsv(report) {
         ['not_live', summary.notLive],
         ['missing_placeholder_indexes', report.missingIndexes.join(' ')],
     ].map((line) => line.map(escape).join(','));
-    const rows = report.rows.map((row) =>
-        [
-            row.path,
-            row.type,
-            row.locale,
-            row.status,
-            row.reason,
-            row.aemStatus,
-            row.modifiedAt,
-            row.publishedAt,
-            row.projectPublishedAt,
-            row.modifiedAfterPublish,
-        ]
-            .map(escape)
-            .join(','),
-    );
+    const rows = report.rows.map((row) => REPORT_FIELDS.map((field) => escape(row[field])).join(','));
     return `${[...summaryLines, '', REPORT_HEADERS.join(','), ...rows].join('\n')}\n`;
 }
 

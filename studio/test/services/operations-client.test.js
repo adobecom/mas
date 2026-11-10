@@ -280,6 +280,30 @@ describe('mcp-client', () => {
                 expect(result.unavailable).to.equal(undefined);
             });
 
+            it('hides an ENTERPRISE product from get_product_by_arrangement_code', async () => {
+                respondWith({ product: { arrangement_code: 'e', segments: ['ENTERPRISE'] } });
+                const result = await executeStudioOperation('get_product_by_arrangement_code', { arrangementCode: 'e' });
+                expect(result.product).to.equal(null);
+                expect(result.rawResult.product).to.equal(null);
+                expect(result.unavailable).to.equal(true);
+                expect(result.message).to.include("isn't available");
+            });
+
+            it('keeps a non-ENTERPRISE product from get_product_by_arrangement_code', async () => {
+                const product = { arrangement_code: 't', segments: ['TEAM'] };
+                respondWith({ product });
+                const result = await executeStudioOperation('get_product_by_arrangement_code', { arrangementCode: 't' });
+                expect(result.product).to.deep.equal(product);
+                expect(result.unavailable).to.equal(undefined);
+            });
+
+            it('carries unavailable into rawResult when every listed product is ENTERPRISE', async () => {
+                respondWith({ products: [{ customerSegments: { ENTERPRISE: true } }] });
+                const result = await executeStudioOperation('list_products', {});
+                expect(result.unavailable).to.equal(true);
+                expect(result.rawResult.unavailable).to.equal(true);
+            });
+
             it('drops the selector when resolve_offer_selector only matches ENTERPRISE offers', async () => {
                 respondWith({ offers: [enterprise], selector: { product_arrangement_code: 'PA-1' } });
                 const result = await executeStudioOperation('resolve_offer_selector', { offerSelectorId: 'x' });

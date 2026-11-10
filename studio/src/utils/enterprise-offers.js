@@ -6,6 +6,7 @@ const ENTERPRISE = 'ENTERPRISE';
 
 function getSegments(item) {
     if (item?.customer_segment) return [String(item.customer_segment).trim().toUpperCase()];
+    if (Array.isArray(item?.segments)) return item.segments.map((segment) => String(segment).trim().toUpperCase());
     return Object.entries(item?.customerSegments ?? {})
         .filter(([, enabled]) => enabled)
         .map(([segment]) => segment.trim().toUpperCase());

@@ -157,16 +157,19 @@ export async function executeStudioOperation(operationName, operationParams) {
         }
 
         case 'get_product_by_arrangement_code': {
-            const product = result.product || null;
+            const unavailable = isEnterpriseOffer(result.product);
+            const product = unavailable ? null : result.product || null;
             return {
                 success: true,
                 operation: 'get_product_by_arrangement_code',
                 product,
                 arrangementCode: result.arrangementCode || operationParams.arrangementCode,
-                message:
-                    result.message ||
-                    (product ? `Found product for ${operationParams.arrangementCode}` : 'No MCS product match.'),
-                rawResult: result,
+                ...(unavailable && { unavailable }),
+                message: unavailable
+                    ? OFFER_NOT_AVAILABLE_MESSAGE
+                    : result.message ||
+                      (product ? `Found product for ${operationParams.arrangementCode}` : 'No MCS product match.'),
+                rawResult: unavailable ? { ...result, product: null, unavailable } : result,
             };
         }
 
@@ -240,7 +243,7 @@ export async function executeStudioOperation(operationName, operationParams) {
                     ? OFFER_NOT_AVAILABLE_MESSAGE
                     : result.message ||
                       `Found ${products.length} product${products.length !== 1 ? 's' : ''}${products.length === 0 ? ' matching your search' : ''}`,
-                rawResult: { ...result, products },
+                rawResult: { ...result, products, ...(unavailable && { unavailable }) },
             };
         }
 

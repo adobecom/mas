@@ -14,6 +14,13 @@ describe('enterprise-offers', () => {
         expect(isEnterpriseOffer({ customerSegments: { TEAM: true, ENTERPRISE: false } })).to.be.false;
     });
 
+    it('detects the segments array shape used by product cards', () => {
+        expect(isEnterpriseOffer({ segments: ['ENTERPRISE'] })).to.be.true;
+        expect(isEnterpriseOffer({ segments: ['enterprise'] })).to.be.true;
+        expect(isEnterpriseOffer({ segments: ['TEAM', 'ENTERPRISE'] })).to.be.false;
+        expect(isEnterpriseOffer({ segments: [] })).to.be.false;
+    });
+
     it('keeps items without a segment', () => {
         expect(isEnterpriseOffer({})).to.be.false;
         expect(isEnterpriseOffer(undefined)).to.be.false;

@@ -216,6 +216,13 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(isMasaAvailable()).to.equal(false);
     });
 
+    it('asks ai-chat for a documentation answer when MASA cannot answer', async () => {
+        masa.rejects(new MasaClientError('connection-unavailable', 'Offline'));
+        await send(QUESTION);
+        await thread.firstCall.returnValue;
+        expect(chatCalls()[1].args[0]).to.include({ intentHint: 'documentation', masa: false });
+    });
+
     for (const code of ['investigation-budget-exhausted', 'investigation-timeout', 'answer-unavailable']) {
         it(`stores that MASA could not finish after ${code} and keeps it through a reload`, async () => {
             masa.rejects(new MasaClientError(code, 'Ran out'));

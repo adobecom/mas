@@ -1361,7 +1361,13 @@ export class MasChat extends LitElement {
         this.replaceMasaMessage(ask, (message) => ({ ...message, fallback: { pending: true, ...reason } }));
         try {
             const response = await this.callAIChatAction(
-                { message: ask.question, conversationHistory: ask.history, context: ask.studioContext, masa: false },
+                {
+                    message: ask.question,
+                    conversationHistory: ask.history,
+                    context: ask.studioContext,
+                    intentHint: 'documentation',
+                    masa: false,
+                },
                 { detached: true },
             );
             const content =

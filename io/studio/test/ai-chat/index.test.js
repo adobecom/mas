@@ -285,6 +285,17 @@ describe('ai-chat/index main handler', () => {
             expect(sendStub.callCount).to.equal(1);
         });
 
+        it('answers a problem report in prose on the documentation hint MASA fallback sends', async () => {
+            sendStub.resolves(textResponse('A placeholder inside a paragraph keeps its paragraph tag.'));
+            const report =
+                'I created this placeholder with a key inside it. The paragraph tag around it breaks the sentence. See https://odin.adobe.com/adobe/sites/merch/mas/preview/a1fa2428-341b-4f19-af8a-012068726fb0';
+            const result = await main(makeParams({ message: report, intentHint: 'documentation', masa: false }));
+            expect(result.body.type).to.equal('message');
+            expect(result.body.message).to.equal('A placeholder inside a paragraph keeps its paragraph tag.');
+            expect(sendStub.firstCall.args[2]).to.include('NEVER include JSON in documentation responses');
+            expect(sendStub.firstCall.args[5].tools).to.equal(undefined);
+        });
+
         it('retries a card config once through the corrective prompt when validation fails', async () => {
             const invalidCard = '```json\n{"variant": "plans", "title": ""}\n```';
             sendStub.resolves(textResponse(invalidCard));

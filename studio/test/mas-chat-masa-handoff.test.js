@@ -570,6 +570,44 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
     });
 
+    it('a clicked follow-up chip asks MASA once and never reaches the Studio send path', async () => {
+        const recordId = 'inv_22222222-2222-4222-8222-222222222222';
+        const session = getInvestigationSession(el.currentSessionId);
+        session.records = [
+            {
+                id: recordId,
+                sessionId: 'ses_11111111-1111-4111-8111-111111111111',
+                question: QUESTION,
+                text: 'Done.',
+                status: 'completed',
+                files: [],
+                followUps: ['How do I publish it?'],
+            },
+        ];
+        el.showWelcomeScreen = false;
+        el.messages = [
+            { role: 'user', content: QUESTION },
+            {
+                role: 'assistant',
+                type: 'masa',
+                conversationId: el.currentSessionId,
+                question: QUESTION,
+                recordId,
+                fallback: null,
+                failure: null,
+                timestamp: 1,
+            },
+        ];
+        await el.updateComplete;
+        const answer = await lastAnswerElement(el);
+        const group = answer.shadowRoot.querySelector('mas-chat-button-group');
+        await group.updateComplete;
+        const send = sinon.spy(el, 'handleSendMessage');
+        group.querySelector('.chat-option-pill').click();
+        expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
+        expect(send.called).to.equal(false);
+    });
+
     it('leaves a running Studio turn loading when MASA is asked again', async () => {
         el.isLoading = true;
         el.dispatchEvent(new CustomEvent('masa-retry', { detail: { question: QUESTION } }));

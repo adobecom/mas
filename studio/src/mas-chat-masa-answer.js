@@ -20,10 +20,16 @@ export class MasChatMasaAnswer extends MasaSessionElement {
     };
 
     static styles = css`
+        :host {
+            display: grid;
+            gap: 12px;
+        }
+        /* Mirrors chat.css: the answer renders in a shadow root, so those rules do not reach the chips. */
         .chat-button-group {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            margin-top: 12px;
         }
         .chat-option-pill {
             display: flex;
@@ -41,7 +47,8 @@ export class MasChatMasaAnswer extends MasaSessionElement {
             border-color: var(--spectrum-gray-400, #b8b8b8);
         }
         .chat-option-pill.selected {
-            border-color: #1473e6;
+            border: 2px solid #1473e6;
+            padding: 11px 15px;
             font-weight: 600;
         }
         .chat-option-pill.disabled {
@@ -51,9 +58,10 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         .chat-option-pill-label {
             flex: 1;
         }
-        :host {
-            display: grid;
-            gap: 12px;
+        .chat-option-pill-check {
+            color: #1473e6;
+            flex-shrink: 0;
+            margin-left: 8px;
         }
         p {
             margin: 0;
@@ -194,6 +202,7 @@ export class MasChatMasaAnswer extends MasaSessionElement {
     }
 
     handleFollowUp(event) {
+        event.stopPropagation();
         this.dispatchEvent(
             new CustomEvent('masa-follow-up', { detail: { question: event.detail.value }, bubbles: true, composed: true }),
         );

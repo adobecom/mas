@@ -278,6 +278,28 @@ describe('mas-bulk-publish-items', () => {
         expect(btn.querySelector('sp-icon-add')).to.exist;
     });
 
+    it('disables the Report button and explains why when the project is not complete', async () => {
+        const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
+        const btn = el.shadowRoot.querySelector('[data-testid="report-btn"]');
+        expect(btn).to.exist;
+        expect(btn.hasAttribute('disabled')).to.be.true;
+        expect(el.shadowRoot.querySelector('[data-testid="report-hint"]').textContent).to.include(
+            'Report available once the project is complete',
+        );
+    });
+
+    it('enables the Report button and emits download-report when the project is complete', async () => {
+        const el = await fixture(html`
+            <mas-bulk-publish-items .items=${[]} .urls=${''} .canReport=${true}></mas-bulk-publish-items>
+        `);
+        const btn = el.shadowRoot.querySelector('[data-testid="report-btn"]');
+        expect(btn.hasAttribute('disabled')).to.be.false;
+        expect(el.shadowRoot.querySelector('[data-testid="report-hint"]')).to.be.null;
+        setTimeout(() => btn.click());
+        const ev = await oneEvent(el, 'download-report');
+        expect(ev).to.exist;
+    });
+
     it('toggleCollapse flips collapsed state', async () => {
         const el = await fixture(html` <mas-bulk-publish-items .items=${[]} .urls=${''}></mas-bulk-publish-items> `);
         expect(el.collapsed).to.equal(false);

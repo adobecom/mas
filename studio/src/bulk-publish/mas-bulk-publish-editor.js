@@ -375,6 +375,11 @@ class MasBulkPublishEditor extends LitElement {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHED || this.status === BULK_PUBLISH_STATUS.PARTIALLY_PUBLISHED;
     }
 
+    get canReport() {
+        const { PUBLISHED, PARTIALLY_PUBLISHED, FAILED } = BULK_PUBLISH_STATUS;
+        return !this.isNewProject && [PUBLISHED, PARTIALLY_PUBLISHED, FAILED].includes(this.status);
+    }
+
     get isPublishing() {
         return this.status === BULK_PUBLISH_STATUS.PUBLISHING;
     }
@@ -884,6 +889,35 @@ class MasBulkPublishEditor extends LitElement {
         });
     }
 
+    async handleDownloadReport() {
+        await this.#withPendingAction('report', async () => {
+            try {
+                const [{ reportAction }, { toReportCsv }] = await Promise.all([
+                    import('./bulk-publish-client.js'),
+                    import('./csv.js'),
+                ]);
+                const aemBaseUrl = this.repository?.aem?.baseUrl;
+                const report = await reportAction({
+                    ioBaseUrl: this.ioBaseUrl,
+                    projectId: this.project.id,
+                    token: this.token,
+                    aemOdinEndpoint: aemBaseUrl?.startsWith('http://localhost') ? undefined : aemBaseUrl,
+                });
+                const url = URL.createObjectURL(new Blob([toReportCsv(report)], { type: 'text/csv' }));
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `bulk-publish-report-${normalizeKey(this.title)}-${new Date().toISOString()}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+                const { live, failed, notLive } = report.summary;
+                showToast(`Report downloaded: ${live} live, ${failed} failed, ${notLive} not live.`, 'positive');
+            } catch (err) {
+                console.error('Failed to generate report:', err);
+                showToast(err.message || 'Failed to generate the report.', 'negative');
+            }
+        });
+    }
+
     handleRevert() {
         this.revertDialogOpen = true;
     }
@@ -984,6 +1018,8 @@ class MasBulkPublishEditor extends LitElement {
                 .urls=${this.urls}
                 .isPublished=${this.isPublished}
                 .modifications=${this.modifications}
+                .canReport=${this.canReport}
+                .reportPending=${this.pendingActions.has('report')}
                 ?disabled=${this.isLocked || this.isPublished}
                 @urls-change=${this.handleUrlsChange}
                 @validate-items=${this.validate}
@@ -991,6 +1027,7 @@ class MasBulkPublishEditor extends LitElement {
                 @url-remove=${this.handleUrlRemove}
                 @remove-all=${this.handleRemoveAll}
                 @check-modifications=${this.handleCheckModifications}
+                @download-report=${this.handleDownloadReport}
             ></mas-bulk-publish-items>
             <mas-bulk-publish-locales
                 .locales=${this.locales}

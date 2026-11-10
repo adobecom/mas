@@ -4,6 +4,7 @@ import {
     publishBulk,
     revertAction,
     checkModificationsAction,
+    reportAction,
     BulkPublishError,
 } from '../../src/bulk-publish/bulk-publish-client.js';
 
@@ -149,5 +150,37 @@ describe('checkModificationsAction', () => {
         const [url, init] = fetchStub.firstCall.args;
         expect(url).to.equal('https://io.example/bulk-check-modifications');
         expect(JSON.parse(init.body).entries).to.deep.equal(entries);
+    });
+});
+
+describe('reportAction', () => {
+    let fetchStub;
+    beforeEach(() => {
+        fetchStub = sinon.stub(window, 'fetch');
+    });
+    afterEach(() => fetchStub.restore());
+
+    it('POSTs the projectId to the bulk-report endpoint with the bearer token', async () => {
+        fetchStub.resolves(
+            new Response(JSON.stringify({ summary: { total: 0 }, rows: [] }), {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+            }),
+        );
+        await reportAction({ ioBaseUrl: 'https://io.example', projectId: 'proj-1', token: 'tok' });
+        const [url, init] = fetchStub.firstCall.args;
+        expect(url).to.equal('https://io.example/bulk-report');
+        expect(init.headers.Authorization).to.equal('Bearer tok');
+        expect(JSON.parse(init.body).projectId).to.equal('proj-1');
+    });
+
+    it('rejects immediately when projectId is missing', async () => {
+        try {
+            await reportAction({ ioBaseUrl: 'https://io.example', token: 't' });
+            expect.fail('should have thrown');
+        } catch (err) {
+            expect(err).to.be.instanceOf(BulkPublishError);
+            expect(fetchStub.called).to.equal(false);
+        }
     });
 });

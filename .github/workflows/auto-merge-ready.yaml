@@ -1,0 +1,50 @@
+name: Auto-merge Ready to Merge PRs
+
+on:
+    schedule:
+        - cron: '*/30 * * * 1-5'
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: 'Only report what would be merged: no merge, comment or purge'
+                required: false
+                type: boolean
+                default: false
+
+permissions:
+    contents: write
+    pull-requests: write
+    actions: write
+
+# Runs must not overlap: a merge makes every other PR BEHIND.
+concurrency:
+    group: auto-merge-ready
+    cancel-in-progress: false
+
+jobs:
+    merge:
+        if: github.repository_owner == 'adobecom'
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            GH_TOKEN: ${{ github.token }}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  # Full history, without file contents, to fingerprint approved commits against main.
+                  fetch-depth: 0
+                  filter: blob:none
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.x
+
+            - name: Ensure the Ready to Merge label exists
+              run: gh label create "Ready to Merge" --color "#0e8a16" --description "Merged automatically once approved, green and up to date" --force
+
+            - name: Merge the oldest eligible PR
+              run: node .github/scripts/auto-merge-ready.mjs
+              env:
+                  DRY_RUN: ${{ inputs.dry_run == true }}

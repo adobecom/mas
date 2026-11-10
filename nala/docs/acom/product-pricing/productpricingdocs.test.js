@@ -183,9 +183,10 @@ test.describe('ACOM MAS product-pricing cards feature test suite', () => {
             await openGallery();
         });
 
-        await test.step('step-2: Verify the free card shows a zero price and both CTAs', async () => {
+        await test.step('step-2: Verify the free card shows the word Free instead of a price, and both CTAs', async () => {
             await expect(acomPage.getCard(data.id).first()).toBeVisible();
-            await expect(acomPage.getCardPrice(data.id).first()).toHaveText(data.price);
+            await expect(acomPage.getCardPriceRow(data.id).first()).toHaveText(data.priceText);
+            await expect(acomPage.getCardPrice(data.id)).toHaveCount(0);
             await expect(acomPage.getCardCTAs(data.id).first()).toHaveText(data.ctas[0]);
             await expect(acomPage.getCardCTAs(data.id).nth(1)).toHaveText(data.ctas[1]);
         });

@@ -54,7 +54,7 @@ export const features = [
         tcid: '5',
         name: '@MAS-Product-Pricing-Free',
         path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
-        data: { id: '5bd63a91-d6e8-4659-a90d-a6346ad321f0', price: /^US\$0\.00\/mo$/, ctas: ['Create now', 'See plans'] },
+        data: { id: '5bd63a91-d6e8-4659-a90d-a6346ad321f0', priceText: 'Free', ctas: ['Create now', 'See plans'] },
         tags: '@mas-docs @mas-acom @mas-product-pricing-card @commerce @regression @milo',
     },
     {

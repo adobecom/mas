@@ -789,6 +789,7 @@ async function list(context, params) {
     const limit = params.limit ?? HISTORY_PAGE_SIZE;
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail(400, 'Invalid version limit');
     if (params.query !== undefined) text(params.query, 'query', 200);
+    const query = params.query?.trim().toLowerCase();
     if (params.cursor !== undefined) text(params.cursor, 'cursor', 150);
     const before = params.cursor ? await historyCursor(context, params.cursor) : undefined;
     const page = [];
@@ -818,12 +819,7 @@ async function list(context, params) {
             }
             const event = await findEntry(context, next.value.id);
             if (!event) continue;
-            const searchable = [
-                `Version ${event.version}`,
-                event.user.name,
-                ...event.changes.flatMap(({ field, before, after }) => [field, before, after]),
-            ];
-            const matches = !params.query || JSON.stringify(searchable).toLowerCase().includes(params.query.toLowerCase());
+            const matches = !query || [String(event.version), `version ${event.version}`].includes(query);
             if (!currentEventId || matches) batch.push({ event, matches });
         }
         const authorized = await Promise.all(

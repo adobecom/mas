@@ -633,7 +633,8 @@ describe('Promotion project versions', () => {
         expect(page.currentEventId).to.equal(second.id);
         const next = await call('list', { limit: 1, cursor: page.cursor });
         expect(next.events.map((event) => [event.id, event.version])).to.deep.equal([[first.id, 1]]);
-        const filtered = await call('list', { query: 'Project' });
+        const filtered = await call('list', { query: String(first.version) });
+        expect(filtered.events.map((event) => event.id)).to.deep.equal([first.id]);
         expect(filtered.currentEventId).to.equal(second.id);
         expect(await call('list', { query: 'No matching text' })).to.deep.equal({ events: [], currentEventId: second.id });
     });
@@ -645,12 +646,18 @@ describe('Promotion project versions', () => {
         });
     }
 
-    it('searches author names and changed field values without exposing internal metadata', async () => {
-        const { event } = await save();
-        for (const query of ['verified user', '@title', 'Project', 'Saved']) {
-            expect((await call('list', { query })).events.map((item) => item.id)).to.deep.equal([event.id]);
-        }
+    it('does not match author names, dates, changed values or internal metadata', async () => {
+        const { event } = await save(PROJECT, (fragment) => {
+            fragment.title = 'Saved';
+            fragment.description = '2026-10-09T19:57:00Z';
+        });
         for (const query of [
+            'verified user',
+            '@title',
+            'Project',
+            'Saved',
+            '10',
+            '2026-10-09',
             profile.email,
             profile.id,
             PROJECT,
@@ -666,15 +673,20 @@ describe('Promotion project versions', () => {
         }
     });
 
-    for (const query of ['20', 'Version 20', 'version 20']) {
-        it(`finds a version by its displayed number using ${JSON.stringify(query)}`, async () => {
-            await recordHistory(19);
-            await save(PROJECT, (fragment) => (fragment.title = 'Twentieth'), { requestId: 'twentieth' });
-            await save(PROJECT, (fragment) => (fragment.title = 'Latest'), { requestId: 'latest' });
+    for (const [query, expected] of [
+        ['1', 1],
+        ['10', 10],
+        ['20', 20],
+        ['Version 20', 20],
+        ['version 20', 20],
+        [' 10 ', 10],
+    ]) {
+        it(`matches only the exact version number using ${JSON.stringify(query)}`, async () => {
+            await recordHistory(21);
 
             const page = await call('list', { query });
 
-            expect(page.events.map((event) => event.version)).to.deep.equal([20]);
+            expect(page.events.map((event) => event.version)).to.deep.equal([expected]);
             expect(page.currentEventId).not.to.equal(page.events[0]?.id);
         });
     }

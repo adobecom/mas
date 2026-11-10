@@ -790,18 +790,15 @@ describe('Promotion version history', () => {
         expect(root.textContent).to.include('unavailable');
     });
 
-    it('sends search text without adding audit filters', async () => {
+    it('sends the version number without adding audit filters', async () => {
         const root = await mount();
         const input = root.querySelector('#history-search');
-        input.value = 'Author';
+        input.value = '10';
 
         input.dispatchEvent(new Event('submit', { cancelable: true }));
         await waitUntil(() => client.listPromotionHistory.callCount === 2);
 
-        expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([
-            before.id,
-            { limit: 10, query: 'Author' },
-        ]);
+        expect(client.listPromotionHistory.lastCall.args.slice(0, 2)).to.deep.equal([before.id, { limit: 10, query: '10' }]);
     });
 
     it('submits the real search input with Enter without navigating or replacing the current environment', async () => {
@@ -829,7 +826,7 @@ describe('Promotion version history', () => {
     for (const value of ['', '   ']) {
         it(`removes the previous search filter when submitting ${JSON.stringify(value)}`, async () => {
             const root = await mount();
-            root.querySelector('#history-search').value = 'Author';
+            root.querySelector('#history-search').value = '10';
             root.querySelector('#history-search').dispatchEvent(new Event('submit', { cancelable: true }));
             await waitUntil(() => client.listPromotionHistory.callCount === 2 && !element.busy);
             await element.updateComplete;

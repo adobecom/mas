@@ -927,8 +927,8 @@ export class MasPromotionHistory extends LitElement {
                 <sp-search
                     id="history-search"
                     name="query"
-                    placeholder="Search version history"
-                    aria-label="Search version history"
+                    placeholder="Search by version number"
+                    aria-label="Search by version number"
                     .value=${this.filters.query ?? ''}
                     ?disabled=${this.busy}
                     @submit=${this.applyFilters}

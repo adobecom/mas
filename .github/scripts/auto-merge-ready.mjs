@@ -18,7 +18,7 @@ export const MAX_CHANGED_FILES = 30;
 
 const BLOCKING_LABELS = ['do not merge', 'under milo validation', 'rcp-restricted'];
 const RESTRICTED_PREFIXES = ['io/', 'web-components/', '.github/'];
-const PASSING_CONCLUSIONS = ['SUCCESS', 'NEUTRAL', 'SKIPPED'];
+const PASSING_CONCLUSIONS = ['success', 'neutral', 'skipped'];
 // Review states that say nothing about approval.
 const NEUTRAL_REVIEW_STATES = ['COMMENTED', 'PENDING'];
 
@@ -39,30 +39,25 @@ export function touchesStudio(files) {
     return files.flatMap(pathsOf).some((path) => path.startsWith('studio/'));
 }
 
-// The rollup holds CheckRun (name, status, conclusion) and StatusContext (context, state) entries, and keeps every
-// rerun of a check, so only the latest entry per name counts.
-const checkName = (check) => check.name ?? check.context;
-const checkTime = (check) => Math.max(...[check.startedAt, check.completedAt].map((time) => Date.parse(time) || 0));
-
-export function latestChecks(rollup) {
+// Check run ids increase with every new run of a check, so the highest id per name is the latest. Timestamps are
+// unreliable: a queued run has none and a slow old run can finish after a newer one.
+export function latestRuns(checkRuns) {
     const latest = new Map();
-    for (const check of rollup ?? []) {
-        const seen = latest.get(checkName(check));
-        if (!seen || checkTime(check) >= checkTime(seen)) latest.set(checkName(check), check);
+    for (const run of checkRuns) {
+        if (!latest.has(run.name) || run.id > latest.get(run.name).id) latest.set(run.name, run);
     }
     return [...latest.values()];
 }
 
-function checkResult(check) {
-    if (check.state !== undefined) return check.state;
-    return check.status === 'COMPLETED' ? check.conclusion : check.status;
-}
-
-export function failingChecks(rollup) {
-    return latestChecks(rollup)
-        .filter((check) => !PASSING_CONCLUSIONS.includes(checkResult(check)))
-        .map((check) => `${checkName(check)} (${checkResult(check)})`)
-        .sort();
+// `statuses` is already the latest status per context.
+export function failingChecks({ checkRuns, statuses }) {
+    const runs = latestRuns(checkRuns)
+        .filter((run) => run.status !== 'completed' || !PASSING_CONCLUSIONS.includes(run.conclusion))
+        .map((run) => `${run.name} (${run.status === 'completed' ? run.conclusion : run.status})`);
+    const failed = statuses
+        .filter((status) => status.state !== 'success')
+        .map((status) => `${status.context} (${status.state})`);
+    return [...runs, ...failed].sort();
 }
 
 // Each reviewer's latest non-comment review, when it is an approval.
@@ -75,10 +70,9 @@ export function currentApprovals(reviews) {
     return [...latest.values()].filter((review) => review.state === 'APPROVED');
 }
 
-// An approval counts when the commit it approved has the same diff against main as the head.
-export function countApprovals({ reviews, headPatchId, patchIds }) {
-    if (!headPatchId) return 0;
-    return currentApprovals(reviews).filter((review) => patchIds[review.commit_id] === headPatchId).length;
+// `applies` maps an approved commit to whether replaying its change onto the head's main base gives the head.
+export function countApprovals({ reviews, headSha, applies }) {
+    return currentApprovals(reviews).filter((review) => review.commit_id === headSha || applies[review.commit_id]).length;
 }
 
 // `load` returns the data that needs a request, so a PR is only loaded as far as the first failing rule.
@@ -89,7 +83,7 @@ export function skipReason(pr, load) {
     if (pr.changedFiles >= MAX_CHANGED_FILES) return `${pr.changedFiles} changed files (limit is ${MAX_CHANGED_FILES - 1})`;
     const restricted = restrictedPath(load.files());
     if (restricted) return `touches ${restricted}`;
-    const failing = failingChecks(pr.statusCheckRollup);
+    const failing = failingChecks(load.checks());
     if (failing.length) return `checks not passing: ${failing.join(', ')}`;
     if (pr.mergeStateStatus !== 'CLEAN') return `merge state is ${pr.mergeStateStatus}`;
     const approvals = countApprovals(load.approvals());
@@ -99,6 +93,12 @@ export function skipReason(pr, load) {
 
 export function commentBody(reason) {
     return `${MARKER}\nNot auto-merged yet: ${reason}`;
+}
+
+export function summary({ dryRun, rows }) {
+    const mode = dryRun ? 'dry run: nothing is merged, commented or purged' : 'live';
+    const body = rows.length ? summaryTable(rows) : `No open PR is labeled "${LABEL}".`;
+    return `Mode: ${mode}\n\n${body}`;
 }
 
 export function summaryTable(rows) {
@@ -119,20 +119,33 @@ function git(...args) {
     return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-// Same value for two commits that make the same change to main, whatever main looks like around it.
-function patchId(sha) {
-    const base = git('merge-base', 'origin/main', sha).trim();
-    const diff = git('diff', base, sha);
-    return execFileSync('git', ['patch-id', '--stable'], { encoding: 'utf8', input: diff }).split(' ')[0] || null;
+function runGit(args) {
+    return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-function tryPatchId(ref, sha) {
+// Replaying the approved change onto the head's main base must give exactly the head's tree. A clean update from main
+// or a clean rebase passes, any code change or hand-resolved conflict does not. `git` throws on a non-zero exit, and
+// merge-tree exits 1 on conflicts.
+function appliesToHead(git, headSha, commitId) {
     try {
-        git('fetch', 'origin', ref);
-        return patchId(sha);
+        git(['fetch', 'origin', commitId]);
+        const base = git(['merge-base', 'origin/main', headSha]).trim();
+        const merged = git(['merge-tree', '--write-tree', commitId, base]).split('\n')[0].trim();
+        return merged === git(['rev-parse', `${headSha}^{tree}`]).trim();
     } catch {
-        return null;
+        return false;
     }
+}
+
+export function approvalsApplying(git, { number, headSha, commitIds }) {
+    const others = commitIds.filter((commitId) => commitId !== headSha);
+    if (!others.length) return {};
+    try {
+        git(['fetch', 'origin', `refs/pull/${number}/head`]);
+    } catch {
+        return {};
+    }
+    return Object.fromEntries(others.map((commitId) => [commitId, appliesToHead(git, headSha, commitId)]));
 }
 
 function once(fn) {
@@ -147,15 +160,29 @@ function once(fn) {
     };
 }
 
+function ghJson(path) {
+    return JSON.parse(gh('api', path));
+}
+
+function loadChecks(repo, sha) {
+    const pages = JSON.parse(
+        gh('api', `repos/${repo}/commits/${sha}/check-runs?filter=all&per_page=100`, '--paginate', '--slurp'),
+    );
+    return {
+        checkRuns: pages.flatMap((page) => page.check_runs),
+        statuses: ghJson(`repos/${repo}/commits/${sha}/status?per_page=100`).statuses,
+    };
+}
+
 function loaders(repo, pr) {
     return {
         files: once(() => ghPaginate(`repos/${repo}/pulls/${pr.number}/files`)),
+        checks: once(() => loadChecks(repo, pr.headRefOid)),
         approvals: once(() => {
             const reviews = ghPaginate(`repos/${repo}/pulls/${pr.number}/reviews`);
-            const headPatchId = tryPatchId(`refs/pull/${pr.number}/head`, pr.headRefOid);
-            const commits = [...new Set(currentApprovals(reviews).map((review) => review.commit_id))];
-            const patchIds = Object.fromEntries(commits.map((sha) => [sha, tryPatchId(sha, sha)]));
-            return { reviews, headPatchId, patchIds };
+            const commitIds = [...new Set(currentApprovals(reviews).map((review) => review.commit_id))];
+            const applies = approvalsApplying(runGit, { number: pr.number, headSha: pr.headRefOid, commitIds });
+            return { reviews, headSha: pr.headRefOid, applies };
         }),
     };
 }
@@ -170,21 +197,31 @@ function syncComment(repo, number, reason) {
 }
 
 // GITHUB_TOKEN merges do not trigger push workflows, so the Akamai purge of Studio files is dispatched by hand.
+// Returns the failure, with the commit to purge from when it is known, or null.
 function dispatchPurge(repo, number) {
-    const { mergeCommit } = JSON.parse(gh('pr', 'view', String(number), '--repo', repo, '--json', 'mergeCommit'));
-    const parent = gh('api', `repos/${repo}/commits/${mergeCommit.oid}`, '--jq', '.parents[0].sha').trim();
-    gh('workflow', 'run', 'studio-akamai-purge.yaml', '--repo', repo, '-f', `before_sha=${parent}`);
+    let parent;
+    try {
+        const { mergeCommit } = JSON.parse(gh('pr', 'view', String(number), '--repo', repo, '--json', 'mergeCommit'));
+        parent = gh('api', `repos/${repo}/commits/${mergeCommit.oid}`, '--jq', '.parents[0].sha').trim();
+        gh('workflow', 'run', 'studio-akamai-purge.yaml', '--repo', repo, '-f', `before_sha=${parent}`);
+        return null;
+    } catch (error) {
+        return { number, parent, message: error.message };
+    }
 }
 
+export function purgeFailureMessage({ number, parent, message }) {
+    const sha = parent ?? `<first parent of the merge commit of #${number}>`;
+    return `PR #${number} is merged but the Akamai purge dispatch failed (${message}). Retry: gh workflow run studio-akamai-purge.yaml -f before_sha=${sha}`;
+}
+
+// A merged PR is never retried: a purge failure is reported next to "merged" and fails the run.
 function merge(repo, pr, files) {
     gh('pr', 'merge', String(pr.number), '--repo', repo, '--squash', '--match-head-commit', pr.headRefOid);
-    if (!touchesStudio(files)) return 'merged';
-    try {
-        dispatchPurge(repo, pr.number);
-        return 'merged, Akamai purge dispatched';
-    } catch (error) {
-        return `merged, Akamai purge dispatch failed: ${error.message}`;
-    }
+    if (!touchesStudio(files)) return { outcome: 'merged' };
+    const purgeFailure = dispatchPurge(repo, pr.number);
+    if (purgeFailure) return { outcome: 'merged, Akamai purge dispatch failed', purgeFailure };
+    return { outcome: 'merged, Akamai purge dispatched' };
 }
 
 function handle(repo, pr, dryRun) {
@@ -201,7 +238,7 @@ function handle(repo, pr, dryRun) {
         return { outcome: `skipped: ${reason}` };
     }
     if (dryRun) return { outcome: 'would merge', merged: true };
-    return { outcome: merge(repo, pr, load.files()), merged: true };
+    return { ...merge(repo, pr, load.files()), merged: true };
 }
 
 function main() {
@@ -220,10 +257,11 @@ function main() {
             '--limit',
             '200',
             '--json',
-            'number,isDraft,labels,headRefOid,changedFiles,mergeStateStatus,statusCheckRollup',
+            'number,isDraft,labels,headRefOid,changedFiles,mergeStateStatus',
         ),
     );
     const rows = [];
+    const purgeFailures = [];
     let mergedNumber = null;
     for (const pr of selectCandidates(prs)) {
         if (mergedNumber) {
@@ -231,16 +269,19 @@ function main() {
             continue;
         }
         try {
-            const { outcome, merged } = handle(repo, pr, dryRun);
+            const { outcome, merged, purgeFailure } = handle(repo, pr, dryRun);
             rows.push({ number: pr.number, outcome });
             if (merged) mergedNumber = pr.number;
+            if (purgeFailure) purgeFailures.push(purgeFailure);
         } catch (error) {
             rows.push({ number: pr.number, outcome: `error: ${error.message}` });
         }
     }
-    const table = rows.length ? summaryTable(rows) : `No open PR is labeled "${LABEL}".`;
-    console.log(table);
-    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${table}\n`);
+    const text = summary({ dryRun, rows });
+    console.log(text);
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);
+    for (const failure of purgeFailures) console.error(purgeFailureMessage(failure));
+    if (purgeFailures.length) process.exitCode = 1;
 }
 
 const isDirectRun = process.argv[1] && basename(process.argv[1]) === basename(fileURLToPath(import.meta.url));

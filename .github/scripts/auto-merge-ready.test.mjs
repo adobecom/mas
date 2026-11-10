@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -6,27 +10,23 @@ import {
     commentBody,
     countApprovals,
     currentApprovals,
+    approvalsApplying,
     failingChecks,
-    latestChecks,
+    purgeFailureMessage,
     selectCandidates,
     skipReason,
+    summary,
     summaryTable,
     touchesStudio,
 } from './auto-merge-ready.mjs';
 
-const run = (name, status, conclusion, startedAt, completedAt = startedAt) => ({
-    name,
-    status,
-    conclusion,
-    startedAt,
-    completedAt,
-});
-const passing = [run('build', 'COMPLETED', 'SUCCESS', '2026-01-01T10:00:00Z')];
+const run = (id, name, status, conclusion) => ({ id, name, status, conclusion });
+const passing = { checkRuns: [run(1, 'build', 'completed', 'success')], statuses: [] };
 const review = (login, state, submitted_at, commit_id = 'head') => ({ user: { login }, state, submitted_at, commit_id });
 const approvals = {
     reviews: [review('a', 'APPROVED', '2026-01-01T10:00:00Z'), review('b', 'APPROVED', '2026-01-01T11:00:00Z')],
-    headPatchId: 'p1',
-    patchIds: { head: 'p1' },
+    headSha: 'head',
+    applies: {},
 };
 
 const readyPr = (overrides = {}) => ({
@@ -36,11 +36,11 @@ const readyPr = (overrides = {}) => ({
     headRefOid: 'head',
     changedFiles: 2,
     mergeStateStatus: 'CLEAN',
-    statusCheckRollup: passing,
     ...overrides,
 });
-const loadOf = ({ files = [{ filename: 'studio/src/a.js' }], approved = approvals } = {}) => ({
+const loadOf = ({ files = [{ filename: 'studio/src/a.js' }], checks = passing, approved = approvals } = {}) => ({
     files: () => files,
+    checks: () => checks,
     approvals: () => approved,
 });
 const forbidden = () => assert.fail('loaded data an earlier rule makes unnecessary');
@@ -61,7 +61,7 @@ test('blocking labels are skipped', () => {
 });
 
 test('30 or more changed files are skipped before files are fetched', () => {
-    const load = { files: forbidden, approvals: forbidden };
+    const load = { files: forbidden, checks: forbidden, approvals: forbidden };
     assert.match(skipReason(readyPr({ changedFiles: 30 }), load), /30 changed files/);
     assert.equal(skipReason(readyPr({ changedFiles: 29 }), loadOf()), null);
 });
@@ -82,9 +82,13 @@ test('paths that only look restricted pass', () => {
     assert.equal(skipReason(readyPr(), loadOf({ files })), null);
 });
 
-test('failing checks are skipped before approvals are loaded', () => {
-    const pr = readyPr({ statusCheckRollup: [run('Nala Gate', 'COMPLETED', 'FAILURE', '2026-01-01T10:00:00Z')] });
-    assert.equal(skipReason(pr, { files: () => [], approvals: forbidden }), 'checks not passing: Nala Gate (FAILURE)');
+test('failing checks are skipped before the merge state and approvals are considered', () => {
+    const checks = { checkRuns: [run(1, 'Nala Gate', 'completed', 'failure')], statuses: [] };
+    const pr = readyPr({ mergeStateStatus: 'BEHIND' });
+    assert.equal(
+        skipReason(pr, { files: () => [], checks: () => checks, approvals: forbidden }),
+        'checks not passing: Nala Gate (failure)',
+    );
 });
 
 test('merge state other than CLEAN is skipped', () => {
@@ -98,45 +102,38 @@ test('fewer than two applying approvals are skipped', () => {
     assert.equal(skipReason(readyPr(), loadOf({ approved: one })), '1 of 2 approvals apply to the current code');
 });
 
-test('an old failure followed by a newer success passes', () => {
-    const rollup = [
-        run('Nala Gate', 'COMPLETED', 'FAILURE', '2026-01-01T10:00:00Z', '2026-01-01T10:05:00Z'),
-        run('Nala Gate', 'COMPLETED', 'SUCCESS', '2026-01-01T11:00:00Z', '2026-01-01T11:05:00Z'),
-    ];
-    assert.equal(latestChecks(rollup).length, 1);
-    assert.deepEqual(failingChecks(rollup), []);
+const failures = (checkRuns, statuses = []) => failingChecks({ checkRuns, statuses });
+
+test('an old failure followed by a newer success passes, in either array order', () => {
+    const runs = [run(1, 'Nala Gate', 'completed', 'failure'), run(2, 'Nala Gate', 'completed', 'success')];
+    assert.deepEqual(failures(runs), []);
+    assert.deepEqual(failures([...runs].reverse()), []);
 });
 
-test('dedupe does not depend on array order', () => {
-    const rollup = [
-        run('Nala Gate', 'COMPLETED', 'SUCCESS', '2026-01-01T11:00:00Z'),
-        run('Nala Gate', 'COMPLETED', 'CANCELLED', '2026-01-01T10:00:00Z'),
-    ];
-    assert.deepEqual(failingChecks(rollup), []);
+test('an older success that finished after a newer failure still fails', () => {
+    const runs = [run(1, 'Nala Gate', 'completed', 'success'), run(2, 'Nala Gate', 'completed', 'failure')];
+    assert.deepEqual(failures(runs), ['Nala Gate (failure)']);
+    assert.deepEqual(failures([...runs].reverse()), ['Nala Gate (failure)']);
 });
 
-test('a newer pending rerun fails', () => {
-    const rollup = [
-        run('Nala Gate', 'COMPLETED', 'SUCCESS', '2026-01-01T10:00:00Z', '2026-01-01T10:05:00Z'),
-        run('Nala Gate', 'IN_PROGRESS', '', '2026-01-01T11:00:00Z', '0001-01-01T00:00:00Z'),
-    ];
-    assert.deepEqual(failingChecks(rollup), ['Nala Gate (IN_PROGRESS)']);
+test('a newer queued or in-progress run after an older success fails', () => {
+    for (const status of ['queued', 'in_progress']) {
+        const runs = [run(1, 'Nala Gate', 'completed', 'success'), run(2, 'Nala Gate', status, null)];
+        assert.deepEqual(failures(runs), [`Nala Gate (${status})`]);
+        assert.deepEqual(failures([...runs].reverse()), [`Nala Gate (${status})`]);
+    }
 });
 
-test('neutral and skipped conclusions pass', () => {
-    const rollup = [
-        run('a', 'COMPLETED', 'NEUTRAL', '2026-01-01T10:00:00Z'),
-        run('b', 'COMPLETED', 'SKIPPED', '2026-01-01T10:00:00Z'),
-    ];
-    assert.deepEqual(failingChecks(rollup), []);
+test('neutral and skipped conclusions pass, other conclusions fail', () => {
+    assert.deepEqual(failures([run(1, 'a', 'completed', 'neutral'), run(2, 'b', 'completed', 'skipped')]), []);
+    assert.deepEqual(failures([run(1, 'a', 'completed', 'cancelled')]), ['a (cancelled)']);
 });
 
-test('StatusContext entries are matched by context', () => {
-    const status = (state, startedAt) => ({ context: 'ci/legacy', state, startedAt });
-    assert.deepEqual(failingChecks([status('FAILURE', '2026-01-01T10:00:00Z'), status('SUCCESS', '2026-01-01T11:00:00Z')]), []);
-    assert.deepEqual(failingChecks([status('SUCCESS', '2026-01-01T10:00:00Z'), status('PENDING', '2026-01-01T11:00:00Z')]), [
-        'ci/legacy (PENDING)',
-    ]);
+test('commit statuses must all be success', () => {
+    assert.deepEqual(failures([], [{ context: 'ci/legacy', state: 'success' }]), []);
+    for (const state of ['pending', 'failure', 'error']) {
+        assert.deepEqual(failures([], [{ context: 'ci/legacy', state }]), [`ci/legacy (${state})`]);
+    }
 });
 
 test('a reviewer whose latest non-comment review requests changes does not count', () => {
@@ -165,24 +162,17 @@ test('a dismissed approval does not count', () => {
     );
 });
 
-test('approvals on an older commit count only with the same patch-id as the head', () => {
+test('an approval on the head counts without a tree comparison', () => {
+    assert.equal(countApprovals({ ...approvals, applies: {} }), 2);
+});
+
+test('an approval on an older commit counts only when it applies to the head', () => {
     const reviews = [
         review('a', 'APPROVED', '2026-01-01T10:00:00Z', 'old'),
         review('b', 'APPROVED', '2026-01-01T11:00:00Z', 'rewritten'),
     ];
-    const patchIds = { old: 'p1', rewritten: 'p2' };
-    assert.equal(countApprovals({ reviews, headPatchId: 'p1', patchIds }), 1);
-});
-
-test('an approval on a commit that could not be fetched does not count', () => {
-    const reviews = [review('a', 'APPROVED', '2026-01-01T10:00:00Z', 'gone')];
-    assert.equal(countApprovals({ reviews, headPatchId: 'p1', patchIds: { gone: null } }), 0);
-    assert.equal(countApprovals({ reviews, headPatchId: 'p1', patchIds: {} }), 0);
-});
-
-test('nothing counts when the head patch-id is unknown', () => {
-    const reviews = [review('a', 'APPROVED', '2026-01-01T10:00:00Z')];
-    assert.equal(countApprovals({ reviews, headPatchId: null, patchIds: { head: null } }), 0);
+    assert.equal(countApprovals({ reviews, headSha: 'head', applies: { old: true, rewritten: false } }), 1);
+    assert.equal(countApprovals({ reviews, headSha: 'head', applies: {} }), 0);
 });
 
 test('only the exact label selects candidates, oldest PR first', () => {
@@ -207,4 +197,134 @@ test('touchesStudio sees renames out of studio/', () => {
 test('the comment carries the marker and the summary escapes pipes', () => {
     assert.ok(commentBody('draft').startsWith(MARKER));
     assert.match(summaryTable([{ number: 4, outcome: 'skipped: a | b' }]), /\| #4 \| skipped: a \\\| b \|/);
+});
+
+test('the summary starts with the mode', () => {
+    const rows = [{ number: 4, outcome: 'would merge' }];
+    assert.match(summary({ dryRun: true, rows }), /^Mode: dry run/);
+    assert.match(summary({ dryRun: false, rows }), /^Mode: live\n\n\| PR/);
+    assert.match(summary({ dryRun: false, rows: [] }), /No open PR is labeled "Ready to Merge"/);
+});
+
+test('the purge failure names the PR and the exact retry command', () => {
+    const message = purgeFailureMessage({ number: 7, parent: 'abc123', message: 'boom' });
+    assert.match(message, /PR #7 is merged/);
+    assert.ok(message.endsWith('gh workflow run studio-akamai-purge.yaml -f before_sha=abc123'));
+});
+
+// Real git: a bare origin, a clone that built the history, and a fresh runner clone that only knows what origin serves.
+function repoWith(build) {
+    const dir = mkdtempSync(join(tmpdir(), 'auto-merge-ready-'));
+    const sh = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    const origin = join(dir, 'origin.git');
+    const work = join(dir, 'work');
+    sh(dir, 'init', '--bare', '-b', 'main', origin);
+    sh(dir, 'clone', origin, work);
+    sh(work, 'config', 'user.email', 'test@example.com');
+    sh(work, 'config', 'user.name', 'Test');
+    const lines = Array.from({ length: 10 }, (_, i) => `line ${i + 1}`).join('\n');
+    const write = (file, content) => writeFileSync(join(work, file), content);
+    const commit = (message) => {
+        sh(work, 'add', '-A');
+        sh(work, 'commit', '-m', message);
+        return sh(work, 'rev-parse', 'HEAD');
+    };
+    write('a.txt', `${lines}\n`);
+    write('s.txt', 'status: not allowed\n');
+    commit('base');
+    sh(work, 'push', 'origin', 'main');
+    sh(work, 'checkout', '-b', 'pr');
+    const { approved, head } = build({ sh: (...args) => sh(work, ...args), write, commit, lines });
+    sh(work, 'push', 'origin', 'main');
+    sh(work, 'push', 'origin', `${head}:refs/pull/1/head`);
+    // Reachable only through a ref the runner's clone does not fetch, like a replaced PR commit.
+    sh(work, 'push', 'origin', `${approved}:refs/pull/1/approved`);
+    const runner = join(dir, 'runner');
+    sh(dir, 'clone', origin, runner);
+    const git = (args) => execFileSync('git', args, { cwd: runner, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    return { dir, git, approved, head };
+}
+
+function approvalApplies(build) {
+    const { dir, git, approved, head } = repoWith(build);
+    try {
+        return approvalsApplying(git, { number: 1, headSha: head, commitIds: [approved] })[approved];
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+}
+
+// The PR changes line 3 of a.txt and gets approved.
+function approvedChange({ sh, write, commit, lines }) {
+    write('a.txt', `${lines.replace('line 3', 'line 3 changed')}\n`);
+    return commit('pr change');
+}
+
+const mainChange = (sh, write, commit, file, content, message) => {
+    sh('checkout', 'main');
+    write(file, content);
+    const sha = commit(message);
+    return sha;
+};
+
+test('a clean merge from main that changed lines near the PR change keeps the approval', () => {
+    const applies = approvalApplies((ctx) => {
+        const approved = approvedChange(ctx);
+        mainChange(ctx.sh, ctx.write, ctx.commit, 'a.txt', `${ctx.lines.replace('line 6', 'line 6 main')}\n`, 'main change');
+        ctx.sh('checkout', 'pr');
+        ctx.sh('merge', '--no-edit', 'main');
+        return { approved, head: ctx.sh('rev-parse', 'HEAD') };
+    });
+    assert.equal(applies, true);
+});
+
+test('removing a space inside a string after the approval drops it', () => {
+    const applies = approvalApplies((ctx) => {
+        const approved = approvedChange(ctx);
+        ctx.write('s.txt', 'status: notallowed\n');
+        return { approved, head: ctx.commit('edit string') };
+    });
+    assert.equal(applies, false);
+});
+
+test('a clean rebase onto newer main keeps the approval', () => {
+    const applies = approvalApplies((ctx) => {
+        const approved = approvedChange(ctx);
+        mainChange(ctx.sh, ctx.write, ctx.commit, 'other.txt', 'other\n', 'main change');
+        ctx.sh('checkout', 'pr');
+        ctx.sh('rebase', 'main');
+        return { approved, head: ctx.sh('rev-parse', 'HEAD') };
+    });
+    assert.equal(applies, true);
+});
+
+test('a merge from main with a hand-resolved conflict drops the approval', () => {
+    const applies = approvalApplies((ctx) => {
+        const approved = approvedChange(ctx);
+        mainChange(
+            ctx.sh,
+            ctx.write,
+            ctx.commit,
+            'a.txt',
+            `${ctx.lines.replace('line 3', 'line 3 main')}\n`,
+            'conflicting main change',
+        );
+        ctx.sh('checkout', 'pr');
+        assert.throws(() => ctx.sh('merge', '--no-edit', 'main'));
+        ctx.write('a.txt', `${ctx.lines.replace('line 3', 'line 3 resolved')}\n`);
+        ctx.sh('add', '-A');
+        ctx.sh('commit', '--no-edit');
+        return { approved, head: ctx.sh('rev-parse', 'HEAD') };
+    });
+    assert.equal(applies, false);
+});
+
+test('an approval commit that cannot be fetched does not count', () => {
+    const { dir, git, head } = repoWith((ctx) => ({ approved: approvedChange(ctx), head: ctx.sh('rev-parse', 'HEAD') }));
+    try {
+        const missing = 'deadbeef'.repeat(5);
+        assert.deepEqual(approvalsApplying(git, { number: 1, headSha: head, commitIds: [missing] }), { [missing]: false });
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
 });

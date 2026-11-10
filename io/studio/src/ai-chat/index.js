@@ -762,7 +762,7 @@ async function main(params) {
         // and ungrounded feature answers contradict the docs.
         // A turn that can hand off to ASK_MASA gets its knowledge from MASA.
         const retriever = masa && nativeEnvelopeEligible ? null : knowledgeClient;
-        const { ragContext, sources: ragSources } = await retrieveRAGContext(message, retriever, {
+        const { ragContext } = await retrieveRAGContext(message, retriever, {
             isDocumentation: isDocumentation || isQuestionShaped(message),
         });
         if (ragContext) {
@@ -973,7 +973,6 @@ async function main(params) {
                     body: {
                         envelope: finalEnvelope,
                         ...envelopeBody,
-                        sources: ragSources,
                         usage,
                         conversationHistory: [
                             ...conversationHistory,
@@ -1329,7 +1328,6 @@ async function main(params) {
                 ...(parsedResponse.parseError ? { requestId } : {}),
                 type: 'message',
                 message: parsedResponse.message,
-                sources: ragSources,
                 usage: totalUsage,
                 conversationHistory: [
                     ...conversationHistory,

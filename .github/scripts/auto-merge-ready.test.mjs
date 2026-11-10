@@ -10,6 +10,7 @@ import {
     commentBody,
     countApprovals,
     currentApprovals,
+    maxChangedFiles,
     approvalsApplying,
     failingChecks,
     purgeFailureMessage,
@@ -166,6 +167,11 @@ test('a dismissed approval does not count', () => {
         currentApprovals([review('a', 'APPROVED', '2026-01-01T10:00:00Z'), review('a', 'DISMISSED', '2026-01-01T11:00:00Z')]),
         [],
     );
+});
+
+test('the file limit comes from AUTO_MERGE_MAX_FILES and falls back to 29', () => {
+    assert.equal(maxChangedFiles('50'), 50);
+    for (const value of [undefined, '', '0', '-3', '2.5', 'many']) assert.equal(maxChangedFiles(value), 29);
 });
 
 test('an approval from a reviewer outside the repo does not count', () => {

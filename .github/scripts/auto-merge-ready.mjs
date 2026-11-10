@@ -14,7 +14,15 @@ export const REPO = 'adobecom/mas';
 export const LABEL = 'Ready to Merge';
 export const MARKER = '<!-- auto-merge-ready -->';
 export const MIN_APPROVALS = 2;
-export const MAX_CHANGED_FILES = 30;
+// The repo variable AUTO_MERGE_MAX_FILES overrides the default without a code change, as milo's merge-to-stage does.
+export const DEFAULT_MAX_CHANGED_FILES = 29;
+
+export function maxChangedFiles(value) {
+    const max = Number(value);
+    return Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_CHANGED_FILES;
+}
+
+export const MAX_CHANGED_FILES = maxChangedFiles(process.env.AUTO_MERGE_MAX_FILES);
 
 const BLOCKING_LABELS = ['do not merge', 'under milo validation', 'rcp-restricted'];
 const RESTRICTED_PREFIXES = ['io/', 'web-components/', '.github/'];
@@ -85,7 +93,7 @@ export function skipReason(pr, load) {
     if (pr.isDraft) return 'draft';
     const blocking = pr.labels.find((label) => BLOCKING_LABELS.includes(label.name.toLowerCase()));
     if (blocking) return `labeled "${blocking.name}"`;
-    if (pr.changedFiles >= MAX_CHANGED_FILES) return `${pr.changedFiles} changed files (limit is ${MAX_CHANGED_FILES - 1})`;
+    if (pr.changedFiles > MAX_CHANGED_FILES) return `${pr.changedFiles} changed files (limit is ${MAX_CHANGED_FILES})`;
     const restricted = restrictedPath(load.files());
     if (restricted) return `touches ${restricted}`;
     const failing = failingChecks(load.checks());

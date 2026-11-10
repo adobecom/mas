@@ -1,6 +1,10 @@
 name: Auto-merge Ready to Merge PRs
 
+# Same triggers as milo's merge-to-stage: merge as soon as the label is added, and sweep on a schedule for PRs whose
+# checks or approvals finished later.
 on:
+    pull_request_target:
+        types: [labeled]
     schedule:
         - cron: '*/30 * * * 1-5'
     workflow_dispatch:
@@ -16,14 +20,17 @@ permissions:
     pull-requests: write
     actions: write
 
-# Runs must not overlap: a merge makes every other PR BEHIND.
-concurrency:
-    group: auto-merge-ready
-    cancel-in-progress: false
-
 jobs:
     merge:
-        if: github.repository_owner == 'adobecom'
+        # pull_request_target runs this workflow from main, never the PR's code. The PR is only compared with git.
+        if: >-
+            github.repository_owner == 'adobecom' && (github.event_name != 'pull_request_target' ||
+            (github.event.pull_request.base.ref == 'main' && github.event.label.name == 'Ready to Merge'))
+        # Runs must not overlap: a merge makes every other PR BEHIND. Job-level, so runs skipped for other labels
+        # never displace a pending run.
+        concurrency:
+            group: auto-merge-ready
+            cancel-in-progress: false
         runs-on: ubuntu-latest
         timeout-minutes: 15
         env:
@@ -46,3 +53,4 @@ jobs:
               env:
                   # Scheduled runs only report until the repo variable AUTO_MERGE_LIVE is 'true'.
                   DRY_RUN: ${{ inputs.dry_run == true || vars.AUTO_MERGE_LIVE != 'true' }}
+                  AUTO_MERGE_MAX_FILES: ${{ vars.AUTO_MERGE_MAX_FILES }}

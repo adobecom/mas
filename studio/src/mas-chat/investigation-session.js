@@ -70,13 +70,12 @@ const bodyBlocks = (answer) => {
     const steps = answer.steps ?? [];
     const folded = [...(points.length === 1 ? points : []), ...(steps.length === 1 && points.length <= 1 ? steps : [])];
     const asks = (answer.asks ?? []).map((ask) => asSentence(leadIn(ask.text)));
-    const nextCheck = answer.nextCheck ?? answer.next_check;
     return [
         folded.length ? [answer.answer, ...folded].map(asSentence).join(' ') : answer.answer,
         points.length > 1 && points.map((point) => `- ${point}`).join('\n'),
         steps.length === 1 && points.length > 1 && asSentence(steps[0]),
         steps.length > 1 && steps.map((step, index) => `${index + 1}. ${step}`).join('\n'),
-        nextCheck && `**Next check:** ${nextCheck}`,
+        answer.nextCheck && `**Next check:** ${answer.nextCheck}`,
         asks.length === 1 && `To check this, I need ${asks[0]}`,
         asks.length > 1 && ['To check this, I need:', ...asks.map((ask) => `- ${ask}`)].join('\n'),
     ];

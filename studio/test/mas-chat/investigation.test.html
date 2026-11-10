@@ -55,7 +55,7 @@
                     answer: 'The published Photoshop card has a different offer from the author version.',
                     points: ['Compare the offer selector before publishing.'],
                     confidence: 'high',
-                    next_check: 'Open the card in Studio.',
+                    nextCheck: 'Open the card in Studio.',
                     ...extra,
                 },
                 evidence: [{ id: 'E1', summary: 'Author and publish snapshots differ.' }],
@@ -316,9 +316,6 @@
                         expect(text({ ...base, nextCheck: 'Open the card in Studio.' })).to.equal(
                             'The card shows the wrong offer\n\n**Next check:** Open the card in Studio.',
                         );
-                    });
-                    it('still reads the snake case next check', () => {
-                        expect(text({ ...base, next_check: 'Open it.' })).to.contain('**Next check:** Open it.');
                     });
                     it('phrases one ask as a sentence after the lead', () => {
                         expect(text({ ...base, asks: [{ need: 'link', text: 'A MAS Studio link to the card' }] })).to.equal(

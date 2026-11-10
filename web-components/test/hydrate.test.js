@@ -533,24 +533,30 @@ describe('processCTAs', async () => {
     });
 
     it('processCTAs applies the select rules to merch card CTAs', async () => {
-        const id = 'select';
-        const text = 'Select';
-        const card = mockMerchCard();
-        card.consonant = true;
-        card.priceLiterals = { buyNow: 'Buy now' };
-        await processCTAs(
-            { ctas: trialPlus(id, text) },
-            card,
-            aemFragmentMapping,
-            undefined,
-            { hideTrialCTAs: true },
-        );
-        const footer = getFooterElement(card);
-        expect(footer.children).to.have.lengthOf(1);
-        expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
-            .exist;
-        expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to.exist;
-        card.remove();
+        for (const [id, text] of [
+            ['select', 'Select'],
+            ['save-now', 'Save now'],
+            ['get-offer', 'Get offer'],
+            ['save-today', 'Save now'],
+        ]) {
+            const card = mockMerchCard();
+            card.consonant = true;
+            card.priceLiterals = { buyNow: 'Buy now' };
+            await processCTAs(
+                { ctas: trialPlus(id, text) },
+                card,
+                aemFragmentMapping,
+                undefined,
+                { hideTrialCTAs: true },
+            );
+            const footer = getFooterElement(card);
+            expect(footer.children).to.have.lengthOf(1);
+            expect(footer.querySelector('[data-analytics-id="buy-now"]')).to.not
+                .exist;
+            expect(footer.querySelector(`[data-analytics-id="${id}"]`)).to
+                .exist;
+            card.remove();
+        }
     });
 
     it('Free trial next to Learn more still becomes Buy now', async () => {

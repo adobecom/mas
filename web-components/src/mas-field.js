@@ -6,6 +6,7 @@ import {
     TEMPLATE_PRICE_LEGAL,
     TRIAL_ANALYTICS_IDS,
     MERCH_CARD_LOAD_TIMEOUT,
+    TRIAL_TO_BUY_CTA_ANALYTICS_IDS,
 } from './constants.js';
 import { getService, hydrateHeadlessCta } from './utils.js';
 import { hostOsi } from './plan-type-text.js';
@@ -62,15 +63,9 @@ function escapeAttr(value) {
 }
 
 // CTAs that lead to purchase; keep identical to the list in hydrate.js.
-const QUALIFYING_CTA_SELECTOR = [
-    'buy-now',
-    'select',
-    'save-now',
-    'get-offer',
-    'save-today',
-]
-    .map((id) => `a[data-analytics-id="${id}"]`)
-    .join(',');
+const QUALIFYING_CTA_SELECTOR = TRIAL_TO_BUY_CTA_ANALYTICS_IDS.map(
+    (id) => `a[data-analytics-id="${id}"]`,
+).join(',');
 
 export async function stripTrialCtas(template, indexed, self) {
     let qualifyingCta = template.content.querySelector(QUALIFYING_CTA_SELECTOR);

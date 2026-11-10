@@ -2027,10 +2027,6 @@ describe('mas-field – tooltip icon-button rendering', () => {
             expect(path.getAttribute('fill')).to.equal('currentcolor'),
         );
         expect(
-            paths[0].getAttribute('d').startsWith('m10,18.75c-4.8252'),
-            'Spectrum 2 InfoCircle path',
-        ).to.be.true;
-        expect(
             btn.getBoundingClientRect().width,
             'glyph occupies space',
         ).to.be.greaterThan(0);

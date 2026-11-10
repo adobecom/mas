@@ -114,7 +114,7 @@ class PreviewPolicyTests(unittest.TestCase):
             "price/src/price.js",
             "price/src/offers.js",
             "price/src/price/template.js",
-            "price/src/discount/index.js",
+            "price/src/discount.js",
         )
         for surface_id in ("cc-plans-kr", "cc-segment-blade"):
             surface = next(s for s in self.preview["surfaces"] if s["id"] == surface_id)

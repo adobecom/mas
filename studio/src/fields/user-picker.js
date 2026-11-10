@@ -11,6 +11,8 @@ class MasUserPicker extends LitElement {
         selectedUsers: { type: Object },
         users: { type: Object },
         open: { type: Boolean, state: true },
+        pendingSelection: { type: Object, state: true },
+        quiet: { type: Boolean },
     };
 
     reactiveController = new ReactiveController(this, []);
@@ -66,6 +68,14 @@ class MasUserPicker extends LitElement {
         this.currentUser = null;
         this.selectedUsers = null;
         this.open = false;
+        this.pendingSelection = new Set();
+        this.quiet = true;
+    }
+
+    willUpdate(changedProperties) {
+        if (changedProperties.has('open') && this.open) {
+            this.pendingSelection = new Set(this.selectedUsers.value.map((user) => user.userPrincipalName));
+        }
     }
 
     updated(changedProperties) {
@@ -89,16 +99,14 @@ class MasUserPicker extends LitElement {
     }
 
     get selectedText() {
-        const count = this.selectedUsers.value.length;
+        const count = this.pendingSelection.size;
         if (count === 0) return 'No users selected';
         if (count === 1) return '1 user selected';
         return `${count} users selected`;
     }
 
     resetSelection() {
-        this.shadowRoot.querySelectorAll('sp-checkbox').forEach((cb) => {
-            cb.checked = false;
-        });
+        this.pendingSelection = new Set();
     }
 
     handleSearchKeyDown(e) {
@@ -130,14 +138,7 @@ class MasUserPicker extends LitElement {
 
     async applySelection() {
         this.search = '';
-        this.requestUpdate();
-        await this.updateComplete;
-        const checkboxes = this.shadowRoot.querySelectorAll('sp-menu sp-checkbox');
-        const selectedUPNs = Array.from(checkboxes)
-            .filter((cb) => cb.checked)
-            .map((cb) => cb.getAttribute('value'));
-
-        const newSelection = this.users.value.filter((user) => selectedUPNs.includes(user.userPrincipalName));
+        const newSelection = this.users.value.filter((user) => this.pendingSelection.has(user.userPrincipalName));
 
         this.selectedUsers.set([]);
         await this.updateComplete;
@@ -150,10 +151,12 @@ class MasUserPicker extends LitElement {
         }
     }
 
-    handleCheckboxChange(e) {
-        const checkbox = e.target;
-        checkbox.checked = !checkbox.checked;
+    toggleUser(e, userPrincipalName) {
         e.stopPropagation();
+        const pendingSelection = new Set(this.pendingSelection);
+        if (pendingSelection.has(userPrincipalName)) pendingSelection.delete(userPrincipalName);
+        else pendingSelection.add(userPrincipalName);
+        this.pendingSelection = pendingSelection;
     }
 
     get popoverContent() {
@@ -172,11 +175,9 @@ class MasUserPicker extends LitElement {
                     this.filteredUsers,
                     (user) => user.userPrincipalName,
                     (user) => html`
-                        <sp-menu-item @click="${this.handleCheckboxChange}">
+                        <sp-menu-item @click="${(e) => this.toggleUser(e, user.userPrincipalName)}">
                             <sp-checkbox
-                                .checked=${this.selectedUsers.value.some(
-                                    (selected) => selected.userPrincipalName === user.userPrincipalName,
-                                )}
+                                .checked=${this.pendingSelection.has(user.userPrincipalName)}
                                 value="${user.userPrincipalName}"
                             >
                                 ${user.displayName}
@@ -197,7 +198,7 @@ class MasUserPicker extends LitElement {
         if (!this.users?.value) return nothing;
         return html`
             <overlay-trigger placement="bottom" @sp-opened=${() => (this.open = true)} @sp-closed=${() => (this.open = false)}>
-                <sp-action-button slot="trigger" dir="rtl" quiet>
+                <sp-action-button slot="trigger" dir="rtl" ?quiet=${this.quiet}>
                     ${this.label}
                     <sp-icon-chevron-down slot="icon"></sp-icon-chevron-down>
                 </sp-action-button>

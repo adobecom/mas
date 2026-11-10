@@ -216,6 +216,60 @@ describe('aem.js', () => {
         });
     });
 
+    describe('method: publishFragments', () => {
+        it('splits more than 50 fragments into batches of 50', async () => {
+            const bodies = [];
+            window.fetch = async (url, options) => {
+                bodies.push({ ifMatch: options.headers['If-Match'], ...JSON.parse(options.body) });
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(fragments);
+
+            expect(bodies.map(({ paths }) => paths.length)).to.deep.equal([50, 13]);
+            expect(bodies.map(({ ifMatch }) => ifMatch)).to.deep.equal(['e0', 'e50']);
+        });
+
+        it('sends exactly 50 fragments in one request and 51 in two', async () => {
+            const sizes = [];
+            window.fetch = async (url, options) => {
+                sizes.push(JSON.parse(options.body).paths.length);
+                return { ok: true, json: async () => ({}) };
+            };
+            const make = (n) => Array.from({ length: n }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            await aem.publishFragments(make(50));
+            expect(sizes).to.deep.equal([50]);
+            sizes.length = 0;
+            await aem.publishFragments(make(51));
+            expect(sizes).to.deep.equal([50, 1]);
+        });
+
+        it('exposes fragments from completed batches when a later batch fails', async () => {
+            let call = 0;
+            window.fetch = async () => {
+                call += 1;
+                if (call === 2) return { ok: false, status: 500, statusText: 'Server Error' };
+                return { ok: true, json: async () => ({}) };
+            };
+            const fragments = Array.from({ length: 63 }, (_, i) => ({ path: `/p/${i}`, etag: `e${i}` }));
+
+            const error = await aem.publishFragments(fragments).catch((e) => e);
+
+            expect(error.message).to.include('500');
+            expect(error.publishedFragments).to.deep.equal(fragments.slice(0, 50));
+        });
+
+        it('exposes no published fragments when the first batch fails', async () => {
+            window.fetch = async () => ({ ok: false, status: 412, statusText: 'Precondition Failed' });
+
+            const error = await aem.publishFragments([{ path: '/p/0', etag: 'e0' }]).catch((e) => e);
+
+            expect(error.publishedFragments).to.deep.equal([]);
+        });
+    });
+
     describe('method: saveFragment', () => {
         it('uses stored etag without fresh GET when refetchEtag is false', async () => {
             const fetchCalls = [];
@@ -338,6 +392,106 @@ describe('aem.js', () => {
             } catch (error) {
                 expect(error.message).to.include('CSRF fetch failed');
             }
+        });
+    });
+
+    describe('method: replicateFragment', () => {
+        let originalFetch;
+        let originalGetCsrfToken;
+        const fragment = {
+            path: '/content/dam/mas/sandbox/de_DE/dictionary/index',
+            fields: [{ name: 'entries', values: ['/content/dam/mas/sandbox/de_DE/dictionary/missing'] }],
+        };
+
+        beforeEach(() => {
+            originalFetch = window.fetch;
+            originalGetCsrfToken = aem.getCsrfToken;
+            aem.getCsrfToken = async () => 'csrf-test';
+        });
+
+        afterEach(() => {
+            window.fetch = originalFetch;
+            aem.getCsrfToken = originalGetCsrfToken;
+        });
+
+        it('activates only the fragment path without submitting or modifying its references', async () => {
+            const calls = [];
+            const before = structuredClone(fragment);
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.replicateFragment(fragment);
+
+            expect(calls).to.have.lengthOf(1);
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/bin/replicate`);
+            expect(calls[0].options.method).to.equal('POST');
+            expect(calls[0].options.headers['CSRF-Token']).to.equal('csrf-test');
+            expect(calls[0].options.headers.Authorization).to.equal(aem.headers.Authorization);
+            expect([...calls[0].options.body.entries()]).to.deep.equal([
+                ['cmd', 'Activate'],
+                ['path', fragment.path],
+            ]);
+            expect(fragment).to.deep.equal(before);
+        });
+
+        it('rejects failed activation responses instead of reporting success', async () => {
+            window.fetch = async () => ({ ok: false, status: 403, statusText: 'Forbidden' });
+
+            const error = await aem.replicateFragment(fragment).catch((err) => err);
+
+            expect(error).to.be.instanceOf(Error);
+            expect(error.message).to.equal('Failed to replicate fragment: 403 Forbidden');
+        });
+    });
+
+    describe('method: tagExists', () => {
+        afterEach(() => {
+            delete window.fetch;
+        });
+
+        it('returns true when the tag exists', async () => {
+            window.fetch = async () => ({ ok: true, status: 200 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.true;
+        });
+
+        it('requests the tag JSON with GET', async () => {
+            const calls = [];
+            window.fetch = async (url, options) => {
+                calls.push({ url, options });
+                return { ok: true, status: 200 };
+            };
+
+            await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn');
+
+            expect(calls[0].url).to.equal(`${aem.baseUrl}/content/cq:tags/mas/product_code/ccsn.json`);
+            expect(calls[0].options.method).to.equal('GET');
+        });
+
+        it('throws a network error when the request fails', async () => {
+            window.fetch = async () => {
+                throw new Error('offline');
+            };
+
+            const error = await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Network error: offline');
+        });
+
+        it('returns false when the tag is not found', async () => {
+            window.fetch = async () => ({ ok: false, status: 404 });
+
+            expect(await aem.tags.exists('/content/cq:tags/mas/product_code/ccsn')).to.be.false;
+        });
+
+        it('throws on an unexpected status', async () => {
+            window.fetch = async () => ({ ok: false, status: 500, statusText: 'Server Error' });
+
+            const error = await aem.tagExists('/content/cq:tags/mas/product_code/ccsn').catch((err) => err);
+
+            expect(error.message).to.equal('Failed to check tag: 500 Server Error');
         });
     });
 

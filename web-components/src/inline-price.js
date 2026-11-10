@@ -6,7 +6,7 @@ import {
 } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { getService } from './utilities.js';
-import { selectOffers, sumOffers } from '../../price/src/index.js';
+import { selectOffers, sumOffers } from '../../price/src/offers.js';
 import { Defaults } from './defaults.js';
 import {
     defaultLiterals,
@@ -325,7 +325,11 @@ export async function resolvePriceOffers(
     }
 
     // Dual-OSI discount: use individual prices for cross-offer percentage
-    if (options.template === 'discount' && offers.length === 2) {
+    if (
+        (options.template === 'discount' ||
+            options.template === 'discount-amount') &&
+        offers.length === 2
+    ) {
         const [discountedOffer, referenceOffer] = offers;
         return [
             {

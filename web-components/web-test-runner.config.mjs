@@ -3,11 +3,13 @@ import { defaultReporter } from '@web/test-runner';
 import { chromeLauncher } from '@web/test-runner-chrome';
 import { createNodeResults } from '../price/test/node-results.js';
 import { cases } from '../price/test/fixtures/cases.js';
+import { createCheckoutResults } from '../checkout/test/node-results.js';
 
 // Pin the browser time zone to CI's (UTC), so time-of-day expectations, e.g.
 // test/price/__snapshots__/message-format.expected.json, match on any machine.
 process.env.TZ = 'UTC';
 const nodePriceResults = createNodeResults(cases);
+const nodeCheckoutResults = createCheckoutResults();
 
 export default {
     browsers: [
@@ -38,6 +40,11 @@ export default {
     nodeResolve: true,
     middleware: [
         async (context, next) => {
+            if (context.path === '/node-checkout-results') {
+                context.type = 'application/json';
+                context.body = JSON.stringify(nodeCheckoutResults);
+                return;
+            }
             if (context.path === '/node-price-results') {
                 context.type = 'application/json';
                 context.body = JSON.stringify(nodePriceResults);

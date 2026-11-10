@@ -74,7 +74,7 @@ export async function requestJson(url, options, fetchImpl, maxBytes) {
  * validates the Studio service token and API key, then moves authorization-target into MASA's
  * Authorization header.
  */
-export function signedHeaders(config, identity, operation, now, gatewayToken) {
+function signedHeaders(config, identity, operation, now, gatewayToken) {
     const iat = Math.floor(now / 1000);
     const claims = {
         iss: config.issuer,

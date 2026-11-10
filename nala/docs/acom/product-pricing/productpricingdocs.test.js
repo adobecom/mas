@@ -200,10 +200,11 @@ test.describe('ACOM MAS product-pricing cards feature test suite', () => {
             await openGallery();
         });
 
-        await test.step('step-2: Verify the term license shows a single price with no recurrence', async () => {
+        await test.step('step-2: Verify the term license shows a single price with no recurrence, and the authored term text', async () => {
             await expect(acomPage.getCard(data.id).first()).toBeVisible();
             await expect(acomPage.getCardTitle(data.id).first()).toHaveText(data.title);
             await expect(acomPage.getCardPrice(data.id).first()).toHaveText(data.price);
+            await expect(acomPage.getCardShortDescription(data.id).first()).toHaveText(data.termText);
         });
     });
 

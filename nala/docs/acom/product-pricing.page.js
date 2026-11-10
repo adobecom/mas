@@ -84,6 +84,10 @@ export default class MasProductPricing {
         return this.getCard(id).locator('[slot="heading-xs"]');
     }
 
+    getCardShortDescription(id) {
+        return this.getCard(id).locator('div[slot="short-description"]');
+    }
+
     getCardDescription(id) {
         return this.getCard(id).locator('div[slot="body-xs"]');
     }

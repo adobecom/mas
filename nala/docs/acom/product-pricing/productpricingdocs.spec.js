@@ -61,7 +61,12 @@ export const features = [
         tcid: '6',
         name: '@MAS-Product-Pricing-3-Year-Term-License',
         path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
-        data: { id: 'c84be579-8af7-4180-bffa-eded56404f8d', title: 'Photoshop Elements 2024', price: /^US\$\d+\.\d\d$/ },
+        data: {
+            id: 'c84be579-8af7-4180-bffa-eded56404f8d',
+            title: 'Photoshop Elements 2024',
+            termText: '3-year term license',
+            price: /^US\$\d+\.\d\d$/,
+        },
         tags: '@mas-docs @mas-acom @mas-product-pricing-card @commerce @regression @milo',
     },
     {

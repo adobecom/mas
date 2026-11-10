@@ -563,13 +563,6 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         expect(masa.firstCall.args[0]).to.include({ question: QUESTION });
     });
 
-    it('a follow-up chip asks MASA in the same conversation', async () => {
-        el.dispatchEvent(
-            new CustomEvent('masa-follow-up', { detail: { question: 'How do I publish it?' }, bubbles: true, composed: true }),
-        );
-        expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
-    });
-
     it('a clicked follow-up chip asks MASA once and never reaches the Studio send path', async () => {
         const recordId = 'inv_22222222-2222-4222-8222-222222222222';
         const session = getInvestigationSession(el.currentSessionId);
@@ -604,8 +597,20 @@ describe('MasChat hands questions to MASA in one conversation', () => {
         await group.updateComplete;
         const send = sinon.spy(el, 'handleSendMessage');
         group.querySelector('.chat-option-pill').click();
-        expect(thread.calledOnceWith('How do I publish it?')).to.equal(true);
+        expect(thread.calledOnceWith('How do I publish it?', { images: true })).to.equal(true);
         expect(send.called).to.equal(false);
+        expect(el.messages.at(-2)).to.include({ role: 'user', content: 'How do I publish it?' });
+        expect(el.messages.at(-1)).to.include({ type: 'masa', question: 'How do I publish it?' });
+    });
+
+    it('clears attached images when a follow-up chip is clicked', async () => {
+        const session = getInvestigationSession(el.currentSessionId);
+        const clear = sinon.stub(el, 'clearImages');
+        session.images = [{ id: 'img1', name: 'a.png' }];
+        masa.callsFake(async ({ onRecord }) => onRecord('inv_22222222-2222-4222-8222-222222222222'));
+        el.dispatchEvent(new CustomEvent('masa-follow-up', { detail: { question: 'Next?' }, bubbles: true, composed: true }));
+        await thread.firstCall.returnValue;
+        expect(clear.calledOnceWith(session)).to.equal(true);
     });
 
     it('leaves a running Studio turn loading when MASA is asked again', async () => {

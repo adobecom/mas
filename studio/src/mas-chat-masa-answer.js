@@ -42,6 +42,8 @@ export class MasChatMasaAnswer extends MasaSessionElement {
             cursor: pointer;
             font-size: 14px;
             color: var(--spectrum-gray-800, #2c2c2c);
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .chat-option-pill:hover:not(.disabled) {
             border-color: var(--spectrum-gray-400, #b8b8b8);
@@ -57,6 +59,8 @@ export class MasChatMasaAnswer extends MasaSessionElement {
         }
         .chat-option-pill-label {
             flex: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .chat-option-pill-check {
             color: #1473e6;

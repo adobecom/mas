@@ -382,7 +382,6 @@ export class InvestigationSession extends EventTarget {
             text: '',
             files: this.images.map(({ name }) => ({ name })),
             status: result.status,
-            followUps: [],
         });
         this.pending = null;
         this.updateJob(result);

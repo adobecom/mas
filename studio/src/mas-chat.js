@@ -454,6 +454,37 @@ export class MasChat extends LitElement {
         this.handleSendMessage({ detail: { message: prompt, context: { intentHint } } });
     }
 
+    addUserMessage(message, context) {
+        const userMessage = {
+            role: 'user',
+            content: message,
+            timestamp: Date.now(),
+        };
+
+        if (context?.hidden) {
+            userMessage.hidden = true;
+        }
+
+        if (context?.osi) {
+            userMessage.osi = context.osi;
+            this.selectedReleaseOsi = context.osi;
+        }
+        if (Object.hasOwn(context ?? {}, 'trialOsi')) {
+            userMessage.trialOsi = context.trialOsi;
+            this.selectedReleaseTrialOsi = context.trialOsi || null;
+        }
+        if (context?.offer) {
+            userMessage.offer = context.offer;
+            this.selectedReleaseOffer = context.offer;
+        }
+        if (Object.hasOwn(context ?? {}, 'trialOffer')) {
+            userMessage.trialOffer = context.trialOffer;
+            this.selectedReleaseTrialOffer = context.trialOffer || null;
+        }
+
+        this.messages = [...this.messages, { ...userMessage, fresh: true }];
+    }
+
     handleButtonSelected(event) {
         const { value, label, product } = event.detail;
         if (value === MASA_CANCEL) {
@@ -651,34 +682,7 @@ export class MasChat extends LitElement {
             this.messages = this.messages.map((msg) => (msg.openOst ? { ...msg, ostConfirmed: true } : msg));
         }
 
-        const userMessage = {
-            role: 'user',
-            content: message,
-            timestamp: Date.now(),
-        };
-
-        if (context?.hidden) {
-            userMessage.hidden = true;
-        }
-
-        if (context?.osi) {
-            userMessage.osi = context.osi;
-            this.selectedReleaseOsi = context.osi;
-        }
-        if (Object.hasOwn(context ?? {}, 'trialOsi')) {
-            userMessage.trialOsi = context.trialOsi;
-            this.selectedReleaseTrialOsi = context.trialOsi || null;
-        }
-        if (context?.offer) {
-            userMessage.offer = context.offer;
-            this.selectedReleaseOffer = context.offer;
-        }
-        if (Object.hasOwn(context ?? {}, 'trialOffer')) {
-            userMessage.trialOffer = context.trialOffer;
-            this.selectedReleaseTrialOffer = context.trialOffer || null;
-        }
-
-        this.messages = [...this.messages, { ...userMessage, fresh: true }];
+        this.addUserMessage(message, context);
 
         const turn = this.beginTurn();
         const work = this.captureWork();
@@ -1513,7 +1517,10 @@ export class MasChat extends LitElement {
 
     /** A follow-up chip under MASA's answer asks that question in the same conversation. */
     handleMasaFollowUp(event) {
-        void this.askMasaInThread(event.detail.question);
+        const { question } = event.detail;
+        this.showPromptSuggestions = false;
+        this.addUserMessage(question);
+        void this.askMasaInThread(question, { images: true });
     }
 
     /** "Cancel it" on the busy message cancels the conversation's running MASA question. */

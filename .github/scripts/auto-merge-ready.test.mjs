@@ -16,6 +16,7 @@ import {
     purgeFailureMessage,
     selectCandidates,
     skipReason,
+    sweep,
     summary,
     summaryTable,
     touchesStudio,
@@ -71,6 +72,11 @@ test('30 or more changed files are skipped before files are fetched', () => {
     const load = { files: forbidden, checks: forbidden, approvals: forbidden };
     assert.match(skipReason(readyPr({ changedFiles: 30 }), load), /30 changed files/);
     assert.equal(skipReason(readyPr({ changedFiles: 29 }), loadOf()), null);
+});
+
+test('the file limit is an argument', () => {
+    assert.match(skipReason(readyPr({ changedFiles: 6 }), loadOf(), 5), /6 changed files \(limit is 5\)/);
+    assert.equal(skipReason(readyPr({ changedFiles: 50 }), loadOf(), 50), null);
 });
 
 test('restricted paths are skipped', () => {
@@ -342,4 +348,36 @@ test('an approval commit that cannot be fetched does not count', () => {
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }
+});
+
+test('a sweep stops evaluating after the first merge and turns errors into rows', () => {
+    const outcomes = {
+        1: { outcome: 'skipped: draft' },
+        2: 'throw',
+        3: { outcome: 'merged', merged: true },
+        4: { outcome: 'never' },
+    };
+    const handlePr = ({ number }) => {
+        if (outcomes[number] === 'throw') throw new Error('boom');
+        return outcomes[number];
+    };
+    const { rows } = sweep(
+        [1, 2, 3, 4].map((number) => ({ number })),
+        handlePr,
+    );
+    assert.deepEqual(rows, [
+        { number: 1, outcome: 'skipped: draft' },
+        { number: 2, outcome: 'error: boom' },
+        { number: 3, outcome: 'merged' },
+        { number: 4, outcome: 'not evaluated: #3 merged first' },
+    ]);
+});
+
+test('a sweep keeps evaluating when nothing is merged and collects purge failures', () => {
+    const purgeFailure = { number: 1, message: 'x' };
+    const { rows, purgeFailures } = sweep([{ number: 1 }, { number: 2 }], ({ number }) =>
+        number === 1 ? { outcome: 'would merge', purgeFailure } : { outcome: 'would merge' },
+    );
+    assert.equal(rows.length, 2);
+    assert.deepEqual(purgeFailures, [purgeFailure]);
 });

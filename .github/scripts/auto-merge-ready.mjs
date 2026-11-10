@@ -22,8 +22,6 @@ export function maxChangedFiles(value) {
     return Number.isInteger(max) && max > 0 ? max : DEFAULT_MAX_CHANGED_FILES;
 }
 
-export const MAX_CHANGED_FILES = maxChangedFiles(process.env.AUTO_MERGE_MAX_FILES);
-
 const BLOCKING_LABELS = ['do not merge', 'under milo validation', 'rcp-restricted'];
 const RESTRICTED_PREFIXES = ['io/', 'web-components/', '.github/'];
 const PASSING_CONCLUSIONS = ['success', 'neutral', 'skipped'];
@@ -89,11 +87,11 @@ export function countApprovals({ reviews, headSha, applies }) {
 }
 
 // `load` returns the data that needs a request, so a PR is only loaded as far as the first failing rule.
-export function skipReason(pr, load) {
+export function skipReason(pr, load, maxFiles = DEFAULT_MAX_CHANGED_FILES) {
     if (pr.isDraft) return 'draft';
     const blocking = pr.labels.find((label) => BLOCKING_LABELS.includes(label.name.toLowerCase()));
     if (blocking) return `labeled "${blocking.name}"`;
-    if (pr.changedFiles > MAX_CHANGED_FILES) return `${pr.changedFiles} changed files (limit is ${MAX_CHANGED_FILES})`;
+    if (pr.changedFiles > maxFiles) return `${pr.changedFiles} changed files (limit is ${maxFiles})`;
     const restricted = restrictedPath(load.files());
     if (restricted) return `touches ${restricted}`;
     const failing = failingChecks(load.checks());
@@ -227,27 +225,52 @@ export function purgeFailureMessage({ number, parent, message }) {
 // A merged PR is never retried: a purge failure is reported next to "merged" and fails the run.
 function merge(repo, pr, files) {
     gh('pr', 'merge', String(pr.number), '--repo', repo, '--squash', '--match-head-commit', pr.headRefOid);
-    if (!touchesStudio(files)) return { outcome: 'merged' };
+    if (!touchesStudio(files)) return { outcome: 'merged', merged: true };
     const purgeFailure = dispatchPurge(repo, pr.number);
-    if (purgeFailure) return { outcome: 'merged, Akamai purge dispatch failed', purgeFailure };
-    return { outcome: 'merged, Akamai purge dispatched' };
+    if (purgeFailure) return { outcome: 'merged, Akamai purge dispatch failed', merged: true, purgeFailure };
+    return { outcome: 'merged, Akamai purge dispatched', merged: true };
 }
 
-function handle(repo, pr, dryRun) {
-    const load = loaders(repo, pr);
-    const reason = skipReason(pr, load);
-    if (reason) {
-        if (!dryRun) {
-            try {
-                syncComment(repo, pr.number, reason);
-            } catch (error) {
-                console.error(`#${pr.number}: could not sync comment: ${error.message}`);
-            }
+function skip(repo, number, reason, dryRun) {
+    if (!dryRun) {
+        try {
+            syncComment(repo, number, reason);
+        } catch (error) {
+            console.error(`#${number}: could not sync comment: ${error.message}`);
         }
-        return { outcome: `skipped: ${reason}` };
     }
-    if (dryRun) return { outcome: 'would merge', merged: true };
-    return { ...merge(repo, pr, load.files()), merged: true };
+    return { outcome: `skipped: ${reason}` };
+}
+
+// `merged` is true only when the PR was actually merged.
+function handle(repo, pr, { dryRun, maxFiles }) {
+    const load = loaders(repo, pr);
+    const reason = skipReason(pr, load, maxFiles);
+    if (reason) return skip(repo, pr.number, reason, dryRun);
+    if (dryRun) return { outcome: 'would merge' };
+    return merge(repo, pr, load.files());
+}
+
+// Evaluates candidates in order and stops evaluating after the first merge. A dry run merges nothing, so it evaluates all.
+export function sweep(candidates, handlePr) {
+    const rows = [];
+    const purgeFailures = [];
+    let mergedNumber = null;
+    for (const pr of candidates) {
+        if (mergedNumber) {
+            rows.push({ number: pr.number, outcome: `not evaluated: #${mergedNumber} merged first` });
+            continue;
+        }
+        try {
+            const { outcome, merged, purgeFailure } = handlePr(pr);
+            rows.push({ number: pr.number, outcome });
+            if (merged) mergedNumber = pr.number;
+            if (purgeFailure) purgeFailures.push(purgeFailure);
+        } catch (error) {
+            rows.push({ number: pr.number, outcome: `error: ${error.message}` });
+        }
+    }
+    return { rows, purgeFailures };
 }
 
 function main() {
@@ -269,24 +292,8 @@ function main() {
             'number,isDraft,labels,headRefOid,changedFiles,mergeStateStatus',
         ),
     );
-    const rows = [];
-    const purgeFailures = [];
-    let mergedNumber = null;
-    for (const pr of selectCandidates(prs)) {
-        if (mergedNumber) {
-            rows.push({ number: pr.number, outcome: `not evaluated: #${mergedNumber} merged first` });
-            continue;
-        }
-        try {
-            const { outcome, merged, purgeFailure } = handle(repo, pr, dryRun);
-            rows.push({ number: pr.number, outcome });
-            // A dry run merges nothing, so every PR stays mergeable and is evaluated.
-            if (merged && !dryRun) mergedNumber = pr.number;
-            if (purgeFailure) purgeFailures.push(purgeFailure);
-        } catch (error) {
-            rows.push({ number: pr.number, outcome: `error: ${error.message}` });
-        }
-    }
+    const options = { dryRun, maxFiles: maxChangedFiles(process.env.AUTO_MERGE_MAX_FILES) };
+    const { rows, purgeFailures } = sweep(selectCandidates(prs), (pr) => handle(repo, pr, options));
     const text = summary({ dryRun, rows });
     console.log(text);
     if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${text}\n`);

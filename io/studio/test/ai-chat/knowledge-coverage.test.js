@@ -93,23 +93,6 @@ const PROBES = [
 ];
 
 /**
- * Questions the corpus cannot answer correctly today. Empty, and worth keeping
- * that way: every entry is a real question a user can ask and get a wrong
- * answer to.
- *
- * It held 11 entries when this suite was written. They were the measurement
- * that said what to write: mas-field and the headless variant, the card
- * variants, masks, Advanced tools, the locale picker, the fragment editor,
- * rollout projects, previewing a card on a page, and the English-fallback
- * question. All are now covered and have moved into PROBES above.
- *
- * To park a gap here, give the question and why it fails. The test below fails
- * when a parked question starts working, so the list cannot drift into
- * fiction.
- */
-const KNOWN_GAPS = {};
-
-/**
  * Tool identifiers are verb-led (search_cards, create_grouped_variation). The
  * export also names API fields and URL parameters (promotion_code,
  * single_app), which are not tools, so only these verbs mark an identifier.
@@ -159,8 +142,8 @@ async function answersAbout(question, marker) {
 }
 
 describe('ai-chat/knowledge coverage', () => {
-    before(async function () {
-        const KNOWLEDGE_CHUNKS = await requireRealCorpus(this);
+    before(async () => {
+        const KNOWLEDGE_CHUNKS = await requireRealCorpus();
         const { LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js');
         const retriever = new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
         retrieve = (question) => retriever.queryWithSources(question, PROD_RETRIEVAL);
@@ -212,25 +195,5 @@ describe('ai-chat/knowledge coverage', () => {
         const chunk = { id: 'fixture', title: '', section: '', text: 'find_untranslated_cards reads promotion_code' };
 
         expect(unknownToolNames([chunk], await registryToolNames())).to.deep.equal(['fixture: find_untranslated_cards']);
-    });
-
-    describe('the known gaps', () => {
-        it('shrinks: a question that now answers correctly must leave KNOWN_GAPS', async () => {
-            const fixed = [];
-            for (const [question, entry] of Object.entries(KNOWN_GAPS)) {
-                const verdict = await answersAbout(question, entry.marker);
-                if (verdict.ok) fixed.push(question);
-            }
-
-            expect(fixed, `these now answer correctly — delete them from KNOWN_GAPS:\n  ${fixed.join('\n  ')}`).to.deep.equal(
-                [],
-            );
-        });
-
-        it('keeps every gap question out of the passing probe list', () => {
-            const overlap = PROBES.map(([q]) => q).filter((q) => q in KNOWN_GAPS);
-
-            expect(overlap, `listed as both passing and known-broken: ${overlap.join(', ')}`).to.deep.equal([]);
-        });
     });
 });

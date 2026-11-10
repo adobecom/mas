@@ -31,7 +31,7 @@ describe('ai-chat/mas-agent knowledge import', () => {
         script = join(directory, 'scripts/fetch-masa-knowledge.mjs');
         output = join(directory, 'src/ai-chat/masa-knowledge.js');
         copyFileSync(join(__dirname, '../../scripts/fetch-masa-knowledge.mjs'), script);
-        env = { ...process.env, CI: '', MAS_AGENT_KNOWLEDGE_TOKEN: '', MAS_AGENT_KNOWLEDGE_FILE: '' };
+        env = { ...process.env, MAS_AGENT_KNOWLEDGE_TOKEN: '', MAS_AGENT_KNOWLEDGE_FILE: '' };
     });
 
     afterEach(() => rmSync(directory, { recursive: true, force: true }));
@@ -44,14 +44,12 @@ describe('ai-chat/mas-agent knowledge import', () => {
         expect(() => validateCorpus({ ...corpus, chunks: [{ ...corpus.chunks[0], text: '' }] })).to.throw('no text');
     });
 
-    it('requires knowledge locally and in CI without replacing a previous snapshot', () => {
+    it('requires an author export without replacing a previous snapshot', () => {
         writeFileSync(output, 'previous validated snapshot');
-        for (const overrides of [{}, { CI: 'true' }]) {
-            const result = spawnSync(process.execPath, [script], { env: { ...env, ...overrides }, encoding: 'utf8' });
-            expect(result.status).to.equal(1);
-            expect(result.stderr).to.include('A mas-agent author export is required');
-            expect(readFileSync(output, 'utf8')).to.equal('previous validated snapshot');
-        }
+        const result = spawnSync(process.execPath, [script], { env, encoding: 'utf8' });
+        expect(result.status).to.equal(1);
+        expect(result.stderr).to.include('A mas-agent author export is required');
+        expect(readFileSync(output, 'utf8')).to.equal('previous validated snapshot');
     });
 
     it('rejects invalid metadata, duplicate chunks and whitespace-only content', () => {
@@ -98,7 +96,7 @@ describe('ai-chat/mas-agent knowledge import', () => {
         writeFileSync(file, JSON.stringify(corpus));
         const hash = createHash('sha256').update(JSON.stringify(corpus)).digest('hex');
         execFileSync(process.execPath, [script, '--expected-sha256', hash], {
-            env: { ...env, CI: 'true', MAS_AGENT_KNOWLEDGE_FILE: file },
+            env: { ...env, MAS_AGENT_KNOWLEDGE_FILE: file },
             stdio: 'pipe',
         });
         const generated = readFileSync(output, 'utf8');

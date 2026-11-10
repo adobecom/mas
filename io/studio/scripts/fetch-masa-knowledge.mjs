@@ -20,11 +20,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const OUT_FILE = join(here, '../src/ai-chat/masa-knowledge.js');
+const OUT_FILE = join(here, '../src/ai-chat/masa-knowledge.js');
 const REPO = 'adobecom/mas-agent';
 const TAG = 'knowledge-latest';
 const ASSET = 'knowledge-author.json';
-export const FORMAT_VERSION = 1;
+const FORMAT_VERSION = 1;
 const CHUNK_FIELDS = ['id', 'topic', 'title', 'section', 'text'];
 
 // Only the fields the retriever reads leave the file; anything else in the export is ignored.
@@ -57,7 +57,7 @@ export function validateCorpus(corpus) {
     });
 }
 
-export function moduleSource({ revision, generatedAt, sha256, chunks }) {
+function moduleSource({ revision, generatedAt, sha256, chunks }) {
     return [
         '/**',
         ' * GENERATED FILE — do not edit or commit (it is gitignored).',

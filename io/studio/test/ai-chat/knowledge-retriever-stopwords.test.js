@@ -13,8 +13,8 @@ let retriever;
 const PROD = { topK: 3, minScore: 0.7 };
 
 describe('ai-chat/knowledge-retriever stopwords', () => {
-    before(async function () {
-        KNOWLEDGE_CHUNKS = await requireRealCorpus(this);
+    before(async () => {
+        KNOWLEDGE_CHUNKS = await requireRealCorpus();
         ({ LocalKnowledgeRetriever } = await import('../../src/ai-chat/knowledge-retriever.js'));
         retriever = new LocalKnowledgeRetriever(KNOWLEDGE_CHUNKS);
     });

@@ -39,6 +39,13 @@ export default class MasProductPricing {
                 height: '40px',
             },
         };
+        this.strikethroughCssProp = {
+            color: 'rgb(92, 92, 92)',
+            'font-size': '14px',
+            'font-weight': '700',
+            'line-height': '18px',
+            'text-decoration-line': 'line-through',
+        };
     }
 
     getCard(id) {
@@ -63,6 +70,14 @@ export default class MasProductPricing {
 
     getCardPrice(id) {
         return this.getCard(id).locator('[slot="heading-xs"] span[data-template="price"]');
+    }
+
+    getCardStrikethroughPrice(id) {
+        return this.getCard(id).locator('[slot="heading-xs"] .price-strikethrough');
+    }
+
+    getCardAlternativePrice(id) {
+        return this.getCard(id).locator('[slot="heading-xs"] .price-alternative');
     }
 
     getCardPriceRow(id) {

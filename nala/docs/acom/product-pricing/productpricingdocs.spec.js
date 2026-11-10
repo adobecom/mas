@@ -43,4 +43,36 @@ export const features = [
         data: { collectionId: 'fa727698-2564-4040-9b87-1ec64a24cc99' },
         tags: '@mas-docs @mas-acom @mas-product-pricing-card @regression @milo',
     },
+    {
+        tcid: '4',
+        name: '@MAS-Product-Pricing-Strikethrough',
+        path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
+        data: { id: '1b8880d5-1807-43f0-81c3-d76d6655d6cc', price: PRICE_PATTERN.US.mo },
+        tags: '@mas-docs @mas-acom @mas-product-pricing-card @commerce @regression @milo',
+    },
+    {
+        tcid: '5',
+        name: '@MAS-Product-Pricing-Free',
+        path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
+        data: { id: '5bd63a91-d6e8-4659-a90d-a6346ad321f0', price: /^US\$0\.00\/mo$/, ctas: ['Create now', 'See plans'] },
+        tags: '@mas-docs @mas-acom @mas-product-pricing-card @commerce @regression @milo',
+    },
+    {
+        tcid: '6',
+        name: '@MAS-Product-Pricing-3-Year-Term-License',
+        path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
+        data: { id: 'c84be579-8af7-4180-bffa-eded56404f8d', title: 'Photoshop Elements 2024', price: /^US\$\d+\.\d\d$/ },
+        tags: '@mas-docs @mas-acom @mas-product-pricing-card @commerce @regression @milo',
+    },
+    {
+        tcid: '7',
+        name: '@MAS-Product-Pricing-Long-CTA-Stacking',
+        path: DOCS_GALLERY_PATH.PRODUCT_PRICING,
+        data: {
+            longCtaId: 'b1bfa96f-5892-44ea-bbf3-1a9829c433a3',
+            longCtas: ['Start your free trial of Illustrator today', 'Compare all plans and pricing options'],
+            shortCtaId: '26550d95-e726-4e1f-954d-01c3a472a151',
+        },
+        tags: '@mas-docs @mas-acom @mas-product-pricing-card @regression @milo',
+    },
 ];

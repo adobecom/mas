@@ -137,9 +137,7 @@ test.describe('ACOM MAS product-pricing cards feature test suite', () => {
             };
 
             await test.step('step-1: Verify synced heights across cards in standalone rows', async () => {
-                await assertRowsSynced(
-                    page.locator('.four-merch-cards.product-pricing:has(.plans-item + .plans-item) merch-card'),
-                );
+                await assertRowsSynced(page.locator('.pp-rows merch-card'));
             });
 
             await test.step('step-2: Verify synced heights across cards in the collection rows', async () => {
@@ -147,6 +145,107 @@ test.describe('ACOM MAS product-pricing cards feature test suite', () => {
             });
         } finally {
             // Restore the default viewport of the mas-docs-chromium project for any test added after this one.
+            await page.setViewportSize({ width: 1280, height: 720 });
+        }
+    });
+
+    // @MAS-Product-Pricing-Strikethrough
+    test(`${features[4].name},${features[4].tags}`, async () => {
+        const { data } = features[4];
+
+        await test.step('step-1: Go to Product Pricing gallery', async () => {
+            await openGallery();
+        });
+
+        await test.step('step-2: Verify the strikethrough price sits above the current price', async () => {
+            const strikethrough = acomPage.getCardStrikethroughPrice(data.id).first();
+            const alternative = acomPage.getCardAlternativePrice(data.id).first();
+            await expect(strikethrough).toBeVisible();
+            await expect(strikethrough).toContainText(data.price);
+            await expect(alternative).toBeVisible();
+            await expect(alternative).toContainText(data.price);
+            const [struckBox, currentBox] = [await strikethrough.boundingBox(), await alternative.boundingBox()];
+            expect(currentBox.y).toBeGreaterThan(struckBox.y);
+        });
+
+        await test.step('step-3: Verify the strikethrough price CSS', async () => {
+            expect(
+                await webUtil.verifyCSS(acomPage.getCardStrikethroughPrice(data.id).first(), acomPage.strikethroughCssProp),
+            ).toBeTruthy();
+        });
+    });
+
+    // @MAS-Product-Pricing-Free
+    test(`${features[5].name},${features[5].tags}`, async () => {
+        const { data } = features[5];
+
+        await test.step('step-1: Go to Product Pricing gallery', async () => {
+            await openGallery();
+        });
+
+        await test.step('step-2: Verify the free card shows a zero price and both CTAs', async () => {
+            await expect(acomPage.getCard(data.id).first()).toBeVisible();
+            await expect(acomPage.getCardPrice(data.id).first()).toHaveText(data.price);
+            await expect(acomPage.getCardCTAs(data.id).first()).toHaveText(data.ctas[0]);
+            await expect(acomPage.getCardCTAs(data.id).nth(1)).toHaveText(data.ctas[1]);
+        });
+    });
+
+    // @MAS-Product-Pricing-3-Year-Term-License
+    test(`${features[6].name},${features[6].tags}`, async () => {
+        const { data } = features[6];
+
+        await test.step('step-1: Go to Product Pricing gallery', async () => {
+            await openGallery();
+        });
+
+        await test.step('step-2: Verify the term license shows a single price with no recurrence', async () => {
+            await expect(acomPage.getCard(data.id).first()).toBeVisible();
+            await expect(acomPage.getCardTitle(data.id).first()).toHaveText(data.title);
+            await expect(acomPage.getCardPrice(data.id).first()).toHaveText(data.price);
+        });
+    });
+
+    // @MAS-Product-Pricing-Long-CTA-Stacking
+    test(`${features[7].name},${features[7].tags}`, async () => {
+        const { data } = features[7];
+        const page = await openGallery();
+
+        try {
+            // One row of four cards: the stacked state is per row, not per card.
+            await page.setViewportSize({ width: 1920, height: 1080 });
+            await page.waitForTimeout(3000);
+
+            await test.step('step-1: Verify the long CTA labels wrap onto two lines', async () => {
+                const ctas = acomPage.getCardCTAs(data.longCtaId).first();
+                await expect(ctas).toHaveText(data.longCtas[0]);
+                await expect(acomPage.getCardCTAs(data.longCtaId).nth(1)).toHaveText(data.longCtas[1]);
+                const [first, second] = [
+                    await ctas.boundingBox(),
+                    await acomPage.getCardCTAs(data.longCtaId).nth(1).boundingBox(),
+                ];
+                expect(second.y).toBeGreaterThanOrEqual(first.y + first.height);
+            });
+
+            await test.step('step-2: Verify every card in the long CTA row is stacked', async () => {
+                const cards = page.locator('.pp-long-ctas merch-card');
+                await expect(cards).toHaveCount(4);
+                for (let i = 0; i < 4; i++) {
+                    await expect(cards.nth(i)).toHaveAttribute('stacked', '');
+                }
+            });
+
+            await test.step('step-3: Verify short CTA labels stay side by side and unstacked', async () => {
+                const cards = page.locator('.pp-rows merch-card');
+                await expect(cards.first()).not.toHaveAttribute('stacked', '');
+                const ctas = acomPage.getCardCTAs(data.shortCtaId).first();
+                const [first, second] = [
+                    await ctas.boundingBox(),
+                    await acomPage.getCardCTAs(data.shortCtaId).nth(1).boundingBox(),
+                ];
+                expect(second.y).toBeLessThan(first.y + first.height);
+            });
+        } finally {
             await page.setViewportSize({ width: 1280, height: 720 });
         }
     });

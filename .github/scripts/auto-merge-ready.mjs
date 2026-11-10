@@ -1,6 +1,6 @@
 // Squash-merges the oldest open PR labeled "Ready to Merge" that passes every guard below (MWPW-210335).
 // Run every 30 minutes on weekdays by .github/workflows/auto-merge-ready.yaml, or manually with dry_run.
-// Merging one PR makes the others BEHIND (strict up-to-date rule), so a run merges at most one.
+// Merging one PR makes the others BEHIND (strict up-to-date rule), so a live run merges at most one.
 //
 // Usage (needs a checkout with full history and `gh` authenticated with the workflow token):
 //   [DRY_RUN=true] [GITHUB_REPOSITORY=adobecom/mas] node .github/scripts/auto-merge-ready.mjs
@@ -272,7 +272,8 @@ function main() {
         try {
             const { outcome, merged, purgeFailure } = handle(repo, pr, dryRun);
             rows.push({ number: pr.number, outcome });
-            if (merged) mergedNumber = pr.number;
+            // A dry run merges nothing, so every PR stays mergeable and is evaluated.
+            if (merged && !dryRun) mergedNumber = pr.number;
             if (purgeFailure) purgeFailures.push(purgeFailure);
         } catch (error) {
             rows.push({ number: pr.number, outcome: `error: ${error.message}` });

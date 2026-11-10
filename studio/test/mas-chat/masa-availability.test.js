@@ -1,5 +1,5 @@
 import { expect } from '@esm-bundle/chai';
-import { MasaClientError } from '../../src/mas-chat/masa-client.js';
+import { MasaClient, MasaClientError } from '../../src/mas-chat/masa-client.js';
 import {
     isMasaAvailable,
     rememberFailure,
@@ -68,6 +68,19 @@ describe('masa-availability', () => {
             const error = new MasaClientError(code, '');
             expect(isUserInputError(error)).to.be.false;
         });
+    });
+
+    it('remembers a missing masa-api action as not configured', async () => {
+        const missing = new Response(JSON.stringify({ error: 'The requested resource does not exist.' }), { status: 404 });
+        const client = new MasaClient({
+            url: 'https://runtime.example/masa-api.http',
+            fetchImpl: async () => missing,
+            getToken: () => 'test',
+        });
+        const error = await client.control('c', 'session.create').catch((rejection) => rejection);
+        expect(error.code).to.equal('masa-not-configured');
+        expect(rememberFailure(error)).to.be.true;
+        expect(isMasaAvailable()).to.be.false;
     });
 
     it('Ask MASA again clears the memory', () => {

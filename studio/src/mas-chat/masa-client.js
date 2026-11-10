@@ -72,6 +72,9 @@ export class MasaClient {
             if (binary && response.ok) return bytes;
             const body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
             const retryAfter = Math.min(3600, Math.max(0, Number(response.headers.get('Retry-After')) || 0));
+            // Runtime answers a request for an undeployed action with a 404 whose error is a plain string.
+            if (response.status === 404 && !body.error?.code)
+                throw new MasaClientError('masa-not-configured', 'MASA is not available here.', 404);
             if (!response.ok) throw new MasaClientError(body.error.code, body.error.message, response.status, retryAfter);
             if (body.formatVersion !== 1)
                 throw new MasaClientError('invalid-response', 'MASA returned an unsupported response.');

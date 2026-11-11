@@ -119,10 +119,10 @@ capture_hosts:
     - '--cc--adobecom.aem.live'
     - '--da-express-milo--adobecom.aem.live'
     - '--milo--adobecom.aem.page'
-    # Studio on a branch preview signs in through IMS like mas.adobe.com does; without
-    # the profile a pasted studio.html deep link photographs the Adobe Sign-in page.
-    - host: '--mas--adobecom.aem.page'
-      auth: ims
+    # Branch previews are public, so captures here never sign in. A signed-in
+    # capture of a demo page is refused and used to skip the whole visual gate.
+    # Cost: a pasted studio.html branch link photographs the Adobe Sign-in page.
+    - '--mas--adobecom.aem.page'
     # Studio deep links are pasted on the production domain. Without this entry
     # the URL is dropped and the gate has nothing to capture. The page is served
     # from the local worktree (own_hosts above), so production is never shot.

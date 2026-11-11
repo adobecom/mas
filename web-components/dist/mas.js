@@ -4064,6 +4064,10 @@ merch-card[variant="plans-education"] [slot="body-xs"] span.price:not(.price-str
     min-height: var(--consonant-merch-card-plans-heading-xs-height, var(--merch-card-plans-heading-xs-min-height));
 }
 
+merch-card[variant="plans"] [slot="heading-xs"] {
+    margin-bottom: var(--consonant-merch-spacing-xxxs);
+}
+
 merch-card[variant="plans-education"] [slot="body-xs"] p:has(.heading-xs) {
     margin-bottom: 16x;
 }

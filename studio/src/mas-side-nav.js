@@ -62,14 +62,6 @@ class MasSideNav extends LitElement {
             padding-bottom: 116px;
         }
 
-        .side-nav-new-window {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 14px;
-            height: 14px;
-        }
-
         sp-menu-divider {
             margin: 1px 0;
             opacity: 0.4;
@@ -996,14 +988,6 @@ class MasSideNav extends LitElement {
                       ${masaIcon}
                   </mas-side-nav-item>`
                 : nothing}
-            <mas-side-nav-item
-                class="side-nav-support"
-                label="Support"
-                @nav-click="${() => window.open('https://adobe.enterprise.slack.com/archives/C02RZERR9CH', '_blank')}"
-            >
-                <sp-icon-help slot="icon"></sp-icon-help>
-                <sp-icon-link-out-light size="m" class="side-nav-new-window"></sp-icon-link-out-light>
-            </mas-side-nav-item>
             <mas-side-nav-item
                 class="bottom"
                 label="Advanced tools"

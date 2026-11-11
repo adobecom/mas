@@ -909,4 +909,16 @@ describe('MasTopNav', () => {
             expect(Store.landscape.value).to.equal(WCS_LANDSCAPE_PUBLISHED);
         });
     });
+
+    describe('help link', () => {
+        it('should link the help icon to the Slack channel in a new tab', async () => {
+            Store.page.value = PAGE_NAMES.CONTENT;
+            const el = await fixture(html`<mas-top-nav></mas-top-nav>`);
+            await el.updateComplete;
+            const link = el.querySelector('a[title="Help"]');
+            expect(link).to.exist;
+            expect(link.getAttribute('href')).to.equal('https://adobe.enterprise.slack.com/archives/C02RZERR9CH');
+            expect(link.getAttribute('target')).to.equal('_blank');
+        });
+    });
 });

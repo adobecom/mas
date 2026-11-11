@@ -538,9 +538,15 @@ class MasTopNav extends LitElement {
                                     </sp-switch>`}
                               <div class="divider"></div>
                               <div class="universal-elements">
-                                  <button class="icon-button" title="Help">
+                                  <a
+                                      class="icon-button"
+                                      title="Help"
+                                      href="https://adobe.enterprise.slack.com/archives/C02RZERR9CH"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                  >
                                       <sp-icon-help size="m"></sp-icon-help>
-                                  </button>
+                                  </a>
                                   <button class="icon-button" title="Notifications">
                                       <sp-icon-bell size="m"></sp-icon-bell>
                                   </button>

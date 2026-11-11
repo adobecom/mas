@@ -21,6 +21,14 @@ describe('classifyVariationByPath', () => {
         expect(classifyVariationByPath(path).tab).to.equal(VARIATION_SEARCH_TABS.PROMOTION);
     });
 
+    it('classifies promo variation of a grouped variation as promotion', () => {
+        const path = `${ROOT_PATH}/acom/en_US/promotions/summer-sale/photoshop/pzn/my-card`;
+        expect(classifyVariationByPath(path)).to.deep.equal({
+            isVariation: true,
+            tab: VARIATION_SEARCH_TABS.PROMOTION,
+        });
+    });
+
     it('classifies locale variation', () => {
         const path = `${ROOT_PATH}/acom/fr_CA/my-card`;
         expect(classifyVariationByPath(path).tab).to.equal(VARIATION_SEARCH_TABS.LOCALE);

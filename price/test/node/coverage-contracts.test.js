@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { escapeHtml, toBoolean } from '../../src/helpers.js';
-import { discount } from '../../src/discount/index.js';
+import { discount } from '../../src/discount.js';
 import { legalTemplate } from '../../src/price/legal.js';
 import { formatMessage } from '../../src/price/message-format.js';
 import formatNumber from '../../src/price/numberFormat.js';

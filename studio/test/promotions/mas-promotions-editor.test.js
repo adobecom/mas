@@ -207,7 +207,7 @@ describe('MasPromotionsEditor', () => {
         for (const [name, cdtStart, cdtEnd, message] of [
             ['missing start', '', end, 'Set both countdown timer start and end dates'],
             ['missing end', start, '', 'Set both countdown timer start and end dates'],
-            ['invalid date', 'bad', end, 'Set valid UTC dates'],
+            ['invalid date', 'bad', end, 'Set valid dates for countdown timer start and end.'],
             ['equal dates', start, start, 'Countdown end must be later than countdown start.'],
             ['reversed dates', end, start, 'Countdown end must be later than countdown start.'],
         ]) {

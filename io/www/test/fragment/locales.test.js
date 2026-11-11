@@ -289,9 +289,23 @@ describe('locales', function () {
             const acomDcResult = getDefaultLocales('acom-dc');
             expect(acomDcResult).to.deep.equal(acomResult);
         });
+
+        it('should share the CCD locale list with adobe-home', function () {
+            expect(getDefaultLocales('adobe-home')).to.equal(getDefaultLocales('ccd'));
+            expect(STUDIO_DEFAULT_LOCALES['adobe-home']).to.equal(STUDIO_DEFAULT_LOCALES.ccd);
+            expect(getDefaultLocaleCode('adobe-home', 'hi_IN')).to.equal('hi_IN');
+            expect(getSurfaceLocales('adobe-home').map(getLocaleCode)).to.include('hi_IN');
+        });
     });
 
     describe('getRegionLocales', function () {
+        it('should list en_GB as an en_US region on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getRegionLocales(surface, 'en_US', false).map(getLocaleCode)).to.include('en_GB');
+                expect(getDefaultLocaleCode(surface, 'en_GB')).to.equal('en_US');
+            }
+        });
+
         it('should return region locales for a default locale on a surface', function () {
             const result = getRegionLocales('acom', 'en_GB', true);
             expect(result).to.be.an('array');
@@ -351,6 +365,16 @@ describe('locales', function () {
             expect(result.length).to.equal(0);
         });
 
+        it('should return ACOM locales for genuine, acom-edu, dalp and elements', function () {
+            const acomLocales = getSurfaceLocales('acom');
+            for (const surface of ['genuine', 'acom-edu', 'dalp', 'elements']) {
+                const result = getSurfaceLocales(surface);
+                expect(result, surface).to.not.be.empty;
+                expect(result, surface).to.deep.equal(acomLocales);
+                expect(getDefaultLocales(surface), surface).to.deep.equal(getDefaultLocales('acom'));
+            }
+        });
+
         it('should return same locales for acom-cc as acom', function () {
             const acomLocales = getSurfaceLocales('acom');
             const acomCcLocales = getSurfaceLocales('acom-cc');
@@ -376,8 +400,8 @@ describe('locales', function () {
 
     describe('Chinese locales (HK as region under zh_TW)', function () {
         const allSurfacesWithZh = ['acom', 'sandbox', 'nala', 'ccd', 'express', 'adobe-home', 'commerce'];
-        const surfacesWithHKRegion = ['acom', 'sandbox', 'nala'];
-        const surfacesWithoutHKRegion = ['ccd', 'express', 'adobe-home', 'commerce'];
+        const surfacesWithHKRegion = ['acom', 'sandbox', 'nala', 'ccd', 'adobe-home'];
+        const surfacesWithoutHKRegion = ['express', 'commerce'];
 
         it('should not have zh_HK as a standalone default locale', function () {
             for (const surface of allSurfacesWithZh) {
@@ -387,7 +411,7 @@ describe('locales', function () {
             }
         });
 
-        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW only for acom/sandbox/nala', function () {
+        it('should only define zh_CN and zh_TW as base Chinese defaults, with HK as a region of zh_TW only for acom/sandbox/nala/ccd/adobe-home', function () {
             for (const surface of allSurfacesWithZh) {
                 const defaults = getDefaultLocales(surface);
                 const zhRows = defaults.filter((locale) => locale.lang === 'zh');
@@ -405,7 +429,7 @@ describe('locales', function () {
             }
         });
 
-        it('should expose zh_HK via getSurfaceLocales as a regional variant only for acom/sandbox/nala', function () {
+        it('should expose zh_HK via getSurfaceLocales as a regional variant only for acom/sandbox/nala/ccd/adobe-home', function () {
             for (const surface of surfacesWithHKRegion) {
                 const surfaceLocales = getSurfaceLocales(surface);
                 const codes = surfaceLocales.map((locale) => getLocaleCode(locale));
@@ -428,7 +452,7 @@ describe('locales', function () {
             }
         });
 
-        it('should list HK and MO under getRegionLocales for zh_TW only for acom/sandbox/nala', function () {
+        it('should list HK and MO under getRegionLocales for zh_TW only for surfaces with an HK region', function () {
             const regionsOnly = getRegionLocales('sandbox', 'zh_TW', false);
             expect(regionsOnly.map((locale) => getLocaleCode(locale))).to.deep.equal(['zh_HK', 'zh_MO']);
             const withDefault = getRegionLocales('sandbox', 'zh_TW', true);
@@ -439,9 +463,34 @@ describe('locales', function () {
             }
         });
 
-        it('should map zh_HK to zh_TW for acom/sandbox/nala', function () {
+        it('should map zh_HK to zh_TW for surfaces with an HK region', function () {
             for (const surface of surfacesWithHKRegion) {
                 expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_TW');
+            }
+        });
+
+        it('should add HK and MO to zh_TW regions on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getDefaultLocale(surface, 'zh_TW').regions, surface).to.deep.equal(['HK', 'MO']);
+                const regionsOnly = getRegionLocales(surface, 'zh_TW', false).map((l) => getLocaleCode(l));
+                expect(regionsOnly, surface).to.deep.equal(['zh_HK', 'zh_MO']);
+                const withDefault = getRegionLocales(surface, 'zh_TW', true).map((l) => getLocaleCode(l));
+                expect(withDefault, surface).to.deep.equal(['zh_HK', 'zh_MO', 'zh_TW']);
+            }
+        });
+
+        it('should no longer resolve zh_HK to zh_CN on ccd and adobe-home', function () {
+            for (const surface of ['ccd', 'adobe-home']) {
+                expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.not.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_TW'), surface).to.equal('zh_TW');
+                expect(getDefaultLocaleCode(surface, 'zh_CN'), surface).to.equal('zh_CN');
+                expect(getDefaultLocaleCode(surface, 'zh_MO'), surface).to.equal('zh_TW');
+            }
+        });
+
+        it('should keep zh_HK resolving to zh_CN on express and commerce', function () {
+            for (const surface of surfacesWithoutHKRegion) {
+                expect(getDefaultLocaleCode(surface, 'zh_HK'), surface).to.equal('zh_CN');
             }
         });
     });

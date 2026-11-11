@@ -51,6 +51,28 @@ describe('common.js - fetchOdin', () => {
     });
 
     describe('successful requests', () => {
+        it('attaches the provided CSRF token to a form POST without changing bearer authentication', async () => {
+            fetchStub.resolves({
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                headers: { get: sinon.stub().returns(null) },
+            });
+
+            await common.fetchOdin(odinEndpoint, '/bin/replicate', authToken, {
+                method: 'POST',
+                contentType: 'application/x-www-form-urlencoded',
+                body: new URLSearchParams({ cmd: 'Activate', path: '/content/dam/mas/acom/en_US/dictionary/index' }).toString(),
+                csrfToken: 'csrf-token',
+            });
+
+            expect(fetchStub.firstCall.args[1].headers).to.include({
+                Authorization: `Bearer ${authToken}`,
+                'CSRF-Token': 'csrf-token',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            });
+        });
+
         it('should make a GET request with correct URL and headers', async () => {
             const mockResponse = {
                 ok: true,

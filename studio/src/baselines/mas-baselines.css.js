@@ -20,8 +20,23 @@ export default [
         .baselines-toolbar {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 20px 0;
+            gap: 12px;
+            padding: 20px 0 16px;
+        }
+
+        .baselines-toolbar sp-search {
+            --mod-search-border-radius: 16px;
+            --mod-search-inline-size: 280px;
+        }
+
+        .baselines-toolbar .result-count {
+            color: var(--spectrum-gray-700);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        mas-search-and-filters {
+            margin-bottom: 20px;
         }
 
         .item-table {

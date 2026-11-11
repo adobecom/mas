@@ -501,7 +501,6 @@ export class MasRepository extends LitElement {
     #applyInMemoryFilter(stores, { query, tags, variants, contentTypes, createdBy, status = [] }) {
         const tagPredicate = filterByTags(tags);
         const lowerQuery = query?.toLowerCase() || '';
-        const createdByLc = createdBy.map((value) => value.toLowerCase());
         return this.#applyFragmentListFilters(stores).filter((store) => {
             const item = store?.get?.() ?? store?.value;
             if (!item) return false;
@@ -510,10 +509,7 @@ export class MasRepository extends LitElement {
             if (!matchesContentTypeFilter(contentTypes, item)) return false;
             if (!tagPredicate(item)) return false;
             if (status.length && !status.includes(item.status)) return false;
-            if (createdByLc.length) {
-                const itemCreatedBy = (item.created?.by || '').toLowerCase();
-                if (!itemCreatedBy || !createdByLc.includes(itemCreatedBy)) return false;
-            }
+            if (createdBy.length && !Fragment.isCreatedByAny(item, createdBy)) return false;
             if (this.#skipQuery(lowerQuery, item)) return false;
             return true;
         });
@@ -1671,13 +1667,15 @@ export class MasRepository extends LitElement {
 
     /**
      * @param {Fragment} fragment Fragment to publish
+     * @param {Object} [options={}] Publication options
+     * @param {boolean} [options.replicate=false] Activate only this fragment, ignoring selectedRefIds and allSelected
      * @param {boolean} withToast Whether or not to display toasts
      * @returns {Promise<boolean>} Whether or not it was successful
      */
     async publishFragment(fragment, options = {}, withToast = true) {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
-        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false } = options;
+        const { selectedRefIds = null, allSelected = false, skipReferenceDiagnosis = false, replicate = false } = options;
         try {
             const roots = [
                 fragment,
@@ -1687,7 +1685,9 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
 
             await this.clearStagedTag(fragment);
-            if (allSelected) {
+            if (replicate) {
+                await this.aem.replicateFragment(fragment);
+            } else if (allSelected) {
                 await this.aem.sites.cf.fragments.publish(fragment, []);
                 const { variations = [], cards = [] } = fragment.getPublishableReferences?.() ?? {};
                 const allRefIds = [...variations, ...cards].map((r) => r.id);
@@ -1810,6 +1810,7 @@ export class MasRepository extends LitElement {
         if (this.#publishAttemptInProgress) return false;
         this.#publishAttemptInProgress = true;
 
+        const fragments = [];
         try {
             const listStores = Store.fragments.list.data.get();
             const roots = fragmentIds.map((id) => findFragmentDataById(id, listStores) ?? { id, path: '' });
@@ -1817,7 +1818,6 @@ export class MasRepository extends LitElement {
             this.operation.set(OPERATIONS.PUBLISH);
             if (withToast) showToast(`Publishing ${fragmentIds.length} fragment(s)...`);
 
-            const fragments = [];
             for (const id of fragmentIds) {
                 let fragment = findFragmentDataById(id, listStores);
                 if (!fragment?.etag) {
@@ -1853,7 +1853,20 @@ export class MasRepository extends LitElement {
 
             return true;
         } catch (error) {
-            this.processError(error, 'Failed to publish fragments.');
+            const published = error.publishedFragments ?? [];
+            if (!published.length) {
+                this.processError(error, 'Failed to publish fragments.');
+                return false;
+            }
+            console.error('Failed to publish fragments', error);
+            const listStores = Store.fragments.list.data.get();
+            await Promise.all(
+                published.map(({ id }) => {
+                    const store = findFragmentStoreById(id, listStores);
+                    return store ? this.refreshFragment(store) : Promise.resolve();
+                }),
+            );
+            showToast(`Published ${published.length} of ${fragments.length} fragment(s); the rest failed.`, 'negative');
             return false;
         } finally {
             this.operation.set(null);
@@ -2284,7 +2297,9 @@ export class MasRepository extends LitElement {
                 const fragment = await getFragmentByPathOrNull(this.aem.sites.cf.fragments, candidatePath, {
                     references: 'direct-hydrated',
                 });
-                if (fragment) return fragment;
+                if (!fragment) continue;
+                if (!Fragment.isGroupedVariationPath(fragment.path)) return fragment;
+                return await this.resolveHydratedParentFragment(fragment.path);
             }
             return null;
         }

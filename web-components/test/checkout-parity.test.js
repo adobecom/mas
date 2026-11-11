@@ -8,6 +8,9 @@ import {
     resolveCheckoutData,
     resolveCheckoutIntent,
 } from '../../checkout/src/checkout.js';
+import { checkoutDecisionsV1 } from '../../checkout/src/decisions.js';
+import { decisionCases } from '../../checkout/test/fixtures/decisions.js';
+import '../src/mas-commerce-service.js';
 
 describe('shared checkout Node/Chrome parity', () => {
     let nodeResults;
@@ -15,6 +18,18 @@ describe('shared checkout Node/Chrome parity', () => {
     before(async () => {
         nodeResults = await (await fetch('/node-checkout-results')).json();
     });
+
+    for (const { id, decision, input, expected } of decisionCases) {
+        it(`matches the Node, service and golden decision for ${id}`, () => {
+            const service = document.createElement('mas-commerce-service');
+            const result = service.checkoutDecisionsV1[decision](input);
+            expect(result).to.deep.equal(expected);
+            expect(result).to.deep.equal(checkoutDecisionsV1[decision](input));
+            expect(JSON.parse(JSON.stringify({ result }))).to.deep.equal(
+                nodeResults.decisions[id],
+            );
+        });
+    }
 
     for (const { id, data, pageContext, expected } of urlCases) {
         it(`matches the Node and golden URL for ${id}`, () => {

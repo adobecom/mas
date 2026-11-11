@@ -1,5 +1,6 @@
 import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
 import { resolveCheckoutIntent } from '../../checkout/src/checkout.js';
+import { is3in1Modal } from '../../checkout/src/decisions.js';
 import {
     AUP_CHECKOUT_CLIENT_IDS,
     CheckoutWorkflowStep,
@@ -23,10 +24,7 @@ function withTimeout(promise, stage, ms) {
 }
 
 function getCheckoutClientId({ checkoutClientId, modal }) {
-    if (
-        checkoutClientId !== 'doc_cloud' &&
-        Object.values(MODAL_TYPE_3_IN_1).includes(modal)
-    ) {
+    if (checkoutClientId !== 'doc_cloud' && is3in1Modal(modal)) {
         return modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
     }
     return checkoutClientId;

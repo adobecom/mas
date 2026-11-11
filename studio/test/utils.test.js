@@ -738,7 +738,13 @@ describe('createKeyedAsyncLoader', () => {
 });
 
 describe('getFragmentPartsToUse', () => {
-    function makeCard({ variantCode = 'catalog', cardTitle = 'My Card', getTagTitle = () => null, getCurrentTagTitle } = {}) {
+    function makeCard({
+        variantCode = 'catalog',
+        cardTitle = 'My Card',
+        getTagTitle = () => null,
+        getCurrentTagTitle,
+        getCurrentTagTitles,
+    } = {}) {
         return {
             model: { path: CARD_MODEL_PATH },
             title: cardTitle,
@@ -752,8 +758,29 @@ describe('getFragmentPartsToUse', () => {
             },
             getTagTitle,
             getCurrentTagTitle: getCurrentTagTitle || (() => null),
+            getCurrentTagTitles: getCurrentTagTitles || (() => []),
         };
     }
+
+    it('joins all product_code titles of a soft bundle with " + "', () => {
+        const fragment = makeCard({ getCurrentTagTitles: () => ['Acrobat Pro', 'AI Assistant'] });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / Acrobat Pro + AI Assistant');
+    });
+
+    it('does not add " + " for a single product_code title', () => {
+        const fragment = makeCard({ getCurrentTagTitles: () => ['Acrobat Pro'] });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / Acrobat Pro');
+    });
+
+    it('names every mas:product/ title when no product_code tags exist', () => {
+        const fragment = makeCard({
+            getCurrentTagTitles: (prefix) => (prefix === 'mas:product/' ? ['AI Assistant for Acrobat', 'Acrobat Pro'] : []),
+        });
+        const { fragmentParts } = getFragmentPartsToUse(fragment, 'acom');
+        expect(fragmentParts).to.equal('ACOM / Catalog / AI Assistant for Acrobat + Acrobat Pro');
+    });
 
     it('returns surface + variant label for a catalog card', () => {
         const fragment = makeCard({ variantCode: 'catalog' });

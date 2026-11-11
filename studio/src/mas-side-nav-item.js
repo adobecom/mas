@@ -76,18 +76,6 @@ class MasSideNavItem extends LitElement {
             left: 0;
             right: 0;
         }
-
-        .support-indicator {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            width: 14px;
-            height: 14px;
-        }
-
-        :host(.side-nav-support) {
-            position: relative;
-        }
     `;
 
     constructor() {

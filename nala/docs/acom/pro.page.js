@@ -74,6 +74,10 @@ export default class MasPro {
         return this.getCard(id).locator('[slot="heading-m"] span.price-plan-type');
     }
 
+    getCardLegalPlanType(id) {
+        return this.getCard(id).locator('[slot="heading-m"] [data-template="legal"] .price-plan-type');
+    }
+
     getCardDescription(id) {
         return this.getCard(id).locator('div[slot="body-xs"]');
     }

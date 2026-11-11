@@ -200,4 +200,23 @@ test.describe('ACOM MAS pro cards feature test suite', () => {
             expect(await top(cards.nth(1))).toBe(firstTop);
         });
     });
+
+    // @MAS-Pro-Legal-Text
+    test(`${features[6].name},${features[6].tags}`, async () => {
+        const { data } = features[6];
+        const page = await openGallery();
+
+        await test.step('step-1: Author a Short Description on the fragment and reload', async () => {
+            await page.route(`**/fragment?id=${data.id}*`, async (route) => {
+                const json = await (await route.fetch()).json();
+                json.fields.shortDescription = data.shortDescription;
+                await route.fulfill({ json });
+            });
+            await page.reload();
+        });
+
+        await test.step('step-2: Verify the Short Description renders as the legal plan type text', async () => {
+            await expect(acomPage.getCardLegalPlanType(data.id).first()).toHaveText(data.shortDescription);
+        });
+    });
 });

@@ -80,4 +80,14 @@ export const features = [
         },
         tags: '@mas-docs @mas-acom @mas-pro-card @commerce @regression @milo',
     },
+    {
+        tcid: '6',
+        name: '@MAS-Pro-Legal-Text',
+        path: DOCS_GALLERY_PATH.PRO,
+        data: {
+            id: PHOTOSHOP,
+            shortDescription: 'Fee applies if you cancel after 14 days.',
+        },
+        tags: '@mas-docs @mas-acom @mas-pro-card @commerce @regression @milo',
+    },
 ];

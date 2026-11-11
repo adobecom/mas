@@ -768,6 +768,7 @@ describe('bulk-publish-worker — main recovers a stuck project', () => {
             getProjectSnapshots: sinon.stub().returns([PENDING]),
             publishResolved: sinon.stub().resolves([{ path: '/a', status: 'published' }]),
             resolvePaths: sinon.stub().returns(['/a']),
+            clearStagedTags: sinon.stub().resolves([]),
         };
 
         const res = await main(params, deps);

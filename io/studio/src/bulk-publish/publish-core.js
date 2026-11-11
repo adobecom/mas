@@ -8,7 +8,6 @@ const {
     COLLECTION_MODEL_ID,
 } = require('../common.js');
 
-// Must stay identical to STAGED.TAG and COLLECTION_MODEL_PATH in studio/src/constants.js.
 const STAGED_TAG = 'mas:studio/internal/staged';
 const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
 const STAGED_CLEAR_CONCURRENCY = 5;
@@ -117,7 +116,6 @@ function isCollection(fragment) {
     return fragment.model?.path === COLLECTION_MODEL_PATH || fragment.model?.id === COLLECTION_MODEL_ID;
 }
 
-// Collections keep tags as AEM fragment tags, which are only writable through the /tags endpoint.
 async function clearCollectionStagedTag(fragment, odinEndpoint, authToken) {
     const tagIds = (fragment.tags || []).map((tag) => tag.id ?? tag);
     if (!tagIds.includes(STAGED_TAG)) return false;
@@ -172,7 +170,7 @@ async function clearStagedTagsAfterPublish(details, odinEndpoint, authToken, log
             return { path, reason: STAGED_CLEAR_FAILED, error: error.message || String(error) };
         }
     });
-    const failures = results.filter((r) => r.reason).map(({ path, reason, error }) => ({ path, reason, error }));
+    const failures = results.filter((r) => r.reason);
     const cleared = results.filter((r) => r.cleared).length;
     logger.info(JSON.stringify({ event: 'staged-clear', total: paths.length, cleared, failed: failures.length }));
     return failures;
@@ -186,6 +184,4 @@ module.exports = {
     groupAndChunk,
     STATUS,
     MAX_CHUNK_SIZE,
-    STAGED_TAG,
-    COLLECTION_MODEL_PATH,
 };

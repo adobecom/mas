@@ -1036,6 +1036,39 @@ describe('ai-card-mapper', () => {
         });
     });
 
+    describe('buildReleaseTags plan_type', () => {
+        const planProduct = { arrangement_code: 'PA-1', product_code: 'ANTR', planTypes: { ABM: true, PUF: true, M2M: true } };
+        const offers = [
+            [{ commitment: 'YEAR', term: 'MONTHLY' }, 'abm'],
+            [{ commitment: 'YEAR', term: 'ANNUAL' }, 'puf'],
+            [{ commitment: 'MONTH', term: 'MONTHLY' }, 'm2m'],
+            [{ commitment: 'PERPETUAL' }, 'perpetual'],
+        ];
+
+        for (const [offer, type] of offers) {
+            it(`emits exactly one mas:plan_type/${type} tag for ${offer.commitment}`, () => {
+                const tags = buildReleaseTags(planProduct, offer);
+                expect(tags.filter((t) => t.startsWith('mas:plan_type/'))).to.deep.equal([`mas:plan_type/${type}`]);
+            });
+        }
+
+        it('follows the selected offer, not the product planTypes map', () => {
+            const tags = buildReleaseTags(planProduct, { commitment: 'MONTH', term: 'MONTHLY' });
+            expect(tags).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1', 'mas:plan_type/m2m']);
+        });
+
+        it('emits no plan_type tag without a mappable offer', () => {
+            for (const offer of [
+                undefined,
+                null,
+                { commitment: 'YEAR', term: 'P3Y' },
+                { commitment: 'TERM_LICENSE', term: 'P3Y' },
+            ]) {
+                expect(buildReleaseTags(planProduct, offer)).to.deep.equal(['mas:product_code/ANTR', 'mas:pa/PA-1']);
+            }
+        });
+    });
+
     describe('createFragmentDataForAEM with tags', () => {
         it('forwards tags when provided in options', () => {
             sinon.stub(window.customElements, 'get').callsFake((name) => {

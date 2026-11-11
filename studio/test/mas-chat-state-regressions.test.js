@@ -206,6 +206,39 @@ describe('MasChat state regressions', () => {
             ]);
         });
     }
+    it('saves the plan_type tag of the selected base offer', async () => {
+        await el.handleResolvedReleaseProduct({ product, arrangementCode: product.arrangement_code });
+        el.selectedReleaseOsi = 'base-selector';
+        el.selectedReleaseOffer = { commitment: 'YEAR', term: 'MONTHLY' };
+        const getElement = customElements.get.bind(customElements);
+        sinon
+            .stub(customElements, 'get')
+            .callsFake((name) =>
+                name === 'merch-card'
+                    ? { getFragmentMapping: () => ({ title: {}, description: {}, ctas: {}, mnemonics: {}, osi: {} }) }
+                    : name === 'aem-fragment'
+                      ? undefined
+                      : getElement(name),
+            );
+        let saved;
+        sinon.stub(el, 'repository').get(() => ({
+            aem: {
+                sites: {
+                    cf: {
+                        fragments: {
+                            create: async (data) => {
+                                saved = data;
+                                return null;
+                            },
+                        },
+                    },
+                },
+            },
+        }));
+        await el.saveDraftToAEM({ variant: 'catalog' }, { parentPath: '/content/dam/mas/sandbox/en_US', name: 'draft' });
+        expect(saved.tags.filter((tag) => tag.startsWith('mas:plan_type/'))).to.deep.equal(['mas:plan_type/abm']);
+        expect(saved.tags).to.include('mas:product_code/PHSP');
+    });
     for (const operationResult of [
         { success: true, operation: 'copy', newFragmentId: id, newFragmentTitle: 'Copy', message: 'Copied' },
         { success: true, operation: 'update', fragmentId: id, fragmentTitle: 'Updated', message: 'Updated' },

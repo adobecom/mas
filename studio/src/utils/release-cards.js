@@ -36,12 +36,22 @@ export function releaseFragmentName(title) {
  * @param {string} args.variant - card variant, e.g. 'plans' or 'catalog'
  * @param {string} [args.baseOsi] - base offer selector id
  * @param {string} [args.trialOsi] - trial offer selector id
+ * @param {Object} [args.baseOffer] - selected base offer (commitment, term); drives the plan_type tag
  * @param {string} args.parentPath - AEM parent folder
  * @param {string} [args.title] - override AEM fragment title (defaults to "<name> - <Variant>")
  * @param {string} [args.name] - override fragment name (defaults to a slug + timestamp)
  * @returns {Promise<Object>} fragment data ready for repository.aem.sites.cf.fragments.create
  */
-export async function buildReleaseFragmentData({ product, variant, baseOsi, trialOsi, parentPath, title, name } = {}) {
+export async function buildReleaseFragmentData({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    title,
+    name,
+} = {}) {
     const productName = getProductName(product);
     const cardTitle = title || `${productName} - ${capitalize(variant)}`;
 
@@ -65,7 +75,7 @@ export async function buildReleaseFragmentData({ product, variant, baseOsi, tria
         title: cardTitle,
         name: name || releaseFragmentName(cardTitle),
         parentPath,
-        tags: buildReleaseTags(product),
+        tags: buildReleaseTags(product, baseOffer),
     });
 }
 
@@ -78,11 +88,30 @@ export async function buildReleaseFragmentData({ product, variant, baseOsi, tria
  * @param {Object} args.repository - the mas-repository element
  * @returns {Promise<Object>} the created fragment
  */
-export async function createReleaseCard({ product, variant, baseOsi, trialOsi, parentPath, repository, title, name } = {}) {
+export async function createReleaseCard({
+    product,
+    variant,
+    baseOsi,
+    trialOsi,
+    baseOffer,
+    parentPath,
+    repository,
+    title,
+    name,
+} = {}) {
     if (!repository?.aem?.sites?.cf?.fragments?.create) {
         throw new Error('mas-repository is not available to create release cards');
     }
-    const fragmentData = await buildReleaseFragmentData({ product, variant, baseOsi, trialOsi, parentPath, title, name });
+    const fragmentData = await buildReleaseFragmentData({
+        product,
+        variant,
+        baseOsi,
+        trialOsi,
+        baseOffer,
+        parentPath,
+        title,
+        name,
+    });
     const newFragment = await repository.aem.sites.cf.fragments.create(fragmentData);
 
     return newFragment;

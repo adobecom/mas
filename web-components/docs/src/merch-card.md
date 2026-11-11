@@ -130,6 +130,23 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 </merch-card>
 ```
 
+### With static content (product-pricing)
+
+```html {.demo .light}
+<merch-card id="static-product-pricing" variant="product-pricing" consonant>
+  <merch-icon slot="icons" size="s" src="https://www.adobe.com/cc-shared/assets/img/product-icons/svg/illustrator.svg" alt="Illustrator"></merch-icon>
+  <h3 slot="heading-s">Illustrator</h3>
+  <p slot="heading-xs">
+      <span is="inline-price" data-wcs-osi="1KfaN_o5h4Gvmvh_QwfK7KB7xGPpNpsTXsdhqpJUT5Y"></span>
+  </p>
+  <div slot="body-xs"><p>Create beautiful designs, icons, and more, and use them anyplace at any size.</p></div>
+  <div slot="footer">
+      <a is="checkout-link" href="#" class="con-button blue" data-wcs-osi="1KfaN_o5h4Gvmvh_QwfK7KB7xGPpNpsTXsdhqpJUT5Y">Free trial</a>
+      <a is="checkout-link" href="#" class="con-button primary-outline" data-wcs-osi="1KfaN_o5h4Gvmvh_QwfK7KB7xGPpNpsTXsdhqpJUT5Y">Buy now</a>
+  </div>
+</merch-card>
+```
+
 ### Attributes
 
 | Name        | Description                                                                                                                                                                                           | Default Value | Required | Provider |
@@ -147,6 +164,7 @@ Adobe Home Gallery provides a comprehensive list of all supported card variants 
 - `inline-heading`
 - `mini-compare-chart`
 - `plans`
+- `product-pricing`
 - `pro`
 - `product`
 - `segment`

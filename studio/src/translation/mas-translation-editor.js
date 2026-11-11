@@ -25,6 +25,7 @@ import {
 import './mas-collapsible-table-row.js';
 import './mas-translation-duplicate-dialog.js';
 import { untrackPendingProject } from '../common/utils/project-list-utils.js';
+import { loadBaselines } from '../baselines/baseline-model.js';
 
 class MasTranslationEditor extends LitElement {
     static styles = styles;
@@ -52,6 +53,7 @@ class MasTranslationEditor extends LitElement {
     #itemsConfirmed = false;
     #duplicateProposedTitle = '';
     #duplicateExistingTitles = [];
+    #baselinesAbortController = null;
 
     constructor() {
         super();
@@ -127,6 +129,7 @@ class MasTranslationEditor extends LitElement {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.#baselinesAbortController?.abort();
         popItemsSelectionStore(this.#itemsSelectionStoreToken);
         this.#itemsSelectionStoreToken = null;
     }
@@ -606,7 +609,8 @@ class MasTranslationEditor extends LitElement {
     };
 
     #openAddItemsOverlay(e) {
-        if (e && e.target !== e.currentTarget) return;
+        if (e && e.target !== e.currentTarget && e.target !== e.currentTarget.querySelector(':scope > [slot="trigger"]'))
+            return;
         this.#itemsConfirmed = false;
         this.#cardsSnapshot = Store.translationProjects.selectedCards.value;
         this.#placeholdersSnapshot = Store.translationProjects.selectedPlaceholders.value;
@@ -627,6 +631,13 @@ class MasTranslationEditor extends LitElement {
         if (this.repository?.searchFragments) this.repository.searchFragments();
         if (this.repository?.loadPlaceholders) this.repository.loadPlaceholders();
         if (this.repository?.loadAllCollections) this.repository.loadAllCollections(Store.translationProjects);
+        this.#baselinesAbortController?.abort();
+        this.#baselinesAbortController = new AbortController();
+        loadBaselines(
+            this.repository,
+            { surface: Store.surface(), locale: 'en_US', list: Store.translationProjects.baselinesList },
+            this.#baselinesAbortController,
+        );
     }
 
     #openLangSelection = () => {
@@ -668,6 +679,7 @@ class MasTranslationEditor extends LitElement {
                 @close=${this.#restoreItemsSnapshot}
             >
                 <mas-items-selector
+                    .includeBaselines=${true}
                     .renderFragmentStatusCell=${renderFragmentStatusCell}
                     .variationTabs=${[VARIATION_TAB_NAME.PROMOTION, VARIATION_TAB_NAME.GROUPED]}
                     .hidePromoVariations=${true}
@@ -878,6 +890,7 @@ class MasTranslationEditor extends LitElement {
                               ${this.isSelectedItemsOpen
                                   ? html`<mas-items-selector
                                         .viewOnly=${true}
+                                        .includeBaselines=${true}
                                         .renderFragmentStatusCell=${renderFragmentStatusCell}
                                     ></mas-items-selector>`
                                   : nothing}

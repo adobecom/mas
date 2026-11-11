@@ -2,7 +2,7 @@ import sinon from 'sinon';
 import { expect } from '@esm-bundle/chai';
 import { html } from 'lit';
 import { fixture, fixtureCleanup, waitUntil } from '@open-wc/testing-helpers/pure';
-import { PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
+import { CARD_MODEL_PATH, PAGE_NAMES, QUICK_ACTION, TRANSLATION_PROJECT_MODEL_ID } from '../../src/constants.js';
 import Store from '../../src/store.js';
 import { getItemsSelectionStore, setItemsSelectionStore } from '../../src/common/items-selection-store.js';
 import router from '../../src/router.js';
@@ -12,6 +12,7 @@ import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import { MasRepository } from '../../src/mas-repository.js';
 import { SURFACES } from '../../src/constants.js';
 import { UserFriendlyError } from '../../src/utils.js';
+import { loadBaselines } from '../../src/baselines/baseline-model.js';
 import '../../src/swc.js';
 import '../../src/translation/mas-translation-editor.js';
 import '../../src/translation/mas-translation.js';
@@ -88,6 +89,7 @@ describe('MasTranslationEditor', () => {
         deleteFragment: sandbox.stub().resolves(),
         refreshFragment: sandbox.stub().resolves(),
         searchFragments: sandbox.stub().resolves({ items: [] }),
+        searchFragmentList: sandbox.stub().resolves([]),
         loadPlaceholders: sandbox.stub().resolves([]),
         ...overrides,
     });
@@ -103,6 +105,14 @@ describe('MasTranslationEditor', () => {
         Store.translationProjects.targetLocales.value = [];
         Store.translationProjects.showSelected.value = false;
         Store.translationProjects.projectType.set('translation');
+        Store.translationProjects.baselinesList.data.set([]);
+        Store.translationProjects.baselinesList.data.removeMeta('loadedPath');
+        Store.translationProjects.baselinesList.loading.set(false);
+        Store.translationProjects.allBaselines.set([]);
+        Store.translationProjects.displayBaselines.set([]);
+        Store.baselines.list.data.set([]);
+        Store.baselines.list.data.removeMeta('loadedPath');
+        Store.baselines.list.loading.set(false);
         Store.search.set({ path: SURFACES.ACOM.name });
     };
 
@@ -130,6 +140,7 @@ describe('MasTranslationEditor', () => {
             },
             getTranslationsPath: sandbox.stub().returns('/content/dam/mas/translations'),
             searchFragments: sandbox.stub().resolves({ items: [] }),
+            searchFragmentList: sandbox.stub().resolves([]),
             loadPlaceholders: sandbox.stub().resolves([]),
         };
         querySelectorStub = sandbox.stub(document, 'querySelector').callsFake((selector) => {
@@ -1478,6 +1489,132 @@ describe('MasTranslationEditor', () => {
     });
 
     describe('item selection dialog', () => {
+        it('loads baselines when Add Items is opened through its actual trigger', async () => {
+            const path = '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline';
+            defaultMockRepository.searchFragmentList.resolves([
+                {
+                    id: 'surface-baseline',
+                    path,
+                    title: 'Photoshop baseline',
+                    model: { path: CARD_MODEL_PATH },
+                    fields: [],
+                    tags: [],
+                },
+            ]);
+            Store.translationProjects.baselinesList.loading.set(true);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            const overlay = el.shadowRoot.querySelector('#add-items-overlay');
+            const opened = new Promise((resolve) => overlay.addEventListener('sp-opened', resolve, { once: true }));
+
+            overlay.querySelector('[slot="trigger"]').click();
+            await opened;
+
+            expect(defaultMockRepository.searchFragmentList.calledOnce).to.be.true;
+            await waitUntil(() => !Store.translationProjects.baselinesList.loading.get());
+            const selector = el.shadowRoot.querySelector('mas-items-selector');
+            const table = selector.shadowRoot.querySelector('mas-select-items-table[type="baselines"]');
+            await waitUntil(() => table.itemsToDisplay.some((item) => item.path === path));
+            await table.updateComplete;
+            expect(table.itemsToDisplay.map((item) => item.path)).to.deep.equal([path]);
+            expect(table.shadowRoot.querySelector('.skeleton-row')).to.not.exist;
+        });
+
+        it('keeps en_US baselines when a previous Baselines page request resolves later', async () => {
+            const pending = new Map();
+            defaultMockRepository.searchFragmentList.callsFake(
+                ({ path }) => new Promise((resolve) => pending.set(path, resolve)),
+            );
+            const baseline = (locale) => ({
+                id: locale,
+                path: `/content/dam/mas/acom/${locale}/baselines/catalog/phsp/baseline`,
+                title: `${locale} baseline`,
+                fields: [],
+            });
+            const previousLoad = loadBaselines(
+                defaultMockRepository,
+                { surface: 'acom', locale: 'fr_FR' },
+                new AbortController(),
+            );
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.shadowRoot.querySelector('#add-items-overlay').dispatchEvent(new CustomEvent('sp-opened'));
+            pending.get('/content/dam/mas/acom/en_US/baselines')([baseline('en_US')]);
+            await waitUntil(() => Store.translationProjects.displayBaselines.get().some(({ id }) => id === 'en_US'));
+
+            pending.get('/content/dam/mas/acom/fr_FR/baselines')([baseline('fr_FR')]);
+            await previousLoad;
+
+            expect(Store.translationProjects.displayBaselines.get().map(({ path }) => path)).to.deep.equal([
+                baseline('en_US').path,
+            ]);
+            expect(Store.baselines.list.data.get().map(({ value }) => value.path)).to.deep.equal([baseline('fr_FR').path]);
+        });
+
+        it('keeps baseline table and search loading independent of the Baselines page', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.shadowRoot.querySelector('#add-items-overlay').dispatchEvent(new CustomEvent('sp-opened'));
+            const selector = el.shadowRoot.querySelector('mas-items-selector');
+            await selector.updateComplete;
+            const table = selector.shadowRoot.querySelector('mas-select-items-table[type="baselines"]');
+            const filters = selector.shadowRoot.querySelector('sp-tab-panel[value="baselines"] mas-search-and-filters');
+            await waitUntil(() => !table.isLoading);
+
+            Store.baselines.list.loading.set(true);
+
+            expect(table.isLoading).to.be.false;
+            expect(filters.isLoading).to.be.false;
+        });
+
+        it('offers surface baselines from en_US when opening Add Items', async () => {
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.shadowRoot.querySelector('#add-items-overlay').dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+
+            const selector = el.shadowRoot.querySelector('mas-items-selector');
+            expect(selector.includeBaselines).to.be.true;
+            expect(defaultMockRepository.searchFragmentList.firstCall.args[0].path).to.equal(
+                '/content/dam/mas/acom/en_US/baselines',
+            );
+        });
+
+        it('saves baseline-only projects using the existing fragments field', async () => {
+            const baselinePath = '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline';
+            const repository = createMockRepository();
+            querySelectorStub.callsFake((selector) =>
+                selector === 'mas-repository' ? repository : originalQuerySelector(selector),
+            );
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            el.translationProjectStore.updateField('title', ['Baseline-Translation']);
+            Store.translationProjects.targetLocales.set(['fr_FR']);
+            Store.translationProjects.selectedCards.set([baselinePath]);
+            el.shadowRoot.querySelector('#add-items-overlay').dispatchEvent(new CustomEvent('sp-opened'));
+            await el.updateComplete;
+            el.shadowRoot.querySelector('.add-items-dialog').dispatchEvent(new CustomEvent('confirm'));
+            await el.updateComplete;
+            el.shadowRoot.querySelector('mas-quick-actions').dispatchEvent(new CustomEvent('save'));
+            await waitUntil(() => repository.createFragment.called);
+
+            const payload = repository.createFragment.firstCall.args[0];
+            expect(payload.fields.find(({ name }) => name === 'fragments').values).to.deep.equal([baselinePath]);
+            expect(payload.fields.some(({ name }) => name === 'baselines')).to.be.false;
+        });
+
+        it('reopens saved baseline references in the Baselines tab', async () => {
+            const project = createMockFragment();
+            const baselinePath = '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline';
+            project.fields.find(({ name }) => name === 'fragments').values = [baselinePath];
+            defaultMockRepository.aem.sites.cf.fragments.getById.resolves(project);
+            Store.translationProjects.translationProjectId.set(project.id);
+            const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
+            await waitUntil(() => !el.isLoading && el.translationProject?.id === project.id);
+            el.isSelectedItemsOpen = true;
+            await el.updateComplete;
+            const selector = [...el.shadowRoot.querySelectorAll('mas-items-selector')].find((item) => item.viewOnly);
+            await selector.updateComplete;
+
+            expect(selector.shadowRoot.querySelector('sp-tab[value="baselines"]').textContent).to.equal('Baselines (1)');
+            expect(selector.shadowRoot.querySelector('sp-tab[value="cards"]').textContent).to.equal('Fragments (0)');
+        });
+
         it('should confirm item selection and close dialog', async () => {
             Store.translationProjects.selectedCards.set(['card1']);
             const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
@@ -1547,12 +1684,14 @@ describe('MasTranslationEditor', () => {
             const overlayTrigger = el.shadowRoot.querySelector('#add-items-overlay');
             overlayTrigger.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
             await el.updateComplete;
+            const searchCalls = defaultMockRepository.searchFragmentList.callCount;
             // Now emit a bubbling sp-opened from a nested descendant (simulating a filter
             // popover opening). The outer handler must early-return, not reset state.
             const innerSource = el.shadowRoot.querySelector('mas-items-selector') ?? overlayTrigger;
             innerSource.dispatchEvent(new CustomEvent('sp-opened', { bubbles: true, composed: true }));
             await el.updateComplete;
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-outer']);
+            expect(defaultMockRepository.searchFragmentList.callCount).to.equal(searchCalls);
         });
     });
 

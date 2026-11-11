@@ -206,6 +206,12 @@ const Store = {
         cardsByPaths: new ReactiveStore(new Map()),
         displayCards: new ReactiveStore([]),
         selectedCards: new ReactiveStore([]),
+        baselinesList: {
+            data: new ReactiveStore([]),
+            loading: new ReactiveStore(true),
+        },
+        allBaselines: new ReactiveStore([]),
+        displayBaselines: new ReactiveStore([]),
         offerDataCache: new Map(),
         groupedVariationsByParent: new ReactiveStore(new Map()), // should not be modified directly, use setCardVariationsByPaths to modify
         groupedVariationsData: new ReactiveStore(new Map()),

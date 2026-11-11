@@ -234,6 +234,32 @@ describe('bulk-publish/publish-core.js — clearStagedTagsAfterPublish', () => {
         expect(put.args[3].etag).to.equal('tag-etag');
     });
 
+    it('clears the staged tag from a card that keeps it only in its fragment tags', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a']), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        const put = stubs.fetchOdin.getCalls().find((c) => c.args[3]?.method === 'PUT');
+        expect(put.args[1]).to.equal('/adobe/sites/cf/fragments/id-1/tags');
+        expect(JSON.parse(put.args[3].body)).to.deep.equal({ tags: ['mas:a'] });
+        expect(stubs.patchToOdin).to.not.have.been.called;
+    });
+
+    it('clears the staged tag from both the tags field and the fragment tags of a card', async () => {
+        stubs.fetchFragmentByPath.resolves({
+            fragment: { ...card(['mas:a', STAGED]), tags: [{ id: 'mas:a' }, { id: STAGED }] },
+            status: 200,
+        });
+
+        await core.clearStagedTagsAfterPublish([{ path: CARD, status: 'published' }], 'https://odin', 't', logger);
+
+        expect(stubs.patchToOdin).to.have.been.calledOnce;
+        expect(stubs.fetchOdin.getCalls().some((c) => c.args[3]?.method === 'PUT')).to.be.true;
+    });
+
     it('deletes the collection tags when the staged tag was the only one', async () => {
         stubs.fetchFragmentByPath.resolves({ fragment: collection([{ id: STAGED }]), status: 200 });
 

@@ -116,7 +116,7 @@ function isCollection(fragment) {
     return fragment.model?.path === COLLECTION_MODEL_PATH || fragment.model?.id === COLLECTION_MODEL_ID;
 }
 
-async function clearCollectionStagedTag(fragment, odinEndpoint, authToken) {
+async function clearFragmentStagedTag(fragment, odinEndpoint, authToken) {
     const tagIds = (fragment.tags || []).map((tag) => tag.id ?? tag);
     if (!tagIds.includes(STAGED_TAG)) return false;
     const remaining = tagIds.filter((tag) => tag !== STAGED_TAG);
@@ -149,9 +149,9 @@ async function clearCardStagedTag(fragment, odinEndpoint, authToken) {
 async function clearStagedTag(path, odinEndpoint, authToken) {
     const { fragment, status } = await fetchFragmentByPath(odinEndpoint, path, authToken);
     if (!fragment) throw new Error(`fetch ${status}`);
-    return isCollection(fragment)
-        ? clearCollectionStagedTag(fragment, odinEndpoint, authToken)
-        : clearCardStagedTag(fragment, odinEndpoint, authToken);
+    const clearedField = !isCollection(fragment) && (await clearCardStagedTag(fragment, odinEndpoint, authToken));
+    const clearedTags = await clearFragmentStagedTag(fragment, odinEndpoint, authToken);
+    return clearedField || clearedTags;
 }
 
 /**

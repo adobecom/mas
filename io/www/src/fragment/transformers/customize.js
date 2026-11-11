@@ -124,8 +124,8 @@ function countMatchedPznTokens(tags, tokens) {
 }
 
 /**
- * Non-zero score means this variation applies. Higher is better: each matched request pzn token
- * dominates; region and country matches add smaller tie-break weight.
+ * Both geo and audience must match when both are tagged. Among eligible variations, each
+ * matched request pzn token dominates; region and country add smaller tie-break weight.
  * @param {string[]|undefined} pznTags
  * @param {{ regionLocale: string, country?: string, pzn?: string }} ctx
  */
@@ -138,9 +138,10 @@ function personalizationMatchScore(pznTags, { regionLocale, country, pzn }) {
         return 0;
     }
     const tokens = parsePznTokens(pzn);
-    const matchedTokens = countMatchedPznTokens(tags, tokens);
+    const audienceTags = tags.filter((tag) => PZN_TAG_RE.test(tag) && !hasGeoTag([tag]));
+    const matchedTokens = countMatchedPznTokens(audienceTags, tokens);
     const geo = matchesGeo(tags, { regionLocale, country });
-    if (matchedTokens === 0 && !geo) {
+    if ((audienceTags.length && matchedTokens === 0) || (hasGeoTag(tags) && !geo)) {
         return 0;
     }
     return matchedTokens * 100 + geoMatchScore(geo) * 10;

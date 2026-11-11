@@ -2547,6 +2547,120 @@ describe('customize PZN-only promotion rules', function () {
     }
 });
 
+describe('customize country-scoped PZN variations', function () {
+    function buildContext(country, pzn = 'pzn-smb', countries = ['US', 'MX']) {
+        const variations = countries.map((geo) => ({
+            id: `${geo.toLowerCase()}-smb`,
+            path: `/content/dam/mas/sandbox/en_US/geo-audience-card/pzn/${geo.toLowerCase()}-smb`,
+            fields: { cardTitle: `${geo} SMB`, pznTags: [`mas:pzn/country/${geo}`, 'mas:pzn/pzn-smb'] },
+        }));
+        return {
+            ...FAKE_CONTEXT,
+            fragmentPath: 'geo-audience-card',
+            locale: 'en_US',
+            parsedLocale: 'en_US',
+            country,
+            pzn,
+            body: {
+                id: 'geo-audience-card',
+                path: '/content/dam/mas/sandbox/en_US/geo-audience-card',
+                fields: { cardTitle: 'Default', variations: variations.map(({ id }) => id) },
+                references: Object.fromEntries(
+                    variations.map((variation) => [variation.id, { type: 'content-fragment', value: variation }]),
+                ),
+                referencesTree: [],
+            },
+        };
+    }
+
+    function buildPromoProject(context) {
+        const grouped = Object.values(context.body.references).map(({ value }) => value);
+        const groupedPaths = grouped.map(({ id }) => `geo-audience-card/pzn/${id}`);
+        const fragmentPaths = ['geo-audience-card', ...groupedPaths];
+        return [
+            {
+                project: {
+                    id: 'geo-audience-promo',
+                    fragmentPaths,
+                    defaultVariations: {
+                        'geo-audience-card': {
+                            id: 'ordinary-promo',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/bf/geo-audience-card',
+                            fields: { cardTitle: 'Ordinary promo' },
+                        },
+                        ...Object.fromEntries(
+                            grouped.map((variation, index) => [
+                                groupedPaths[index],
+                                {
+                                    id: `${variation.id}-promo`,
+                                    path: `/content/dam/mas/sandbox/en_US/promotions/bf/${groupedPaths[index]}`,
+                                    fields: {
+                                        cardTitle: `${variation.fields.cardTitle} promo`,
+                                        pznTags: [...variation.fields.pznTags],
+                                    },
+                                },
+                            ]),
+                        ),
+                    },
+                    regionVariations: {},
+                },
+                fragmentPaths: new Set(fragmentPaths),
+                groupedVariationPaths: new Set(groupedPaths),
+                groupedVariationReferences: new Map(grouped.map((variation, index) => [groupedPaths[index], variation])),
+                promoMap: { '*': 'BF' },
+            },
+        ];
+    }
+
+    for (const [country, variationId] of [
+        ['US', 'us-smb'],
+        ['MX', 'mx-smb'],
+    ]) {
+        it(`selects the ${country} SMB grouped variation when both country and audience match`, async function () {
+            const result = await process(buildContext(country));
+            expect(result.body.variationId).to.equal(variationId);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB`);
+        });
+
+        it(`selects the ${country} SMB promo from its enrolled grouped variation`, async function () {
+            const context = buildContext(country);
+            const result = await processWithPromoProjects(context, buildPromoProject(context));
+            expect(result.body.variationId).to.equal(`${variationId}-promo`);
+            expect(result.body.fields.cardTitle).to.equal(`${country} SMB promo`);
+            expect(result.body.promoVariationProject).to.equal('geo-audience-promo');
+        });
+    }
+
+    for (const { country, pzn, countries = ['US', 'MX'] } of [
+        { country: 'CA', pzn: 'pzn-smb' },
+        { country: 'US', pzn: '' },
+        { country: 'MX', pzn: '' },
+        { country: 'US', pzn: 'pzn-edu' },
+        { country: 'US', pzn: 'pzn-smb', countries: ['MX'] },
+        { country: 'MX', pzn: 'pzn-smb', countries: ['US'] },
+    ]) {
+        it(`retains default content for ${country}/${JSON.stringify(pzn)} outside ${countries.join(',')} SMB scope`, async function () {
+            const result = await process(buildContext(country, pzn, countries));
+            expect(result.body.variationId).to.be.undefined;
+            expect(result.body.fields.cardTitle).to.equal('Default');
+        });
+    }
+
+    it('does not let an out-of-country SMB group suppress the ordinary promo', async function () {
+        const context = buildContext('CA');
+        const result = await processWithPromoProjects(context, buildPromoProject(context));
+        expect(result.body.variationId).to.equal('ordinary-promo');
+        expect(result.body.fields.cardTitle).to.equal('Ordinary promo');
+    });
+
+    it('allows either intended country on a multi-country SMB grouped variation', async function () {
+        const context = buildContext('BR', 'pzn-smb', ['MX']);
+        context.body.references['mx-smb'].value.fields.pznTags.push('mas:pzn/country/BR');
+        const result = await process(context);
+        expect(result.body.variationId).to.equal('mx-smb');
+    });
+});
+
 describe('customize grouped variation scoped to a promo project (no promo variation present)', function () {
     const PZN_VARIATION_ID = 'pzn-var-edu';
 

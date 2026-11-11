@@ -109,38 +109,48 @@ export class Fragment {
     }
 
     getCurrentTagTitle(id) {
+        return this.getCurrentTagTitles(id)[0];
+    }
+
+    /**
+     * Titles of all current tags whose id includes `id`, longest id first.
+     * @param {string} id
+     * @returns {string[]}
+     */
+    getCurrentTagTitles(id) {
         const fieldTagValues = this.getField('tags')?.values;
         const rawTagIds = this.newTags ?? (fieldTagValues?.length ? fieldTagValues : null) ?? this.tags ?? [];
         const tagIds = rawTagIds.map(normalizeTagId).filter(Boolean);
 
-        const matchingIds = tagIds.filter((tagId) => tagId.includes(id));
-        if (!matchingIds.length) return undefined;
-
-        const matchingId = [...matchingIds].sort((a, b) => b.length - a.length)[0];
+        const matchingIds = tagIds.filter((tagId) => tagId.includes(id)).sort((a, b) => b.length - a.length);
         const tags = Array.isArray(this.tags) ? this.tags : [];
 
-        const exactTag = tags.find((tag) => normalizeTagId(tag) === matchingId);
-        const cachedTitle = getCachedTagTitle(matchingId);
-        const fallbackTag = tags.find((tag) => {
-            const tagId = normalizeTagId(tag);
-            return tagId && (tagId.includes(matchingId) || matchingId.includes(tagId));
-        });
+        return matchingIds
+            .map((matchingId) => {
+                const exactTag = tags.find((tag) => normalizeTagId(tag) === matchingId);
+                const cachedTitle = getCachedTagTitle(matchingId);
+                const fallbackTag = tags.find((tag) => {
+                    const tagId = normalizeTagId(tag);
+                    return tagId && (tagId.includes(matchingId) || matchingId.includes(tagId));
+                });
 
-        const title = exactTag?.title || cachedTitle || fallbackTag?.title;
+                const title = exactTag?.title || cachedTitle || fallbackTag?.title;
 
-        if (id === MAS_PRODUCT_CODE_PREFIX) {
-            const nestedTitle = formatProductCodeNestedTitle(title, matchingId);
-            if (nestedTitle) return nestedTitle;
-        }
+                if (id === MAS_PRODUCT_CODE_PREFIX) {
+                    const nestedTitle = formatProductCodeNestedTitle(title, matchingId);
+                    if (nestedTitle) return nestedTitle;
+                }
 
-        if (title) return title;
+                if (title) return title;
 
-        const fallback = matchingId.split('/').filter(Boolean).pop();
-        return fallback
-            ?.split(/[-_]/)
-            .filter(Boolean)
-            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(' ');
+                const fallback = matchingId.split('/').filter(Boolean).pop();
+                return fallback
+                    ?.split(/[-_]/)
+                    .filter(Boolean)
+                    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                    .join(' ');
+            })
+            .filter(Boolean);
     }
 
     get locale() {

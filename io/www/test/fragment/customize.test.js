@@ -2025,6 +2025,95 @@ describe('customize promo variation', function () {
         expect(result.body.fields.title).to.equal('Legacy Title');
     });
 
+    for (const pzn of ['', 'pzn-smb', 'edu']) {
+        it(`should retain the untagged promo fallback instead of a PZN-only EDU sibling for pzn=${JSON.stringify(pzn)}`, async function () {
+            const project = {
+                ...ACTIVE_PROJECT,
+                defaultVariations: {
+                    'my-card': {
+                        id: 'edu-promo-id',
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                        fields: { title: 'EDU Promo Title', pznTags: ['mas:pzn/pzn-edu'] },
+                    },
+                    'my-card-2': {
+                        ...PROMO_VARIATION,
+                        path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                    },
+                },
+            };
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                project,
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('promo-var-id');
+            expect(result.body.fields.title).to.equal('Promo Title');
+        });
+    }
+
+    for (const { pznTags, pzn, variations } of [
+        { pznTags: ['mas:pzn/pzn-edu'], pzn: 'PZN-EDU', variations: 'defaultVariations' },
+        { pznTags: ['mas:audiences/pzn/EDU'], pzn: ' smb, edu ', variations: 'defaultVariations' },
+        { pznTags: ['/content/cq:tags/mas/pzn/pzn-edu'], pzn: 'pzn-edu', variations: 'regionVariations' },
+        { pznTags: ['mas:pzn/country/US', 'mas:pzn/locale/en_US'], pzn: '', variations: 'defaultVariations' },
+    ]) {
+        it(`should select the eligible scoped promo with ${JSON.stringify(pznTags)} for pzn=${JSON.stringify(pzn)} from ${variations}`, async function () {
+            const result = await processWithPromos(
+                {
+                    ...FAKE_CONTEXT,
+                    fragmentPath: 'my-card',
+                    parsedLocale: 'en_US',
+                    locale: 'en_US',
+                    country: 'US',
+                    pzn,
+                    body: {
+                        id: 'root-id',
+                        path: '/content/dam/mas/sandbox/en_US/my-card',
+                        fields: { title: 'Original Title' },
+                        references: {},
+                        referencesTree: [],
+                    },
+                },
+                {
+                    ...ACTIVE_PROJECT,
+                    defaultVariations: {},
+                    [variations]: {
+                        'my-card': {
+                            id: 'scoped-promo-id',
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card',
+                            fields: { title: 'Scoped Promo Title', pznTags },
+                        },
+                        'my-card-2': {
+                            ...PROMO_VARIATION,
+                            path: '/content/dam/mas/sandbox/en_US/promotions/black-friday/my-card-2',
+                        },
+                    },
+                },
+                { '*': 'WILDCARD-PROMO' },
+            );
+
+            expect(result.status).to.equal(200);
+            expect(result.body.variationId).to.equal('scoped-promo-id');
+            expect(result.body.fields.title).to.equal('Scoped Promo Title');
+        });
+    }
+
     it('should prefer a region-locale match over a country-only match among geo-scoped siblings', async function () {
         const countryOnlyVariation = {
             id: 'country-only-id',

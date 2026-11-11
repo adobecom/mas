@@ -184,6 +184,11 @@ class MerchCardEditor extends LitElement {
         return Fragment.isGroupedVariationPath(this.fragment?.path);
     }
 
+    /** The offer is chosen on the base card; every variation kind (locale, grouped, promo) inherits it read-only. */
+    get isOsiReadOnly() {
+        return this.isVariation || this.isGroupedVariation;
+    }
+
     /** Parent baseline CTAs (text + data-key) offered to a variation as override targets. */
     get parentCtas() {
         if (!this.effectiveIsVariation) return [];
@@ -1970,9 +1975,11 @@ class MerchCardEditor extends LitElement {
                         data-field="osi"
                         data-field-state="${this.getFieldState('osi')}"
                         .value=${form.osi.values[0]}
+                        ?readonly=${this.isOsiReadOnly}
                         @input="${this.#handleFragmentUpdate}"
                         @change="${this.#handleFragmentUpdate}"
                     ></osi-field>
+                    ${this.isOsiReadOnly ? html`<sp-help-text>The offer is managed on the base card.</sp-help-text>` : nothing}
                     ${this.renderFieldStatusIndicator('osi')}
                 </sp-field-group>
                 <sp-field-group id="perUnitLabel" class="toggle">

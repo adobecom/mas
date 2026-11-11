@@ -141,6 +141,12 @@ capture_hosts:
       capture_on: '--da-cc--adobecom.aem.page'
     - host: '--da-dc--adobecom.aem.live'
       capture_on: '--da-dc--adobecom.aem.page'
+    # UPP pages (pricing drafts) 401 on .aem.page without a site token, and
+    # .aem.live is public. shortcut: captures the published copy, so unpublished
+    # edits don't show; switch to a site-token profile once AEM_SITE_TOKEN_UPP exists.
+    - '--upp--adobecom.aem.live'
+    - host: '--upp--adobecom.aem.page'
+      capture_on: '--upp--adobecom.aem.live'
 
 # IMS login for Studio surfaces, same account and flow already verified on the
 # milo tenant. Dormant until a capture_hosts entry attaches it via auth: ims.

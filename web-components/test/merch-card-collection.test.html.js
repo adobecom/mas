@@ -174,6 +174,77 @@ runTests(async () => {
             expect(header.resultSlotName).to.equal('noSearchResultsMobileText');
         });
 
+        describe('result status region', () => {
+            const resultSlots = {
+                noSearchResultsMobileText:
+                    'Your search did not yield any results',
+                searchResultMobileText: '1 result for: search',
+                searchResultsMobileText: '2 results for: search',
+                resultMobileText: '1 result',
+                resultsMobileText: '5 results',
+            };
+            const statusText = () =>
+                header.shadowRoot.querySelector('#result-status').textContent;
+
+            beforeEach(async () => {
+                Object.entries(resultSlots).forEach(([slot, text]) => {
+                    const p = document.createElement('p');
+                    p.slot = slot;
+                    p.textContent = text;
+                    header.append(p);
+                });
+                await renderWithSidenav();
+                // reconnect so the header subscribes to the collection's literals events
+                const parent = header.parentNode;
+                const next = header.nextSibling;
+                header.remove();
+                parent.insertBefore(header, next);
+                await header.updateComplete;
+                document.location.hash = '';
+            });
+
+            it('announces no result count when there are zero matches', async () => {
+                pushState({ search: 'cafebabe' });
+                await delay(100);
+                await header.updateComplete;
+                expect(statusText()).to.contain('did not yield any results');
+                expect(statusText()).to.not.match(/\b\d+\s+results?\b/i);
+                expect(
+                    header.shadowRoot
+                        .querySelector('#result')
+                        .getAttribute('quantity'),
+                ).to.equal('none');
+            });
+
+            it('announces the count for one or more matches', async () => {
+                pushState({ search: 'stager' });
+                await delay(100);
+                await header.updateComplete;
+                expect(statusText()).to.equal(
+                    resultSlots.searchResultMobileText,
+                );
+                pushState({ search: 'acrobat' });
+                await delay(100);
+                await header.updateComplete;
+                expect(statusText()).to.equal(
+                    resultSlots.searchResultsMobileText,
+                );
+            });
+
+            it('drops the no-results message after clearing the search', async () => {
+                pushState({ search: 'cafebabe' });
+                await delay(100);
+                await header.updateComplete;
+                pushState({ search: undefined });
+                await delay(100);
+                await header.updateComplete;
+                expect(statusText()).to.not.contain(
+                    'did not yield any results',
+                );
+                expect(statusText()).to.not.be.empty;
+            });
+        });
+
         it('should have touch-friendly search input on mobile', async () => {
             await renderWithSidenav();
             const searchInput =

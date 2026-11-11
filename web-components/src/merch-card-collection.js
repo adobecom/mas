@@ -1096,14 +1096,30 @@ export default class MerchCardCollectionHeader extends LitElement {
             : this.resultCount === 1
               ? 'single'
               : 'multiple';
-        return html` <div
-            id="result"
-            aria-live="polite"
-            type=${type}
-            quantity=${quantity}
-        >
-            <slot name="${this.resultSlotName}"></slot>
-        </div>`;
+        return html` <div id="result" type=${type} quantity=${quantity}>
+                <slot name="${this.resultSlotName}"></slot>
+            </div>
+            <div
+                id="result-status"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+            ></div>`;
+    }
+
+    // Announce the text of the current result slot only, so slot swaps
+    // inside a live region do not read out stale or intermediate results.
+    updated() {
+        const slot = this.shadowRoot.querySelector('#result slot');
+        const status = this.shadowRoot.querySelector('#result-status');
+        if (!slot || !status) return;
+        const text = slot
+            .assignedNodes({ flatten: true })
+            .map((node) => node.textContent)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (status.textContent !== text) status.textContent = text;
     }
 
     get customArea() {
@@ -1149,6 +1165,15 @@ export default class MerchCardCollectionHeader extends LitElement {
     }
 
     static styles = css`
+        #result-status {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
         :host {
             --merch-card-collection-header-max-width: var(
                 --merch-card-collection-card-width

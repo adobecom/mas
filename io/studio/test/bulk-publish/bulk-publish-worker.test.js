@@ -21,6 +21,7 @@ describe('bulk-publish-worker — runWorker', () => {
             getProjectTitle: sinon.stub().returns('Proj'),
             getProjectSnapshots: sinon.stub().returns([]),
             publishResolved: sinon.stub(),
+            clearStagedTags: sinon.stub().resolves([]),
             createSnapshot: sinon.stub().resolves({ entries: ['{"fragmentId":"f1"}'], expandedPaths: [], failures: [] }),
             recordSnapshot: sinon.stub().resolves({ entries: preRecordedEntries, failures: [] }),
             updateProjectFragment: sinon.stub().resolves(),
@@ -39,6 +40,38 @@ describe('bulk-publish-worker — runWorker', () => {
         await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' }, deps);
 
         expect(deps.createSnapshot).to.not.have.been.called;
+    });
+
+    it('clears staged tags after publishing and reports clearing failures without changing the publish outcome', async () => {
+        const failure = { path: '/content/dam/mas/acom/en_US/a', reason: 'staged-clear-failed', error: 'boom' };
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.publishDictionaryIndexes = sinon.stub().resolves([]);
+        deps.clearStagedTags.resolves([failure]);
+
+        const result = await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' }, deps);
+
+        expect(deps.clearStagedTags).to.have.been.calledAfter(deps.publishResolved);
+        expect(deps.clearStagedTags.firstCall.args[0]).to.deep.equal([
+            { path: '/content/dam/mas/acom/en_US/a', status: 'published' },
+        ]);
+        expect(result.published).to.equal(1);
+        expect(result.stagedClearFailures).to.deep.equal([failure]);
+        const fields = deps.updateProjectFragment.lastCall.args[3];
+        expect(fields.status).to.equal('Published');
+        expect(JSON.parse(fields.lastResult).stagedClearFailures).to.deep.equal([failure]);
+    });
+
+    it('still completes when clearing staged tags throws', async () => {
+        deps.getProjectLocales.returns([]);
+        deps.publishResolved.resolves([{ path: '/content/dam/mas/acom/en_US/a', status: 'published' }]);
+        deps.clearStagedTags.rejects(new Error('boom'));
+
+        const result = await worker.runWorker({ projectId: 'proj-1', odinEndpoint: 'https://odin', authToken: 't' }, deps);
+
+        expect(result.published).to.equal(1);
+        expect(result.stagedClearFailures).to.deep.equal([]);
+        expect(deps.updateProjectFragment.lastCall.args[3].status).to.equal('Published');
     });
 
     it('only writes fields defined on the bulk-publish-project model', async () => {

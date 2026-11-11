@@ -1,6 +1,18 @@
 const { publishChunk } = require('./publisher.js');
-const { fetchFragmentByPath, processBatchWithConcurrency } = require('../common.js');
+const {
+    fetchFragmentByPath,
+    processBatchWithConcurrency,
+    patchToOdin,
+    fetchOdin,
+    getValues,
+    COLLECTION_MODEL_ID,
+} = require('../common.js');
 
+// Must stay identical to STAGED.TAG and COLLECTION_MODEL_PATH in studio/src/constants.js.
+const STAGED_TAG = 'mas:studio/internal/staged';
+const COLLECTION_MODEL_PATH = '/conf/mas/settings/dam/cfm/models/collection';
+const STAGED_CLEAR_CONCURRENCY = 5;
+const STAGED_CLEAR_FAILED = 'staged-clear-failed';
 const MAX_CHUNK_SIZE = 50;
 const LOCALE_REGEX = /^\/content\/dam\/mas\/[\w-_]+\/(?<locale>[\w-_]+)\//;
 const STATUS = { PUBLISHED: 'published', SKIPPED: 'skipped', FAILED: 'failed' };
@@ -101,4 +113,79 @@ async function publishDictionaryIndexes(details, odinEndpoint, authToken, logger
     return indexDetails;
 }
 
-module.exports = { publishResolved, publishDictionaryIndexes, extractLocale, groupAndChunk, STATUS, MAX_CHUNK_SIZE };
+function isCollection(fragment) {
+    return fragment.model?.path === COLLECTION_MODEL_PATH || fragment.model?.id === COLLECTION_MODEL_ID;
+}
+
+// Collections keep tags as AEM fragment tags, which are only writable through the /tags endpoint.
+async function clearCollectionStagedTag(fragment, odinEndpoint, authToken) {
+    const tagIds = (fragment.tags || []).map((tag) => tag.id ?? tag);
+    if (!tagIds.includes(STAGED_TAG)) return false;
+    const remaining = tagIds.filter((tag) => tag !== STAGED_TAG);
+    const uri = `/adobe/sites/cf/fragments/${fragment.id}/tags`;
+    const current = await fetchOdin(odinEndpoint, uri, authToken);
+    const etag = current.headers?.get('etag');
+    if (remaining.length) {
+        await fetchOdin(odinEndpoint, uri, authToken, { method: 'PUT', body: JSON.stringify({ tags: remaining }), etag });
+    } else {
+        await fetchOdin(odinEndpoint, uri, authToken, { method: 'DELETE', etag });
+    }
+    return true;
+}
+
+async function clearCardStagedTag(fragment, odinEndpoint, authToken) {
+    const tags = getValues(fragment, 'tags');
+    if (!tags?.values?.includes(STAGED_TAG)) return false;
+    const value = tags.values.filter((tag) => tag !== STAGED_TAG);
+    const { success, error } = await patchToOdin(
+        odinEndpoint,
+        fragment.id,
+        authToken,
+        [{ op: 'replace', path: `${tags.path}/values`, value }],
+        fragment.etag,
+    );
+    if (!success) throw new Error(error);
+    return true;
+}
+
+async function clearStagedTag(path, odinEndpoint, authToken) {
+    const { fragment, status } = await fetchFragmentByPath(odinEndpoint, path, authToken);
+    if (!fragment) throw new Error(`fetch ${status}`);
+    return isCollection(fragment)
+        ? clearCollectionStagedTag(fragment, odinEndpoint, authToken)
+        : clearCardStagedTag(fragment, odinEndpoint, authToken);
+}
+
+/**
+ * Removes the staged tag from every fragment that was published successfully. Runs after publishing so
+ * a failed publish keeps its tag; a clearing failure is reported but never changes the publish outcome.
+ * @returns {Promise<Array<{ path: string, reason: string, error: string }>>} clearing failures
+ */
+async function clearStagedTagsAfterPublish(details, odinEndpoint, authToken, logger) {
+    const paths = details
+        .filter((detail) => detail.status === STATUS.PUBLISHED && !detail.path.includes(DICTIONARY_SEGMENT))
+        .map((detail) => detail.path);
+    const results = await processBatchWithConcurrency(paths, STAGED_CLEAR_CONCURRENCY, async (path) => {
+        try {
+            return { path, cleared: await clearStagedTag(path, odinEndpoint, authToken) };
+        } catch (error) {
+            return { path, reason: STAGED_CLEAR_FAILED, error: error.message || String(error) };
+        }
+    });
+    const failures = results.filter((r) => r.reason).map(({ path, reason, error }) => ({ path, reason, error }));
+    const cleared = results.filter((r) => r.cleared).length;
+    logger.info(JSON.stringify({ event: 'staged-clear', total: paths.length, cleared, failed: failures.length }));
+    return failures;
+}
+
+module.exports = {
+    publishResolved,
+    publishDictionaryIndexes,
+    clearStagedTagsAfterPublish,
+    extractLocale,
+    groupAndChunk,
+    STATUS,
+    MAX_CHUNK_SIZE,
+    STAGED_TAG,
+    COLLECTION_MODEL_PATH,
+};

@@ -3,9 +3,12 @@ import { resolve } from 'node:path';
 import { build } from 'esbuild';
 import { cssLoader } from './css-loader.mjs';
 import {
+    assertCommerceImports,
     buildSatellites,
+    commerceGraph,
     commerceOptions,
     defaults as bundleDefaults,
+    importFromCommerce,
     priceLiteralsBanner,
     satellites,
 } from './scripts/bundles.mjs';
@@ -32,12 +35,9 @@ const { metafile } = await build({
 });
 writeFileSync(`commerce.json`, JSON.stringify(metafile));
 
-// merch-card.js imports these modules from ./commerce.js instead of bundling
-// its own copies, so the page loads and runs one instance of each.
-const commerceModules = new Set(
-    Object.keys(metafile.inputs).map((file) => resolve(file)),
-);
-const commerceExports = metafile.outputs['dist/commerce.js'].exports;
+// merch-card.js and the satellites import these modules from ./commerce.js
+// instead of bundling their own copies.
+const graph = commerceGraph(metafile);
 
 // mas.js (Studio) inlines the satellites
 await build({
@@ -108,7 +108,7 @@ Promise.all([
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
         plugins: [cssLoader(), satellites(satelliteNames)],
-    }).then(() => buildSatellites(satelliteNames, defaults)),
+    }).then(() => buildSatellites(satelliteNames, defaults, graph)),
     buildMerchCard(),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-secure-transaction'),
@@ -151,23 +151,17 @@ async function buildMerchCard() {
         ...defaults,
         entryPoints: ['./src/merch-card.js'],
         outfile,
-        plugins: [cssLoader(), forbidLit('merch-card'), importFromCommerce()],
+        plugins: [
+            cssLoader(),
+            forbidLit('merch-card'),
+            importFromCommerce(graph),
+        ],
     });
-    const imported = [
-        ...readFileSync(outfile, 'utf-8').matchAll(
-            /import\s*\{([^}]*)\}\s*from\s*"\.\/commerce\.js"/g,
-        ),
-    ].flatMap(([, names]) =>
-        names.split(',').map((name) => name.trim().split(/\s+as\s+/)[0]),
+    assertCommerceImports(
+        'merch-card.js',
+        readFileSync(outfile, 'utf-8'),
+        graph,
     );
-    const missing = [...new Set(imported)].filter(
-        (name) => !commerceExports.includes(name),
-    );
-    if (missing.length) {
-        throw new Error(
-            `merch-card.js imports ${missing.join(', ')} from ./commerce.js: export them from src/commerce.js`,
-        );
-    }
 }
 
 // A bundle registers its template files once merch-card is defined, so it can
@@ -208,26 +202,6 @@ function templatesImportNothing(bundle) {
                         },
                     ],
                 };
-            });
-        },
-    };
-}
-
-function importFromCommerce() {
-    return {
-        name: 'import-from-commerce',
-        setup(build) {
-            build.onResolve({ filter: /.*/ }, async (args) => {
-                if (args.kind === 'entry-point' || args.pluginData?.resolved)
-                    return;
-                const { path } = await build.resolve(args.path, {
-                    kind: args.kind,
-                    importer: args.importer,
-                    resolveDir: args.resolveDir,
-                    pluginData: { resolved: true },
-                });
-                if (!commerceModules.has(path)) return;
-                return { path: './commerce.js', external: true };
             });
         },
     };

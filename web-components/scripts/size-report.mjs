@@ -5,6 +5,7 @@ import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 import { build } from 'esbuild';
 import {
     buildSatellites,
+    commerceGraph,
     commerceOptions,
     priceLiteralsBanner,
     satellites,
@@ -26,14 +27,19 @@ const row = (name, bytes, budget) =>
 
 const options = { minify: true, metafile: true, write: false };
 const names = new Set();
+const commerce = await build({
+    ...commerceOptions,
+    ...options,
+    outfile: './dist/commerce.js',
+    plugins: [...commerceOptions.plugins, satellites(names)],
+});
 const results = [
-    await build({
-        ...commerceOptions,
-        ...options,
-        outfile: './dist/commerce.js',
-        plugins: [satellites(names)],
-    }),
-    ...(await buildSatellites(names, options)),
+    commerce,
+    ...(await buildSatellites(
+        names,
+        options,
+        commerceGraph(commerce.metafile),
+    )),
 ];
 
 let failed = false;

@@ -16,18 +16,3 @@ export function getItemFieldState(currentValue, parentValues = [], getKey = (v) 
 
     return parentKeys.has(key) ? '' : 'overridden';
 }
-
-/**
- * Determines if an item at a specific index differs from parent (index-based).
- * Use for ordered collections like mnemonics where position matters.
- * @param {string} currentValue - The current item value
- * @param {Array} parentValues - The parent fragment's values for comparison
- * @param {number} index - The index to compare at
- * @returns {'overridden' | ''}
- */
-export function getItemFieldStateByIndex(currentValue, parentValues = [], index) {
-    if (!parentValues || parentValues.length === 0) return '';
-    if (!currentValue) return '';
-    if (index >= parentValues.length) return 'overridden';
-    return currentValue === parentValues[index] ? '' : 'overridden';
-}

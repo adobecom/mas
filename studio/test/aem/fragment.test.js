@@ -1,6 +1,6 @@
 import { expect } from '@open-wc/testing';
 import { EXPLICIT_EMPTY_SENTINEL } from '../../../io/www/src/fragment/utils/explicit-empty.js';
-import { Fragment } from '../../src/aem/fragment.js';
+import { Fragment, isTemplateRequiredField } from '../../src/aem/fragment.js';
 import { TAG_PROMOTION_PREFIX } from '../../src/constants.js';
 import generateFragmentStore from '../../src/reactivity/source-fragment-store.js';
 
@@ -273,6 +273,7 @@ describe('Fragment', () => {
                     { name: 'mnemonicIcon', values: ['parent-icon.svg'], multiple: true },
                     { name: 'description', values: ['Parent description'], multiple: false },
                     { name: 'badge', values: ['<merch-badge>Sale</merch-badge>'] },
+                    { name: 'promoCode', values: ['PARENTPROMO'] },
                 ],
             }),
         );
@@ -301,11 +302,11 @@ describe('Fragment', () => {
                 desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] — never leaks the raw sentinel to callers',
             },
             {
-                name: 'description',
+                name: 'promoCode',
                 values: [EXPLICIT_EMPTY_SENTINEL],
                 multiple: false,
-                expected: [''],
-                desc: 'resolves EXPLICIT_EMPTY_SENTINEL to [""] on fields not allowed to store it',
+                expected: ['PARENTPROMO'],
+                desc: 'inherits the parent value for an EXPLICIT_EMPTY_SENTINEL on fields not allowed to store it',
             },
         ].forEach(({ name, values, multiple, expected, desc }) => {
             it(desc, () => {
@@ -358,11 +359,11 @@ describe('Fragment', () => {
             expect(variation.getEffectiveFieldValue('badge', parent, true, 0)).to.equal('');
         });
 
-        it('returns empty string for EXPLICIT_EMPTY_SENTINEL on fields not allowed to store it', () => {
+        it('inherits the parent value for an EXPLICIT_EMPTY_SENTINEL on fields not allowed to store it', () => {
             const variation = new Fragment(
                 createFragmentConfig({ fields: [{ name: 'description', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
             );
-            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal('');
+            expect(variation.getEffectiveFieldValue('description', parent, true, 0)).to.equal('Parent description');
         });
 
         it('returns empty string for an EXPLICIT_EMPTY_SENTINEL inherited from the parent', () => {
@@ -494,18 +495,161 @@ describe('Fragment', () => {
                 expect(prepared.getFieldValues('badge')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
             });
 
-            it('does not mark changes for a non-badge single-value field going from [] to [""] when parent has content', () => {
+            it('does not mark changes for a non-clearable single-value field going from [] to [""] when parent has content', () => {
                 const parent = new Fragment(
                     createFragmentConfig({
-                        fields: [{ name: 'description', values: ['Parent description'], multiple: false }],
+                        fields: [{ name: 'promoCode', values: ['PARENT-CODE'], multiple: false }],
                     }),
                 );
                 const variation = new Fragment(
-                    createFragmentConfig({ fields: [{ name: 'description', values: [], multiple: false }] }),
+                    createFragmentConfig({ fields: [{ name: 'promoCode', values: [], multiple: false }] }),
                 );
-                expect(variation.updateField('description', [''], parent)).to.be.false;
-                expect(variation.getFieldValues('description')).to.deep.equal([]);
+                expect(variation.updateField('promoCode', [''], parent)).to.be.false;
+                expect(variation.getFieldValues('promoCode')).to.deep.equal([]);
                 expect(variation.hasChanges).to.be.false;
+            });
+
+            it('persists explicit_empty when clearing an optional text field whose parent has content', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Parent subtitle'] }] }),
+                );
+                const card = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Own subtitle'] }] }));
+
+                expect(card.updateField('subtitle', [''], parent)).to.be.true;
+                expect(card.getFieldValues('subtitle')).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+            });
+
+            ['cardTitle', 'ctas'].forEach((field) => {
+                it(`holds explicit_empty while editing when clearing ${field} on a card inheriting from baselines`, () => {
+                    const parent = new Fragment(
+                        createFragmentConfig({ fields: [{ name: field, values: ['Baseline value'] }] }),
+                    );
+                    const card = new Fragment(
+                        createFragmentConfig({
+                            fields: [
+                                { name: 'variant', values: ['catalog'] },
+                                { name: 'enableBaselines', values: [true] },
+                            ],
+                        }),
+                    );
+
+                    expect(card.updateField(field, [''], parent)).to.be.true;
+
+                    expect(card.getFieldValues(field)).to.deep.equal([EXPLICIT_EMPTY_SENTINEL]);
+                    expect(card.getFieldState(field, parent, true)).to.equal('overridden');
+                    expect(card.getEffectiveFieldValues(field, parent, true)).to.deep.equal(['']);
+                });
+            });
+
+            [
+                { desc: 'ctas on a card without baselines', field: 'ctas', variant: 'catalog', baselines: false },
+                { desc: 'description on a card without baselines', field: 'description', variant: 'catalog', baselines: false },
+                {
+                    desc: 'description on a template not requiring it',
+                    field: 'description',
+                    variant: 'plans',
+                    baselines: false,
+                },
+            ].forEach(({ desc, field, variant, baselines }) => {
+                it(`stores "" and inherits when clearing ${desc}`, () => {
+                    const parent = new Fragment(createFragmentConfig({ fields: [{ name: field, values: ['Parent value'] }] }));
+                    const card = new Fragment(
+                        createFragmentConfig({
+                            fields: [
+                                { name: 'variant', values: [variant] },
+                                { name: 'enableBaselines', values: [baselines] },
+                                { name: field, values: ['Own value'] },
+                            ],
+                        }),
+                    );
+
+                    card.updateField(field, [''], parent);
+
+                    expect(card.getFieldValues(field)).to.deep.equal(['']);
+                    expect(card.getFieldState(field, parent, true)).to.equal('inherited');
+                });
+            });
+
+            it('stores "" and inherits when clearing a required field on a variation of a card inheriting from baselines', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({
+                        fields: [
+                            { name: 'variant', values: ['catalog'] },
+                            { name: 'enableBaselines', values: [true] },
+                            { name: 'cardTitle', values: ['Default locale title'] },
+                        ],
+                    }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'cardTitle', values: ['Own title'] }] }),
+                );
+
+                variation.updateField('cardTitle', [''], parent);
+
+                expect(variation.getFieldValues('cardTitle')).to.deep.equal(['']);
+                expect(variation.getEffectiveFieldValue('cardTitle', parent, true)).to.equal('Default locale title');
+            });
+
+            it('reads a stored EXPLICIT_EMPTY_SENTINEL on a required field as inherited', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'cardTitle', values: ['Parent title'] }] }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'cardTitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+                );
+
+                expect(variation.getFieldState('cardTitle', parent, true)).to.equal('inherited');
+                expect(variation.getEffectiveFieldValues('cardTitle', parent, true)).to.deep.equal(['Parent title']);
+            });
+
+            it('drops a stored EXPLICIT_EMPTY_SENTINEL on a required field when saving a variation', () => {
+                const parent = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'cardTitle', values: ['Parent title'] }] }),
+                );
+                const variation = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'cardTitle', values: [EXPLICIT_EMPTY_SENTINEL] }] }),
+                );
+
+                expect(variation.prepareVariationForSave(parent).getFieldValues('cardTitle')).to.deep.equal([]);
+            });
+
+            it('does not reset a field to a parent that does not have it', () => {
+                const parent = new Fragment(createFragmentConfig({ fields: [{ name: 'subtitle', values: ['Parent'] }] }));
+                const card = new Fragment(
+                    createFragmentConfig({ fields: [{ name: 'features', values: ['a'], multiple: true }] }),
+                );
+
+                expect(card.updateField('features', [], parent)).to.be.true;
+                expect(card.getFieldValues('features')).to.deep.equal([]);
+            });
+        });
+
+        describe('isTemplateRequiredField', () => {
+            it('reads the editor fields a template requires', () => {
+                expect(isTemplateRequiredField('catalog', 'cardTitle')).to.be.true;
+                expect(isTemplateRequiredField('catalog', 'description')).to.be.true;
+                expect(isTemplateRequiredField('plans', 'prices')).to.be.true;
+            });
+
+            it('does not require optional fields nor fields of unknown templates', () => {
+                expect(isTemplateRequiredField('catalog', 'subtitle')).to.be.false;
+                expect(isTemplateRequiredField('plans', 'description')).to.be.false;
+                expect(isTemplateRequiredField('unknown-template', 'cardTitle')).to.be.false;
+                expect(isTemplateRequiredField(undefined, 'cardTitle')).to.be.false;
+            });
+
+            it('resolves legacy variant names to their template', () => {
+                expect(isTemplateRequiredField('bizpro', 'cardTitle')).to.be.true;
+            });
+
+            it('requires the fields the product template has', () => {
+                expect(isTemplateRequiredField('product', 'cardTitle')).to.be.true;
+                expect(isTemplateRequiredField('product', 'prices')).to.be.true;
+            });
+
+            it('only requires the fields a template has', () => {
+                expect(isTemplateRequiredField('faq', 'cardTitle')).to.be.false;
+                expect(isTemplateRequiredField('media', 'prices')).to.be.false;
             });
         });
 

@@ -322,6 +322,28 @@ describe('aem.js', () => {
             expect(byName('features').values).to.deep.equal(['']);
             expect(byName('title').values).to.deep.equal(['']);
         });
+
+        it('saves the explicit_empty sentinel as "" on fields not allowed to persist it', async () => {
+            let putBody;
+            window.fetch = async (url, options) => {
+                if (options?.method === 'PUT') putBody = JSON.parse(options.body);
+                return { ok: true, headers: { get: () => 'etag1' }, json: async () => ({ id: 'f1', etag: 'etag2' }) };
+            };
+
+            await aem.saveFragment({
+                id: 'f1',
+                title: 't',
+                description: 'd',
+                fields: [
+                    { name: 'cardTitle', type: 'text', values: ['<explicit_empty/>'] },
+                    { name: 'subtitle', type: 'text', values: ['<explicit_empty/>'] },
+                ],
+            });
+
+            const byName = (name) => putBody.fields.find((field) => field.name === name);
+            expect(byName('cardTitle').values).to.deep.equal(['']);
+            expect(byName('subtitle').values).to.deep.equal(['<explicit_empty/>']);
+        });
     });
 
     describe('method: postFormWithCsrf', () => {

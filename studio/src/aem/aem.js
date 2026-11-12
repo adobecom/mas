@@ -1,5 +1,7 @@
 import { UserFriendlyError } from '../utils.js';
 import { COLLECTION_MODEL_PATH } from '../constants.js';
+import { storedValues } from './fragment.js';
+import { isExplicitEmptyField } from '../../../io/www/src/fragment/utils/explicit-empty.js';
 
 const NETWORK_ERROR_MESSAGE = 'Network error';
 const MAX_POLL_ATTEMPTS = 10;
@@ -271,10 +273,11 @@ class AEM {
             // Multi-value reference fields use [''] as an internal "explicitly cleared" sentinel,
             // but AEM rejects '' for references (it wants a path/UUID) — send an empty list instead.
             // Non-reference fields keep [''] so variation clear-overrides round-trip correctly.
+            // Only allowlisted fields persist the explicit_empty sentinel: on others it is an edit-time state, saved as `''`.
             const values =
                 field.multiple && isReferenceType(type)
                     ? (field.values || []).filter((value) => value != null && value !== '')
-                    : field.values;
+                    : storedValues(field.values || [], field.multiple === true, isExplicitEmptyField(field.name));
             return { ...field, type, values };
         });
 

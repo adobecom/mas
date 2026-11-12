@@ -15,6 +15,17 @@ import { VARIATION_FILTER, VARIATION_FILTER_OPTIONS } from './fragments/variatio
 let editorContextInstance = null;
 
 // Store definition with default values - no URL parsing here
+const RENDER_MODE_COOKIE = 'mas-render-mode';
+// A cookie without an expiry lasts for the browser session and is shared by all its tabs (sessionStorage is per tab).
+const savedRenderMode = () =>
+    document.cookie
+        .split('; ')
+        .find((cookie) => cookie.startsWith(`${RENDER_MODE_COOKIE}=`))
+        ?.split('=')[1];
+export const saveRenderMode = (mode) => {
+    document.cookie = `${RENDER_MODE_COOKIE}=${mode}; path=/; SameSite=Lax`;
+};
+
 const Store = {
     fragments: {
         list: {
@@ -75,7 +86,7 @@ const Store = {
     search: new ReactiveStore({}),
     filters: new ReactiveStore({ locale: 'en_US', personalizationFilterEnabled: false }, filtersValidator),
     sort: new ReactiveStore({}),
-    renderMode: new ReactiveStore(localStorage.getItem('mas-render-mode') || 'render'),
+    renderMode: new ReactiveStore(savedRenderMode() || 'table'),
     viewMode: new ReactiveStore('default'),
     selecting: new ReactiveStore(false),
     selection: new ReactiveStore([]),

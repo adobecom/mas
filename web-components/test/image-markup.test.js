@@ -5,6 +5,7 @@ import {
     sanitizeAssetUrl,
     isSupportedAssetHostname,
     buildPictureInnerMarkup,
+    createPicture,
     extractBackgroundUrl,
     sanitizePictureMarkup,
     rendition,
@@ -436,5 +437,41 @@ describe('sanitizePictureMarkup', () => {
         const markup = `<img loading="lazy" role="none" src="${AEM}">`;
         const doc = parse(sanitizePictureMarkup(markup));
         expect(doc.querySelector('img').getAttribute('role')).to.equal('none');
+    });
+});
+
+describe('createPicture', () => {
+    const PROD = { hostname: 'www.adobe.com', origin: 'https://www.adobe.com' };
+
+    it('wraps inner markup in a <picture>, leaving URLs untouched off prod', () => {
+        const picture = createPicture(INNER, { hostname: 'localhost' });
+        expect(picture.localName).to.equal('picture');
+        expect(picture.ownerDocument).to.equal(document);
+        expect(picture.querySelectorAll('source')).to.have.lengthOf(2);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            `${AEM}?width=750&format=png&optimize=medium`,
+        );
+    });
+
+    it('rewrites *.aem.page origins to the prod origin on adobe.com', () => {
+        const picture = createPicture(INNER, PROD);
+        expect(picture.querySelector('img').getAttribute('src')).to.equal(
+            'https://www.adobe.com/test-fragments/media_1.png?width=750&format=png&optimize=medium',
+        );
+        picture.querySelectorAll('source').forEach((source) => {
+            expect(source.getAttribute('srcset')).to.contain(
+                'https://www.adobe.com/test-fragments/media_1.png',
+            );
+        });
+    });
+
+    it('sanitizes the markup, including the attributes of a stored <picture>', () => {
+        const picture = createPicture(
+            `<picture onclick="alert(1)" class="x">${INNER}<script>1+1</script></picture>`,
+            PROD,
+        );
+        expect(picture.attributes).to.have.lengthOf(0);
+        expect(picture.querySelector('script')).to.not.exist;
+        expect(picture.querySelectorAll('source, img')).to.have.lengthOf(3);
     });
 });

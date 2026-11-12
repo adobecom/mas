@@ -1,103 +1,82 @@
 import { Defaults } from './defaults.js';
 import { buildPriceHTML as renderPrice } from '../../price/src/index.js';
 
+import { createLog } from './log.js';
+import { InlinePrice } from './inline-price.js';
 import {
     omitProperties,
     toBoolean,
-} from '@dexter/tacocat-core/src/utilities.js';
-import { computePromoStatus } from '@dexter/tacocat-core/src/promotion.js';
-import { createLog } from './log.js';
-import { InlinePrice } from './inline-price.js';
-import { toWcsOsiAndPromotionCodes, toQuantity } from './utilities.js';
+    toEffectivePromoCode,
+    toWcsOsiAndPromotionCodes,
+    toQuantity,
+} from './utilities.js';
 
 const log = createLog('ConsonantTemplates/price');
 
 export function Price({ literals, providers, settings }) {
+    // Fallback for prices rendered without an explicit or configured instant.
+    const queryInstant =
+        new URLSearchParams(globalThis.location?.search).get('instant') ??
+        undefined;
+
     function collectPriceOptions(overrides, placeholder = null) {
-        let options = {
+        const options = {
             country: settings.country,
             language: settings.language,
             locale: settings.locale,
             literals: { ...literals.price },
         };
-
         if (placeholder && providers?.price) {
             for (const provider of providers.price) {
                 provider(placeholder, options);
             }
         }
-        const {
-            displayOldPrice,
-            displayPerUnit,
-            displayRecurrence,
-            displayTax,
-            displayPlanType,
-            forceTaxExclusive,
-            perpetual,
-            displayAnnual,
-            promotionCode,
-            quantity,
-            alternativePrice,
+        Object.assign(options, placeholder?.dataset, overrides);
+        const { wcsOsi, promotionCodes } = toWcsOsiAndPromotionCodes(
+            options.wcsOsi,
+            options.promotionCode,
+        );
+        const effectivePromotionCodes =
+            promotionCodes.map(toEffectivePromoCode);
+        return omitProperties({
+            ...options,
+            displayOldPrice: toBoolean(options.displayOldPrice),
+            displayPerUnit: toBoolean(options.displayPerUnit),
+            displayRecurrence: toBoolean(options.displayRecurrence),
+            displayTax: toBoolean(options.displayTax),
+            displayPlanType: toBoolean(options.displayPlanType),
+            forceTaxExclusive: toBoolean(options.forceTaxExclusive),
+            perpetual: toBoolean(options.perpetual),
+            displayAnnual: toBoolean(options.displayAnnual),
+            promotionCode: effectivePromotionCodes[0],
+            promotionCodes: effectivePromotionCodes,
+            quantity: toQuantity(options.quantity, Defaults.quantity),
+            alternativePrice: toBoolean(options.alternativePrice),
             wcsOsi,
-            ...rest
-        } = Object.assign(options, placeholder?.dataset ?? {}, overrides ?? {});
-
-        const { wcsOsi: alignedWcsOsi, promotionCodes: alignedPromotionCodes } =
-            toWcsOsiAndPromotionCodes(wcsOsi, promotionCode);
-        const promotionCodes = alignedPromotionCodes.map(
-            (code) => computePromoStatus(code).effectivePromoCode,
-        );
-
-        options = omitProperties(
-            Object.assign({
-                ...options,
-                ...rest,
-                displayOldPrice: toBoolean(displayOldPrice),
-                displayPerUnit: toBoolean(displayPerUnit),
-                displayRecurrence: toBoolean(displayRecurrence),
-                displayTax: toBoolean(displayTax),
-                displayPlanType: toBoolean(displayPlanType),
-                forceTaxExclusive: toBoolean(forceTaxExclusive),
-                perpetual: toBoolean(perpetual),
-                displayAnnual: toBoolean(displayAnnual),
-                promotionCode: promotionCodes[0],
-                promotionCodes,
-                quantity: toQuantity(quantity, Defaults.quantity),
-                alternativePrice: toBoolean(alternativePrice),
-                wcsOsi: alignedWcsOsi,
-            }),
-        );
-
-        return options;
+        });
     }
 
     function buildPriceHTML(offers, options) {
-        if (!Array.isArray(offers) || !offers.length || !options) {
-            return '';
-        }
+        if (!options) return '';
+        const { template, displayAnnual, alternativePrice, promotionCode } =
+            options;
         // Settings supply rendering defaults, but template selection is per price.
         const resolvedOptions = {
             ...settings,
             ...options,
-            template: options.template,
-            displayAnnual: options.displayAnnual,
-            alternativePrice: options.alternativePrice,
-            promotionCode: options.promotionCode,
+            template,
+            displayAnnual,
+            alternativePrice,
+            promotionCode,
         };
-        if (typeof document !== 'undefined' && !resolvedOptions.instant) {
-            resolvedOptions.instant =
-                new URLSearchParams(document.location.search).get('instant') ??
-                undefined;
-        }
+        resolvedOptions.instant ||= queryInstant;
         return renderPrice(offers, resolvedOptions, { logger: log });
     }
-
-    const createInlinePrice = InlinePrice.createInlinePrice;
 
     return {
         InlinePrice,
         buildPriceHTML,
         collectPriceOptions,
-        createInlinePrice,
+        createInlinePrice: InlinePrice.createInlinePrice,
     };
 }

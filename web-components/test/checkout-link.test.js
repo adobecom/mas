@@ -106,6 +106,40 @@ describe('class "CheckoutLink"', () => {
         }
     });
 
+    it('renders once when the IMS country resolves during the render', async () => {
+        Object.defineProperty(document, 'cookie', {
+            configurable: true,
+            get: () => 'ims_country_code=CH',
+        });
+        try {
+            const action = sinon.stub();
+            initMasCommerceService({}, action);
+            const checkoutLink = mockCheckoutLink('abm');
+            await checkoutLink.onceSettled();
+            await delay(10);
+            expect(checkoutLink.dataset.imsCountry).to.equal('CH');
+            expect(checkoutLink.href).to.include('&co=CH&');
+            expect(action.calledOnce).to.be.true;
+        } finally {
+            delete document.cookie;
+        }
+    });
+
+    it('renders again when the IMS country resolves after the render', async () => {
+        const service = initMasCommerceService();
+        let resolveCountry;
+        service.imsCountryPromise = new Promise((resolve) => {
+            resolveCountry = resolve;
+        });
+        const checkoutLink = mockCheckoutLink('abm');
+        await checkoutLink.onceSettled();
+        expect(checkoutLink.href).to.include('&co=US&');
+        resolveCountry('CH');
+        await delay(1);
+        await checkoutLink.onceSettled();
+        expect(checkoutLink.href).to.include('&co=CH&');
+    });
+
     it('renders link with promo from dataset', async () => {
         initMasCommerceService();
         const checkoutLink = mockCheckoutLink('abm-promo', {

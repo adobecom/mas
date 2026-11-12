@@ -69,9 +69,24 @@ on price rendering and offer selection/summation, not the pure plan-type mapping
 
 Templates: default, optical, strikethrough, promo-strikethrough, annual, legal,
 discount, alternative, optical-alternative, and monthly-with-annual equivalents.
-Promotion dispatch is gated by both the supplied promotion code and the offer's
-own promotion. WCS preformatted price leaves are used where compatible; the
-original numeric formatting remains the fallback.
+They share one renderer, `renderPrice`, whose render flags select the price
+container classes and the displayed amount. Promotion dispatch is gated by both
+the supplied promotion code and the offer's own promotion. WCS preformatted
+price leaves are used where compatible; numeric formatting of the WCS currency
+format (parsed once per format string) remains the fallback.
+
+### Price literals
+
+Literals are ICU MessageFormat strings, formatted by a small evaluator for the
+subset price literals use: text with ICU apostrophe quoting, `{arg}`, nested
+`{arg, select, key {…} other {…}}`, and `{arg, number}` or
+`{arg, number, ::skeleton}` with `scale/N` and fraction-precision (`.00`, `.0#`,
+`.#`) stems. Compiled messages and `Intl.NumberFormat` instances are cached.
+Plural, selectordinal, date, time, named number styles and other skeleton stems
+are not supported: like invalid syntax, an invalid locale or a missing value,
+they log `Failed to format literal:` and render an empty label. Markup is
+stripped before formatting, except links. A key missing from the supplied
+literals falls back to the built-in English default.
 
 ### Markup, styles, and input trust
 
@@ -90,13 +105,12 @@ boundary before rendering or inserting the returned HTML.
 
 ### Time and diagnostics
 
-The promo-with-annual path (`pricePromoWithAnnual`) uses
+The promo-with-annual path (`renderPromoPriceWithAnnual`) uses
 `resolvedOptions.instant`. `buildPriceHTML` selects this path for an ABM offer
 with `displayAnnual`, a supplied promotion code, and an offer promotion, unless
 another template takes precedence. The ordinary `template: 'annual'` and
-non-promo `priceWithAnnual` paths do **not** use `resolvedOptions.instant`;
-the compatibility `createPriceTemplate` factory accepts `instant` in its
-factory options instead.
+non-promo `renderPriceWithAnnual` paths do **not** use `resolvedOptions.instant`;
+`renderPrice` accepts `instant` as its last argument instead.
 
 The shared renderer never reads `?instant=` from a query string. The browser
 adapter preserves the original promo-with-annual fallback, with an explicit
@@ -119,16 +133,13 @@ rather than relying on the standalone console default.
 ### Source entry points
 
 Consumers import the shared primitives from `src/index.js` using relative paths.
-Supporting entry points include `src/constants.js`, `src/price/index.js`,
-`src/price/template.js`, `src/price/utilities.js`, `src/price/legal.js` and
-`src/discount/index.js`. All imports use `.js` extensions. Node smoke tests cover
+Supporting entry points include `src/constants.js`, `src/price/template.js`,
+`src/price/utilities.js`, `src/price/legal.js` and `src/discount/index.js`. All imports use `.js` extensions. Node smoke tests cover
 these source entry points; they do not assert an installed-package contract.
 
-The small internal boolean/predicate/escaping helpers and net-price rewrite
-preserve `@dexter/tacocat-core` 1.13.1 semantics without importing its
-browser-oriented entry point. Price templates, number formatting, and the ICU
-formatter retain their existing repository implementations. The renderer also
-retains the trial-offer net-price special case.
+The small internal boolean/predicate helpers and net-price rewrite preserve
+`@dexter/tacocat-core` 1.13.1 semantics without importing its browser-oriented
+entry point. The renderer also retains the trial-offer net-price special case.
 
 ## Tests and golden contract
 
@@ -180,15 +191,16 @@ No expected HTML is computed by
 the new renderer at test time. A differing actual price is rejected by the
 parity-harness regression.
 
-`message-format.expected.json` preserves the existing repository's 1,731 ICU
-golden literal cases, including plural/select, number/date/time skeletons,
-escaping, links, invalid syntax, and missing arguments. Node and Chrome run
-the same corpus in UTC.
+`message-format.expected.json` keeps the 492 ICU golden literal cases, recorded
+with intl-messageformat 9.13, that fall within the supported subset: select,
+arguments, escaping, links, number skeletons, invalid syntax, and missing
+arguments. Cases for the removed plural, date, time and other number features
+were dropped; node contract tests assert those now render ''. Node and Chrome
+run the same corpus in UTC.
 
-The browser template suite also retains the inherited plural arguments and
-string/null/undefined input variants, de-duplicating identical inputs against
-that corpus. It uses the same canonical fixture under `test/fixtures/`, not a
-second snapshot copy.
+The browser template suite also retains string/null/undefined input variants,
+de-duplicating identical inputs against that corpus. It uses the same canonical
+fixture under `test/fixtures/`, not a second snapshot copy.
 
 Selection/summation contracts additionally test mutation, identity, warnings,
 tax-exclusive/trial rewriting, soft bundles, annualized prices, and non-positive
@@ -204,9 +216,4 @@ the production renderer singular. Finite fixtures cover the declared contract,
 not every future Intl/ICU/runtime version; supported-input changes require
 reviewed fixture additions.
 
-Node 20 is deliberately excluded: its Intl implementation renders German
-`{d, time, ::hhmma}` with `00` rather than Chrome/Node 22's `12` at midnight and
-noon. Although every price HTML fixture matches on Node 20, the two strict
-time-literal goldens do not. Requiring Node 22 (already required by io/www)
-preserves the extracted formatter unchanged instead of concealing drift or
-changing locale-sensitive behavior during extraction.
+The workspace requires Node 22, as io/www does.

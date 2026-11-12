@@ -1,8 +1,15 @@
-import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
+// Lazy satellite of checkout-mixin.js, loaded when a CTA is about to open an AUP checkout.
 import {
-    AUP_CHECKOUT_CLIENT_IDS,
+    CHECKOUT_PARAMS,
+    getAddonProductArrangementCode,
+    preselectSegments,
+    toCheckoutLanguage,
+} from './buildCheckoutUrl.js';
+import { getAupClientId, isAupCheckoutSupported } from './checkout-mixin.js';
+import {
     CheckoutWorkflowStep,
-    MODAL_TYPE_3_IN_1,
+    EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
+    STATE_RESOLVED,
 } from './constants.js';
 import { Log } from './log.js';
 
@@ -10,86 +17,54 @@ import { Log } from './log.js';
 // silently no-op every checkout CTA on the page for the rest of its life.
 const HOST_TIMEOUT_MS = 20000;
 
-function withTimeout(promise, stage, ms) {
-    let timer;
-    const timeout = new Promise((_, reject) => {
-        timer = setTimeout(
-            () => reject(new Error(`AUP host timed out: ${stage}`)),
-            ms,
-        );
-    });
-    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-}
-
-function getCheckoutClientId({ checkoutClientId, modal }) {
-    if (
-        checkoutClientId !== 'doc_cloud' &&
-        Object.values(MODAL_TYPE_3_IN_1).includes(modal)
-    ) {
-        return modal === MODAL_TYPE_3_IN_1.CRM ? 'creative' : 'mini_plans';
-    }
-    return checkoutClientId;
-}
-
-export function isAupCheckoutSupported(
-    offers,
-    options,
-    hasUpgradeAction,
-    clientId = getCheckoutClientId(options),
-) {
-    return (
-        AUP_CHECKOUT_CLIENT_IDS.has(clientId) &&
-        offers.length > 0 &&
-        !hasUpgradeAction &&
-        !options.perpetual &&
-        !offers.some((offer) => offer.commitment === 'PERPETUAL')
-    );
-}
-
-// Same rule as the segmentation checkout URL: the first offer is the primary
-// one, any offer with a different product arrangement is the addon (Stock).
-function getAddonProductArrangementCode(offers, options) {
-    if (options.addonProductArrangementCode != null) {
-        return options.addonProductArrangementCode;
-    }
-    if (options.checkoutWorkflowStep !== CheckoutWorkflowStep.SEGMENTATION) {
-        return undefined;
-    }
-    const primary = offers[0]?.productArrangementCode;
-    return (
-        primary
-            ? offers.find((offer) => offer.productArrangementCode !== primary)
-            : offers[1]
-    )?.productArrangementCode;
-}
+// AUP names of the checkout parameters named differently in AUP requests.
+const AUP_PARAM_NAMES = {
+    'context.guid': 'contextGuid',
+    DCWATC: 'dcwatc',
+    'so.ca': 'soCa',
+    'so.su': 'soSu',
+    'so.tr': 'soTr',
+    'so.va': 'soVa',
+};
+// AUP parameters that checkout URLs do not take.
+const AUP_PARAMS = [
+    'ccli',
+    'cf',
+    'code',
+    'csc',
+    'ew',
+    'mat',
+    'pp',
+    'referrer',
+    'rtc',
+    'step',
+    'token',
+];
 
 function getRequest(offers, options, hasUpgradeAction) {
-    const clientId = getCheckoutClientId(options);
-    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction, clientId))
-        return;
+    if (!isAupCheckoutSupported(offers, options, hasUpgradeAction)) return;
     const [offer] = offers;
+    const { productArrangementCode: pa } = offer;
+    const [ms, cs] = preselectSegments(
+        options.preselectPlan,
+        options.ms,
+        options.cs,
+    );
     const context = {
-        clientId,
+        clientId: getAupClientId(options),
         clientType: 'web',
         co: options.country,
-        pa: offer.productArrangementCode,
-        cs: options.cs,
-        ms: options.ms,
+        pa,
+        cs,
+        ms,
     };
-    const preselectPlan = options.preselectPlan?.toLowerCase();
-    if (preselectPlan === 'edu') context.ms = 'EDU';
-    if (preselectPlan === 'team') context.cs = 'TEAM';
     const pc = offer.productArrangement?.productCode;
     if (pc) context.pc = pc;
     for (const key of ['svar', 'customerIntent', 'sid']) {
         if (options[key]) context[key] = options[key];
     }
-    const localeUrl = new URL('https://commerce.adobe.com');
-    localeUrl.searchParams.set('lang', options.language);
     const params = {
-        lang: new URL(applyPageLocaleToCheckoutUrl(localeUrl)).searchParams.get(
-            'lang',
-        ),
+        lang: toCheckoutLanguage(options.language),
         nr: 'adobe-com-stable',
         ctxrturl: options.ctxrturl ?? window.location.href,
         ot: offer.offerType,
@@ -103,64 +78,21 @@ function getRequest(offers, options, hasUpgradeAction) {
             })
             .join(','),
     };
-    for (const [key, value] of Object.entries({
+    // values of the options under their checkout names, an option named as the parameter wins
+    const derived = {
         step: options.checkoutWorkflowStep,
         apc: options.promotionCode,
-        ao: getAddonProductArrangementCode(offers, options),
+        ao:
+            options.addonProductArrangementCode ??
+            (options.checkoutWorkflowStep === CheckoutWorkflowStep.SEGMENTATION
+                ? getAddonProductArrangementCode(offers, pa)
+                : undefined),
         code: options.authCode,
-        soSu: options['so.su'],
-        soCa: options['so.ca'],
-        soVa: options['so.va'],
-        soTr: options['so.tr'],
-        contextGuid: options['context.guid'],
-        dcwatc: options.DCWATC,
-    })) {
+    };
+    for (const name of [...CHECKOUT_PARAMS, ...AUP_PARAMS]) {
+        const key = AUP_PARAM_NAMES[name] ?? name;
+        const value = options[key] ?? options[name] ?? derived[key];
         if (value != null) params[key] = value;
-    }
-    for (const key of [
-        'step',
-        'apc',
-        'ao',
-        'ctx',
-        'ijt',
-        'otac',
-        'nglwfdata',
-        'appctxid',
-        'soSu',
-        'soCa',
-        'soVa',
-        'soTr',
-        'promoid',
-        'sdid',
-        'trackingid',
-        'mv',
-        'mv2',
-        'contextGuid',
-        'ai',
-        'sc',
-        'th',
-        'lo',
-        'gsp',
-        'spint',
-        'mal',
-        'csm',
-        'af',
-        'rf',
-        'usid',
-        'dcwatc',
-        'cf',
-        'rtc',
-        'ccli',
-        'csc',
-        'referrer',
-        'code',
-        'ew',
-        'pp',
-        'token',
-        'mat',
-        'pcid',
-    ]) {
-        if (options[key] != null) params[key] = options[key];
     }
     return {
         intent: offer.offerType === 'TRIAL' ? 'try' : 'buy',
@@ -170,6 +102,11 @@ function getRequest(offers, options, hasUpgradeAction) {
     };
 }
 
+/**
+ * Opens the AUP checkout of the offers.
+ * @param {(cart: object[]) => void} [onClose] receives the cart the user left on close
+ * @returns {Promise<boolean>} false when the checkout should go the legacy way
+ */
 export async function launchAupCheckout(
     sdk,
     offers,
@@ -180,54 +117,109 @@ export async function launchAupCheckout(
 ) {
     const request = getRequest(offers, options, hasUpgradeAction);
     if (!request) return false;
-    const orchestrator = await withTimeout(
+    let timer;
+    const orchestrator = await Promise.race([
         sdk.getOrchestratorContext(),
-        'getOrchestratorContext',
-        timeout,
-    );
-    if (typeof orchestrator?.launchWorkflowInModal !== 'function') return false;
-    let items;
-    let messageHandler;
+        new Promise((_, reject) => {
+            timer = setTimeout(
+                () =>
+                    reject(
+                        new Error('AUP host timed out: getOrchestratorContext'),
+                    ),
+                timeout,
+            );
+        }),
+    ]).finally(() => clearTimeout(timer));
+    if (!orchestrator?.launchWorkflowInModal) return false;
+    Log.module('aup-select').debug('Launching workflow:', request);
+    let result;
+    // The workflow settles when the user exits, not when the dialog opens.
     if (onClose) {
+        let cart;
         // A per-launch handler replaces the host handler in the SDK.
         const hostHandler = orchestrator.clientMessageHandler;
-        messageHandler = (name, payload, parentHandler) => {
-            const actions = payload?.data?.actions;
-            if (
-                name === 'System' &&
-                payload?.subType === 'AppClosed' &&
-                Array.isArray(actions)
-            ) {
-                items = actions.find(
-                    (action) =>
-                        action?.required &&
-                        action.actionMessage?.type === 'System' &&
-                        action.actionMessage?.subType === 'ReportState',
-                )?.actionMessage.data?.commerce?.cart;
-            }
-            if (typeof hostHandler === 'function') {
-                return hostHandler(name, payload, parentHandler);
-            }
-            return parentHandler(name, payload);
-        };
-    }
-    Log.module('aup-select').debug('Launching workflow:', request);
-    // This promise settles when the user exits, not when the dialog opens.
-    const result = await (messageHandler
-        ? orchestrator.launchWorkflowInModal(request, messageHandler)
-        : orchestrator.launchWorkflowInModal(request));
-    if (result?.status === 'cancel') {
+        result = await orchestrator.launchWorkflowInModal(
+            request,
+            (name, payload, parentHandler) => {
+                const actions = payload?.data?.actions;
+                if (
+                    name === 'System' &&
+                    payload?.subType === 'AppClosed' &&
+                    Array.isArray(actions)
+                ) {
+                    cart = actions.find(
+                        (action) =>
+                            action?.required &&
+                            action.actionMessage?.type === 'System' &&
+                            action.actionMessage?.subType === 'ReportState',
+                    )?.actionMessage.data?.commerce?.cart;
+                }
+                return hostHandler
+                    ? hostHandler(name, payload, parentHandler)
+                    : parentHandler(name, payload);
+            },
+        );
         if (
-            Array.isArray(items) &&
-            items.every(
+            result?.status === 'cancel' &&
+            Array.isArray(cart) &&
+            cart.every(
                 (item) => typeof item?.productArrangementCode === 'string',
             ) &&
-            items.some(
-                (item) => item?.productArrangementCode === request.context.pa,
+            cart.some(
+                (item) => item.productArrangementCode === request.context.pa,
             )
         ) {
-            onClose?.(items);
+            onClose(cart);
         }
+    } else {
+        result = await orchestrator.launchWorkflowInModal(request);
     }
     return result?.status !== 'no-workflow-found';
+}
+
+/**
+ * Applies the cart the user left in AUP to the addon and quantity of the card
+ * of the CTA, if it still shows the offers of the checkout.
+ */
+export function syncAupCart(element, card, id, offers, cart) {
+    try {
+        const pa = offers[0].productArrangementCode;
+        if (
+            element.masElement.state !== STATE_RESOLVED ||
+            element.value[0]?.productArrangementCode !== pa
+        )
+            return;
+        const addonPrices = [
+            ...card.querySelectorAll('merch-addon [is="inline-price"]'),
+        ];
+        if (
+            card.addonCheckbox &&
+            (!addonPrices.length ||
+                addonPrices.some(
+                    (price) =>
+                        price.masElement.state !== STATE_RESOLVED ||
+                        !price.value?.length,
+                ))
+        )
+            return;
+        const addonOffers = addonPrices.flatMap((price) => price.value);
+        const items = cart.filter(
+            ({ productArrangementCode }) =>
+                productArrangementCode === pa ||
+                addonOffers.some(
+                    (offer) =>
+                        offer.productArrangementCode === productArrangementCode,
+                ),
+        );
+        card.dispatchEvent(
+            new CustomEvent(EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE, {
+                detail: { id, items, productArrangementCode: pa },
+            }),
+        );
+    } catch (error) {
+        element.masElement.log.warn(
+            'AUP checkout cart synchronization failed',
+            error,
+        );
+    }
 }

@@ -112,9 +112,3 @@ describe('precedingChar', () => {
         expect(precedingChar(token)).to.equal('');
     });
 });
-
-describe('marker styles', () => {
-    it('self-injects the plan-type-text stylesheet on import', () => {
-        expect(document.querySelector('style[data-plan-type-text]')).to.exist;
-    });
-});

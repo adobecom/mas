@@ -3,14 +3,14 @@ import { expectHtml } from '../helpers.js';
 import { dataTrees } from '../../fixtures/price-info.js';
 
 import {
-    price,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-} from '../../../src/price/index.js';
+    ANNUAL,
+    OPTICAL,
+    PROMO_STRIKETHROUGH,
+    STRIKETHROUGH,
+    renderPrice,
+    renderPriceWithAnnual,
+    renderPromoPriceWithAnnual,
+} from '../../../src/price/template.js';
 
 const globals = { country: 'US', language: 'en' };
 
@@ -44,14 +44,16 @@ const formats = {
     }),
 };
 
+const withFlags = (flags) => (context, value) => renderPrice(context, value, console, flags);
+
 Object.entries({
-    price,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
+    price: withFlags(0),
+    priceOptical: withFlags(OPTICAL),
+    priceStrikethrough: withFlags(STRIKETHROUGH),
+    pricePromoStrikethrough: withFlags(PROMO_STRIKETHROUGH),
+    priceAnnual: withFlags(ANNUAL),
+    priceWithAnnual: renderPriceWithAnnual,
+    pricePromoWithAnnual: renderPromoPriceWithAnnual,
 }).forEach(([templateName, template]) => {
     describe(`template "${templateName}"`, () => {
         [
@@ -76,7 +78,7 @@ Object.entries({
                                 );
                                 renderAndComparePrice(
                                     `${idPrefix}1`,
-                                    template({ ...context, ...globals }, applyFormat(offer, name), {}),
+                                    template({ ...context, ...globals }, applyFormat(offer, name)),
                                 );
                             });
                         });

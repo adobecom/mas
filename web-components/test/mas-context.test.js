@@ -67,6 +67,7 @@ describe('mas-context - registerContextOptionsProviders', () => {
             .true;
         expect(service.providers.price.calledWith(planTypeTextOptionsProvider))
             .to.be.true;
+        expect(document.querySelector('style[data-plan-type-text]')).to.exist;
     });
 
     it('does not re-register planTypeTextOptionsProvider when it is already registered', () => {

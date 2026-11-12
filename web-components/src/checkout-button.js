@@ -15,22 +15,10 @@ export class CheckoutButton extends CheckoutMixin(HTMLButtonElement) {
     get isCheckoutButton() {
         return true;
     }
-
-    clickHandler(e) {
-        if (this.handleAupCheckout(e)) return;
-        if (this.checkoutActionHandler) {
-            this.checkoutActionHandler?.(e);
-            return;
-        }
-        if (this.href) {
-            window.location.href = this.href;
-        }
-    }
 }
 
-// Define custom DOM element
-if (!window.customElements.get(CheckoutButton.is)) {
-    window.customElements.define(CheckoutButton.is, CheckoutButton, {
+if (!customElements.get(CheckoutButton.is)) {
+    customElements.define(CheckoutButton.is, CheckoutButton, {
         extends: CheckoutButton.tag,
     });
 }

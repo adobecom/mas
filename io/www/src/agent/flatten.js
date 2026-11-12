@@ -4,7 +4,7 @@ import { FF_DEFAULTS, PLACEHOLDER_PLAN_TYPE_TEXT } from '../../../../web-compone
 import { resolvePriceOffers } from '../../../../web-components/src/inline-price.js';
 import { planTypeCaseForPrecedingChar } from '../../../../web-components/src/plan-type-text.js';
 import { Price } from '../../../../web-components/src/price.js';
-import { getPromoTermsUrl } from '../../../../web-components/src/upt-link.js';
+import { getPromoTermsUrl } from '../../../../web-components/src/promo-terms.js';
 import { Wcs } from '../../../../web-components/src/wcs.js';
 import { parseLocaleCode, resolveCommerceCountries } from '../fragment/locales.js';
 import { PATH_TOKENS } from '../fragment/utils/paths.js';

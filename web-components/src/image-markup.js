@@ -1,34 +1,29 @@
+const PROD_HOSTNAMES = ['www.adobe.com', 'adobe.com'];
+
+/** Parses `url` (against `base`), or returns null when it is not a URL. */
+function parseUrl(url, base) {
+    try {
+        return new URL(url, base);
+    } catch {
+        return null;
+    }
+}
+
 /** On prod (adobe.com), authored *.aem.page asset URLs must be served from the
  *  prod origin. Rewrites the origin to `origin`, keeping path + query; returns
  *  null for non-aem.page URLs so callers leave them untouched. */
 export function aemPageToProd(url, origin) {
-    if (typeof url !== 'string' || !url) return null;
-    let parsed;
-    try {
-        parsed = new URL(url, origin);
-    } catch {
-        return null;
-    }
-    if (!parsed.hostname.endsWith('.aem.page')) return null;
+    const parsed = url ? parseUrl(url, origin) : null;
+    if (!parsed?.hostname.endsWith('.aem.page')) return null;
     return `${origin}${parsed.pathname}${parsed.search}`;
 }
 
 export function sanitizeAssetUrl(url) {
-    if (typeof url !== 'string' || !url) return '';
-    try {
-        return new URL(url).href;
-    } catch {
-        return '';
-    }
+    return (url && parseUrl(url)?.href) || '';
 }
 
 export function isSupportedAssetHostname(url) {
-    if (typeof url !== 'string' || !url) return false;
-    try {
-        return new URL(url).hostname.endsWith('.aem.page');
-    } catch {
-        return false;
-    }
+    return Boolean(url && parseUrl(url)?.hostname.endsWith('.aem.page'));
 }
 
 const FORMAT_BY_EXT = {
@@ -72,13 +67,18 @@ export function getImageDimensions(url) {
     });
 }
 
+/** Parses picture markup with a <template>, so nothing loads or upgrades. */
+function parsePicture(markup) {
+    const template = document.createElement('template');
+    template.innerHTML = markup;
+    return template.content.querySelector('picture');
+}
+
 export function extractImageDimensions(inner) {
     if (!inner) return undefined;
-    const doc = new DOMParser().parseFromString(
-        `<picture>${inner}</picture>`,
-        'text/html',
+    const image = parsePicture(`<picture>${inner}</picture>`).querySelector(
+        'img',
     );
-    const image = doc.querySelector('img');
     const width = Number(image?.getAttribute('width'));
     const height = Number(image?.getAttribute('height'));
     return width && height ? { width, height } : undefined;
@@ -101,22 +101,20 @@ export function dimensionsAttributes(dimensions) {
  * authored URL for editing/display/copy surfaces.
  * Returns '' for empty or unparseable input. */
 export function stripRenditionParams(url) {
-    if (!url) return '';
-    try {
-        const parsed = new URL(url);
-        RENDITION_PARAMS.forEach((param) => parsed.searchParams.delete(param));
-        return parsed.href;
-    } catch {
-        return '';
-    }
+    const parsed = url && parseUrl(url);
+    if (!parsed) return '';
+    for (const param of RENDITION_PARAMS) parsed.searchParams.delete(param);
+    return parsed.href;
 }
 
 export function buildPictureInnerMarkup(url, dimensions, alt = '') {
     if (!isSupportedAssetHostname(url)) return '';
     const safeUrl = sanitizeAssetUrl(url);
     const formatInfo = formatFor(safeUrl);
+    const altAttribute = `alt="${escapeAttribute(alt)}"`;
+    const size = dimensionsAttributes(dimensions);
     if (!formatInfo)
-        return `<img loading="lazy" alt="${escapeAttribute(alt)}"${dimensionsAttributes(dimensions)} src="${safeUrl}">`;
+        return `<img loading="lazy" ${altAttribute}${size} src="${safeUrl}">`;
     const { type, format } = formatInfo;
     const desktopWidth = renditionWidth(DESKTOP.width, dimensions);
     const mobileWidth = renditionWidth(MOBILE_WIDTH, dimensions);
@@ -124,19 +122,23 @@ export function buildPictureInnerMarkup(url, dimensions, alt = '') {
         `<source type="image/webp" srcset="${rendition(safeUrl, desktopWidth, 'webply')}" media="${DESKTOP.media}">`,
         `<source type="image/webp" srcset="${rendition(safeUrl, mobileWidth, 'webply')}">`,
         `<source type="${type}" srcset="${rendition(safeUrl, desktopWidth, format)}" media="${DESKTOP.media}">`,
-        `<img loading="lazy" alt="${escapeAttribute(alt)}" src="${rendition(
-            safeUrl,
-            mobileWidth,
-            format,
-        )}"${dimensionsAttributes(dimensions)}>`,
+        `<img loading="lazy" ${altAttribute} src="${rendition(safeUrl, mobileWidth, format)}"${size}>`,
     ].join('');
 }
 
-function isProdLocation(location) {
-    return (
-        location?.hostname === 'www.adobe.com' ||
-        location?.hostname === 'adobe.com'
-    );
+const isProdLocation = (location) =>
+    PROD_HOSTNAMES.includes(location?.hostname);
+
+/** Rewrites the *.aem.page asset URLs of a parsed picture to `origin`. */
+function rewritePicture(picture, origin) {
+    for (const element of picture.querySelectorAll(
+        'source[srcset], img[src]',
+    )) {
+        const attribute = element.localName === 'img' ? 'src' : 'srcset';
+        const prod = aemPageToProd(element.getAttribute(attribute), origin);
+        if (prod) element.setAttribute(attribute, prod);
+    }
+    return picture;
 }
 
 /** Rewrites *.aem.page asset URLs in image markup (the picture's inner
@@ -145,19 +147,11 @@ function isProdLocation(location) {
  *  mas-field.js (standalone field) so both surfaces resolve assets identically.
  *  No-ops off-prod and in non-DOM runtimes (e.g. MAS IO in Node). */
 export function rewriteImageUrlsForProd(inner, location = globalThis.location) {
-    if (typeof inner !== 'string' || !inner || !isProdLocation(location)) {
-        return inner;
-    }
-    const template = document.createElement('template');
-    template.innerHTML = `<picture>${inner}</picture>`;
-    template.content
-        .querySelectorAll('source[srcset], img[src]')
-        .forEach((el) => {
-            const attr = el.tagName === 'IMG' ? 'src' : 'srcset';
-            const prod = aemPageToProd(el.getAttribute(attr), location.origin);
-            if (prod) el.setAttribute(attr, prod);
-        });
-    return template.content.querySelector('picture').innerHTML;
+    if (!inner || !isProdLocation(location)) return inner;
+    return rewritePicture(
+        parsePicture(`<picture>${inner}</picture>`),
+        location.origin,
+    ).innerHTML;
 }
 
 const ALLOWED_PICTURE_TAGS = new Set(['SOURCE', 'IMG']);
@@ -174,27 +168,47 @@ const ALLOWED_PICTURE_ATTRS = new Set([
     'height',
 ]);
 
-/** Strips stored image/backgrounds markup down to picture/source/img before innerHTML —
- *  the AEM field isn't schema-constrained, so this guards render time, not Studio's output. */
-export function sanitizePictureMarkup(inner) {
-    if (typeof inner !== 'string' || !inner) return '';
-    const template = document.createElement('template');
-    const alreadyWrapped = /^\s*<picture[\s>]/i.test(inner);
-    template.innerHTML = alreadyWrapped ? inner : `<picture>${inner}</picture>`;
-    const picture = template.content.querySelector('picture');
-    if (!picture) return '';
-    picture.querySelectorAll('*').forEach((el) => {
-        if (!ALLOWED_PICTURE_TAGS.has(el.tagName)) {
-            el.remove();
-            return;
+/** Parses stored image/backgrounds markup (a picture's inner markup, or the
+ *  whole <picture>) and strips it down to picture/source/img — the AEM field
+ *  isn't schema-constrained, so this guards render time, not Studio's output. */
+function sanitizedPicture(inner) {
+    const picture = parsePicture(
+        /^\s*<picture[\s>]/i.test(inner)
+            ? inner
+            : `<picture>${inner}</picture>`,
+    );
+    for (const element of picture.querySelectorAll('*')) {
+        if (!ALLOWED_PICTURE_TAGS.has(element.tagName)) {
+            element.remove();
+            continue;
         }
-        [...el.attributes].forEach((attr) => {
-            if (!ALLOWED_PICTURE_ATTRS.has(attr.name.toLowerCase())) {
-                el.removeAttribute(attr.name);
+        for (const { name } of [...element.attributes]) {
+            if (!ALLOWED_PICTURE_ATTRS.has(name)) {
+                element.removeAttribute(name);
             }
-        });
-    });
-    return picture.innerHTML;
+        }
+    }
+    return picture;
+}
+
+/** Strips stored image/backgrounds markup down to picture/source/img before innerHTML. */
+export function sanitizePictureMarkup(inner) {
+    return inner ? sanitizedPicture(inner).innerHTML : '';
+}
+
+/**
+ * Creates the <picture> for stored image markup: sanitized like
+ * sanitizePictureMarkup and with prod asset URLs like rewriteImageUrlsForProd,
+ * from a single parse.
+ * @param {string} inner the picture's inner markup, or the whole <picture>
+ * @returns {HTMLPictureElement}
+ */
+export function createPicture(inner, location = globalThis.location) {
+    const parsed = sanitizedPicture(inner);
+    if (isProdLocation(location)) rewritePicture(parsed, location.origin);
+    const picture = document.createElement('picture');
+    picture.append(...parsed.childNodes);
+    return picture;
 }
 
 export const BACKGROUNDS_DESKTOP_MEDIA = '(min-width: 1200px)';
@@ -205,27 +219,22 @@ export const BACKGROUNDS_TABLET_MEDIA = '(min-width: 600px)';
  *  the <img> src only if data-mobile-set is present (else it's just a borrowed fallback). */
 export function extractBackgroundUrl(html, key) {
     if (!html) return '';
-    const doc = new DOMParser().parseFromString(
-        `<picture>${html}</picture>`,
-        'text/html',
-    );
-    if (key === 'desktop')
-        return (
-            doc
-                .querySelector(`source[media="${BACKGROUNDS_DESKTOP_MEDIA}"]`)
-                ?.getAttribute('srcset') ?? ''
-        );
-    if (key === 'tablet')
-        return (
-            doc
-                .querySelector(`source[media="${BACKGROUNDS_TABLET_MEDIA}"]`)
-                ?.getAttribute('srcset') ?? ''
-        );
+    const picture = parsePicture(`<picture>${html}</picture>`);
     if (key === 'mobile') {
-        const img = doc.querySelector('img');
-        return img?.hasAttribute('data-mobile-set')
-            ? (img.getAttribute('src') ?? '')
-            : '';
+        const img = picture.querySelector('img');
+        return (
+            (img?.hasAttribute('data-mobile-set') && img.getAttribute('src')) ||
+            ''
+        );
     }
-    return '';
+    const media =
+        (key === 'desktop' && BACKGROUNDS_DESKTOP_MEDIA) ||
+        (key === 'tablet' && BACKGROUNDS_TABLET_MEDIA);
+    return (
+        (media &&
+            picture
+                .querySelector(`source[media="${media}"]`)
+                ?.getAttribute('srcset')) ||
+        ''
+    );
 }

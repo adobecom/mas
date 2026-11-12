@@ -3,6 +3,13 @@ import { expect } from '@esm-bundle/chai';
 import { formatAnnualPrice, formatOpticalPrice, isPromotionActive } from '../../../src/price/utilities.js';
 import { Commitment, Term } from '../../../src/constants.js';
 
+// The formatted price as displayed, with a plain space for a currency space.
+const text = ({ currencySymbol, hasCurrencySpace, isCurrencyFirst, integer, decimalsDelimiter, decimals }) => {
+    const space = hasCurrencySpace ? ' ' : '';
+    const amount = integer + decimalsDelimiter + decimals;
+    return isCurrencyFirst ? currencySymbol + space + amount : amount + space + currencySymbol;
+};
+
 const OPTICAL_TEST_CASES = [
     [
         {
@@ -218,10 +225,12 @@ describe('function "formatOpticalPrice"', () => {
             tests.forEach(([price, result]) => {
                 it(`formats price ${price} as ${result}`, () => {
                     expect(
-                        formatOpticalPrice({
-                            ...options,
-                            price,
-                        }).accessiblePrice,
+                        text(
+                            formatOpticalPrice({
+                                ...options,
+                                price,
+                            }),
+                        ),
                     ).to.equal(result);
                 });
             });
@@ -235,10 +244,12 @@ describe('function "formatAnnualPrice"', () => {
             tests.forEach(([price, result]) => {
                 it(`formats price ${price} as ${result}`, () => {
                     expect(
-                        formatAnnualPrice({
-                            ...options,
-                            price,
-                        }).accessiblePrice,
+                        text(
+                            formatAnnualPrice({
+                                ...options,
+                                price,
+                            }),
+                        ),
                     ).to.equal(result);
                 });
             });
@@ -313,49 +324,55 @@ describe('formatAnnualPrice', () => {
 
     it('should format annual price when promotion details are provided', () => {
         expect(
-            formatAnnualPrice({
-                formatString: "'A$'#,##0.00",
-                price: 23.23,
-                originalPrice: 23.23,
-                priceWithoutDiscount: 30.99,
-                commitment: Commitment.YEAR,
-                term: Term.MONTHLY,
-                instant: '2024-12-01T00:00:00.000Z',
-                promotion,
-            }).accessiblePrice,
+            text(
+                formatAnnualPrice({
+                    formatString: "'A$'#,##0.00",
+                    price: 23.23,
+                    originalPrice: 23.23,
+                    priceWithoutDiscount: 30.99,
+                    commitment: Commitment.YEAR,
+                    term: Term.MONTHLY,
+                    instant: '2024-12-01T00:00:00.000Z',
+                    promotion,
+                }),
+            ),
         ).to.equal('A$325.32');
     });
 
     it('should format annual price with regular price when min quantity is not met', () => {
         expect(
-            formatAnnualPrice({
-                formatString: "'A$'#,##0.00",
-                price: 23.23,
-                originalPrice: 23.23,
-                priceWithoutDiscount: 30.99,
-                commitment: Commitment.YEAR,
-                term: Term.MONTHLY,
-                promotion: {
-                    ...promotion,
-                    displaySummary: {
-                        ...promotion.displaySummary,
-                        minProductQuantity: 2,
+            text(
+                formatAnnualPrice({
+                    formatString: "'A$'#,##0.00",
+                    price: 23.23,
+                    originalPrice: 23.23,
+                    priceWithoutDiscount: 30.99,
+                    commitment: Commitment.YEAR,
+                    term: Term.MONTHLY,
+                    promotion: {
+                        ...promotion,
+                        displaySummary: {
+                            ...promotion.displaySummary,
+                            minProductQuantity: 2,
+                        },
                     },
-                },
-            }).accessiblePrice,
+                }),
+            ),
         ).to.equal('A$371.88');
     });
 
     it('should format annual price with discount when promotion details are not provided', () => {
         expect(
-            formatAnnualPrice({
-                formatString: "'A$'#,##0.00",
-                price: 23.23,
-                originalPrice: 23.23,
-                priceWithoutDiscount: 30.99,
-                commitment: Commitment.YEAR,
-                term: Term.MONTHLY,
-            }).accessiblePrice,
+            text(
+                formatAnnualPrice({
+                    formatString: "'A$'#,##0.00",
+                    price: 23.23,
+                    originalPrice: 23.23,
+                    priceWithoutDiscount: 30.99,
+                    commitment: Commitment.YEAR,
+                    term: Term.MONTHLY,
+                }),
+            ),
         ).to.equal('A$278.76');
     });
 });

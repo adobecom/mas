@@ -1,47 +1,69 @@
 import {
-    createMasElement,
-    updateMasElement,
-    MasElement,
-} from './mas-element.js';
-import { applyPageLocaleToCheckoutUrl } from './buildCheckoutUrl.js';
-import { isAupCheckoutSupported, launchAupCheckout } from './aup-checkout.js';
-import { getService } from './utilities.js';
-import { selectOffers } from '../../price/src/index.js';
-import { isPromotionActive } from '../../price/src/price/utilities.js';
+    applyPageLocaleToCheckoutUrl,
+    get3in1ClientId,
+    is3in1Modal,
+    isOpen3in1Modal,
+} from './buildCheckoutUrl.js';
 import {
-    EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-    MODAL_TYPE_3_IN_1,
+    AUP_CHECKOUT_CLIENT_IDS,
+    PROMO_CONTEXT_CANCEL_VALUE,
+    STATE_PENDING,
     STATE_RESOLVED,
-} from '../src/constants.js';
-import { PROMO_CONTEXT_CANCEL_VALUE } from '@dexter/tacocat-core';
+} from './constants.js';
+import {
+    createMasElement,
+    MasElement,
+    updateMasElement,
+} from './mas-element.js';
+import { getService } from './utilities.js';
+import { selectOffers } from '../../price/src/offers.js';
+import { isPromotionActive } from '../../price/src/price/utilities.js';
 
 export const CLASS_NAME_DOWNLOAD = 'download';
 export const CLASS_NAME_UPGRADE = 'upgrade';
-const CHECKOUT_PARAM_VALUE_MAPPING = {
-    e: 'EDU',
-    t: 'TEAM',
-};
+
+const OBSERVED_ATTRIBUTES = [
+    'data-checkout-workflow',
+    'data-checkout-workflow-step',
+    'data-extra-options',
+    'data-ims-country',
+    'data-perpetual',
+    'data-promotion-code',
+    'data-quantity',
+    'data-template',
+    'data-wcs-osi',
+    'data-entitlement',
+    'data-upgrade',
+    'data-modal',
+];
+// Checkout options kept in the dataset of a checkout element.
+const DATASET_OPTIONS = [
+    'checkoutMarketSegment',
+    'checkoutWorkflow',
+    'checkoutWorkflowStep',
+    'entitlement',
+    'upgrade',
+    'modal',
+    'perpetual',
+    'promotionCode',
+    'quantity',
+    'wcsOsi',
+];
+const SEGMENTS = { e: 'EDU', t: 'TEAM' };
+
 let aupCheckoutPending = false;
 const connectedCheckoutElements = new Set();
 
 export function refreshCheckoutLinks() {
-    connectedCheckoutElements.forEach((el) => el.updateCheckoutUrl());
+    for (const element of connectedCheckoutElements) {
+        element.updateCheckoutUrl();
+    }
 }
 
 /**
- * @typedef {'open' | 'close'} AupHandlerType
- */
-
-/**
  * @typedef {Object} AupHandlerContext
- * @property {AupHandlerType} type
+ * @property {'open' | 'close'} type
  * @property {HTMLAnchorElement | HTMLButtonElement} element
- */
-
-/**
- * @callback AupHandler
- * @param {AupHandlerContext} context
- * @returns {void}
  */
 
 /**
@@ -50,44 +72,56 @@ export function refreshCheckoutLinks() {
  * @property {string} [text]
  * @property {string} [className]
  * @property {(event: MouseEvent) => unknown} [handler]
- * @property {AupHandler} [aupHandler]
+ * @property {(context: AupHandlerContext) => void} [aupHandler]
  */
 
-export function createCheckoutElement(Class, options = {}, innerHTML = '') {
+const pick = (options, keys) =>
+    Object.fromEntries(keys.map((key) => [key, options[key]]));
+
+const isModifiedClick = (e) =>
+    e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
+
+/** The client AUP opens a checkout in: 3-in-1 modals have their own clients. */
+export const getAupClientId = ({ checkoutClientId, modal }) =>
+    is3in1Modal(modal)
+        ? get3in1ClientId(checkoutClientId, modal)
+        : checkoutClientId;
+
+export function isAupCheckoutSupported(offers, options, hasUpgradeAction) {
+    return (
+        AUP_CHECKOUT_CLIENT_IDS.has(getAupClientId(options)) &&
+        offers.length > 0 &&
+        !hasUpgradeAction &&
+        !options.perpetual &&
+        !offers.some(({ commitment }) => commitment === 'PERPETUAL')
+    );
+}
+
+function notifyAupHandler(element, handler, type) {
+    if (!handler) return;
+    try {
+        handler({ type, element });
+    } catch (error) {
+        element.masElement.log.error(
+            `AUP checkout ${type} handler failed`,
+            error,
+        );
+    }
+}
+
+export function createCheckoutElement(Class, options, innerHTML) {
     const service = getService();
     if (!service) return null;
-    const {
-        checkoutMarketSegment,
-        checkoutWorkflow,
-        checkoutWorkflowStep,
-        entitlement,
-        upgrade,
-        modal,
-        perpetual,
-        promotionCode,
-        quantity,
-        wcsOsi,
-        extraOptions,
-        analyticsId,
-    } = service.collectCheckoutOptions(options);
-
-    const element = createMasElement(Class, {
-        checkoutMarketSegment,
-        checkoutWorkflow,
-        checkoutWorkflowStep,
-        entitlement,
-        upgrade,
-        modal,
-        perpetual,
-        promotionCode:
-            options.promotionCode === PROMO_CONTEXT_CANCEL_VALUE
-                ? PROMO_CONTEXT_CANCEL_VALUE
-                : promotionCode,
-        quantity,
-        wcsOsi,
-        extraOptions,
-        analyticsId,
-    });
+    const dataset = pick(service.collectCheckoutOptions(options), [
+        ...DATASET_OPTIONS,
+        'extraOptions',
+        'analyticsId',
+    ]);
+    // collectCheckoutOptions drops the code cancelling the page promotion
+    if (options.promotionCode === PROMO_CONTEXT_CANCEL_VALUE) {
+        dataset.promotionCode = PROMO_CONTEXT_CANCEL_VALUE;
+    }
+    const element = createMasElement(Class, dataset);
     if (innerHTML)
         element.innerHTML = `<span style="pointer-events: none;">${innerHTML}</span>`;
     return element;
@@ -95,31 +129,52 @@ export function createCheckoutElement(Class, options = {}, innerHTML = '') {
 
 export function CheckoutMixin(Base) {
     return class CheckoutBase extends Base {
-        /* c8 ignore next 1 */
-        checkoutActionHandler;
-
-        /** @type {AupHandler | undefined} */
-        aupHandler;
+        static observedAttributes = OBSERVED_ATTRIBUTES;
 
         masElement = new MasElement(this);
 
+        // true while render waits for its offers, it reads data-ims-country after
+        #imsCountryPending = false;
+
+        // Loads the AUP checkout on hover or focus, so the click does not wait
+        // for it. Never on page load: it is only needed after an interaction.
+        #prefetchAupCheckout = () => {
+            if (window.aupsdk && this.#usesAup()) {
+                // a failed prefetch is retried, and logged, on click
+                import('./aup-checkout.js').catch(() => {});
+            }
+        };
+
         attributeChangedCallback(name, oldValue, value) {
+            // the pending render reads the new IMS country, rendering again would repeat it
+            if (
+                name === 'data-ims-country' &&
+                this.#imsCountryPending &&
+                this.masElement.state === STATE_PENDING
+            ) {
+                return;
+            }
             this.masElement.attributeChangedCallback(name, oldValue, value);
         }
 
         connectedCallback() {
             this.masElement.connectedCallback();
             connectedCheckoutElements.add(this);
-            this.addEventListener('click', this.clickHandler);
-            this.addEventListener('auxclick', this.handleAupModifiedClick);
+            this.#listen('addEventListener');
             this.updateCheckoutUrl();
         }
 
         disconnectedCallback() {
             this.masElement.disconnectedCallback();
             connectedCheckoutElements.delete(this);
-            this.removeEventListener('click', this.clickHandler);
-            this.removeEventListener('auxclick', this.handleAupModifiedClick);
+            this.#listen('removeEventListener');
+        }
+
+        #listen(method) {
+            this[method]('click', this.clickHandler);
+            this[method]('auxclick', this.handleAupModifiedClick);
+            this[method]('pointerenter', this.#prefetchAupCheckout);
+            this[method]('focusin', this.#prefetchAupCheckout);
         }
 
         onceSettled() {
@@ -137,96 +192,64 @@ export function CheckoutMixin(Base) {
         get marketSegment() {
             const value =
                 this.options?.ms ?? this.value?.[0]?.marketSegments?.[0];
-            return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+            return SEGMENTS[value] ?? value;
         }
 
         get customerSegment() {
             const value = this.options?.cs ?? this.value?.[0]?.customerSegment;
-            return CHECKOUT_PARAM_VALUE_MAPPING[value] ?? value;
+            return SEGMENTS[value] ?? value;
         }
 
         get is3in1Modal() {
-            return Object.values(MODAL_TYPE_3_IN_1).includes(
-                this.getAttribute('data-modal'),
-            );
+            return is3in1Modal(this.getAttribute('data-modal'));
         }
 
         get isOpen3in1Modal() {
-            const masFF3in1 = document.querySelector('meta[name=mas-ff-3in1]');
-            return (
-                this.is3in1Modal && (!masFF3in1 || masFF3in1.content !== 'off')
-            );
+            return isOpen3in1Modal(this.getAttribute('data-modal'));
         }
 
         requestUpdate(force = false) {
             return this.masElement.requestUpdate(force);
         }
 
-        static get observedAttributes() {
-            return [
-                'data-checkout-workflow',
-                'data-checkout-workflow-step',
-                'data-extra-options',
-                'data-ims-country',
-                'data-perpetual',
-                'data-promotion-code',
-                'data-quantity',
-                'data-template',
-                'data-wcs-osi',
-                'data-entitlement',
-                'data-upgrade',
-                'data-modal',
-            ];
-        }
-
         async render(overrides = {}) {
             const service = getService();
-            if (!service) return false;
-            if (!this.dataset.imsCountry) {
-                service.imsCountryPromise.then((countryCode) => {
-                    if (countryCode) this.dataset.imsCountry = countryCode;
+            const { dataset, masElement } = this;
+            if (!dataset.imsCountry) {
+                service.imsCountryPromise.then((country) => {
+                    if (country) dataset.imsCountry = country;
                 });
             }
-            overrides.imsCountry = null;
             const options = service.collectCheckoutOptions(overrides, this);
             if (!options.wcsOsi.length) return false;
-            let extraOptions;
-            try {
-                extraOptions = JSON.parse(options.extraOptions ?? '{}');
-                /* c8 ignore next 3 */
-            } catch (e) {
-                this.masElement.log?.error(
-                    'cannot parse exta checkout options',
-                    e,
-                );
-            }
-            const version = this.masElement.togglePending(options);
+            const extraOptions = JSON.parse(options.extraOptions ?? '{}');
+            const version = masElement.togglePending(options);
             this.setCheckoutUrl('');
-            const promises = service.resolveOfferSelectors(options);
-            let offers = await Promise.all(promises);
-            // offer is expected to contain one or two offers at max (en, mult)
-            offers = offers.map((offer) => selectOffers(offer, options));
-            const offerWithPromo = offers
-                .flat()
-                .find((offer) => offer.promotion);
-            const isPromoActive = isPromotionActive(
-                offerWithPromo?.promotion,
-                offerWithPromo?.promotion?.displaySummary?.instant,
-                options.quantity[0],
-            );
-            if (!isPromoActive && options.promotionCode) {
+            this.#imsCountryPending = true;
+            const offers = (
+                await Promise.all(service.resolveOfferSelectors(options))
+            ).flatMap((offer) => selectOffers(offer, options));
+            this.#imsCountryPending = false;
+            const { promotion } = offers.find((offer) => offer.promotion) ?? {};
+            if (
+                options.promotionCode &&
+                !isPromotionActive(
+                    promotion,
+                    promotion?.displaySummary?.instant,
+                    options.quantity[0],
+                )
+            ) {
                 delete options.promotionCode;
             }
-            options.country = this.dataset.imsCountry || options.country;
+            options.country = dataset.imsCountry || options.country;
             const checkoutAction = await service.buildCheckoutAction?.(
-                offers.flat(),
+                offers,
                 { ...extraOptions, ...options },
                 this,
             );
-            return this.renderOffers(
-                offers.flat(),
-                options,
-                {},
+            return this.#renderOffers(
+                offers,
+                { ...extraOptions, ...options },
                 checkoutAction,
                 version,
             );
@@ -247,63 +270,62 @@ export function CheckoutMixin(Base) {
             checkoutAction = undefined,
             version = undefined,
         ) {
-            const service = getService();
-            if (!service) return false;
-            const extraOptions = JSON.parse(this.dataset.extraOptions ?? '{}');
-            options = { ...extraOptions, ...options, ...overrides };
-            version ??= this.masElement.togglePending(options);
-            if (this.checkoutActionHandler) {
-                /* c8 ignore next 2 */
-                this.checkoutActionHandler = undefined;
+            options = {
+                ...JSON.parse(this.dataset.extraOptions ?? '{}'),
+                ...options,
+                ...overrides,
+            };
+            return this.#renderOffers(
+                offers,
+                options,
+                checkoutAction,
+                version ?? this.masElement.togglePending(options),
+            );
+        }
+
+        #renderOffers(offers, options, checkoutAction, version) {
+            const { classList, masElement } = this;
+            if (version !== masElement.version) return;
+            const { url, text, className, handler, aupHandler } =
+                checkoutAction ?? {};
+            // an action resolves the element, even without offers
+            if (checkoutAction || offers.length) {
+                masElement.toggleResolved(version, offers, options);
             }
-            this.aupHandler = undefined;
-            this.classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
-            if (checkoutAction) {
-                this.masElement.toggleResolved(version, offers, options);
-                const { url, text, className, handler, aupHandler } =
-                    checkoutAction;
-                if (url) {
-                    this.setCheckoutUrl(applyPageLocaleToCheckoutUrl(url));
-                }
-                if (text) this.firstElementChild.innerHTML = text;
-                if (className) this.classList.add(...className.split(' '));
-                if (handler) {
-                    // A 3-in-1 modal builds its iframe from href, so keep the
-                    // real checkout URL here instead of '#'.
-                    this.setCheckoutUrl(
-                        this.isOpen3in1Modal
-                            ? service.buildCheckoutURL(offers, options)
-                            : '#',
-                    );
-                    this.checkoutActionHandler = handler.bind(this);
-                }
-                if (typeof aupHandler === 'function') {
-                    this.aupHandler = aupHandler.bind(this);
-                }
-                this.updateCheckoutUrl();
-            }
-            if (offers.length) {
-                if (this.masElement.toggleResolved(version, offers, options)) {
-                    if (
-                        !this.classList.contains(CLASS_NAME_DOWNLOAD) &&
-                        !this.classList.contains(CLASS_NAME_UPGRADE)
-                    ) {
-                        const url = service.buildCheckoutURL(offers, options);
-                        this.setCheckoutUrl(
-                            options.modal === 'true' ? '#' : url,
-                        );
-                    }
-                    return true;
-                }
-            } else {
-                const error = new Error(
-                    `Not provided: ${options?.wcsOsi ?? '-'}`,
+            if (!offers.length) {
+                masElement.toggleFailed(
+                    version,
+                    new Error(`Not provided: ${options.wcsOsi ?? '-'}`),
+                    options,
                 );
-                if (this.masElement.toggleFailed(version, error, options)) {
-                    this.setCheckoutUrl('#');
-                    return true;
-                }
             }
+            this.checkoutActionHandler = handler?.bind(this);
+            this.aupHandler = aupHandler?.bind(this);
+            classList.remove(CLASS_NAME_DOWNLOAD, CLASS_NAME_UPGRADE);
+            if (text) this.firstElementChild.innerHTML = text;
+            if (className) classList.add(...className.split(' '));
+            let { checkoutUrl } = this;
+            if (!offers.length) {
+                checkoutUrl = '#';
+            } else if (
+                !classList.contains(CLASS_NAME_DOWNLOAD) &&
+                !classList.contains(CLASS_NAME_UPGRADE)
+            ) {
+                checkoutUrl =
+                    options.modal === 'true'
+                        ? '#'
+                        : getService().buildCheckoutURL(offers, options);
+            } else if (handler) {
+                // A 3-in-1 modal builds its iframe from href, so it keeps
+                // the real checkout URL instead of '#'.
+                checkoutUrl = this.isOpen3in1Modal
+                    ? getService().buildCheckoutURL(offers, options)
+                    : '#';
+            } else if (url) {
+                checkoutUrl = applyPageLocaleToCheckoutUrl(url);
+            }
+            this.setCheckoutUrl(checkoutUrl);
+            return true;
         }
 
         setCheckoutUrl(value) {
@@ -311,9 +333,8 @@ export function CheckoutMixin(Base) {
             this.updateCheckoutUrl();
         }
 
-        updateCheckoutUrl(aupSelect = getService()?.settings?.aupSelect) {
-            if (this.checkoutUrl === undefined) return;
-            const useAup =
+        #usesAup(aupSelect = getService()?.settings?.aupSelect) {
+            return (
                 aupSelect &&
                 this.checkoutUrl &&
                 this.masElement.state === STATE_RESOLVED &&
@@ -324,7 +345,14 @@ export function CheckoutMixin(Base) {
                     this.value,
                     this.options,
                     this.classList.contains(CLASS_NAME_UPGRADE),
-                );
+                )
+            );
+        }
+
+        /** An AUP checkout gets '#' as href, so the browser does not navigate. */
+        updateCheckoutUrl(aupSelect) {
+            if (this.checkoutUrl === undefined) return;
+            const useAup = this.#usesAup(aupSelect);
             this.setAttribute(
                 this.isCheckoutLink ? 'href' : 'data-href',
                 useAup ? '#' : this.checkoutUrl,
@@ -333,18 +361,9 @@ export function CheckoutMixin(Base) {
         }
 
         handleAupModifiedClick(e) {
-            if (
-                (e.metaKey ||
-                    e.ctrlKey ||
-                    e.shiftKey ||
-                    e.altKey ||
-                    e.button !== 0) &&
-                this.updateCheckoutUrl()
-            ) {
-                e.preventDefault();
-                return true;
-            }
-            return false;
+            if (!isModifiedClick(e) || !this.updateCheckoutUrl()) return false;
+            e.preventDefault();
+            return true;
         }
 
         handleAupCheckout(e) {
@@ -352,28 +371,36 @@ export function CheckoutMixin(Base) {
             this.updateCheckoutUrl(false);
             // Native checkout needs its destination until the click's default action runs.
             setTimeout(() => this.updateCheckoutUrl(), 0);
-            if (
-                e.defaultPrevented ||
-                e.button !== 0 ||
-                e.metaKey ||
-                e.ctrlKey ||
-                e.shiftKey ||
-                e.altKey ||
-                this.classList.contains(CLASS_NAME_DOWNLOAD) ||
-                this.hasAttribute('download') ||
-                (this.target && this.target !== '_self')
-            ) {
-                return false;
-            }
             const sdk = window.aupsdk;
             if (
-                this.masElement.state !== STATE_RESOLVED ||
-                !getService()?.settings.aupSelect ||
-                typeof sdk?.getOrchestratorContext !== 'function'
+                e.defaultPrevented ||
+                isModifiedClick(e) ||
+                !sdk?.getOrchestratorContext ||
+                !this.#usesAup()
             ) {
                 return false;
             }
-            const { aupHandler, checkoutActionHandler, href, value } = this;
+            this.updateCheckoutUrl();
+            e.preventDefault();
+            if (aupCheckoutPending) return true;
+            aupCheckoutPending = true;
+            this.aupCheckoutPromise = this.#checkoutWithAup(e, sdk).finally(
+                () => {
+                    aupCheckoutPending = false;
+                },
+            );
+            return true;
+        }
+
+        // Uses the CTA as clicked: it can render again while AUP is open.
+        async #checkoutWithAup(event, sdk) {
+            const {
+                aupHandler,
+                checkoutActionHandler,
+                checkoutUrl,
+                masElement: { log },
+                value,
+            } = this;
             const card = this.closest('merch-card');
             const id = this.getAttribute('data-modal-id');
             const options = {
@@ -381,158 +408,55 @@ export function CheckoutMixin(Base) {
                 cs: this.customerSegment,
                 ms: this.marketSegment,
             };
-            const hasUpgradeAction =
-                this.classList.contains(CLASS_NAME_UPGRADE);
-            if (!isAupCheckoutSupported(value, options, hasUpgradeAction))
-                return false;
-            this.updateCheckoutUrl();
-            e.preventDefault();
-            if (aupCheckoutPending) return true;
-            const fallback = () => {
-                if (checkoutActionHandler) return checkoutActionHandler(e);
-                if (href) window.location.href = href;
-            };
-            const notifyAupHandler = (type) => {
-                if (!aupHandler) return;
-                try {
-                    aupHandler({
-                        type,
-                        element: this,
-                    });
-                } catch (error) {
-                    this.masElement.log?.error(
-                        `AUP checkout ${type} handler failed`,
-                        error,
-                    );
-                }
-            };
-            let cartItems;
-            aupCheckoutPending = true;
-            notifyAupHandler('open');
-            this.aupCheckoutPromise = launchAupCheckout(
-                sdk,
-                value,
-                options,
-                card && id
-                    ? (items) => {
-                          cartItems = items;
-                      }
-                    : undefined,
-                undefined,
-                hasUpgradeAction,
-            )
-                .catch((error) => {
-                    this.masElement.log?.error(
-                        'AUP checkout launch failed',
-                        error,
-                    );
-                    return false;
-                })
-                .then(async (handled) => {
-                    notifyAupHandler('close');
-                    if (!handled) {
-                        try {
-                            return await fallback();
-                        } catch (error) {
-                            this.masElement.log?.error(
-                                'AUP checkout fallback failed',
-                                error,
-                            );
-                            return;
-                        }
-                    }
-                    if (!cartItems) return;
-                    try {
-                        const pa = value[0].productArrangementCode;
-                        if (
-                            this.masElement.state !== STATE_RESOLVED ||
-                            this.value[0]?.productArrangementCode !== pa
-                        )
-                            return;
-                        const addonPrices = [
-                            ...card.querySelectorAll(
-                                'merch-addon [is="inline-price"]',
-                            ),
-                        ];
-                        if (
-                            card.addonCheckbox &&
-                            (!addonPrices.length ||
-                                addonPrices.some(
-                                    (price) =>
-                                        price.masElement.state !==
-                                            STATE_RESOLVED ||
-                                        !price.value?.length,
-                                ))
-                        )
-                            return;
-                        const addonOffers = addonPrices.flatMap(
-                            (price) => price.value,
-                        );
-                        const items = cartItems.filter(
-                            (item) =>
-                                item.productArrangementCode === pa ||
-                                addonOffers.some(
-                                    (offer) =>
-                                        offer.productArrangementCode ===
-                                        item.productArrangementCode,
-                                ),
-                        );
-                        card.dispatchEvent(
-                            new CustomEvent(
-                                EVENT_MERCH_ADDON_AND_QUANTITY_UPDATE,
-                                {
-                                    detail: {
-                                        id,
-                                        items,
-                                        productArrangementCode: pa,
-                                    },
-                                },
-                            ),
-                        );
-                    } catch (error) {
-                        this.masElement.log?.warn(
-                            'AUP checkout cart synchronization failed',
-                            error,
-                        );
-                    }
-                })
-                .finally(() => {
-                    aupCheckoutPending = false;
-                });
-            return true;
+            let aup;
+            let cart;
+            let handled = false;
+            notifyAupHandler(this, aupHandler, 'open');
+            try {
+                aup = await import('./aup-checkout.js');
+                handled = await aup.launchAupCheckout(
+                    sdk,
+                    value,
+                    options,
+                    card && id
+                        ? (items) => {
+                              cart = items;
+                          }
+                        : undefined,
+                );
+            } catch (error) {
+                log.error('AUP checkout launch failed', error);
+            }
+            notifyAupHandler(this, aupHandler, 'close');
+            if (handled) {
+                if (cart) aup.syncAupCart(this, card, id, value, cart);
+                return;
+            }
+            try {
+                if (checkoutActionHandler) await checkoutActionHandler(event);
+                else if (checkoutUrl) window.location.href = checkoutUrl;
+            } catch (error) {
+                log.error('AUP checkout fallback failed', error);
+            }
         }
 
         clickHandler(e) {
-            // to be implemented in the subclass
+            if (this.handleAupCheckout(e)) return;
+            if (this.checkoutActionHandler) this.checkoutActionHandler(e);
+            // a link navigates by itself
+            else if (!this.isCheckoutLink && this.href) {
+                window.location.href = this.href;
+            }
         }
 
         updateOptions(options = {}) {
-            const service = getService();
-            if (!service) return false;
-            const {
-                checkoutMarketSegment,
-                checkoutWorkflow,
-                checkoutWorkflowStep,
-                entitlement,
-                upgrade,
-                modal,
-                perpetual,
-                promotionCode,
-                quantity,
-                wcsOsi,
-            } = service.collectCheckoutOptions(options);
-            updateMasElement(this, {
-                checkoutMarketSegment,
-                checkoutWorkflow,
-                checkoutWorkflowStep,
-                entitlement,
-                upgrade,
-                modal,
-                perpetual,
-                promotionCode,
-                quantity,
-                wcsOsi,
-            });
+            updateMasElement(
+                this,
+                pick(
+                    getService().collectCheckoutOptions(options),
+                    DATASET_OPTIONS,
+                ),
+            );
             return true;
         }
     };

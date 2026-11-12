@@ -1,21 +1,12 @@
-import { escapeHtml, isObject, isNumber, isString, toBoolean } from '../helpers.js';
-import {
-    formatOpticalPrice,
-    formatRegularPrice,
-    formatAnnualPrice,
-    makeSpacesAroundNonBreaking,
-    isPromotionActive,
-    selectPreformattedPrice,
-} from './utilities.js';
+import { toBoolean } from '../helpers.js';
+import { Commitment, Term } from '../constants.js';
+import { formatAnnualPrice, formatOpticalPrice, formatRegularPrice, isPromotionActive } from './utilities.js';
 import { formatMessage } from './message-format.js';
 
-export const defaultLiterals = {
+// Literals the renderers format when the price literals lack them.
+const defaultLiterals = {
     recurrenceLabel: '{recurrenceTerm, select, MONTH {/mo} YEAR {/yr} other {}}',
-    recurrenceAriaLabel: '{recurrenceTerm, select, MONTH {per month} YEAR {per year} other {}}',
     perUnitLabel: '{perUnit, select, LICENSE {per license} other {}}',
-    perUnitAriaLabel: '{perUnit, select, LICENSE {per license} other {}}',
-    freeLabel: 'Free',
-    freeAriaLabel: 'Free',
     taxExclusiveLabel:
         '{taxTerm, select, GST {excl. GST} VAT {excl. VAT} TAX {excl. tax} IVA {excl. IVA} SST {excl. SST} KDV {excl. KDV} other {}}',
     taxInclusiveLabel:
@@ -27,456 +18,228 @@ export const defaultLiterals = {
     priceUnavailableLabel: 'no price available',
 };
 
-export const htmlPattern = /<\/?[^>]+(>|$)/g;
+/** Render flags; the first five add the `price-*` container classes, in this order. */
+export const OPTICAL = 1;
+export const STRIKETHROUGH = 2;
+export const PROMO_STRIKETHROUGH = 4;
+export const ALTERNATIVE = 8;
+export const ANNUAL = 16;
+/** The promotion is active, so the discounted price is shown. */
+export const PROMO_APPLIED = 32;
+/** Hides the per-unit and tax labels. */
+export const PLAIN = 64;
+const CONTAINER_CLASSES = ['optical', 'strikethrough', 'promo-strikethrough', 'alternative', 'annual'];
 
-export const cssClassNames = {
-    container: 'price',
-    containerOptical: 'price-optical',
-    containerStrikethrough: 'price-strikethrough',
-    containerPromoStrikethrough: 'price-promo-strikethrough',
-    containerAlternative: 'price-alternative',
-    containerAnnual: 'price-annual',
-    containerAnnualPrefix: 'price-annual-prefix',
-    containerAnnualSuffix: 'price-annual-suffix',
-    disabled: 'disabled',
-    currencySpace: 'price-currency-space',
-    currencySymbol: 'price-currency-symbol',
-    decimals: 'price-decimals',
-    decimalsDelimiter: 'price-decimals-delimiter',
-    integer: 'price-integer',
-    recurrence: 'price-recurrence',
-    taxInclusivity: 'price-tax-inclusivity',
-    unitType: 'price-unit-type',
-};
+const ANNUAL_PREFIX = '<span class="price-annual-prefix"> (</span>';
+const ANNUAL_SUFFIX = '<span class="price-annual-suffix">)</span>';
 
-export const literalKeys = {
-    perUnitLabel: 'perUnitLabel',
-    perUnitAriaLabel: 'perUnitAriaLabel',
-    recurrenceLabel: 'recurrenceLabel',
-    recurrenceAriaLabel: 'recurrenceAriaLabel',
-    taxExclusiveLabel: 'taxExclusiveLabel',
-    taxInclusiveLabel: 'taxInclusiveLabel',
-    strikethroughAriaLabel: 'strikethroughAriaLabel',
-    alternativePriceAriaLabel: 'alternativePriceAriaLabel',
-};
+const HTML = /<\/?[^>]+(>|$)/g;
+const LINK = /<a [^>]+(>|$)/g;
+const ENCODED_LINK = /&lt;a (?!&gt;)(.*?)(&gt;|$)/g;
 
-export const WCS_TAX_DISPLAY_EXCLUSIVE = 'TAX_EXCLUSIVE';
+export const renderSpan = (cssClass, content) =>
+    `<span class="${cssClass}${content ? '' : ' disabled'}">${content ?? ''}</span>`;
 
-export const renderAttributes = (attributes) =>
-    isObject(attributes)
-        ? Object.entries(attributes)
-              .filter(([, value]) => isString(value) || isNumber(value) || value === true)
-              .reduce((html, [key, value]) => `${html} ${key}${value === true ? '' : `="${escapeHtml(value)}"`}`, '')
-        : '';
+export const makeSpacesAroundNonBreaking = (text) => text.replace(/^\s+/, '&nbsp;').replace(/\s+$/, '&nbsp;');
 
-export const renderSpan = (cssClass, content, attributes, convertSpaces = false) => {
-    return (
-        `<span class="${cssClass}${content ? '' : ` ${cssClassNames.disabled}`}"${renderAttributes(attributes)}>` +
-        `${convertSpaces ? makeSpacesAroundNonBreaking(content) : (content ?? '')}</span>`
-    );
-};
+export const toLocale = (language, country) => `${language.toLowerCase()}-${country.toUpperCase()}`;
 
-function encodeLinks(literal) {
-    literal = literal.replaceAll('</a>', '&lt;/a&gt;');
-
-    const regex = /<a [^>]+(>|$)/g;
-    const matches = literal.match(regex);
-    matches?.forEach((match) => {
-        const encodedMatch = match.replace('<a ', '&lt;a ').replace('>', '&gt;');
-        literal = literal.replaceAll(match, encodedMatch);
-    });
-
-    return literal;
-}
-
-function decodeLinks(literal) {
-    literal = literal.replaceAll('&lt;/a&gt;', '</a>');
-
-    const regex = /&lt;a (?!&gt;)(.*?)(&gt;|$)/g;
-    const matches = literal.match(regex);
-    matches?.forEach((match) => {
-        const encodedMatch = match.replace('&lt;a ', '<a ').replace('&gt;', '>');
-        literal = literal.replaceAll(match, encodedMatch);
-    });
-
-    return literal;
-}
-
+/**
+ * Formats a price literal, falling back to the default literal when `literals` has no `key`.
+ * Links survive markup stripping; formatting errors are logged and render ''.
+ */
 export function formatLiteral(literals, locale, key, parameters, logger = console) {
-    let literal = literals[key];
-    if (literal == undefined) {
-        return '';
-    }
-    const hasHtml = literal.includes('<');
+    let literal = key in literals ? literals[key] : defaultLiterals[key];
+    if (literal == null) return '';
     const hasLinks = literal.includes('<a ');
     try {
-        literal = hasLinks ? encodeLinks(literal) : literal;
-        literal = hasHtml ? literal.replace(htmlPattern, '') : literal;
-        const formattedLiteral = formatMessage(literal, locale, parameters);
-        return hasLinks ? decodeLinks(formattedLiteral) : formattedLiteral;
+        if (hasLinks) {
+            literal = literal
+                .replaceAll('</a>', '&lt;/a&gt;')
+                .replace(LINK, (link) => link.replace('<a ', '&lt;a ').replace('>', '&gt;'));
+        }
+        literal = literal.replace(HTML, '');
+        const text = formatMessage(literal, locale, parameters);
+        return hasLinks
+            ? text
+                  .replaceAll('&lt;/a&gt;', '</a>')
+                  .replace(ENCODED_LINK, (link) => link.replace('&lt;a ', '<a ').replace('&gt;', '>'))
+            : text;
     } catch {
         logger.error('Failed to format literal:', literal);
         return '';
     }
 }
 
-function renderContainer(
-    cssClass,
-    {
-        accessibleLabel,
-        altAccessibleLabel,
-        currencySymbol,
-        decimals,
-        decimalsDelimiter,
-        hasCurrencySpace,
-        integer,
-        isCurrencyFirst,
-        recurrenceLabel,
-        perUnitLabel,
-        taxInclusivityLabel,
-    },
-    attributes = {},
-) {
-    const currencyMarkup = renderSpan(cssClassNames.currencySymbol, currencySymbol);
-    const currencySpaceMarkup = renderSpan(cssClassNames.currencySpace, hasCurrencySpace ? '&nbsp;' : '');
-
-    let markup = '';
-    if (accessibleLabel) markup = `<sr-only class="strikethrough-aria-label">${accessibleLabel}</sr-only>`;
-    else if (altAccessibleLabel) markup = `<sr-only class="alt-aria-label">${altAccessibleLabel}</sr-only>`;
-    if (isCurrencyFirst) markup += currencyMarkup + currencySpaceMarkup;
-    markup += renderSpan(cssClassNames.integer, integer);
-    markup += renderSpan(cssClassNames.decimalsDelimiter, decimalsDelimiter);
-    markup += renderSpan(cssClassNames.decimals, decimals);
-    if (!isCurrencyFirst) markup += currencySpaceMarkup + currencyMarkup;
-    markup += renderSpan(cssClassNames.recurrence, recurrenceLabel, null, true);
-    markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
-    markup += renderSpan(cssClassNames.taxInclusivity, taxInclusivityLabel, true);
-
-    return renderSpan(cssClass, markup, {
-        ...attributes,
-    });
-}
+export const taxLabelKey = (taxDisplay) => (taxDisplay === 'TAX_EXCLUSIVE' ? 'taxExclusiveLabel' : 'taxInclusiveLabel');
 
 /**
- * @type { import('./types').createPriceTemplate }
- * Returns a function formatting product prices using provided options.
+ * Renders one price container. `flags` combines the render flags above;
+ * `instant` only reaches the annual promotion calculation.
  */
-// TODO: check WCS data elements to include: analytics, endDate, language, merchant, offerType, pricePoint, startDate
-const createPriceTemplate =
-    ({
-        isAlternativePrice = false,
-        displayOptical = false,
-        displayStrikethrough = false,
-        displayPromoStrikethrough = false,
-        displayAnnual = false,
-        instant = undefined,
-    } = {}) =>
-    (
-        {
-            country,
-            displayFormatted = true,
-            displayRecurrence = true,
-            displayPerUnit = false,
-            displayTax = false,
-            language,
-            literals: priceLiterals = {},
-            quantity = 1,
-            space = false, // add a space between price literals
-            isPromoApplied = false,
-            logger = console,
-        } = {},
-        {
-            commitment,
-            offerSelectorIds,
-            formatString,
-            price,
-            priceWithoutDiscount,
-            taxDisplay,
-            taxTerm,
-            term,
-            usePrecision,
-            promotion,
-            priceInfo,
-        } = {},
-        attributes = {},
-    ) => {
-        Object.entries({
-            country,
-            formatString,
-            language,
-            price,
-        }).forEach(([key, value]) => {
-            if (value == null) {
-                throw new Error(
-                    `Argument "${key}" is missing for osi ${offerSelectorIds?.toString()}, country ${country}, language ${language}`,
-                );
-            }
-        });
-
-        const literals = {
-            ...defaultLiterals,
-            ...priceLiterals,
-        };
-
-        const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
-
-        let displayPrice;
-
-        if (promotion && !isPromoApplied && priceWithoutDiscount) {
-            displayPrice = isAlternativePrice || displayPromoStrikethrough ? price : priceWithoutDiscount;
-        } else if (displayStrikethrough && priceWithoutDiscount) {
-            displayPrice = priceWithoutDiscount;
-        } else {
-            displayPrice = price;
-        }
-        // `!displayOptical`: optical divides `price` (discounted leaf), not
-        // `displayPrice`, so keep that leaf even under strikethrough.
-        const showWithoutDiscount = !displayOptical && displayPrice === priceWithoutDiscount;
-
-        let method = displayOptical ? formatOpticalPrice : formatRegularPrice;
-        if (displayAnnual) {
-            method = formatAnnualPrice;
-        }
-
-        // India regroups digits client-side (lakh/crore) on the numeric path.
-        // WCS already groups them ("1,11,744"), so this only guards the fallback.
-        const isIndianPrice = country === 'IN';
-
-        // WCS pre-split parts; undefined leaf → numeric fallback below.
-        const preformatted =
-            priceInfo && toBoolean(displayFormatted)
-                ? selectPreformattedPrice({
-                      priceInfo,
-                      showWithoutDiscount,
-                      displayAnnual,
-                      displayOptical,
-                      commitment,
-                      term,
-                      promotion,
-                  })
-                : undefined;
-        const { recurrenceTerm, ...formattedPrice } = method({
-            commitment,
-            formatString,
-            instant,
-            isIndianPrice,
-            originalPrice: price,
-            priceWithoutDiscount,
-            price: displayOptical ? price : displayPrice,
-            promotion,
-            quantity,
-            term,
-            usePrecision,
-            preformatted,
-            priceInfoFormat: priceInfo?.format,
-        });
-
-        let accessibleLabel = '',
-            altAccessibleLabel = '';
-
-        let recurrenceLabel = '';
-        if (toBoolean(displayRecurrence) && recurrenceTerm) {
-            recurrenceLabel = formatLiteral(
-                literals,
-                locale,
-                literalKeys.recurrenceLabel,
-                {
-                    recurrenceTerm,
-                },
-                logger,
-            );
-        }
-
-        let perUnitLabel = '';
-        if (toBoolean(displayPerUnit)) {
-            if (space) {
-                perUnitLabel += ' ';
-            }
-            perUnitLabel += formatLiteral(
-                literals,
-                locale,
-                literalKeys.perUnitLabel,
-                {
-                    perUnit: 'LICENSE',
-                },
-                logger,
-            );
-        }
-
-        let taxInclusivityLabel = '';
-        if (toBoolean(displayTax) && taxTerm) {
-            if (space) {
-                taxInclusivityLabel += ' ';
-            }
-            taxInclusivityLabel += formatLiteral(
-                literals,
-                locale,
-                taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys.taxExclusiveLabel : literalKeys.taxInclusiveLabel,
-                { taxTerm },
-                logger,
-            );
-        }
-
-        if (displayStrikethrough) {
-            accessibleLabel = formatLiteral(
-                literals,
-                locale,
-                literalKeys.strikethroughAriaLabel,
-                {
-                    strikethroughPrice: accessibleLabel,
-                },
-                logger,
-            );
-        }
-
-        if (isAlternativePrice) {
-            altAccessibleLabel = formatLiteral(
-                literals,
-                locale,
-                literalKeys.alternativePriceAriaLabel,
-                {
-                    alternativePrice: altAccessibleLabel,
-                },
-                logger,
-            );
-        }
-
-        let cssClass = cssClassNames.container;
-        if (displayOptical) {
-            cssClass += ` ${cssClassNames.containerOptical}`;
-        }
-        if (displayStrikethrough) {
-            cssClass += ` ${cssClassNames.containerStrikethrough}`;
-        }
-        if (displayPromoStrikethrough) {
-            cssClass += ` ${cssClassNames.containerPromoStrikethrough}`;
-        }
-        if (isAlternativePrice) {
-            cssClass += ` ${cssClassNames.containerAlternative}`;
-        }
-        if (displayAnnual) {
-            cssClass += ` ${cssClassNames.containerAnnual}`;
-        }
-
-        if (toBoolean(displayFormatted)) {
-            return renderContainer(
-                cssClass,
-                {
-                    ...formattedPrice,
-                    accessibleLabel,
-                    altAccessibleLabel,
-                    recurrenceLabel,
-                    perUnitLabel,
-                    taxInclusivityLabel,
-                },
-                attributes,
-            );
-        }
-        const { currencySymbol, decimals, decimalsDelimiter, hasCurrencySpace, integer, isCurrencyFirst } = formattedPrice;
-
-        const unformattedPrice = [integer, decimalsDelimiter, decimals];
-        if (isCurrencyFirst) {
-            // the following is a non-breaking space, don't change.
-            unformattedPrice.unshift(hasCurrencySpace ? ' ' : '');
-            unformattedPrice.unshift(currencySymbol);
-        } else {
-            // the following is a non-breaking space, don't change.
-            unformattedPrice.push(hasCurrencySpace ? ' ' : '');
-            unformattedPrice.push(currencySymbol);
-        }
-        unformattedPrice.push(recurrenceLabel, perUnitLabel, taxInclusivityLabel);
-        const content = unformattedPrice.join('');
-        return renderSpan(cssClass, content, attributes);
-    };
-
-/**
- * @type { import('./types').createPromoPriceTemplate }
- * Returns a function formatting product promo prices using provided options.
- * promo price can either be regular price if discounted price and regular price are the same (not applicable
- * or outdated promotion), or concatenation of new & old prices, old being stroke through.
- */
-const createPromoPriceTemplate = () => (context, value, attributes) => {
-    const isPromoApplied = isPromotionActive(
-        value.promotion,
-        value.promotion?.displaySummary?.instant,
-        Array.isArray(context.quantity) ? context.quantity[0] : context.quantity,
-    );
-    const displayOldPrice = context.displayOldPrice === undefined || toBoolean(context.displayOldPrice);
-    const shouldDisplayOldPrice =
-        displayOldPrice &&
-        value.priceWithoutDiscount &&
-        value.priceWithoutDiscount != value.price &&
-        (!value.promotion || isPromoApplied);
-    return `${
-        shouldDisplayOldPrice
-            ? `${createPriceTemplate({
-                  displayStrikethrough: true,
-              })(
-                  {
-                      isPromoApplied,
-                      ...context,
-                      displayPerUnit: false,
-                      displayTax: false,
-                  },
-                  value,
-                  attributes,
-              )}${context.wrapClauses ? ' ' : '&nbsp;'}`
-            : ''
-    }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}`;
-};
-
-const createPromoPriceWithAnnualTemplate = () => (context, value, attributes) => {
-    let { instant } = context;
-    if (instant) instant = new Date(instant);
-    const isPromoApplied = isPromotionActive(
-        value.promotion,
-        instant,
-        Array.isArray(context.quantity) ? context.quantity[0] : context.quantity,
-    );
-    const ctxStAnnual = {
-        ...context,
-        displayTax: false,
-        displayPerUnit: false,
-        isPromoApplied,
-    };
-    if (!isPromoApplied) {
-        return (
-            createPriceTemplate()(context, { ...value, price: value.priceWithoutDiscount }, attributes) +
-            renderSpan(cssClassNames.containerAnnualPrefix, ' (') +
-            createPriceTemplate({
-                displayAnnual: true,
-                instant,
-            })(ctxStAnnual, { ...value, price: value.priceWithoutDiscount }, attributes) +
-            renderSpan(cssClassNames.containerAnnualSuffix, ')')
+export function renderPrice(context, value, logger = console, flags = 0, instant) {
+    const {
+        country,
+        language,
+        displayFormatted = true,
+        displayRecurrence = true,
+        displayPerUnit,
+        displayTax,
+        literals = {},
+        quantity,
+        space,
+    } = context;
+    const {
+        commitment,
+        offerSelectorIds,
+        formatString,
+        price,
+        priceWithoutDiscount,
+        taxDisplay,
+        taxTerm,
+        term,
+        usePrecision,
+        promotion,
+        priceInfo,
+    } = value;
+    const missing =
+        country == null
+            ? 'country'
+            : formatString == null
+              ? 'formatString'
+              : language == null
+                ? 'language'
+                : price == null && 'price';
+    if (missing) {
+        throw new Error(
+            `Argument "${missing}" is missing for osi ${offerSelectorIds?.toString()}, country ${country}, language ${language}`,
         );
     }
-    const displayOldPrice = context.displayOldPrice === undefined || toBoolean(context.displayOldPrice);
-    const shouldDisplayOldPrice = displayOldPrice && value.priceWithoutDiscount && value.priceWithoutDiscount != value.price;
-    return `${
-        shouldDisplayOldPrice
-            ? `${createPriceTemplate({
-                  displayStrikethrough: true,
-              })(ctxStAnnual, value, attributes)}${context.wrapClauses ? ' ' : '&nbsp;'}`
-            : ''
-    }${createPriceTemplate({ isAlternativePrice: shouldDisplayOldPrice })({ isPromoApplied, ...context }, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
-        {
-            displayAnnual: true,
-            instant,
-        },
-    )(ctxStAnnual, value, attributes)}${renderSpan(cssClassNames.containerAnnualSuffix, ')')}`;
-};
+    const locale = toLocale(language, country);
+    const optical = flags & OPTICAL;
+    const annual = flags & ANNUAL;
+    const plain = flags & PLAIN;
+    const formatted = toBoolean(displayFormatted);
 
-const createPriceWithAnnualTemplate = () => (context, value, attributes) => {
-    const ctxAnnual = {
-        ...context,
-        displayTax: false,
-        displayPerUnit: false,
-    };
-    return `${createPriceTemplate({ isAlternativePrice: context.displayOldPrice })(context, value, attributes)}${renderSpan(cssClassNames.containerAnnualPrefix, ' (')}${createPriceTemplate(
-        {
-            displayAnnual: true,
-        },
-    )(ctxAnnual, value, attributes)}${renderSpan(cssClassNames.containerAnnualSuffix, ')')}`;
-};
+    let displayPrice = price;
+    if (promotion && !(flags & PROMO_APPLIED) && priceWithoutDiscount) {
+        if (!(flags & (ALTERNATIVE | PROMO_STRIKETHROUGH))) displayPrice = priceWithoutDiscount;
+    } else if (flags & STRIKETHROUGH && priceWithoutDiscount) displayPrice = priceWithoutDiscount;
 
-export { createPriceTemplate, createPromoPriceTemplate, createPriceWithAnnualTemplate, createPromoPriceWithAnnualTemplate };
+    // WCS pre-split leaf: priceInfo[timescale][discountState].withTax, always the
+    // tax-inclusive leaf as on the numeric path. Promo-weighted annual totals and
+    // the leaves WCS does not send fall back to numeric formatting.
+    let preformatted;
+    if (priceInfo && formatted && !(annual && promotion)) {
+        // `!optical`: optical divides the discounted `price`, even under strikethrough.
+        const discountState = !optical && displayPrice === priceWithoutDiscount ? 'withoutDiscount' : 'withDiscount';
+        const timescale =
+            annual && commitment === Commitment.YEAR && term === Term.MONTHLY ? 'annualized' : optical ? 'optical' : 'asIs';
+        preformatted = priceInfo[timescale]?.[discountState]?.withTax;
+    }
+    const format = annual ? formatAnnualPrice : optical ? formatOpticalPrice : formatRegularPrice;
+    const { currencySymbol, decimals, decimalsDelimiter, hasCurrencySpace, integer, isCurrencyFirst, recurrenceTerm } = format({
+        commitment,
+        formatString,
+        instant,
+        // India regroups digits client-side (lakh/crore) on the numeric path.
+        isIndianPrice: country === 'IN',
+        originalPrice: price,
+        priceWithoutDiscount,
+        price: optical ? price : displayPrice,
+        promotion,
+        quantity,
+        term,
+        usePrecision,
+        preformatted,
+        priceInfoFormat: priceInfo?.format,
+    });
+
+    const label = (key, parameters) => formatLiteral(literals, locale, key, parameters, logger);
+    const separator = space ? ' ' : '';
+    const recurrenceLabel = toBoolean(displayRecurrence) && recurrenceTerm ? label('recurrenceLabel', { recurrenceTerm }) : '';
+    const perUnitLabel = !plain && toBoolean(displayPerUnit) ? separator + label('perUnitLabel', { perUnit: 'LICENSE' }) : '';
+    const taxLabel = !plain && toBoolean(displayTax) && taxTerm ? separator + label(taxLabelKey(taxDisplay), { taxTerm }) : '';
+    const strikethroughLabel = flags & STRIKETHROUGH ? label('strikethroughAriaLabel', { strikethroughPrice: '' }) : '';
+    const alternativeLabel = flags & ALTERNATIVE ? label('alternativePriceAriaLabel', { alternativePrice: '' }) : '';
+
+    const cssClass = CONTAINER_CLASSES.reduce((css, name, bit) => (flags & (1 << bit) ? `${css} price-${name}` : css), 'price');
+
+    if (!formatted) {
+        const nbsp = hasCurrencySpace ? '\u00a0' : '';
+        const amount = isCurrencyFirst
+            ? [currencySymbol, nbsp, integer, decimalsDelimiter, decimals]
+            : [integer, decimalsDelimiter, decimals, nbsp, currencySymbol];
+        return renderSpan(cssClass, amount.join('') + recurrenceLabel + perUnitLabel + taxLabel);
+    }
+    const symbol = renderSpan('price-currency-symbol', currencySymbol);
+    const gap = renderSpan('price-currency-space', hasCurrencySpace ? '&nbsp;' : '');
+    const amount =
+        renderSpan('price-integer', integer) +
+        renderSpan('price-decimals-delimiter', decimalsDelimiter) +
+        renderSpan('price-decimals', decimals);
+    let markup = '';
+    if (strikethroughLabel) markup = `<sr-only class="strikethrough-aria-label">${strikethroughLabel}</sr-only>`;
+    else if (alternativeLabel) markup = `<sr-only class="alt-aria-label">${alternativeLabel}</sr-only>`;
+    return renderSpan(
+        cssClass,
+        markup +
+            (isCurrencyFirst ? symbol + gap + amount : amount + gap + symbol) +
+            renderSpan('price-recurrence', makeSpacesAroundNonBreaking(recurrenceLabel)) +
+            renderSpan('price-unit-type', makeSpacesAroundNonBreaking(perUnitLabel)) +
+            renderSpan('price-tax-inclusivity', taxLabel),
+    );
+}
+
+const firstQuantity = ({ quantity }) => (Array.isArray(quantity) ? quantity[0] : quantity);
+const showsOldPrice = ({ displayOldPrice }) => displayOldPrice === undefined || toBoolean(displayOldPrice);
+const clauseSeparator = ({ wrapClauses }) => (wrapClauses ? ' ' : '&nbsp;');
+
+/**
+ * Regular price, or the struck-through old price followed by the new one when
+ * the promotion (or a plain discount) applies.
+ */
+export function renderPromoPrice(context, value, logger = console) {
+    const { promotion, price, priceWithoutDiscount } = value;
+    const applied = isPromotionActive(promotion, promotion?.displaySummary?.instant, firstQuantity(context))
+        ? PROMO_APPLIED
+        : 0;
+    const showOldPrice =
+        showsOldPrice(context) && priceWithoutDiscount && priceWithoutDiscount != price && (!promotion || applied);
+    return (
+        (showOldPrice ? renderPrice(context, value, logger, STRIKETHROUGH | PLAIN | applied) + clauseSeparator(context) : '') +
+        renderPrice(context, value, logger, (showOldPrice ? ALTERNATIVE : 0) | applied)
+    );
+}
+
+/** Monthly price followed by its annual total, for ABM offers. */
+export const renderPriceWithAnnual = (context, value, logger = console) =>
+    renderPrice(context, value, logger, context.displayOldPrice ? ALTERNATIVE : 0) +
+    ANNUAL_PREFIX +
+    renderPrice(context, value, logger, ANNUAL | PLAIN) +
+    ANNUAL_SUFFIX;
+
+/** Promotional monthly price followed by its promo-weighted annual total, for ABM offers. */
+export function renderPromoPriceWithAnnual(context, value, logger = console) {
+    const instant = context.instant ? new Date(context.instant) : context.instant;
+    const { promotion, price, priceWithoutDiscount } = value;
+    if (!isPromotionActive(promotion, instant, firstQuantity(context))) {
+        const regular = { ...value, price: priceWithoutDiscount };
+        return (
+            renderPrice(context, regular, logger) +
+            ANNUAL_PREFIX +
+            renderPrice(context, regular, logger, ANNUAL | PLAIN, instant) +
+            ANNUAL_SUFFIX
+        );
+    }
+    const showOldPrice = showsOldPrice(context) && priceWithoutDiscount && priceWithoutDiscount != price;
+    return (
+        (showOldPrice
+            ? renderPrice(context, value, logger, STRIKETHROUGH | PLAIN | PROMO_APPLIED) + clauseSeparator(context)
+            : '') +
+        renderPrice(context, value, logger, (showOldPrice ? ALTERNATIVE : 0) | PROMO_APPLIED) +
+        ANNUAL_PREFIX +
+        renderPrice(context, value, logger, ANNUAL | PLAIN | PROMO_APPLIED, instant) +
+        ANNUAL_SUFFIX
+    );
+}

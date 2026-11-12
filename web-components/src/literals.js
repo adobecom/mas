@@ -1,38 +1,28 @@
 import { Defaults } from './defaults.js';
-import { equalsCaseInsensitive } from '@dexter/tacocat-core';
+import { equalsCaseInsensitive } from './utilities.js';
 
 const priceLiterals = window.masPriceLiterals;
 
+// Locales whose literals are not those of their language.
+const LITERALS_LANGUAGE = new Map([
+    ['id_ID', 'in'],
+    ['zh_TW', 'zh-hant'],
+    ['zh_HK', 'zh-hant'],
+]);
+
 /**
- * Method resolves price literals for the given language from the group of price literals.
- * That group is either imported from json file or it is received as a parameter (in case of unit tests).
- *
- * @param settings
- * @param priceLiterals
+ * Returns the price literals of the settings locale or language,
+ * falling back to the default language, from `window.masPriceLiterals`.
+ * @param {{ locale?: string, language: string }} settings
  */
-export function getPriceLiterals(settings) {
-    //we are expecting an array of objects with lang and literals
-    if (Array.isArray(priceLiterals)) {
-        let lang;
-        switch (settings.locale) {
-            case 'id_ID':
-                lang = 'in';
-                break;
-            case 'zh_TW':
-                lang = 'zh-hant';
-                break;
-            case 'zh_HK':
-                lang = 'zh-hant';
-                break;
-            default:
-                lang = settings.language;
-        }
-        const find = (language) =>
-            priceLiterals.find((candidate) =>
-                equalsCaseInsensitive(candidate.lang, language),
-            );
-        const literals = find(lang) ?? find(Defaults.language);
-        if (literals) return Object.freeze(literals);
-    }
-    return {};
+export function getPriceLiterals({ locale, language }) {
+    if (!Array.isArray(priceLiterals)) return {};
+    const find = (lang) =>
+        priceLiterals.find((candidate) =>
+            equalsCaseInsensitive(candidate.lang, lang),
+        );
+    const literals =
+        find(LITERALS_LANGUAGE.get(locale) ?? language) ??
+        find(Defaults.language);
+    return literals ? Object.freeze(literals) : {};
 }

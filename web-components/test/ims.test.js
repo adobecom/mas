@@ -1,4 +1,4 @@
-import { imsCountry, imsReady, imsSignedIn } from '../src/ims.js';
+import { Ims, imsCountry, imsReady, imsSignedIn } from '../src/ims.js';
 
 import { mockIms, unmockIms } from './mocks/ims.js';
 import { expect, sinon } from './utilities.js';
@@ -70,6 +70,29 @@ describe('IMS module', () => {
             clock.restore();
 
             expect(await promise).to.be.undefined;
+        });
+    });
+
+    describe('Ims', () => {
+        it('waits for adobeIMS only once a promise is read', async () => {
+            let reads = 0;
+            Object.defineProperty(window, 'adobeIMS', {
+                configurable: true,
+                get: () => {
+                    reads++;
+                    return { initialized: true, isSignedInUser: () => true };
+                },
+            });
+            try {
+                const ims = Ims();
+                expect(reads).to.equal(0);
+                const signedIn = ims.imsSignedInPromise;
+                expect(reads).to.be.above(0);
+                expect(ims.imsSignedInPromise).to.equal(signedIn);
+                expect(await signedIn).to.be.true;
+            } finally {
+                delete window.adobeIMS;
+            }
         });
     });
 });

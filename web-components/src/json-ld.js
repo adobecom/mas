@@ -1,25 +1,13 @@
-function stripHtml(html) {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || '';
-}
-
-function getPageUrl(pageUrl) {
-    return pageUrl.split('?')[0];
-}
-
-function getBillingDuration(commitment, term) {
-    if (term === 'ANNUAL') return 'P1Y';
-    if (commitment === 'PERPETUAL') return 'P1Y';
-    return 'P1M';
-}
+const stripHtml = (html) =>
+    new DOMParser().parseFromString(html, 'text/html').body.textContent;
 
 function buildImage(mnemonicIcon) {
-    if (!Array.isArray(mnemonicIcon) || mnemonicIcon.length === 0)
-        return undefined;
+    if (!Array.isArray(mnemonicIcon) || !mnemonicIcon.length) return undefined;
     // Schema.org image should be raster; Adobe CDN converts SVG icons via these params
-    const suffix = '?format=png&width=800&height=800';
-    if (mnemonicIcon.length === 1) return `${mnemonicIcon[0]}${suffix}`;
-    return mnemonicIcon.map((icon) => `${icon}${suffix}`);
+    const images = mnemonicIcon.map(
+        (icon) => `${icon}?format=png&width=800&height=800`,
+    );
+    return images.length === 1 ? images[0] : images;
 }
 
 function getCurrencyCode(offer) {
@@ -41,29 +29,25 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
         return null;
     }
 
-    const { price } = offer?.priceDetails ?? {};
+    const { price, priceWithoutDiscount } = offer.priceDetails ?? {};
     if (price == null) return null;
 
-    const url = getPageUrl(pageUrl);
-
+    const url = pageUrl.split('?')[0];
     const dedupId = `json-ld-product-${url}`;
     // One JSON-LD product block per page URL by design — DA authors use a single signal link per page
     if (document.head.querySelector(`script[data-id="${dedupId}"]`))
         return null;
 
     let effectivePrice = price;
-    const regularPrice =
-        offer?.priceDetails?.priceWithoutDiscount ??
-        regularOffer?.priceDetails?.price;
-    let effectiveRegularPrice = regularPrice;
-
+    let regularPrice =
+        priceWithoutDiscount ?? regularOffer?.priceDetails?.price;
+    // Two base offers: the lower price is the offer, the higher the regular one.
     if (
-        effectiveRegularPrice != null &&
-        offer?.priceDetails?.priceWithoutDiscount == null &&
-        effectiveRegularPrice < effectivePrice
+        priceWithoutDiscount == null &&
+        regularPrice != null &&
+        regularPrice < price
     ) {
-        effectiveRegularPrice = effectivePrice;
-        effectivePrice = regularOffer.priceDetails.price;
+        [effectivePrice, regularPrice] = [regularPrice, price];
     }
 
     const priceStr = String(effectivePrice);
@@ -72,53 +56,51 @@ export function injectJsonLd(fields, offer, regularOffer, pageUrl) {
         '@type': 'UnitPriceSpecification',
         price: priceStr,
         priceCurrency: currency,
-        billingDuration: getBillingDuration(offer.commitment, offer.term),
+        billingDuration:
+            offer.term === 'ANNUAL' || offer.commitment === 'PERPETUAL'
+                ? 'P1Y'
+                : 'P1M',
         billingIncrement: 1,
     };
 
-    if (
-        effectiveRegularPrice != null &&
-        effectiveRegularPrice !== effectivePrice
-    ) {
-        priceSpecification.priceWithoutDiscount = String(effectiveRegularPrice);
+    if (regularPrice != null && regularPrice !== effectivePrice) {
+        priceSpecification.priceWithoutDiscount = String(regularPrice);
     }
-
-    const schemaOffer = {
-        '@type': 'Offer',
-        '@id': `${url}#offer`,
-        url,
-        priceCurrency: currency,
-        price: priceStr,
-        availability: 'https://schema.org/InStock',
-        category: 'Subscription',
-        seller: { '@id': 'https://www.adobe.com/#org' },
-        itemOffered: { '@id': `${url}#product` },
-        priceSpecification,
-    };
-
-    const image = buildImage(fields.mnemonicIcon);
-    const description = fields.description?.value
-        ? stripHtml(fields.description.value)
-        : undefined;
 
     const jsonLd = {
         '@context': 'https://schema.org/',
         '@type': 'Product',
         '@id': `${url}#product`,
-        name: fields.cardTitle?.value
+        name: fields.cardTitle.value
             ? stripHtml(fields.cardTitle.value)
             : fields.cardTitle,
         brand: { '@type': 'Brand', name: 'Adobe' },
-        offers: [schemaOffer],
+        offers: [
+            {
+                '@type': 'Offer',
+                '@id': `${url}#offer`,
+                url,
+                priceCurrency: currency,
+                price: priceStr,
+                availability: 'https://schema.org/InStock',
+                category: 'Subscription',
+                seller: { '@id': 'https://www.adobe.com/#org' },
+                itemOffered: { '@id': `${url}#product` },
+                priceSpecification,
+            },
+        ],
     };
 
+    const description =
+        fields.description?.value && stripHtml(fields.description.value);
     if (description) jsonLd.description = description;
+    const image = buildImage(fields.mnemonicIcon);
     if (image) jsonLd.image = image;
 
     const script = document.createElement('script');
     script.type = 'application/ld+json';
     script.dataset.id = dedupId;
     script.textContent = JSON.stringify(jsonLd);
-    document.head.appendChild(script);
+    document.head.append(script);
     return script;
 }

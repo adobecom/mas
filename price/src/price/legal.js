@@ -1,127 +1,45 @@
 import { toBoolean } from '../helpers.js';
+import { formatLiteral, makeSpacesAroundNonBreaking, renderSpan, taxLabelKey, toLocale } from './template.js';
 
-import {
-    cssClassNames as templateCssClassNames,
-    defaultLiterals,
-    formatLiteral,
-    WCS_TAX_DISPLAY_EXCLUSIVE,
-    literalKeys as templateLiteralKeys,
-    renderSpan,
-} from './template.js';
-
-const cssClassNames = {
-    ...templateCssClassNames,
-    containerLegal: 'price-legal',
-    planType: 'price-plan-type',
-};
-
-const literalKeys = {
-    ...templateLiteralKeys,
-    planTypeLabel: 'planTypeLabel',
-};
-
-function renderContainer(cssClass, { perUnitLabel, taxInclusivityLabel, planTypeLabel }, attributes = {}, displayDot = true) {
-    let markup = '';
-    markup += renderSpan(cssClassNames.unitType, perUnitLabel, null, true);
-
-    if (taxInclusivityLabel && planTypeLabel && displayDot) {
-        taxInclusivityLabel += taxInclusivityLabel.endsWith('.') ? ' ' : '. ';
-    }
-    markup += renderSpan(cssClassNames.taxInclusivity, taxInclusivityLabel, true);
-    markup += renderSpan(cssClassNames.planType, planTypeLabel, null);
-
-    return renderSpan(cssClass, markup, {
-        ...attributes,
-    });
-}
-
-const legalTemplate = (
-    {
+/** Renders the per-unit, tax and plan type labels shown below a price. */
+export function legalTemplate(context, { taxDisplay, taxTerm, planType }, logger = console) {
+    const {
         country,
-        displayPerUnit = false,
-        displayTax = false,
-        displayPlanType = false,
+        language,
+        displayPerUnit,
+        displayTax,
+        displayPlanType,
         customPlanTypeLabel,
         displayDot = true,
         planTypeCase,
-        language,
-        literals: priceLiterals = {},
-        logger = console,
-    } = {},
-    { taxDisplay, taxTerm, planType } = {},
-    attributes = {},
-) => {
-    const literals = {
-        ...defaultLiterals,
-        ...priceLiterals,
-    };
-
-    const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
-
-    let perUnitLabel = '';
-    if (toBoolean(displayPerUnit)) {
-        perUnitLabel = formatLiteral(
-            literals,
-            locale,
-            literalKeys.perUnitLabel,
-            {
-                perUnit: 'LICENSE',
-            },
-            logger,
-        );
+        literals = {},
+    } = context;
+    const locale = toLocale(language, country);
+    const label = (key, parameters) => formatLiteral(literals, locale, key, parameters, logger);
+    const perUnitLabel = toBoolean(displayPerUnit) ? label('perUnitLabel', { perUnit: 'LICENSE' }) : '';
+    let taxLabel = '';
+    // US English prices never show the tax label.
+    if (!(country === 'US' && language === 'en') && toBoolean(displayTax) && taxTerm) {
+        taxLabel = label(taxLabelKey(taxDisplay), { taxTerm });
     }
-
-    let taxInclusivityLabel = '';
-    if (country === 'US' && language === 'en') {
-        displayTax = false;
-    }
-    if (toBoolean(displayTax) && taxTerm) {
-        taxInclusivityLabel = formatLiteral(
-            literals,
-            locale,
-            taxDisplay === WCS_TAX_DISPLAY_EXCLUSIVE ? literalKeys.taxExclusiveLabel : literalKeys.taxInclusiveLabel,
-            { taxTerm },
-            logger,
-        );
-    }
-
     let planTypeLabel = '';
     if (toBoolean(displayPlanType)) {
-        if (customPlanTypeLabel) {
-            // Authored rich text (e.g. a card's Short Description) replaces the
-            // derived wording for any plan type and is rendered as is.
-            planTypeLabel = customPlanTypeLabel;
-        } else if (planType) {
-            planTypeLabel = formatLiteral(
-                literals,
-                locale,
-                literalKeys.planTypeLabel,
-                {
-                    planType,
-                },
-                logger,
-            );
+        // Authored rich text (e.g. a card's Short Description) replaces the
+        // derived wording for any plan type and is rendered as is.
+        if (customPlanTypeLabel) planTypeLabel = customPlanTypeLabel;
+        else if (planType) {
+            planTypeLabel = label('planTypeLabel', { planType });
             if (planTypeLabel && planTypeCase) {
-                planTypeLabel =
-                    (planTypeCase === 'lower' ? planTypeLabel[0].toLowerCase() : planTypeLabel[0].toUpperCase()) +
-                    planTypeLabel.slice(1);
+                const first = planTypeLabel[0];
+                planTypeLabel = (planTypeCase === 'lower' ? first.toLowerCase() : first.toUpperCase()) + planTypeLabel.slice(1);
             }
         }
     }
-
-    let cssClass = cssClassNames.container;
-    cssClass += ` ${cssClassNames.containerLegal}`;
-
-    return renderContainer(
-        cssClass,
-        {
-            perUnitLabel,
-            taxInclusivityLabel,
-            planTypeLabel,
-        },
-        attributes,
-        displayDot,
+    if (taxLabel && planTypeLabel && displayDot) taxLabel += taxLabel.endsWith('.') ? ' ' : '. ';
+    return renderSpan(
+        'price price-legal',
+        renderSpan('price-unit-type', makeSpacesAroundNonBreaking(perUnitLabel)) +
+            renderSpan('price-tax-inclusivity', taxLabel) +
+            renderSpan('price-plan-type', planTypeLabel),
     );
-};
-
-export { legalTemplate };
+}

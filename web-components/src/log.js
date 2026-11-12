@@ -1,18 +1,8 @@
 import { LOG_NAMESPACE } from './constants.js';
-import {
-    getParameter,
-    isFunction,
-    toBoolean,
-} from '@dexter/tacocat-core/src/utilities.js';
-import { lanaAppender, updateConfig } from './lana.js';
+import { lanaAppender } from './lana.js';
+import { getParameter, toBoolean } from './utilities.js';
 
-const HostEnv = {
-    LOCAL: 'local',
-    PROD: 'prod',
-    STAGE: 'stage',
-};
-
-const LogLevels = {
+const Level = {
     DEBUG: 'debug',
     ERROR: 'error',
     INFO: 'info',
@@ -34,73 +24,62 @@ const consoleAppender = {
     },
 };
 
-const debugFilter = { filter: ({ level }) => level !== LogLevels.DEBUG };
+const debugFilter = { filter: ({ level }) => level !== Level.DEBUG };
 const quietFilter = { filter: () => false };
-
-function createEntry(level, message, namespace, params, source) {
-    return {
-        level,
-        message,
-        namespace,
-        get params() {
-            if (params.length === 1 && isFunction(params[0])) {
-                params = params[0]();
-                if (!Array.isArray(params)) params = [params];
-            }
-            return params;
-        },
-        source,
-        timestamp: performance.now().toFixed(3),
-    };
-}
-
-function handleEntry(entry) {
-    if ([...filters].every((filter) => filter(entry))) {
-        appenders.forEach((appender) => appender(entry));
-    }
-}
 
 export function createLog(namespace) {
     const index = (loggerIndexes.get(namespace) ?? 0) + 1;
     loggerIndexes.set(namespace, index);
-    const id = `${namespace} #${index}`;
-
-    const log = {
-        id,
+    const source = `${namespace} #${index}`;
+    const method =
+        (level) =>
+        (message, ...params) => {
+            if (
+                !appenders.size ||
+                (level === Level.DEBUG && filters.has(debugFilter.filter))
+            ) {
+                return;
+            }
+            const timestamp = performance.now().toFixed(3);
+            const entry = {
+                level,
+                message,
+                namespace,
+                params,
+                source,
+                timestamp,
+            };
+            for (const filter of filters) if (!filter(entry)) return;
+            for (const append of appenders) append(entry);
+        };
+    return {
+        id: source,
         namespace,
-        module: (name) => createLog(`${log.namespace}/${name}`),
-        updateConfig,
+        module: (name) => createLog(`${namespace}/${name}`),
+        debug: method(Level.DEBUG),
+        error: method(Level.ERROR),
+        info: method(Level.INFO),
+        warn: method(Level.WARN),
     };
-
-    // Create logging methods for each level
-    Object.values(LogLevels).forEach((level) => {
-        log[level] = (message, ...params) =>
-            handleEntry(createEntry(level, message, namespace, params, id));
-    });
-
-    return Object.seal(log);
 }
 
-// Plugin system for adding appenders and filters
+/** Adds plugins: objects with an `append(entry)` and/or a `filter(entry)` method. */
 function use(...plugins) {
-    plugins.forEach((plugin) => {
-        const { append, filter } = plugin;
-        if (isFunction(filter)) filters.add(filter);
-        if (isFunction(append)) appenders.add(append);
-    });
+    for (const { append, filter } of plugins) {
+        if (append) appenders.add(append);
+        if (filter) filters.add(filter);
+    }
 }
 
-function init(env = {}) {
-    const { name } = env;
-    const debug = toBoolean(
-        getParameter('commerce.debug', { search: true, storage: true }),
-        name === HostEnv.LOCAL,
-    );
-
-    if (debug) use(consoleAppender);
-    else use(debugFilter);
-    if (name === HostEnv.PROD) use(lanaAppender);
-
+/**
+ * Debug entries are logged to the console with `?commerce.debug=true` (also
+ * read from storage and metadata) or on a local host env, and dropped otherwise.
+ * Errors go to Lana on a prod host env.
+ */
+function init({ name } = {}) {
+    const debug = toBoolean(getParameter('commerce.debug'), name === 'local');
+    use(debug ? consoleAppender : debugFilter);
+    if (name === 'prod') use(lanaAppender);
     return Log;
 }
 
@@ -111,7 +90,7 @@ function reset() {
 
 export const Log = {
     ...createLog(LOG_NAMESPACE),
-    Level: LogLevels,
+    Level,
     Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
     init,
     reset,

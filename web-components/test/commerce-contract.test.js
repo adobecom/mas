@@ -108,6 +108,26 @@ describe('commerce.js public contract', () => {
             );
         });
 
+        it('keeps the Log plugin API used by Milo tests', () => {
+            const { Log } = commerce;
+            const entries = [];
+            const log = Log.module('contract');
+            Log.reset();
+            Log.use({ append: (entry) => entries.push(entry) });
+            log.debug('debug after reset');
+            log.info('info');
+            expect(entries.map(({ message }) => message)).to.deep.equal([
+                'debug after reset',
+                'info',
+            ]);
+            Log.use(Log.Plugins.debugFilter);
+            log.debug('dropped');
+            Log.use(Log.Plugins.quietFilter);
+            log.error('dropped');
+            expect(entries).to.have.length(2);
+            Log.reset();
+        });
+
         it('injects JSON-LD through the lazy satellite', async () => {
             const script = await commerce.injectJsonLd(
                 { cardTitle: 'Photoshop', description: 'Edit photos' },

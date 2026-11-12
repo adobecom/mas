@@ -10,8 +10,8 @@ const Level = {
 };
 
 const appenders = new Set();
+const filters = new Set();
 const loggerIndexes = new Map();
-let debugEnabled = false;
 
 // Basic console logging for development
 const consoleAppender = {
@@ -24,6 +24,9 @@ const consoleAppender = {
     },
 };
 
+const debugFilter = { filter: ({ level }) => level !== Level.DEBUG };
+const quietFilter = { filter: () => false };
+
 export function createLog(namespace) {
     const index = (loggerIndexes.get(namespace) ?? 0) + 1;
     loggerIndexes.set(namespace, index);
@@ -31,7 +34,10 @@ export function createLog(namespace) {
     const method =
         (level) =>
         (message, ...params) => {
-            if (!appenders.size || (level === Level.DEBUG && !debugEnabled)) {
+            if (
+                !appenders.size ||
+                (level === Level.DEBUG && filters.has(debugFilter.filter))
+            ) {
                 return;
             }
             const timestamp = performance.now().toFixed(3);
@@ -43,6 +49,7 @@ export function createLog(namespace) {
                 source,
                 timestamp,
             };
+            for (const filter of filters) if (!filter(entry)) return;
             for (const append of appenders) append(entry);
         };
     return {
@@ -56,9 +63,12 @@ export function createLog(namespace) {
     };
 }
 
-/** Adds appenders: objects with an `append(entry)` method. */
+/** Adds plugins: objects with an `append(entry)` and/or a `filter(entry)` method. */
 function use(...plugins) {
-    for (const { append } of plugins) appenders.add(append);
+    for (const { append, filter } of plugins) {
+        if (append) appenders.add(append);
+        if (filter) filters.add(filter);
+    }
 }
 
 /**
@@ -67,21 +77,21 @@ function use(...plugins) {
  * Errors go to Lana on a prod host env.
  */
 function init({ name } = {}) {
-    debugEnabled = toBoolean(getParameter('commerce.debug'), name === 'local');
-    if (debugEnabled) use(consoleAppender);
+    const debug = toBoolean(getParameter('commerce.debug'), name === 'local');
+    use(debug ? consoleAppender : debugFilter);
     if (name === 'prod') use(lanaAppender);
     return Log;
 }
 
 function reset() {
     appenders.clear();
-    debugEnabled = false;
+    filters.clear();
 }
 
 export const Log = {
     ...createLog(LOG_NAMESPACE),
     Level,
-    Plugins: { consoleAppender, lanaAppender },
+    Plugins: { consoleAppender, debugFilter, quietFilter, lanaAppender },
     init,
     reset,
     use,

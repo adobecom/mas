@@ -165,7 +165,7 @@ describe('promotions-repository', () => {
             markPromotionsListFetched(scope);
             const persisted = JSON.parse(localStorage.getItem(storageKey));
             expect(persisted.fragments.map(({ id }) => id)).to.deep.equal(['p1']);
-            expect(persisted.fragments[0]).to.not.have.property('initialValue');
+            expect(persisted.fragments[0]).to.not.have.any.keys('initialValue', 'fieldTags');
 
             Store.promotions.list.data.set([]);
             Store.promotions.list.data.removeMeta('listFetched');

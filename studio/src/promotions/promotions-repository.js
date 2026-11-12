@@ -34,7 +34,7 @@ export function persistPromotionsList(scope) {
     const list = Store.promotions.list.data;
     if (!list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
     const fragments = list.get().map((store) => {
-        const { initialValue, hasChanges, newTags, references, ...data } = store.get();
+        const { initialValue, hasChanges, newTags, references, fieldTags, ...data } = store.get();
         return data;
     });
     const entry = JSON.stringify({ at: list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META), fragments });

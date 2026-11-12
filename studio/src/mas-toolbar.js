@@ -195,7 +195,7 @@ class MasToolbar extends LitElement {
     }
 
     handleRenderModeChange(ev) {
-        localStorage.setItem('mas-render-mode', ev.target.value);
+        sessionStorage.setItem('mas-render-mode', ev.target.value);
         Store.renderMode.set(ev.target.value);
     }
 

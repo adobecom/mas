@@ -14,24 +14,15 @@ import {
 } from '../promotions/countdown-preview.js';
 import { getService } from '../utils.js';
 import { createTtlCache } from '../utils/ttl-cache.js';
+import { getPromotionProjectsForProbe } from '../promotions/promotions-repository.js';
 
 const COUNTDOWN_CACHE_TTL = 30000;
-const cachedCountdownProjects = createTtlCache(COUNTDOWN_CACHE_TTL);
 
-/**
- * Reads the promotion projects without side effects: the loaded list when available, otherwise
- * a (briefly cached) search. Never repository.loadPromotions(): it unpublishes expired projects.
- */
+/** Reads the promotion projects through the shared promotions list. */
 async function readCountdownProjects() {
-    const list = Store.promotions.list.data;
-    if (list.get()?.length || list.hasMeta('listFetched'))
-        return (list.get() ?? []).map((store) => toCountdownProject(store.get()));
     const repository = document.querySelector('mas-repository');
-    return cachedCountdownProjects(repository, () =>
-        repository
-            .searchFragmentList({ path: repository.getPromotionsPath(), sort: [{ on: 'created', order: 'DESC' }] }, 50)
-            .then((fragments) => fragments.map(toCountdownProject)),
-    );
+    const projects = await getPromotionProjectsForProbe(() => repository.loadPromotions({ rethrow: true }));
+    return projects.map(toCountdownProject);
 }
 
 export const INHERITED_SETTINGS_FIELDS = new Set(['addon', 'showPlanType', 'showSecureLabel', 'quantitySelect']);

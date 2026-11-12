@@ -1,6 +1,8 @@
 import { expect } from '@esm-bundle/chai';
 import sinon from 'sinon';
 import Store from '../../src/store.js';
+import { Promotion } from '../../src/aem/promotion.js';
+import { FragmentStore } from '../../src/reactivity/fragment-store.js';
 import {
     assertPromoVariationGeoTagsValid,
     buildPromoVariationParentRefreshCallback,
@@ -10,9 +12,14 @@ import {
     getPromotionProjectsForProbe,
     getPublishedAttachedPromoVariations,
     getUnpublishedAttachedPromoVariations,
+    hydratePromotionsList,
+    markPromotionsListFetched,
     mergePromoReferencesIntoFragmentData,
     probePromoVariationsForFragment,
+    PROMOTIONS_LIST_MAX_AGE,
+    removePromotionFromList,
     resolveDefaultFragmentForPromoVariation,
+    upsertPromotionInList,
 } from '../../src/promotions/promotions-repository.js';
 import { makeSearchStub as makeSharedSearchStub } from '../helpers/aem-tag-fetch.js';
 
@@ -114,6 +121,84 @@ describe('promotions-repository', () => {
 
             expect(loadPromotions.called).to.be.false;
             expect(projects).to.deep.equal([]);
+        });
+
+        it('serves a stale list right away and revalidates it in the background', async () => {
+            const project = { id: 'promo-1', tags: [{ id: 'mas:promotion/black-friday' }] };
+            Store.promotions.list.data.set([{ get: () => project }]);
+            Store.promotions.list.data.setMeta('listFetched', true);
+            Store.promotions.list.data.setMeta('fetchedAt', Date.now() - PROMOTIONS_LIST_MAX_AGE - 1);
+            let finishLoad;
+            const loadPromotions = sandbox.stub().returns(
+                new Promise((resolve) => {
+                    finishLoad = resolve;
+                }),
+            );
+
+            expect(await getPromotionProjectsForProbe(loadPromotions)).to.deep.equal([project]);
+            expect(await getPromotionProjectsForProbe(loadPromotions)).to.deep.equal([project]);
+            expect(loadPromotions.calledOnce).to.be.true;
+            finishLoad();
+            await loadPromotions.firstCall.returnValue;
+            Store.promotions.list.data.removeMeta('fetchedAt');
+        });
+    });
+
+    describe('persisted promotions list', () => {
+        const scope = 'https://test-scope.example.com';
+        const storageKey = `mas-promotions-list:${scope}`;
+        const project = (id, title = id) => ({
+            id,
+            path: `/content/dam/mas/promotions/${id}`,
+            title,
+            fields: [{ name: 'fragments', values: ['/content/dam/mas/acom/en_US/card'] }],
+            tags: [],
+        });
+
+        afterEach(() => {
+            localStorage.removeItem(storageKey);
+            Store.promotions.list.data.removeMeta('fetchedAt');
+        });
+
+        it('persists a fetched list and seeds the next load with it', async () => {
+            Store.promotions.list.data.set([new FragmentStore(new Promotion(project('p1')))]);
+            markPromotionsListFetched(scope);
+            const persisted = JSON.parse(localStorage.getItem(storageKey));
+            expect(persisted.fragments.map(({ id }) => id)).to.deep.equal(['p1']);
+            expect(persisted.fragments[0]).to.not.have.property('initialValue');
+
+            Store.promotions.list.data.set([]);
+            Store.promotions.list.data.removeMeta('listFetched');
+            hydratePromotionsList(scope);
+
+            const loadPromotions = sandbox.stub().resolves();
+            const projects = await getPromotionProjectsForProbe(loadPromotions);
+            expect(projects.map(({ id }) => id)).to.deep.equal(['p1']);
+            expect(projects[0].getFieldValues('fragments')).to.deep.equal(['/content/dam/mas/acom/en_US/card']);
+            expect(loadPromotions.called).to.be.false;
+            expect(Store.promotions.list.loading.get()).to.be.false;
+        });
+
+        it('ignores a corrupted persisted list', () => {
+            localStorage.setItem(storageKey, '{not json');
+            hydratePromotionsList(scope);
+            expect(Store.promotions.list.data.hasMeta('listFetched')).to.be.false;
+        });
+
+        it('writes created, saved and deleted projects through to the list and its persisted copy', () => {
+            Store.promotions.list.data.set([new FragmentStore(new Promotion(project('p1')))]);
+            markPromotionsListFetched(scope);
+
+            upsertPromotionInList(project('p1', 'renamed'), scope);
+            upsertPromotionInList(project('p2'), scope);
+            expect(Store.promotions.list.data.get().map((store) => [store.get().id, store.get().title])).to.deep.equal([
+                ['p2', 'p2'],
+                ['p1', 'renamed'],
+            ]);
+
+            removePromotionFromList('p1', scope);
+            const persisted = JSON.parse(localStorage.getItem(storageKey));
+            expect(persisted.fragments.map(({ id }) => id)).to.deep.equal(['p2']);
         });
     });
 

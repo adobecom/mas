@@ -308,7 +308,11 @@ describe('PreviewFragmentStore', () => {
             repository = {
                 getPromotionsPath: () => '/content/dam/mas/promotions',
                 searchFragmentList: sandbox.stub().resolves([rawProject()]),
-                loadPromotions: sandbox.stub().resolves(),
+                loadPromotions: sandbox.stub().callsFake(async () => {
+                    const fragments = await repository.searchFragmentList({ path: repository.getPromotionsPath() });
+                    Store.promotions.list.data.set(fragments.map((fragment) => ({ get: () => fragment })));
+                    Store.promotions.list.data.setMeta('listFetched', true);
+                }),
             };
             service = { settings: { instant: '2026-02-05T00:00:00Z' } };
             const query = sandbox.stub(document, 'querySelector').callThrough();
@@ -503,13 +507,12 @@ describe('PreviewFragmentStore', () => {
             store.dispose();
         });
 
-        it('takes a promo variation dates from its tagged project via a cold raw search, never loadPromotions', async () => {
+        it('loads the shared promotions list once for a promo variation dates', async () => {
             const store = createStore(variation());
             expect(await store.getCountdownDates(SENTINEL_FIELDS)).to.deep.equal(READY);
             await store.getCountdownDates(SENTINEL_FIELDS);
-            expect(repository.searchFragmentList.calledOnce).to.be.true;
+            expect(repository.loadPromotions.calledOnceWithExactly({ rethrow: true })).to.be.true;
             expect(repository.searchFragmentList.firstCall.args[0].path).to.equal('/content/dam/mas/promotions');
-            expect(repository.loadPromotions.called).to.be.false;
             expect(store.previewPublishedFragment.called).to.be.false;
             store.dispose();
         });

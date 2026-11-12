@@ -50,6 +50,7 @@ import {
     getPromotionTagFromFragment,
     resolveDefaultPathFromPromoVariation,
 } from './promotions/promotion-model.js';
+import { clearPromoVariationProbeCache } from './promotions/promotion-variations.js';
 import { VARIATION_FILTER } from './fragments/variation-filter.js';
 import { loadBulkEditProjects } from './bulk-edit/bulk-edit-repository.js';
 import { getSearchSurface, loadProjectList, mergePendingProjects } from './common/utils/project-list-utils.js';
@@ -249,9 +250,11 @@ export class MasRepository extends LitElement {
         super.connectedCallback();
         if (!(this.bucket || this.baseUrl)) throw new Error('Either the bucket or baseUrl attribute is required.');
         this.aem = new AEM(this.bucket, this.baseUrl);
+        promotionsRepository.hydratePromotionsList(this.promotionsListScope);
 
         Store.filters.subscribe(this.#onFiltersChange);
         Store.search.subscribe(this.#onSearchChange);
+        Store.operation.subscribe(clearPromoVariationProbeCache);
 
         Events.fragmentAdded.subscribe(this.#stampLastEdit);
         Events.fragmentDeleted.subscribe(this.#stampLastEdit);
@@ -265,6 +268,7 @@ export class MasRepository extends LitElement {
         super.disconnectedCallback();
         Store.filters.unsubscribe(this.#onFiltersChange);
         Store.search.unsubscribe(this.#onSearchChange);
+        Store.operation.unsubscribe(clearPromoVariationProbeCache);
         Events.fragmentAdded.unsubscribe(this.#stampLastEdit);
         Events.fragmentDeleted.unsubscribe(this.#stampLastEdit);
         Events.fragmentSaved.unsubscribe(this.#stampLastEdit);
@@ -332,7 +336,7 @@ export class MasRepository extends LitElement {
                 this.loadAddonPlaceholders();
                 break;
             case PAGE_NAMES.PROMOTIONS:
-                this.loadPromotions();
+                this.loadPromotions({ unpublishExpired: true });
                 break;
             case PAGE_NAMES.TRANSLATIONS:
                 this.loadTranslationProjects();
@@ -1257,7 +1261,12 @@ export class MasRepository extends LitElement {
         return paths;
     }
 
-    async loadPromotions({ rethrow = false } = {}) {
+    /**
+     * Fetches the promotion projects into the shared list (served from the persisted copy meanwhile).
+     * @param {{ rethrow?: boolean, unpublishExpired?: boolean }} [options] - `unpublishExpired` is
+     * the promotions page's side effect; every other reader only needs the list.
+     */
+    async loadPromotions({ rethrow = false, unpublishExpired = false } = {}) {
         let abortController;
         try {
             const promotionsPath = this.getPromotionsPath();
@@ -1271,7 +1280,7 @@ export class MasRepository extends LitElement {
             abortController = new AbortController();
             this.#abortControllers.promotions = abortController;
 
-            Store.promotions.list.loading.set(true);
+            if (!Store.promotions.list.data.hasMeta('listFetched')) Store.promotions.list.loading.set(true);
 
             const fragments = await this.searchFragmentList(searchOptions, 50, abortController);
 
@@ -1283,9 +1292,9 @@ export class MasRepository extends LitElement {
             });
 
             Store.promotions.list.data.set(promotions);
-            Store.promotions.list.data.setMeta('listFetched', true);
+            promotionsRepository.markPromotionsListFetched(this.promotionsListScope);
 
-            if (expiredPublished.length && canManagePromotions()) {
+            if (unpublishExpired && expiredPublished.length && canManagePromotions()) {
                 void this.#unpublishExpiredPromotions(expiredPublished, signal);
             }
         } catch (error) {
@@ -1307,12 +1316,29 @@ export class MasRepository extends LitElement {
             const ok = await this.unpublishFragment(p, false);
             if (!ok || signal.aborted) continue;
             const fresh = await this.aem.sites.cf.fragments.getById(p.id);
-            if (fresh) store.set(new Promotion(fresh));
+            if (fresh) promotionsRepository.upsertPromotionInList(fresh, this.promotionsListScope);
         }
     }
 
     getPromotionsPath() {
         return `${ROOT_PATH}/promotions`;
+    }
+
+    /**
+     * Writes a created, saved or republished promotion project through to the shared promotions list.
+     * @param {Object} fragmentData
+     */
+    updatePromotionInList(fragmentData) {
+        promotionsRepository.upsertPromotionInList(fragmentData, this.promotionsListScope);
+    }
+
+    writePromotionThrough(fragmentData) {
+        if (fragmentData?.path?.startsWith(`${this.getPromotionsPath()}/`)) this.updatePromotionInList(fragmentData);
+    }
+
+    /** Keys the persisted promotions list by AEM environment. */
+    get promotionsListScope() {
+        return this.baseUrl || this.bucket;
     }
 
     /** Mockable seam for components; the implementation lives in placeholders/mas-placeholders-repository.js. */
@@ -1462,6 +1488,7 @@ export class MasRepository extends LitElement {
             )?.toLowerCase();
             applyCorrectorToFragment(latest, surface);
             const fragment = await this.#addToCache(latest);
+            this.writePromotionThrough(latest);
 
             if (withToast) showToast('Fragment successfully created.', 'positive');
 
@@ -1545,6 +1572,7 @@ export class MasRepository extends LitElement {
             if (!savedFragment) throw new Error('Invalid fragment.');
 
             fragmentStore.refreshFrom(savedFragment);
+            this.writePromotionThrough(savedFragment);
             await initFragmentCache();
             fragmentCache?.remove(savedFragment.id);
             fragmentCache?.add(new Fragment(savedFragment));
@@ -1869,6 +1897,7 @@ export class MasRepository extends LitElement {
             if (fragment?.id) {
                 await initFragmentCache();
                 fragmentCache?.remove(fragment.id);
+                promotionsRepository.removePromotionFromList(fragment.id, this.promotionsListScope);
             }
 
             // Keep expanded variation rows in sync when a variation is deleted from editor.
@@ -1928,6 +1957,7 @@ export class MasRepository extends LitElement {
             },
             VARIATIONS_CONCURRENCY_LIMIT,
         );
+        clearPromoVariationProbeCache();
         return failedVariations;
     }
 

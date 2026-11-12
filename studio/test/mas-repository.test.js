@@ -497,7 +497,7 @@ describe('MasRepository dictionary helpers', () => {
                     return refreshed;
                 });
                 Store.promotions.list.data.set([]);
-                await repository.loadPromotions();
+                await repository.loadPromotions({ unpublishExpired: true });
                 if (!canUnpublish) {
                     expect(unpublishStub.called).to.be.false;
                     expect(repository.aem.sites.cf.fragments.getById.called).to.be.false;
@@ -513,6 +513,30 @@ describe('MasRepository dictionary helpers', () => {
                 expect(row.isPromotionPublished).to.be.false;
             });
         }
+
+        it('loadPromotions only unpublishes expired promotions when asked to', async () => {
+            sandbox.stub(Store.profile, 'get').returns({ email: 'author@adobe.com' });
+            sandbox
+                .stub(Store.users, 'get')
+                .returns([{ userPrincipalName: 'author@adobe.com', groups: ['GRP-ODIN-MAS-ADMINS'] }]);
+            const repository = createFullRepository();
+            repository.searchFragmentList = sandbox.stub().resolves([
+                {
+                    id: 'promo-exp',
+                    path: '/content/dam/mas/promotions/promo-exp',
+                    status: 'PUBLISHED',
+                    fields: [
+                        { name: 'startDate', values: ['2020-01-01T00:00:00.000Z'] },
+                        { name: 'endDate', values: ['2020-02-01T00:00:00.000Z'] },
+                    ],
+                    tags: [],
+                },
+            ]);
+            const unpublishStub = sandbox.stub(repository, 'unpublishFragment').resolves(true);
+            await repository.loadPromotions();
+            expect(unpublishStub.called).to.be.false;
+            expect(Store.promotions.list.data.get()).to.have.lengthOf(1);
+        });
 
         it('loadPromotions calls processError when searchFragmentList rejects', async () => {
             const repository = createFullRepository();

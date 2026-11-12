@@ -4,11 +4,93 @@ import { normalizeTagId } from '../aem/tag-id-utils.js';
 import { mergePromoVariationReferences } from './promotion-variations.js';
 import * as promotionVariations from './promotion-variations.js';
 import { Fragment } from '../aem/fragment.js';
+import { Promotion } from '../aem/promotion.js';
+import { FragmentStore } from '../reactivity/fragment-store.js';
 import { resolveHydratedParentFragment, resolvePromoVariationDefaultCard } from '../utils.js';
 import { buildPromotionDuplicatePayload, buildPromotionTagPath } from './promotion-editor-utils.js';
 import { PROMOTION_MODEL_ID, TAG_PROMOTION_PREFIX } from '../constants.js';
 
 const PROMOTIONS_LIST_FETCHED_META = 'listFetched';
+const PROMOTIONS_LIST_FETCHED_AT_META = 'fetchedAt';
+const PROMOTIONS_LIST_STORAGE_PREFIX = 'mas-promotions-list:';
+export const PROMOTIONS_LIST_MAX_AGE = 60000;
+
+/**
+ * Marks the promotions list as freshly fetched from AEM and persists it for the next Studio load.
+ * @param {string} scope - AEM base URL, so environments never share a list
+ */
+export function markPromotionsListFetched(scope) {
+    const list = Store.promotions.list.data;
+    list.setMeta(PROMOTIONS_LIST_FETCHED_META, true);
+    list.setMeta(PROMOTIONS_LIST_FETCHED_AT_META, Date.now());
+    persistPromotionsList(scope);
+}
+
+/**
+ * Persists the fetched promotions list. Quota errors only cost the next load its head start.
+ * @param {string} scope
+ */
+export function persistPromotionsList(scope) {
+    const list = Store.promotions.list.data;
+    if (!list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    const fragments = list.get().map((store) => {
+        const { initialValue, hasChanges, newTags, references, ...data } = store.get();
+        return data;
+    });
+    const entry = JSON.stringify({ at: list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META), fragments });
+    try {
+        localStorage.setItem(`${PROMOTIONS_LIST_STORAGE_PREFIX}${scope}`, entry);
+    } catch (error) {
+        console.warn('Could not persist the promotions list:', error.message);
+    }
+}
+
+/**
+ * Seeds the promotions list from the last persisted copy, so every page can use it right away.
+ * Its original fetch time is kept: getPromotionProjectsForProbe revalidates it in the background.
+ * @param {string} scope
+ */
+export function hydratePromotionsList(scope) {
+    const list = Store.promotions.list.data;
+    if (list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    let persisted;
+    try {
+        persisted = JSON.parse(localStorage.getItem(`${PROMOTIONS_LIST_STORAGE_PREFIX}${scope}`));
+    } catch {
+        return;
+    }
+    if (!Array.isArray(persisted?.fragments)) return;
+    list.set(persisted.fragments.map((data) => new FragmentStore(new Promotion(data))));
+    list.setMeta(PROMOTIONS_LIST_FETCHED_META, true);
+    list.setMeta(PROMOTIONS_LIST_FETCHED_AT_META, persisted.at ?? 0);
+    Store.promotions.list.loading.set(false);
+}
+
+/**
+ * Writes a created/saved/republished promotion project through to the loaded list.
+ * @param {Object} fragmentData
+ * @param {string} scope
+ */
+export function upsertPromotionInList(fragmentData, scope) {
+    const list = Store.promotions.list.data;
+    if (!list.hasMeta(PROMOTIONS_LIST_FETCHED_META)) return;
+    const store = list.get().find((candidate) => candidate.get()?.id === fragmentData.id);
+    if (store) store.set(new Promotion(fragmentData));
+    else list.set([new FragmentStore(new Promotion(fragmentData)), ...list.get()]);
+    persistPromotionsList(scope);
+}
+
+/**
+ * @param {string} id
+ * @param {string} scope
+ */
+export function removePromotionFromList(id, scope) {
+    const list = Store.promotions.list.data;
+    const remaining = list.get().filter((store) => store.get()?.id !== id);
+    if (remaining.length === list.get().length) return;
+    list.set(remaining);
+    persistPromotionsList(scope);
+}
 
 /**
  * @returns {Array<Object>}
@@ -50,22 +132,27 @@ function getAttachedFragmentPathsForTag(projects, promoTagId) {
 }
 
 /**
- * Shares the initial promotion project load across callers and reuses the fetched list.
+ * Shared entry point to the promotion projects: awaits the first load, then serves the loaded
+ * (or persisted) list right away and revalidates it in the background once it is older than
+ * PROMOTIONS_LIST_MAX_AGE. Concurrent callers share a single load.
  * @param {() => Promise<void>} loadPromotions
  * @returns {Promise<Array<Object>>}
  */
 export const getPromotionProjectsForProbe = (() => {
     let promotionProjectsLoad;
     return async (loadPromotions) => {
-        let projects = readPromotionProjectsFromStore();
-        if (!projects.length && !Store.promotions.list.data.hasMeta(PROMOTIONS_LIST_FETCHED_META)) {
+        const list = Store.promotions.list.data;
+        const fetched = list.hasMeta(PROMOTIONS_LIST_FETCHED_META) || readPromotionProjectsFromStore().length > 0;
+        const stale =
+            list.hasMeta(PROMOTIONS_LIST_FETCHED_AT_META) &&
+            Date.now() - list.getMeta(PROMOTIONS_LIST_FETCHED_AT_META) > PROMOTIONS_LIST_MAX_AGE;
+        if (!fetched || stale) {
             promotionProjectsLoad ??= Promise.resolve(loadPromotions()).finally(() => {
                 promotionProjectsLoad = null;
             });
-            await promotionProjectsLoad;
-            projects = readPromotionProjectsFromStore();
         }
-        return projects;
+        if (!fetched) await promotionProjectsLoad;
+        return readPromotionProjectsFromStore();
     };
 })();
 

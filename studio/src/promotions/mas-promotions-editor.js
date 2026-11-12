@@ -650,6 +650,7 @@ class MasPromotionsEditor extends LitElement {
         try {
             const promotion = await this.#fetchPromotionModelById(id);
             if (!promotion) return;
+            this.repository.updatePromotionInList(promotion.initialValue);
             this.storeController?.hostDisconnected();
             this.fragmentStore = new FragmentStore(promotion);
             this.storeController = new StoreController(this, this.fragmentStore);

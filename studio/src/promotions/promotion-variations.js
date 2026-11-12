@@ -4,6 +4,7 @@ import { UserFriendlyError } from '../utils.js';
 import { Fragment } from '../aem/fragment.js';
 import { processConcurrently, VARIATIONS_CONCURRENCY_LIMIT } from '../common/utils/item-loading.js';
 import { getFragmentByPathOrNull } from '../common/utils/fragment-api.js';
+import { createTtlCache } from '../utils/ttl-cache.js';
 import {
     buildCandidateCollisionPath,
     buildPromoVariationPath,
@@ -22,6 +23,22 @@ export const MAX_PROMO_VARIATIONS_PER_FRAGMENT = 50;
 
 // Page size for folder search cursor (generator still walks all pages).
 const VARIATION_SEARCH_PAGE_SIZE = 50;
+
+// Read-only reference probes reuse a promo folder crawl for this long; writes clear it.
+const PROMO_ROOT_SEARCH_TTL = 60000;
+const cachedPromoRootSearch = createTtlCache(PROMO_ROOT_SEARCH_TTL);
+
+export function clearPromoVariationProbeCache() {
+    cachedPromoRootSearch.clear();
+}
+
+async function searchPromoRoot(aem, promoRoot) {
+    const items = [];
+    for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
+        items.push(...batch);
+    }
+    return items;
+}
 
 // How many times / how often we re-check the search index before giving up and moving on.
 const INDEX_POLL_MAX_ATTEMPTS = 10;
@@ -104,9 +121,10 @@ function matchVariationByBasePath(variation, baseToDefaultPath) {
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} defaultPaths
  * @param {string} promoTagId
+ * @param {{ cached?: boolean }} [options] - `cached` reuses a recent crawl of the promo folder (read-only probes only)
  * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[], status: string, title: string, model: string, fields: Array, tags: Array }>>>}
  */
-export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId, { cached = false } = {}) {
     const resultsByPath = new Map((defaultPaths || []).map((defaultPath) => [defaultPath, []]));
     if (!aem || !promoTagId || !defaultPaths?.length) return resultsByPath;
     const promoName = getPromoNameFromTag(promoTagId);
@@ -126,11 +144,12 @@ export async function probePromoVariationsForFragments(aem, defaultPaths, promoT
     await processConcurrently(
         [...pathsByRoot.keys()],
         async (promoRoot) => {
-            for await (const batch of aem.sites.cf.fragments.search({ path: promoRoot }, VARIATION_SEARCH_PAGE_SIZE)) {
-                for (const variation of batch) {
-                    const matched = matchVariationByBasePath(variation, baseToDefaultPath);
-                    if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
-                }
+            const variations = cached
+                ? await cachedPromoRootSearch(promoRoot, () => searchPromoRoot(aem, promoRoot))
+                : await searchPromoRoot(aem, promoRoot);
+            for (const variation of variations) {
+                const matched = matchVariationByBasePath(variation, baseToDefaultPath);
+                if (matched) resultsByPath.get(matched.defaultPath).push(matched.variation);
             }
         },
         VARIATIONS_CONCURRENCY_LIMIT,
@@ -334,6 +353,7 @@ export async function createPromoVariation(
     }
 
     await waitForPromoVariationIndexed(aem, sourceFragment.path, promoTagId, createdFragment.path);
+    clearPromoVariationProbeCache();
 
     return createdFragment;
 }
@@ -427,7 +447,8 @@ export async function probePromoVariationReferences(aem, defaultPath, promotionP
         async (project) => {
             const tagId = getPromotionTagFromFragment(project);
             if (!tagId) return [];
-            return probePromoVariationsForFragment(aem, defaultPath, tagId);
+            const resultsByPath = await probePromoVariationsForFragments(aem, [defaultPath], tagId, { cached: true });
+            return resultsByPath.get(defaultPath) || [];
         },
         VARIATIONS_CONCURRENCY_LIMIT,
     );

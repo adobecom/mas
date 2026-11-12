@@ -182,7 +182,9 @@ export function processBadge(fields, merchCard, mapping) {
 
             merchCard.setAttribute(
                 'border-color',
-                fields.badgeBackgroundColor || DEFAULT_BADGE_BACKGROUND_COLOR,
+                fields.borderColor ||
+                    fields.badgeBackgroundColor ||
+                    DEFAULT_BADGE_BACKGROUND_COLOR,
             );
         } else {
             merchCard.setAttribute(

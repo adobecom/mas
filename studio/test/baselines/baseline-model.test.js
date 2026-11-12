@@ -460,12 +460,13 @@ describe('baseline-model', () => {
         });
 
         it('takes the compare-chart-column variant from a baseline when the card has none', () => {
-            const { fragment } = buildBaselineParent({
+            const { fragment, variant } = buildBaselineParent({
                 fragmentBaseline: layer('template', field('variant', 'compare-chart-column'), field('features', 'template')),
                 fragmentSegmentBaseline: layer('segment', field('features', 'segment')),
             });
 
             expect(fragment.getFieldValues('features')).to.deep.equal(['template', 'segment']);
+            expect(variant).to.equal('compare-chart-column');
         });
 
         it('overrides features of other variants with the highest baseline', () => {

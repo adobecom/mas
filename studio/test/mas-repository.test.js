@@ -423,30 +423,6 @@ describe('MasRepository dictionary helpers', () => {
             expect(Store.promotions.list.loading.get()).to.be.false;
         });
 
-        it('getCollectionPathsForSurfaces returns the union of collection paths across surfaces', async () => {
-            const repository = createFullRepository();
-            repository.searchFragmentList = sandbox.stub().callsFake((options) => {
-                if (options.path === '/content/dam/mas/acom') {
-                    return Promise.resolve([{ path: '/content/dam/mas/acom/en_US/col-a' }]);
-                }
-                if (options.path === '/content/dam/mas/ccd') {
-                    return Promise.resolve([{ path: '/content/dam/mas/ccd/en_US/col-b' }]);
-                }
-                return Promise.resolve([]);
-            });
-            const paths = await repository.getCollectionPathsForSurfaces(['acom', 'ccd']);
-            expect(paths).to.be.instanceOf(Set);
-            expect([...paths].sort()).to.deep.equal(['/content/dam/mas/acom/en_US/col-a', '/content/dam/mas/ccd/en_US/col-b']);
-            expect(repository.searchFragmentList.callCount).to.equal(2);
-        });
-
-        it('getCollectionPathsForSurfaces returns an empty set for no surfaces and ignores per-surface failures', async () => {
-            const repository = createFullRepository();
-            expect([...(await repository.getCollectionPathsForSurfaces([]))]).to.deep.equal([]);
-            repository.searchFragmentList = sandbox.stub().rejects(new Error('boom'));
-            expect([...(await repository.getCollectionPathsForSurfaces(['acom']))]).to.deep.equal([]);
-        });
-
         for (const { role, groups, canUnpublish } of [
             { role: 'admin', groups: ['GRP-ODIN-MAS-ADMINS'], canUnpublish: true },
             { role: 'promo poweruser', groups: ['GRP-ODIN-MAS-PROMO-POWERUSERS'], canUnpublish: true },

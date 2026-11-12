@@ -3,9 +3,9 @@ import { repeat } from 'lit/directives/repeat.js';
 import { styles as tableStyles } from '../common/components/mas-select-items-table.css.js';
 import { promotionsItemsTableStyles } from './mas-promotions-items-table.css.js';
 import { loadSelectedFragments, enrichPromoVariations } from '../common/utils/items-loader.js';
-import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
+import { PAGE_NAMES, TABLE_TYPE, CARD_MODEL_PATH, COLLECTION_MODEL_PATH, VARIATION_TAB_NAME } from '../constants.js';
 import { applySearchSurfaceFromPath, getOfferName, renderCopyableValueCell } from '../common/utils/render-utils.js';
-import { OFFER_DATA_CONCURRENCY_LIMIT, processConcurrently } from '../common/utils/item-loading.js';
+import { processConcurrently } from '../common/utils/item-loading.js';
 import { closePreview, openPreview } from '../mas-card-preview.js';
 import router from '../router.js';
 import { extractLocaleFromPath, extractSurfaceFromPath, resolveHydratedParentFragment, showToast } from '../utils.js';
@@ -45,6 +45,9 @@ const PROMO_VARIATION_LOOKUP_FAILED_MESSAGE = 'Could not verify the promo variat
 // How many already-selected items to fetch+render per window in the viewOnly tables,
 // so large promotions don't fetch every attached fragment at once.
 const SELECTED_ITEMS_WINDOW = 25;
+
+// Offer names for the default sort are prefetched in the background, after the first window paints.
+const SORT_PREFETCH_CONCURRENCY = 10;
 
 const offersTableHeaders = [
     { label: 'Offer', key: 'offer', class: 'offer-head-cell', sortable: true, sortKey: 'offerName' },
@@ -132,6 +135,7 @@ class MasPromotionsItemsTable extends LitElement {
 
     #loadedPathsKey = null;
     #processAbortController = null;
+    #sortAbortController = null;
     #selectionController = null;
     itemsSelection = new ItemsSelectionController(this);
     #allSelectedPaths = [];
@@ -199,6 +203,7 @@ class MasPromotionsItemsTable extends LitElement {
         super.disconnectedCallback();
         this.#processAbortController?.abort();
         this.#processAbortController = null;
+        this.#sortAbortController?.abort();
         this.viewOnlyLoading = false;
         this.confirmDialogConfig?.onCancel?.();
         this.confirmDialogConfig = null;
@@ -330,9 +335,10 @@ class MasPromotionsItemsTable extends LitElement {
 
     async #loadSelected(paths) {
         this.#processAbortController?.abort();
+        this.#sortAbortController?.abort();
         this.#allSelectedPaths = paths;
         this.#loadedByPath = new Map();
-        this.#prefetchedByPath = new Map();
+        // #prefetchedByPath (raw fragments) is kept so re-bucketing the selection doesn't refetch.
         this.#visibleCount = 0;
         this.viewOnlyFragments = [];
         // Probe every selected card's/collection's promo variations in a single recursive folder
@@ -352,20 +358,47 @@ class MasPromotionsItemsTable extends LitElement {
         void this.#loadSelectedInOrder();
     }
 
-    // Offer names are known before loading windows so each window lands at the bottom in order.
+    // The first window paints in stored order while the remaining offer names load; the table then
+    // re-renders sorted, so first paint never waits on fetching the whole selection.
     async #loadSelectedInOrder() {
-        if (this.type === TABLE_TYPE.CARDS && this.cardsSortDirection) {
-            this.#processAbortController?.abort();
-            this.#processAbortController = new AbortController();
-            const signal = this.#processAbortController.signal;
-            this.viewOnlyLoading = true;
-            const sortedPaths = await this.#sortPathsByOfferName(this.#allSelectedPaths);
-            if (signal.aborted) return;
-            this.#allSelectedPaths = sortedPaths;
-            this.#cacheSelectedFragments([...this.#prefetchedByPath.values()]);
+        this.#sortAbortController?.abort();
+        this.#visibleCount = 0;
+        if (this.type !== TABLE_TYPE.CARDS || !this.cardsSortDirection) {
+            await this.#loadNextSelectedWindow();
+            return;
         }
+        const paths = this.#allSelectedPaths;
+        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
+        if (unnamed.length) {
+            const sortController = new AbortController();
+            this.#sortAbortController = sortController;
+            const firstWindow = new Set(paths.slice(0, SELECTED_ITEMS_WINDOW));
+            await Promise.all([
+                this.#loadNextSelectedWindow(),
+                this.#prefetchOfferNames(
+                    unnamed.filter((path) => !firstWindow.has(path)),
+                    sortController.signal,
+                ),
+            ]);
+            if (sortController.signal.aborted) return;
+            const prefetched = [...this.#prefetchedByPath.values()];
+            this.#cacheSelectedFragments(prefetched);
+            this.#reportCollections(prefetched);
+        }
+        this.#allSelectedPaths = this.#sortByOfferName(paths);
         this.#visibleCount = 0;
         await this.#loadNextSelectedWindow();
+    }
+
+    // Collections saved into the `fragments` field start in the cards bucket; flag them from the
+    // fragments fetched anyway so the editor can re-bucket them without crawling the surfaces.
+    #reportCollections(fragments) {
+        if (this.type !== TABLE_TYPE.CARDS) return;
+        const paths = fragments.filter((fragment) => fragment?.model?.path === COLLECTION_MODEL_PATH).map(({ path }) => path);
+        if (!paths.length) return;
+        this.dispatchEvent(
+            new CustomEvent('promotion-collections-detected', { detail: { paths }, bubbles: true, composed: true }),
+        );
     }
 
     #cacheSelectedFragments(items) {
@@ -375,26 +408,33 @@ class MasPromotionsItemsTable extends LitElement {
         );
     }
 
-    async #sortPathsByOfferName(paths) {
-        const unnamed = paths.filter((path) => !this.#offerNameByPath.has(path));
+    async #prefetchOfferNames(paths, signal) {
         await processConcurrently(
-            unnamed,
+            paths,
             async (path) => {
-                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path)).catch(() => null);
+                if (signal.aborted) return;
+                const fragment = await Promise.resolve(this.repository?.aem?.getFragmentByPath(path, { signal })).catch(
+                    () => null,
+                );
+                if (signal.aborted) return;
                 if (fragment) this.#prefetchedByPath.set(path, fragment);
                 this.#offerNameByPath.set(path, getOfferName(fragment));
             },
-            OFFER_DATA_CONCURRENCY_LIMIT,
+            SORT_PREFETCH_CONCURRENCY,
         );
+    }
+
+    #sortByOfferName(paths) {
         const direction = this.cardsSortDirection === 'desc' ? -1 : 1;
-        return [...paths].sort((a, b) => this.#offerNameByPath.get(a).localeCompare(this.#offerNameByPath.get(b)) * direction);
+        const nameOf = (path) => this.#offerNameByPath.get(path) ?? '';
+        return [...paths].sort((a, b) => nameOf(a).localeCompare(nameOf(b)) * direction);
     }
 
     async #probeAllPromoVariations(paths) {
         const promoTag = this.#promotionTagId;
         if (!promoTag || !this.repository?.aem?.sites?.cf?.fragments?.search) return new Map();
         try {
-            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag);
+            return await probePromoVariationsForFragments(this.repository.aem, paths, promoTag, { cached: true });
         } catch {
             return new Map();
         }
@@ -418,6 +458,11 @@ class MasPromotionsItemsTable extends LitElement {
         await loadSelectedFragments(unloaded, this.type, this.repository, {
             signal,
             prefetched: this.#prefetchedByPath,
+            onFetched: (fragments) => {
+                // Raw cards reach the selection sidebar before the (slower) enrichment completes.
+                this.#cacheSelectedFragments(fragments);
+                this.#reportCollections(fragments);
+            },
             onItems: (items) => {
                 if (signal.aborted) return;
                 this.#cacheSelectedFragments(items);
@@ -429,7 +474,7 @@ class MasPromotionsItemsTable extends LitElement {
                 this.viewOnlyFragments = start === 0 ? windowItems : [...this.viewOnlyFragments, ...windowItems];
                 this.#visibleCount = end;
                 if (this.#supportsPromoVariations) {
-                    this.#syncExistingPromoVariations(items, signal);
+                    this.#syncExistingPromoVariations(windowItems, signal);
                 }
             },
             getDisplayName: this.getDisplayName,
@@ -482,7 +527,9 @@ class MasPromotionsItemsTable extends LitElement {
                 try {
                     missingPaths = groupedVariationPaths.filter((path) => !probedByPath.has(path));
                     if (missingPaths.length) {
-                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag);
+                        const grouped = await probePromoVariationsForFragments(this.repository.aem, missingPaths, promoTag, {
+                            cached: true,
+                        });
                         for (const [path, found] of grouped) probedByPath.set(path, found);
                     }
                     allVariations = [item.path, ...groupedVariationPaths].flatMap((path) => probedByPath.get(path) || []);

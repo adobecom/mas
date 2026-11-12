@@ -357,10 +357,11 @@ export async function assertPromoVariationGeoTagsValid(aem, fragment, geoTags, l
  * @param {import('../aem/aem.js').AEM} aem
  * @param {string[]} defaultPaths
  * @param {string} promoTagId
+ * @param {{ cached?: boolean }} [options] - `cached` reuses a recent promo folder crawl (read-only probes only)
  * @returns {Promise<Map<string, Array<{ path: string, index: number, id: string, pznTags: string[] }>>>}
  */
-export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId) {
-    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId);
+export async function probePromoVariationsForFragments(aem, defaultPaths, promoTagId, options) {
+    return promotionVariations.probePromoVariationsForFragments(aem, defaultPaths, promoTagId, options);
 }
 
 /**

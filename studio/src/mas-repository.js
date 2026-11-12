@@ -1235,33 +1235,6 @@ export class MasRepository extends LitElement {
     }
 
     /**
-     * Returns the set of collection paths across the given promotion surfaces, using one
-     * bounded collection-model search per surface (not one GET per attached path). Used by
-     * the promotions editor to classify attached paths as cards vs collections without a
-     * per-path request burst. Failures on a single surface are ignored so classification
-     * degrades gracefully rather than throwing.
-     * @param {string[]} surfaces
-     * @returns {Promise<Set<string>>}
-     */
-    async getCollectionPathsForSurfaces(surfaces) {
-        const paths = new Set();
-        if (!surfaces?.length) return paths;
-        await processConcurrently(
-            surfaces,
-            async (surface) => {
-                const fragments = await this.searchFragmentList({
-                    path: getDamPath(surface),
-                    modelIds: [TAG_MODEL_ID_MAPPING[TAG_MERCH_CARD_COLLECTION]],
-                    sort: [{ on: 'modifiedOrCreated', order: 'DESC' }],
-                }).catch(() => []);
-                for (const fragment of fragments) paths.add(fragment.path);
-            },
-            OFFER_DATA_CONCURRENCY_LIMIT,
-        );
-        return paths;
-    }
-
-    /**
      * Fetches the promotion projects into the shared list (served from the persisted copy meanwhile).
      * @param {{ rethrow?: boolean, unpublishExpired?: boolean }} [options] - `unpublishExpired` is
      * the promotions page's side effect; every other reader only needs the list.

@@ -5,7 +5,6 @@ import {
     getRequestMetadata,
     getStoredResponse,
     rereadRequestMetadata,
-    usesStoredResponse,
     STALE_MAX_AGE,
     storeRequestMetadata,
 } from './utils/cache.js';
@@ -245,7 +244,7 @@ async function mainProcess(context) {
     // The request cache key is captured once, here — before that restriction happens — so the read
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
-    const { requestKey, ...cached } = await getRequestMetadata(context);
+    const { requestKey, fromState, ...cached } = await getRequestMetadata(context);
     let { cachedMetadata, cachedResponse } = cached;
     const storedResponse = (body, cache, note = '') => {
         const { hash, lastModified, refreshedAt } = cachedMetadata;
@@ -255,7 +254,7 @@ async function mainProcess(context) {
     const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
     if (storedBody) return storedResponse(storedBody, 'hit');
     // The memory copies can be up to a minute old: before rebuilding, check whether another container refreshed State.
-    if (cachedMetadata && usesStoredResponse(context) && !rebuilds.has(requestKey)) {
+    if (cachedMetadata && !fromState && !rebuilds.has(requestKey)) {
         const reread = await rereadRequestMetadata(context, requestKey);
         cachedMetadata = reread.cachedMetadata ?? cachedMetadata;
         cachedResponse = reread.cachedResponse ?? cachedResponse;

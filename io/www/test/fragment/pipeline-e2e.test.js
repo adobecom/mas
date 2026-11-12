@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { CARD_MODEL_ID, COLLECTION_MODEL_ID } from '../../src/fragment/utils/common.js';
 import { resetCache } from '../../src/fragment/pipeline.js';
+import { getRequestMetadata } from '../../src/fragment/utils/cache.js';
 import { clearSettingsCache } from '../../src/fragment/transformers/settings.js';
 import { clearPromoCache } from '../../src/fragment/transformers/promotions.js';
 import { clearBaselineCache, offersUrl } from '../../src/fragment/transformers/offer.js';
@@ -198,82 +199,96 @@ describe('pipeline end to end', () => {
         });
     }
 
-    it('should re-read State before rebuilding, and serve what another container refreshed', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
-        });
-        const state = new MockState();
-        const metadata = { hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() - 6 * 60 * 1000 };
-        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify(metadata);
-        state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            body: zlib.brotliCompressSync('{"refreshed":true}').toString('base64'),
-        });
-        // another container refreshes the stored response right after this one read the req- and res- keys
-        const get = state.get.bind(state);
-        let reads = 0;
-        sinon.stub(state, 'get').callsFake(async (key) => {
-            const value = await get(key);
-            if (++reads === 2) {
-                state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({ ...metadata, refreshedAt: Date.now() });
+    describe('re-reading State before rebuilding', () => {
+        const requestKey = 'req-some-en-us-fragment-fr_FR';
+        const responseKey = 'res-some-en-us-fragment-fr_FR';
+        const metadata = (age) => ({ hash: 'old-hash', lastModified: RANDOM_OLD_DATE, refreshedAt: Date.now() - age });
+        const request = (state) => ({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
+        const fragmentFetches = () =>
+            fetchStub.getCalls().filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
+        // State holds a response refreshed `age` ago, and this container has a memory copy of it
+        const storedState = async (age, body = '{"stored":true}') => {
+            const state = new MockState();
+            state.store[requestKey] = JSON.stringify(metadata(age));
+            state.store[responseKey] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync(body).toString('base64'),
+            });
+            await getRequestMetadata(request(state));
+            return state;
+        };
+        const logs = async (run) => {
+            const output = sinon.stub(console, 'log');
+            const errors = sinon.stub(console, 'error');
+            try {
+                return { result: await run(), lines: [...output.getCalls(), ...errors.getCalls()].map(({ args }) => args[0]) };
+            } finally {
+                output.restore();
+                errors.restore();
             }
-            return value;
-        });
-        const output = sinon.stub(console, 'log');
-        const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
-        let results;
-        try {
-            results = [await getFragment(request), await getFragment(request)];
-        } finally {
-            output.restore();
-        }
-        for (const result of results) {
-            expect(result.statusCode).to.equal(200);
-            expect(result.body).to.deep.equal({ refreshed: true });
-        }
-        const fragmentFetches = fetchStub
-            .getCalls()
-            .filter(({ args }) => args[0].includes('/some-en-us-fragment?references=all-hydrated'));
-        expect(fragmentFetches).to.be.empty;
-        const hits = output
-            .getCalls()
-            .map(({ args }) => args[0])
-            .filter((line) => line.includes('cache hit'));
-        expect(hits).to.have.lengthOf(2);
-        expect(hits[0]).to.match(/cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\) -> 200 /);
-        // the memory copy was updated by the re-read
-        expect(hits[1]).not.to.include('re-read from State');
-    });
+        };
 
-    it('should keep the previous memory copy when State lost it before the re-read', async () => {
-        setupFragmentMocks(fetchStub, {
-            id: 'some-en-us-fragment',
-            path: 'someFragment',
+        beforeEach(() => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
         });
-        fetchStub
-            .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
-            .returns(createResponse(500, {}));
-        const state = new MockState();
-        state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            lastModified: RANDOM_OLD_DATE,
-            refreshedAt: Date.now() - 10 * 60 * 1000,
+
+        it('should serve what another container refreshed', async () => {
+            const state = await storedState(6 * 60 * 1000);
+            state.store[requestKey] = JSON.stringify(metadata(0));
+            const { result: results, lines } = await logs(async () => [
+                await getFragment(request(state)),
+                await getFragment(request(state)),
+            ]);
+            for (const result of results) {
+                expect(result.statusCode).to.equal(200);
+                expect(result.body).to.deep.equal({ stored: true });
+            }
+            expect(fragmentFetches()).to.be.empty;
+            const hits = lines.filter((line) => line.includes('cache hit'));
+            expect(hits).to.have.lengthOf(2);
+            expect(hits[0]).to.match(
+                /cache hit req-some-en-us-fragment-fr_FR \(refreshed \d+s ago, re-read from State\) -> 200 /,
+            );
+            // the memory copy was updated by the re-read
+            expect(hits[1]).not.to.include('re-read from State');
         });
-        state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
-            hash: 'old-hash',
-            body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+
+        it('should keep the memory copy when State lost it', async () => {
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(createResponse(500, {}));
+            const state = await storedState(10 * 60 * 1000);
+            state.store = {};
+            const result = await getFragment(request(state));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.equal({ stored: true });
         });
-        const get = state.get.bind(state);
-        let reads = 0;
-        sinon.stub(state, 'get').callsFake(async (key) => {
-            const value = await get(key);
-            if (++reads === 2) state.store = {};
-            return value;
+
+        it('should rebuild when the State re-read fails', async () => {
+            const state = await storedState(6 * 60 * 1000);
+            const get = state.get.bind(state);
+            sinon
+                .stub(state, 'get')
+                .callsFake((key) => (key.startsWith('re') ? Promise.reject(new Error('throttled')) : get(key)));
+            const { result, lines } = await logs(() => getFragment(request(state)));
+            expect(result.statusCode).to.equal(200);
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(fragmentFetches()).to.have.lengthOf(1);
+            expect(lines.some((line) => line.includes(`failed to re-read ${requestKey}: throttled`))).to.be.true;
         });
-        const result = await getFragment({ id: 'some-en-us-fragment', state, locale: 'fr_FR' });
-        expect(result.statusCode).to.equal(200);
-        expect(result.body).to.deep.equal({ stale: true });
+
+        it('should not re-read what was just read from State', async () => {
+            const state = new MockState();
+            state.store[requestKey] = JSON.stringify(metadata(6 * 60 * 1000));
+            const get = sinon.spy(state, 'get');
+            const result = await getFragment(request(state));
+            expect(result.body).to.deep.include(EXPECTED_BODY);
+            expect(get.getCalls().filter(({ args }) => args[0] === requestKey)).to.have.lengthOf(1);
+            expect(get.getCalls().filter(({ args }) => args[0] === responseKey)).to.have.lengthOf(1);
+        });
     });
 
     it('should not make an instant request join a rebuild in progress', async () => {

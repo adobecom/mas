@@ -37,31 +37,38 @@ const usesStoredResponse = ({ preview, instant }) => !preview && !instant;
 /**
  * Reads the request metadata (`req-` key) and the stored response (`res-` key, a `{ hash, body }`
  * pair where `body` is the brotli + base64 encoded response) in parallel, from memory or State.
+ * `fromState` tells whether both were just read from State rather than taken from the memory copies.
  */
 async function getRequestMetadata(context) {
     const requestKey = getRequestMetadataKey(context);
     const responseKey = getResponseKey(requestKey);
     const shared = usesStoredResponse(context);
+    const read = {};
+    const load = (key) => async () => (read[key] = await readState(key, context));
     const [cachedMetadata, cachedResponse] = await Promise.all([
-        shared ? metadataCache.get(context, requestKey, () => readState(requestKey, context)) : readState(requestKey, context),
-        shared ? responseCache.get(context, responseKey, () => readState(responseKey, context)) : null,
+        shared ? metadataCache.get(context, requestKey, load(requestKey)) : readState(requestKey, context),
+        shared ? responseCache.get(context, responseKey, load(responseKey)) : null,
     ]);
     if (cachedMetadata) {
         log(`found cached metadata for ${requestKey} -> ${JSON.stringify(cachedMetadata)}`, context);
     }
-    return { requestKey, cachedMetadata: cachedMetadata ?? null, cachedResponse: cachedResponse ?? null };
+    const fromState = !shared || (cachedMetadata === read[requestKey] && cachedResponse === read[responseKey]);
+    return { requestKey, cachedMetadata: cachedMetadata ?? null, cachedResponse: cachedResponse ?? null, fromState };
 }
 
 /**
  * Re-reads the request metadata and the stored response from State, bypassing (and updating) the memory copies:
- * another container may have refreshed them since this one copied them.
+ * another container may have refreshed them since this one copied them. Best effort: a failed read returns nulls.
  */
 async function rereadRequestMetadata(context, requestKey) {
     const responseKey = getResponseKey(requestKey);
     const [cachedMetadata, cachedResponse] = await Promise.all([
         readState(requestKey, context),
         readState(responseKey, context),
-    ]);
+    ]).catch((error) => {
+        logError(`failed to re-read ${requestKey}: ${error.message}`, context);
+        return [null, null];
+    });
     if (cachedMetadata) metadataCache.set(context, requestKey, cachedMetadata);
     if (cachedResponse) responseCache.set(context, responseKey, cachedResponse);
     return { cachedMetadata, cachedResponse };
@@ -138,7 +145,6 @@ export {
     STALE_MAX_AGE,
     getRequestMetadata,
     rereadRequestMetadata,
-    usesStoredResponse,
     getStoredResponse,
     extractContextFromMetadata,
     storeRequestMetadata,

@@ -100,6 +100,7 @@ describe('MasContent table + personalization grouping', () => {
     });
 
     it('uses requestAnimationFrame to re-observe sentinel after a page load completes', async () => {
+        Store.renderMode.set('render');
         Store.fragments.list.loading.set(true);
         Store.fragments.list.firstPageLoaded.set(true);
         Store.fragments.list.hasMore.set(true);

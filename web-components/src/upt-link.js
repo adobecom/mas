@@ -1,4 +1,3 @@
-import { Log } from './log.js';
 import { MasElement } from './mas-element.js';
 import { getPromoTermsUrl } from './promo-terms.js';
 import { getService } from './utilities.js';
@@ -71,13 +70,15 @@ export class UptLink extends HTMLAnchorElement {
             });
         }
         const options = service.collectCheckoutOptions({}, this);
+        const version = masElement.togglePending(options);
         if (!options.wcsOsi.length) {
-            Log.module('upt-link').error(
-                `Missing 'data-wcs-osi' attribute on upt-link.`,
+            masElement.toggleFailed(
+                version,
+                new Error(`Missing 'data-wcs-osi' attribute on upt-link.`),
+                options,
             );
             return false;
         }
-        const version = masElement.togglePending(options);
         try {
             const [[offer]] = await Promise.all(
                 service.resolveOfferSelectors(options),

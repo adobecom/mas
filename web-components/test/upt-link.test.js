@@ -65,11 +65,14 @@ describe('class "UptLink"', () => {
         sinon.restore();
     });
 
-    it('does not request offers without an OSI', async () => {
+    it('fails without an OSI and requests no offers', async () => {
         document.body.append(uptLink);
-        await delay(10);
+        const error = await uptLink.onceSettled().catch((reason) => reason);
+        expect(error.message).to.equal(
+            "Missing 'data-wcs-osi' attribute on upt-link.",
+        );
         expect(uptLink.hasAttribute('href')).to.be.false;
-        expect(uptLink.classList.contains('placeholder-failed')).to.be.false;
+        expect(uptLink.classList.contains('placeholder-failed')).to.be.true;
     });
 
     it('keeps the cause of an offer resolution failure', async () => {

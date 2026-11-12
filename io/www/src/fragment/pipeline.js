@@ -173,7 +173,7 @@ async function main(params) {
     measureTiming(context, 'endProcess', 'end');
     const { duration } = measureTiming(context, 'pipeline', 'start');
     const { statusCode } = returnValue;
-    if (cache === 'hit' || cache === 'stale' || cache === 'joined') {
+    if (cache && cache !== 'miss') {
         const detail = cacheDetail ? ` (${cacheDetail})` : '';
         log(`cache ${cache} ${requestKey}${detail} -> ${statusCode} in ${duration}ms | ${memoryUsage()}`, context);
         return returnValue;
@@ -266,6 +266,9 @@ async function mainProcess(context) {
         }
     }
     const built = await rebuild;
+    // a failed rebuild falls back to the previous stored response when it is less than STALE_MAX_AGE old
+    const fallbackBody = built.statusCode >= 500 && getStoredResponse(cachedMetadata, cachedResponse, STALE_MAX_AGE);
+    if (fallbackBody) return storedResponse(fallbackBody, 'stale-error', `, rebuild failed with ${built.statusCode}`);
     // error responses are copied: main() mutates the returned object
     if (built.statusCode) return { ...built };
     return { ...successResponse(context, built), cache, requestKey };

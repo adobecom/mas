@@ -148,6 +148,56 @@ describe('pipeline end to end', () => {
         );
     });
 
+    for (const { title, refreshedAt, fallback } of [
+        { title: 'refreshed 10 minutes ago', refreshedAt: Date.now() - 10 * 60 * 1000, fallback: true },
+        { title: 'refreshed 40 minutes ago', refreshedAt: Date.now() - 40 * 60 * 1000, fallback: false },
+    ]) {
+        it(`should ${fallback ? '' : 'not '}serve the previous stored response (${title}) when the rebuild fails`, async () => {
+            setupFragmentMocks(fetchStub, {
+                id: 'some-en-us-fragment',
+                path: 'someFragment',
+            });
+            fetchStub
+                .withArgs('https://odin.adobe.com/adobe/contentFragments/some-en-us-fragment?references=all-hydrated')
+                .returns(new Promise((resolve) => setTimeout(() => resolve(createResponse(500, {})), 30)));
+            const state = new MockState();
+            state.store['req-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                lastModified: RANDOM_OLD_DATE,
+                refreshedAt,
+            });
+            state.store['res-some-en-us-fragment-fr_FR'] = JSON.stringify({
+                hash: 'old-hash',
+                body: zlib.brotliCompressSync('{"stale":true}').toString('base64'),
+            });
+            const output = sinon.stub(console, 'log');
+            const request = { id: 'some-en-us-fragment', state, locale: 'fr_FR' };
+            let results;
+            try {
+                results = await Promise.all([getFragment(request), getFragment(request)]);
+            } finally {
+                output.restore();
+            }
+            const lines = output.getCalls().map(({ args }) => args[0]);
+            if (!fallback) {
+                expect(results[0].statusCode).to.be.at.least(500);
+                expect(lines.filter((line) => line.includes('cache stale-error'))).to.be.empty;
+                return;
+            }
+            for (const result of results) {
+                expect(result.statusCode).to.equal(200);
+                expect(result.body).to.deep.equal({ stale: true });
+                expect(result.headers.ETag).to.equal('old-hash');
+            }
+            // the request that started the rebuild falls back, the concurrent one already got the stale response
+            expect(lines.filter((line) => line.includes('cache stale-error'))).to.have.lengthOf(1);
+            expect(lines.filter((line) => line.includes('cache stale '))).to.have.lengthOf(1);
+            expect(lines.find((line) => line.includes('cache stale-error'))).to.match(
+                /cache stale-error req-some-en-us-fragment-fr_FR \(refreshed 10m\d+s ago, rebuild failed with 50\d\) -> 200 in /,
+            );
+        });
+    }
+
     it('should not make an instant request join a rebuild in progress', async () => {
         setupFragmentMocks(fetchStub, {
             id: 'some-en-us-fragment',

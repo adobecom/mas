@@ -7,221 +7,38 @@ import {
 import { createMasElement, MasElement } from './mas-element.js';
 import { getService } from './utilities.js';
 import { selectOffers, sumOffers } from '../../price/src/index.js';
-import { Defaults } from './defaults.js';
 import {
-    defaultLiterals,
     formatLiteral,
     renderSpan,
+    toLocale,
 } from '../../price/src/price/template.js';
 import { createLog, Log } from './log.js';
+import { Defaults } from './defaults.js';
 
 const literalLog = createLog('ConsonantTemplates/price');
 const offerLog = Log.module('utilities');
 
-const INDIVIDUAL = 'INDIVIDUAL_COM';
-const BUSINESS = 'TEAM_COM';
-const STUDENT = 'INDIVIDUAL_EDU';
-const UNIVERSITY = 'TEAM_EDU';
-
-// countries where tax is displayed for all segments by default
-const DISPLAY_ALL_TAX_COUNTRIES = [
-    'AT_de',
-    'AU_en',
-    'BE_en',
-    'BE_fr',
-    'BE_nl',
-    'BG_bg',
-    'CH_de',
-    'CH_fr',
-    'CH_it',
-    'CZ_cs',
-    'CO_es',
-    'DE_de',
-    'DK_da',
-    'EE_et',
-    'EG_ar',
-    'EG_en',
-    'ES_es',
-    'FI_fi',
-    'FR_fr',
-    'GB_en',
-    'GR_el',
-    'GR_en',
-    'HU_hu',
-    'ID_en',
-    'ID_id',
-    'ID_in',
-    'IE_en',
-    'IN_en',
-    'IN_hi',
-    'IT_it',
-    'JP_ja',
-    'KR_ko',
-    'LU_de',
-    'LU_en',
-    'LU_fr',
-    'LT_lt',
-    'LV_lv',
-    'MY_en',
-    'MY_ms',
-    'MU_en',
-    'NL_nl',
-    'NG_en',
-    'NO_nb',
-    'NZ_en',
-    'PE_es',
-    'PL_pl',
-    'PT_pt',
-    'RO_ro',
-    'SE_sv',
-    'SI_sl',
-    'SK_sk',
-    'SG_en',
-    'TH_en',
-    'TH_th',
-    'TR_tr',
-    'UA_uk',
-    'ZA_en',
-    'SA_ar',
-    'SA_en',
-    'MX_es',
-    'CL_es',
-    'PE_es',
-    'PH_en',
-    'PH_fil',
-    'VN_vi',
-    'VN_en',
-    'TW_zh',
-    'KE_en',
-    'GH_en',
-    'TZ_en',
-    'AM_en',
-    'AZ_en',
-    'GE_en',
-    'MD_en',
-    'KZ_en',
-    'KG_en',
-    'TJ_en',
-    'UZ_en',
-    'OM_en',
-    'BH_en',
-];
-
-// countries where tax is displayed by default for some segments only
-const DISPLAY_TAX_MAP = {
-    [INDIVIDUAL]: [],
-    [BUSINESS]: [],
-    [STUDENT]: [],
-    [UNIVERSITY]: [],
-};
-
-// For most countries where tax label is displayed the tax is included for Individuals and Students
-// and excluded for Business and Universities. This is the map of TaxExclusive values for other countries
-const TAX_EXCLUDED_MAP = {
-    ['MU_en']: [true, true, true, true],
-    ['NG_en']: [false, false, false, false],
-    ['AU_en']: [false, false, false, false],
-    ['JP_ja']: [false, false, false, false],
-    ['NZ_en']: [false, false, false, false],
-    ['TH_en']: [false, false, false, false],
-    ['TH_th']: [false, false, false, false],
-    ['ZA_en']: [false, false, false, false],
-    ['PE_es']: [false, false, false, false],
-};
-const TAX_EXCLUDED_MAP_INDEX = [INDIVIDUAL, BUSINESS, STUDENT, UNIVERSITY];
-const defaultTaxExcluded = (segment) =>
-    [BUSINESS, UNIVERSITY].includes(segment);
-
-/**
- * It returns the right tax config per locale. If both country and language are provided it will return
- * the tax config for that locale. If only country code is provided it will return the first tax config it finds
- * for that country.
- * @param {Object} map Map with tax configs per locale
- * @param {string} country country code
- * @param {string} language language code
- * @param {boolean} isArray true if map is an array, otherwise it is an object
- * @returns
- */
-function getTaxConfigFromMap(map, country, language, isArray) {
-    if (map[country]) return map[country];
-    const locale = `${country}_${language}`;
-    if (map[locale]) return map[locale];
-
-    let result;
-    if (isArray) {
-        result = map.find((item) => item.startsWith(`${country}_`));
-    } else {
-        const resultKey = Object.keys(map).find((key) =>
-            key.startsWith(`${country}_`),
-        );
-        result = resultKey ? map[resultKey] : null;
-    }
-    return result;
-}
-
-/**
- * Resolves the default value for forceTaxExclusive for the provided geo info and segments.
- * @param {string} country - uppercase country code e.g. US, AT, MX
- * @param {string} language - lowercase language code e.g. en, de, es
- * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
- * @param {string} marketSegment - market segment: COM or EDU
- * @returns {boolean} true if price will be displayed without tax, otherwise false (default)
- */
-const resolveTaxExclusive = (
-    country,
-    language,
-    customerSegment,
-    marketSegment,
-) => {
-    const segment = `${customerSegment}_${marketSegment}`;
-    const val = getTaxConfigFromMap(TAX_EXCLUDED_MAP, country, language, false);
-    if (val) {
-        const index = TAX_EXCLUDED_MAP_INDEX.indexOf(segment);
-        return val[index];
-    }
-
-    return defaultTaxExcluded(segment);
-};
-
-/**
- * Resolves the default value of displayTax property, for the provided geo info and segments.
- * @param {string} country - uppercase country code e.g. US, AT, MX
- * @param {string} language - lowercase language code e.g. en, de, es
- * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
- * @param {string} marketSegment - market segment: COM or EDU
- * @returns {boolean} true if tax label will be displayed, otherwise false (default)
- */
-const resolveDisplayTaxForGeoAndSegment = (
-    country,
-    language,
-    customerSegment,
-    marketSegment,
-) => {
-    if (getTaxConfigFromMap(DISPLAY_ALL_TAX_COUNTRIES, country, language, true))
-        return true;
-
-    const segmentConfig =
-        DISPLAY_TAX_MAP[`${customerSegment}_${marketSegment}`];
-    if (!segmentConfig) {
-        return Defaults.displayTax;
-    }
-
-    if (getTaxConfigFromMap(segmentConfig, country, language, true)) {
-        return true;
-    }
-
-    return Defaults.displayTax;
-};
+// Countries that display the tax label by default, for every segment.
+const TAX_LABEL_COUNTRIES = new Set(
+    `AM AT AU AZ BE BG BH CH CL CO CZ DE DK EE EG ES FI FR GB GE GH GR HU ID IE
+    IN IT JP KE KG KR KZ LT LU LV MD MU MX MY NG NL NO NZ OM PE PH PL PT RO SA
+    SE SG SI SK TH TJ TR TW TZ UA UZ VN ZA`.split(/\s+/),
+);
+// Where the tax label shows, TEAM prices exclude tax, except in these countries,
+// where every COM/EDU segment includes it, and in MU, where every one excludes it.
+const TAX_INCLUSIVE_COUNTRIES = new Set('AU JP NG NZ PE TH ZA'.split(' '));
+const SEGMENTS = ['INDIVIDUAL_COM', 'TEAM_COM', 'INDIVIDUAL_EDU', 'TEAM_EDU'];
 
 /**
  * Resolves default values of displayTax and forceTaxExclusive, based on provided geo info and segments extracted from offers object.
  * These values will be used when the query parameters "tax" and "exclusive" are not set in the merch link, and in OST for initial
  * values for checkboxes "Tax label" and "Include tax".
  * @param {string} country - uppercase country code e.g. US, AT, MX
- * @param {string} language - lowercase language code e.g. en, de, es
+ * @param {string} language - lowercase language code e.g. en, de, es; tax defaults do not depend on it
  * @param {string} customerSegment - customer segment: INDIVIDUAL or TEAM
  * @param {string} marketSegment - market segment: COM or EDU
- * @returns {Promise<{displayTax: boolean, forceTaxExclusive: boolean}>} A promise with boolean properties displayTax and forceTaxExclusive
+ * @returns {Promise<{displayTax: boolean, forceTaxExclusive: boolean | undefined}>} A promise with boolean properties
+ * displayTax and forceTaxExclusive; forceTaxExclusive is undefined for an unknown segment in an exception country
  */
 export const resolvePriceTaxFlags = async (
     country,
@@ -229,23 +46,20 @@ export const resolvePriceTaxFlags = async (
     customerSegment,
     marketSegment,
 ) => {
-    const displayTax = resolveDisplayTaxForGeoAndSegment(
-        country,
-        language,
-        customerSegment,
-        marketSegment,
-    );
-    return {
-        displayTax,
-        forceTaxExclusive: displayTax
-            ? resolveTaxExclusive(
-                  country,
-                  language,
-                  customerSegment,
-                  marketSegment,
-              )
-            : Defaults.forceTaxExclusive,
-    };
+    const displayTax = TAX_LABEL_COUNTRIES.has(country);
+    if (!displayTax) {
+        return {
+            displayTax: Defaults.displayTax,
+            forceTaxExclusive: Defaults.forceTaxExclusive,
+        };
+    }
+    const segment = `${customerSegment}_${marketSegment}`;
+    const known = SEGMENTS.includes(segment);
+    let forceTaxExclusive = known && segment.startsWith('TEAM');
+    if (country === 'MU' || TAX_INCLUSIVE_COUNTRIES.has(country)) {
+        forceTaxExclusive = known ? country === 'MU' : undefined;
+    }
+    return { displayTax, forceTaxExclusive };
 };
 
 /**
@@ -265,59 +79,42 @@ export async function resolvePriceOffers(
     priceOptions,
     featureFlags = {},
 ) {
-    // Select best offer from each OSI, then sum them
-    const selectedOffers = resolvedOfferArrays.map((offerArray) => {
-        const selected = selectOffers(offerArray, options);
-        return selected?.length ? selected[0] : null;
-    });
-    // Check if any offer selection failed. `selectOffers` only ever returns an
-    // empty array when its input was already empty (a non-empty offer array always
-    // yields exactly 1 selected offer), so this is the same "WCS resolved this OSI
-    // to zero offers" condition the live-fetch rejection in render reports — unify on
-    // the same message so its catch block only has one signal to check.
-    if (selectedOffers.some((offer) => !offer)) {
+    const select = () =>
+        resolvedOfferArrays.map((offers) => selectOffers(offers, options)[0]);
+    let offers = select();
+    // An OSI that WCS resolved to zero offers fails like the live fetch does.
+    if (offers.includes(undefined)) {
         throw new Error(ERROR_MESSAGE_OFFER_NOT_FOUND);
     }
-    let offers = selectedOffers;
-    const offer = sumOffers(selectedOffers, { logger: offerLog });
-
     if (featureFlags[FF_DEFAULTS] || options[FF_DEFAULTS]) {
+        // Combined offers keep the first offer's segments.
+        const [{ customerSegment, marketSegments }] = offers;
         if (priceOptions.displayPerUnit === undefined) {
-            options.displayPerUnit = offer.customerSegment !== 'INDIVIDUAL';
+            options.displayPerUnit = customerSegment !== 'INDIVIDUAL';
         }
-        // if displayTax or forceTaxExclusive is not set, we need to resolve the values based on the geo and segment
+        // Neither OST nor the merch link set them: default from geo and segment.
         if (
             priceOptions.displayTax === undefined ||
             priceOptions.forceTaxExclusive === undefined
         ) {
-            const { country, language } = options;
-            const [marketSegment = ''] = offer.marketSegments;
-            // set default value for displayTax and forceTaxExclusive if not set neither in OST nor in merch link
+            const [marketSegment = ''] = marketSegments;
             const flags = await resolvePriceTaxFlags(
-                country,
-                language,
-                offer.customerSegment,
+                options.country,
+                options.language,
+                customerSegment,
                 marketSegment,
             );
             if (priceOptions.displayTax === undefined) {
-                options.displayTax = flags?.displayTax || options.displayTax;
+                options.displayTax = flags.displayTax || options.displayTax;
             }
             if (priceOptions.forceTaxExclusive === undefined) {
                 options.forceTaxExclusive =
-                    flags?.forceTaxExclusive || options.forceTaxExclusive;
+                    flags.forceTaxExclusive || options.forceTaxExclusive;
             }
-            if (options.forceTaxExclusive) {
-                // Re-select offers with forceTaxExclusive applied, then re-sum
-                offers = resolvedOfferArrays.map((offerArray) => {
-                    const selected = selectOffers(offerArray, options);
-                    return selected?.length ? selected[0] : null;
-                });
-            }
+            if (options.forceTaxExclusive) offers = select();
         }
-    } else {
-        if (priceOptions.displayOldPrice === undefined) {
-            options.displayOldPrice = true;
-        }
+    } else if (priceOptions.displayOldPrice === undefined) {
+        options.displayOldPrice = true;
     }
 
     if (featureFlags[FF_ANNUAL_PRICE] && options.displayAnnual !== false) {
@@ -340,34 +137,43 @@ export async function resolvePriceOffers(
         ];
     }
 
-    // Sum the final offers for rendering
     return [sumOffers(offers, { logger: offerLog })];
 }
 
 /**
- * Renders the "no price available" fallback shown in the price slot when WCS
+ * Renders the localizable "no price available" fallback shown in the price slot when WCS
  * resolves an OSI to zero offers (200 OK, empty array) on the public side.
- * Sourced from price literals (defaultLiterals merged with any authored
- * override), never hardcoded, so it stays localizable.
  * @param {Record<string, any>} options - the render options in scope for this offer
  * @returns {string} markup for the fallback span
  */
-function renderPriceUnavailable({
-    country,
-    language,
-    literals: priceLiterals = {},
-}) {
-    const literals = { ...defaultLiterals, ...priceLiterals };
-    const locale = `${language.toLowerCase()}-${country.toUpperCase()}`;
-    const text = formatLiteral(
-        literals,
-        locale,
-        'priceUnavailableLabel',
-        {},
-        literalLog,
+const renderPriceUnavailable = ({ country, language, literals = {} }) =>
+    renderSpan(
+        'price-unavailable',
+        formatLiteral(
+            literals,
+            toLocale(language, country),
+            'priceUnavailableLabel',
+            {},
+            literalLog,
+        ),
     );
-    return renderSpan('price-unavailable', text);
-}
+
+// Options `createInlinePrice` writes to the element's dataset, in this order.
+const DATASET_OPTIONS = [
+    'displayOldPrice',
+    'displayPerUnit',
+    'displayRecurrence',
+    'displayTax',
+    'displayPlanType',
+    'displayAnnual',
+    'forceTaxExclusive',
+    'perpetual',
+    'promotionCode',
+    'quantity',
+    'alternativePrice',
+    'template',
+    'wcsOsi',
+];
 
 export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
     static is = 'inline-price';
@@ -392,37 +198,13 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
     static createInlinePrice(options) {
         const service = getService();
         if (!service) return null;
-        const {
-            displayOldPrice,
-            displayPerUnit,
-            displayRecurrence,
-            displayTax,
-            displayPlanType,
-            displayAnnual,
-            forceTaxExclusive,
-            perpetual,
-            promotionCode,
-            quantity,
-            alternativePrice,
-            template,
-            wcsOsi,
-        } = service.collectPriceOptions(options);
-        const element = createMasElement(InlinePrice, {
-            displayOldPrice,
-            displayPerUnit,
-            displayRecurrence,
-            displayTax,
-            displayPlanType,
-            displayAnnual,
-            forceTaxExclusive,
-            perpetual,
-            promotionCode,
-            quantity,
-            alternativePrice,
-            template,
-            wcsOsi,
-        });
-        return element;
+        const collected = service.collectPriceOptions(options);
+        return createMasElement(
+            InlinePrice,
+            Object.fromEntries(
+                DATASET_OPTIONS.map((key) => [key, collected[key]]),
+            ),
+        );
     }
 
     constructor() {
@@ -502,10 +284,8 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
             const version = this.masElement.togglePending({});
             this.innerHTML = '';
             // Resolve all OSI promises - if any fails, Promise.all rejects
-            const offerSelectorPromises =
-                service.resolveOfferSelectors(options);
             const resolvedOfferArrays = await Promise.all(
-                offerSelectorPromises,
+                service.resolveOfferSelectors(options),
             );
             const offers = await resolvePriceOffers(
                 resolvedOfferArrays,
@@ -528,7 +308,6 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
         }
     }
 
-    // TODO: can be extended to accept array of offers and compute subtotal price
     /**
      * Renders price offer as HTML of this component
      * using consonant price template functions
@@ -544,43 +323,7 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
         if (offers.length) {
             if (this.masElement.toggleResolved(version, offers, options)) {
                 this.innerHTML = service.buildPriceHTML(offers, this.options);
-
-                // Adding logic for options.alternativePrice to add <sr-only>Alternatively at</sr-only>
-                const parentEl = this.closest('p, h3, div');
-                if (
-                    !parentEl ||
-                    !parentEl.querySelector(
-                        'span[data-template="strikethrough"]',
-                    ) ||
-                    parentEl.querySelector('.alt-aria-label')
-                )
-                    return true;
-                const inlinePrices = parentEl?.querySelectorAll(
-                    'span[is="inline-price"]:not([data-template="legal"])',
-                );
-                if (
-                    inlinePrices.length > 1 &&
-                    inlinePrices.length ===
-                        parentEl.querySelectorAll(
-                            'span[data-template="strikethrough"]',
-                        ).length *
-                            2
-                ) {
-                    inlinePrices.forEach((price) => {
-                        if (
-                            price.dataset.template !== 'strikethrough' &&
-                            price.options &&
-                            !price.options.alternativePrice &&
-                            !price.isFailed
-                        ) {
-                            price.options.alternativePrice = true;
-                            price.innerHTML = service.buildPriceHTML(
-                                offers,
-                                price.options,
-                            );
-                        }
-                    });
-                }
+                renderAlternativePrices(this, offers, service);
                 return true;
             }
         } else {
@@ -594,6 +337,34 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
         }
         /* c8 ignore next 1 */
         return false;
+    }
+}
+
+/**
+ * Once the regular prices next to strikethrough prices have rendered, renders them again as
+ * alternative prices (with their "Alternatively at" label), using the offers just rendered.
+ */
+function renderAlternativePrices(inlinePrice, offers, service) {
+    const parent = inlinePrice.closest('p, h3, div');
+    const strikethroughs = parent?.querySelectorAll(
+        'span[data-template="strikethrough"]',
+    );
+    if (!strikethroughs?.length || parent.querySelector('.alt-aria-label'))
+        return;
+    const prices = parent.querySelectorAll(
+        'span[is="inline-price"]:not([data-template="legal"])',
+    );
+    if (prices.length !== strikethroughs.length * 2) return;
+    for (const price of prices) {
+        if (
+            price.dataset.template !== 'strikethrough' &&
+            price.options &&
+            !price.options.alternativePrice &&
+            !price.isFailed
+        ) {
+            price.options.alternativePrice = true;
+            price.innerHTML = service.buildPriceHTML(offers, price.options);
+        }
     }
 }
 

@@ -1,5 +1,1 @@
-import { createDiscountTemplate } from './template.js';
-
-const discount = createDiscountTemplate();
-
-export { discount };
+export { discount } from './template.js';

@@ -1,10 +1,5 @@
 import { isPositiveFiniteNumber } from '../helpers.js';
-import { defaultLiterals, formatLiteral, literalKeys as templateLiteralKeys } from '../price/template.js';
-
-const literalKeys = {
-    ...templateLiteralKeys,
-    discountLabel: 'discountLabel',
-};
+import { formatLiteral, toLocale } from '../price/template.js';
 
 const getDiscount = (price, priceWithoutDiscount) => {
     if (!priceWithoutDiscount && isPositiveFiniteNumber(price)) return 0;
@@ -13,41 +8,16 @@ const getDiscount = (price, priceWithoutDiscount) => {
 };
 
 /**
- * Renders the discount markup. The displayed text is locale-driven: a
- * `discountLabel` literal decides the format, so a new market's notation is a
- * content change, not a code change. The literal receives `discount` (percent
- * off) and `remainingPercent` (100 - discount) as parameters — subtraction
- * from a constant can't be expressed in ICU MessageFormat, so that one step
- * stays in JS. Everything else, including scaling and decimal precision, can
- * be done in the literal itself via ICU number skeletons, e.g.
- * `{remainingPercent, number, ::scale/0.1 .0}折` renders "3.5折" for a 65%
- * discount straight from `remainingPercent`, with no extra JS-computed value.
- * @param {PriceContext & PromoPriceContext} context
- * @param {PriceData} value
- * @param {PriceAttributes} attributes
- !* @returns {string} the discount markup
- !*/
-const createDiscountTemplate = () => (context, value) => {
-    const { country, language, literals: contextLiterals = {}, logger = console } = context ?? {};
-    const { price, priceWithoutDiscount } = value;
+ * Renders the discount markup. The `discountLabel` literal decides the
+ * locale's notation, so a new market's format is a content change. It
+ * receives `discount` (percent off) and `remainingPercent` (100 - discount),
+ * and can scale and round them with a number skeleton, e.g.
+ * `{remainingPercent, number, ::scale/0.1 .#}折` renders "3.5折" for 65% off.
+ */
+export function discount({ country, language, literals = {} }, { price, priceWithoutDiscount }, logger = console) {
     const discount = getDiscount(price, priceWithoutDiscount);
-    if (discount === undefined) {
-        return `<span class="no-discount"></span>`;
-    }
-
-    const literals = { ...defaultLiterals, ...contextLiterals };
-    const locale = language && country ? `${language.toLowerCase()}-${country.toUpperCase()}` : 'en-US';
-    const text = formatLiteral(
-        literals,
-        locale,
-        literalKeys.discountLabel,
-        {
-            discount,
-            remainingPercent: 100 - discount,
-        },
-        logger,
-    );
-    return `<span class="discount">${text}</span>`;
-};
-
-export { getDiscount, createDiscountTemplate };
+    if (discount === undefined) return '<span class="no-discount"></span>';
+    const locale = language && country ? toLocale(language, country) : 'en-US';
+    const parameters = { discount, remainingPercent: 100 - discount };
+    return `<span class="discount">${formatLiteral(literals, locale, 'discountLabel', parameters, logger)}</span>`;
+}

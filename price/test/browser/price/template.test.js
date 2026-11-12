@@ -6,11 +6,15 @@ import expectedMessages from '../../fixtures/message-format.expected.json' with 
 import { messageCases } from '../../fixtures/message-cases.js';
 import priceLiteralsJson from '../../../../web-components/price-literals.json' with { type: 'json' };
 import {
-    createPriceTemplate,
-    createPromoPriceTemplate,
-    createPriceWithAnnualTemplate,
-    createPromoPriceWithAnnualTemplate,
+    ALTERNATIVE,
+    PROMO_APPLIED,
+    PROMO_STRIKETHROUGH,
+    STRIKETHROUGH,
     formatLiteral,
+    renderPrice,
+    renderPriceWithAnnual,
+    renderPromoPrice,
+    renderPromoPriceWithAnnual,
 } from '../../../src/price/template.js';
 
 const context = {
@@ -71,32 +75,7 @@ function renderAndComparePrice(id, html) {
     expectHtml(el.innerHTML, snapshots[id]);
 }
 
-describe('function "createPriceTemplate"', () => {
-    describe('argument "attributes"', () => {
-        it('renders custom attributes having allowed types', function () {
-            const template = createPriceTemplate();
-            renderAndComparePrice(
-                'createPriceTemplate1',
-                template(context, value, {
-                    string: 's',
-                    json: '{ "foo" : "bar" }',
-                    number: 1,
-                    truthy: true,
-                    falsy: false,
-                    null: null,
-                    undefined: undefined,
-                    array: [1, 2, 3],
-                    object: { foo: 'bar' },
-                }),
-            );
-        });
-
-        it('does not throw if attributes are missing', () => {
-            const template = createPriceTemplate();
-            expect(() => template(context, value)).to.not.throw();
-        });
-    });
-
+describe('function "renderPrice"', () => {
     describe('displayPrice logic', () => {
         const promoValue = {
             formatString: '#0',
@@ -115,118 +94,72 @@ describe('function "createPriceTemplate"', () => {
         };
 
         it('uses priceWithoutDiscount when promotion exists but not applied (not alternative)', function () {
-            // isPromoApplied will be false when instant is before promotion start
-            const template = createPriceTemplate();
-            const promoContext = {
-                ...context,
-                isPromoApplied: false,
-            };
-            renderAndComparePrice('createPriceTemplatePromoNotApplied', template(promoContext, promoValue, {}));
+            renderAndComparePrice('createPriceTemplatePromoNotApplied', renderPrice(context, promoValue));
         });
 
         it('uses price when promotion exists but not applied and isAlternativePrice is true', function () {
-            const template = createPriceTemplate({ isAlternativePrice: true });
-            const promoContext = {
-                ...context,
-                isPromoApplied: false,
-            };
-            renderAndComparePrice('createPriceTemplatePromoNotAppliedAlternative', template(promoContext, promoValue, {}));
+            renderAndComparePrice(
+                'createPriceTemplatePromoNotAppliedAlternative',
+                renderPrice(context, promoValue, console, ALTERNATIVE),
+            );
         });
 
         it('uses priceWithoutDiscount when displayStrikethrough is true', function () {
-            const template = createPriceTemplate({
-                displayStrikethrough: true,
-            });
-            renderAndComparePrice('createPriceTemplateStrikethrough', template(context, valueDiscount, {}));
+            renderAndComparePrice(
+                'createPriceTemplateStrikethrough',
+                renderPrice(context, valueDiscount, console, STRIKETHROUGH),
+            );
         });
 
         it('uses priceWithoutDiscount when displayPromoStrikethrough is true', function () {
-            const template = createPriceTemplate({
-                displayPromoStrikethrough: true,
-            });
-            renderAndComparePrice('createPriceTemplatePromoStrikethrough', template(context, valueDiscount, {}));
+            renderAndComparePrice(
+                'createPriceTemplatePromoStrikethrough',
+                renderPrice(context, valueDiscount, console, PROMO_STRIKETHROUGH),
+            );
         });
 
         it('uses price in default case', function () {
-            const template = createPriceTemplate();
-            renderAndComparePrice('createPriceTemplateDefault', template(context, value, {}));
+            renderAndComparePrice('createPriceTemplateDefault', renderPrice(context, value));
         });
 
         it('uses price when promotion is applied', function () {
-            const template = createPriceTemplate();
-            const promoContext = {
-                ...context,
-                isPromoApplied: true,
-            };
-            renderAndComparePrice('createPriceTemplatePromoApplied', template(promoContext, promoValue, {}));
+            renderAndComparePrice('createPriceTemplatePromoApplied', renderPrice(context, promoValue, console, PROMO_APPLIED));
         });
     });
 });
 
-describe('function "createPromoPriceTemplate"', () => {
+describe('function "renderPromoPrice"', () => {
     it('displays both new & old prices', function () {
-        const template = createPromoPriceTemplate();
-        renderAndComparePrice(
-            'createPromoPriceTemplate1',
-            template(context, valueDiscount, {
-                string: 's',
-                json: '{ "foo" : "bar" }',
-                number: 1,
-                truthy: true,
-                falsy: false,
-                null: null,
-                undefined: undefined,
-                array: [1, 2, 3],
-                object: { foo: 'bar' },
-            }),
-        );
+        renderAndComparePrice('createPromoPriceTemplate1', renderPromoPrice(context, valueDiscount));
     });
     it('displays only new price in case old is the same than new', function () {
-        const template = createPromoPriceTemplate();
-        renderAndComparePrice(
-            'createPromoPriceTemplate2',
-            template(context, valueNotApplicableDiscount, {
-                string: 's',
-                json: '{ "foo" : "bar" }',
-                number: 1,
-                truthy: true,
-                falsy: false,
-                null: null,
-                undefined: undefined,
-                array: [1, 2, 3],
-                object: { foo: 'bar' },
-            }),
-        );
+        renderAndComparePrice('createPromoPriceTemplate2', renderPromoPrice(context, valueNotApplicableDiscount));
     });
     it('separates old/new price with a collapsible space when wrapClauses is set', () => {
-        const template = createPromoPriceTemplate();
-        expect(template(context, valueDiscount, {})).to.include('&nbsp;<span class="price price-alternative"');
-        const spaced = template({ ...context, wrapClauses: true }, valueDiscount, {});
+        expect(renderPromoPrice(context, valueDiscount)).to.include('&nbsp;<span class="price price-alternative"');
+        const spaced = renderPromoPrice({ ...context, wrapClauses: true }, valueDiscount);
         expect(spaced).to.not.include('&nbsp;<span class="price price-alternative"');
         expect(spaced).to.include('</span> <span class="price price-alternative"');
     });
 });
 
-describe('function "createPriceWithAnnualTemplate"', function () {
+describe('function "renderPriceWithAnnual"', function () {
     it('displays ABM with annual price', () => {
-        const template = createPriceWithAnnualTemplate();
-        renderAndComparePrice('createPriceWithAnnualTemplate1', template(context, valueAbm, {}));
+        renderAndComparePrice('createPriceWithAnnualTemplate1', renderPriceWithAnnual(context, valueAbm));
     });
 });
 
-describe('function "createPromoPriceWithAnnualTemplate"', function () {
+describe('function "renderPromoPriceWithAnnual"', function () {
     it('displays ABM with annual price and old price', () => {
-        const template = createPromoPriceWithAnnualTemplate();
         renderAndComparePrice(
             'createPromoPriceWithAnnualTemplate1',
-            template({ ...context, quantity: 1 }, valueDiscountAbm, {}),
+            renderPromoPriceWithAnnual({ ...context, quantity: 1 }, valueDiscountAbm),
         );
     });
     it('separates old/new price with a collapsible space when wrapClauses is set', () => {
-        const template = createPromoPriceWithAnnualTemplate();
         const ctx = { ...context, quantity: 1 };
-        expect(template(ctx, valueDiscountAbm, {})).to.include('&nbsp;<span class="price price-alternative"');
-        const spaced = template({ ...ctx, wrapClauses: true }, valueDiscountAbm, {});
+        expect(renderPromoPriceWithAnnual(ctx, valueDiscountAbm)).to.include('&nbsp;<span class="price price-alternative"');
+        const spaced = renderPromoPriceWithAnnual({ ...ctx, wrapClauses: true }, valueDiscountAbm);
         expect(spaced).to.not.include('&nbsp;<span class="price price-alternative"');
         expect(spaced).to.include('</span> <span class="price price-alternative"');
     });
@@ -261,14 +194,14 @@ describe('Promotion price display with annual template', () => {
         },
     };
 
-    const template = createPromoPriceWithAnnualTemplate();
+    const template = renderPromoPriceWithAnnual;
 
     it('displays annual price with promotion applied when promotion is active', () => {
         const promoContext = {
             ...basePromoContext,
             instant: '2024-12-01T00:00:00.000Z',
         };
-        renderAndComparePrice('annualTemplatePromo', template(promoContext, promoValue, {}));
+        renderAndComparePrice('annualTemplatePromo', template(promoContext, promoValue));
     });
 
     it('displays annual price with promotion applied when promotion is active #2', () => {
@@ -278,32 +211,28 @@ describe('Promotion price display with annual template', () => {
         };
         renderAndComparePrice(
             'annualTemplatePromo2',
-            template(
-                promoContext,
-                {
-                    price: 48.49,
-                    priceWithoutDiscount: 96.99,
-                    priceWithoutTax: 44.08,
-                    priceWithoutDiscountAndTax: 88.17,
-                    usePrecision: true,
-                    formatString: "'A$'#,##0.00",
-                    taxDisplay: 'TAX_INCLUSIVE_DETAILS',
-                    taxTerm: 'GST',
-                    commitment: 'YEAR',
-                    term: 'MONTHLY',
-                    promotion: {
-                        start: '2025-04-02T07:00:00.000Z',
-                        end: '2025-05-31T06:59:00.000Z',
-                        displaySummary: {
-                            outcomeType: 'PERCENTAGE_DISCOUNT',
-                            duration: 'P6M',
-                            amount: 50.0,
-                            minProductQuantity: 1,
-                        },
+            template(promoContext, {
+                price: 48.49,
+                priceWithoutDiscount: 96.99,
+                priceWithoutTax: 44.08,
+                priceWithoutDiscountAndTax: 88.17,
+                usePrecision: true,
+                formatString: "'A$'#,##0.00",
+                taxDisplay: 'TAX_INCLUSIVE_DETAILS',
+                taxTerm: 'GST',
+                commitment: 'YEAR',
+                term: 'MONTHLY',
+                promotion: {
+                    start: '2025-04-02T07:00:00.000Z',
+                    end: '2025-05-31T06:59:00.000Z',
+                    displaySummary: {
+                        outcomeType: 'PERCENTAGE_DISCOUNT',
+                        duration: 'P6M',
+                        amount: 50.0,
+                        minProductQuantity: 1,
                     },
                 },
-                {},
-            ),
+            }),
         );
     });
 
@@ -312,7 +241,7 @@ describe('Promotion price display with annual template', () => {
             ...basePromoContext,
             instant: '2024-11-15T03:02:37.000Z',
         };
-        renderAndComparePrice('annualTemplatePromoNotStarted', template(promoContext, promoValue, {}));
+        renderAndComparePrice('annualTemplatePromoNotStarted', template(promoContext, promoValue));
     });
 
     it('displays annual price based on regular price when promotion has expired', () => {
@@ -320,7 +249,7 @@ describe('Promotion price display with annual template', () => {
             ...basePromoContext,
             instant: '2030-03-01T08:59:00.000Z',
         };
-        renderAndComparePrice('annualTemplatePromoExpired', template(promoContext, promoValue, {}));
+        renderAndComparePrice('annualTemplatePromoExpired', template(promoContext, promoValue));
     });
 
     it('format price literals with links', () => {
@@ -357,7 +286,7 @@ describe('Promotion price display with annual template', () => {
         expect(format('discount', { remainingPercent: 70 })).to.equal('7折');
         expect(format('fixed', { remainingPercent: 100 })).to.equal('10.0折');
         expect(format('recurrence', {})).to.equal('');
-        expect(format('plural', { count: 2 })).to.equal('2 items');
+        expect(format('plural', { count: 2 })).to.equal('');
         expect(format('quoted', { x: 'y' })).to.equal("it's y");
         expect(format('noOther', { planType: 'ABM' })).to.equal('');
     });
@@ -388,17 +317,14 @@ describe('price-literals.json parity', () => {
     });
 });
 
-// ICU syntax authored overrides may use (plural, selectordinal, apostrophe
-// quoting, number styles and skeletons, dates), including invalid messages,
+// The ICU subset authored overrides may use (select, apostrophe quoting,
+// arguments, number skeletons), including invalid and unsupported messages,
 // which format to ''. Each message is formatted with a fixed value set per
 // group; expected values were recorded with intl-messageformat 9.13.
 describe('ICU message parity', () => {
     const valueSets = {
-        plural: [...[0, 1, 2, 3, 11, 22, '3.5'].map((n) => ({ n, m: n, g: 'a' })), {}],
         text: [{ x: 'X', y: 'Y', g: 'a' }, { x: 0, y: '', g: 'z' }, { x: null, y: undefined }, {}],
         number: [{ n: 1234567.891 }, { n: '0.5' }, { n: -1 }, {}],
-        date: [{ d: 1735732800000 }],
-        time: [{ d: 1735732800000 }, { d: 1735690500000 }],
     };
     const canonicalCases = messageCases(expectedMessages);
     const canonicalParameters = new Map(canonicalCases.map(({ id, parameters }) => [id, parameters]));
@@ -424,15 +350,12 @@ describe('ICU message parity', () => {
         });
     }
 
-    // The library's fraction-stem regex keeps state (`g` flag), so it rejects
-    // this message only on every other call. Recorded output would depend on
-    // call order; the port always rejects it, as the library's first call does.
-    it('rejects a fraction stem with two options', () => {
+    it('rejects a fraction stem with options', () => {
         expect(formatLiteral({ message: '{n, number, ::.00/@@#/w}' }, 'en', 'message', { n: 1 })).to.equal('');
     });
 
     it('formats in the default locale when none is given', () => {
-        const message = '{n, plural, other {# items}} {n, number}';
+        const message = '{n, number} {n, number, ::.00}';
         const format = (locale) => formatLiteral({ message }, locale, 'message', { n: 1234.5 });
         expect(format(undefined)).to.equal(format(new Intl.NumberFormat().resolvedOptions().locale));
     });

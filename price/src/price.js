@@ -1,17 +1,16 @@
 import {
-    price,
-    pricePromo,
-    priceOptical,
-    priceStrikethrough,
-    pricePromoStrikethrough,
-    priceAnnual,
-    priceWithAnnual,
-    pricePromoWithAnnual,
-    priceAlternative,
-    priceOpticalAlternative,
-    legal,
-} from './price/index.js';
-import { discount } from './discount/index.js';
+    ALTERNATIVE,
+    ANNUAL,
+    OPTICAL,
+    PROMO_STRIKETHROUGH,
+    STRIKETHROUGH,
+    renderPrice,
+    renderPriceWithAnnual,
+    renderPromoPrice,
+    renderPromoPriceWithAnnual,
+} from './price/template.js';
+import { legalTemplate } from './price/legal.js';
+import { discount } from './discount/template.js';
 
 /**
  * Renders already-resolved WCS offers and options, without collecting browser
@@ -19,31 +18,27 @@ import { discount } from './discount/index.js';
  */
 export function buildPriceHTML(offers, options, { logger = console } = {}) {
     if (!Array.isArray(offers) || !offers.length || !options) return '';
-    let method;
-    switch (options.template) {
-        case 'discount':
-            method = discount;
-            break;
-        case 'strikethrough':
-            method = priceStrikethrough;
-            break;
-        case 'promo-strikethrough':
-            method = pricePromoStrikethrough;
-            break;
-        case 'annual':
-            method = priceAnnual;
-            break;
-        case 'legal':
-            method = legal;
-            break;
-        default:
-            if (options.template === 'optical' && options.alternativePrice) method = priceOpticalAlternative;
-            else if (options.template === 'optical') method = priceOptical;
-            else if (options.displayAnnual && offers[0].planType === 'ABM') {
-                method = options.promotionCode && offers[0].promotion ? pricePromoWithAnnual : priceWithAnnual;
-            } else if (options.alternativePrice) method = priceAlternative;
-            else method = options.promotionCode && offers[0].promotion ? pricePromo : price;
-    }
     const [offer] = offers;
-    return method({ ...options, logger }, { ...offer, ...offer.priceDetails });
+    const value = { ...offer, ...offer.priceDetails };
+    const { template, alternativePrice } = options;
+    switch (template) {
+        case 'discount':
+            return discount(options, value, logger);
+        case 'legal':
+            return legalTemplate(options, value, logger);
+        case 'strikethrough':
+            return renderPrice(options, value, logger, STRIKETHROUGH);
+        case 'promo-strikethrough':
+            return renderPrice(options, value, logger, PROMO_STRIKETHROUGH);
+        case 'annual':
+            return renderPrice(options, value, logger, ANNUAL);
+        case 'optical':
+            return renderPrice(options, value, logger, OPTICAL | (alternativePrice ? ALTERNATIVE : 0));
+    }
+    const promotion = options.promotionCode && offer.promotion;
+    if (options.displayAnnual && offer.planType === 'ABM') {
+        return (promotion ? renderPromoPriceWithAnnual : renderPriceWithAnnual)(options, value, logger);
+    }
+    if (alternativePrice) return renderPrice(options, value, logger, ALTERNATIVE);
+    return (promotion ? renderPromoPrice : renderPrice)(options, value, logger);
 }

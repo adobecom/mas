@@ -1,26 +1,28 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { escapeHtml, toBoolean } from '../../src/helpers.js';
+import { toBoolean } from '../../src/helpers.js';
 import { discount } from '../../src/discount/index.js';
 import { legalTemplate } from '../../src/price/legal.js';
 import { formatMessage } from '../../src/price/message-format.js';
-import formatNumber from '../../src/price/numberFormat.js';
-import { createPriceTemplate } from '../../src/price/template.js';
+import { formatLiteral, renderPrice } from '../../src/price/template.js';
 import { formatRegularPrice, formatAnnualPrice } from '../../src/price/utilities.js';
 import { baseOffer, promotion, instant } from '../fixtures/cases.js';
 
 const value = { ...baseOffer, ...baseOffer.priceDetails };
 const options = { country: 'US', language: 'en' };
+// The formatted price as displayed, with a plain space for a currency space.
+const text = ({ currencySymbol, hasCurrencySpace, isCurrencyFirst, integer, decimalsDelimiter, decimals }) => {
+    const space = hasCurrencySpace ? ' ' : '';
+    const amount = integer + decimalsDelimiter + decimals;
+    return isCurrencyFirst ? currencySymbol + space + amount : amount + space + currencySymbol;
+};
 
 describe('formatting helper edge contracts', () => {
-    it('escapes an absent value as empty text', () => {
-        assert.equal(escapeHtml(undefined), '');
+    it('leaves an unrecognized boolean string undecided', () => {
+        assert.equal(toBoolean('unknown'), undefined);
     });
-    it('uses the caller boolean default for an unrecognized string', () => {
-        assert.equal(toBoolean('unknown', false), false);
-    });
-    it('uses the default discount locale when context is absent', () => {
-        assert.equal(discount(undefined, { price: 35, priceWithoutDiscount: 100 }), '<span class="discount">65%</span>');
+    it('uses the default discount locale without country and language', () => {
+        assert.equal(discount({}, { price: 35, priceWithoutDiscount: 100 }), '<span class="discount">65%</span>');
     });
     it('renders the tax-exclusive legal literal', () => {
         const actual = legalTemplate(
@@ -30,37 +32,16 @@ describe('formatting helper edge contracts', () => {
         assert.match(actual, /<span class="price-tax-inclusivity">excl\. VAT<\/span>/);
     });
     it('preserves an unformatted currency-prefix space', () => {
-        const actual = createPriceTemplate()(
-            { ...options, displayFormatted: false },
-            { ...value, formatString: "'US$' #,##0.00" },
-        );
+        const actual = renderPrice({ ...options, displayFormatted: false }, { ...value, formatString: "'US$' #,##0.00" });
         assert.equal(actual, '<span class="price">US$\u00a029.99/mo</span>');
     });
     it('preserves an unformatted currency-suffix space', () => {
-        const actual = createPriceTemplate()(
-            { ...options, displayFormatted: false },
-            { ...value, formatString: "#,##0.00 '€'" },
-        );
+        const actual = renderPrice({ ...options, displayFormatted: false }, { ...value, formatString: "#,##0.00 '€'" });
         assert.equal(actual, '<span class="price">29.99\u00a0€/mo</span>');
     });
     it('omits an unrequested unformatted currency-suffix space', () => {
-        const actual = createPriceTemplate()(
-            { ...options, displayFormatted: false },
-            { ...value, formatString: "#,##0.00'€'" },
-        );
+        const actual = renderPrice({ ...options, displayFormatted: false }, { ...value, formatString: "#,##0.00'€'" });
         assert.equal(actual, '<span class="price">29.99€/mo</span>');
-    });
-    it('infers a comma decimal delimiter for a dot-grouped integer mask', () => {
-        assert.equal(
-            formatRegularPrice({ ...value, formatString: "'€'#.##0", price: 1234, usePrecision: false }).accessiblePrice,
-            '€1.234',
-        );
-    });
-    it('formats an integer mask without grouping', () => {
-        assert.equal(formatRegularPrice({ ...value, formatString: "'¥'#0", usePrecision: false }).accessiblePrice, '¥30');
-    });
-    it('formats a price mask without a currency symbol', () => {
-        assert.equal(formatRegularPrice({ ...value, formatString: '#0.00' }).accessiblePrice, '29.99');
     });
     it('uses empty decimals for an integer-only WCS leaf', () => {
         assert.equal(formatRegularPrice({ ...value, preformatted: { integer: '100', full: '100' } }).decimals, '');
@@ -72,58 +53,79 @@ describe('formatting helper edge contracts', () => {
             instant,
             promotion: { ...promotion, displaySummary: { ...promotion.displaySummary, outcomeType: 'OTHER' } },
         });
-        assert.equal(actual.accessiblePrice, 'US$359.88');
+        assert.equal(text(actual), 'US$359.88');
     });
 });
 
-describe('number mask edge contracts', () => {
-    for (const { name, mask, amount, settings, expected } of [
-        { name: 'retains literal prefix and suffix', mask: 'USD #,##0.00 end', amount: 1234.5, expected: 'USD 1,234.50 end' },
-        { name: 'uses default separators for a delimiter-free mask', mask: '#0', amount: 12, expected: '12' },
-        { name: 'omits optional trailing decimals', mask: '#.##', amount: 1, expected: '1' },
-        { name: 'drops the sign on a rounded zero', mask: '#0', amount: -0.1, expected: '0' },
-        { name: 'adds an explicit positive sign', mask: '+#0', amount: 12, expected: '+12' },
-        { name: 'retains a negative sign with a positive-sign mask', mask: '+#0', amount: -12, expected: '-12' },
-        { name: 'allows absent sign settings', mask: '#0', amount: -12, settings: null, expected: '-12' },
-        {
-            name: 'suppresses an unrequested negative sign when enforced',
-            mask: '#0',
-            amount: -12,
-            settings: { enforceMaskSign: true },
-            expected: '12',
-        },
-        {
-            name: 'retains a requested negative sign when enforced',
-            mask: '-#0',
-            amount: -12,
-            settings: { enforceMaskSign: true },
-            expected: '-12',
-        },
-        { name: 'pads required leading zeroes', mask: '00000.00', amount: 1.2, expected: '00001.20' },
-        { name: 'omits an optional zero integer', mask: '#', amount: 0, expected: '' },
-        { name: 'groups multiple thousands', mask: '#,##0.00', amount: 1234567.89, expected: '1,234,567.89' },
-        { name: 'returns the original amount for an empty mask', mask: '', amount: 12, expected: 12 },
-        { name: 'returns a nonnumeric input unchanged', mask: '#0', amount: 'not a number', expected: 'not a number' },
+describe('currency format contracts', () => {
+    const format = (formatString, price, usePrecision = true) =>
+        text(formatRegularPrice({ ...value, formatString, price, usePrecision }));
+    for (const [name, formatString, price, usePrecision, expected] of [
+        ['groups multiple thousands', "'US$'#,##0.00", 1234567.891, true, 'US$1,234,567.89'],
+        ['groups with a space and a comma decimal', "# ##0,00 'DKK'", 1200.24, true, '1 200,24 DKK'],
+        ['groups with a dot and a comma decimal', "#.##0,00 '€'", 1200.24, true, '1.200,24 €'],
+        ['infers a comma decimal delimiter for a dot-grouped integer mask', "'€'#.##0", 1234, false, '€1.234'],
+        ['formats an integer mask without grouping', "'¥'#0", 29.99, false, '¥30'],
+        ['rounds to an integer without precision', "'US$'#,##0.00", 1234.5, false, 'US$1,235'],
+        ['formats a price mask without a currency symbol', '#0.00', 29.99, true, '29.99'],
+        ['keeps the sign of a negative amount', "'US$'#,##0.00", -1234.5, true, 'US$-1,234.50'],
+        ['keeps the sign of a negative amount rounded to zero cents', "'US$'#,##0.00", -0.001, true, 'US$-0.00'],
+        ['drops the sign of a negative amount rounded to zero', "'¥'#,##0", -0.3, false, '¥0'],
+        ['keeps the mask decimals in the integer without a precision flag', "'US$'#,##0.00", 1234.5, undefined, 'US$1,234.50'],
     ]) {
         it(name, () => {
-            assert.equal(formatNumber(mask, amount, settings), expected);
+            assert.equal(format(formatString, price, usePrecision), expected);
         });
     }
+    it('renders the mask decimals as integer digits without a precision flag', () => {
+        const { integer, decimalsDelimiter, decimals } = formatRegularPrice({ ...value, usePrecision: undefined });
+        assert.deepEqual([integer, decimalsDelimiter, decimals], ['29.99', '', '']);
+    });
+    it('groups Indian prices in lakhs and crores', () => {
+        const parts = (usePrecision) => formatRegularPrice({ ...value, price: 12345678.9, usePrecision, isIndianPrice: true });
+        assert.equal(text(parts(true)), 'US$1,23,45,678.90');
+        assert.equal(text(parts(false)), 'US$1,23,45,679');
+    });
 });
 
-describe('ICU parsing and locale edge contracts', () => {
-    for (const [name, message, parameters, error] of [
-        ['rejects an unsafe plural offset', '{n, plural, offset:9007199254740992 other {x}}', { n: 1 }, SyntaxError],
-        ['rejects an empty number style', '{n, number, }', { n: 1 }, SyntaxError],
-        ['rejects an unterminated number style', '{n, number, integer', { n: 1 }, SyntaxError],
-        ['rejects multiple fraction-precision options', '{n, number, ::.00/foo/bar}', { n: 1 }, RangeError],
+describe('ICU subset contracts', () => {
+    for (const [name, message] of [
+        ['plural', '{n, plural, one {# item} other {# items}}'],
+        ['selectordinal', '{n, selectordinal, one {#st} other {#th}}'],
+        ['date', '{n, date, short}'],
+        ['time', '{n, time}'],
+        ['a named number style', '{n, number, percent}'],
+        ['an unsupported number skeleton stem', '{n, number, ::currency/USD}'],
+        ['a fraction stem with options', '{n, number, ::.00/w}'],
+        ['a number skeleton without stems', '{n, number, ::}'],
+        ['an empty number style', '{n, number, }'],
+        ['an unterminated number style', '{n, number, ::.00'],
+        ['an unclosed number argument', '{n, number'],
+        ['a select without other', '{n, select, a {A}}'],
+        ['a duplicate select key', '{n, select, other {a} other {b}}'],
+        ['an unterminated select case', '{n, select, other {a'],
+        ['an unclosed select', '{n, select, other {a}'],
+        ['an unknown argument type', '{n, foo}'],
+        ['an argument without a name', '{}'],
     ]) {
-        it(name, () => {
-            assert.throws(() => formatMessage(message, 'en-US', parameters), error);
+        it(`rejects ${name} like an invalid message`, () => {
+            const errors = [];
+            const actual = formatLiteral(
+                { label: message },
+                'en-US',
+                'label',
+                { n: 1 },
+                { error: (...args) => errors.push(args) },
+            );
+            assert.equal(actual, '');
+            assert.deepEqual(errors, [['Failed to format literal:', message]]);
         });
     }
-    it('formats a narrow era skeleton', () => {
-        assert.equal(formatMessage('{d, date, ::GGGGG}', 'en-US', { d: Date.UTC(2025, 0, 1) }), '1/1/2025 A');
+    it('rejects a missing value', () => {
+        assert.throws(() => formatMessage('{n}', 'en-US', {}));
+    });
+    it('rejects an invalid locale', () => {
+        assert.throws(() => formatMessage('plain', 'en_US', {}), RangeError);
     });
     it('uses the runtime default locale when none is supplied', () => {
         assert.equal(formatMessage('literal', undefined), 'literal');
@@ -131,18 +133,14 @@ describe('ICU parsing and locale edge contracts', () => {
     it('uses the formatting fallback for a valid but unsupported locale', () => {
         assert.equal(formatMessage('{n, number}', 'zz-ZZ', { n: 123 }), '123');
     });
-    it('respects a locale hour-cycle extension', () => {
-        assert.equal(formatMessage('{d, time, ::jmm}', 'en-US-u-hc-h23', { d: Date.UTC(2025, 0, 1, 0, 15) }), '00:15');
+    it('formats the same message for several locales', () => {
+        const message = '{n, number, ::.00}';
+        assert.equal(formatMessage(message, 'en-US', { n: 1234.5 }), '1,234.50');
+        assert.equal(formatMessage(message, 'de-DE', { n: 1234.5 }), '1.234,50');
+        assert.equal(formatMessage(message, 'en-US', { n: 0.5 }), '0.50');
     });
-    it('resolves the locale hour cycle when hourCycles is unavailable', (context) => {
-        context.mock.getter(Intl.Locale.prototype, 'hourCycles', () => undefined);
-        assert.equal(formatMessage('{d, time, ::jmm}', 'en-US', { d: Date.UTC(2025, 0, 1, 0, 15) }), '12:15 AM');
-    });
-    it('rejects an unsupported runtime hour cycle', (context) => {
-        context.mock.getter(Intl.Locale.prototype, 'hourCycles', () => ['unsupported']);
-        assert.throws(
-            () => formatMessage('{d, time, ::jmm}', 'en-US', { d: Date.UTC(2025, 0, 1) }),
-            /Invalid message: unsupported/,
-        );
+    it('falls back to the default literal only when the key is absent', () => {
+        assert.equal(formatLiteral({}, 'en-US', 'priceUnavailableLabel', {}), 'no price available');
+        assert.equal(formatLiteral({ priceUnavailableLabel: null }, 'en-US', 'priceUnavailableLabel', {}), '');
     });
 });

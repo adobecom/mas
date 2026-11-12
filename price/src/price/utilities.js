@@ -1,378 +1,125 @@
-// Utilities copied from `@pandora/react-price` library
-// https://git.corp.adobe.com/PandoraUI/commerce/tree/master/packages/react-price/src/js/utils/
-//      price-util.ts
-//      FormatStringHelpers.ts
-// import { RecurrenceTerm } from '@pandora/react-price';
 import { Commitment, Term } from '../constants.js';
-import formatNumber from './numberFormat.js';
-
-const DECIMAL_POINT = '.';
-const DECIMAL_COMMA = ',';
-const SPACE_START_PATTERN = /^\s+/;
-const SPACE_END_PATTERN = /\s+$/;
-const NBSP = '&nbsp;';
-
-const getAnnualPrice = (price) => price * 12;
 
 /**
- * Checks if a promotion is currently active.
- *
- * @param {Object} promotion - The promotion object.
- * @param {string} promotion.start - The start date of the promotion in ISO format.
- * @param {string} promotion.end - The end date of the promotion in ISO format.
- * @param {Object} promotion.displaySummary - The display summary of the promotion.
- * @param {number} promotion.displaySummary.amount - The amount of the promotion, (e.g: in percentage).
- * @param {number} promotion.displaySummary.duration - The duration of the promotion.
- * @param {number} promotion.displaySummary.minProductQuantity - The minimum product quantity for the promotion.
- * @param {string} promotion.displaySummary.outcomeType - The outcome type of the promotion.
- * @param {string} [instant] - An optional date string to use as the current date. If not provided, the current date is used.
- * @param {number} quantity - The quantity of the product.
- * @returns {boolean} - Returns true if the promotion is active, false otherwise.
+ * Whether `promotion` is active at `instant` (default: now) for `quantity`:
+ * it needs an amount, duration, outcome type, start and end.
  */
-const isPromotionActive = (promotion, instant, quantity = 1) => {
+export const isPromotionActive = (promotion, instant, quantity = 1) => {
     if (!promotion) return false;
     const { start, end, displaySummary: { amount, duration, minProductQuantity = 1, outcomeType } = {} } = promotion;
-    if (!(amount && duration && outcomeType)) {
-        return false;
-    }
-    if (quantity < minProductQuantity) {
-        return false;
-    }
+    if (!(amount && duration && outcomeType && start && end) || quantity < minProductQuantity) return false;
     const now = instant ? new Date(instant) : new Date();
-    if (!start || !end) {
-        return false;
-    }
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    return now >= startDate && now <= endDate;
+    return now >= new Date(start) && now <= new Date(end);
 };
 
-// TODO: @pandora/react-price does not have "module" field in package.json and is bundled entirely by Webpack
-const RecurrenceTerm = {
-    MONTH: 'MONTH',
-    YEAR: 'YEAR',
+/** Months in each term, to show a per-month (optical) price. */
+const OPTICAL_DIVISORS = { [Term.ANNUAL]: 12, [Term.MONTHLY]: 1, [Term.TWO_YEARS]: 24, [Term.THREE_YEARS]: 36 };
+
+const getRecurrenceTerm = (commitment, term) => {
+    if (term === Term.MONTHLY && (commitment === Commitment.YEAR || commitment === Commitment.MONTH)) return 'MONTH';
+    if (term === Term.ANNUAL && commitment === Commitment.YEAR) return 'YEAR';
 };
 
-/**
- * Number of months in each commitment term.
- * Used to calculate per-month price for a given term.
- */
-const opticalPriceDivisors = {
-    [Term.ANNUAL]: 12,
-    [Term.MONTHLY]: 1,
-    [Term.THREE_YEARS]: 36,
-    [Term.TWO_YEARS]: 24,
-};
+const formats = new Map();
 
 /**
- * Creates and returns a rule for rounding optical prices based on price characteristics.
- * @param { ({ price: number, divisor: number, usePrecision: boolean }) => boolean } accept
- * A function returning true if this rule should be applied to the price being rounded.
- * @param { ({ price: number, divisor: number, usePrecision: boolean }) => number } round
- * A function applying the rule to the price.
+ * Parses a WCS currency format, e.g. `'US$'#,##0.00` or `#.##0,00 '€'`: the quoted
+ * currency symbol and its placement, and the number mask `#<group>##0<decimal>00`.
  */
-const opticalPriceRoundingRule = (accept, round) => ({ accept, round });
+function parseFormat(formatString) {
+    if (formats.has(formatString)) return formats.get(formatString);
+    const currencySymbol = formatString.match(/'(.*?)'/)?.[1] ?? '';
+    const mask = formatString.replace(/'.*?'/, '');
+    const [, integerMask, decimal = '', fraction = ''] = mask.trim().match(/^(.*?0)(?:(\D)(0+))?$/);
+    const separator = integerMask.match(/[^#0]/)?.[0];
+    const groupSize = integerMask.length - integerMask.lastIndexOf(separator) - 1;
+    const format = {
+        currencySymbol,
+        isCurrencyFirst: formatString.startsWith(`'${currencySymbol}'`),
+        hasCurrencySpace: /^\s|\s$/.test(mask),
+        decimal,
+        fractionDigits: fraction.length,
+        separator,
+        group: separator && new RegExp(`\\B(?=(\\d{${groupSize}})+$)`, 'g'),
+    };
+    formats.set(formatString, format);
+    return format;
+}
+
+function formatNumber(amount, digits, { decimal, separator, group }) {
+    const [integer, fraction] = Math.abs(amount).toFixed(digits).split('.');
+    const sign = amount < 0 && (digits || integer !== '0') ? '-' : '';
+    return sign + (separator ? integer.replace(group, separator) : integer) + (fraction ? decimal + fraction : '');
+}
 
 /**
- * List of rules for rounding optical prices.
- * The first rule accepting the price will round it.
+ * Splits `amount` into the parts rendered by the price template. A WCS
+ * pre-split leaf (`preformatted`) is used verbatim, with the symbol and its
+ * placement from `priceInfoFormat` when present. Otherwise `usePrecision`
+ * true renders the mask's decimals separately, undefined keeps them in the
+ * integer part, and any other value rounds to an integer.
  */
-const opticalPriceRoundingRules = [
-    opticalPriceRoundingRule(
-        // optical price for the term is a multiple of the initial price
-        ({ divisor, price }) => price % divisor == 0,
-        ({ divisor, price }) => price / divisor,
-    ),
-    opticalPriceRoundingRule(
-        // round optical price up to 2 decimals
-        ({ usePrecision }) => usePrecision,
-        ({ divisor, price }) => Math.round((price / divisor) * 100.0) / 100.0,
-    ),
-    opticalPriceRoundingRule(
-        // round optical price up to integer
-        () => true,
-        ({ divisor, price }) => Math.ceil(Math.floor((price * 100) / divisor) / 100),
-    ),
-];
-
-const recurrenceTerms = {
-    [Commitment.YEAR]: {
-        [Term.MONTHLY]: RecurrenceTerm.MONTH,
-        [Term.ANNUAL]: RecurrenceTerm.YEAR,
-    },
-    [Commitment.MONTH]: {
-        [Term.MONTHLY]: RecurrenceTerm.MONTH,
-    },
-};
-
-/**
- * @param { string} formatString
- * @param { string } currencySymbol
- */
-export const currencyIsFirstChar = (formatString, currencySymbol) => formatString.indexOf(`'${currencySymbol}'`) === 0;
-
-// Below implementation assumes that general numberMask start with `#` and end with `0` and decimal parts are only using `0`s.
-// The return result should always contain both integer and decimal delimiters.
-/**
- * @param { string } formatString
- * @param { boolean } usePrecision
- * @returns { string }
- */
-const extractNumberMask = (formatString, usePrecision = true) => {
-    let numberMask = formatString.replace(/'.*?'/, '').trim();
-    const decimalsDelimiter = findDecimalsDelimiter(numberMask);
-    const hasDecimalDelimiter = !!decimalsDelimiter;
-
-    if (!hasDecimalDelimiter) {
-        // Append the decimal delimiter to the string format `#.*0`. `$&` means the matched regex string.
-        // As the formatString could be container non-symbol like `A #,##0.00 B` so using regex here.
-        numberMask = numberMask.replace(/\s?(#.*0)(?!\s)?/, `$&${getPossibleDecimalsDelimiter(formatString)}`);
-    } else if (!usePrecision) {
-        // Trim the 0s after the decimalsDelimiter. `#,##0.00` will become `#,##0.`
-        numberMask = numberMask.replace(/[,\.]0+/, decimalsDelimiter);
-    }
-
-    return numberMask;
-};
-
-/**
- * Extracts the currency symbol from the specified format string and returns the
- * currency symbol along with other values indicating how it is to be displayed
- * (for example, so that it can be inserted into markup correctly)
- * @param formatString The currency format string (for example, "'US$ '#,##0.00")
- * @returns { {
- *  currencySymbol: string;
- *  isCurrencyFirst: boolean;
- *  hasCurrencySpace: boolean;
- * } }
- */
-const getCurrencySymbolDetails = (formatString) => {
-    const currencySymbol = findCurrencySymbol(formatString);
-    const isCurrencyFirst = currencyIsFirstChar(formatString, currencySymbol);
-    const formatStringWithoutSymbol = formatString.replace(/'.*?'/, '');
-    const hasCurrencySpace =
-        SPACE_START_PATTERN.test(formatStringWithoutSymbol) || SPACE_END_PATTERN.test(formatStringWithoutSymbol);
-    return { currencySymbol, isCurrencyFirst, hasCurrencySpace };
-};
-
-/**
- * Converts the spaces around the text to non-breaking spaces.
- * @param {string} text
- * @returns {string}
- */
-const makeSpacesAroundNonBreaking = (text) => {
-    return text.replace(SPACE_START_PATTERN, NBSP).replace(SPACE_END_PATTERN, NBSP);
-};
-
-// When there is one delimiter in the formatString, it would be considered as a decimal delimiter by the library 'number-format.js' used in the package.
-// But Adobe system would expect that only delimiter (used between #) be integer delimiter.
-// This method determines what should be the decimal delimiter by checking the only (integer) delimiter.
-// It should be called when findDecimalsDelimiter function couldn't find out a decimal delimiter.
-// Note: This is based on the assumption that integer delimiter is used between `#`.
-/**
- * @param { string } formatString
- * @returns { string }
- */
-const getPossibleDecimalsDelimiter = (formatString) =>
-    formatString.match(/#(.?)#/)?.[1] === DECIMAL_POINT ? DECIMAL_COMMA : DECIMAL_POINT;
-
-/**
- * @param { string } formatString
- * @returns { string }
- */
-const findCurrencySymbol = (formatString) => formatString.match(/'(.*?)'/)?.[1] ?? '';
-
-// This is based on the assumption that decimal delimiter is used between `0`
-/**
- * @param { string } formatString
- * @returns { string }
- */
-const findDecimalsDelimiter = (formatString) => formatString.match(/0(.?)0/)?.[1] ?? '';
-
-/**
- * Indexes the WCS priceInfo tree and returns the pre-split leaf for the value
- * shown: `priceInfo[timescale][discountState].withTax`. Returns undefined when
- * WCS carries no such leaf, so the caller falls back to numeric formatting.
- *
- * Always the tax-inclusive (`withTax`) leaf, mirroring the numeric path.
- * `taxDisplay` only picks the incl./excl. legal line, not a different number.
- * The `withoutTax` leaves are not display values: WCS sends 0 on offers with no
- * separate net amount (e.g. trials), so reading them would render 0.00.
- * @param {object} args
- * @param {object} args.priceInfo - WCS priceInfo tree
- * @param {boolean} args.showWithoutDiscount - whether the pre-discount price is shown
- * @param {boolean} args.displayAnnual - whether the annualized value is shown
- * @param {boolean} args.displayOptical - whether the per-month equivalent is shown
- * @param {string} [args.commitment] - offer commitment
- * @param {string} [args.term] - offer term
- * @param {object} [args.promotion] - active promotion, if any
- * @returns {{ integer: string, decimals?: string, full: string } | undefined}
- */
-const selectPreformattedPrice = ({
-    priceInfo,
-    showWithoutDiscount,
-    displayAnnual,
-    displayOptical,
-    commitment,
-    term,
-    promotion,
-}) => {
-    // Promo-weighted annual totals depend on request-time promo resolution and
-    // are still summed client-side, so WCS has no matching leaf.
-    if (displayAnnual && promotion) return undefined;
-    // `formatAnnualPrice` only annualizes YEAR/MONTHLY and renders the plain
-    // price otherwise, so the annualized leaf is gated the same way: a
-    // `template="annual"` M2M card would otherwise pair annual digits with a
-    // /mo label. Other commitments fall through to `asIs`, matching what the
-    // numeric path renders. WCS sends no `annualized` block for those offers
-    // today, so this only guards against contract drift.
-    const isAnnualized = displayAnnual && commitment === Commitment.YEAR && term === Term.MONTHLY;
-    const timescale = isAnnualized ? 'annualized' : displayOptical ? 'optical' : 'asIs';
-    const discountState = showWithoutDiscount ? 'withoutDiscount' : 'withDiscount';
-    return priceInfo[timescale]?.[discountState]?.withTax;
-};
-
-// Utilities, specific to tacocat needs.
-
-/**
- * Formats a price according to the specified format string and currency rules.
- *
- * @param {object} options - The formatting options
- * @param {string} options.formatString - The currency format string (e.g., "'US$ '#,##0.00")
- * @param {number} options.price - The price value to format
- * @param {boolean} options.usePrecision - Whether to include decimal precision in the formatted price
- * @param {boolean} [options.isIndianPrice=false] - Whether to use Indian locale-specific formatting
- * @param {object} [options.preformatted] - WCS pre-split leaf { integer, decimals, full }, used verbatim when present
- * @param {object} [options.priceInfoFormat] - WCS priceInfo.format: currency symbol and its placement
- * @param {string} recurrenceTerm - The recurrence term (MONTH or YEAR) for the price
- * @param {function} [transformPrice=(price) => price] - Optional function to transform the price before formatting
- * @returns {{
- *   accessiblePrice: string,
- *   currencySymbol: string,
- *   decimals: string,
- *   decimalsDelimiter: string,
- *   hasCurrencySpace: boolean,
- *   integer: string,
- *   isCurrencyFirst: boolean,
- *   recurrenceTerm: string
- * }} Formatted price object containing the accessible price string and formatting details
- *
- */
-function formatPrice(
-    { formatString, price, usePrecision, isIndianPrice = false, preformatted, priceInfoFormat },
-    recurrenceTerm,
-    transformPrice = (formattedPrice) => formattedPrice,
-) {
-    const { currencySymbol, isCurrencyFirst, hasCurrencySpace } = getCurrencySymbolDetails(formatString);
-    // WCS already split the digits and grouped them for the locale: render them
-    // verbatim, no client number formatting. Symbol and placement come from
-    // priceInfo.format, with derived values as fallback when it is absent.
+function formatPrice({ formatString, usePrecision, isIndianPrice, preformatted, priceInfoFormat }, amount, recurrenceTerm) {
+    const format = parseFormat(formatString);
+    const { currencySymbol, isCurrencyFirst, hasCurrencySpace, decimal } = format;
     if (preformatted?.integer != null) {
         return {
-            accessiblePrice: preformatted.full,
             currencySymbol: priceInfoFormat?.currencySymbol ?? currencySymbol,
             decimals: preformatted.decimals ?? '',
-            decimalsDelimiter: !preformatted.decimals
-                ? ''
-                : (priceInfoFormat?.decimalsDelimiter ?? findDecimalsDelimiter(formatString)),
+            decimalsDelimiter: preformatted.decimals ? (priceInfoFormat?.decimalsDelimiter ?? decimal) : '',
             hasCurrencySpace: priceInfoFormat?.hasCurrencySpace ?? hasCurrencySpace,
             integer: preformatted.integer,
             isCurrencyFirst: priceInfoFormat?.isCurrencyFirst ?? isCurrencyFirst,
             recurrenceTerm,
         };
     }
-    const decimalsDelimiter = usePrecision ? findDecimalsDelimiter(formatString) : '';
-    const numberMask = extractNumberMask(formatString, usePrecision);
-    const fractionDigits = usePrecision ? 2 : 0;
-    const transformedPrice = transformPrice(price, { currencySymbol });
-    const formattedPrice = isIndianPrice
-        ? transformedPrice.toLocaleString('hi-IN', {
-              minimumFractionDigits: fractionDigits,
-              maximumFractionDigits: fractionDigits,
+    // India groups digits in lakh/crore, which the mask cannot express.
+    const formatted = isIndianPrice
+        ? amount.toLocaleString('hi-IN', {
+              minimumFractionDigits: usePrecision ? 2 : 0,
+              maximumFractionDigits: usePrecision ? 2 : 0,
           })
-        : formatNumber(numberMask, transformedPrice);
-    const decimalIndex = usePrecision ? formattedPrice.lastIndexOf(decimalsDelimiter) : formattedPrice.length;
-    const integer = formattedPrice.substring(0, decimalIndex);
-    const decimals = formattedPrice.substring(decimalIndex + 1);
-    const accessiblePrice = formatString
-        .replace(/'.*?'/, 'SYMBOL')
-        .replace(/#.*0/, formattedPrice)
-        .replace(/SYMBOL/, currencySymbol);
+        : formatNumber(amount, usePrecision === undefined || usePrecision ? format.fractionDigits : 0, format);
+    const index = usePrecision ? formatted.lastIndexOf(decimal) : formatted.length;
     return {
-        accessiblePrice,
         currencySymbol,
-        decimals,
-        decimalsDelimiter,
+        decimals: formatted.substring(index + 1),
+        decimalsDelimiter: usePrecision ? decimal : '',
         hasCurrencySpace,
-        integer,
+        integer: formatted.substring(0, index),
         isCurrencyFirst,
         recurrenceTerm,
     };
 }
 
-/**
- * Formats optical price (as if it was billed monthly).
- * @param { import('./types').PriceData } data
- */
-const formatOpticalPrice = (data) => {
-    const { commitment, term, usePrecision } = data;
-    const divisor = opticalPriceDivisors[term] ?? 1;
-    return formatPrice(data, divisor > 1 ? RecurrenceTerm.MONTH : recurrenceTerms[commitment]?.[term], (price) => {
-        const priceData = {
-            divisor,
-            price,
-            usePrecision,
-        };
-        const { round } = opticalPriceRoundingRules.find(({ accept }) => accept(priceData));
-        return round(priceData);
-    });
-};
+export const formatRegularPrice = (data) => formatPrice(data, data.price, getRecurrenceTerm(data.commitment, data.term));
 
-/**
- * Formats regular price.
- * @param { import('./types').PriceData } data
- */
-const formatRegularPrice = ({ commitment, term, ...data }) => formatPrice(data, recurrenceTerms[commitment]?.[term]);
-
-/**
- * Creates a function that calculates the annual price with promotion applied.
- *
- * @param {object} data - The data object containing price and priceWithoutDiscount
- * @returns {function(number): number} A function that takes a monthly price and returns the calculated annual price with promotion
- *
- */
-const formatAnnualPrice = (data) => {
-    const { commitment, instant, price, originalPrice, priceWithoutDiscount, promotion, quantity = 1, term } = data;
-    if (commitment === Commitment.YEAR && term === Term.MONTHLY) {
-        if (!promotion) {
-            return formatPrice(data, RecurrenceTerm.YEAR, getAnnualPrice);
-        }
-        const { displaySummary: { outcomeType, duration } = {} } = promotion;
-        switch (outcomeType) {
-            case 'PERCENTAGE_DISCOUNT': {
-                if (isPromotionActive(promotion, instant, quantity)) {
-                    const durationInMonths = parseInt(duration.replace('P', '').replace('M', ''));
-                    if (isNaN(durationInMonths)) return getAnnualPrice(price);
-                    const discountPrice = originalPrice * durationInMonths;
-                    const regularPrice = priceWithoutDiscount * (12 - durationInMonths);
-                    const totalPrice = Math.round((discountPrice + regularPrice) * 100) / 100;
-                    return formatPrice({ ...data, price: totalPrice }, RecurrenceTerm.YEAR);
-                }
-            }
-            default:
-                return formatPrice(data, RecurrenceTerm.YEAR, () => getAnnualPrice(priceWithoutDiscount ?? price));
-        }
+/** Formats the price per month: exact multiples divide evenly, others round to cents or up to a unit. */
+export function formatOpticalPrice(data) {
+    const { commitment, term, price, usePrecision } = data;
+    const divisor = OPTICAL_DIVISORS[term] ?? 1;
+    let amount = price / divisor;
+    if (price % divisor != 0) {
+        amount = usePrecision ? Math.round(amount * 100) / 100 : Math.ceil(Math.floor((price * 100) / divisor) / 100);
     }
-    return formatPrice(data, recurrenceTerms[commitment]?.[term]);
-};
+    return formatPrice(data, amount, divisor > 1 ? 'MONTH' : getRecurrenceTerm(commitment, term));
+}
 
-export {
-    formatOpticalPrice,
-    formatRegularPrice,
-    formatAnnualPrice,
-    makeSpacesAroundNonBreaking,
-    isPromotionActive,
-    selectPreformattedPrice,
-};
+/**
+ * Formats the yearly total of an ABM offer, weighting an active percentage
+ * promotion by its duration in months; other offers format as regular prices.
+ */
+export function formatAnnualPrice(data) {
+    const { commitment, term, instant, price, originalPrice, priceWithoutDiscount, promotion, quantity } = data;
+    if (commitment !== Commitment.YEAR || term !== Term.MONTHLY) return formatRegularPrice(data);
+    if (!promotion) return formatPrice(data, price * 12, 'YEAR');
+    const { displaySummary: { outcomeType, duration } = {} } = promotion;
+    if (outcomeType === 'PERCENTAGE_DISCOUNT' && isPromotionActive(promotion, instant, quantity)) {
+        const months = parseInt(duration.replace('P', '').replace('M', ''));
+        // Legacy contract: a non-numeric duration returns the bare annual amount.
+        if (isNaN(months)) return price * 12;
+        const total = Math.round((originalPrice * months + priceWithoutDiscount * (12 - months)) * 100) / 100;
+        return formatPrice(data, total, 'YEAR');
+    }
+    return formatPrice(data, (priceWithoutDiscount ?? price) * 12, 'YEAR');
+}

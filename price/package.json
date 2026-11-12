@@ -7,7 +7,6 @@
     "exports": {
         ".": "./src/index.js",
         "./constants": "./src/constants.js",
-        "./price": "./src/price/index.js",
         "./price/template": "./src/price/template.js",
         "./price/utilities": "./src/price/utilities.js",
         "./price/legal": "./src/price/legal.js",

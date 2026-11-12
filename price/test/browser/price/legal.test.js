@@ -25,7 +25,6 @@ describe('function "createLegalTemplate"', () => {
                 literals: { planTypeLabel: 'Annual, billed monthly' },
             },
             { planType: 'ABM' },
-            {},
         );
 
     it('lowercases the plan type first letter when planTypeCase is lower', () => {
@@ -43,7 +42,6 @@ describe('function "createLegalTemplate"', () => {
                     literals: { planTypeLabel: 'annual, billed monthly' },
                 },
                 { planType: 'ABM' },
-                {},
             ),
         ).to.contain('Annual, billed monthly');
     });
@@ -71,7 +69,6 @@ describe('function "createLegalTemplate"', () => {
                     taxTerm: 'VAT',
                     planType: 'ABM',
                 },
-                {},
             ),
         );
     });
@@ -96,7 +93,6 @@ describe('function "createLegalTemplate"', () => {
                     taxTerm: 'VAT',
                     planType: 'ABM',
                 },
-                {},
             ),
         );
     });
@@ -120,7 +116,6 @@ describe('function "createLegalTemplate"', () => {
                     taxTerm: 'TAX',
                     planType: 'ABM',
                 },
-                {},
             ),
         );
     });

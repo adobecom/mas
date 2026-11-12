@@ -2,37 +2,28 @@ import { writeFileSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { build } from 'esbuild';
 import { cssLoader } from './css-loader.mjs';
+import {
+    commerceOptions,
+    defaults as bundleDefaults,
+    priceLiteralsBanner,
+} from './scripts/bundles.mjs';
 
 const outfolder = './dist';
 
 // Note: minifyIdentifiers can differ between macOS arm64 and Linux x64.
 // Always run this build on Linux (ubuntu-latest) before committing dist files.
 const defaults = {
-    bundle: true,
-    format: 'esm',
+    ...bundleDefaults,
     minify: !process.argv.includes('no-minify'),
     sourcemap: process.argv.includes('sourcemap'),
-    platform: 'browser',
-    target: ['es2020'],
-    plugins: [cssLoader()],
 };
-
-// Read the price-literals.js file content
-const priceLiteralsContent = readFileSync('./price-literals.json', 'utf-8');
 
 // commerce.js
 const { metafile } = await build({
+    ...commerceOptions,
     ...defaults,
-    alias: {
-        react: 'test/mocks/react.js',
-    },
-    entryPoints: ['./src/commerce.js'],
     outfile: `${outfolder}/commerce.js`,
     metafile: true,
-    platform: 'browser',
-    banner: {
-        js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
-    },
 });
 writeFileSync(`commerce.json`, JSON.stringify(metafile));
 
@@ -48,9 +39,7 @@ await build({
     ...defaults,
     entryPoints: ['./src/mas.js'],
     outfile: './dist/mas.js',
-    banner: {
-        js: `window.masPriceLiterals = ${priceLiteralsContent}.data;`,
-    },
+    banner: priceLiteralsBanner,
 });
 
 // Template bundles. A page loads merch-card.js and, in parallel, the bundle its

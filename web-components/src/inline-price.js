@@ -6,7 +6,7 @@ import {
 } from './constants.js';
 import { createMasElement, MasElement } from './mas-element.js';
 import { getService } from './utilities.js';
-import { selectOffers, sumOffers } from '../../price/src/index.js';
+import { selectOffers, sumOffers } from '../../price/src/offers.js';
 import { Defaults } from './defaults.js';
 import {
     defaultLiterals,
@@ -446,7 +446,11 @@ export class InlinePrice extends (globalThis.HTMLSpanElement ?? class {}) {
 
     connectedCallback() {
         this.masElement.connectedCallback();
-        this.addEventListener('click', this.handleClick);
+        // only prices inside a link or button need the re-dispatch; a click
+        // listener on plain text makes screen readers announce it as "clickable"
+        if (this.closest('a, button')) {
+            this.addEventListener('click', this.handleClick);
+        }
     }
 
     disconnectedCallback() {

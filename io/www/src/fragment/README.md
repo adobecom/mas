@@ -19,7 +19,7 @@ that each stand behind so called transformers. To optimize calls make to odin, t
 `transformers/render.js` is available for direct execution only. It is **not**
 registered in the pipeline, and does not change production responses or fetch
 offers. It imports the shared framework-free implementation directly from
-`price/src/index.js` via a relative path, following the server's existing
+`price/src/price.js` and `price/src/offers.js` via relative paths, following the server's existing
 cross-directory import convention. No installed price package or workspace
 symlink is required; keep the repository's `price/src/` directory alongside
 `io/www` when running or bundling the server. `parse5` remains a runtime dependency.
@@ -77,7 +77,7 @@ parameters. These are prerequisites for the separate activation ticket.
 The selected cache is `context.body.wcs[environment]`. Cache keys follow the WCS
 producer: final OSI, lowercased country, `mult` except for GB, then the lowercased
 effective promotion code if present. Raw cached offers are copied and normalized
-using `applyPlanType` imported from `price/src/index.js` before offer
+using `applyPlanType` imported from `price/src/offers.js` before offer
 selection. Its mapping preserves the browser's existing tacocat behavior;
 web-components is unchanged and continues using its current helper.
 The server does not depend on Dexter or Pandora for normalization.

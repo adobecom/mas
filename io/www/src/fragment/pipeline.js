@@ -4,6 +4,8 @@ import {
     extractContextFromMetadata,
     getRequestMetadata,
     getStoredResponse,
+    rereadRequestMetadata,
+    usesStoredResponse,
     STALE_MAX_AGE,
     storeRequestMetadata,
 } from './utils/cache.js';
@@ -243,7 +245,8 @@ async function mainProcess(context) {
     // The request cache key is captured once, here — before that restriction happens — so the read
     // and the write below always agree on the same key, regardless of how context.country changes
     // mid-pipeline.
-    const { requestKey, cachedMetadata, cachedResponse } = await getRequestMetadata(context);
+    const { requestKey, ...cached } = await getRequestMetadata(context);
+    let { cachedMetadata, cachedResponse } = cached;
     const storedResponse = (body, cache, note = '') => {
         const { hash, lastModified, refreshedAt } = cachedMetadata;
         const response = successResponse(context, { hash, lastModified: new Date(lastModified), body });
@@ -251,6 +254,14 @@ async function mainProcess(context) {
     };
     const storedBody = getStoredResponse(cachedMetadata, cachedResponse);
     if (storedBody) return storedResponse(storedBody, 'hit');
+    // The memory copies can be up to a minute old: before rebuilding, check whether another container refreshed State.
+    if (cachedMetadata && usesStoredResponse(context) && !rebuilds.has(requestKey)) {
+        const reread = await rereadRequestMetadata(context, requestKey);
+        cachedMetadata = reread.cachedMetadata ?? cachedMetadata;
+        cachedResponse = reread.cachedResponse ?? cachedResponse;
+        const rereadBody = getStoredResponse(cachedMetadata, cachedResponse);
+        if (rereadBody) return storedResponse(rereadBody, 'hit', ', re-read from State');
+    }
     // Concurrent requests for the same key in this container get the previous stored response when it is less than
     // STALE_MAX_AGE old, or wait for the rebuild already in progress otherwise.
     // `instant` (time travelling) requests neither register nor join rebuilds: theirs is for another date.

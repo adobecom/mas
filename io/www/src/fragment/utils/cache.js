@@ -52,6 +52,21 @@ async function getRequestMetadata(context) {
     return { requestKey, cachedMetadata: cachedMetadata ?? null, cachedResponse: cachedResponse ?? null };
 }
 
+/**
+ * Re-reads the request metadata and the stored response from State, bypassing (and updating) the memory copies:
+ * another container may have refreshed them since this one copied them.
+ */
+async function rereadRequestMetadata(context, requestKey) {
+    const responseKey = getResponseKey(requestKey);
+    const [cachedMetadata, cachedResponse] = await Promise.all([
+        readState(requestKey, context),
+        readState(responseKey, context),
+    ]);
+    if (cachedMetadata) metadataCache.set(context, requestKey, cachedMetadata);
+    if (cachedResponse) responseCache.set(context, responseKey, cachedResponse);
+    return { cachedMetadata, cachedResponse };
+}
+
 /** Returns the stored encoded body when it matches the metadata hash and was refreshed less than `maxAge` ago. */
 function getStoredResponse(cachedMetadata, cachedResponse, maxAge = RESPONSE_MAX_AGE) {
     if (!cachedResponse || cachedResponse.hash !== cachedMetadata?.hash) return null;
@@ -122,6 +137,8 @@ function clearRequestCaches() {
 export {
     STALE_MAX_AGE,
     getRequestMetadata,
+    rereadRequestMetadata,
+    usesStoredResponse,
     getStoredResponse,
     extractContextFromMetadata,
     storeRequestMetadata,

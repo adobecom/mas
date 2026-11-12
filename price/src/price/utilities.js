@@ -57,7 +57,8 @@ function formatNumber(amount, digits, { decimal, separator, group }) {
  * pre-split leaf (`preformatted`) is used verbatim, with the symbol and its
  * placement from `priceInfoFormat` when present. Otherwise `usePrecision`
  * true renders the mask's decimals separately, undefined keeps them in the
- * integer part, and any other value rounds to an integer.
+ * integer part, and any other value rounds to an integer; an amount that is
+ * not a number throws.
  */
 function formatPrice({ formatString, usePrecision, isIndianPrice, preformatted, priceInfoFormat }, amount, recurrenceTerm) {
     const format = parseFormat(formatString);
@@ -73,6 +74,9 @@ function formatPrice({ formatString, usePrecision, isIndianPrice, preformatted, 
             recurrenceTerm,
         };
     }
+    // An amount that is not a number (e.g. a promo-weighted total missing the
+    // undiscounted price) fails the price rather than rendering "NaN".
+    if (isNaN(amount)) throw new Error(`Invalid price amount: ${amount}`);
     // India groups digits in lakh/crore, which the mask cannot express.
     const formatted = isIndianPrice
         ? amount.toLocaleString('hi-IN', {

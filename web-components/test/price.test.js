@@ -294,6 +294,43 @@ describe('class "InlinePrice"', () => {
         expect(inlinePrice.innerHTML).to.be.empty;
     });
 
+    it('fails instead of rendering NaN for an amount that cannot be priced', async () => {
+        const service = await initMasCommerceService();
+        // An active annual percentage promotion without an undiscounted price.
+        sinon.stub(service, 'resolveOfferSelectors').returns([
+            Promise.resolve([
+                {
+                    ...structuredClone(baseOffer),
+                    promotion: {
+                        ...structuredClone(promotion),
+                        end: '2099-01-01T00:00:00.000Z',
+                    },
+                    priceDetails: {
+                        ...baseOffer.priceDetails,
+                        priceWithoutDiscount: undefined,
+                    },
+                },
+            ]),
+        ]);
+        const inlinePrice = mockInlinePrice('nanAmount', 'abm', {
+            displayAnnual: true,
+            promotionCode: 'PROMO',
+        });
+        const failures = [];
+        inlinePrice.addEventListener('mas:failed', (event) =>
+            failures.push(event.detail.message),
+        );
+        const error = await inlinePrice.onceSettled().then(
+            () => null,
+            (reason) => reason,
+        );
+        expect(error?.message).to.equal('Invalid price amount: NaN');
+        expect(failures).to.include('Invalid price amount: NaN');
+        expect(inlinePrice.masElement.state).to.equal(STATE_FAILED);
+        expect(inlinePrice.classList.contains('placeholder-failed')).to.be.true;
+        expect(inlinePrice.innerHTML).to.be.empty;
+    });
+
     it('renders "no price available" fallback when a prefilled WCS cache entry is empty', async () => {
         const commerce = await initMasCommerceService();
         commerce.prefillWcsCache({

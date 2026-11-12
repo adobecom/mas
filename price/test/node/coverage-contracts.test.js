@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { buildPriceHTML } from '../../src/index.js';
 import { toBoolean } from '../../src/helpers.js';
 import { discount } from '../../src/discount/index.js';
 import { legalTemplate } from '../../src/price/legal.js';
@@ -80,6 +81,20 @@ describe('currency format contracts', () => {
     it('renders the mask decimals as integer digits without a precision flag', () => {
         const { integer, decimalsDelimiter, decimals } = formatRegularPrice({ ...value, usePrecision: undefined });
         assert.deepEqual([integer, decimalsDelimiter, decimals], ['29.99', '', '']);
+    });
+    it('fails an amount that is not a number instead of rendering it', () => {
+        for (const isIndianPrice of [false, true]) {
+            assert.throws(() => formatRegularPrice({ ...value, price: NaN, isIndianPrice }), /Invalid price amount: NaN/);
+        }
+    });
+    it('still renders a WCS leaf for an amount that is not a number', () => {
+        const preformatted = { integer: '29', decimals: '99', full: '29.99' };
+        assert.equal(formatRegularPrice({ ...value, price: NaN, preformatted }).integer, '29');
+    });
+    it('fails an active annual percentage promotion without an undiscounted price', () => {
+        const offer = { ...baseOffer, promotion, priceDetails: { ...baseOffer.priceDetails, priceWithoutDiscount: undefined } };
+        const promoOptions = { ...options, instant, displayAnnual: true, promotionCode: 'PROMO' };
+        assert.throws(() => buildPriceHTML([offer], promoOptions), /Invalid price amount: NaN/);
     });
     it('groups Indian prices in lakhs and crores', () => {
         const parts = (usePrecision) => formatRegularPrice({ ...value, price: 12345678.9, usePrecision, isIndianPrice: true });

@@ -1342,6 +1342,167 @@ describe('customize baselines', function () {
         expect(fields.features.value).to.deep.equal(['base', 'own']);
         expect(fields.backgrounds).to.deep.equal([]);
     });
+
+    describe('baseline layers', function () {
+        const processLayers = (fields, template, segment) =>
+            process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: { id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields, references: {}, referencesTree: [] },
+                baselines: {
+                    card: {
+                        fragmentBaseline: baseline('template', template),
+                        fragmentSegmentBaseline: baseline('segment', segment),
+                    },
+                },
+            });
+
+        it('keeps a lower baseline value when a higher baseline field is empty', async function () {
+            const result = await processLayers(
+                {},
+                { subtitle: 'Template subtitle', callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+                { subtitle: '', callout: { mimeType: 'text/html', value: '' } },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('keeps a lower baseline value when a higher baseline field is null or holds empty entries', async function () {
+            const result = await processLayers(
+                {},
+                { subtitle: 'Template subtitle', backgrounds: ['template.png'] },
+                { subtitle: null, backgrounds: [''] },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.backgrounds).to.deep.equal(['template.png']);
+        });
+
+        it('keeps a lower baseline value when a higher baseline rich text field has a null or no value', async function () {
+            const result = await processLayers(
+                {},
+                {
+                    callout: { mimeType: 'text/html', value: '<p>Template callout</p>' },
+                    description: { mimeType: 'text/html', value: '<p>Template description</p>' },
+                },
+                { callout: { mimeType: 'text/html', value: null }, description: { mimeType: 'text/html' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+            expect(result.body.fields.description.value).to.equal('<p>Template description</p>');
+        });
+
+        it('keeps a lower baseline value when a higher baseline multi-value rich text field holds empty entries', async function () {
+            const result = await processLayers(
+                {},
+                { customFields: { mimeType: 'text/html', value: ['<p>Template custom</p>'] } },
+                { customFields: { mimeType: 'text/html', value: [''] } },
+            );
+            expect(result.body.fields.customFields.value).to.deep.equal(['<p>Template custom</p>']);
+        });
+
+        it('keeps the offer icon when higher layers only hold empty icons', async function () {
+            const offerFields = { mnemonicIcon: ['offer.svg'], mnemonicAlt: ['Offer'] };
+            const result = await process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: {
+                    id: 'card',
+                    path: '/content/dam/mas/sandbox/en_US/card',
+                    fields: { mnemonicIcon: [''] },
+                    references: {},
+                    referencesTree: [],
+                },
+                baselines: { card: { offerBaseline: baseline('offer', offerFields) } },
+            });
+            expect(result.body.fields.mnemonicIcon).to.deep.equal(['offer.svg']);
+            expect(result.body.fields.mnemonicAlt).to.deep.equal(['Offer']);
+        });
+
+        it('keeps an empty card field when baselines only provide it empty', async function () {
+            const result = await processLayers({ subtitle: '' }, { subtitle: '' }, {});
+            expect(result.body.fields.subtitle).to.equal('');
+        });
+
+        it('never takes card own fields from a baseline', async function () {
+            const result = await processLayers(
+                { subtitle: 'Own subtitle' },
+                { tags: ['mas:template'], osi: 'template-osi', badge: 'Template badge' },
+                { pznTags: ['mas:pzn'], locReady: true },
+            );
+            const { fields } = result.body;
+            expect(fields).to.not.have.any.keys('tags', 'osi', 'pznTags', 'locReady');
+            expect(fields.badge).to.equal('Template badge');
+        });
+    });
+
+    describe('empty card fields', function () {
+        const processCard = (fields, baselineFields) =>
+            process({
+                ...FAKE_CONTEXT,
+                fragmentPath: 'card',
+                locale: 'en_US',
+                body: { id: 'card', path: '/content/dam/mas/sandbox/en_US/card', fields, references: {}, referencesTree: [] },
+                baselines: { card: { fragmentBaseline: baseline('template', baselineFields) } },
+            });
+
+        it('inherits a baseline value when the card text field is an empty string', async function () {
+            const result = await processCard({ subtitle: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+        });
+
+        it('inherits a baseline value when the card rich text field has an empty value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html', value: '' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('inherits a baseline value when the card rich text field has no value', async function () {
+            const result = await processCard(
+                { callout: { mimeType: 'text/html' } },
+                { callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.callout.value).to.equal('<p>Template callout</p>');
+        });
+
+        it('inherits a baseline value when the card multi-value rich text field holds empty entries', async function () {
+            const result = await processCard(
+                { customFields: { mimeType: 'text/html', value: [''] } },
+                { customFields: { mimeType: 'text/html', value: ['<p>Template custom</p>'] } },
+            );
+            expect(result.body.fields.customFields.value).to.deep.equal(['<p>Template custom</p>']);
+        });
+
+        it('inherits baseline values when the card fields are null or hold empty entries', async function () {
+            const result = await processCard(
+                { subtitle: null, backgrounds: [''] },
+                { subtitle: 'Template subtitle', backgrounds: ['template.png'] },
+            );
+            expect(result.body.fields.subtitle).to.equal('Template subtitle');
+            expect(result.body.fields.backgrounds).to.deep.equal(['template.png']);
+        });
+
+        it('clears a baseline value when the card stores the explicit empty sentinel', async function () {
+            const result = await processCard(
+                { subtitle: EXPLICIT_EMPTY_SENTINEL, callout: { mimeType: 'text/html', value: EXPLICIT_EMPTY_SENTINEL } },
+                { subtitle: 'Template subtitle', callout: { mimeType: 'text/html', value: '<p>Template callout</p>' } },
+            );
+            expect(result.body.fields.subtitle).to.equal('');
+            expect(result.body.fields.callout.value).to.equal('');
+        });
+
+        it('keeps an empty card field that no baseline provides', async function () {
+            const result = await processCard({ subtitle: '', promoText: '' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.promoText).to.equal('');
+        });
+
+        it('keeps the card own value over the baseline value', async function () {
+            const result = await processCard({ subtitle: 'Own subtitle' }, { subtitle: 'Template subtitle' });
+            expect(result.body.fields.subtitle).to.equal('Own subtitle');
+        });
+    });
 });
 
 async function process(context) {

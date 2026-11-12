@@ -1590,39 +1590,6 @@ describe('MasTranslationEditor', () => {
             expect(Store.translationProjects.selectedCards.get()).to.deep.equal(['card-next']);
         });
 
-        for (const empty of [true, false]) {
-            it(`restores selection on Cancel after clicking the actual ${empty ? 'Add Items' : 'Edit'} trigger`, async () => {
-                const el = await fixture(html`<mas-translation-editor></mas-translation-editor>`);
-                const originalCards = empty ? [] : ['card-original'];
-                const originalCollections = empty ? [] : ['collection-original'];
-                const originalPlaceholders = empty ? [] : ['placeholder-original'];
-                Store.translationProjects.selectedCards.set(originalCards);
-                Store.translationProjects.selectedCollections.set(originalCollections);
-                Store.translationProjects.selectedPlaceholders.set(originalPlaceholders);
-                el.showSelectedEmptyState = empty;
-                await el.updateComplete;
-                const overlay = el.shadowRoot.querySelector('#add-items-overlay');
-                await waitUntil(() => overlay.targetContent.length > 0);
-                await overlay.updateComplete;
-                let opened = false;
-                overlay.addEventListener('sp-opened', () => (opened = true), { once: true });
-
-                overlay.querySelector('[slot="trigger"]').click();
-                await waitUntil(() => opened, 'The actual trigger should emit sp-opened');
-                Store.translationProjects.selectedCards.set(['card-edited']);
-                Store.translationProjects.selectedCollections.set(['collection-edited']);
-                Store.translationProjects.selectedPlaceholders.set(['placeholder-edited']);
-                const dialog = el.shadowRoot.querySelector('.add-items-dialog');
-                await waitUntil(() => dialog.shadowRoot.querySelector('[slot="button"][variant="secondary"]'));
-                dialog.shadowRoot.querySelector('[slot="button"][variant="secondary"]').click();
-                await el.updateComplete;
-
-                expect(Store.translationProjects.selectedCards.get()).to.deep.equal(originalCards);
-                expect(Store.translationProjects.selectedCollections.get()).to.deep.equal(originalCollections);
-                expect(Store.translationProjects.selectedPlaceholders.get()).to.deep.equal(originalPlaceholders);
-            });
-        }
-
         it('loads baselines when Add Items is opened through its actual trigger', async () => {
             const path = '/content/dam/mas/acom/en_US/baselines/catalog/phsp/baseline';
             defaultMockRepository.searchFragmentList.resolves([

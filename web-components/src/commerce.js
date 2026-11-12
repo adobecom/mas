@@ -12,7 +12,19 @@ import { Log } from './log.js';
 import { resolvePriceTaxFlags } from './inline-price.js';
 
 import { applyPlanType } from './wcs.js';
-import { injectJsonLd } from './json-ld.js';
+
+/**
+ * Adds the schema.org Product script for a card. The code is a satellite loaded
+ * on first use: only Milo's merch-card-autoblock calls it, for `jsonld=on` links.
+ * @returns {Promise<HTMLScriptElement|null|undefined>}
+ */
+const injectJsonLd = (...args) =>
+    import('./json-ld.js')
+        .then(({ injectJsonLd: inject }) => inject(...args))
+        .catch((error) =>
+            Log.module('json-ld').error('Failed to inject JSON-LD', error),
+        );
+
 export {
     CheckoutWorkflow,
     CheckoutWorkflowStep,

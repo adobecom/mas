@@ -3,9 +3,11 @@ import { resolve } from 'node:path';
 import { build } from 'esbuild';
 import { cssLoader } from './css-loader.mjs';
 import {
+    buildSatellites,
     commerceOptions,
     defaults as bundleDefaults,
     priceLiteralsBanner,
+    satellites,
 } from './scripts/bundles.mjs';
 
 const outfolder = './dist';
@@ -18,12 +20,15 @@ const defaults = {
     sourcemap: process.argv.includes('sourcemap'),
 };
 
+const satelliteNames = new Set();
+
 // commerce.js
 const { metafile } = await build({
     ...commerceOptions,
     ...defaults,
     outfile: `${outfolder}/commerce.js`,
     metafile: true,
+    plugins: [cssLoader(), satellites(satelliteNames)],
 });
 writeFileSync(`commerce.json`, JSON.stringify(metafile));
 
@@ -34,7 +39,7 @@ const commerceModules = new Set(
 );
 const commerceExports = metafile.outputs['dist/commerce.js'].exports;
 
-// mas.js
+// mas.js (Studio) inlines the satellites
 await build({
     ...defaults,
     entryPoints: ['./src/mas.js'],
@@ -102,7 +107,8 @@ Promise.all([
         ...defaults,
         entryPoints: ['./src/mas-field.js'],
         outfile: `${outfolder}/mas-field.js`,
-    }),
+        plugins: [cssLoader(), satellites(satelliteNames)],
+    }).then(() => buildSatellites(satelliteNames, defaults)),
     buildMerchCard(),
     buildLitComponent('merch-icon'),
     buildLitComponent('merch-secure-transaction'),

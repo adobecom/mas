@@ -107,6 +107,22 @@ describe('commerce.js public contract', () => {
                 'segmentation',
             );
         });
+
+        it('injects JSON-LD through the lazy satellite', async () => {
+            const script = await commerce.injectJsonLd(
+                { cardTitle: 'Photoshop', description: 'Edit photos' },
+                {
+                    analytics: '{"currencyCode":"USD"}',
+                    priceDetails: { price: 22.99 },
+                    commitment: 'YEAR',
+                    term: 'MONTHLY',
+                },
+                null,
+                'https://www.adobe.com/products/photoshop.html',
+            );
+            expect(script.type).to.equal('application/ld+json');
+            script.remove();
+        });
     });
 
     describe('custom elements', () => {
